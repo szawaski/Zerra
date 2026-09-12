@@ -6,9 +6,9 @@
 		<TransformOutOfDateOnly>false</TransformOutOfDateOnly>
 	</PropertyGroup>
 	<ItemGroup>
-		<None Include="TypeScriptModels.tt">
+		<None Include="JavaScriptModels.tt">
 			<Generator>TextTemplatingFileGenerator</Generator>
-			<OutputFilePath>..\Arcoro.Integrations.Web.UI\src\services</OutputFilePath>
-			<LastGenOutput>TypeScriptModels.cs</LastGenOutput>
+			<OutputFilePath>..\MyWebApp\src\services</OutputFilePath>
+			<LastGenOutput>JavaScriptModels.js</LastGenOutput>
 		</None>
 	</ItemGroup>

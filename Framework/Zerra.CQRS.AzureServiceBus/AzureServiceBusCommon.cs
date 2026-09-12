@@ -2,8 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Azure;
+using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,12 +19,43 @@ namespace Zerra.CQRS.AzureServiceBus
     {
         private const int maxMessageSizeForPremium = 102400;
 
-        private static readonly SemaphoreSlim locker = new(1, 1);
-        private static readonly TimeSpan deleteWhenIdleTimeout = new(0, 5, 0);
+        //also how long a consumer keeps a reply sender to an acknowledgement queue that hasn't been used
+        public static readonly TimeSpan DeleteWhenIdleTimeout = new(0, 5, 0);
 
         public const int EntityNameMaxLength = 50;
 
         public const int RetryDelay = 5000;
+
+        private const int emulatorAdministrationPort = 5300;
+
+        //the Service Bus emulator only serves the administration API on its management port, while the connection string's endpoint is its AMQP port,
+        //so for the emulator the administration client gets the same connection string pointed at the management port
+        public static ServiceBusAdministrationClient CreateAdministrationClient(string host, ServiceBusAdministrationClientOptions? options = null)
+        {
+            var parts = host.Split(';', StringSplitOptions.RemoveEmptyEntries);
+
+            var isEmulator = false;
+            var endpointIndex = -1;
+            for (var i = 0; i < parts.Length; i++)
+            {
+                var separator = parts[i].IndexOf('=');
+                if (separator < 0)
+                    continue;
+                var key = parts[i].AsSpan(0, separator).Trim();
+                if (key.Equals("UseDevelopmentEmulator", StringComparison.OrdinalIgnoreCase))
+                    isEmulator = bool.TryParse(parts[i].AsSpan(separator + 1).Trim(), out var value) && value;
+                else if (key.Equals("Endpoint", StringComparison.OrdinalIgnoreCase))
+                    endpointIndex = i;
+            }
+
+            if (!isEmulator || endpointIndex < 0)
+                return new ServiceBusAdministrationClient(host, options ?? new());
+
+            var endpointPart = parts[endpointIndex];
+            var endpoint = new UriBuilder(endpointPart.Substring(endpointPart.IndexOf('=') + 1).Trim()) { Port = emulatorAdministrationPort };
+            parts[endpointIndex] = $"Endpoint={endpoint.Uri}";
+            return new ServiceBusAdministrationClient(String.Join(";", parts), options ?? new());
+        }
 
         public static byte[] Serialize<T>(T obj)
         {
@@ -36,157 +71,294 @@ namespace Zerra.CQRS.AzureServiceBus
             return ByteSerializer.DeserializeAsync<T>(stream);
         }
 
-        public static async Task EnsureQueue(string host, string queue, bool deleteWhenIdle)
-        {
-            var client = new ServiceBusAdministrationClient(host);
+        private static readonly ConcurrentDictionary<string, AzureServiceBusCommonNamespace> namespaces = new();
 
-            await locker.WaitAsync();
+        public static AzureServiceBusCommonNamespace GetNamespace(string host) => namespaces.TryGetValue(host, out var serviceBusNamespace) ? serviceBusNamespace : namespaces.GetOrAdd(host, static (host) => new AzureServiceBusCommonNamespace(host));
+
+        private static Dictionary<string, TValue> With<TValue>(Dictionary<string, TValue> source, string key, TValue value)
+        {
+            var copy = new Dictionary<string, TValue>(source, StringComparer.OrdinalIgnoreCase);
+            copy[key] = value;
+            return copy;
+        }
+        private static Dictionary<string, TValue> Without<TValue>(Dictionary<string, TValue> source, string key)
+        {
+            if (!source.ContainsKey(key))
+                return source;
+            var copy = new Dictionary<string, TValue>(source, StringComparer.OrdinalIgnoreCase);
+            _ = copy.Remove(key);
+            return copy;
+        }
+
+        //the message size can only be set on Premium, elsewhere it never matches and every start would update the queue or topic
+        private static bool Matches(AzureServiceBusCommonNamespace.EntitySettings settings, TimeSpan autoDeleteOnIdle, bool premium)
+            => settings.AutoDeleteOnIdle == autoDeleteOnIdle && (!premium || settings.MaxMessageSizeInKilobytes == maxMessageSizeForPremium);
+
+        //returns before its first await when the queue is known, which completes without a Task
+        public static async ValueTask EnsureQueue(AzureServiceBusCommonNamespace serviceBusNamespace, string queue, bool deleteWhenIdle)
+        {
+            var queues = serviceBusNamespace.Queues;
+            if (queues is not null && queues.TryGetValue(queue, out var settings) && Matches(settings, deleteWhenIdle ? DeleteWhenIdleTimeout : TimeSpan.MaxValue, serviceBusNamespace.Premium))
+                return;
+
+            await serviceBusNamespace.Locker.WaitAsync();
             try
             {
-                var properties = await client.GetNamespacePropertiesAsync();
-                var premium = properties.Value.MessagingSku == MessagingSku.Premium;
-                var maxMessageSizeInKilobytes = premium ? maxMessageSizeForPremium : (int?)null;
-                var autoDeleteOnIdle = deleteWhenIdle ? deleteWhenIdleTimeout : TimeSpan.MaxValue;
+                await serviceBusNamespace.Load();
 
-                if (!await client.QueueExistsAsync(queue))
+                var autoDeleteOnIdle = deleteWhenIdle ? DeleteWhenIdleTimeout : TimeSpan.MaxValue;
+                var maxMessageSizeInKilobytes = serviceBusNamespace.Premium ? maxMessageSizeForPremium : (int?)null;
+
+                if (!serviceBusNamespace.Queues!.TryGetValue(queue, out var existing))
                 {
-                    if (await client.TopicExistsAsync(queue))
-                        await client.DeleteTopicAsync(queue);
+                    if (serviceBusNamespace.Topics!.ContainsKey(queue))
+                    {
+                        try
+                        {
+                            _ = await serviceBusNamespace.Client.DeleteTopicAsync(queue);
+                        }
+                        catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
+                        {
+                        }
+                        serviceBusNamespace.Topics = Without(serviceBusNamespace.Topics, queue);
+                        serviceBusNamespace.SubscriptionsByTopic = Without(serviceBusNamespace.SubscriptionsByTopic, queue);
+                    }
 
                     var options = new CreateQueueOptions(queue)
                     {
                         AutoDeleteOnIdle = autoDeleteOnIdle,
                         MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes
                     };
-                    _ = await client.CreateQueueAsync(options);
-                }
-                else
-                {
-                    var existing = await client.GetQueueAsync(queue);
-                    if (existing.Value.AutoDeleteOnIdle != autoDeleteOnIdle ||
-                        existing.Value.MaxMessageSizeInKilobytes != maxMessageSizeForPremium)
+                    try
                     {
-                        existing.Value.AutoDeleteOnIdle = autoDeleteOnIdle;
-                        existing.Value.MaxMessageSizeInKilobytes = maxMessageSizeForPremium;
-                        _ = await client.UpdateQueueAsync(existing.Value);
+                        _ = await serviceBusNamespace.Client.CreateQueueAsync(options);
                     }
+                    //another replica created it first with the same settings, it can't be read back until its creation finishes
+                    catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
+                    {
+                    }
+                    serviceBusNamespace.Queues = With(serviceBusNamespace.Queues, queue, new AzureServiceBusCommonNamespace.EntitySettings(autoDeleteOnIdle, maxMessageSizeInKilobytes));
+                }
+                else if (!Matches(existing, autoDeleteOnIdle, serviceBusNamespace.Premium))
+                {
+                    try
+                    {
+                        QueueProperties properties = await serviceBusNamespace.Client.GetQueueAsync(queue);
+                        properties.AutoDeleteOnIdle = autoDeleteOnIdle;
+                        if (maxMessageSizeInKilobytes.HasValue)
+                            properties.MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes;
+                        _ = await serviceBusNamespace.Client.UpdateQueueAsync(properties);
+                    }
+                    //another replica is updating it to the same settings
+                    catch (ServiceBusException ex) when (ex.InnerException is RequestFailedException { Status: 409 })
+                    {
+                    }
+                    serviceBusNamespace.Queues = With(serviceBusNamespace.Queues, queue, new AzureServiceBusCommonNamespace.EntitySettings(autoDeleteOnIdle, maxMessageSizeInKilobytes));
                 }
             }
             finally
             {
-                _ = locker.Release();
+                _ = serviceBusNamespace.Locker.Release();
             }
         }
 
-        public static async Task DeleteQueue(string host, string queue)
+        //for a uniquely named queue that can't exist yet, so the namespace isn't listed
+        public static async Task CreateQueue(AzureServiceBusCommonNamespace serviceBusNamespace, string queue, bool deleteWhenIdle)
         {
-            var client = new ServiceBusAdministrationClient(host);
-
-            await locker.WaitAsync();
+            var options = new CreateQueueOptions(queue)
+            {
+                AutoDeleteOnIdle = deleteWhenIdle ? DeleteWhenIdleTimeout : TimeSpan.MaxValue,
+                MaxMessageSizeInKilobytes = await serviceBusNamespace.GetPremium() ? maxMessageSizeForPremium : null
+            };
             try
             {
-                if (await client.QueueExistsAsync(queue))
-                    _ = await client.DeleteQueueAsync(queue);
+                _ = await serviceBusNamespace.Client.CreateQueueAsync(options);
+            }
+            catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
+            {
+            }
+        }
+
+        public static Task DeleteQueue(string host, string queue) => DeleteQueue(GetNamespace(host), queue);
+
+        public static async Task DeleteQueue(AzureServiceBusCommonNamespace serviceBusNamespace, string queue)
+        {
+            await serviceBusNamespace.Locker.WaitAsync();
+            try
+            {
+                if (await serviceBusNamespace.Client.QueueExistsAsync(queue))
+                    _ = await serviceBusNamespace.Client.DeleteQueueAsync(queue);
+                if (serviceBusNamespace.Queues is not null)
+                    serviceBusNamespace.Queues = Without(serviceBusNamespace.Queues, queue);
             }
             finally
             {
-                _ = locker.Release();
+                _ = serviceBusNamespace.Locker.Release();
             }
         }
 
-        public static async Task EnsureTopic(string host, string topic, bool deleteWhenIdle)
+        //returns before its first await when the topic is known, which completes without a Task
+        public static async ValueTask EnsureTopic(AzureServiceBusCommonNamespace serviceBusNamespace, string topic, bool deleteWhenIdle)
         {
-            var client = new ServiceBusAdministrationClient(host);
+            var topics = serviceBusNamespace.Topics;
+            if (serviceBusNamespace.Queues is not null && topics is not null && topics.TryGetValue(topic, out var settings) && Matches(settings, deleteWhenIdle ? DeleteWhenIdleTimeout : TimeSpan.MaxValue, serviceBusNamespace.Premium))
+                return;
 
-            await locker.WaitAsync();
+            await serviceBusNamespace.Locker.WaitAsync();
             try
             {
-                var properties = await client.GetNamespacePropertiesAsync();
-                var premium = properties.Value.MessagingSku == MessagingSku.Premium;
-                var maxMessageSizeInKilobytes = premium ? maxMessageSizeForPremium : (int?)null;
-                var autoDeleteOnIdle = deleteWhenIdle ? deleteWhenIdleTimeout : TimeSpan.MaxValue;
+                await serviceBusNamespace.Load();
 
-                if (!await client.TopicExistsAsync(topic))
+                var autoDeleteOnIdle = deleteWhenIdle ? DeleteWhenIdleTimeout : TimeSpan.MaxValue;
+                var maxMessageSizeInKilobytes = serviceBusNamespace.Premium ? maxMessageSizeForPremium : (int?)null;
+
+                if (!serviceBusNamespace.Topics!.TryGetValue(topic, out var existing))
                 {
-                    if (await client.QueueExistsAsync(topic))
-                        await client.DeleteQueueAsync(topic);
+                    if (serviceBusNamespace.Queues!.ContainsKey(topic))
+                    {
+                        try
+                        {
+                            _ = await serviceBusNamespace.Client.DeleteQueueAsync(topic);
+                        }
+                        catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
+                        {
+                        }
+                        serviceBusNamespace.Queues = Without(serviceBusNamespace.Queues, topic);
+                    }
 
                     var options = new CreateTopicOptions(topic)
                     {
                         AutoDeleteOnIdle = autoDeleteOnIdle,
                         MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes
                     };
-                    _ = await client.CreateTopicAsync(options);
-                }
-                else
-                {
-                    var existing = await client.GetTopicAsync(topic);
-                    if (existing.Value.AutoDeleteOnIdle != autoDeleteOnIdle ||
-                        existing.Value.MaxMessageSizeInKilobytes != maxMessageSizeForPremium)
+                    try
                     {
-                        existing.Value.AutoDeleteOnIdle = autoDeleteOnIdle;
-                        existing.Value.MaxMessageSizeInKilobytes = maxMessageSizeForPremium;
-                        _ = await client.UpdateTopicAsync(existing.Value);
+                        _ = await serviceBusNamespace.Client.CreateTopicAsync(options);
                     }
-                }
-            }
-            finally
-            {
-                _ = locker.Release();
-            }
-        }
-
-        public static async Task DeleteTopic(string host, string topic)
-        {
-            var client = new ServiceBusAdministrationClient(host);
-
-            await locker.WaitAsync();
-            try
-            {
-                if (await client.TopicExistsAsync(topic))
-                    _ = await client.DeleteTopicAsync(topic);
-            }
-            finally
-            {
-                _ = locker.Release();
-            }
-        }
-
-        public static async Task EnsureSubscription(string host, string topic, string subscription, bool deleteWhenIdle)
-        {
-            var client = new ServiceBusAdministrationClient(host);
-
-            await locker.WaitAsync();
-            try
-            {
-                if (!await client.SubscriptionExistsAsync(topic, subscription))
-                {
-                    var options = new CreateSubscriptionOptions(topic, subscription)
+                    //another replica created it first with the same settings, it can't be read back until its creation finishes
+                    catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
                     {
-                        AutoDeleteOnIdle = deleteWhenIdle ? deleteWhenIdleTimeout : TimeSpan.MaxValue
-                    };
-                    _ = await client.CreateSubscriptionAsync(options);
+                    }
+                    serviceBusNamespace.Topics = With(serviceBusNamespace.Topics, topic, new AzureServiceBusCommonNamespace.EntitySettings(autoDeleteOnIdle, maxMessageSizeInKilobytes));
+                }
+                else if (!Matches(existing, autoDeleteOnIdle, serviceBusNamespace.Premium))
+                {
+                    try
+                    {
+                        TopicProperties properties = await serviceBusNamespace.Client.GetTopicAsync(topic);
+                        properties.AutoDeleteOnIdle = autoDeleteOnIdle;
+                        if (maxMessageSizeInKilobytes.HasValue)
+                            properties.MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes;
+                        _ = await serviceBusNamespace.Client.UpdateTopicAsync(properties);
+                    }
+                    //another replica is updating it to the same settings
+                    catch (ServiceBusException ex) when (ex.InnerException is RequestFailedException { Status: 409 })
+                    {
+                    }
+                    serviceBusNamespace.Topics = With(serviceBusNamespace.Topics, topic, new AzureServiceBusCommonNamespace.EntitySettings(autoDeleteOnIdle, maxMessageSizeInKilobytes));
                 }
             }
             finally
             {
-                _ = locker.Release();
+                _ = serviceBusNamespace.Locker.Release();
             }
         }
 
-        public static async Task DeleteSubscription(string host, string topic, string subscription)
-        {
-            var client = new ServiceBusAdministrationClient(host);
+        public static Task DeleteTopic(string host, string topic) => DeleteTopic(GetNamespace(host), topic);
 
-            await locker.WaitAsync();
+        public static async Task DeleteTopic(AzureServiceBusCommonNamespace serviceBusNamespace, string topic)
+        {
+            await serviceBusNamespace.Locker.WaitAsync();
             try
             {
-                if (await client.SubscriptionExistsAsync(topic, subscription))
-                    _ = await client.DeleteSubscriptionAsync(topic, subscription);
+                if (await serviceBusNamespace.Client.TopicExistsAsync(topic))
+                    _ = await serviceBusNamespace.Client.DeleteTopicAsync(topic);
+                if (serviceBusNamespace.Topics is not null)
+                    serviceBusNamespace.Topics = Without(serviceBusNamespace.Topics, topic);
+                serviceBusNamespace.SubscriptionsByTopic = Without(serviceBusNamespace.SubscriptionsByTopic, topic);
             }
             finally
             {
-                _ = locker.Release();
+                _ = serviceBusNamespace.Locker.Release();
+            }
+        }
+
+        //returns before its first await when the subscription is known, which completes without a Task
+        public static async ValueTask EnsureSubscription(AzureServiceBusCommonNamespace serviceBusNamespace, string topic, string subscription, bool deleteWhenIdle)
+        {
+            if (serviceBusNamespace.SubscriptionsByTopic.TryGetValue(topic, out var known) && known.Contains(subscription))
+                return;
+
+            await serviceBusNamespace.Locker.WaitAsync();
+            try
+            {
+                if (!serviceBusNamespace.SubscriptionsByTopic.TryGetValue(topic, out var subscriptions))
+                {
+                    subscriptions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    await foreach (var existing in serviceBusNamespace.Client.GetSubscriptionsAsync(topic))
+                        _ = subscriptions.Add(existing.SubscriptionName);
+                    serviceBusNamespace.SubscriptionsByTopic = With(serviceBusNamespace.SubscriptionsByTopic, topic, subscriptions);
+                }
+                if (subscriptions.Contains(subscription))
+                    return;
+
+                var options = new CreateSubscriptionOptions(topic, subscription)
+                {
+                    AutoDeleteOnIdle = deleteWhenIdle ? DeleteWhenIdleTimeout : TimeSpan.MaxValue
+                };
+                try
+                {
+                    _ = await serviceBusNamespace.Client.CreateSubscriptionAsync(options);
+                }
+                catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
+                {
+                    //another replica created it first
+                }
+                serviceBusNamespace.SubscriptionsByTopic = With(serviceBusNamespace.SubscriptionsByTopic, topic, new HashSet<string>(subscriptions, StringComparer.OrdinalIgnoreCase) { subscription });
+            }
+            finally
+            {
+                _ = serviceBusNamespace.Locker.Release();
+            }
+        }
+
+        public static Task DeleteSubscription(string host, string topic, string subscription) => DeleteSubscription(GetNamespace(host), topic, subscription);
+
+        public static async Task DeleteSubscription(AzureServiceBusCommonNamespace serviceBusNamespace, string topic, string subscription)
+        {
+            await serviceBusNamespace.Locker.WaitAsync();
+            try
+            {
+                if (await serviceBusNamespace.Client.SubscriptionExistsAsync(topic, subscription))
+                    _ = await serviceBusNamespace.Client.DeleteSubscriptionAsync(topic, subscription);
+                if (serviceBusNamespace.SubscriptionsByTopic.TryGetValue(topic, out var subscriptions) && subscriptions.Contains(subscription))
+                {
+                    var remaining = new HashSet<string>(subscriptions, StringComparer.OrdinalIgnoreCase);
+                    _ = remaining.Remove(subscription);
+                    serviceBusNamespace.SubscriptionsByTopic = With(serviceBusNamespace.SubscriptionsByTopic, topic, remaining);
+                }
+            }
+            finally
+            {
+                _ = serviceBusNamespace.Locker.Release();
+            }
+        }
+
+        //an entity deleted outside of this process is still in the lists, a consumer that fails forgets it so the next ensure checks the namespace again
+        public static async Task Forget(AzureServiceBusCommonNamespace serviceBusNamespace, string queueOrTopic)
+        {
+            await serviceBusNamespace.Locker.WaitAsync();
+            try
+            {
+                if (serviceBusNamespace.Queues is not null)
+                    serviceBusNamespace.Queues = Without(serviceBusNamespace.Queues, queueOrTopic);
+                if (serviceBusNamespace.Topics is not null)
+                    serviceBusNamespace.Topics = Without(serviceBusNamespace.Topics, queueOrTopic);
+                serviceBusNamespace.SubscriptionsByTopic = Without(serviceBusNamespace.SubscriptionsByTopic, queueOrTopic);
+            }
+            finally
+            {
+                _ = serviceBusNamespace.Locker.Release();
             }
         }
 

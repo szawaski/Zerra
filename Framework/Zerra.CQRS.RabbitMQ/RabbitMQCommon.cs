@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using RabbitMQ.Client;
 using Zerra.Serialization.Bytes;
 
 namespace Zerra.CQRS.RabbitMQ
@@ -12,6 +13,17 @@ namespace Zerra.CQRS.RabbitMQ
         public const int TopicMaxLength = 255;
 
         public const int RetryDelay = 5000;
+
+        //an AMQP URI (amqp://user:password@host:port/vhost, amqps:// for TLS) configures the whole connection, otherwise the value is only the host name
+        public static ConnectionFactory CreateConnectionFactory(string host)
+        {
+            var factory = new ConnectionFactory();
+            if (host.Contains("://"))
+                factory.Uri = new Uri(host);
+            else
+                factory.HostName = host;
+            return factory;
+        }
 
         public static byte[] Serialize(object obj)
         {

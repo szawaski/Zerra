@@ -32,7 +32,10 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly object isOpenLock = new object();
 
             private IModel? channel = null;
-            private SemaphoreSlim? throttle = null;
+            private readonly SemaphoreSlim throttle;
+            private string? cancelledConsumerTag = null;
+            private readonly object cancelLock = new();
+            private volatile bool receiveLimitReached = false;
 
             public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
@@ -50,6 +53,8 @@ namespace Zerra.CQRS.RabbitMQ
                 this.handlerAwaitAsync = handlerAwaitAsync;
                 this.handlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
                 this.canceller = new CancellationTokenSource();
+                //one throttle for the life of the consumer, reconnecting keeps the permits held by commands still being handled
+                this.throttle = new SemaphoreSlim(this.maxConcurrent, this.maxConcurrent);
             }
 
             public void Open(IConnection connection)
@@ -67,9 +72,6 @@ namespace Zerra.CQRS.RabbitMQ
             {
             retry:
 
-                throttle?.Dispose();
-                throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-
                 try
                 {
                     if (this.channel is not null)
@@ -79,19 +81,56 @@ namespace Zerra.CQRS.RabbitMQ
                     this.channel.BasicQos(0, (ushort)maxConcurrent, false);
                     this.channel.ExchangeDeclare(this.topic, ExchangeType.Direct);
 
-                    var queue = this.channel.QueueDeclare(String.Empty, false, true, true);
+                    //named for the topic so every replica consumes the same queue and each command is handled once.
+                    //durable because a broker refuses a transient queue that isn't exclusive, it only makes the queue survive a restart and
+                    //the messages are still transient; auto delete still takes the queue with the last replica to disconnect
+                    var queue = this.channel.QueueDeclare(this.topic, true, false, true);
                     this.channel.QueueBind(queue.QueueName, this.topic, String.Empty);
 
                     var consumer = new AsyncEventingBasicConsumer(this.channel);
 
                     consumer.Received += async (sender, e) =>
                     {
+                        if (receiveLimitReached)
+                        {
+                            //waits for a cancel in progress so the command put back can't be sent here again
+                            StopReceiving(consumer, e.ConsumerTag);
+                            Requeue(consumer, e.DeliveryTag);
+                            return;
+                        }
+
                         await throttle.WaitAsync(canceller.Token);
 
                         if (!commandCounter.BeginReceive())
+                        {
+                            _ = throttle.Release();
+                            StopReceiving(consumer, e.ConsumerTag);
+                            Requeue(consumer, e.DeliveryTag);
                             return; //don't receive anymore, externally will be shutdown
+                        }
 
-                        this.channel.BasicAck(e.DeliveryTag, false);
+                        //cancelled before the ack, otherwise the broker keeps sending commands here that would have to be put back
+                        if (commandCounter.ReceiveLimitReached)
+                            StopReceiving(consumer, e.ConsumerTag);
+
+                        try
+                        {
+                            //delivery tags belong to the channel that delivered, a reconnect may have replaced this.channel while waiting on the throttle
+                            consumer.Model.BasicAck(e.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            //the channel closed, the broker redelivers the unacknowledged message after reconnecting
+                            _ = Log.ErrorAsync(topic, ex);
+                            commandCounter.CancelReceive(throttle);
+                            //the consumer was cancelled for this command, which can be received again
+                            if (receiveLimitReached)
+                            {
+                                receiveLimitReached = false;
+                                _ = Task.Run(() => ListeningThread(connection));
+                            }
+                            return;
+                        }
 
                         object? result = null;
                         Exception? error = null;
@@ -169,7 +208,9 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.ConsumerCancelled += (sender, e) =>
                     {
-                        _ = Task.Run(() => ListeningThread(connection));
+                        //disposing closes the channel which also cancels the consumer, that shouldn't start listening again, nor should cancelling at the limit
+                        if (!canceller.IsCancellationRequested && !e.ConsumerTags.Contains(Volatile.Read(ref cancelledConsumerTag)))
+                            _ = Task.Run(() => ListeningThread(connection));
                         return Task.CompletedTask;
                     };
 
@@ -177,10 +218,10 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(topic, ex);
-
                     if (!canceller.IsCancellationRequested)
                     {
+                        _ = Log.ErrorAsync(topic, ex);
+
                         if (channel is not null)
                         {
                             channel.Close();
@@ -193,12 +234,47 @@ namespace Zerra.CQRS.RabbitMQ
                 }
             }
 
+            private void StopReceiving(AsyncEventingBasicConsumer consumer, string consumerTag)
+            {
+                receiveLimitReached = true;
+                //only cancelled once, a second caller waits for the broker to confirm it
+                lock (cancelLock)
+                {
+                    if (cancelledConsumerTag == consumerTag)
+                        return;
+                    try
+                    {
+                        consumer.Model.BasicCancel(consumerTag);
+                    }
+                    catch (Exception ex)
+                    {
+                        _ = Log.ErrorAsync(topic, ex);
+                    }
+                    Volatile.Write(ref cancelledConsumerTag, consumerTag);
+                }
+            }
+
+            private void Requeue(AsyncEventingBasicConsumer consumer, ulong deliveryTag)
+            {
+                try
+                {
+                    consumer.Model.BasicNack(deliveryTag, false, true);
+                }
+                catch (Exception ex)
+                {
+                    _ = Log.ErrorAsync(topic, ex);
+                }
+            }
+
             public void Dispose()
             {
                 canceller.Cancel();
                 canceller.Dispose();
 
-                throttle?.Dispose();
+                //the throttle is not disposed: handlers still running after Dispose release it, and a disposed SemaphoreSlim throws ObjectDisposedException on Release
+                //this isn't a leak, SemaphoreSlim.Dispose only frees the wait handle that AvailableWaitHandle creates on first use, which nothing reads,
+                //the rest is managed memory with no finalizer that the GC reclaims once nothing references it
+                //if AvailableWaitHandle is ever used, dispose it once every handler that could release it has finished
 
                 if (channel is not null)
                 {

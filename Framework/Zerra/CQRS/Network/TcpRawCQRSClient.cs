@@ -68,6 +68,7 @@ namespace Zerra.CQRS.Network
                 var buffer = bufferOwner.AsMemory();
 
                 var requireNewConnection = false;
+                var responseStarted = false; //once the server responds it has the request, retrying on a new connection could run it twice
             newconnection:
                 try
                 {
@@ -75,12 +76,12 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.ProviderType, contentType);
 
 #if NETSTANDARD2_0
-                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection);
+                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection);
 #else
-                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, buffer.Span.Slice(0, requestHeaderLength), requireNewConnection);
+                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, ReadOnlySpan<byte>.Empty, requireNewConnection);
 #endif
 
-                    requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
+                    requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
                     if (symmetricConfig is not null)
                     {
@@ -113,7 +114,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.IsNewConnection)
+                            if (stream.IsNewConnection || responseStarted)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -126,16 +127,17 @@ namespace Zerra.CQRS.Network
                             }
                         }
                         headerLength += bytesRead;
+                        responseStarted = true;
 
-                        requestHeaderEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
+                        requestHeaderEnd = TcpRawCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
-                    var responseHeader = TcpRawCommon.ReadHeader(buffer, headerPosition, headerLength);
+                    var responseHeader = TcpRawCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
                     if (isStream)
-                        responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer.ToArray(), false);
+                        responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
                     else
-                        responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false);
+                        responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false, endOnPeerSilence: true); //a 5.3 server does not end an unencrypted body
 
                     if (symmetricConfig is not null)
                         responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
@@ -163,23 +165,18 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream is not null)
+                    //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCryptoStream is not null)
                     {
                         try
                         {
-                            //crypto stream can error, we want to throw the actual error
-                            responseBodyStream.Dispose();
+                            //disposing flushes its final block into the request stream, which can fail the same as the request did
+                            requestBodyCryptoStream.Dispose();
                         }
                         catch { }
                     }
                     if (requestBodyStream is not null)
-                    {
                         requestBodyStream.Dispose();
-                    }
-                    if (requestBodyCryptoStream is not null)
-                    {
-                        requestBodyCryptoStream.Dispose();
-                    }
                     if (isThrowingRemote)
                     {
                         if (stream is not null)
@@ -190,7 +187,7 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.IsNewConnection)
+                            if (!stream.IsNewConnection && !responseStarted)
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
@@ -199,6 +196,17 @@ namespace Zerra.CQRS.Network
                             }
                         }
                     }
+
+                    if (responseBodyStream is not null)
+                    {
+                        try
+                        {
+                            //crypto stream can error, we want to throw the actual error
+                            responseBodyStream.Dispose();
+                        }
+                        catch { }
+                    }
+
                     throw;
                 }
             }
@@ -239,6 +247,7 @@ namespace Zerra.CQRS.Network
                 var buffer = bufferOwner.AsMemory();
 
                 var requireNewConnection = false;
+                var responseStarted = false; //once the server responds it has the request, retrying on a new connection could run it twice
             newconnection:
                 try
                 {
@@ -246,19 +255,19 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.ProviderType, contentType);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, Memory<byte>.Empty, requireNewConnection, cancellationToken);
 #endif
 
-                    requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
+                    requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
                     if (symmetricConfig is not null)
                     {
                         requestBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, requestBodyStream, true);
                         await ContentTypeSerializer.SerializeAsync(contentType, requestBodyCryptoStream, data, cancellationToken);
 #if NET5_0_OR_GREATER
-                        await requestBodyCryptoStream.FlushFinalBlockAsync();
+                        await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                         requestBodyCryptoStream.FlushFinalBlock();
 #endif
@@ -300,7 +309,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.IsNewConnection)
+                            if (stream.IsNewConnection || responseStarted)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -313,16 +322,17 @@ namespace Zerra.CQRS.Network
                             }
                         }
                         headerLength += bytesRead;
+                        responseStarted = true;
 
-                        requestHeaderEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
+                        requestHeaderEnd = TcpRawCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
-                    var responseHeader = TcpRawCommon.ReadHeader(buffer, headerPosition, headerLength);
+                    var responseHeader = TcpRawCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
                     if (isStream)
-                        responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer.ToArray(), false);
+                        responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
                     else
-                        responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false);
+                        responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false, endOnPeerSilence: true); //a 5.3 server does not end an unencrypted body
 
                     if (symmetricConfig is not null)
                         responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
@@ -354,6 +364,61 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
+                    //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCryptoStream is not null)
+                    {
+                        try
+                        {
+                            //disposing flushes its final block into the request stream, which can fail the same as the request did
+#if NETSTANDARD2_0
+                            requestBodyCryptoStream.Dispose();
+#else
+                            await requestBodyCryptoStream.DisposeAsync();
+#endif
+                        }
+                        catch { }
+                    }
+                    if (requestBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        requestBodyStream.Dispose();
+#else
+                        await requestBodyStream.DisposeAsync();
+#endif
+                    }
+                    if (isThrowingRemote)
+                    {
+                        if (stream is not null)
+                            stream.Dispose();
+                    }
+                    else if (cancellationToken.IsCancellationRequested)
+                    {
+                        _ = Log.ErrorAsync(ex);
+                        if (stream is not null)
+                        {
+                            //only while the server has the whole request and hasn't responded, mid request the abort byte reads as request data and mid response the server is done with it
+                            var abortAcknowledged = requestBodyStream is null && !responseStarted && await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
+                            if (abortAcknowledged)
+                                stream?.Dispose();
+                            else
+                                stream?.DisposeSocket();
+                        }
+                    }
+                    else
+                    {
+                        if (stream is not null)
+                        {
+                            stream.DisposeSocket();
+                            if (!stream.IsNewConnection && !responseStarted)
+                            {
+                                _ = Log.ErrorAsync(ex);
+                                stream = null;
+                                requireNewConnection = true;
+                                goto newconnection;
+                            }
+                        }
+                    }
+
                     if (responseBodyStream is not null)
                     {
                         try
@@ -367,54 +432,7 @@ namespace Zerra.CQRS.Network
                         }
                         catch { }
                     }
-                    if (requestBodyStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyStream.Dispose();
-#else
-                        await requestBodyStream.DisposeAsync();
-#endif
-                    }
-                    if (requestBodyCryptoStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyCryptoStream.Dispose();
-#else
-                        await requestBodyCryptoStream.DisposeAsync();
-#endif
-                    }
-                    if (isThrowingRemote)
-                    {
-                        if (stream is not null)
-                            stream.Dispose();
-                    }
-                    else if (cancellationToken.IsCancellationRequested)
-                    {
-                        _ = Log.ErrorAsync(ex);
-                        if (stream is not null)
-                        {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
-                            if (abortAcknowledged)
-                                stream?.Dispose();
-                            else
-                                stream?.DisposeSocket();
-                        }
-                        throw;
-                    }
-                    else
-                    {
-                        if (stream is not null)
-                        {
-                            stream.DisposeSocket();
-                            if (!stream.IsNewConnection)
-                            {
-                                _ = Log.ErrorAsync(ex);
-                                stream = null;
-                                requireNewConnection = true;
-                                goto newconnection;
-                            }
-                        }
-                    }
+
                     throw;
                 }
             }
@@ -460,6 +478,7 @@ namespace Zerra.CQRS.Network
                 var buffer = bufferOwner.AsMemory();
 
                 var requireNewConnection = false;
+                var responseStarted = false; //once the server responds it has the request, retrying on a new connection could run it twice
             newconnection:
                 try
                 {
@@ -467,12 +486,12 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.MessageType, contentType);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, Memory<byte>.Empty, requireNewConnection, cancellationToken);
 #endif
 
-                    requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
+                    requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
                     if (symmetricConfig is not null)
                     {
@@ -522,7 +541,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.IsNewConnection)
+                            if (stream.IsNewConnection || responseStarted)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -535,13 +554,14 @@ namespace Zerra.CQRS.Network
                             }
                         }
                         headerLength += bytesRead;
+                        responseStarted = true;
 
-                        requestHeaderEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
+                        requestHeaderEnd = TcpRawCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
-                    var responseHeader = TcpRawCommon.ReadHeader(buffer, headerPosition, headerLength);
+                    var responseHeader = TcpRawCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
-                    responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false);
+                    responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false, endOnPeerSilence: true); //a 5.3 server does not end an unencrypted body
 
                     if (symmetricConfig is not null)
                         responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
@@ -564,13 +584,19 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream is not null)
+                    //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCryptoStream is not null)
                     {
+                        try
+                        {
+                            //disposing flushes its final block into the request stream, which can fail the same as the request did
 #if NETSTANDARD2_0
-                        responseBodyStream.Dispose();
+                            requestBodyCryptoStream.Dispose();
 #else
-                        await responseBodyStream.DisposeAsync();
+                            await requestBodyCryptoStream.DisposeAsync();
 #endif
+                        }
+                        catch { }
                     }
                     if (requestBodyStream is not null)
                     {
@@ -578,14 +604,6 @@ namespace Zerra.CQRS.Network
                         requestBodyStream.Dispose();
 #else
                         await requestBodyStream.DisposeAsync();
-#endif
-                    }
-                    if (requestBodyCryptoStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyCryptoStream.Dispose();
-#else
-                        await requestBodyCryptoStream.DisposeAsync();
 #endif
                     }
                     if (isThrowingRemote)
@@ -598,20 +616,20 @@ namespace Zerra.CQRS.Network
                         _ = Log.ErrorAsync(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
+                            //only while the server has the whole request and hasn't responded, mid request the abort byte reads as request data and mid response the server is done with it
+                            var abortAcknowledged = requestBodyStream is null && !responseStarted && await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
                                 stream?.DisposeSocket();
                         }
-                        throw;
                     }
                     else
                     {
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.IsNewConnection)
+                            if (!stream.IsNewConnection && !responseStarted)
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
@@ -620,6 +638,16 @@ namespace Zerra.CQRS.Network
                             }
                         }
                     }
+
+                    if (responseBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        responseBodyStream.Dispose();
+#else
+                        await responseBodyStream.DisposeAsync();
+#endif
+                    }
+
                     throw;
                 }
             }
@@ -664,6 +692,7 @@ namespace Zerra.CQRS.Network
                 var buffer = bufferOwner.AsMemory();
 
                 var requireNewConnection = false;
+                var responseStarted = false; //once the server responds it has the request, retrying on a new connection could run it twice
             newconnection:
                 try
                 {
@@ -671,12 +700,12 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.MessageType, contentType);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, Memory<byte>.Empty, requireNewConnection, cancellationToken);
 #endif
 
-                    requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
+                    requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
                     if (symmetricConfig is not null)
                     {
@@ -726,7 +755,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.IsNewConnection)
+                            if (stream.IsNewConnection || responseStarted)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -739,13 +768,14 @@ namespace Zerra.CQRS.Network
                             }
                         }
                         headerLength += bytesRead;
+                        responseStarted = true;
 
-                        requestHeaderEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
+                        requestHeaderEnd = TcpRawCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
-                    var responseHeader = TcpRawCommon.ReadHeader(buffer, headerPosition, headerLength);
+                    var responseHeader = TcpRawCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
-                    responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false);
+                    responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false, endOnPeerSilence: true); //a 5.3 server does not end an unencrypted body
 
                     if (symmetricConfig is not null)
                         responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
@@ -777,13 +807,19 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream is not null)
+                    //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCryptoStream is not null)
                     {
+                        try
+                        {
+                            //disposing flushes its final block into the request stream, which can fail the same as the request did
 #if NETSTANDARD2_0
-                        responseBodyStream.Dispose();
+                            requestBodyCryptoStream.Dispose();
 #else
-                        await responseBodyStream.DisposeAsync();
+                            await requestBodyCryptoStream.DisposeAsync();
 #endif
+                        }
+                        catch { }
                     }
                     if (requestBodyStream is not null)
                     {
@@ -791,14 +827,6 @@ namespace Zerra.CQRS.Network
                         requestBodyStream.Dispose();
 #else
                         await requestBodyStream.DisposeAsync();
-#endif
-                    }
-                    if (requestBodyCryptoStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyCryptoStream.Dispose();
-#else
-                        await requestBodyCryptoStream.DisposeAsync();
 #endif
                     }
                     if (isThrowingRemote)
@@ -811,20 +839,20 @@ namespace Zerra.CQRS.Network
                         _ = Log.ErrorAsync(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
+                            //only while the server has the whole request and hasn't responded, mid request the abort byte reads as request data and mid response the server is done with it
+                            var abortAcknowledged = requestBodyStream is null && !responseStarted && await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
                                 stream?.DisposeSocket();
                         }
-                        throw;
                     }
                     else
                     {
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.IsNewConnection)
+                            if (!stream.IsNewConnection && !responseStarted)
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
@@ -833,6 +861,16 @@ namespace Zerra.CQRS.Network
                             }
                         }
                     }
+
+                    if (responseBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        responseBodyStream.Dispose();
+#else
+                        await responseBodyStream.DisposeAsync();
+#endif
+                    }
+                   
                     throw;
                 }
             }
@@ -878,6 +916,7 @@ namespace Zerra.CQRS.Network
                 var buffer = bufferOwner.AsMemory();
 
                 var requireNewConnection = false;
+                var responseStarted = false; //once the server responds it has the request, retrying on a new connection could run it twice
             newconnection:
                 try
                 {
@@ -885,12 +924,12 @@ namespace Zerra.CQRS.Network
                     var requestHeaderLength = TcpRawCommon.BufferHeader(buffer, data.MessageType, contentType);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, requestHeaderLength, requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, buffer.Slice(0, requestHeaderLength), requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, Memory<byte>.Empty, requireNewConnection, cancellationToken);
 #endif
 
-                    requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true);
+                    requestBodyStream = new TcpRawProtocolBodyStream(stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
                     if (symmetricConfig is not null)
                     {
@@ -940,7 +979,7 @@ namespace Zerra.CQRS.Network
                         if (bytesRead == 0)
                         {
                             stream.DisposeSocket();
-                            if (stream.IsNewConnection)
+                            if (stream.IsNewConnection || responseStarted)
                             {
                                 stream = null;
                                 throw new ConnectionAbortedException();
@@ -953,13 +992,14 @@ namespace Zerra.CQRS.Network
                             }
                         }
                         headerLength += bytesRead;
+                        responseStarted = true;
 
-                        requestHeaderEnd = TcpRawCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
+                        requestHeaderEnd = TcpRawCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
-                    var responseHeader = TcpRawCommon.ReadHeader(buffer, headerPosition, headerLength);
+                    var responseHeader = TcpRawCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
-                    responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false);
+                    responseBodyStream = new TcpRawProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false, endOnPeerSilence: true); //a 5.3 server does not end an unencrypted body
 
                     if (symmetricConfig is not null)
                         responseBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, responseBodyStream, false);
@@ -982,13 +1022,19 @@ namespace Zerra.CQRS.Network
                 }
                 catch (Exception ex)
                 {
-                    if (responseBodyStream is not null)
+                    //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCryptoStream is not null)
                     {
+                        try
+                        {
+                            //disposing flushes its final block into the request stream, which can fail the same as the request did
 #if NETSTANDARD2_0
-                        responseBodyStream.Dispose();
+                            requestBodyCryptoStream.Dispose();
 #else
-                        await responseBodyStream.DisposeAsync();
+                            await requestBodyCryptoStream.DisposeAsync();
 #endif
+                        }
+                        catch { }
                     }
                     if (requestBodyStream is not null)
                     {
@@ -996,14 +1042,6 @@ namespace Zerra.CQRS.Network
                         requestBodyStream.Dispose();
 #else
                         await requestBodyStream.DisposeAsync();
-#endif
-                    }
-                    if (requestBodyCryptoStream is not null)
-                    {
-#if NETSTANDARD2_0
-                        requestBodyCryptoStream.Dispose();
-#else
-                        await requestBodyCryptoStream.DisposeAsync();
 #endif
                     }
                     if (isThrowingRemote)
@@ -1016,20 +1054,20 @@ namespace Zerra.CQRS.Network
                         _ = Log.ErrorAsync(ex);
                         if (stream is not null)
                         {
-                            var abortAcknowledged = await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
+                            //only while the server has the whole request and hasn't responded, mid request the abort byte reads as request data and mid response the server is done with it
+                            var abortAcknowledged = requestBodyStream is null && !responseStarted && await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else
                                 stream?.DisposeSocket();
                         }
-                        throw;
                     }
                     else
                     {
                         if (stream is not null)
                         {
                             stream.DisposeSocket();
-                            if (!stream.IsNewConnection)
+                            if (!stream.IsNewConnection && !responseStarted)
                             {
                                 _ = Log.ErrorAsync(ex);
                                 stream = null;
@@ -1038,6 +1076,16 @@ namespace Zerra.CQRS.Network
                             }
                         }
                     }
+
+                    if (responseBodyStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        responseBodyStream.Dispose();
+#else
+                        await responseBodyStream.DisposeAsync();
+#endif
+                    }
+
                     throw;
                 }
             }

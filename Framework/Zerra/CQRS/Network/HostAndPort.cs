@@ -6,7 +6,8 @@ using System;
 
 namespace Zerra.CQRS.Network
 {
-    internal class HostAndPort
+    //a struct so a lookup per request doesn't allocate, IEquatable so dictionary lookups don't box
+    internal readonly struct HostAndPort : IEquatable<HostAndPort>
     {
         public string Host { get; }
         public int Port { get; }
@@ -16,22 +17,20 @@ namespace Zerra.CQRS.Network
             this.Port = port;
         }
 
-        public override bool Equals(object? obj)
-        {
-            if (obj is not HostAndPort casted)
-                return false;
-            return casted.Port == this.Port && casted.Host.Equals(this.Host, StringComparison.OrdinalIgnoreCase);
-        }
+        public bool Equals(HostAndPort other) => other.Port == this.Port && String.Equals(other.Host, this.Host, StringComparison.OrdinalIgnoreCase);
+
+        public override bool Equals(object? obj) => obj is HostAndPort casted && Equals(casted);
 
         public override int GetHashCode()
         {
+            //case-insensitive to match Equals
 #if NETSTANDARD2_0
             unchecked
             {
-                return (int)Math.Pow(Host.GetHashCode(), Port);
+                return (StringComparer.OrdinalIgnoreCase.GetHashCode(Host) * 397) ^ Port;
             }
 #else
-            return HashCode.Combine(Host, Port);
+            return HashCode.Combine(StringComparer.OrdinalIgnoreCase.GetHashCode(Host), Port);
 #endif
         }
     }

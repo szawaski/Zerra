@@ -27,6 +27,7 @@ namespace Zerra.Web
         public ContentType ContentType { get; }
 
         private string[]? allowOrigins;
+        //each value can be a full origin such as https://app.example.com or just the host such as app.example.com, compared without case
         public string[]? AllowOrigins
         {
             get
@@ -56,18 +57,15 @@ namespace Zerra.Web
             this.ContentType = contentType;
 
             Types = new();
-            Types = new();
             this.allowOriginsString = "*";
         }
 
         public void Dispose()
         {
-            foreach (var throttle in Types.Values)
-                throttle.Dispose();
-            Types.Clear();
-
-            foreach (var throttle in Types.Values)
-                throttle.Dispose();
+            //the throttles are not disposed: requests still running after Dispose release them, and a disposed SemaphoreSlim throws ObjectDisposedException on Release
+            //this isn't a leak, SemaphoreSlim.Dispose only frees the wait handle that AvailableWaitHandle creates on first use, which nothing reads,
+            //the rest is managed memory with no finalizer that the GC reclaims once nothing references them
+            //if AvailableWaitHandle is ever used, dispose them once every request that could release them has finished
             Types.Clear();
         }
     }

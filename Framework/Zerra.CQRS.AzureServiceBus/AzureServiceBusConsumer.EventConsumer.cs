@@ -43,24 +43,32 @@ namespace Zerra.CQRS.AzureServiceBus
                 this.canceller = new CancellationTokenSource();
             }
 
-            public void Open(string host, ServiceBusClient client)
+            public void Open(string host, ServiceBusClient client) => Open(AzureServiceBusCommon.GetNamespace(host), client);
+
+            internal void Open(AzureServiceBusCommonNamespace commonNamespace, ServiceBusClient client)
             {
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = Task.Run(() => ListeningThread(host, client, handlerAsync));
+                _ = Task.Run(() => ListeningThread(commonNamespace, client, handlerAsync));
             }
 
-            public async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync)
+            public Task ListeningThread(string host, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync) => ListeningThread(AzureServiceBusCommon.GetNamespace(host), client, handlerAsync);
+
+            private async Task ListeningThread(AzureServiceBusCommonNamespace commonNamespace, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync)
             {
+                //the throttle is not disposed: handlers still running after the listener stops release it, and a disposed SemaphoreSlim throws ObjectDisposedException on Release
+                //this isn't a leak, SemaphoreSlim.Dispose only frees the wait handle that AvailableWaitHandle creates on first use, which nothing reads,
+                //the rest is managed memory with no finalizer that the GC reclaims once nothing references it
+                //if AvailableWaitHandle is ever used, dispose it once every handler that could release it has finished
+                var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
             retry:
 
-                var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
                 try
                 {
-                    await AzureServiceBusCommon.EnsureTopic(host, topic, false);
-                    await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, true);
+                    await AzureServiceBusCommon.EnsureTopic(commonNamespace, topic, false);
+                    await AzureServiceBusCommon.EnsureSubscription(commonNamespace, topic, subscription, true);
 
                     await using (var receiver = client.CreateReceiver(topic, subscription, receiverOptions))
                     {
@@ -68,7 +76,17 @@ namespace Zerra.CQRS.AzureServiceBus
                         {
                             await throttle.WaitAsync(canceller.Token);
 
-                            var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
+                            ServiceBusReceivedMessage? serviceBusMessage;
+                            try
+                            {
+                                serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
+                            }
+                            catch
+                            {
+                                //the retry keeps this throttle, give back the permit taken for the message that wasn't received
+                                _ = throttle.Release();
+                                throw;
+                            }
                             if (serviceBusMessage is null)
                             {
                                 throttle.Release();
@@ -84,24 +102,24 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(topic, ex);
+                    //closing cancels the receive, that isn't an error
                     if (!canceller.IsCancellationRequested)
                     {
+                        _ = Log.ErrorAsync(topic, ex);
+                        await AzureServiceBusCommon.Forget(commonNamespace, topic);
                         await Task.Delay(AzureServiceBusCommon.RetryDelay);
                         goto retry;
                     }
                 }
-                finally
+
+                //only reached once the consumer is stopping, a retry keeps the subscription so events sent meanwhile are still received
+                try
                 {
-                    throttle.Dispose();
-                    try
-                    {
-                        await AzureServiceBusCommon.DeleteSubscription(host, topic, subscription);
-                    }
-                    catch (Exception ex)
-                    {
-                        _ = Log.ErrorAsync(ex);
-                    }
+                    await AzureServiceBusCommon.DeleteSubscription(commonNamespace, topic, subscription);
+                }
+                catch (Exception ex)
+                {
+                    _ = Log.ErrorAsync(ex);
                 }
             }
 

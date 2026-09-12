@@ -50,11 +50,12 @@ namespace Zerra.IO
         public override sealed int ReadByte()
         {
             Span<byte> buffer = stackalloc byte[1];
-            return InternalRead(buffer);
+            return InternalRead(buffer) == 0 ? -1 : buffer[0]; //the byte read, or -1 at the end
         }
         public override sealed void WriteByte(byte value)
         {
             Span<byte> buffer = stackalloc byte[1];
+            buffer[0] = value;
             InternalWrite(buffer);
         }
 

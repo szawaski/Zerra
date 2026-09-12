@@ -48,8 +48,8 @@ namespace Zerra.CQRS.RabbitMQ
 
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
-            if (this.connection is not null)
-                throw new InvalidOperationException("Connection already open");
+            if (commandHandlerAsync is not null)
+                throw new InvalidOperationException("Command consumer already setup");
             this.commandCounter = commandCounter;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
@@ -57,8 +57,8 @@ namespace Zerra.CQRS.RabbitMQ
         }
         void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
-            if (this.connection is not null)
-                throw new InvalidOperationException("Connection already open");
+            if (eventHandlerAsync is not null)
+                throw new InvalidOperationException("Event consumer already setup");
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -79,7 +79,8 @@ namespace Zerra.CQRS.RabbitMQ
 
             try
             {
-                var factory = new ConnectionFactory() { HostName = host, DispatchConsumersAsync = true };
+                var factory = RabbitMQCommon.CreateConnectionFactory(host);
+                factory.DispatchConsumersAsync = true;
                 this.connection = factory.CreateConnection();
             }
             catch (Exception ex)

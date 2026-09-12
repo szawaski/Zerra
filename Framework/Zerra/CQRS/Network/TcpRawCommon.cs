@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Text;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.Buffers;
@@ -25,11 +26,11 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] headerEnderBytes = encoding.GetBytes($"{headerEnder}");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe bool ReadToHeaderEnd(Memory<byte> buffer, ref int position, int length)
+        public static unsafe bool TryReadToHeaderEnd(ReadOnlySpan<byte> buffer, ref int position)
         {
-            fixed (byte* pHeaderBuffer = buffer.Span)
+            fixed (byte* pHeaderBuffer = buffer)
             {
-                while (position < length)
+                while (position < buffer.Length)
                 {
                     if (pHeaderBuffer[position] == headerEnder)
                     {
@@ -43,16 +44,16 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe TcpRequestHeader ReadHeader(ReadOnlyMemory<byte> buffer, int position, int length)
+        public static unsafe TcpRequestHeader ReadHeader(ReadOnlyMemory<byte> buffer, int headerLength)
         {
 #if NETSTANDARD2_0
-            var chars = encoding.GetChars(buffer.Span.Slice(0, position).ToArray());
+            var chars = encoding.GetChars(buffer.Span.Slice(0, headerLength).ToArray());
             var charsLength = chars.Length;
 #else
-            var chars = ArrayPoolHelper<char>.Rent(encoding.GetMaxCharCount(position));
+            var chars = ArrayPoolHelper<char>.Rent(encoding.GetMaxCharCount(headerLength));
             try
             {
-                var charsLength = encoding.GetChars(buffer.Span.Slice(0, position), chars.AsSpan());
+                var charsLength = encoding.GetChars(buffer.Span.Slice(0, headerLength), chars.AsSpan());
 #endif
                 string? prefix = null;
                 string? providerType = null;
@@ -116,13 +117,28 @@ namespace Zerra.CQRS.Network
                 if (providerType is nullProviderType)
                     providerType = null;
 
-                return new TcpRequestHeader(buffer.Slice(position, length - position), isError, contentType.Value, providerType);
+                return new TcpRequestHeader(buffer.Slice(headerLength), isError, contentType.Value, providerType);
 #if !NETSTANDARD2_0
             }
             finally
             {
                 ArrayPoolHelper<char>.Return(chars);
             }
+#endif
+        }
+
+        //encodes straight into the header buffer, netstandard2.0 has no span overload
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static unsafe int EncodeTo(string value, Span<byte> destination)
+        {
+#if NETSTANDARD2_0
+            fixed (char* pChars = value)
+            fixed (byte* pBytes = destination)
+            {
+                return encoding.GetBytes(pChars, value.Length, pBytes, destination.Length);
+            }
+#else
+            return encoding.GetBytes(value, destination);
 #endif
         }
 
@@ -133,8 +149,7 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(protocolRawPrefixBytes);
             if (!String.IsNullOrWhiteSpace(providerType))
             {
-                var providerTypeBytes = encoding.GetBytes(providerType);
-                headerBuffer.Write(providerTypeBytes);
+                headerBuffer.Advance(EncodeTo(providerType!, headerBuffer.Remaining));
                 headerBuffer.Write(headerSeperatorBytes);
             }
             else
@@ -142,8 +157,8 @@ namespace Zerra.CQRS.Network
                 headerBuffer.Write(nullProviderBytes);
             }
 
-            var contentTypeBytes = encoding.GetBytes(((int)contentType).ToString());
-            headerBuffer.Write(contentTypeBytes);
+            _ = Utf8Formatter.TryFormat((int)contentType, headerBuffer.Remaining, out var contentTypeLength);
+            headerBuffer.Advance(contentTypeLength);
             headerBuffer.Write(headerEnderBytes);
             return headerBuffer.Position;
         }
@@ -156,8 +171,7 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(protocolErrorPrefixBytes);
             if (!String.IsNullOrWhiteSpace(providerType))
             {
-                var providerTypeBytes = encoding.GetBytes(providerType);
-                headerBuffer.Write(providerTypeBytes);
+                headerBuffer.Advance(EncodeTo(providerType!, headerBuffer.Remaining));
                 headerBuffer.Write(headerSeperatorBytes);
             }
             else
@@ -165,8 +179,8 @@ namespace Zerra.CQRS.Network
                 headerBuffer.Write(nullProviderBytes);
             }
 
-            var contentTypeBytes = encoding.GetBytes(((int)contentType).ToString());
-            headerBuffer.Write(contentTypeBytes);
+            _ = Utf8Formatter.TryFormat((int)contentType, headerBuffer.Remaining, out var contentTypeLength);
+            headerBuffer.Advance(contentTypeLength);
             headerBuffer.Write(headerEnderBytes);
 
             return headerBuffer.Position;

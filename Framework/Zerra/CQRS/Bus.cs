@@ -1360,7 +1360,7 @@ namespace Zerra.CQRS
                     var topic = GetCommandTopic(commandType);
                     commandProducer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                     commandProducers.Add(commandType, commandProducer);
-                    _ = Log.InfoAsync($"{commandProducer.GetType().GetNiceName()}c - {commandType.GetNiceName()}");
+                    _ = Log.InfoAsync($"{commandProducer.GetType().GetNiceName()} at {commandProducer.MessageHost} - {commandType.GetNiceName()}");
                 }
             }
             finally
@@ -1384,8 +1384,8 @@ namespace Zerra.CQRS
             setupLock.Wait();
             try
             {
-                commandConsumer.Setup(commandCounter, RemoteHandleCommandDispatchAsync, RemoteHandleCommandDispatchAwaitAsync, RemoteHandleCommandWithResultDispatchAwaitAsync);
-                _ = commandConsumers.Add(commandConsumer);
+                if (commandConsumers.Add(commandConsumer))
+                    commandConsumer.Setup(commandCounter, RemoteHandleCommandDispatchAsync, RemoteHandleCommandDispatchAwaitAsync, RemoteHandleCommandWithResultDispatchAwaitAsync);
 
                 var commandTypes = GetExposedCommandTypesFromInterface(interfaceType);
                 foreach (var commandType in commandTypes)
@@ -1445,7 +1445,7 @@ namespace Zerra.CQRS
                         eventProducers.Add(eventType, eventProducerList);
                     }
                     eventProducerList.Add(eventProducer);
-                    _ = Log.InfoAsync($"{eventProducers.GetType().GetNiceName()} at {eventProducer.MessageHost} - {eventType.GetNiceName()}");
+                    _ = Log.InfoAsync($"{eventProducer.GetType().GetNiceName()} at {eventProducer.MessageHost} - {eventType.GetNiceName()}");
                 }
             }
             finally
@@ -1469,8 +1469,8 @@ namespace Zerra.CQRS
             setupLock.Wait();
             try
             {
-                eventConsumer.Setup(RemoteHandleEventDispatchAsync);
-                _ = eventConsumers.Add(eventConsumer);
+                if (eventConsumers.Add(eventConsumer))
+                    eventConsumer.Setup(RemoteHandleEventDispatchAsync);
 
                 var eventTypes = GetExposedEventTypesFromInterface(interfaceType);
                 foreach (var eventType in eventTypes)
@@ -1520,7 +1520,7 @@ namespace Zerra.CQRS
                 }
                 queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
                 queryClients.Add(interfaceType, queryClient);
-                _ = Log.InfoAsync($"{queryClients.GetType().GetNiceName()} at {queryClient.ServiceUrl} - {interfaceType.GetNiceName()}");
+                _ = Log.InfoAsync($"{queryClient.GetType().GetNiceName()} at {queryClient.ServiceUrl} - {interfaceType.GetNiceName()}");
             }
             finally
             {
@@ -1544,8 +1544,8 @@ namespace Zerra.CQRS
             setupLock.Wait();
             try
             {
-                queryServer.Setup(commandCounter, RemoteHandleQueryCallAsync);
-                _ = queryServers.Add(queryServer);
+                if (queryServers.Add(queryServer))
+                    queryServer.Setup(commandCounter, RemoteHandleQueryCallAsync);
 
                 if (interfaceType.IsInterface)
                 {

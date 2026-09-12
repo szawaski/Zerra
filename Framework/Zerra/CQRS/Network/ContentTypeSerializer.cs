@@ -200,6 +200,9 @@ namespace Zerra.CQRS.Network
         /// <param name="ex">The Exception to be serialized.</param>
         public static void SerializeException(ContentType contentType, Stream stream, Exception ex)
         {
+            //an exception relayed from another service is sent on as the exception it was thrown as
+            if (ex is RemoteServiceException && ex.InnerException is not null)
+                ex = ex.InnerException;
             var errorType = ex.GetType();
             var content = new ExceptionContent()
             {
@@ -283,6 +286,9 @@ namespace Zerra.CQRS.Network
         /// <returns>The deserialized Exception.</returns>
         public static Task SerializeExceptionAsync(ContentType contentType, Stream stream, Exception ex, CancellationToken cancellationToken)
         {
+            //an exception relayed from another service is sent on as the exception it was thrown as
+            if (ex is RemoteServiceException && ex.InnerException is not null)
+                ex = ex.InnerException;
             var errorType = ex.GetType();
             var content = new ExceptionContent()
             {

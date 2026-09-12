@@ -40,17 +40,22 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
             this.symmetricConfig = symmetricConfig;
             this.authorizer = authorizer;
-            if (allowOrigins is not null && !allowOrigins.Contains("*"))
-                this.allowOrigins = allowOrigins.Select(x => x.ToLower()).ToArray();
+            if (allowOrigins is not null && allowOrigins.Length > 0 && !allowOrigins.Contains("*"))
+                this.allowOrigins = allowOrigins;
             else
-                allowOrigins = null;
+                this.allowOrigins = null;
         }
 
         /// <inheritdoc />
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
-            if (throttle is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+            if (throttle is null)
+            {
+                socket.Dispose();
+                throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
+            }
 
+            var stream = new NetworkStream(socket, false); //one stream for the connection instead of one per request
             try
             {
                 for (; ; )
@@ -60,13 +65,15 @@ namespace Zerra.CQRS.Network
 
                     var bufferOwner = ArrayPoolHelper<byte>.Rent(HttpCommon.BufferLength);
                     var buffer = bufferOwner.AsMemory();
-                    var stream = new NetworkStream(socket, false);
 
                     Stream? requestBodyStream = null;
                     Stream? responseBodyStream = null;
+                    Stream? resultStream = null; //the handler's stream, disposed once sent
                     CryptoFlushStream? responseBodyCryptoStream = null;
                     var isCommand = false;
+                    var throttleReleasedByContinuation = false;
 
+                    var requestBodyRead = false;
                     var inHandlerContext = false;
                     var throttleUsed = false;
                     var monitorIsCancellationRequested = false;
@@ -92,9 +99,9 @@ namespace Zerra.CQRS.Network
                                 return; //not an abort if we haven't started receiving, simple socket disconnect
                             headerLength += bytesRead;
 
-                            headerEnd = HttpCommon.ReadToHeaderEnd(buffer, ref headerPosition, headerLength);
+                            headerEnd = HttpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                         }
-                        requestHeader = HttpCommon.ReadHeader(buffer, headerPosition, headerLength);
+                        requestHeader = HttpCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition, authorizer is not null); //all headers only for the authorizer
 
                         if (contentType.HasValue && requestHeader.ContentType.HasValue && requestHeader.ContentType != contentType)
                         {
@@ -102,11 +109,30 @@ namespace Zerra.CQRS.Network
                             throw new CqrsNetworkException("Invalid Content Type");
                         }
 
+                        //browsers send the origin as scheme://host[:port] and HttpCqrsClient sends the host, an allowed value can be either, case doesn't matter
+                        var originAllowed = true;
+                        if (allowOrigins is not null)
+                        {
+                            originAllowed = false;
+                            if (requestHeader.Origin is not null)
+                            {
+                                var originHost = Uri.TryCreate(requestHeader.Origin, UriKind.Absolute, out var originUri) ? originUri.Host : null;
+                                foreach (var allowOrigin in allowOrigins)
+                                {
+                                    if (String.Equals(allowOrigin, requestHeader.Origin, StringComparison.OrdinalIgnoreCase) || (originHost is not null && String.Equals(allowOrigin, originHost, StringComparison.OrdinalIgnoreCase)))
+                                    {
+                                        originAllowed = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
                         if (requestHeader.Preflight)
                         {
                             _ = Log.TraceAsync($"{nameof(HttpCqrsServer)} Received Preflight {socket.RemoteEndPoint}");
 
-                            var preflightLength = HttpCommon.BufferPreflightResponse(buffer, requestHeader.Origin);
+                            var preflightLength = HttpCommon.BufferPreflightResponse(buffer, requestHeader.Origin, originAllowed);
 #if NETSTANDARD2_0
                             await stream.WriteAsync(bufferOwner, 0, preflightLength, cancellationToken);
 #else
@@ -123,18 +149,36 @@ namespace Zerra.CQRS.Network
                             throw new CqrsNetworkException("Invalid Content Type");
                         }
 
-                        if (allowOrigins is not null && allowOrigins.Length > 0)
+                        if (!originAllowed)
                         {
-                            if (allowOrigins.Contains(requestHeader.Origin))
-                            {
-                                throw new CqrsNetworkException($"Origin Not Allowed {requestHeader.Origin}");
-                            }
+                            _ = Log.WarnAsync($"{nameof(HttpCqrsServer)} Origin Not Allowed {requestHeader.Origin}");
+
+                            //the unused body is read so the connection stays usable, the client reuses it after an error
+                            requestBodyStream = new HttpProtocolBodyStream(requestHeader.Chuncked ? null : (requestHeader.ContentLength ?? 0), stream, requestHeader.BodyStartBuffer, false, true);
+                            await requestBodyStream.CopyToAsync(Stream.Null, 81920, cancellationToken);
+#if NETSTANDARD2_0
+                            requestBodyStream.Dispose();
+#else
+                            await requestBodyStream.DisposeAsync();
+#endif
+                            requestBodyStream = null;
+                            requestBodyRead = true;
+
+                            var unauthorizedLength = HttpCommon.BufferUnauthorizedResponseHeader(buffer);
+#if NETSTANDARD2_0
+                            await stream.WriteAsync(bufferOwner, 0, unauthorizedLength, cancellationToken);
+#else
+                            await stream.WriteAsync(buffer.Slice(0, unauthorizedLength), cancellationToken);
+#endif
+                            await stream.FlushAsync(cancellationToken);
+                            continue;
                         }
 
                         //Read Request Body
                         //------------------------------------------------------------------------------------------------------------
 
-                        requestBodyStream = new HttpProtocolBodyStream(requestHeader.ContentLength, stream, requestHeader.BodyStartBuffer, true);
+                        //chunked takes precedence, without either length the body is empty
+                        requestBodyStream = new HttpProtocolBodyStream(requestHeader.Chuncked ? null : (requestHeader.ContentLength ?? 0), stream, requestHeader.BodyStartBuffer, false, true);
 
                         if (symmetricConfig is not null)
                             requestBodyStream = SymmetricEncryptor.Decrypt(symmetricConfig, requestBodyStream, false);
@@ -149,6 +193,7 @@ namespace Zerra.CQRS.Network
                         await requestBodyStream.DisposeAsync();
 #endif
                         requestBodyStream = null;
+                        requestBodyRead = true;
 
                         //Authorize
                         //------------------------------------------------------------------------------------------------------------
@@ -195,13 +240,14 @@ namespace Zerra.CQRS.Network
                             var monitor = new SocketAbortMonitor(socket, cancellationToken);
                             try
                             {
-                                result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, socket.AddressFamily.ToString(), false, monitor.Token);
+                                result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, false, monitor.Token);
                             }
                             finally
                             {
-                                monitorIsCancellationRequested = monitor.DisposeAndGetIsCancellationRequested();
+                                monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
                             }
                             inHandlerContext = false;
+                            resultStream = result.Stream;
 
                             if (monitorIsCancellationRequested)
                             {
@@ -213,14 +259,9 @@ namespace Zerra.CQRS.Network
 
                             //Response Header
                             var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, requestHeader.ContentType.Value, null);
-#if NETSTANDARD2_0
-                            await stream.WriteAsync(bufferOwner, 0, responseHeaderLength);
-#else
-                            await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
-#endif
 
-                            //Response Body
-                            responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
+                            //Response Body, the header goes out with it
+                            responseBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, responseHeaderLength), true); //wide chunk lengths so 5.3 clients do not stall on a small body
 
                             int bytesRead;
                             if (result.Stream is not null)
@@ -282,7 +323,7 @@ namespace Zerra.CQRS.Network
                         {
                             if (data.MessageData is null) throw new Exception("Invalid Request");
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
-                            if (requestHeader.ProviderType != data.MessageType) throw new Exception("Invalid Request");
+                            if (requestHeader.ProviderType is not null && requestHeader.ProviderType != data.MessageType) throw new Exception("Invalid Request"); //5.3 clients don't send it for messages
 
                             var messageType = Discovery.GetTypeFromName(data.MessageType);
                             var typeDetail = TypeAnalyzer.GetTypeDetail(messageType);
@@ -296,10 +337,10 @@ namespace Zerra.CQRS.Network
                             if (typeDetail.Interfaces.Contains(typeof(ICommand)))
                             {
                                 if (commandCounter is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                isCommand = true;
 
                                 if (!commandCounter.BeginReceive())
                                     throw new CqrsNetworkException("Cannot receive any more commands");
+                                isCommand = true;
 
                                 var command = (ICommand?)ContentTypeSerializer.Deserialize(requestHeader.ContentType.Value, messageType, data.MessageData);
                                 if (command is null)
@@ -316,11 +357,11 @@ namespace Zerra.CQRS.Network
                                     }
                                     finally
                                     {
-                                        monitorIsCancellationRequested = monitor.DisposeAndGetIsCancellationRequested();
+                                        monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
                                     }
                                     hasResult = true;
                                 }
-                                if (data.MessageAwait == true)
+                                else if (data.MessageAwait == true)
                                 {
                                     if (commandHandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
                                     var monitor = new SocketAbortMonitor(socket, cancellationToken);
@@ -330,14 +371,16 @@ namespace Zerra.CQRS.Network
                                     }
                                     finally
                                     {
-                                        monitorIsCancellationRequested = monitor.DisposeAndGetIsCancellationRequested();
+                                        monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
                                     }
                                     hasResult = false;
                                 }
                                 else
                                 {
                                     if (commandHandlerAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                    _ = Task.Run(() => commandHandlerAsync(command, data.Source, false, default));
+                                    var commandHandlerTask = Task.Run(() => commandHandlerAsync(command, data.Source, false, default));
+                                    _ = commandHandlerTask.ContinueWith(x => commandCounter.CompleteReceive(throttle));
+                                    throttleReleasedByContinuation = true;
                                     hasResult = false;
                                 }
                                 inHandlerContext = false;
@@ -350,7 +393,9 @@ namespace Zerra.CQRS.Network
 
                                 inHandlerContext = true;
                                 if (eventHandlerAsync is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                _ = Task.Run(() => eventHandlerAsync(@event, data.Source, false));
+                                var eventHandlerTask = Task.Run(() => eventHandlerAsync(@event, data.Source, false));
+                                _ = eventHandlerTask.ContinueWith(x => throttle.Release());
+                                throttleReleasedByContinuation = true;
                                 hasResult = false;
                                 inHandlerContext = false;
                             }
@@ -368,17 +413,12 @@ namespace Zerra.CQRS.Network
                             responseStarted = true;
 
                             //Response Header
-                            var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, contentType, null);
-#if NETSTANDARD2_0
-                            await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
-#else
-                            await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
-#endif
+                            var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, requestHeader.ContentType.Value, null, hasResult);
 
                             if (hasResult)
                             {
-                                //Response Body
-                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
+                                //Response Body, the header goes out with it
+                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, responseHeaderLength), true); //wide chunk lengths so 5.3 clients do not stall on a small body
                                 if (symmetricConfig is not null)
                                 {
                                     responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
@@ -393,13 +433,18 @@ namespace Zerra.CQRS.Network
                                 else
                                 {
                                     await ContentTypeSerializer.SerializeAsync(requestHeader.ContentType.Value, responseBodyStream, result, cancellationToken);
+                                    await responseBodyStream.FlushAsync(cancellationToken); //the serializer doesn't end the body
                                 }
                             }
                             else
                             {
-                                //Response Body Empty
-                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
-                                await responseBodyStream.FlushAsync(cancellationToken);
+                                //Response Body Empty, the header says Content-Length 0 so there is no chunked ending
+#if NETSTANDARD2_0
+                                await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
+#else
+                                await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
+#endif
+                                await stream.FlushAsync(cancellationToken);
                             }
 
                             continue;
@@ -415,47 +460,57 @@ namespace Zerra.CQRS.Network
                             continue;
                         }
 
-                        if (!inHandlerContext || !socket.Connected)
+                        //the connection can only be reused if the request was completely read and nothing of the response was sent
+                        if (!requestBodyRead || responseStarted || requestHeader is null || !requestHeader.ContentType.HasValue || !socket.Connected)
                         {
                             _ = Log.ErrorAsync(ex);
-                            return; //aborted or network error
+                            return; //aborted, network error, or unreadable request
                         }
 
-                        if (!responseStarted && requestHeader is not null && requestHeader.ContentType.HasValue)
+                        //rejected before the handler, the server logs it and the caller gets the error
+                        if (!inHandlerContext)
+                            _ = Log.ErrorAsync(ex);
+
+                        try
                         {
-                            try
+                            //the error body is built first so the header can give its length, see BufferErrorResponseHeader
+                            var errorBody = new MemoryStream();
+                            if (symmetricConfig is not null)
                             {
-                                //Response Header
-                                var responseHeaderLength = HttpCommon.BufferErrorResponseHeader(buffer, requestHeader.Origin);
-#if NETSTANDARD2_0
-                                await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
-#else
-                                await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
-#endif
-
-                                //Response Body
-                                responseBodyStream = new HttpProtocolBodyStream(null, stream, null, false);
-                                if (symmetricConfig is not null)
-                                {
-                                    responseBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, responseBodyStream, true);
-
-                                    await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyCryptoStream, ex, cancellationToken);
+                                var errorBodyCryptoStream = SymmetricEncryptor.Encrypt(symmetricConfig, errorBody, true, true); //the body is still needed after, leave it open
+                                await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, errorBodyCryptoStream, ex, cancellationToken);
 #if NET5_0_OR_GREATER
-                                    await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
+                                await errorBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
-                                    responseBodyCryptoStream.FlushFinalBlock();
+                                errorBodyCryptoStream.FlushFinalBlock();
 #endif
-                                }
-                                else
-                                {
-                                    await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, responseBodyStream, ex, cancellationToken);
-                                }
+#if NETSTANDARD2_0
+                                errorBodyCryptoStream.Dispose();
+#else
+                                await errorBodyCryptoStream.DisposeAsync();
+#endif
                             }
-                            catch (Exception ex2)
+                            else
                             {
-                                _ = Log.ErrorAsync($"{nameof(HttpCqrsServer)} Error {socket.RemoteEndPoint}", ex2);
+                                await ContentTypeSerializer.SerializeExceptionAsync(requestHeader.ContentType.Value, errorBody, ex, cancellationToken);
                             }
+
+                            //Response Header
+                            var responseHeaderLength = HttpCommon.BufferErrorResponseHeader(buffer, requestHeader.Origin, (int)errorBody.Length);
+#if NETSTANDARD2_0
+                            await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
+                            await stream.WriteAsync(errorBody.GetBuffer(), 0, (int)errorBody.Length, cancellationToken);
+#else
+                            await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
+                            await stream.WriteAsync(errorBody.GetBuffer().AsMemory(0, (int)errorBody.Length), cancellationToken);
+#endif
+                            await stream.FlushAsync(cancellationToken);
                         }
+                        catch (Exception ex2)
+                        {
+                            _ = Log.ErrorAsync($"{nameof(HttpCqrsServer)} Error {socket.RemoteEndPoint}", ex2);
+                        }
+                        return; //the connection closes after an error, a 5.3 client reads the error body as a result and would leave the connection out of step
                     }
                     finally
                     {
@@ -483,16 +538,16 @@ namespace Zerra.CQRS.Network
                             await requestBodyStream.DisposeAsync();
 #endif
                         }
-                        if (stream is not null)
+                        if (resultStream is not null)
                         {
 #if NETSTANDARD2_0
-                            stream.Dispose();
+                            resultStream.Dispose();
 #else
-                            await stream.DisposeAsync();
+                            await resultStream.DisposeAsync();
 #endif
                         }
                         ArrayPoolHelper<byte>.Return(bufferOwner);
-                        if (throttleUsed)
+                        if (throttleUsed && !throttleReleasedByContinuation)
                         {
                             if (isCommand && commandCounter is not null)
                                 commandCounter.CompleteReceive(throttle);
@@ -504,6 +559,11 @@ namespace Zerra.CQRS.Network
             }
             finally
             {
+#if NETSTANDARD2_0
+                stream.Dispose();
+#else
+                await stream.DisposeAsync();
+#endif
                 socket.Dispose();
             }
         }

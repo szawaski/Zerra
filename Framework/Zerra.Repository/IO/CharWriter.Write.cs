@@ -1130,6 +1130,7 @@ namespace Zerra.Repository.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(Guid value)
         {
+            EnsureBufferSize(36);
             Write(value.ToString());
         }
 

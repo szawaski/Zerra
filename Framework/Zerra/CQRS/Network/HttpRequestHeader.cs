@@ -11,9 +11,11 @@ namespace Zerra.CQRS.Network
     {
         public ReadOnlyMemory<byte> BodyStartBuffer { get; set; }
 
-        public List<string>? Declarations { get; set; }
+        //only set when all headers are parsed, the known headers below are always set
+        public string? Declarations { get; set; }
         public Dictionary<string, List<string?>>? Headers { get; set; }
         public bool IsError { get; set; }
+        public string? ErrorStatus { get; set; } //such as "401 Unauthorized", only set for an error response
         public ContentType? ContentType { get; set; }
         public int? ContentLength { get; set; }
         public bool Chuncked { get; set; }

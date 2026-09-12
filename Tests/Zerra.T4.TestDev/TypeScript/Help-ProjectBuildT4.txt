@@ -8,7 +8,7 @@
 	<ItemGroup>
 		<None Include="TypeScriptModels.tt">
 			<Generator>TextTemplatingFileGenerator</Generator>
-			<OutputFilePath>..\Arcoro.Integrations.Web.UI\src\services</OutputFilePath>
-			<LastGenOutput>TypeScriptModels.cs</LastGenOutput>
+			<OutputFilePath>..\MyWebApp\src\services</OutputFilePath>
+			<LastGenOutput>TypeScriptModels.ts</LastGenOutput>
 		</None>
 	</ItemGroup>

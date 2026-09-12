@@ -8,6 +8,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Zerra.Buffers;
 using Zerra.IO;
+#if NETSTANDARD2_0
+using System.Runtime.InteropServices;
+#endif
 
 namespace Zerra.CQRS.Network
 {
@@ -16,6 +19,8 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] endingBytes = BitConverter.GetBytes(0);
 
         private readonly ReadOnlyMemory<byte> readStartBuffer;
+        private readonly bool writeMode;
+        private readonly bool endOnPeerSilence;
         private int readStartBufferPosition;
         private long position;
         private int segmentPosition;
@@ -23,19 +28,38 @@ namespace Zerra.CQRS.Network
         private bool ended;
         private const int segmentLengthBufferLength = 4;
         private byte[]? segmentLengthBufferSource;
-        private Memory<byte> segmentLengthBuffer;
 
-        public TcpRawProtocolBodyStream(Stream stream, ReadOnlyMemory<byte> readStartBufferPosition, bool leaveOpen) : base(stream, leaveOpen)
+        //writes are buffered so a segment's length, data, and the ending go out in one write instead of many small packets
+        //lengths are written in the byte order BitConverter reads them
+        private const int writeBufferLength = 1024 * 16;
+        private byte[]? writeBufferSource;
+        private int writeSegmentStart;
+        private int writeBufferPosition;
+
+        public TcpRawProtocolBodyStream(Stream stream, ReadOnlyMemory<byte> readStartBufferPosition, bool writeMode, bool leaveOpen, ReadOnlyMemory<byte> writePrefix = default, bool endOnPeerSilence = false) : base(stream, leaveOpen)
         {
             this.readStartBuffer = readStartBufferPosition;
+            this.writeMode = writeMode;
+            this.endOnPeerSilence = endOnPeerSilence;
             this.readStartBufferPosition = 0;
             this.position = 0;
             this.segmentPosition = 0;
             this.segmentLength = -1;
             this.ended = false;
             this.segmentLengthBufferSource = ArrayPoolHelper<byte>.Rent(segmentLengthBufferLength);
-            this.segmentLengthBuffer = segmentLengthBufferSource;
+            if (writeMode)
+            {
+                //the prefix such as a header goes out with the first write
+                this.writeBufferSource = ArrayPoolHelper<byte>.Rent(writePrefix.Length + writeBufferLength);
+                writePrefix.Span.CopyTo(this.writeBufferSource);
+                this.writeSegmentStart = writePrefix.Length;
+                this.writeBufferPosition = writeSegmentStart + segmentLengthBufferLength;
+            }
         }
+
+        public override bool CanRead => !writeMode;
+        public override bool CanWrite => writeMode;
+        public override bool CanSeek => false;
 
         protected override void Dispose(bool disposing)
         {
@@ -43,7 +67,11 @@ namespace Zerra.CQRS.Network
             {
                 ArrayPoolHelper<byte>.Return(segmentLengthBufferSource);
                 segmentLengthBufferSource = null;
-                segmentLengthBuffer = null;
+            }
+            if (writeBufferSource is not null)
+            {
+                ArrayPoolHelper<byte>.Return(writeBufferSource);
+                writeBufferSource = null;
             }
             base.Dispose(disposing);
         }
@@ -54,7 +82,11 @@ namespace Zerra.CQRS.Network
             {
                 ArrayPoolHelper<byte>.Return(segmentLengthBufferSource);
                 segmentLengthBufferSource = null;
-                segmentLengthBuffer = null;
+            }
+            if (writeBufferSource is not null)
+            {
+                ArrayPoolHelper<byte>.Return(writeBufferSource);
+                writeBufferSource = null;
             }
             return base.DisposeAsync();
         }
@@ -66,8 +98,28 @@ namespace Zerra.CQRS.Network
         public override long Seek(long offset, SeekOrigin origin) { throw new NotSupportedException(); }
         public override void SetLength(long value) { throw new NotSupportedException(); }
 
+        //5.3 servers never end an unencrypted body so the ending waited on here would never come
+        //a peer that sent it has it waiting already, only a silent one waits out the full time, and its body is over
+        //this is only for a body read into an object, a stream handed to the caller must not end early and lose data
+        private const int peerSilenceWaitMicroseconds = 3 * 1000 * 1000;
+        private bool PeerWentSilent() => endOnPeerSilence && stream is SocketPoolStream socketStream && !socketStream.WaitForRead(peerSilenceWaitMicroseconds);
+        private async ValueTask<bool> PeerWentSilentAsync(CancellationToken cancellationToken) => endOnPeerSilence && stream is SocketPoolStream socketStream && !await socketStream.WaitForReadAsync(peerSilenceWaitMicroseconds, cancellationToken);
+
+        //the same byte order BitConverter reads, netstandard2.0 has no TryWriteBytes
+        private static void WriteSegmentLength(Span<byte> destination, int length)
+        {
+#if NETSTANDARD2_0
+            MemoryMarshal.Write(destination, ref length);
+#else
+            _ = BitConverter.TryWriteBytes(destination, length);
+#endif
+        }
+
         protected override int InternalRead(Span<byte> buffer)
         {
+            if (writeMode)
+                throw new InvalidOperationException("Stream is in write mode");
+
             var totalBytesRead = 0;
             int bytesToRead;
             while (totalBytesRead < buffer.Length)
@@ -75,32 +127,38 @@ namespace Zerra.CQRS.Network
                 int bytesRead;
                 if (segmentLength == -1)
                 {
+                    if (readStartBufferPosition == readStartBuffer.Length && PeerWentSilent())
+                    {
+                        segmentLength = 0; //the body is over, later reads end without waiting again
+                        break;
+                    }
+
                     bytesRead = 0;
                     while (bytesRead < segmentLengthBufferLength)
                     {
                         if (readStartBufferPosition < readStartBuffer.Length)
                         {
                             bytesToRead = Math.Min(readStartBuffer.Length - readStartBufferPosition, segmentLengthBufferLength - bytesRead);
-                            readStartBuffer.Slice(readStartBufferPosition, bytesToRead).CopyTo(segmentLengthBuffer.Slice(bytesRead, bytesToRead));
+                            readStartBuffer.Span.Slice(readStartBufferPosition, bytesToRead).CopyTo(segmentLengthBufferSource.AsSpan(bytesRead, bytesToRead));
                             readStartBufferPosition += bytesToRead;
                             bytesRead += bytesToRead;
                         }
                         else
                         {
 #if NETSTANDARD2_0
-                            bytesRead += stream.Read(segmentLengthBufferSource, bytesRead, segmentLengthBufferLength - bytesRead);
+                            var read = stream.Read(segmentLengthBufferSource, bytesRead, segmentLengthBufferLength - bytesRead);
 #else
-                            bytesRead += stream.Read(segmentLengthBuffer.Span[bytesRead..segmentLengthBufferLength]);
+                            var read = stream.Read(segmentLengthBufferSource.AsSpan(bytesRead, segmentLengthBufferLength - bytesRead));
 #endif
+                            if (read == 0)
+                                throw new ConnectionAbortedException();
+                            bytesRead += read;
                         }
-
-                        if (bytesRead == 0)
-                            throw new ConnectionAbortedException();
                     }
 #if NETSTANDARD2_0
                     segmentLength = BitConverter.ToInt32(segmentLengthBufferSource, 0);
 #else
-                    segmentLength = BitConverter.ToInt32(segmentLengthBuffer.Span);
+                    segmentLength = BitConverter.ToInt32(segmentLengthBufferSource.AsSpan());
 #endif
                     if (segmentLength < 0)
                         throw new CqrsNetworkException("Bad Data");
@@ -125,6 +183,8 @@ namespace Zerra.CQRS.Network
 #else
                     bytesRead = stream.Read(buffer.Slice(totalBytesRead, bytesToRead));
 #endif
+                    if (bytesRead == 0)
+                        throw new ConnectionAbortedException(); //the segment isn't complete
                 }
                 segmentPosition += bytesRead;
                 totalBytesRead += bytesRead;
@@ -140,6 +200,9 @@ namespace Zerra.CQRS.Network
         }
         protected override async ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
         {
+            if (writeMode)
+                throw new InvalidOperationException("Stream is in write mode");
+
             var totalBytesRead = 0;
             int bytesToRead;
             while (totalBytesRead < buffer.Length)
@@ -147,32 +210,38 @@ namespace Zerra.CQRS.Network
                 int bytesRead;
                 if (segmentLength == -1)
                 {
+                    if (readStartBufferPosition == readStartBuffer.Length && await PeerWentSilentAsync(cancellationToken))
+                    {
+                        segmentLength = 0; //the body is over, later reads end without waiting again
+                        break;
+                    }
+
                     bytesRead = 0;
                     while (bytesRead < segmentLengthBufferLength)
                     {
                         if (readStartBufferPosition < readStartBuffer.Length)
                         {
                             bytesToRead = Math.Min(readStartBuffer.Length - readStartBufferPosition, segmentLengthBufferLength - bytesRead);
-                            readStartBuffer.Slice(readStartBufferPosition, bytesToRead).CopyTo(segmentLengthBuffer.Slice(bytesRead, bytesToRead));
+                            readStartBuffer.Span.Slice(readStartBufferPosition, bytesToRead).CopyTo(segmentLengthBufferSource.AsSpan(bytesRead, bytesToRead));
                             readStartBufferPosition += bytesToRead;
                             bytesRead += bytesToRead;
                         }
                         else
                         {
 #if NETSTANDARD2_0
-                            bytesRead += await stream.ReadAsync(segmentLengthBufferSource, bytesRead, segmentLengthBufferLength - bytesRead);
+                            var read = await stream.ReadAsync(segmentLengthBufferSource, bytesRead, segmentLengthBufferLength - bytesRead, cancellationToken);
 #else
-                            bytesRead += await stream.ReadAsync(segmentLengthBuffer[bytesRead..segmentLengthBufferLength], cancellationToken);
+                            var read = await stream.ReadAsync(segmentLengthBufferSource.AsMemory(bytesRead, segmentLengthBufferLength - bytesRead), cancellationToken);
 #endif
+                            if (read == 0)
+                                throw new ConnectionAbortedException();
+                            bytesRead += read;
                         }
-
-                        if (bytesRead == 0)
-                            throw new ConnectionAbortedException();
                     }
 #if NETSTANDARD2_0
                     segmentLength = BitConverter.ToInt32(segmentLengthBufferSource, 0);
 #else
-                    segmentLength = BitConverter.ToInt32(segmentLengthBuffer.Span);
+                    segmentLength = BitConverter.ToInt32(segmentLengthBufferSource.AsSpan());
 #endif
                     if (segmentLength < 0)
                         throw new CqrsNetworkException("Bad Data");
@@ -197,9 +266,9 @@ namespace Zerra.CQRS.Network
 #else
                     bytesRead = await stream.ReadAsync(buffer.Slice(totalBytesRead, bytesToRead), cancellationToken);
 #endif
+                    if (bytesRead == 0)
+                        throw new ConnectionAbortedException(); //the segment isn't complete
                 }
-                if (bytesRead == 0)
-                    break;
 
                 segmentPosition += bytesRead;
                 totalBytesRead += bytesRead;
@@ -217,29 +286,54 @@ namespace Zerra.CQRS.Network
 
         protected override void InternalWrite(ReadOnlySpan<byte> buffer)
         {
-            var segmentLengthBytes = BitConverter.GetBytes(buffer.Length);
-#if NETSTANDARD2_0
-            stream.Write(segmentLengthBytes, 0, segmentLengthBytes.Length);
-            stream.Write(buffer.ToArray(), 0, buffer.Length);
-#else
-            stream.Write(segmentLengthBytes.AsSpan());
-            stream.Write(buffer);
-#endif
+            if (!writeMode)
+                throw new InvalidOperationException("Stream is not in write mode");
+
             position += buffer.Length;
+            while (buffer.Length > 0)
+            {
+                //room is kept for the ending so flush can send it with the last segment
+                var bytesToCopy = Math.Min(buffer.Length, writeBufferSource!.Length - endingBytes.Length - writeBufferPosition);
+                buffer.Slice(0, bytesToCopy).CopyTo(writeBufferSource.AsSpan(writeBufferPosition));
+                writeBufferPosition += bytesToCopy;
+                buffer = buffer.Slice(bytesToCopy);
+
+                if (writeBufferPosition == writeBufferSource!.Length - endingBytes.Length)
+                {
+                    WriteSegmentLength(writeBufferSource.AsSpan(writeSegmentStart), writeBufferPosition - writeSegmentStart - segmentLengthBufferLength);
+                    stream.Write(writeBufferSource, 0, writeBufferPosition);
+                    writeSegmentStart = 0;
+                    writeBufferPosition = segmentLengthBufferLength;
+                }
+            }
         }
 
         protected override async ValueTask InternalWriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
         {
-            var segmentLengthBytes = BitConverter.GetBytes(buffer.Length);
+            if (!writeMode)
+                throw new InvalidOperationException("Stream is not in write mode");
 
-#if NETSTANDARD2_0
-            await stream.WriteAsync(segmentLengthBytes, 0, segmentLengthBytes.Length, cancellationToken);
-            await stream.WriteAsync(buffer.ToArray(), 0, buffer.Length, cancellationToken);
-#else
-            await stream.WriteAsync(segmentLengthBytes.AsMemory(), cancellationToken);
-            await stream.WriteAsync(buffer, cancellationToken);
-#endif
             position += buffer.Length;
+            while (buffer.Length > 0)
+            {
+                //room is kept for the ending so flush can send it with the last segment
+                var bytesToCopy = Math.Min(buffer.Length, writeBufferSource!.Length - endingBytes.Length - writeBufferPosition);
+                buffer.Span.Slice(0, bytesToCopy).CopyTo(writeBufferSource.AsSpan(writeBufferPosition));
+                writeBufferPosition += bytesToCopy;
+                buffer = buffer.Slice(bytesToCopy);
+
+                if (writeBufferPosition == writeBufferSource!.Length - endingBytes.Length)
+                {
+                    WriteSegmentLength(writeBufferSource.AsSpan(writeSegmentStart), writeBufferPosition - writeSegmentStart - segmentLengthBufferLength);
+#if NETSTANDARD2_0
+                    await stream.WriteAsync(writeBufferSource, 0, writeBufferPosition, cancellationToken);
+#else
+                    await stream.WriteAsync(writeBufferSource.AsMemory(0, writeBufferPosition), cancellationToken);
+#endif
+                    writeSegmentStart = 0;
+                    writeBufferPosition = segmentLengthBufferLength;
+                }
+            }
         }
 
         public override void Flush()
@@ -247,12 +341,20 @@ namespace Zerra.CQRS.Network
             if (ended)
                 throw new CqrsNetworkException("body already ended");
             ended = true;
-#if NETSTANDARD2_0
-            stream.Write(endingBytes, 0, endingBytes.Length);
-#else
-            stream.Write(endingBytes.AsSpan());
-#endif
-            stream.Flush();
+            if (writeMode)
+            {
+                //the last segment and the ending go out together, without data the ending takes the segment's place
+                var dataLength = writeBufferPosition - writeSegmentStart - segmentLengthBufferLength;
+                if (dataLength > 0)
+                    WriteSegmentLength(writeBufferSource.AsSpan(writeSegmentStart), dataLength);
+                else
+                    writeBufferPosition = writeSegmentStart;
+                endingBytes.CopyTo(writeBufferSource.AsSpan(writeBufferPosition));
+                writeBufferPosition += endingBytes.Length;
+
+                stream.Write(writeBufferSource!, 0, writeBufferPosition);
+                stream.Flush();
+            }
         }
 
         public override async Task FlushAsync(CancellationToken cancellationToken)
@@ -260,12 +362,24 @@ namespace Zerra.CQRS.Network
             if (ended)
                 throw new CqrsNetworkException("body already ended");
             ended = true;
+            if (writeMode)
+            {
+                //the last segment and the ending go out together, without data the ending takes the segment's place
+                var dataLength = writeBufferPosition - writeSegmentStart - segmentLengthBufferLength;
+                if (dataLength > 0)
+                    WriteSegmentLength(writeBufferSource.AsSpan(writeSegmentStart), dataLength);
+                else
+                    writeBufferPosition = writeSegmentStart;
+                endingBytes.CopyTo(writeBufferSource.AsSpan(writeBufferPosition));
+                writeBufferPosition += endingBytes.Length;
+
 #if NETSTANDARD2_0
-            await stream.WriteAsync(endingBytes, 0, endingBytes.Length, cancellationToken);
+                await stream.WriteAsync(writeBufferSource!, 0, writeBufferPosition, cancellationToken);
 #else
-            await stream.WriteAsync(endingBytes.AsMemory(), cancellationToken);
+                await stream.WriteAsync(writeBufferSource.AsMemory(0, writeBufferPosition), cancellationToken);
 #endif
-            await stream.FlushAsync(cancellationToken);
+                await stream.FlushAsync(cancellationToken);
+            }
         }
     }
 }

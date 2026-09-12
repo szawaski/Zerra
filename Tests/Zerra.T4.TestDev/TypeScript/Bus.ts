@@ -36,94 +36,74 @@ export class Bus {
         return str;
     }
 
-    private static _deserializeJson(data: any, modelType: any, hasMany: boolean): any {
-        if (data === null || modelType === null)
-            return null;
-
-        if (modelType === "Date") {
-            if (data !== null) {
-                data = new Date(data);
-            }
-            return data;
-        }
-        else if (modelType === "number" || modelType === "string" || modelType === "boolean") {
-            return data;
-        }
-
-        if (hasMany) {
-            for (const index in data) {
-                Bus._deserializeJson(data[index], modelType, false);
-            }
-        }
-        else {
-            for (const property in data) {
-                const propertyType = modelType[property];
-                const value = data[property];
-                if (propertyType === "Date") {
-                    if (value !== null) {
-                        data[property] = new Date(value);
-                    }
-                }
-                else if (propertyType !== "number" && propertyType !== "string" && propertyType !== "boolean") {
-                    const hasMany = propertyType.indexOf("[]") >= 0;
-                    try {
-                        const subModel = ModelTypeDictionary[propertyType.replace("[]", "")];
-                        Bus._deserializeJson(value, subModel, hasMany);
-                    }
-                    catch (exception) { const ok = 1; }
-                }
-            }
-        }
+    //the type of a property's values for deserializing, "Date[]" is "Date" and "OrderModel[]" is the OrderModel type, undefined when unknown
+    private static _elementType(propertyType: string): any {
+        const elementType = propertyType.replace("[]", "");
+        if (elementType === "Date" || elementType === "number" || elementType === "string" || elementType === "boolean")
+            return elementType;
+        return ModelTypeDictionary[elementType];
     }
 
-    private static _deserializeJsonNameless(data: any, modelType: any, hasMany: boolean): any {
-        if (data === null || modelType === null)
-            return null;
+    //converts parsed JSON to the model type, objects are updated in place, use the returned value
+    private static _deserializeJson(data: any, modelType: any, hasMany: boolean): any {
+        if (data === null || data === undefined || modelType === null || modelType === undefined)
+            return data;
 
-        if (modelType === "Date") {
-            if (data !== null) {
-                data = new Date(data);
+        if (hasMany) {
+            for (const index in data)
+                data[index] = Bus._deserializeJson(data[index], modelType, false);
+            return data;
+        }
+
+        if (modelType === "Date")
+            return new Date(data);
+        if (modelType === "number" || modelType === "string" || modelType === "boolean")
+            return data;
+
+        for (const property in data) {
+            const propertyType = modelType[property];
+            if (propertyType === undefined)
+                continue;
+            try {
+                data[property] = Bus._deserializeJson(data[property], Bus._elementType(propertyType), propertyType.indexOf("[]") >= 0);
             }
-            return data;
+            catch (exception) { const ok = 1; }
         }
-        else if (modelType === "number" || modelType === "string" || modelType === "boolean") {
+        return data;
+    }
+
+    //converts nameless JSON, where each object is an array of its values in model property order, to the model type
+    private static _deserializeJsonNameless(data: any, modelType: any, hasMany: boolean): any {
+        if (data === null || data === undefined || modelType === null || modelType === undefined)
             return data;
-        }
 
         if (hasMany) {
             const deserializedItems = [];
-            for (const index in data) {
-                const deserializedItem = Bus._deserializeJsonNameless(data[index], modelType, false);
-                deserializedItems.push(deserializedItem);
-            }
+            for (const index in data)
+                deserializedItems.push(Bus._deserializeJsonNameless(data[index], modelType, false));
             return deserializedItems;
         }
-        else {
-            const model: { [index: string]: any } = {};
-            if (Object.keys(modelType).length !== data.length)
-                throw "Model property counts do not match";
-            let index = 0;
-            for (const property in modelType) {
-                const propertyType = modelType[property];
-                let value = data[index];
-                if (propertyType === "Date") {
-                    if (value !== null) {
-                        value = new Date(value);
-                    }
-                }
-                else if (propertyType !== "number" && propertyType !== "string" && propertyType !== "boolean") {
-                    const hasMany = propertyType.indexOf("[]") >= 0;
-                    try {
-                        const subModel = ModelTypeDictionary[propertyType.replace("[]", "")];
-                        value = Bus._deserializeJsonNameless(value, subModel, hasMany);
-                    }
-                    catch (exception) { const ok = 1; }
-                }
-                model[property] = value;
-                index++;
+
+        if (modelType === "Date")
+            return new Date(data);
+        if (modelType === "number" || modelType === "string" || modelType === "boolean")
+            return data;
+
+        const model: { [index: string]: any } = {};
+        if (Object.keys(modelType).length !== data.length)
+            throw "Model property counts do not match";
+        let index = 0;
+        for (const property in modelType) {
+            const propertyType = modelType[property];
+            let value = data[index];
+            try {
+                value = Bus._deserializeJsonNameless(value, Bus._elementType(propertyType), propertyType.indexOf("[]") >= 0);
             }
-            return model;
+            catch (exception) { const ok = 1; }
+            model[property] = value;
+            index++;
         }
+        return model;
     }
 
     private static _getRoute(provider: string): string {
@@ -142,11 +122,17 @@ export class Bus {
 
     private static _onReject(retry: () => void, retryCount: number, responseText: string, url: string, reject: (reason?: any) => void): void {
         let errorText: string;
+        let exception: any = null;
         if (responseText) {
-            const exceptionContent = JSON.parse(responseText);
-            const exception = JSON.parse(exceptionContent.ErrorString);
-            errorText = exception._message;
-            console.log("Error: " + exception._message);
+            try { exception = JSON.parse(responseText); } catch { exception = null; }
+        }
+        if (exception && typeof exception.ErrorMessage === "string") {
+            errorText = exception.ErrorMessage;
+            console.log("Error " + exception.ErrorType + ": " + errorText);
+        }
+        else if (responseText) {
+            errorText = responseText;
+            console.log("Error: " + errorText);
         }
         else {
             errorText = "Server Error";
@@ -226,7 +212,7 @@ export class Bus {
                                     if (responseJsonNameless)
                                         deserialized = Bus._deserializeJsonNameless(deserialized, modelType, hasMany);
                                     else
-                                        Bus._deserializeJson(deserialized, modelType, hasMany);
+                                        deserialized = Bus._deserializeJson(deserialized, modelType, hasMany);
                                 }
 
                                 resolve(deserialized);
@@ -372,11 +358,11 @@ export class Bus {
 
                     if (hasResult) {
                         const responseContentType = res.headers.get("content-type");
-                        const responseJson = responseContentType?.includes("application/json");
                         const responseJsonNameless = responseContentType?.includes("application/jsonnameless");
 
                         res.text().then((data) => {
-                            if (responseJson || res.status == 200) {
+                            //errors come back as JSON too, so only the status says whether it's a result
+                            if (res.status == 200) {
 
                                 if (data == null || data == "") {
                                     resolve(null);
@@ -389,7 +375,7 @@ export class Bus {
                                     if (responseJsonNameless)
                                         deserialized = Bus._deserializeJsonNameless(deserialized, resultType, hasMany);
                                     else
-                                        Bus._deserializeJson(deserialized, resultType, hasMany);
+                                        deserialized = Bus._deserializeJson(deserialized, resultType, hasMany);
                                 }
 
                                 resolve(deserialized);

@@ -388,7 +388,17 @@ namespace Zerra.Repository
                                     }
                                 }
 
-                                modelPropertyInfo.Setter(model, relatedForModel);
+                                //an array property can't hold the list, copy it to an array of the related type
+                                if (modelPropertyInfo.Type.IsArray)
+                                {
+                                    var relatedArray = Array.CreateInstance(relatedType, relatedForModel.Count);
+                                    relatedForModel.CopyTo(relatedArray, 0);
+                                    modelPropertyInfo.Setter(model, relatedArray);
+                                }
+                                else
+                                {
+                                    modelPropertyInfo.Setter(model, relatedForModel);
+                                }
                             }
                         }
                         //});
@@ -550,7 +560,17 @@ namespace Zerra.Repository
                                     }
                                 }
 
-                                modelPropertyInfo.Setter(model, relatedForModel);
+                                //an array property can't hold the list, copy it to an array of the related type
+                                if (modelPropertyInfo.Type.IsArray)
+                                {
+                                    var relatedArray = Array.CreateInstance(relatedType, relatedForModel.Count);
+                                    relatedForModel.CopyTo(relatedArray, 0);
+                                    modelPropertyInfo.Setter(model, relatedArray);
+                                }
+                                else
+                                {
+                                    modelPropertyInfo.Setter(model, relatedForModel);
+                                }
                             }
                         }
                         //});

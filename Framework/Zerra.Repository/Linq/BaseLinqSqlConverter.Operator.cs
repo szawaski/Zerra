@@ -25,7 +25,9 @@
             Multiply,
             Modulus,
             EqualsNull,
-            NotEqualsNull
+            NotEqualsNull,
+            //logical negation (!x), the operand is written with the inversion applied rather than a prefix, last so the existing values don't change
+            Not
         }
     }
 }

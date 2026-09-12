@@ -27,7 +27,7 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly CancellationTokenSource canceller;
 
             private IModel? channel = null;
-            private SemaphoreSlim? throttle = null;
+            private readonly SemaphoreSlim throttle;
 
             public EventConsumer(int maxConcurrent, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteEventDispatch handlerAsync)
             {
@@ -42,6 +42,8 @@ namespace Zerra.CQRS.RabbitMQ
                 this.symmetricConfig = symmetricConfig;
                 this.handlerAsync = handlerAsync;
                 this.canceller = new CancellationTokenSource();
+                //one throttle for the life of the consumer, reconnecting keeps the permits held by events still being handled
+                this.throttle = new SemaphoreSlim(this.maxConcurrent, this.maxConcurrent);
             }
 
             public void Open(IConnection connection)
@@ -55,9 +57,6 @@ namespace Zerra.CQRS.RabbitMQ
             private async Task ListeningThread(IConnection connection)
             {
             retry:
-
-                throttle?.Dispose();
-                throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
                 try
                 {
@@ -77,7 +76,18 @@ namespace Zerra.CQRS.RabbitMQ
                     {
                         await throttle.WaitAsync(canceller.Token);
 
-                        this.channel.BasicAck(e.DeliveryTag, false);
+                        try
+                        {
+                            //delivery tags belong to the channel that delivered, a reconnect may have replaced this.channel while waiting on the throttle
+                            consumer.Model.BasicAck(e.DeliveryTag, false);
+                        }
+                        catch (Exception ex)
+                        {
+                            //the channel closed, the broker redelivers the unacknowledged message after reconnecting
+                            _ = Log.ErrorAsync(topic, ex);
+                            _ = throttle.Release();
+                            return;
+                        }
 
                         var inHandlerContext = false;
                         try
@@ -120,10 +130,10 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(topic, ex);
-
                     if (!canceller.IsCancellationRequested)
                     {
+                        _ = Log.ErrorAsync(topic, ex);
+
                         if (channel is not null)
                         {
                             channel.Close();
@@ -141,7 +151,10 @@ namespace Zerra.CQRS.RabbitMQ
                 canceller.Cancel();
                 canceller.Dispose();
 
-                throttle?.Dispose();
+                //the throttle is not disposed: handlers still running after Dispose release it, and a disposed SemaphoreSlim throws ObjectDisposedException on Release
+                //this isn't a leak, SemaphoreSlim.Dispose only frees the wait handle that AvailableWaitHandle creates on first use, which nothing reads,
+                //the rest is managed memory with no finalizer that the GC reclaims once nothing references it
+                //if AvailableWaitHandle is ever used, dispose it once every handler that could release it has finished
 
                 if (channel is not null)
                 {
