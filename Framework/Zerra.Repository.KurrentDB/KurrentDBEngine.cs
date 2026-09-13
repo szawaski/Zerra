@@ -288,7 +288,7 @@ namespace Zerra.Repository.KurrentDB
             }
             catch (Exception ex)
             {
-                Log.Error($"{nameof(KurrentDbEngine)} failed to validate", ex);
+                Log.Warn($"{nameof(KurrentDbEngine)} failed to validate: {ex.Message}");
             }
             return false;
         }

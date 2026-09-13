@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Xunit;
+using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.Test
 {
@@ -71,6 +72,69 @@ namespace Zerra.Repository.Test
             repo.Delete<TestRelationsModel>(relationBModel);
             relationBModelCheck = repo.Single<TestRelationsModel>(x => x.RelationAKey == relationBModel.RelationAKey);
             Assert.Null(relationBModelCheck);
+
+            TestRelatedMany(repo);
+        }
+
+        private static void TestRelatedMany(IRepo repo)
+        {
+            //two parents with different related counts loaded together, each gets only its own related models
+            var parent1 = TestTypesModel.Create();
+            var parent2 = TestTypesModel.Create();
+            repo.Create<TestTypesModel>(parent1);
+            repo.Create<TestTypesModel>(parent2);
+
+            var related = new TestRelationsModel[] { TestRelationsModel.Create(), TestRelationsModel.Create(), TestRelationsModel.Create() };
+            related[0].RelationBKey = parent1.KeyA;
+            related[1].RelationBKey = parent1.KeyA;
+            related[2].RelationBKey = parent2.KeyA;
+            foreach (var item in related)
+                repo.Create<TestRelationsModel>(item);
+
+            var keys = new Guid[] { parent1.KeyA, parent2.KeyA };
+            var result = repo.Many<TestTypesModel>(x => keys.Contains(x.KeyA), new Graph<TestTypesModel>(true, x => x.RelationB));
+            AssertRelatedMany(result, parent1, [related[0], related[1]]);
+            AssertRelatedMany(result, parent2, [related[2]]);
+
+            foreach (var item in related)
+                repo.Delete<TestRelationsModel>(item);
+            repo.Delete<TestTypesModel>(parent1);
+            repo.Delete<TestTypesModel>(parent2);
+        }
+
+        private static async Task TestRelatedManyAsync(IRepo repo)
+        {
+            //two parents with different related counts loaded together, each gets only its own related models
+            var parent1 = TestTypesModel.Create();
+            var parent2 = TestTypesModel.Create();
+            await repo.CreateAsync<TestTypesModel>(parent1);
+            await repo.CreateAsync<TestTypesModel>(parent2);
+
+            var related = new TestRelationsModel[] { TestRelationsModel.Create(), TestRelationsModel.Create(), TestRelationsModel.Create() };
+            related[0].RelationBKey = parent1.KeyA;
+            related[1].RelationBKey = parent1.KeyA;
+            related[2].RelationBKey = parent2.KeyA;
+            foreach (var item in related)
+                await repo.CreateAsync<TestRelationsModel>(item);
+
+            var keys = new Guid[] { parent1.KeyA, parent2.KeyA };
+            var result = await repo.ManyAsync<TestTypesModel>(x => keys.Contains(x.KeyA), new Graph<TestTypesModel>(true, x => x.RelationB));
+            AssertRelatedMany(result, parent1, [related[0], related[1]]);
+            AssertRelatedMany(result, parent2, [related[2]]);
+
+            foreach (var item in related)
+                await repo.DeleteAsync<TestRelationsModel>(item);
+            await repo.DeleteAsync<TestTypesModel>(parent1);
+            await repo.DeleteAsync<TestTypesModel>(parent2);
+        }
+
+        private static void AssertRelatedMany(IReadOnlyCollection<TestTypesModel> result, TestTypesModel parent, TestRelationsModel[] expected)
+        {
+            var match = Assert.Single(result, x => x.KeyA == parent.KeyA);
+            Assert.NotNull(match.RelationB);
+            Assert.Equal(expected.Length, match.RelationB.Length);
+            Assert.All(match.RelationB, x => Assert.Equal(parent.KeyA, x.RelationBKey));
+            Assert.Equal(expected.Select(x => x.RelationAKey).Order(), match.RelationB.Select(x => x.RelationAKey).Order());
         }
 
         public static async Task TestSequenceAsync<T>() 
@@ -136,6 +200,20 @@ namespace Zerra.Repository.Test
             await repo.DeleteAsync<TestRelationsModel>(relationBModel);
             relationBModelCheck = await repo.SingleAsync<TestRelationsModel>(x => x.RelationAKey == relationBModel.RelationAKey);
             Assert.Null(relationBModelCheck);
+
+            await TestRelatedManyAsync(repo);
+        }
+
+        /// <summary>
+        /// Right after code first generation the data store matches the models, so generating again must find nothing to change.
+        /// </summary>
+        public static void AssertSchemaMatchesModels<T>(Type[] modelTypes)
+            where T : DataContext, new()
+        {
+            Assert.True(new T().TryGetEngine(out var engine));
+            var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
+            var plan = engine.BuildStoreGenerationPlan(true, true, true, modelDetails);
+            Assert.True(plan.Plan.Count == 0, $"Schema changes planned right after generation:{Environment.NewLine}{String.Join(Environment.NewLine, plan.Plan)}");
         }
 
         private static void TestQuery(IRepo repo, TestTypesModel model, TestRelationsModel relationModel)
@@ -179,6 +257,22 @@ namespace Zerra.Repository.Test
             //time
             var timeResult = repo.Single<TestTypesModel>(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123, 0));
             AssertAreEqual(model, timeResult);
+
+            //bool compared to a value
+            var boolValueResult = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA && x.BooleanThing == model.BooleanThing && x.BooleanNullableThing == model.BooleanNullableThing);
+            AssertAreEqual(model, boolValueResult);
+
+            //bool member as a condition, and negated
+            var boolMemberResult = model.BooleanThing
+                ? repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA && x.BooleanThing && !x.BooleanNullableThing.Value)
+                : repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA && !x.BooleanThing && x.BooleanNullableThing.Value);
+            AssertAreEqual(model, boolMemberResult);
+
+            //negated bool member excludes the row
+            var boolExcludedResult = model.BooleanThing
+                ? repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA && !x.BooleanThing)
+                : repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA && x.BooleanThing);
+            Assert.Null(boolExcludedResult);
 
             //string like
             var stringLikeResult = repo.Single<TestTypesModel>(x => x.StringThing.Contains("World"));
@@ -263,6 +357,22 @@ namespace Zerra.Repository.Test
             var timeResult = await repo.SingleAsync<TestTypesModel>(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123, 0));
             AssertAreEqual(model, timeResult);
 
+            //bool compared to a value
+            var boolValueResult = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA && x.BooleanThing == model.BooleanThing && x.BooleanNullableThing == model.BooleanNullableThing);
+            AssertAreEqual(model, boolValueResult);
+
+            //bool member as a condition, and negated
+            var boolMemberResult = model.BooleanThing
+                ? await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA && x.BooleanThing && !x.BooleanNullableThing.Value)
+                : await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA && !x.BooleanThing && x.BooleanNullableThing.Value);
+            AssertAreEqual(model, boolMemberResult);
+
+            //negated bool member excludes the row
+            var boolExcludedResult = model.BooleanThing
+                ? await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA && !x.BooleanThing)
+                : await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA && x.BooleanThing);
+            Assert.Null(boolExcludedResult);
+
             //string like
             var stringLikeResult = await repo.SingleAsync<TestTypesModel>(x => x.StringThing.Contains("World"));
             AssertAreEqual(model, stringLikeResult);
@@ -306,6 +416,7 @@ namespace Zerra.Repository.Test
 
         private static void UpdateModel(TestTypesModel model)
         {
+            model.BooleanThing = !model.BooleanThing;
             model.ByteThing++;
             model.Int16Thing++;
             model.Int32Thing++;
@@ -321,6 +432,7 @@ namespace Zerra.Repository.Test
             model.TimeOnlyThing = TimeOnly.FromDateTime(DateTime.Now);
             model.GuidThing = Guid.NewGuid();
 
+            model.BooleanNullableThing = !model.BooleanNullableThing;
             model.ByteNullableThing++;
             model.Int16NullableThing++;
             model.Int32NullableThing++;
@@ -342,6 +454,7 @@ namespace Zerra.Repository.Test
             Assert.NotNull(model1);
             Assert.NotNull(model2);
 
+            Assert.Equal(model1.BooleanThing, model2.BooleanThing);
             Assert.Equal(model1.ByteThing, model2.ByteThing);
             Assert.Equal(model1.Int16Thing, model2.Int16Thing);
             Assert.Equal(model1.Int32Thing, model2.Int32Thing);
@@ -357,6 +470,7 @@ namespace Zerra.Repository.Test
             Assert.Equal(model1.TimeOnlyThing.Millisecond, model2.TimeOnlyThing.Millisecond);
             Assert.Equal(model1.GuidThing, model2.GuidThing);
 
+            Assert.Equal(model1.BooleanNullableThing, model2.BooleanNullableThing);
             Assert.Equal(model1.ByteNullableThing, model2.ByteNullableThing);
             Assert.Equal(model1.Int16NullableThing, model2.Int16NullableThing);
             Assert.Equal(model1.Int32NullableThing, model2.Int32NullableThing);
@@ -372,6 +486,8 @@ namespace Zerra.Repository.Test
             Assert.Equal(model1.TimeOnlyNullableThing?.Millisecond, model2.TimeOnlyNullableThing?.Millisecond);
             Assert.Equal(model1.GuidNullableThing, model2.GuidNullableThing);
 
+            Assert.Null(model1.BooleanNullableThingNull);
+            Assert.Null(model2.BooleanNullableThingNull);
             Assert.Null(model1.ByteNullableThingNull);
             Assert.Null(model1.Int16NullableThingNull);
             Assert.Null(model1.Int32NullableThingNull);
@@ -391,6 +507,8 @@ namespace Zerra.Repository.Test
 
             Assert.Null(model1.StringThingNull);
             Assert.Null(model2.StringThingNull);
+            Assert.Equal(model1.StringLengthThing, model2.StringLengthThing);
+            Assert.Null(model2.StringLengthThingNull);
 
             if (model1.BytesThing is not null)
             {

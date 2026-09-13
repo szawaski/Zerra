@@ -269,6 +269,7 @@ namespace Zerra.SourceGeneration
                 (var properties, var fields) = TypeFinder.GetPropertiesAndFields(namedTypeSymbol, symbolMembers);
                 var requiredMembers = TypeFinder.GetRequiredMembers(properties, fields);
 
+                //a missing argument, such as a required member absent from JSON, becomes the default like ConstructorInfo.Invoke does instead of failing to unbox null
                 var constructors = TypeFinder.GetConstructors(namedTypeSymbol, symbolMembers);
                 var hasFirst = false;
                 foreach (var constructor in constructors)
@@ -303,7 +304,7 @@ namespace Zerra.SourceGeneration
                             RefKind.Ref => sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
                             RefKind.In => sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
                             RefKind.Out => sb.Append("out args![").Append(parameter.Ordinal).Append("]!"),
-                            _ => sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                            _ => sb.Append("(").Append(parameterTypeName).Append(")(args![").Append(parameter.Ordinal).Append("] ?? default(").Append(parameterTypeName).Append(")!)"),
                         };
                     }
 
@@ -320,7 +321,7 @@ namespace Zerra.SourceGeneration
                             else
                                 hasFirstRequired = true;
                             var memberTypeName = Helper.GetFullName(member.Type);
-                            _ = sb.Append(member.Name).Append(" = (").Append(memberTypeName).Append(")args![").Append(argCount++).Append("]!");
+                            _ = sb.Append(member.Name).Append(" = (").Append(memberTypeName).Append(")(args![").Append(argCount++).Append("] ?? default(").Append(memberTypeName).Append(")!)");
                         }
                         _ = sb.Append(" }");
                     }
@@ -338,7 +339,7 @@ namespace Zerra.SourceGeneration
                             RefKind.Ref => sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
                             RefKind.In => sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
                             RefKind.Out => sb.Append("out args![").Append(parameter.Ordinal).Append("]!"),
-                            _ => sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
+                            _ => sb.Append("(").Append(parameterTypeName).Append(")(args![").Append(parameter.Ordinal).Append("] ?? default(").Append(parameterTypeName).Append(")!)"),
                         };
                     }
                     _ = sb.Append(")");
@@ -354,7 +355,7 @@ namespace Zerra.SourceGeneration
                             else
                                 hasFirstRequired = true;
                             var memberTypeName = Helper.GetFullName(member.Type);
-                            _ = sb.Append(member.Name).Append(" = (").Append(memberTypeName).Append(")args![").Append(argCount++).Append("]!");
+                            _ = sb.Append(member.Name).Append(" = (").Append(memberTypeName).Append(")(args![").Append(argCount++).Append("] ?? default(").Append(memberTypeName).Append(")!)");
                         }
                         _ = sb.Append(" }");
                     }

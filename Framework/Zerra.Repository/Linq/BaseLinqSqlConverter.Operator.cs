@@ -21,6 +21,8 @@
             Call,
             /// <summary>Unary negation (<c>-x</c>).</summary>
             Negative,
+            /// <summary>Logical negation (<c>!x</c>); the operand is written with the inversion applied rather than a prefix.</summary>
+            Not,
             /// <summary>Logical AND (<c>AND</c>).</summary>
             And,
             /// <summary>Logical OR (<c>OR</c>).</summary>

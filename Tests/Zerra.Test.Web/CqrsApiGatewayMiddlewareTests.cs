@@ -67,6 +67,36 @@ namespace Zerra.Test.Web
         }
 
         [Fact(Timeout = timeout)]
+        public async Task Query_RemoteServiceThrows_RespondsWithOriginalType()
+        {
+            //the error came from a handler in another service, the browser sees the type it was thrown as
+            var bus = new MockBus { QueryException = new RemoteServiceException(nameof(InvalidOperationException), "remote failed", "remote-service", null) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(500, context.Response.StatusCode);
+            var exception = ExceptionSerializer.Deserialize(source, serializer, ReadResponse(context));
+            Assert.Equal(nameof(InvalidOperationException), exception.ErrorType);
+            Assert.Equal("remote failed", exception.Message);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Query_RemoteServiceThrowsSecurityException_RespondsUnauthorized()
+        {
+            var bus = new MockBus { QueryException = new RemoteServiceException(nameof(System.Security.SecurityException), "not yours", "remote-service", null) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(401, context.Response.StatusCode);
+            var exception = ExceptionSerializer.Deserialize(source, serializer, ReadResponse(context));
+            Assert.Equal(nameof(System.Security.SecurityException), exception.ErrorType);
+        }
+
+        [Fact(Timeout = timeout)]
         public async Task Authorizer_ThrowsSecurityException_RespondsUnauthorized()
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };

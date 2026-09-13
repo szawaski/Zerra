@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+// Copyright ï¿½ KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -1016,6 +1016,22 @@ namespace Zerra.Test.Serialization
             Assert.Equal(model1.Value1, model2.Value1);
             Assert.Equal(model1.Value2, model2.Value2);
             Assert.Equal(model1.Value3, model2.Value3);
+        }
+
+        [Fact]
+        public void StringRequiredMissing()
+        {
+            var model = JsonSerializer.Deserialize<TestSerializerRequired>(@"{""Value1"":1,""Value3"":3}");
+            Assert.NotNull(model);
+            Assert.Equal(1, model.Value1);
+            Assert.Equal(0, model.Value2);
+            Assert.Equal(3, model.Value3);
+
+            var empty = JsonSerializer.Deserialize<TestSerializerRequired>("{}");
+            Assert.NotNull(empty);
+            Assert.Equal(0, empty.Value1);
+            Assert.Equal(0, empty.Value2);
+            Assert.Equal(0, empty.Value3);
         }
 
         [Fact]

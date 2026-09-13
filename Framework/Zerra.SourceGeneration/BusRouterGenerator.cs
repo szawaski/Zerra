@@ -96,7 +96,7 @@ namespace Zerra.SourceGeneration
                     var returnType = (INamedTypeSymbol)method.ReturnType;
                     if (returnType.TypeArguments.Length == 1)
                     {
-                        taskInnerTypeName = Helper.GetFullName(returnType.TypeArguments[0]);
+                        taskInnerTypeName = Helper.GetFullNameWithNullability(returnType.TypeArguments[0]);
                         typeOfTaskInnerType = Helper.GetTypeOfName(returnType.TypeArguments[0]);
                     }
                 }
@@ -104,7 +104,7 @@ namespace Zerra.SourceGeneration
                 if (sb.Length > 0)
                     _ = sb.Append(EnvironmentHelper.NewLine).Append("        ");
 
-                _ = sb.Append("public ").Append(method.ReturnsVoid ? "void" : Helper.GetFullName(method.ReturnType)).Append(' ').Append(method.Name);
+                _ = sb.Append("public ").Append(method.ReturnsVoid ? "void" : Helper.GetFullNameWithNullability(method.ReturnType)).Append(' ').Append(method.Name);
                 if (method.IsGenericMethod)
                 {
                     _ = sb.Append('<');
@@ -127,7 +127,7 @@ namespace Zerra.SourceGeneration
                         _ = sb.Append(", ");
                     else
                         firstPassed = true;
-                    _ = sb.Append(Helper.GetFullName(parameter.Type)).Append(" @").Append(parameter.Name);
+                    _ = sb.Append(Helper.GetFullNameWithNullability(parameter.Type)).Append(" @").Append(parameter.Name);
                 }
                 _ = sb.Append(") ");
 
@@ -185,6 +185,9 @@ namespace Zerra.SourceGeneration
                     else
                         firstPassed = true;
                     _ = sb.Append('@').Append(parameter.Name);
+                    //the arguments array is object[], a null argument is fine at runtime
+                    if (Helper.IsNullable(parameter.Type))
+                        _ = sb.Append('!');
                 }
                 _ = sb.Append("], source);");
             }

@@ -25,6 +25,11 @@ namespace Zerra.T4.CSharp
         public List<CSharpNamespace> Usings { get; }
 
         /// <summary>
+        /// Gets the global using directives declared in the file, which apply to every file in its project.
+        /// </summary>
+        public List<CSharpNamespace> GlobalUsings { get; }
+
+        /// <summary>
         /// Gets the stack of namespaces currently being parsed.
         /// </summary>
         public Stack<CSharpNamespace> Namespaces { get; }
@@ -43,6 +48,7 @@ namespace Zerra.T4.CSharp
             this.FileName = fileName;
             this.Line = 1;
             this.Usings = new List<CSharpNamespace>();
+            this.GlobalUsings = new List<CSharpNamespace>();
             this.Namespaces = new Stack<CSharpNamespace>();
         }
     }

@@ -206,6 +206,11 @@
             Gets the using directives declared in the file.
             </summary>
         </member>
+        <member name="P:Zerra.T4.CSharp.CSharpFileContext.GlobalUsings">
+            <summary>
+            Gets the global using directives declared in the file, which apply to every file in its project.
+            </summary>
+        </member>
         <member name="P:Zerra.T4.CSharp.CSharpFileContext.Namespaces">
             <summary>
             Gets the stack of namespaces currently being parsed.

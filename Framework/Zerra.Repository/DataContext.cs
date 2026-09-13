@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Diagnostics.CodeAnalysis;
+using Zerra.Collections;
 
 namespace Zerra.Repository
 {
@@ -11,12 +12,12 @@ namespace Zerra.Repository
     /// </summary>
     public abstract class DataContext
     {
-        private static bool isValid = false;
-        private static bool validated = false;
-        private static readonly object validatedLock = new();
+        //a context type is one configuration, instances are created per provider so the data source is validated once per type
+        private static readonly ConcurrentFactoryDictionary<Type, bool> validatedByType = new();
 
         /// <summary>
         /// Attempts to retrieve the validated data store engine.
+        /// The data source is validated once per context type, every instance of the type shares the result.
         /// </summary>
         /// <param name="engine">When this method returns <see langword="true"/>, contains the validated <see cref="IDataStoreEngine"/>; otherwise, <see langword="null"/>.</param>
         /// <returns><see langword="true"/> if the engine was retrieved and validated successfully; otherwise, <see langword="false"/>.</returns>
@@ -30,19 +31,10 @@ namespace Zerra.Repository
             if (engine is null)
                 return false;
 
-            lock (validatedLock)
+            if (!validatedByType.GetOrAdd(GetType(), engine, static (x) => x.ValidateDataSource()))
             {
-                if (!validated)
-                {
-                    validated = true;
-                    isValid = engine.ValidateDataSource();
-                }
-
-                if (!isValid)
-                {
-                    engine = null;
-                    return false;
-                }
+                engine = null;
+                return false;
             }
 
             return true;

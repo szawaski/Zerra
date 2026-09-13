@@ -20,6 +20,9 @@
             /// <summary>Gets a value indicating whether the current expression logic is inverted (odd inversion depth).</summary>
             public bool Inverted { get { return InvertStack % 2 != 0; } }
 
+            /// <summary>True while converting ORDER BY expressions, where a boolean member is a value to sort by rather than a condition.</summary>
+            public bool IsOrderBy;
+
             /// <summary>
             /// Initializes a new <see cref="BuilderContext"/> with the given root dependant and member context.
             /// </summary>

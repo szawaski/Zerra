@@ -4,6 +4,18 @@
     <Project Path="Demo/Pets.Domain/Pets.Domain.csproj" />
     <Project Path="Demo/Pets.Service/Pets.Service.csproj" />
   </Folder>
+  <Folder Name="/Demo/Store/">
+    <File Path="Demo/Store/README.md" />
+    <File Path="Demo/Store/start-store.ps1" />
+    <Project Path="Demo/Store/Store.Catalog.Domain/Store.Catalog.Domain.csproj" />
+    <Project Path="Demo/Store/Store.Catalog.Service/Store.Catalog.Service.csproj" />
+    <Project Path="Demo/Store/Store.Common/Store.Common.csproj" />
+    <Project Path="Demo/Store/Store.Inventory.Domain/Store.Inventory.Domain.csproj" />
+    <Project Path="Demo/Store/Store.Inventory.Service/Store.Inventory.Service.csproj" />
+    <Project Path="Demo/Store/Store.Orders.Domain/Store.Orders.Domain.csproj" />
+    <Project Path="Demo/Store/Store.Orders.Service/Store.Orders.Service.csproj" />
+    <Project Path="Demo/Store/Store.Web/Store.Web.csproj" />
+  </Folder>
   <Folder Name="/Framework/">
     <Project Path="Framework/Zerra.CQRS.AzureServiceBus/Zerra.CQRS.AzureServiceBus.csproj" />
     <Project Path="Framework/Zerra.CQRS.Kafka/Zerra.CQRS.Kafka.csproj" />

@@ -52,6 +52,7 @@ namespace Zerra.Repository.Test.MariaDb
             var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) };
 
             CodeFirstGeneration.Generate<MariaDbTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels<MariaDbTestSqlDataContext>(modelTypes);
 
             RepoTest.TestSequence<MariaDbTestSqlDataContext>();
             await RepoTest.TestSequenceAsync<MariaDbTestSqlDataContext>();
@@ -64,6 +65,7 @@ namespace Zerra.Repository.Test.MariaDb
             _ = ExecuteSql(context, dropColumn);
 
             CodeFirstGeneration.Generate<MariaDbTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels<MariaDbTestSqlDataContext>(modelTypes);
 
             var sb = new StringBuilder();
             var modelDetails = ModelAnalyzer.GetModel(typeof(TestTypesModel));
@@ -80,6 +82,7 @@ namespace Zerra.Repository.Test.MariaDb
             _ = ExecuteSql(context, dropAllColumns);
 
             CodeFirstGeneration.Generate<MariaDbTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels<MariaDbTestSqlDataContext>(modelTypes);
 
             _ = sb.Clear();
             foreach (var property in modelDetails.Members)
@@ -101,6 +104,7 @@ namespace Zerra.Repository.Test.MariaDb
             _ = ExecuteSql(context, addJunkColumns);
 
             CodeFirstGeneration.Generate<MariaDbTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels<MariaDbTestSqlDataContext>(modelTypes);
 
             DropDatabase(context);
         }

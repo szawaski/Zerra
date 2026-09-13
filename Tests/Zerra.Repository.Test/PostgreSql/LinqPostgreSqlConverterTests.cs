@@ -28,6 +28,8 @@ namespace Zerra.Repository.Test.PostgreSql
             HasLimitClause = true,
             HasOffsetFetch = true,
             HasLimitOffset = false,
+            BooleanTrue = "TRUE",
+            BooleanFalse = "FALSE",
         };
     }
 }

@@ -10,20 +10,21 @@ const Bus = {
         for (const property in modelType) {
             const propertyType = modelType[property];
             let value = null;
-            if (propertyType !== "number" && propertyType !== "string" && propertyType !== "boolean" && propertyType !== "Date") {
-                const hasMany = propertyType.includes("[]");
-                if (hasMany) {
-                    value = [];
-                } else {
-                    try {
-                        const subModel = ModelTypeDictionary[propertyType.replace("[]", "")];
-                        value = Bus.createModel(subModel);
-                    } catch (exception) { const ok = 1; }
-                }
-            }
+            if (propertyType.includes("[]"))
+                value = [];
+            else if (ModelTypeDictionary[propertyType] !== undefined)
+                value = Bus.createModel(propertyType);
             model[property] = value;
         }
         return model;
+    },
+
+    //the type of a property's values for deserializing, "Date[]" is "Date" and "OrderModel[]" is the OrderModel type, undefined when unknown
+    _elementType: function (propertyType) {
+        const elementType = propertyType.replace("[]", "");
+        if (elementType === "Date" || elementType === "number" || elementType === "string" || elementType === "boolean")
+            return elementType;
+        return ModelTypeDictionary[elementType];
     },
 
     _pad: function (value, length) {
@@ -45,6 +46,15 @@ const Bus = {
         return d;
     },
 
+    //query arguments are byte arrays on the server, which JSON carries as base64
+    _toBase64: function (text) {
+        const bytes = new TextEncoder().encode(text);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++)
+            binary += String.fromCharCode(bytes[i]);
+        return btoa(binary);
+    },
+
     _serializeJson: function (data) {
         const replacer = function (key, value) {
             const origionalValue = this[key];
@@ -57,94 +67,66 @@ const Bus = {
         return str;
     },
 
+    //converts parsed JSON to the model type, objects are updated in place, use the returned value
     _deserializeJson: function (data, modelType, hasMany) {
-        if (data === null || modelType === null)
-            return null;
-
-        if (modelType === "Date") {
-            if (data !== null) {
-                data = new Date(data);
-            }
-            return;
-        }
-        else if (modelType === "number" || modelType === "string" || modelType === "boolean") {
-            return;
-        }
+        if (data === null || data === undefined || modelType === null || modelType === undefined)
+            return data;
 
         if (hasMany) {
-            for (const index in data) {
-                Bus._deserializeJson(data[index], modelType, false);
-            }
+            for (const index in data)
+                data[index] = Bus._deserializeJson(data[index], modelType, false);
+            return data;
         }
-        else {
-            for (const property in data) {
-                const propertyType = modelType[property];
-                const value = data[property];
-                if (propertyType === "Date") {
-                    if (value !== null) {
-                        data[property] = new Date(value);
-                    }
-                }
-                else if (propertyType !== "number" && propertyType !== "string" && propertyType !== "boolean") {
-                    const hasMany = propertyType.indexOf("[]") >= 0;
-                    try {
-                        const subModel = ModelTypeDictionary[propertyType.replace("[]", "")];
-                        Bus._deserializeJson(value, subModel, hasMany);
-                    }
-                    catch (exception) { const ok = 1; }
-                }
+
+        if (modelType === "Date")
+            return new Date(data);
+        if (modelType === "number" || modelType === "string" || modelType === "boolean")
+            return data;
+
+        for (const property in data) {
+            const propertyType = modelType[property];
+            if (propertyType === undefined)
+                continue;
+            try {
+                data[property] = Bus._deserializeJson(data[property], Bus._elementType(propertyType), propertyType.indexOf("[]") >= 0);
             }
+            catch (exception) { const ok = 1; }
         }
+        return data;
     },
 
+    //converts nameless JSON, where each object is an array of its values in model property order, to the model type
     _deserializeJsonNameless: function (data, modelType, hasMany) {
-        if (data === null || modelType === null)
-            return null;
-
-        if (modelType === "Date") {
-            if (data !== null) {
-                data = new Date(data);
-            }
+        if (data === null || data === undefined || modelType === null || modelType === undefined)
             return data;
-        }
-        else if (modelType === "number" || modelType === "string" || modelType === "boolean") {
-            return data;
-        }
 
         if (hasMany) {
             const deserializedItems = [];
-            for (const index in data) {
-                const deserializedItem = Bus._deserializeJsonNameless(data[index], modelType, false);
-                deserializedItems.push(deserializedItem);
-            }
+            for (const index in data)
+                deserializedItems.push(Bus._deserializeJsonNameless(data[index], modelType, false));
             return deserializedItems;
         }
-        else {
-            const model = {};
-            if (Object.keys(modelType).length !== data.length)
-                throw "Model property counts do not match";
-            let index = 0;
-            for (const property in modelType) {
-                const propertyType = modelType[property];
-                let value = data[index];
-                if (propertyType === "Date") {
-                    if (value !== null) {
-                        value = new Date(value);
-                    }
-                }
-                else if (propertyType !== "number" && propertyType !== "string" && propertyType !== "boolean") {
-                    const hasMany = propertyType.indexOf("[]") >= 0;
-                    try {
-                        const subModel = ModelTypeDictionary[propertyType.replace("[]", "")];
-                        value = Bus._deserializeJsonNameless(value, subModel, hasMany);
-                    }
-                    catch (exception) { const ok = 1; }
-                }
-                model[property] = value;
-                index++;
+
+        if (modelType === "Date")
+            return new Date(data);
+        if (modelType === "number" || modelType === "string" || modelType === "boolean")
+            return data;
+
+        const model = {};
+        if (Object.keys(modelType).length !== data.length)
+            throw "Model property counts do not match";
+        let index = 0;
+        for (const property in modelType) {
+            const propertyType = modelType[property];
+            let value = data[index];
+            try {
+                value = Bus._deserializeJsonNameless(value, Bus._elementType(propertyType), propertyType.indexOf("[]") >= 0);
             }
-            return model;
+            catch (exception) { const ok = 1; }
+            model[property] = value;
+            index++;
         }
+        return model;
     },
 
     _getRoute: function (provider) {
@@ -162,10 +144,13 @@ const Bus = {
 
     _onFail: function (jqXHR, url, onFail) {
         let errorText;
-        if (jqXHR.responseJSON) {
-            const exception = JSON.parse(jqXHR.responseJSON.ErrorString);
-            errorText = "Error " + jqXHR.status + ": " + exception["_message"];
-            console.log(errorText);
+        let exception = jqXHR.responseJSON;
+        if (!exception && jqXHR.responseText) {
+            try { exception = JSON.parse(jqXHR.responseText); } catch (parseException) { exception = null; }
+        }
+        if (exception && typeof exception.Message === "string") {
+            errorText = exception.Message;
+            console.log("Error " + jqXHR.status + " " + exception.ExceptionType + ": " + errorText);
         }
         else if (jqXHR.responseText) {
             errorText = "Error " + jqXHR.status + ": " + jqXHR.responseText;
@@ -205,7 +190,7 @@ const Bus = {
             if (!Array.isArray(postData.ProviderArguments))
                 throw "Arguments must be an array";
             for (let i = 0; i < postData.ProviderArguments.length; i++) {
-                postData.ProviderArguments[i] = Bus._serializeJson(postData.ProviderArguments[i]);
+                postData.ProviderArguments[i] = Bus._toBase64(Bus._serializeJson(postData.ProviderArguments[i]));
             }
         }
 
@@ -238,14 +223,14 @@ const Bus = {
         })
             .done(function (data, textStatus, jqXHR) {
                 const responseContentType = jqXHR.getResponseHeader("content-type");
-                const responseJsonNameless = responseContentType.includes("application/jsonnameless");
+                const responseJsonNameless = responseContentType !== null && responseContentType.includes("application/jsonnameless");
 
                 let deserialized = data;
                 if (modelType !== null && modelType !== undefined) {
                     if (responseJsonNameless) {
                         deserialized = Bus._deserializeJsonNameless(data, modelType, hasMany);
                     } else {
-                        Bus._deserializeJson(deserialized, modelType, hasMany);
+                        deserialized = Bus._deserializeJson(deserialized, modelType, hasMany);
                     }
                 }
 
@@ -355,14 +340,14 @@ const Bus = {
         })
             .done(function (data, textStatus, jqXHR) {
                 const responseContentType = jqXHR.getResponseHeader("content-type");
-                const responseJsonNameless = responseContentType.includes("application/jsonnameless");
+                const responseJsonNameless = responseContentType !== null && responseContentType.includes("application/jsonnameless");
 
                 let deserialized = data;
                 if (resultType !== null && resultType !== undefined) {
                     if (responseJsonNameless) {
                         deserialized = Bus._deserializeJsonNameless(data, resultType, hasMany);
                     } else {
-                        Bus._deserializeJson(deserialized, resultType, hasMany);
+                        deserialized = Bus._deserializeJson(deserialized, resultType, hasMany);
                     }
                 }
 

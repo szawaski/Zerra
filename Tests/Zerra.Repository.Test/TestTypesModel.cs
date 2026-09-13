@@ -12,6 +12,7 @@ namespace Zerra.Repository.Test
         //[Identity(true)]
         public int KeyB { get; set; }
 
+        public bool BooleanThing { get; set; }
         public byte ByteThing { get; set; }
         public short Int16Thing { get; set; }
         public int Int32Thing { get; set; }
@@ -32,6 +33,7 @@ namespace Zerra.Repository.Test
         public TimeOnly TimeOnlyThing { get; set; }
         public Guid GuidThing { get; set; }
 
+        public bool? BooleanNullableThing { get; set; }
         public byte? ByteNullableThing { get; set; }
         public short? Int16NullableThing { get; set; }
         public int? Int32NullableThing { get; set; }
@@ -52,6 +54,7 @@ namespace Zerra.Repository.Test
         public TimeOnly? TimeOnlyNullableThing { get; set; }
         public Guid? GuidNullableThing { get; set; }
 
+        public bool? BooleanNullableThingNull { get; set; }
         public byte? ByteNullableThingNull { get; set; }
         public short? Int16NullableThingNull { get; set; }
         public int? Int32NullableThingNull { get; set; }
@@ -74,6 +77,10 @@ namespace Zerra.Repository.Test
 
         public string StringThing { get; set; }
         public string StringThingNull { get; set; }
+        [StoreProperties(true, 128)]
+        public string StringLengthThing { get; set; }
+        [StoreProperties(false, 64)]
+        public string StringLengthThingNull { get; set; }
 
         public byte[] BytesThing { get; set; }
         [StoreProperties(false)]
@@ -91,6 +98,7 @@ namespace Zerra.Repository.Test
         {
             var model = new TestTypesModel()
             {
+                BooleanThing = true,
                 ByteThing = 1,
                 Int16Thing = -3,
                 Int32Thing = -5,
@@ -106,6 +114,7 @@ namespace Zerra.Repository.Test
                 TimeOnlyThing = TimeOnly.FromDateTime(DateTime.Now),
                 GuidThing = Guid.NewGuid(),
 
+                BooleanNullableThing = false,
                 ByteNullableThing = 11,
                 Int16NullableThing = -13,
                 Int32NullableThing = -15,
@@ -121,6 +130,7 @@ namespace Zerra.Repository.Test
                 TimeOnlyNullableThing = TimeOnly.FromDateTime(DateTime.Now),
                 GuidNullableThing = Guid.NewGuid(),
 
+                BooleanNullableThingNull = null,
                 ByteNullableThingNull = null,
                 Int16NullableThingNull = null,
                 Int32NullableThingNull = null,
@@ -138,6 +148,8 @@ namespace Zerra.Repository.Test
 
                 StringThing = "Hello\r\nWorld!",
                 StringThingNull = null,
+                StringLengthThing = "Bounded",
+                StringLengthThingNull = null,
 
                 BytesThing = [1, 2, 3],
                 BytesThingNull = null,

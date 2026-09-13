@@ -55,6 +55,7 @@ namespace Zerra.Repository.Test.PostgreSql
             var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) };
 
             CodeFirstGeneration.Generate<PostgreSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels<PostgreSqlTestSqlDataContext>(modelTypes);
 
             RepoTest.TestSequence<PostgreSqlTestSqlDataContext>();
             await RepoTest.TestSequenceAsync<PostgreSqlTestSqlDataContext>();
@@ -67,6 +68,7 @@ namespace Zerra.Repository.Test.PostgreSql
             _ = ExecuteSql(context, dropColmn);
 
             CodeFirstGeneration.Generate<PostgreSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels<PostgreSqlTestSqlDataContext>(modelTypes);
 
             var sb = new StringBuilder();
             var modelDetails = ModelAnalyzer.GetModel(typeof(TestTypesModel));
@@ -83,6 +85,7 @@ namespace Zerra.Repository.Test.PostgreSql
             _ = ExecuteSql(context, dropAllColumns);
 
             CodeFirstGeneration.Generate<PostgreSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels<PostgreSqlTestSqlDataContext>(modelTypes);
 
             _ = sb.Clear();
             foreach (var property in modelDetails.Members)
@@ -105,6 +108,7 @@ namespace Zerra.Repository.Test.PostgreSql
             _ = ExecuteSql(context, addJunkColumns);
 
             CodeFirstGeneration.Generate<PostgreSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels<PostgreSqlTestSqlDataContext>(modelTypes);
 
             DropDatabase(context);
         }

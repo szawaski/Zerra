@@ -162,9 +162,9 @@ namespace Zerra.Repository.MariaDb
                                 break;
                             case CoreType.BooleanNullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, bool?>)columnProperty.Setter)(model, (bool?)value);
+                                    //bit columns come back as UInt64, GetBoolean converts them
+                                    if (!reader.IsDBNull(i))
+                                        ((Action<object, bool?>)columnProperty.Setter)(model, reader.GetBoolean(i));
                                 }
                                 break;
                             case CoreType.ByteNullable:
@@ -1759,8 +1759,9 @@ namespace Zerra.Repository.MariaDb
                     case CoreType.GuidNullable: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == true;
 
                     case CoreType.String:
-                        if (sqlColumn.NumericPrecision.HasValue)
-                            return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                        //decided by the length the model asks for, the existing column only has a length when it is already varchar
+                        if (property.DataSourcePrecisionLength.HasValue)
+                            return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == property.DataSourcePrecisionLength.Value;
                         else
                             return sqlColumn.DataType == "text" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
                 }
@@ -1768,8 +1769,8 @@ namespace Zerra.Repository.MariaDb
 
             if (property.Type == typeof(byte[]))
             {
-                if (sqlColumn.NumericPrecision.HasValue)
-                    return sqlColumn.DataType == "varbinary" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                if (property.DataSourcePrecisionLength.HasValue)
+                    return sqlColumn.DataType == "varbinary" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == property.DataSourcePrecisionLength.Value;
                 else
                     return sqlColumn.DataType == "blob" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
             }
@@ -1851,14 +1852,14 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
                         if (version != null && version.Length > 0 && Char.IsNumber(version[0]))
                             return true;
 
-                        Log.Error($"{nameof(MariaDbEngine)} failed to validate: Invalid version {version}");
+                        Log.Warn($"{nameof(MariaDbEngine)} failed to validate: Invalid version {version}");
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"{nameof(MariaDbEngine)} failed to validate", ex);
+                Log.Warn($"{nameof(MariaDbEngine)} failed to validate: {ex.Message}");
             }
             return false;
         }

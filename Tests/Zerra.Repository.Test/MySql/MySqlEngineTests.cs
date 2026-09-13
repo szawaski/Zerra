@@ -52,6 +52,7 @@ namespace Zerra.Repository.Test.MySql
             var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) };
 
             CodeFirstGeneration.Generate<MySqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels<MySqlTestSqlDataContext>(modelTypes);
 
             RepoTest.TestSequence<MySqlTestSqlDataContext>();
             await RepoTest.TestSequenceAsync<MySqlTestSqlDataContext>();
@@ -64,6 +65,7 @@ namespace Zerra.Repository.Test.MySql
             _ = ExecuteSql(context, dropColumn);
 
             CodeFirstGeneration.Generate<MySqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels<MySqlTestSqlDataContext>(modelTypes);
 
             var sb = new StringBuilder();
             var modelDetails = ModelAnalyzer.GetModel(typeof(TestTypesModel));
@@ -80,6 +82,7 @@ namespace Zerra.Repository.Test.MySql
             _ = ExecuteSql(context, dropAllColumns);
 
             CodeFirstGeneration.Generate<MySqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels<MySqlTestSqlDataContext>(modelTypes);
 
             _ = sb.Clear();
             foreach (var property in modelDetails.Members)
@@ -101,6 +104,7 @@ namespace Zerra.Repository.Test.MySql
             _ = ExecuteSql(context, addJunkColumns);
 
             CodeFirstGeneration.Generate<MySqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels<MySqlTestSqlDataContext>(modelTypes);
 
             DropDatabase(context);
         }

@@ -237,7 +237,8 @@ namespace Zerra.Web
 
                 ex = ex.GetBaseException();
 
-                if (ex is SecurityException)
+                //a SecurityException from a handler in another service arrives as a RemoteServiceException
+                if (ex is SecurityException || (ex is RemoteServiceException remote && remote.ErrorType == nameof(SecurityException)))
                     context.Response.StatusCode = 401;
                 else
                     context.Response.StatusCode = 500;

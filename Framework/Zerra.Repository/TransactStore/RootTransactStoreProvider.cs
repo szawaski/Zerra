@@ -290,31 +290,41 @@ namespace Zerra.Repository
                                     relatedModelIdentities.Add(relatedModel, relatedIdentity);
                             }
 
-                            foreach (var model in returnModels)
+                            //collections with a creator (List<T>) are filled directly, arrays and the interfaces an array satisfies are filled as arrays
+                            var memberTypeDetail = modelPropertyInfo.MemberDetail.TypeDetail;
+                            if (memberTypeDetail.HasCreator)
                             {
-                                var identity = ModelAnalyzer.GetIdentity(modelType, model);
-                                var modelTypeDetail = modelPropertyInfo.Type.GetTypeDetail();
-                                var listTypeDetails = relatedModels.GetType().GetTypeDetail();
-                                if (modelPropertyInfo.Type.IsArray)
+                                foreach (var model in returnModels)
                                 {
-                                    var constructor = modelPropertyInfo.MemberDetail.TypeDetail.GetConstructor([typeof(int)]);
-                                    var relatedForModel = (Array)constructor.CreatorBoxed([relatedModelIdentities.Count]);
-                                    var i = 0;
-                                    foreach (var relatedModel in relatedModelIdentities)
-                                    {
-                                        if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
-                                            relatedForModel.SetValue(relatedModel.Key, i++);
-                                    }
-                                    modelPropertyInfo.SetterBoxed(model, relatedForModel);
-                                }
-                                else
-                                {
-                                    var relatedForModel = (IList)listTypeDetails.CreatorBoxed!();
+                                    var identity = ModelAnalyzer.GetIdentity(modelType, model);
+                                    var relatedForModel = (IList)memberTypeDetail.CreatorBoxed!();
                                     foreach (var relatedModel in relatedModelIdentities)
                                     {
                                         if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
                                             _ = relatedForModel.Add(relatedModel.Key);
                                     }
+                                    modelPropertyInfo.SetterBoxed(model, relatedForModel);
+                                }
+                            }
+                            else
+                            {
+                                //only interface members reach MakeArrayType, models are reference types so the array code is shared
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                                var arrayType = modelPropertyInfo.Type.IsArray ? modelPropertyInfo.Type : relatedType.MakeArrayType();
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                                var matches = new List<object>();
+                                foreach (var model in returnModels)
+                                {
+                                    var identity = ModelAnalyzer.GetIdentity(modelType, model);
+                                    matches.Clear();
+                                    foreach (var relatedModel in relatedModelIdentities)
+                                    {
+                                        if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
+                                            matches.Add(relatedModel.Key);
+                                    }
+                                    var relatedForModel = Array.CreateInstanceFromArrayType(arrayType, matches.Count);
+                                    for (var i = 0; i < matches.Count; i++)
+                                        relatedForModel.SetValue(matches[i], i);
                                     modelPropertyInfo.SetterBoxed(model, relatedForModel);
                                 }
                             }
@@ -449,31 +459,41 @@ namespace Zerra.Repository
                                     relatedModelIdentities.Add(relatedModel, relatedIdentity);
                             }
 
-                            foreach (var model in returnModels)
+                            //collections with a creator (List<T>) are filled directly, arrays and the interfaces an array satisfies are filled as arrays
+                            var memberTypeDetail = modelPropertyInfo.MemberDetail.TypeDetail;
+                            if (memberTypeDetail.HasCreator)
                             {
-                                var identity = ModelAnalyzer.GetIdentity(modelType, model);
-                                var modelTypeDetail = modelPropertyInfo.Type.GetTypeDetail();
-                                var listTypeDetails = relatedModels.GetType().GetTypeDetail();
-                                if (modelPropertyInfo.Type.IsArray)
+                                foreach (var model in returnModels)
                                 {
-                                    var constructor = modelPropertyInfo.MemberDetail.TypeDetail.GetConstructor([typeof(int)]);
-                                    var relatedForModel = (Array)constructor.CreatorBoxed([relatedModelIdentities.Count]);
-                                    var i = 0;
-                                    foreach (var relatedModel in relatedModelIdentities)
-                                    {
-                                        if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
-                                            relatedForModel.SetValue(relatedModel.Key, i++);
-                                    }
-                                    modelPropertyInfo.SetterBoxed(model, relatedForModel);
-                                }
-                                else
-                                {
-                                    var relatedForModel = (IList)listTypeDetails.CreatorBoxed!();
+                                    var identity = ModelAnalyzer.GetIdentity(modelType, model);
+                                    var relatedForModel = (IList)memberTypeDetail.CreatorBoxed!();
                                     foreach (var relatedModel in relatedModelIdentities)
                                     {
                                         if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
                                             _ = relatedForModel.Add(relatedModel.Key);
                                     }
+                                    modelPropertyInfo.SetterBoxed(model, relatedForModel);
+                                }
+                            }
+                            else
+                            {
+                                //only interface members reach MakeArrayType, models are reference types so the array code is shared
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                                var arrayType = modelPropertyInfo.Type.IsArray ? modelPropertyInfo.Type : relatedType.MakeArrayType();
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                                var matches = new List<object>();
+                                foreach (var model in returnModels)
+                                {
+                                    var identity = ModelAnalyzer.GetIdentity(modelType, model);
+                                    matches.Clear();
+                                    foreach (var relatedModel in relatedModelIdentities)
+                                    {
+                                        if (ModelAnalyzer.CompareIdentities(identity, relatedModel.Value))
+                                            matches.Add(relatedModel.Key);
+                                    }
+                                    var relatedForModel = Array.CreateInstanceFromArrayType(arrayType, matches.Count);
+                                    for (var i = 0; i < matches.Count; i++)
+                                        relatedForModel.SetValue(matches[i], i);
                                     modelPropertyInfo.SetterBoxed(model, relatedForModel);
                                 }
                             }

@@ -60,7 +60,7 @@ namespace Zerra.Repository
                 var whereExpression = query.Where as Expression<Func<TSource, bool>>;
                 if (whereExpression == null)
                     throw new ArgumentException($"Where must be of type Expression<Func<TSource, bool>>");
-                whereQuery = whereQuery.Where(whereExpression.Compile());
+                whereQuery = whereQuery.Where(SpanContainsRewriter.Rewrite(whereExpression).Compile());
             }
 
             var orderQuery = whereQuery;
@@ -98,7 +98,7 @@ namespace Zerra.Repository
                 var whereExpression = where as Expression<Func<TSource, bool>>;
                 if (whereExpression == null)
                     throw new ArgumentException($"Where must be of type Expression<Func<TSource, bool>>");
-                whereQuery = whereQuery.Where(whereExpression.Compile());
+                whereQuery = whereQuery.Where(SpanContainsRewriter.Rewrite(whereExpression).Compile());
             }
 
             var orderQuery = whereQuery;

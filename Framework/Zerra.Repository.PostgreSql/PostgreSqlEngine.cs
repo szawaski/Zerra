@@ -520,7 +520,7 @@ namespace Zerra.Repository.PostgreSql
 
                     case CoreType.Boolean:
                     case CoreType.BooleanNullable:
-                        writer.Write((bool)value == false ? '0' : '1');
+                        writer.Write((bool)value ? "TRUE" : "FALSE");
                         return;
                     case CoreType.Byte:
                     case CoreType.ByteNullable:
@@ -1759,8 +1759,9 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.GuidNullable: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == true;
 
                     case CoreType.String:
-                        if (sqlColumn.NumericPrecision.HasValue)
-                            return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                        //decided by the length the model asks for, the existing column only has a length when it is already varchar
+                        if (property.DataSourcePrecisionLength.HasValue)
+                            return sqlColumn.DataType == "character varying" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == property.DataSourcePrecisionLength.Value;
                         else
                             return sqlColumn.DataType == "text" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
                 }
@@ -1768,8 +1769,8 @@ namespace Zerra.Repository.PostgreSql
 
             if (property.Type == typeof(byte[]))
             {
-                if (sqlColumn.NumericPrecision.HasValue)
-                    return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                if (property.DataSourcePrecisionLength.HasValue)
+                    return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == property.DataSourcePrecisionLength.Value;
                 else
                     return sqlColumn.DataType == "bytea" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
             }
@@ -1852,14 +1853,14 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
                         if (version.Contains("PostgreSQL"))
                             return true;
 
-                        Log.Error($"{nameof(PostgreSqlEngine)} failed to validate: Invalid version {version}");
+                        Log.Warn($"{nameof(PostgreSqlEngine)} failed to validate: Invalid version {version}");
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"{nameof(PostgreSqlEngine)} failed to validate", ex);
+                Log.Warn($"{nameof(PostgreSqlEngine)} failed to validate: {ex.Message}");
             }
             return false;
         }

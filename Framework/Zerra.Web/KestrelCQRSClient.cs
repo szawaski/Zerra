@@ -76,8 +76,10 @@ namespace Zerra.Web
                 Source = source
             };
 
+            //a trailing CancellationToken isn't sent, the server passes its own in its place
+            var serializeCount = argumentTypes.Count > 0 && argumentTypes[argumentTypes.Count - 1] == typeof(CancellationToken) ? argumentTypes.Count - 1 : argumentTypes.Count;
             data.ProviderArguments = new byte[argumentTypes.Count][];
-            for (var i = 0; i < argumentTypes.Count; i++)
+            for (var i = 0; i < serializeCount; i++)
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
 
             var model = Request<TReturn>(throttle, isStream, routeUri, providerName, providerName, data, true);
@@ -102,8 +104,10 @@ namespace Zerra.Web
                 Source = source
             };
 
+            //a trailing CancellationToken isn't sent, the server passes its own in its place
+            var serializeCount = argumentTypes.Count > 0 && argumentTypes[argumentTypes.Count - 1] == typeof(CancellationToken) ? argumentTypes.Count - 1 : argumentTypes.Count;
             data.ProviderArguments = new byte[argumentTypes.Count][];
-            for (var i = 0; i < argumentTypes.Count; i++)
+            for (var i = 0; i < serializeCount; i++)
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
 
             var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, providerName, data, true, cancellationToken);

@@ -180,7 +180,19 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
 
                     if (reader.Token == JsonToken.ArrayEnd)
+                    {
+                        //an empty array still creates the object, every constructor argument gets its default
+                        if (collectValues)
+                        {
+                            ReturnCollectedValues(collectedValues!);
+                            var emptyArgs = new object?[parameterConstructor!.Parameters.Count];
+                            if (TypeDetail.Type.IsValueType)
+                                value = (TValue?)parameterConstructor.CreatorBoxed(emptyArgs);
+                            else
+                                value = parameterConstructor.Creator(emptyArgs);
+                        }
                         return true;
+                    }
 
                     state.Current.HasCreated = true;
                 }
@@ -312,7 +324,19 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
 
                     if (reader.Token == JsonToken.ObjectEnd)
+                    {
+                        //an empty object still creates the object, every constructor argument gets its default
+                        if (collectValues)
+                        {
+                            ReturnCollectedValues(collectedValues!);
+                            var emptyArgs = new object?[parameterConstructor!.Parameters.Count];
+                            if (TypeDetail.Type.IsValueType)
+                                value = (TValue?)parameterConstructor.CreatorBoxed(emptyArgs);
+                            else
+                                value = parameterConstructor.Creator(emptyArgs);
+                        }
                         return true;
+                    }
 
                     state.Current.HasCreated = true;
 

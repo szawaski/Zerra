@@ -428,12 +428,14 @@ namespace Zerra.Repository.PostgreSql
                 sb.Write('.');
                 sb.Write(modelProperty.PropertySourceName.ToLower());
                 var lastOperator = context.MemberContext.OperatorStack.Peek();
-                if (lastOperator == Operator.And || lastOperator == Operator.Or)
+                if ((modelProperty.ActualType == typeof(bool) || modelProperty.ActualType == typeof(bool?)) && (lastOperator == Operator.And || lastOperator == Operator.Or || lastOperator == Operator.Not || (lastOperator == Operator.Lambda && !context.IsOrderBy)))
                 {
-                    if (modelProperty.ActualType == typeof(bool))
-                        sb.Write("=1");
-                    else
-                        sb.Write("IS NOT NULL");
+                    //a boolean member used as a condition is written as a comparison, which also carries any NOT around it
+                    sb.Write(context.Inverted ? "=FALSE" : "=TRUE");
+                }
+                else if (lastOperator == Operator.And || lastOperator == Operator.Or)
+                {
+                    sb.Write("IS NOT NULL");
                 }
 
                 if (closeBrace)
@@ -498,9 +500,9 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.Boolean:
                         var lastOperator = context.MemberContext.OperatorStack.Peek();
                         if (lastOperator == Operator.And || lastOperator == Operator.Or || lastOperator == Operator.Lambda)
-                            sb.Write((bool)value ? "1=1" : "1=0");
+                            sb.Write((bool)value != context.Inverted ? "1=1" : "1=0");
                         else
-                            sb.Write((bool)value ? '1' : '0');
+                            sb.Write((bool)value ? "TRUE" : "FALSE");
                         return false;
                     case CoreType.Byte: sb.Write((byte)value); return false;
                     case CoreType.SByte: sb.Write((sbyte)value); return false;
@@ -864,7 +866,7 @@ namespace Zerra.Repository.PostgreSql
                 var hasOrder = false;
                 foreach (var orderExp in order.OrderExpressions)
                 {
-                    var context = new BuilderContext(rootDependant, operationContext);
+                    var context = new BuilderContext(rootDependant, operationContext) { IsOrderBy = true };
                     if (hasOrder)
                         sb.Write(',');
                     else
@@ -1028,6 +1030,7 @@ namespace Zerra.Repository.PostgreSql
             return operation switch
             {
                 Operator.Null => null,
+                Operator.Not => null,
                 Operator.New => throw new InvalidOperationException(),
                 Operator.Lambda => throw new InvalidOperationException(),
                 Operator.Evaluate => throw new InvalidOperationException(),

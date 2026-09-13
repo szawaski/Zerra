@@ -430,12 +430,14 @@ namespace Zerra.Repository.MariaDb
                 sb.Write(modelProperty.PropertySourceName);
                 sb.Write('`');
                 var lastOperator = context.MemberContext.OperatorStack.Peek();
-                if (lastOperator == Operator.And || lastOperator == Operator.Or)
+                if ((modelProperty.ActualType == typeof(bool) || modelProperty.ActualType == typeof(bool?)) && (lastOperator == Operator.And || lastOperator == Operator.Or || lastOperator == Operator.Not || (lastOperator == Operator.Lambda && !context.IsOrderBy)))
                 {
-                    if (modelProperty.ActualType == typeof(bool))
-                        sb.Write("=1");
-                    else
-                        sb.Write("IS NOT NULL");
+                    //a boolean member used as a condition is written as a comparison, which also carries any NOT around it
+                    sb.Write(context.Inverted ? "=0" : "=1");
+                }
+                else if (lastOperator == Operator.And || lastOperator == Operator.Or)
+                {
+                    sb.Write("IS NOT NULL");
                 }
 
                 if (closeBrace)
@@ -500,7 +502,7 @@ namespace Zerra.Repository.MariaDb
                     case CoreType.Boolean:
                         var lastOperator = context.MemberContext.OperatorStack.Peek();
                         if (lastOperator == Operator.And || lastOperator == Operator.Or || lastOperator == Operator.Lambda)
-                            sb.Write((bool)value ? "1=1" : "1=0");
+                            sb.Write((bool)value != context.Inverted ? "1=1" : "1=0");
                         else
                             sb.Write((bool)value ? '1' : '0');
                         return false;
@@ -865,7 +867,7 @@ namespace Zerra.Repository.MariaDb
                 var hasOrder = false;
                 foreach (var orderExp in order.OrderExpressions)
                 {
-                    var context = new BuilderContext(rootDependant, operationContext);
+                    var context = new BuilderContext(rootDependant, operationContext) { IsOrderBy = true };
                     if (hasOrder)
                         sb.Write(',');
                     else
@@ -884,17 +886,15 @@ namespace Zerra.Repository.MariaDb
 
             if (skip.HasValue || take.HasValue)
             {
-                sb.Write("OFFSET ");
-                sb.Write(skip ?? 0);
-                sb.Write(" ROWS");
-                AppendLineBreak(ref sb);
+                //MariaDB has no OFFSET FETCH, LIMIT needs a row count so a skip on its own uses the largest one
+                sb.Write("LIMIT ");
                 if (take.HasValue)
-                {
-                    sb.Write("FETCH NEXT ");
                     sb.Write(take.Value);
-                    sb.Write(" ROWS ONLY");
-                    AppendLineBreak(ref sb);
-                }
+                else
+                    sb.Write("18446744073709551615");
+                sb.Write(" OFFSET ");
+                sb.Write(skip ?? 0);
+                AppendLineBreak(ref sb);
             }
         }
         /// <inheritdoc/>
@@ -1030,6 +1030,7 @@ namespace Zerra.Repository.MariaDb
             return operation switch
             {
                 Operator.Null => null,
+                Operator.Not => null,
                 Operator.New => throw new InvalidOperationException(),
                 Operator.Lambda => throw new InvalidOperationException(),
                 Operator.Evaluate => throw new InvalidOperationException(),

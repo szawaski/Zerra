@@ -119,6 +119,23 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact(Timeout = timeout)]
+        public async Task CallTaskGeneric_TrailingCancellationToken_IsNotSent()
+        {
+            //the server passes its own token in that place, so it's never serialized
+            using var server = new FakeServer(null, request => request.WriteModelAsync(42));
+            using var client = CreateClient(server, null);
+            using var cancellation = new CancellationTokenSource();
+
+            var result = await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThingsCancellable), [typeof(int), typeof(CancellationToken)], [21, cancellation.Token], source, cancellation.Token);
+
+            Assert.Equal(42, result);
+            Assert.True(server.Requests.TryDequeue(out var request));
+            Assert.Equal(2, request.Data.ProviderArguments!.Length);
+            Assert.Equal(21, serializer.Deserialize<int>(request.Data.ProviderArguments[0]!));
+            Assert.Null(request.Data.ProviderArguments[1]);
+        }
+
+        [Fact(Timeout = timeout)]
         public async Task CallTaskGeneric_SendsThreadPrincipalClaims()
         {
             using var server = new FakeServer(null, request => request.WriteModelAsync(42));
@@ -573,6 +590,7 @@ namespace Zerra.Test.CQRS.Network
         public interface ITestQueryHandler : IQueryHandler
         {
             int GetThings(int value);
+            Task<int> GetThingsCancellable(int value, CancellationToken cancellationToken);
             Stream GetStream();
         }
 

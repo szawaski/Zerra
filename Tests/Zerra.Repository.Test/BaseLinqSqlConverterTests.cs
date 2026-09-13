@@ -255,6 +255,91 @@ namespace Zerra.Repository.Test
         }
 
         [Fact]
+        public void Convert_WhereBoolMember_GeneratesComparison()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.BooleanThing;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains($"{d.Column("TestTypes", "BooleanThing")}={d.BooleanTrue}", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereNotBoolMember_GeneratesInvertedComparison()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => !x.BooleanThing;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains($"{d.Column("TestTypes", "BooleanThing")}={d.BooleanFalse}", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereAndNotBoolMember_KeepsNegation()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.Int32Thing > 0 && !x.BooleanThing;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("AND", sql);
+            Assert.Contains($"{d.Column("TestTypes", "BooleanThing")}={d.BooleanFalse}", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereNotAndBoolMember_InvertsEachSide()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => !(x.Int32Thing > 0 && x.BooleanThing);
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("OR", sql);
+            Assert.Contains("<=", sql);
+            Assert.Contains($"{d.Column("TestTypes", "BooleanThing")}={d.BooleanFalse}", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereBoolEqualsValue_GeneratesBooleanLiteral()
+        {
+            var d = GetDialect();
+            var value = true;
+            Expression<Func<TestTypesModel, bool>> where = x => x.BooleanThing == value;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains($"({d.Column("TestTypes", "BooleanThing")})=({d.BooleanTrue})", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereNullableBoolValue_GeneratesComparison()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => !x.BooleanNullableThing.Value;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains($"{d.Column("TestTypes", "BooleanNullableThing")}={d.BooleanFalse}", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereNotCapturedBoolInAnd_InvertsConstant()
+        {
+            var value = true;
+            Expression<Func<TestTypesModel, bool>> where = x => !(x.Int32Thing > 0 && value);
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("1=0", sql);
+            Assert.DoesNotContain("1=1", sql);
+        }
+
+        [Fact]
+        public void Convert_OrderByBoolMember_GeneratesColumnOnly()
+        {
+            var d = GetDialect();
+            var sql = ConvertToSql(QueryOperation.Many, null, QueryOrder<TestTypesModel>.Create(x => x.BooleanThing), null, null, null, testTypesModelDetail);
+
+            Assert.Contains($"ORDER BY({d.Column("TestTypes", "BooleanThing")})", sql);
+            Assert.DoesNotContain($"{d.Column("TestTypes", "BooleanThing")}=", sql);
+        }
+
+        [Fact]
         public void Convert_TernaryConditional_GeneratesCaseWhen()
         {
             Expression<Func<TestTypesModel, bool>> where = x => (x.Int32Thing > 100 ? x.StringThing : "default") == "test";

@@ -352,21 +352,24 @@ namespace Zerra.Repository.Memory
                         {
                             var id = ModelAnalyzer.GetIdentity(modelDetail.Type, model);
                             var relatedEnumerable = source.Cast<object>().Where(x => ModelAnalyzer.CompareIdentities(id, ModelAnalyzer.GetForeignIdentity(member.ActualType, member.ForeignIdentity!, x)));
-                            if (member.MemberDetail.Type.IsArray)
+                            //collections with a creator (List<T>) are filled directly, arrays and the interfaces an array satisfies are filled as arrays
+                            if (member.MemberDetail.TypeDetail.HasCreator)
                             {
-                                var constructor = member.MemberDetail.TypeDetail.GetConstructor([typeof(int)]);
-                                var array = (Array)constructor.CreatorBoxed([relatedEnumerable.Count()]);
-                                var i = 0;
-                                foreach (var related in relatedEnumerable)
-                                    array.SetValue(related, i++);
-                                member.SetterBoxed(model, array);
-                            }
-                            else
-                            {
-                                var list = (IList)member.CreatorBoxed!();
+                                var list = (IList)member.CreatorBoxed();
                                 foreach (var related in relatedEnumerable)
                                     _ = list.Add(related);
                                 member.SetterBoxed(model, list);
+                            }
+                            else
+                            {
+                                var matches = relatedEnumerable.ToArray();
+                                //only interface members reach MakeArrayType, models are reference types so the array code is shared
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                                var array = Array.CreateInstanceFromArrayType(member.Type.IsArray ? member.Type : member.ActualType.MakeArrayType(), matches.Length);
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                                for (var i = 0; i < matches.Length; i++)
+                                    array.SetValue(matches[i], i);
+                                member.SetterBoxed(model, array);
                             }
                         }
                         else

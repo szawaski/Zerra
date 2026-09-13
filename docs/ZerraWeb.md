@@ -82,7 +82,7 @@ The API Gateway:
 
 The request body is an `ApiRequestData` object. The front end scripts and `ApiClient` build it for you; the shapes are shown here for reference.
 
-**Query request** (`ProviderArguments` holds each argument as its own serialized JSON value):
+**Query request** (`ProviderArguments` holds each argument serialized on its own; the arguments are byte arrays, so JSON carries each one as base64 of its JSON, here `"123"`):
 ```json
 POST /api/cqrs
 Content-Type: application/json
@@ -90,7 +90,7 @@ Content-Type: application/json
 {
   "ProviderType": "IUserQueries",
   "ProviderMethod": "GetUserById",
-  "ProviderArguments": ["123"],
+  "ProviderArguments": ["IjEyMyI="],
   "Source": "JavaScript"
 }
 ```

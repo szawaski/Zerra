@@ -24,7 +24,8 @@ namespace Zerra.CQRS.Network
             var content = new ExceptionContent()
             {
                 Message = baseException.Message,
-                ExceptionType = baseException.GetType().Name,
+                //an exception relayed from another service is sent on as the type it was thrown as
+                ExceptionType = baseException is RemoteServiceException remote && remote.ErrorType is not null ? remote.ErrorType : baseException.GetType().Name,
                 StackTrace = baseException.StackTrace
             };
 
@@ -44,7 +45,8 @@ namespace Zerra.CQRS.Network
             var content = new ExceptionContent()
             {
                 Message = baseException.Message,
-                ExceptionType = baseException.GetType().Name,
+                //an exception relayed from another service is sent on as the type it was thrown as
+                ExceptionType = baseException is RemoteServiceException remote && remote.ErrorType is not null ? remote.ErrorType : baseException.GetType().Name,
                 StackTrace = baseException.StackTrace
             };
 
@@ -116,7 +118,8 @@ namespace Zerra.CQRS.Network
             var content = new ExceptionContent()
             {
                 Message = baseException.Message,
-                ExceptionType = baseException.GetType().Name,
+                //an exception relayed from another service is sent on as the type it was thrown as
+                ExceptionType = baseException is RemoteServiceException remote && remote.ErrorType is not null ? remote.ErrorType : baseException.GetType().Name,
                 StackTrace = baseException.StackTrace
             };
 

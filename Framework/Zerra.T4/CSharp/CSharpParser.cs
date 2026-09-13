@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Text.RegularExpressions;
+
 namespace Zerra.T4.CSharp
 {
     /// <summary>
@@ -20,6 +22,8 @@ namespace Zerra.T4.CSharp
             AddFilesRecursive(new DirectoryInfo(rootDirectory), files);
 
             var solution = new CSharpSolution();
+            var contextsByProject = new Dictionary<string, List<CSharpFileContext>>(StringComparer.OrdinalIgnoreCase);
+            var projectFilesByDirectory = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
             foreach (var file in files)
             {
                 using (var sr = File.OpenText(file))
@@ -34,16 +38,82 @@ namespace Zerra.T4.CSharp
                         if (System.Diagnostics.Debugger.IsAttached)
                             System.Diagnostics.Debugger.Break();
                     }
+
+                    var projectFile = FindProjectFile(Path.GetDirectoryName(file)!, projectFilesByDirectory) ?? String.Empty;
+                    if (!contextsByProject.TryGetValue(projectFile, out var projectContexts))
+                    {
+                        projectContexts = new List<CSharpFileContext>();
+                        contextsByProject.Add(projectFile, projectContexts);
+                    }
+                    projectContexts.Add(context);
                 }
             }
+
+            //global usings, declared in a file or implied by the project's ImplicitUsings, apply to every file in the project
+            //types hold a reference to their file's using list, so adding to it after parsing still affects how they resolve
+            foreach (var project in contextsByProject)
+            {
+                var projectUsings = project.Value.SelectMany(x => x.GlobalUsings).ToList();
+                if (project.Key.Length > 0 && ProjectHasImplicitUsings(project.Key))
+                    projectUsings.AddRange(implicitUsings.Select(x => new CSharpNamespace(x)));
+
+                foreach (var context in project.Value)
+                {
+                    foreach (var projectUsing in projectUsings)
+                    {
+                        if (!context.Usings.Any(x => x.ToString() == projectUsing.ToString()))
+                            context.Usings.Add(projectUsing);
+                    }
+                }
+            }
+
             return solution;
         }
         private static void AddFilesRecursive(DirectoryInfo directory, List<string> files)
         {
             foreach (var subDirectory in directory.GetDirectories())
+            {
+                //build output, anything generated there isn't the project's source
+                if (subDirectory.Name.Equals("bin", StringComparison.OrdinalIgnoreCase) || subDirectory.Name.Equals("obj", StringComparison.OrdinalIgnoreCase))
+                    continue;
                 AddFilesRecursive(subDirectory, files);
+            }
             var directoryFiles = Directory.GetFiles(directory.FullName, "*.cs");
             files.AddRange(directoryFiles);
+        }
+
+        //the namespaces the .NET SDK imports for a project with <ImplicitUsings>enable</ImplicitUsings>
+        private static readonly string[] implicitUsings = [
+            "System",
+            "System.Collections.Generic",
+            "System.IO",
+            "System.Linq",
+            "System.Net.Http",
+            "System.Threading",
+            "System.Threading.Tasks"
+        ];
+
+        private static string? FindProjectFile(string directory, Dictionary<string, string?> projectFilesByDirectory)
+        {
+            if (projectFilesByDirectory.TryGetValue(directory, out var projectFile))
+                return projectFile;
+
+            projectFile = Directory.GetFiles(directory, "*.csproj").FirstOrDefault();
+            if (projectFile is null)
+            {
+                var parent = Path.GetDirectoryName(directory);
+                if (parent is not null)
+                    projectFile = FindProjectFile(parent, projectFilesByDirectory);
+            }
+
+            projectFilesByDirectory[directory] = projectFile;
+            return projectFile;
+        }
+
+        private static bool ProjectHasImplicitUsings(string projectFile)
+        {
+            var match = Regex.Match(File.ReadAllText(projectFile), @"<ImplicitUsings>\s*(\w+)\s*</ImplicitUsings>", RegexOptions.IgnoreCase);
+            return match.Success && (match.Groups[1].Value.Equals("enable", StringComparison.OrdinalIgnoreCase) || match.Groups[1].Value.Equals("true", StringComparison.OrdinalIgnoreCase));
         }
 
         private static readonly string[] modifierKeywords = [
@@ -65,7 +135,8 @@ namespace Zerra.T4.CSharp
             "operator",
             "async",
             "volatile",
-            "record"
+            "record",
+            "required"
         ];
 
         private static void ParseText(CSharpSolution solution, CSharpFileContext context, string text)
@@ -95,6 +166,9 @@ namespace Zerra.T4.CSharp
                 }
                 switch (keyword)
                 {
+                    case "global":
+                        currentKeywords.Add(keyword);
+                        break;
                     case "using":
                         ParseUsing(context, chars, ref index, currentKeywords);
                         currentKeywords.Clear();
@@ -147,7 +221,14 @@ namespace Zerra.T4.CSharp
                 throw new Exception($"Invalid keywords before \"using\" at {index} in {context.FileName}");
 
             var ns = ReadNamespace(context, chars, ref index);
-            context.Usings.Add(new CSharpNamespace(ns));
+            if (ns.StartsWith("global::", StringComparison.Ordinal))
+                ns = ns.Substring("global::".Length);
+
+            //a global using applies to every file in the project, they're added once all the files are parsed
+            if (modifiers.Contains("global"))
+                context.GlobalUsings.Add(new CSharpNamespace(ns));
+            else
+                context.Usings.Add(new CSharpNamespace(ns));
             ExpectToken(context, chars, ref index, ';');
         }
 
@@ -519,6 +600,7 @@ namespace Zerra.T4.CSharp
                         }
                         break;
                     case "set":
+                    case "init":
                         hasSet = true;
                         isSetPublic = firstKeyword is null || firstKeyword == "public";
                         firstKeyword = null;

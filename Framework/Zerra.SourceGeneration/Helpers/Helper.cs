@@ -133,6 +133,13 @@ namespace Zerra.SourceGeneration
             return fullTypeName;
         }
 
+        //keeps nullable reference annotations such as string?, for member signatures that must match the declared nullability, not for typeof or casts
+        public static string GetFullNameWithNullability(ITypeSymbol typeSymbol)
+            => typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat.AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier));
+
+        public static bool IsNullable(ITypeSymbol typeSymbol)
+            => typeSymbol.NullableAnnotation == NullableAnnotation.Annotated || typeSymbol.OriginalDefinition.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Nullable_T;
+
         public static string GetClassSafeName(ITypeSymbol typeSymbol)
         {
             var ns = typeSymbol.ContainingNamespace is null || typeSymbol.ContainingNamespace.ToString().Contains("<global namespace>") ? null : typeSymbol.ContainingNamespace.ToString();

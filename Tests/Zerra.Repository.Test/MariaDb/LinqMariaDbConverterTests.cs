@@ -26,8 +26,8 @@ namespace Zerra.Repository.Test.MariaDb
             StringPrefix = "",
             HasTopClause = false,
             HasLimitClause = true,
-            HasOffsetFetch = true,
-            HasLimitOffset = false,
+            HasOffsetFetch = false,
+            HasLimitOffset = true,
         };
     }
 }

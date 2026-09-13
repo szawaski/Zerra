@@ -70,6 +70,23 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
+        public void Serialize_RelayedRemoteException_KeepsOriginalType()
+        {
+            //a service passing on an error from another service sends the type it was first thrown as
+            var serializer = CreateTestSerializer();
+            var stream = new MemoryStream();
+            var relayedException = new RemoteServiceException(nameof(ArgumentException), "Relayed message", "Other Service", null);
+
+            ExceptionSerializer.Serialize(serializer, stream, relayedException);
+            stream.Position = 0;
+
+            var deserializedException = ExceptionSerializer.Deserialize("Test Source", serializer, stream);
+
+            Assert.Equal(nameof(ArgumentException), deserializedException.ErrorType);
+            Assert.Equal("Relayed message", deserializedException.Message);
+        }
+
+        [Fact]
         public void Deserialize_WithEmptyStream_ThrowsException()
         {
             var serializer = CreateTestSerializer();

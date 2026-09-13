@@ -36,7 +36,8 @@
     <!-- Copy build output to Front End Scripts Binaries folder -->
     <Target Name="CopyToFrontEndScripts" AfterTargets="Build">
         <PropertyGroup>
-            <FrontEndBinariesPath>$(SolutionDir)Front End Scripts\Binaries\</FrontEndBinariesPath>
+            <!-- Relative to this project rather than $(SolutionDir), which is empty when the project is built on its own -->
+            <FrontEndBinariesPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\Front End Scripts\Binaries\'))</FrontEndBinariesPath>
         </PropertyGroup>
         <ItemGroup>
             <BinariesToCopy Include="$(OutputPath)Zerra.T4.dll" />

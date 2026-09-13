@@ -1149,7 +1149,7 @@ namespace Zerra.CQRS
                 commandProducers.Add(commandType, commandProducer);
                 handledTypes ??= new();
                 _ = handledTypes.Add(commandType);
-                context.Log?.Info($"{commandProducer.GetType().Name} - {commandType.Name}");
+                context.Log?.Info($"{commandProducer.GetType().Name} at {commandProducer.MessageHost} - {commandType.Name}");
             }
         }
 
@@ -1220,7 +1220,7 @@ namespace Zerra.CQRS
                 eventProducerList.Add(eventProducer);
                 handledTypes ??= new();
                 _ = handledTypes.Add(eventType);
-                context.Log?.Info($"{eventProducers.GetType().Name} at {eventProducer.MessageHost} - {eventType.Name}");
+                context.Log?.Info($"{eventProducer.GetType().Name} at {eventProducer.MessageHost} - {eventType.Name}");
             }
         }
 
