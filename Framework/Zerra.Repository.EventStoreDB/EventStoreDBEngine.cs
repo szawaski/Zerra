@@ -6,6 +6,7 @@ using EventStore.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Zerra.Repository.Reflection;
 using Zerra.Logging;
@@ -18,17 +19,22 @@ namespace Zerra.Repository.EventStoreDB
         public static int SaveStateEvery => 100;
 
         private readonly EventStoreClient client;
+        private readonly Uri healthUri;
         public EventStoreDBEngine(string connectionString, bool insecure)
         {
+            var address = new Uri(connectionString);
             var settings = new EventStoreClientSettings
             {
                 ConnectivitySettings =
                 {
-                    Address = new Uri(connectionString),
+                    Address = address,
                     Insecure = insecure
                 }
             };
             client = new EventStoreClient(settings);
+
+            //the server's HTTP health check, used for validation because the client only has async calls
+            healthUri = new UriBuilder(address) { Scheme = insecure ? Uri.UriSchemeHttp : address.Scheme, Path = "/health/live", Query = String.Empty }.Uri;
         }
 
         public ulong Append(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data)
@@ -264,17 +270,20 @@ namespace Zerra.Repository.EventStoreDB
 
         public bool ValidateDataSource()
         {
-            var eventData = new EventData(Uuid.NewUuid(), "ValidateDataSource", Array.Empty<byte>());
-
             try
             {
-                Task.Run(() => client.AppendToStreamAsync("ValidateDataSource", StreamState.Any, new EventData[] { eventData })).GetAwaiter().GetResult();
+                //HttpClient.Send is synchronous, so validating doesn't block on async code
+                using var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(5) };
+                using var request = new HttpRequestMessage(HttpMethod.Get, healthUri);
+                using var response = httpClient.Send(request);
+                if (response.IsSuccessStatusCode)
+                    return true;
 
-                return true;
+                _ = Log.WarnAsync($"{nameof(EventStoreDBEngine)} failed to validate: health check returned {(int)response.StatusCode}");
             }
             catch (Exception ex)
             {
-                _ = Log.ErrorAsync($"{nameof(EventStoreDBEngine)} failed to validate", ex);
+                _ = Log.WarnAsync($"{nameof(EventStoreDBEngine)} failed to validate: {ex.Message}");
             }
             return false;
         }

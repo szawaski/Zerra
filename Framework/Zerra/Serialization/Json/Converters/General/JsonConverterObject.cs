@@ -36,6 +36,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
         private bool collectValues;
         private ConstructorDetail<TValue>? parameterConstructor = null;
+        private object?[]? parameterDefaults = null;
 
         protected override sealed void Setup()
         {
@@ -139,6 +140,22 @@ namespace Zerra.Serialization.Json.Converters.General
                     break;
                 }
                 collectValues = parameterConstructor is not null;
+
+                if (collectValues)
+                {
+                    //an argument missing from the JSON gets its default, a value type can't be created from null
+                    parameterDefaults = new object?[parameterConstructor!.ParameterDetails.Count];
+                    for (var i = 0; i < parameterDefaults.Length; i++)
+                    {
+                        var parameterType = parameterConstructor.ParameterDetails[i].Type;
+                        if (parameterType.IsValueType)
+                        {
+                            var parameterTypeDetail = TypeAnalyzer.GetTypeDetail(parameterType);
+                            if (parameterTypeDetail.HasCreatorBoxed)
+                                parameterDefaults[i] = parameterTypeDetail.CreatorBoxed();
+                        }
+                    }
+                }
             }
         }
 
@@ -184,7 +201,19 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
 
                     if (c == ']')
+                    {
+                        //an empty array still creates the object, every constructor argument gets its default
+                        if (collectValues)
+                        {
+                            ReturnCollectedValues(collectedValues!);
+                            var emptyArgs = (object?[])parameterDefaults!.Clone();
+                            if (typeDetail.Type.IsValueType)
+                                value = (TValue?)parameterConstructor!.CreatorWithArgsBoxed(emptyArgs);
+                            else
+                                value = parameterConstructor!.CreatorWithArgs(emptyArgs);
+                        }
                         return true;
+                    }
 
                     reader.BackOne();
 
@@ -303,7 +332,19 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
 
                     if (c == '}')
+                    {
+                        //an empty object still creates the object, every constructor argument gets its default
+                        if (collectValues)
+                        {
+                            ReturnCollectedValues(collectedValues!);
+                            var emptyArgs = (object?[])parameterDefaults!.Clone();
+                            if (typeDetail.Type.IsValueType)
+                                value = (TValue?)parameterConstructor!.CreatorWithArgsBoxed(emptyArgs);
+                            else
+                                value = parameterConstructor!.CreatorWithArgs(emptyArgs);
+                        }
                         return true;
+                    }
 
                     reader.BackOne();
 
@@ -628,7 +669,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
             if (collectValues)
             {
-                var args = new object?[parameterConstructor!.ParameterDetails.Count];
+                var args = (object?[])parameterDefaults!.Clone();
                 for (var i = 0; i < args.Length; i++)
                 {
 #if NETSTANDARD2_0

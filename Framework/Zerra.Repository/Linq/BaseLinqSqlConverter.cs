@@ -199,7 +199,7 @@ namespace Zerra.Repository
                     throw new NotImplementedException();
                 case ExpressionType.Not:
                     context.InvertStack++;
-                    ConvertToSqlUnary(Operator.Null, exp, ref sb, context);
+                    ConvertToSqlUnary(Operator.Not, exp, ref sb, context);
                     context.InvertStack--;
                     break;
                 case ExpressionType.NotEqual:

@@ -412,12 +412,14 @@ namespace Zerra.Repository.MsSql
                 sb.Write(modelProperty.PropertySourceName);
                 sb.Write(']');
                 var lastOperator = context.MemberContext.OperatorStack.Peek();
-                if (lastOperator == Operator.And || lastOperator == Operator.Or)
+                if (modelProperty.InnerType == typeof(bool) && (lastOperator == Operator.And || lastOperator == Operator.Or || lastOperator == Operator.Not || (lastOperator == Operator.Lambda && !context.IsOrderBy)))
                 {
-                    if (modelProperty.InnerType == typeof(bool))
-                        sb.Write("=1");
-                    else
-                        sb.Write("IS NOT NULL");
+                    //a boolean member used as a condition is written as a comparison, which also carries any NOT around it
+                    sb.Write(context.Inverted ? "=0" : "=1");
+                }
+                else if (lastOperator == Operator.And || lastOperator == Operator.Or)
+                {
+                    sb.Write("IS NOT NULL");
                 }
 
                 if (closeBrace)
@@ -473,7 +475,7 @@ namespace Zerra.Repository.MsSql
                     case CoreType.Boolean:
                         var lastOperator = context.MemberContext.OperatorStack.Peek();
                         if (lastOperator == Operator.And || lastOperator == Operator.Or || lastOperator == Operator.Lambda)
-                            sb.Write((bool)value ? "1=1" : "1=0");
+                            sb.Write((bool)value != context.Inverted ? "1=1" : "1=0");
                         else
                             sb.Write((bool)value ? '1' : '0');
                         return false;
@@ -833,7 +835,7 @@ namespace Zerra.Repository.MsSql
                 var hasOrder = false;
                 foreach (var orderExp in order.OrderExpressions)
                 {
-                    var context = new BuilderContext(rootDependant, operationContext);
+                    var context = new BuilderContext(rootDependant, operationContext) { IsOrderBy = true };
                     if (hasOrder)
                         sb.Write(',');
                     else
@@ -974,6 +976,7 @@ namespace Zerra.Repository.MsSql
             return operation switch
             {
                 Operator.Null => null,
+                Operator.Not => null,
                 Operator.New => throw new InvalidOperationException(),
                 Operator.Lambda => throw new InvalidOperationException(),
                 Operator.Evaluate => throw new InvalidOperationException(),

@@ -23,6 +23,9 @@ namespace Zerra.Repository.Reflection
         private static readonly Type iTransactStoreProviderType = typeof(ITransactStoreProvider<>);
         private static readonly Type iAggregateRootContextProviderType = typeof(IAggregateRootContextProvider<>);
 
+        //the linking properties are protected, TypeDetail members only include public ones
+        private const BindingFlags linkingPropertyFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
         public static Type? GenerateTransactStoreProvider<T>(Type type, bool eventLinking, bool queryLinking, bool persistLinking)
         {
             var entityType = typeof(T);
@@ -55,20 +58,20 @@ namespace Zerra.Repository.Reflection
 
             if (eventLinking)
             {
-                var eventLinkingProperty = transactProviderTypeDetails.GetMember("EventLinking");
-                _ = properties.Add(new Tuple<PropertyInfo, bool>((PropertyInfo)eventLinkingProperty.MemberInfo, eventLinking));
+                var eventLinkingProperty = baseType.GetProperty("EventLinking", linkingPropertyFlags)!;
+                _ = properties.Add(new Tuple<PropertyInfo, bool>(eventLinkingProperty, eventLinking));
             }
 
             if (queryLinking)
             {
-                var queryLinkingProperty = transactProviderTypeDetails.GetMember("QueryLinking");
-                _ = properties.Add(new Tuple<PropertyInfo, bool>((PropertyInfo)queryLinkingProperty.MemberInfo, queryLinking));
+                var queryLinkingProperty = baseType.GetProperty("QueryLinking", linkingPropertyFlags)!;
+                _ = properties.Add(new Tuple<PropertyInfo, bool>(queryLinkingProperty, queryLinking));
             }
 
             if (persistLinking)
             {
-                var eventLinkingProperty = transactProviderTypeDetails.GetMember("PersistLinking");
-                _ = properties.Add(new Tuple<PropertyInfo, bool>((PropertyInfo)eventLinkingProperty.MemberInfo, persistLinking));
+                var eventLinkingProperty = baseType.GetProperty("PersistLinking", linkingPropertyFlags)!;
+                _ = properties.Add(new Tuple<PropertyInfo, bool>(eventLinkingProperty, persistLinking));
             }
 
             foreach (var prop in properties)
@@ -139,20 +142,20 @@ namespace Zerra.Repository.Reflection
 
             if (eventLinking)
             {
-                var eventLinkingProperty = transactProviderTypeDetails.GetMember("EventLinking");
-                _ = properties.Add(new Tuple<PropertyInfo, bool>((PropertyInfo)eventLinkingProperty.MemberInfo, eventLinking));
+                var eventLinkingProperty = baseType.GetProperty("EventLinking", linkingPropertyFlags)!;
+                _ = properties.Add(new Tuple<PropertyInfo, bool>(eventLinkingProperty, eventLinking));
             }
 
             if (queryLinking)
             {
-                var queryLinkingProperty = transactProviderTypeDetails.GetMember("QueryLinking");
-                _ = properties.Add(new Tuple<PropertyInfo, bool>((PropertyInfo)queryLinkingProperty.MemberInfo, queryLinking));
+                var queryLinkingProperty = baseType.GetProperty("QueryLinking", linkingPropertyFlags)!;
+                _ = properties.Add(new Tuple<PropertyInfo, bool>(queryLinkingProperty, queryLinking));
             }
 
             if (persistLinking)
             {
-                var eventLinkingProperty = transactProviderTypeDetails.GetMember("PersistLinking");
-                _ = properties.Add(new Tuple<PropertyInfo, bool>((PropertyInfo)eventLinkingProperty.MemberInfo, persistLinking));
+                var eventLinkingProperty = baseType.GetProperty("PersistLinking", linkingPropertyFlags)!;
+                _ = properties.Add(new Tuple<PropertyInfo, bool>(eventLinkingProperty, persistLinking));
             }
 
             foreach (var prop in properties)

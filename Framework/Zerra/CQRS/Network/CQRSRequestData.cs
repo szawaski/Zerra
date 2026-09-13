@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Linq;
+using System.Threading;
 using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Network
@@ -59,7 +59,12 @@ namespace Zerra.CQRS.Network
         /// <param name="arguments">The raw argument values.</param>
         public void AddProviderArguments(object[] arguments)
         {
-            this.ProviderArguments = arguments.Select(x => JsonSerializer.Serialize(x)).ToArray();
+            //a trailing CancellationToken isn't sent, the server passes its own in its place
+            var serializeCount = arguments.Length > 0 && arguments[arguments.Length - 1] is CancellationToken ? arguments.Length - 1 : arguments.Length;
+            var providerArguments = new string?[arguments.Length];
+            for (var i = 0; i < serializeCount; i++)
+                providerArguments[i] = JsonSerializer.Serialize(arguments[i]);
+            this.ProviderArguments = providerArguments;
         }
     }
 }

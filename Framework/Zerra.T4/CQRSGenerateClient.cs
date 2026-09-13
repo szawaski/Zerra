@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Zerra.T4.CSharp;
 
 namespace Zerra.T4
@@ -56,8 +57,9 @@ namespace Zerra.T4
                 foreach (var method in query.Methods)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(method.ReturnType.Resolved, models);
+                    var clientParameterCount = GetClientParameterCount(method);
                     _ = sb.Append(spacing).Append("public static ").Append(method.Name).Append("(");
-                    for (var i = 0; i < method.Parameters.Count; i++)
+                    for (var i = 0; i < clientParameterCount; i++)
                     {
                         if (i > 0)
                             _ = sb.Append(", ");
@@ -66,12 +68,7 @@ namespace Zerra.T4
                     }
                     _ = sb.Append("): Promise<").Append(type).Append(nullable ? " | null" : null).Append("> {").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append(spacing).Append("return Bus.Call(\"").Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
-                    for (var i = 0; i < method.Parameters.Count; i++)
-                    {
-                        if (i > 0)
-                            _ = sb.Append(", ");
-                        _ = sb.Append(method.Parameters[i].Name);
-                    }
+                    AppendArguments(sb, method, clientParameterCount);
                     _ = sb.Append("], ").Append(type is null || isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(");").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append("}").Append(Environment.NewLine);
                 }
@@ -92,7 +89,8 @@ namespace Zerra.T4
                 if (commandWithResultType is not null)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(commandWithResultType.Resolved.GenericArguments[0], models);
-                    _ = sb.Append(spacing).Append(spacing).Append("self[\"ResultType\"] = ").Append(type).Append("Type;").Append(Environment.NewLine);
+                    //like the queries, results that are JavaScript types have no model type
+                    _ = sb.Append(spacing).Append(spacing).Append("self[\"ResultType\"] = ").Append(isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(";").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append(spacing).Append("self[\"ResultTypeHasMany\"] = ").Append(hasMany ? "true" : "false").Append(";").Append(Environment.NewLine);
                 }
                 else
@@ -145,24 +143,13 @@ namespace Zerra.T4
                 foreach (var method in query.Methods)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(method.ReturnType.Resolved, models);
+                    var clientParameterCount = GetClientParameterCount(method);
                     _ = sb.Append(spacing).Append(method.Name).Append(": function(");
-                    int i;
-                    for (i = 0; i < method.Parameters.Count; i++)
-                    {
-                        if (i > 0)
-                            _ = sb.Append(", ");
-                        _ = sb.Append(method.Parameters[i].Name);
-                    }
-                    if (i > 0)
-                        _ = sb.Append(", ");
+                    for (var i = 0; i < clientParameterCount; i++)
+                        _ = sb.Append(method.Parameters[i].Name).Append(", ");
                     _ = sb.Append("onComplete, onFail) {").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append(spacing).Append("Bus.Call(\"").Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
-                    for (i = 0; i < method.Parameters.Count; i++)
-                    {
-                        if (i > 0)
-                            _ = sb.Append(", ");
-                        _ = sb.Append(method.Parameters[i].Name);
-                    }
+                    AppendArguments(sb, method, clientParameterCount);
                     _ = sb.Append("], ").Append(type is null || isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(", onComplete, onFail);").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append("},").Append(Environment.NewLine);
                 }
@@ -183,7 +170,8 @@ namespace Zerra.T4
                 if (commandWithResultType is not null)
                 {
                     var (isJavaScriptType, type, hasMany, nullable) = GetJavaScriptPropertyType(commandWithResultType.Resolved.GenericArguments[0], models);
-                    _ = sb.Append(spacing).Append("this.ResultType = ").Append(type).Append("Type;").Append(Environment.NewLine);
+                    //like the queries, results that are JavaScript types have no model type
+                    _ = sb.Append(spacing).Append("this.ResultType = ").Append(isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(";").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append("this.ResultTypeHasMany = ").Append(hasMany ? "true" : "false").Append(";").Append(Environment.NewLine);
                 }
                 else
@@ -195,6 +183,30 @@ namespace Zerra.T4
             }
 
             return sb.ToString();
+        }
+
+        //a CancellationToken as the last parameter is supplied by the server, so the client functions leave it out
+        private static int GetClientParameterCount(CSharpMethod method)
+        {
+            var count = method.Parameters.Count;
+            if (count > 0)
+            {
+                var lastType = method.Parameters[count - 1].Type.Resolved;
+                if (lastType.NativeType == typeof(CancellationToken) || lastType.Name == nameof(CancellationToken) || lastType.Name == typeof(CancellationToken).FullName)
+                    count--;
+            }
+            return count;
+        }
+
+        //the server expects every argument, null holds the place of a CancellationToken it replaces with its own
+        private static void AppendArguments(StringBuilder sb, CSharpMethod method, int clientParameterCount)
+        {
+            for (var i = 0; i < method.Parameters.Count; i++)
+            {
+                if (i > 0)
+                    _ = sb.Append(", ");
+                _ = sb.Append(i < clientParameterCount ? method.Parameters[i].Name : "null");
+            }
         }
 
         private static (List<CSharpObject>, List<CSharpObject>, List<CSharpObject>) GetQueriesCommandsModels(string directory)

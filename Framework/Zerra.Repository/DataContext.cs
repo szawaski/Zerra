@@ -15,8 +15,8 @@ namespace Zerra.Repository
 {
     public abstract class DataContext
     {
-        private static bool isValid = false;
-        private static bool validated = false;
+        //a context type is one configuration, so each type is validated and initialized once and its instances share the result
+        private static readonly Dictionary<Type, bool> isValidByType = new();
         private static readonly object validatedLock = new();
 
         public bool TryGetEngine<T>(
@@ -31,14 +31,15 @@ namespace Zerra.Repository
 
             lock (validatedLock)
             {
-                if (!validated)
+                var type = this.GetType();
+                if (!isValidByType.TryGetValue(type, out var isValid))
                 {
-                    validated = true;
                     isValid = engine.ValidateDataSource();
+                    isValidByType[type] = isValid;
                     if (isValid)
-                        Log.InfoAsync($"{this.GetType().GetNiceName()} connected");
+                        Log.InfoAsync($"{type.GetNiceName()} connected");
                     else
-                        Log.InfoAsync($"{this.GetType().GetNiceName()} failed to connect");
+                        Log.InfoAsync($"{type.GetNiceName()} failed to connect");
                 }
 
                 if (!isValid)
@@ -51,7 +52,7 @@ namespace Zerra.Repository
             return true;
         }
 
-        private static bool initialized = false;
+        private static readonly HashSet<Type> initializedTypes = new();
         private static readonly object initializedLock = new();
         public T InitializeEngine<T>(bool reinitialize = false) where T : class, IDataStoreEngine
         {
@@ -61,24 +62,24 @@ namespace Zerra.Repository
 
             lock (validatedLock)
             {
-                if (!validated || reinitialize)
+                var type = this.GetType();
+                if (reinitialize || !isValidByType.TryGetValue(type, out var isValid))
                 {
-                    validated = true;
                     isValid = engine.ValidateDataSource();
+                    isValidByType[type] = isValid;
                     if (isValid)
-                        Log.InfoAsync($"{this.GetType().GetNiceName()} connected");
+                        Log.InfoAsync($"{type.GetNiceName()} connected");
                     else
-                        Log.InfoAsync($"{this.GetType().GetNiceName()} failed to connect");
+                        Log.InfoAsync($"{type.GetNiceName()} failed to connect");
                 }
                 if (!isValid)
-                    throw new Exception($"{this.GetType().GetNiceName()} could not validate");
+                    throw new Exception($"{type.GetNiceName()} could not validate");
             }
 
             lock (initializedLock)
             {
-                if (!initialized || reinitialize)
+                if (initializedTypes.Add(this.GetType()) || reinitialize)
                 {
-                    initialized = true;
 
                     if (dataStoreGenerationType.HasFlag(DataStoreGenerationType.CodeFirst))
                     {

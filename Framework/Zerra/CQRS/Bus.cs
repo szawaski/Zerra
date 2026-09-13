@@ -1360,7 +1360,7 @@ namespace Zerra.CQRS
                     var topic = GetCommandTopic(commandType);
                     commandProducer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                     commandProducers.Add(commandType, commandProducer);
-                    _ = Log.InfoAsync($"{commandProducer.GetType().GetNiceName()}c - {commandType.GetNiceName()}");
+                    _ = Log.InfoAsync($"{commandProducer.GetType().GetNiceName()} at {commandProducer.MessageHost} - {commandType.GetNiceName()}");
                 }
             }
             finally
@@ -1445,7 +1445,7 @@ namespace Zerra.CQRS
                         eventProducers.Add(eventType, eventProducerList);
                     }
                     eventProducerList.Add(eventProducer);
-                    _ = Log.InfoAsync($"{eventProducers.GetType().GetNiceName()} at {eventProducer.MessageHost} - {eventType.GetNiceName()}");
+                    _ = Log.InfoAsync($"{eventProducer.GetType().GetNiceName()} at {eventProducer.MessageHost} - {eventType.GetNiceName()}");
                 }
             }
             finally
@@ -1520,7 +1520,7 @@ namespace Zerra.CQRS
                 }
                 queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
                 queryClients.Add(interfaceType, queryClient);
-                _ = Log.InfoAsync($"{queryClients.GetType().GetNiceName()} at {queryClient.ServiceUrl} - {interfaceType.GetNiceName()}");
+                _ = Log.InfoAsync($"{queryClient.GetType().GetNiceName()} at {queryClient.ServiceUrl} - {interfaceType.GetNiceName()}");
             }
             finally
             {
