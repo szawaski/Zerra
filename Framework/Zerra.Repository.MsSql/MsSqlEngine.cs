@@ -1543,6 +1543,8 @@ namespace Zerra.Repository.MsSql
                     case CoreType.DateTimeNullable:
                         if (property.DatePart == StoreDatePart.Date)
                             _ = sb.Append("[date]");
+                        else if (property.DataSourcePrecisionLength.HasValue)
+                            _ = sb.Append("[datetime2](").Append(property.DataSourcePrecisionLength.Value).Append(')');
                         else
                             _ = sb.Append("[datetime]");
                         break;
@@ -1740,7 +1742,7 @@ namespace Zerra.Repository.MsSql
                     case CoreType.Double: return sqlColumn.DataType == "float" && sqlColumn.IsNullable == false;
                     case CoreType.Decimal: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == false && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.Char: return sqlColumn.DataType == "nvarchar" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTime: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 3)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == false;
+                    case CoreType.DateTime: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && !property.DataSourcePrecisionLength.HasValue) || (sqlColumn.DataType == "datetime2" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == property.DataSourcePrecisionLength) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == false;
                     case CoreType.DateTimeOffset: return sqlColumn.DataType == "datetimeoffset" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 7);
                     case CoreType.TimeSpan: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 7);
                     case CoreType.DateOnly: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == false;
@@ -1756,7 +1758,7 @@ namespace Zerra.Repository.MsSql
                     case CoreType.DoubleNullable: return sqlColumn.DataType == "float" && sqlColumn.IsNullable == true;
                     case CoreType.DecimalNullable: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == true && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.CharNullable: return sqlColumn.DataType == "nvarchar" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTimeNullable: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 3)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == true;
+                    case CoreType.DateTimeNullable: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && !property.DataSourcePrecisionLength.HasValue) || (sqlColumn.DataType == "datetime2" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == property.DataSourcePrecisionLength) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == true;
                     case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "datetimeoffset" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 7);
                     case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 7);
                     case CoreType.DateOnlyNullable: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == true;
