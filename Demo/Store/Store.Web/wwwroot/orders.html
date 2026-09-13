@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zerra Store - Orders</title>
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="inner">
+            <a class="brand" href="index.html">Zerra <span>Store</span></a>
+            <nav class="site-nav">
+                <a href="index.html">Overview</a>
+                <a href="catalog.html">Catalog</a>
+                <a href="inventory.html">Inventory</a>
+                <a href="orders.html" class="active">Orders</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <h1 class="page-title">Orders</h1>
+        <p class="page-lead">
+            Owned by the Orders service. Placing an order takes prices from the Catalog and reserves stock in Inventory before it's saved.
+            Shipping and cancelling publish events that Inventory handles on its own.
+        </p>
+
+        <div class="grid grid-2">
+            <section class="card">
+                <div class="card-header">
+                    <h2>Recent orders</h2>
+                    <button class="secondary small" id="refresh-orders">Refresh</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Items</th>
+                                <th class="num">Total</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="card-header"><h2>New order</h2></div>
+                <form id="new-order" autocomplete="off">
+                    <div class="field">
+                        <label for="customer">Customer</label>
+                        <select id="customer"></select>
+                    </div>
+                    <label>Items</label>
+                    <div class="order-lines" id="order-lines"></div>
+                    <button type="button" class="link" id="add-line">+ Add item</button>
+                    <div class="order-total">
+                        <span>Estimated total</span>
+                        <span id="order-total">$0.00</span>
+                    </div>
+                    <p class="card-note">The final price is set by the Orders service from the Catalog, not by this page.</p>
+                    <button type="submit" id="place-order" style="margin-top: 12px; width: 100%">Place order</button>
+                </form>
+            </section>
+        </div>
+    </main>
+
+    <script src="lib/jquery/jquery.min.js"></script>
+    <script src="js/Bus.js"></script>
+    <script src="js/BusRoutes.js"></script>
+    <script src="js/JavaScriptModels.js"></script>
+    <script src="js/site.js"></script>
+    <script src="js/orders.js"></script>
+</body>
+</html>

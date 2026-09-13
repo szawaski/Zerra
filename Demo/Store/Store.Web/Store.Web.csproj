@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Framework\Zerra.Web\Zerra.Web.csproj" />
+        <ProjectReference Include="..\Store.Catalog.Domain\Store.Catalog.Domain.csproj" />
+        <ProjectReference Include="..\Store.Common\Store.Common.csproj" />
+        <ProjectReference Include="..\Store.Inventory.Domain\Store.Inventory.Domain.csproj" />
+        <ProjectReference Include="..\Store.Orders.Domain\Store.Orders.Domain.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <!-- The T4 template regenerates JavaScriptModels.js from the domain contracts when saved in Visual Studio, the generated file is committed so the site runs without it -->
+    <ItemGroup>
+        <Content Remove="wwwroot\js\JavaScriptModels.tt" />
+        <None Include="wwwroot\js\JavaScriptModels.tt">
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>JavaScriptModels.js</LastGenOutput>
+        </None>
+        <Content Update="wwwroot\js\JavaScriptModels.js">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>JavaScriptModels.tt</DependentUpon>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+    </ItemGroup>
+
+</Project>

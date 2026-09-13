@@ -1,0 +1,16 @@
+<#
+// Generates JavaScriptModels.js from the Store domain contracts: the query interfaces, the commands, and the models they use.
+// Visual Studio runs it when the template is saved. Zerra.T4.dll comes from the repository's "Front End Scripts\Binaries" folder.
+#>
+<#@ template language="C#" debug="false" hostspecific="true" #>
+<#@ output extension=".js" #>
+<#@ assembly name="..\..\..\..\..\Front End Scripts\Binaries\Zerra.T4.dll" #>
+<#@ import namespace="System.IO" #>
+<#
+    //only the Store demo folder is scanned so types from the rest of the repository aren't included
+    var directory = Path.GetFullPath(Path.Combine(this.Host.ResolvePath(string.Empty), @"..\..\.."));
+
+    var result = Zerra.T4.CQRSClientDomain.GenerateJavaScript(directory);
+
+	#><#=result#><#+
+#>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zerra Store - Inventory</title>
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="inner">
+            <a class="brand" href="index.html">Zerra <span>Store</span></a>
+            <nav class="site-nav">
+                <a href="index.html">Overview</a>
+                <a href="catalog.html">Catalog</a>
+                <a href="inventory.html" class="active">Inventory</a>
+                <a href="orders.html">Orders</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <h1 class="page-title">Inventory</h1>
+        <p class="page-lead">
+            Owned by the Inventory service, which only knows product IDs. This page gets names from the Catalog service and joins the two in the browser.
+            Reserved units are held for placed orders until the Orders service publishes that the order shipped or was cancelled.
+        </p>
+
+        <div class="grid grid-2">
+            <section class="card">
+                <div class="card-header">
+                    <h2>Stock levels</h2>
+                    <button class="secondary small" id="refresh-stock">Refresh</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th class="num">On hand</th>
+                                <th class="num">Reserved</th>
+                                <th class="num">Available</th>
+                                <th class="num">Restock</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="card-header">
+                    <h2>Recent movements</h2>
+                    <label class="checkbox"><input type="checkbox" id="auto-refresh" checked /> Live</label>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Product</th>
+                                <th class="num">Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody id="movements"></tbody>
+                    </table>
+                </div>
+                <p class="card-note">Reserved rows come from the <code>ReserveStockCommand</code>. Shipped and Released rows come from order events.</p>
+            </section>
+        </div>
+    </main>
+
+    <script src="lib/jquery/jquery.min.js"></script>
+    <script src="js/Bus.js"></script>
+    <script src="js/BusRoutes.js"></script>
+    <script src="js/JavaScriptModels.js"></script>
+    <script src="js/site.js"></script>
+    <script src="js/inventory.js"></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zerra Store - Overview</title>
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="inner">
+            <a class="brand" href="index.html">Zerra <span>Store</span></a>
+            <nav class="site-nav">
+                <a href="index.html" class="active">Overview</a>
+                <a href="catalog.html">Catalog</a>
+                <a href="inventory.html">Inventory</a>
+                <a href="orders.html">Orders</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <h1 class="page-title">A storefront on three microservices</h1>
+        <p class="page-lead">
+            These pages are static HTML and JavaScript. Every query and command goes through one CQRS gateway on this site,
+            which forwards it over encrypted TCP to the service that owns it. Each service keeps its own data store and seeds it on startup.
+        </p>
+
+        <div class="grid grid-cards" id="services">
+            <section class="card service-card">
+                <h3><span class="status-dot up"></span>Web Gateway</h3>
+                <p class="role">Serves these pages, routes queries and commands</p>
+                <dl>
+                    <dt>Project</dt><dd>Store.Web</dd>
+                    <dt>Endpoint</dt><dd><code>POST /CQRS</code></dd>
+                    <dt>Data store</dt><dd>None, it owns no data</dd>
+                </dl>
+            </section>
+            <section class="card service-card" data-service="catalog">
+                <h3><span class="status-dot"></span>Catalog</h3>
+                <p class="role">Products, categories, and prices</p>
+                <dl>
+                    <dt>Project</dt><dd>Store.Catalog.Service</dd>
+                    <dt>Address</dt><dd>TCP localhost:9101</dd>
+                    <dt>Data store</dt><dd class="store">Checking…</dd>
+                </dl>
+            </section>
+            <section class="card service-card" data-service="inventory">
+                <h3><span class="status-dot"></span>Inventory</h3>
+                <p class="role">Stock levels, reservations, and movements</p>
+                <dl>
+                    <dt>Project</dt><dd>Store.Inventory.Service</dd>
+                    <dt>Address</dt><dd>TCP localhost:9102</dd>
+                    <dt>Data store</dt><dd class="store">Checking…</dd>
+                </dl>
+            </section>
+            <section class="card service-card" data-service="orders">
+                <h3><span class="status-dot"></span>Orders</h3>
+                <p class="role">Customers and orders</p>
+                <dl>
+                    <dt>Project</dt><dd>Store.Orders.Service</dd>
+                    <dt>Address</dt><dd>TCP localhost:9103</dd>
+                    <dt>Data store</dt><dd class="store">Checking…</dd>
+                </dl>
+            </section>
+        </div>
+
+        <div class="grid grid-2" style="margin-top: 20px">
+            <section class="card">
+                <div class="card-header"><h2>What happens when you place an order</h2></div>
+                <ol class="flow">
+                    <li>The Orders page dispatches <code>PlaceOrderCommand</code> to the gateway, which forwards it to the <b>Orders</b> service.</li>
+                    <li>Orders calls the <b>Catalog</b> service's <code>GetProductsByIDs</code> query, so names and prices come from the catalog and not from the browser.</li>
+                    <li>The Orders command handler checks the order rules: at least one item, quantities from 1 to 100, no discontinued products.</li>
+                    <li>Orders sends <code>ReserveStockCommand</code> to the <b>Inventory</b> service and waits. If any product is short, Inventory throws, nothing is reserved, and the error comes back to this page.</li>
+                    <li>The order is saved in the Orders data store and the result is returned to the page.</li>
+                    <li>Shipping or cancelling later publishes <code>OrderShippedEvent</code> or <code>OrderCancelledEvent</code>. Inventory handles the event on its own to ship or release the reserved stock.</li>
+                </ol>
+            </section>
+            <section class="card">
+                <div class="card-header"><h2>Things to try</h2></div>
+                <ul class="tips">
+                    <li>Order 3 Standing Desks. Only 2 are in stock, so Inventory rejects the order.</li>
+                    <li>Place an order, then open Inventory to see the reservation. Ship it and the units leave the shelf.</li>
+                    <li>Discontinue a product in the Catalog, then try to order it.</li>
+                    <li>Add a product, restock it in Inventory, then order it.</li>
+                    <li>Stop the Inventory service and try to place an order to see how the failure comes back.</li>
+                </ul>
+            </section>
+        </div>
+    </main>
+
+    <script src="lib/jquery/jquery.min.js"></script>
+    <script src="js/Bus.js"></script>
+    <script src="js/BusRoutes.js"></script>
+    <script src="js/JavaScriptModels.js"></script>
+    <script src="js/site.js"></script>
+    <script src="js/index.js"></script>
+</body>
+</html>

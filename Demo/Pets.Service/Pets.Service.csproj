@@ -7,7 +7,7 @@
         <Nullable>enable</Nullable>
         <PublishAot>true</PublishAot>
         <OptimizationPreference>Size</OptimizationPreference>
-        <InvariantGlobalization>true</InvariantGlobalization>
+        <!-- No InvariantGlobalization here, Microsoft.Data.SqlClient can't connect in that mode -->
         <UseSystemResourceKeys>true</UseSystemResourceKeys>
         <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
         <EventSourceSupport>false</EventSourceSupport>

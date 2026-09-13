@@ -1,0 +1,44 @@
+using Zerra.Encryption;
+using Zerra.Serialization;
+
+namespace Store.Common
+{
+    /// <summary>
+    /// Addresses, connection strings, and shared secrets for the Store demo.
+    /// Every value has a local default and can be overridden with an environment variable.
+    /// </summary>
+    public static class StoreSettings
+    {
+        //TCP addresses of the microservices
+        public static string CatalogServiceUrl => Get("STORE_CATALOG_URL", "localhost:9101");
+        public static string InventoryServiceUrl => Get("STORE_INVENTORY_URL", "localhost:9102");
+        public static string OrdersServiceUrl => Get("STORE_ORDERS_URL", "localhost:9103");
+
+        //Each service owns its own data store, a short connect timeout keeps the in-memory fallback quick when the database isn't running
+        public static string CatalogPostgreSql => Get("STORE_CATALOG_POSTGRESQL", "Host=localhost;Port=5432;User ID=postgres;Password=password123;Database=zerrastorecatalog;Timeout=3");
+        public static string InventoryMySql => Get("STORE_INVENTORY_MYSQL", "Server=localhost;Port=3306;Uid=root;Pwd=password123;Database=ZerraStoreInventory;Connect Timeout=3");
+        public static string OrdersMsSql => Get("STORE_ORDERS_MSSQL", "Data Source=.;Initial Catalog=ZerraStoreOrders;Integrated Security=True;TrustServerCertificate=True;Connect Timeout=3");
+
+        /// <summary>
+        /// Skip the databases and use the in-memory stores, set STORE_IN_MEMORY=true.
+        /// </summary>
+        public static bool InMemoryOnly => String.Equals(Environment.GetEnvironmentVariable("STORE_IN_MEMORY"), "true", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Serializer for traffic between the gateway and the services, and between services.
+        /// </summary>
+        public static ISerializer CreateServiceSerializer() => new ZerraByteSerializer();
+
+        /// <summary>
+        /// Internal traffic is encrypted with a shared key so only callers holding the key can send messages to a service.
+        /// A real deployment would load this from a secret store.
+        /// </summary>
+        public static IEncryptor CreateServiceEncryptor() => new ZerraEncryptor(Get("STORE_SHARED_KEY", "zerra-store-demo-shared-key"), SymmetricAlgorithmType.AESwithPrefix);
+
+        private static string Get(string name, string defaultValue)
+        {
+            var value = Environment.GetEnvironmentVariable(name);
+            return String.IsNullOrWhiteSpace(value) ? defaultValue : value;
+        }
+    }
+}

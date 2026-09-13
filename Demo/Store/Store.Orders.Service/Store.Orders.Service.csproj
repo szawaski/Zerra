@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PublishAot>true</PublishAot>
+        <!-- No InvariantGlobalization here, Microsoft.Data.SqlClient can't connect in that mode -->
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Framework\Zerra.Repository.Memory\Zerra.Repository.Memory.csproj" />
+        <ProjectReference Include="..\..\..\Framework\Zerra.Repository.MsSql\Zerra.Repository.MsSql.csproj" />
+        <ProjectReference Include="..\Store.Catalog.Domain\Store.Catalog.Domain.csproj" />
+        <ProjectReference Include="..\Store.Common\Store.Common.csproj" />
+        <ProjectReference Include="..\Store.Inventory.Domain\Store.Inventory.Domain.csproj" />
+        <ProjectReference Include="..\Store.Orders.Domain\Store.Orders.Domain.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+</Project>

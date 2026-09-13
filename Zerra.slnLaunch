@@ -1,0 +1,24 @@
+[
+  {
+    "Name": "Store Demo",
+    "Projects": [
+      {
+        "Path": "Demo\\Store\\Store.Catalog.Service\\Store.Catalog.Service.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Demo\\Store\\Store.Inventory.Service\\Store.Inventory.Service.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Demo\\Store\\Store.Orders.Service\\Store.Orders.Service.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Demo\\Store\\Store.Web\\Store.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "Store.Web"
+      }
+    ]
+  }
+]

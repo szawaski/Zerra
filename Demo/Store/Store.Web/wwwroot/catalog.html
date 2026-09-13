@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zerra Store - Catalog</title>
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="inner">
+            <a class="brand" href="index.html">Zerra <span>Store</span></a>
+            <nav class="site-nav">
+                <a href="index.html">Overview</a>
+                <a href="catalog.html" class="active">Catalog</a>
+                <a href="inventory.html">Inventory</a>
+                <a href="orders.html">Orders</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <h1 class="page-title">Catalog</h1>
+        <p class="page-lead">
+            Owned by the Catalog service. Its command handler checks the pricing and SKU rules, try an invalid price or a duplicate SKU.
+        </p>
+
+        <div class="grid grid-2">
+            <section class="card">
+                <div class="card-header">
+                    <h2>Products</h2>
+                    <div class="toolbar">
+                        <label for="category-filter" class="subtle" style="margin: 0">Category</label>
+                        <select id="category-filter">
+                            <option value="">All categories</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th class="num">Price</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="products"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="card-header"><h2>Add a product</h2></div>
+                <form id="add-product" autocomplete="off">
+                    <div class="field">
+                        <label for="new-category">Category</label>
+                        <select id="new-category" required></select>
+                    </div>
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="new-sku">SKU</label>
+                            <input id="new-sku" placeholder="MS-210" />
+                        </div>
+                        <div class="field">
+                            <label for="new-price">Price</label>
+                            <input id="new-price" type="number" step="0.01" placeholder="39.99" />
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="new-name">Name</label>
+                        <input id="new-name" placeholder="Travel Mouse" />
+                    </div>
+                    <div class="field">
+                        <label for="new-description">Description</label>
+                        <textarea id="new-description" rows="2" placeholder="Optional"></textarea>
+                    </div>
+                    <button type="submit" id="add-product-button">Add product</button>
+                </form>
+                <p class="card-note">New products have no stock. Restock them on the Inventory page before ordering.</p>
+            </section>
+        </div>
+    </main>
+
+    <script src="lib/jquery/jquery.min.js"></script>
+    <script src="js/Bus.js"></script>
+    <script src="js/BusRoutes.js"></script>
+    <script src="js/JavaScriptModels.js"></script>
+    <script src="js/site.js"></script>
+    <script src="js/catalog.js"></script>
+</body>
+</html>
