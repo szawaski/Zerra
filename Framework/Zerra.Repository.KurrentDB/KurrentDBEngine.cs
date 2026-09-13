@@ -17,6 +17,7 @@ namespace Zerra.Repository.KurrentDB
         private const int saveStateEvery = 100;
 
         private readonly KurrentDBClient client;
+        private readonly Uri healthUri;
         /// <summary>
         /// Initializes a new instance of the <see cref="KurrentDbEngine"/> class.
         /// </summary>
@@ -24,15 +25,19 @@ namespace Zerra.Repository.KurrentDB
         /// <param name="insecure">Whether to use an insecure connection (without TLS/SSL).</param>
         public KurrentDbEngine(string connectionString, bool insecure)
         {
+            var address = new Uri(connectionString);
             var settings = new KurrentDBClientSettings
             {
                 ConnectivitySettings =
                 {
-                    Address = new Uri(connectionString),
+                    Address = address,
                     Insecure = insecure
                 }
             };
             client = new KurrentDBClient(settings);
+
+            //the server's HTTP health check, used for validation because the client only has async calls
+            healthUri = new UriBuilder(address) { Scheme = insecure ? Uri.UriSchemeHttp : address.Scheme, Path = "/health/live", Query = String.Empty }.Uri;
         }
 
         /// <inheritdoc/>
@@ -278,13 +283,16 @@ namespace Zerra.Repository.KurrentDB
         /// <inheritdoc/>
         public bool ValidateDataSource()
         {
-            var eventData = new EventData(Uuid.NewUuid(), "ValidateDataSource", Array.Empty<byte>());
-
             try
             {
-                Task.Run(() => client.AppendToStreamAsync("ValidateDataSource", StreamState.Any, [eventData])).GetAwaiter().GetResult();
+                //HttpClient.Send is synchronous, so validating doesn't block on async code
+                using var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(5) };
+                using var request = new HttpRequestMessage(HttpMethod.Get, healthUri);
+                using var response = httpClient.Send(request);
+                if (response.IsSuccessStatusCode)
+                    return true;
 
-                return true;
+                Log.Warn($"{nameof(KurrentDbEngine)} failed to validate: health check returned {(int)response.StatusCode}");
             }
             catch (Exception ex)
             {

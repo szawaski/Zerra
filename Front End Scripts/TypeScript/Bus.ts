@@ -367,11 +367,11 @@ export class Bus {
 
                     if (hasResult) {
                         const responseContentType = res.headers.get("content-type");
-                        const responseJson = responseContentType?.includes("application/json");
                         const responseJsonNameless = responseContentType?.includes("application/jsonnameless");
 
                         res.text().then((data) => {
-                            if (responseJson || res.status == 200) {
+                            //errors come back as JSON too, so only the status says whether it's a result
+                            if (res.status == 200) {
 
                                 if (data == null || data == "") {
                                     resolve(null);

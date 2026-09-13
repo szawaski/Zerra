@@ -1563,15 +1563,15 @@ namespace Zerra.Repository.PostgreSql
                         break;
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
-                        _ = sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        _ = sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 6).Append(')');
                         break;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
-                        _ = sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 0).Append(") with time zone");
+                        _ = sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 6).Append(") with time zone");
                         break;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
-                        _ = sb.Append("time(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        _ = sb.Append("time(").Append(property.DataSourcePrecisionLength ?? 6).Append(')');
                         break;
                     case CoreType.DateOnly:
                     case CoreType.DateOnlyNullable:
@@ -1579,7 +1579,7 @@ namespace Zerra.Repository.PostgreSql
                         break;
                     case CoreType.TimeOnly:
                     case CoreType.TimeOnlyNullable:
-                        _ = sb.Append("time(").Append(property.DataSourcePrecisionLength ?? 0).Append(')');
+                        _ = sb.Append("time(").Append(property.DataSourcePrecisionLength ?? 6).Append(')');
                         break;
                     case CoreType.Guid:
                     case CoreType.GuidNullable:
@@ -1735,11 +1735,11 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.Double: return sqlColumn.DataType == "double precision" && sqlColumn.IsNullable == false;
                     case CoreType.Decimal: return sqlColumn.DataType == "numeric" && sqlColumn.IsNullable == false && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.Char: return sqlColumn.DataType == "character varying" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTime: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
-                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "timestamp with time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
-                    case CoreType.TimeSpan: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateTime: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "timestamp with time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.TimeSpan: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
                     case CoreType.DateOnly: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == 0;
-                    case CoreType.TimeOnly: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.TimeOnly: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
                     case CoreType.Guid: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == false;
 
                     case CoreType.BooleanNullable: return sqlColumn.DataType == "boolean" && sqlColumn.IsNullable == true;
@@ -1751,11 +1751,11 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.DoubleNullable: return sqlColumn.DataType == "double precision" && sqlColumn.IsNullable == true;
                     case CoreType.DecimalNullable: return sqlColumn.DataType == "numeric" && sqlColumn.IsNullable == true && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
                     case CoreType.CharNullable: return sqlColumn.DataType == "character varying" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTimeNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
-                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "timestamp with time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
-                    case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.DateTimeNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "timestamp with time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
                     case CoreType.DateOnlyNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == 0;
-                    case CoreType.TimeOnlyNullable: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 0);
+                    case CoreType.TimeOnlyNullable: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
                     case CoreType.GuidNullable: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == true;
 
                     case CoreType.String:

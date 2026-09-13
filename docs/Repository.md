@@ -78,15 +78,16 @@ public sealed class MyMsSqlContext : MsSqlDataContext
 public sealed class MyMemoryContext : MemoryDataContext { }
 ```
 
-A `DataContextSelector` can also be used to automatically select from multiple contexts at runtime (e.g., switching between environments):
+A `DataContextSelector` can also be used to automatically select from multiple contexts at runtime (e.g., switching between environments). It uses the first context whose data source validates, and each context type is validated once per process:
 
 ```csharp
 public class MyDbContext : DataContextSelector
 {
-    protected override ICollection<DataContext> LoadDataContexts() =>
+    //SQL Server when it's reachable, otherwise in memory
+    protected override IEnumerable<DataContext> LoadDataContexts() =>
     [
-        new MyMemoryContext(),
-        new MyMsSqlContext()
+        new MyMsSqlContext(),
+        new MyMemoryContext()
     ];
 }
 ```

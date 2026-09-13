@@ -37,6 +37,8 @@ namespace Store.Inventory.Service.Handlers
                     if (kind == StockMovementKind.Shipped)
                     {
                         //shipped units leave the shelf
+                        if (reservation.Quantity > item.Reserved)
+                            throw new InvalidOperationException($"Can't ship {reservation.Quantity} of product {item.ProductID}, only {item.Reserved} reserved.");
                         item.Reserved -= reservation.Quantity;
                         item.OnHand -= reservation.Quantity;
                     }

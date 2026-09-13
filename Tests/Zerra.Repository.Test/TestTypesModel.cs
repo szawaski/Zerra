@@ -23,6 +23,8 @@ namespace Zerra.Repository.Test
         public char CharThing { get; set; }
         [StoreProperties(true, 6)]
         public DateTime DateTimeThing { get; set; }
+        //no precision set, the store's default precision still keeps fractional seconds
+        public DateTime DateTimeDefaultPrecisionThing { get; set; }
         [StoreProperties(true, 6)]
         public DateTimeOffset DateTimeOffsetThing { get; set; }
         [StoreProperties(true, 6)]
@@ -108,6 +110,7 @@ namespace Zerra.Repository.Test
                 DecimalThing = -11.3m,
                 CharThing = 'Z',
                 DateTimeThing = DateTime.Now,
+                DateTimeDefaultPrecisionThing = new DateTime(2024, 5, 6, 7, 8, 9, 456, DateTimeKind.Utc),
                 DateTimeOffsetThing = DateTimeOffset.Now.AddDays(1),
                 TimeSpanThing = DateTime.Now.TimeOfDay,
                 DateOnlyThing = DateOnly.FromDateTime(DateTime.Now),

@@ -6,6 +6,156 @@ This document provides architectural context for AI agents working with the Zerr
 
 Zerra is a CQRS (Command Query Responsibility Segregation) framework for .NET 10 that enables distributed message-driven architecture. It routes commands, events, and queries locally or remotely via message brokers (Kafka, RabbitMQ, Azure Service Bus) or HTTP.
 
+## Building an Application (Start Here)
+
+Working samples to copy from:
+
+- `Demo/Store`: three microservices (Catalog, Inventory, Orders) behind an ASP.NET CQRS gateway, static pages calling the gateway with `Bus.js`, a database per service with in-memory fallback, and seeding on startup. Its `README.md` maps each feature to the file that shows it.
+- `Demo/Pets.Domain` and `Demo/Pets.Service`: a single service.
+
+Keep samples focused on Zerra: handlers read and write data models through `IRepo` and check business rules inline. Don't add aggregate or repository layers on top.
+
+### Solution Layout
+
+| Project | Contains | References |
+|---|---|---|
+| `X.Domain` | Contracts: query interfaces, commands, events, the models they carry, and handler interfaces | `Zerra`. Set `IsAotCompatible` |
+| `X.Service` | Handler classes, data models, and `Program.cs` that builds the bus | its own `X.Domain`, plus the `X.Domain` of each service it calls, `Zerra`, `Zerra.Repository.*` |
+| `X.Web` (optional) | ASP.NET app hosting the CQRS API gateway and the static pages | every `X.Domain` it forwards, `Zerra.Web` |
+
+Services share only `*.Domain` projects, never each other's data models or handlers.
+
+### Project Setup
+
+- Target `net10.0`. The `Zerra` NuGet package brings the source generator (see [AOT](AOT.md)). Inside this repository, reference the projects directly and add the generator to every project that declares or implements CQRS types or data models:
+  ```xml
+  <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
+  <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  ```
+- `<PublishAot>true</PublishAot>` also turns off dynamic code under `dotnet run`, so a type the generator missed fails in development, not first in production.
+- The "Source Generation Startup - ..." console lines at startup are expected.
+- Don't set `InvariantGlobalization` in a service that uses `Microsoft.Data.SqlClient`, it can't connect in that mode.
+
+### Contracts
+
+```csharp
+public interface ICatalogQueryHandler : IQueryHandler
+{
+    Task<ProductModel[]> GetProducts(CancellationToken cancellationToken);
+    Task<ProductModel[]> GetProductsByIDs(Guid[] productIDs, CancellationToken cancellationToken);
+}
+
+public interface ICatalogCommandHandler :
+    ICommandHandler<AddProductCommand, AddProductResult>, //command with a result
+    ICommandHandler<DiscontinueProductCommand>             //command without one
+{
+}
+
+public sealed class AddProductCommand : ICommand<AddProductResult>
+{
+    public required string Sku { get; set; }
+    public required decimal Price { get; set; }
+}
+
+public interface IOrderEventHandler : IEventHandler<OrderShippedEvent> { }
+```
+
+- Put `CancellationToken` last on query methods. Clients don't send it, the server passes its own in its place.
+- Command handler methods are `Handle(TCommand command, CancellationToken cancellationToken)`, event handler methods are `Handle(TEvent @event)`.
+- Models are plain classes with public properties. `required` members work with the serializers and the generated clients, but a value missing from a browser's JSON arrives as its default, so handlers still validate their input.
+
+### Service Program.cs
+
+```csharp
+ILogger log = new ConsoleLogger();          //your Zerra.Logging.ILogger implementation
+Log.SetLog(log);                            //framework messages too, such as why a database was skipped
+
+var repo = Repo.New();
+repo.AddProvider(new CatalogStoreProvider<ProductDataModel>());
+var busServices = new BusServices();
+busServices.AddRepo(repo);                  //handlers deriving from BaseHandlerWithRepo get it as Repo
+
+var bus = Bus.New("Catalog", log, busLog, busServices);
+bus.AddHandler<ICatalogQueryHandler>(new CatalogQueryHandler());
+bus.AddHandler<ICatalogCommandHandler>(new CatalogCommandHandler());
+
+var serializer = new ZerraByteSerializer();
+var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AESwithPrefix);
+var server = new TcpCqrsServer("localhost:9101", serializer, encryptor, log);
+bus.AddQueryServer<ICatalogQueryHandler>(server);
+bus.AddCommandConsumer<ICatalogCommandHandler>(server);
+
+//calling another service: a client, then register what this service may use
+var inventory = new TcpCqrsClient("localhost:9102", serializer, encryptor, log);
+bus.AddCommandProducer<IStockReservationHandler>(inventory);
+bus.AddEventProducer<IOrderEventHandler>(inventory);
+
+await bus.WaitForExitAsync(exitToken);
+```
+
+Handler instances are created once and shared by concurrent messages, so keep them stateless. Inside a handler, use `Bus.Call<IOtherQueryHandler>().Method(...)`, `Bus.DispatchAsync(...)`, `Bus.DispatchAwaitAsync(...)`, `Repo`, `Log`, and `Context.GetService<T>()`. More in [Server Setup](ServerSetup.md), [Client Setup](ClientSetup.md), and [Service Injection](ServiceInjection.md).
+
+### Web Gateway for Browsers
+
+```csharp
+var bus = Bus.New("Web", log, busLog);
+bus.AddQueryClient<ICatalogQueryHandler>(catalogClient);
+bus.AddCommandProducer<ICatalogCommandHandler>(catalogClient);
+
+builder.Services.AddSingleton<IBus>(bus);
+builder.Services.AddSingleton<ISerializer>(new ZerraJsonSerializer());
+builder.Services.AddSingleton(log);
+...
+app.UseCqrsApiGateway("/CQRS");
+```
+
+- The gateway only exposes interfaces its bus has a route for, so leave out anything meant only for service-to-service use.
+- Public sites need an `ICqrsAuthorizer` and `allowOrigins`. See [Zerra.Web](ZerraWeb.md) and [Security](Security.md).
+- In ASP.NET projects `ILogger` is ambiguous with Microsoft's, so write `Zerra.Logging.ILogger`.
+
+### Browser Clients
+
+- Copy `Front End Scripts/JavaScript/Bus.js` (jQuery) or `Front End Scripts/TypeScript/Bus.ts` (fetch) into the site.
+- Generate the typed client from the `*.Domain` sources with a T4 template that calls `Zerra.T4.CQRSClientDomain.GenerateJavaScript(folder)` or `GenerateTypeScript(folder)`, using `Front End Scripts/Binaries/Zerra.T4.dll`. See `Demo/Store/Store.Web/wwwroot/js/JavaScriptModels.tt`. Scan only your own folder, and regenerate after changing contracts.
+- Generated query functions omit the trailing `CancellationToken`.
+
+### Errors
+
+Throw an exception whose message is written for the user. It comes back to the caller with its type name and message, including across several service hops. A relayed `SecurityException` becomes HTTP 401 at the gateway. `Demo/Store` uses a `DomainException` for rule violations.
+
+### Zerra.Repository
+
+Each service owns its data store. Details in [Repository](Repository.md), [Repository Generation](RepositoryGeneration.md), and [Graph](Graph.md).
+
+```csharp
+[Entity("SalesOrder")]
+public sealed class OrderDataModel
+{
+    [Identity(false)]                        //false: the key is assigned by the code, not the database
+    public Guid ID { get; set; }
+
+    [StoreProperties(true, 32)]              //not null, max length 32
+    public string? OrderNumber { get; set; }
+
+    public Guid CustomerID { get; set; }
+
+    [Relation(nameof(CustomerID))]           //many-to-one: this model's foreign key
+    public CustomerDataModel? Customer { get; set; }
+
+    [Relation(nameof(OrderLineDataModel.OrderID))] //one-to-many: the related model's foreign key
+    public OrderLineDataModel[]? Lines { get; set; }
+}
+```
+
+- `DataContextSelector` uses the first context that validates, so list the real database first and a `MemoryDataContext` last as the fallback.
+- Create the schema on startup with `CodeFirstGeneration.Generate<TContext>(DataStoreGenerationType.CodeFirst | DataStoreGenerationType.NoDelete, modelTypes, log)`, then seed only when the store is empty. Data models need a parameterless constructor.
+- Handlers derive from `BaseHandlerWithRepo` and use the async `IRepo` methods. LINQ `Where` expressions support comparisons, `&&`, `||`, `!`, bool members, `string.Contains`, `array.Contains(x.Prop)`, `Any`/`All`/`Count` on related collections, and date parts such as `x.PlacedOn.Year`. `StartsWith` and `EndsWith` aren't translated.
+- Relations load only when named in a graph: `Repo.ManyAsync<OrderDataModel>(new Graph<OrderDataModel>(true, x => x.Customer, x => x.Lines))`. One-to-many properties can be arrays, `List<T>`, or interfaces like `IReadOnlyList<T>`.
+- Update only some columns by passing a graph: `Repo.UpdateAsync(order, new Graph<OrderDataModel>(x => x.Status))`.
+- With `PersistLinking => false`, related models aren't saved with their parent. Create the order and then its lines.
+- Pass collections to `CreateAsync`/`UpdateAsync`/`DeleteAsync` as arrays or with an explicit type argument. A `List<T>` binds to the single-model overload.
+- Without a precision, PostgreSQL, MySQL, and MariaDB store date and time columns to the microsecond, and SQL Server stores `DateTime` as `datetime` (about 3 ms). Set `[StoreProperties(notNull, precision)]` to choose.
+
 ## Core Concepts
 
 ### Commands (`ICommand`)
@@ -237,7 +387,7 @@ Creates proxy implementations of query interfaces, routing metadata, and handler
 When working with Zerra code:
 
 ### When Creating Handlers
-- Always inherit from `BaseHandler`
+- Always inherit from `BaseHandler`, or `BaseHandlerWithRepo` when the handler uses `IRepo`
 - Implement the appropriate handler interface (`ICommandHandler<T>`, `IEventHandler<T>`, etc.)
 - Access dependencies via `this.Context.GetService<TInterface>()`
 - Use `this.Context.Bus` to dispatch additional commands/events
@@ -260,7 +410,16 @@ When working with Zerra code:
 
 ### When Creating Query Interfaces
 - Keep interfaces focused (single responsibility)
-- Include `CancellationToken` parameter for cancellation support
+- Include a `CancellationToken` as the last parameter for cancellation support
 - Return `Task<T>` for async, or sync if needed
 - Query calls are type-safe and routed via proxy generation
 - **Special case**: If return type is `Stream`, the response will be live-streamed from the remote service
+
+## Working on the Framework Itself
+
+- Zerra is built for maximum runtime performance. In runtime code (serializers, the bus, network clients and servers, repository engines), make the smallest in-place change and match the existing style, even when that repeats a few lines. Don't extract shared helpers or add layers.
+- Never block on async code with `.GetAwaiter().GetResult()`, `.Result`, or `.Wait()`. Add a real synchronous path instead.
+- Runtime code must stay AOT compatible (`IsAotCompatible` is on). Get type information from `TypeDetail` (source generated) instead of generating it at runtime. Where a call is flagged with `RequiresDynamicCode` but is safe, suppress `IL3050` with a comment explaining why, as the existing code does.
+- Tests: `Tests/Zerra.Test` (core, serializers, CQRS network), `Tests/Zerra.Test.Web`, `Tests/Zerra.SourceGeneration.Test`, and `Tests/Zerra.Repository.Test`. The repository engine tests need local SQL Server, PostgreSQL (5432), MySQL (3306), and MariaDB (3307); the connection strings are in `Tests/Zerra.Repository.Test/*/*TestSqlDataContext.cs`. Each run drops and recreates the test database, and after code-first generation the tests assert the generated plan is empty.
+- `Framework/Zerra.T4` targets net48 and copies its build to `Front End Scripts/Binaries`. Rebuild it after changing the JavaScript or TypeScript generators, and keep `Bus.js` and `Bus.ts` in step with each other.
+- The repository uses CRLF line endings in the working tree. Some command-line tools strip the CRs (Git Bash `sed -i`, for one), so check with `git ls-files --eol`.

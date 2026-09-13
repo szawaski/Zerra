@@ -464,6 +464,8 @@ namespace Zerra.Repository.Test
             Assert.Equal(model1.DecimalThing, model2.DecimalThing);
             Assert.Equal(model1.CharThing, model2.CharThing);
             Assert.Equal(model1.DateTimeThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"), model2.DateTimeThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ff"));
+            //SQL Server's datetime rounds to 1/300 of a second, a store that drops fractional seconds is off by 456 ms
+            Assert.True(Math.Abs((model1.DateTimeDefaultPrecisionThing - model2.DateTimeDefaultPrecisionThing).TotalMilliseconds) < 5, $"{model1.DateTimeDefaultPrecisionThing:O} != {model2.DateTimeDefaultPrecisionThing:O}");
             Assert.Equal(model1.DateTimeOffsetThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"), model2.DateTimeOffsetThing.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffzzz"));
             Assert.Equal((int)model1.TimeSpanThing.TotalMilliseconds, (int)model2.TimeSpanThing.TotalMilliseconds);
             Assert.Equal(model1.DateOnlyThing.ToString("yyyy-MM-dd"), model2.DateOnlyThing.ToString("yyyy-MM-dd"));
