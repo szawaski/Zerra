@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 using Zerra.Repository.MsSql;
 using Zerra.Repository.Reflection;
 
-namespace Zerra.Repository.Test
+namespace Zerra.Repository.Test.MsSql
 {
     // MsSql generates bracket-quoted identifiers: [TestTypes].[KeyA]
     // FROM has no space before the bracket: FROM[TestTypes]

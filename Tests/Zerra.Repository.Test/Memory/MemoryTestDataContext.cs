@@ -4,7 +4,7 @@
 
 using Zerra.Repository.Memory;
 
-namespace Zerra.Repository.Test
+namespace Zerra.Repository.Test.Memory
 {
     public class MemoryTestDataContext : MemoryDataContext
     {

@@ -4,7 +4,7 @@
 
 using Xunit;
 
-namespace Zerra.Repository.Test
+namespace Zerra.Repository.Test.Memory
 {
     public class MemoryEngineTests
     {

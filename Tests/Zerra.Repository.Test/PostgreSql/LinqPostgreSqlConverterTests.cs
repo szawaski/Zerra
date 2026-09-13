@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 using Zerra.Repository.PostgreSql;
 using Zerra.Repository.Reflection;
 
-namespace Zerra.Repository.Test
+namespace Zerra.Repository.Test.PostgreSql
 {
     // PostgreSQL generates lowercase unquoted identifiers: testtypes.keya
     // FROM uses a space before the identifier: FROM testtypes

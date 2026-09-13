@@ -8,7 +8,7 @@ using System.Text;
 using Zerra.Repository.Reflection;
 using Zerra.Repository.MySql;
 
-namespace Zerra.Repository.Test
+namespace Zerra.Repository.Test.MySql
 {
     public class MySqlEngineTests
     {

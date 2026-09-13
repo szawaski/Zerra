@@ -7,6 +7,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Zerra.Repository.Benchmark.EFData;
 using Zerra.Repository.Test;
+using Zerra.Repository.Test.MsSql;
 
 namespace Zerra.Repository.Benchmark.Benchmarks
 {

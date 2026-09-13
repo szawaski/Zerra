@@ -8,7 +8,7 @@ using Zerra.Repository.Reflection;
 using Microsoft.Data.SqlClient;
 using Zerra.Repository.MsSql;
 
-namespace Zerra.Repository.Test
+namespace Zerra.Repository.Test.MsSql
 {
     public class MsSqlEngineTests
     {

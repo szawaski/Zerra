@@ -8,7 +8,7 @@ using Zerra.Repository.Reflection;
 using Zerra.Repository.MySql;
 using MySqlConnector;
 
-namespace Zerra.Repository.Test
+namespace Zerra.Repository.Test.MariaDb
 {
     public class MariaDbEngineTests
     {

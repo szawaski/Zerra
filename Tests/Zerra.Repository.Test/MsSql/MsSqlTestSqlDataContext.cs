@@ -4,7 +4,7 @@
 
 using Zerra.Repository.MsSql;
 
-namespace Zerra.Repository.Test
+namespace Zerra.Repository.Test.MsSql
 {
     public class MsSqlTestSqlDataContext : MsSqlDataContext
     {

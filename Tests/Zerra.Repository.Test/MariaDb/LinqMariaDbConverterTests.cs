@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 using Zerra.Repository.MySql;
 using Zerra.Repository.Reflection;
 
-namespace Zerra.Repository.Test
+namespace Zerra.Repository.Test.MariaDb
 {
     // MySql generates backtick-quoted identifiers: `TestTypes`.`KeyA`
     // FROM has no space before the backtick: FROM`TestTypes`

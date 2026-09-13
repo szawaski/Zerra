@@ -4,7 +4,7 @@
 
 using Zerra.Repository.MySql;
 
-namespace Zerra.Repository.Test
+namespace Zerra.Repository.Test.MySql
 {
     public class MySqlTestSqlDataContext : MySqlDataContext
     {

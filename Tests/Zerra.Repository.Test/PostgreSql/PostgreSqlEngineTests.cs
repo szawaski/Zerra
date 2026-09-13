@@ -8,7 +8,7 @@ using System.Text;
 using Zerra.Repository.Reflection;
 using Zerra.Repository.PostgreSql;
 
-namespace Zerra.Repository.Test
+namespace Zerra.Repository.Test.PostgreSql
 {
     public class PostgreSqlEngineTests
     {

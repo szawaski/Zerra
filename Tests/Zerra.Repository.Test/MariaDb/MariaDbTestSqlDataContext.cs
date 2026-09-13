@@ -4,7 +4,7 @@
 
 using Zerra.Repository.MariaDb;
 
-namespace Zerra.Repository.Test
+namespace Zerra.Repository.Test.MariaDb
 {
     public class MariaDbTestSqlDataContext : MariaDbDataContext
     {
