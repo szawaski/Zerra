@@ -1,12 +1,14 @@
 <Solution>
   <Folder Name="/Demo/" />
   <Folder Name="/Demo/Pets/">
-    <Project Path="Demo/Pets.Domain/Pets.Domain.csproj" />
-    <Project Path="Demo/Pets.Service/Pets.Service.csproj" />
+    <Project Path="Demo/Pets/Pets.Domain/Pets.Domain.csproj" />
+    <Project Path="Demo/Pets/Pets.Service/Pets.Service.csproj" />
   </Folder>
   <Folder Name="/Demo/Store/">
     <File Path="Demo/Store/README.md" />
     <File Path="Demo/Store/start-store.ps1" />
+    <File Path="Demo/Store/publish-store-aot.ps1" />
+    <File Path="Demo/Store/start-store-aot.ps1" />
     <Project Path="Demo/Store/Store.Catalog.Domain/Store.Catalog.Domain.csproj" />
     <Project Path="Demo/Store/Store.Catalog.Service/Store.Catalog.Service.csproj" />
     <Project Path="Demo/Store/Store.Common/Store.Common.csproj" />

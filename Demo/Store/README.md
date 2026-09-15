@@ -57,6 +57,15 @@ It builds the six projects and starts each one in its own window.
 
 **By hand:** `dotnet run` each of `Store.Catalog.Service`, `Store.Inventory.Service`, `Store.Orders.Service`, `Store.Shipping.Service`, `Store.Reviews.Service`, and `Store.Web`, in any order. Clients connect on first use.
 
+**Native AOT:** every project (including the two ASP.NET Core ones, `Store.Web` and `Store.Shipping.Service`) sets `<PublishAot>true</PublishAot>`. Two scripts mirror `start-store.ps1`:
+
+```powershell
+.\Demo\Store\publish-store-aot.ps1            # publishes all six to .\Demo\Store\publish\<project>\<project>.exe
+.\Demo\Store\start-store-aot.ps1 -InMemory    # starts the published executables, each in its own window
+```
+
+The publish script adds Visual Studio's installer folder to `PATH` for that run, since the native AOT linker needs `vswhere.exe` to find the VC++ toolchain and a plain shell usually doesn't have it on `PATH` (a Visual Studio Developer Command Prompt does). The run script sets `ASPNETCORE_URLS` for `Store.Web` and `Store.Shipping.Service`, since a published exe has no `launchSettings.json` to supply it.
+
 ## Data stores
 
 Each service's `DataContextSelector` lists its database first and an in-memory store second. At startup the service checks whether the database is reachable. If it is, code-first generation creates the database and tables, and later adds columns. If not, the service logs why and runs in memory, reseeding on every start. Shipping has no `DataContextSelector`, it's memory-only by design (see [Where to look](#where-to-look)). The Overview page shows which store each service is using.
