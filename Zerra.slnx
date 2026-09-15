@@ -14,6 +14,10 @@
     <Project Path="Demo/Store/Store.Inventory.Service/Store.Inventory.Service.csproj" />
     <Project Path="Demo/Store/Store.Orders.Domain/Store.Orders.Domain.csproj" />
     <Project Path="Demo/Store/Store.Orders.Service/Store.Orders.Service.csproj" />
+    <Project Path="Demo/Store/Store.Reviews.Domain/Store.Reviews.Domain.csproj" />
+    <Project Path="Demo/Store/Store.Reviews.Service/Store.Reviews.Service.csproj" />
+    <Project Path="Demo/Store/Store.Shipping.Domain/Store.Shipping.Domain.csproj" />
+    <Project Path="Demo/Store/Store.Shipping.Service/Store.Shipping.Service.csproj" />
     <Project Path="Demo/Store/Store.Web/Store.Web.csproj" />
   </Folder>
   <Folder Name="/Framework/">

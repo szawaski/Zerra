@@ -2,6 +2,14 @@ $(function () {
 
     const $products = $("#products");
     const $filter = $("#category-filter");
+    let ratings = {};
+
+    async function loadRatings() {
+        const productRatings = await Store.query(IReviewsQueryHandler.GetProductRatings);
+        ratings = {};
+        for (const rating of productRatings)
+            ratings[rating.ProductID] = rating;
+    }
 
     async function loadCategories() {
         const categories = await Store.query(ICatalogQueryHandler.GetCategories);
@@ -20,7 +28,7 @@ $(function () {
 
         $products.empty();
         if (products.length === 0) {
-            $products.append(Store.messageRow(6, "No products in this category."));
+            $products.append(Store.messageRow(7, "No products in this category."));
             return;
         }
         for (const product of products)
@@ -38,6 +46,12 @@ $(function () {
         $row.append($("<td>").append($("<div>").text(product.Name), $("<div>").addClass("subtle").text(product.Description || "")));
         $row.append($("<td>").text(product.CategoryName));
         const $price = $("<td>").addClass("num").text(Store.money(product.Price)).appendTo($row);
+
+        const rating = ratings[product.ID];
+        $row.append($("<td>").append(rating
+            ? [$("<span>").addClass("stars").text(Store.stars(Math.round(rating.AverageRating))), $("<span>").addClass("subtle").text(" " + rating.AverageRating + " (" + rating.ReviewCount + ")")]
+            : $("<span>").addClass("subtle").text("No reviews")));
+
         $row.append($("<td>").append(product.IsActive ? Store.badge("Active", "success") : Store.badge("Discontinued", "neutral")));
 
         const $actions = $("<td>").addClass("actions").appendTo($row);
@@ -107,8 +121,10 @@ $(function () {
 
     $filter.on("change", reload);
 
-    $products.append(Store.messageRow(6, "Loading…"));
-    Promise.all([loadCategories(), loadProducts()]).catch(function () {
-        $products.empty().append(Store.messageRow(6, "Couldn't load the catalog. Is the Catalog service running?"));
-    });
+    $products.append(Store.messageRow(7, "Loading…"));
+    Promise.all([loadCategories(), loadRatings()])
+        .then(loadProducts)
+        .catch(function () {
+            $products.empty().append(Store.messageRow(7, "Couldn't load the catalog. Is the Catalog service running?"));
+        });
 });

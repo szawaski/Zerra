@@ -6,10 +6,6 @@ namespace Store.Orders.Service.Data
 {
     public static class OrdersSeeder
     {
-        private static readonly Guid ada = Guid.Parse("9d3b6a10-2f4c-4e8a-b5d1-6c0e2a7f0001");
-        private static readonly Guid grace = Guid.Parse("9d3b6a10-2f4c-4e8a-b5d1-6c0e2a7f0002");
-        private static readonly Guid alan = Guid.Parse("9d3b6a10-2f4c-4e8a-b5d1-6c0e2a7f0003");
-
         /// <summary>
         /// Seeds customers and a little order history the first time the service starts against an empty data store.
         /// </summary>
@@ -20,21 +16,22 @@ namespace Store.Orders.Service.Data
 
             await repo.CreateAsync<CustomerDataModel>(
             [
-                new() { ID = ada, Name = "Ada Lovelace", Email = "ada@example.com" },
-                new() { ID = grace, Name = "Grace Hopper", Email = "grace@example.com" },
-                new() { ID = alan, Name = "Alan Turing", Email = "alan@example.com" }
+                new() { ID = DemoCustomerIds.Ada, Name = "Ada Lovelace", Email = "ada@example.com" },
+                new() { ID = DemoCustomerIds.Grace, Name = "Grace Hopper", Email = "grace@example.com" },
+                new() { ID = DemoCustomerIds.Alan, Name = "Alan Turing", Email = "alan@example.com" }
             ]);
 
             //shipped orders never touch current stock, so the history doesn't need the Inventory service
+            //Ada and Grace's purchases here are what makes their seeded Reviews show as verified, see Store.Reviews.Service's seeder
             var firstPlacedOn = DateTime.UtcNow.AddDays(-6);
-            await AddShippedOrderAsync(repo, ada, firstPlacedOn, firstPlacedOn.AddDays(1),
+            await AddShippedOrderAsync(repo, DemoCustomerIds.Ada, firstPlacedOn, firstPlacedOn.AddDays(1),
             [
                 (DemoProductIds.MechanicalKeyboard, "Mechanical Keyboard", 129.00m, 1),
                 (DemoProductIds.WirelessMouse, "Wireless Mouse", 49.99m, 1)
             ]);
 
             var secondPlacedOn = DateTime.UtcNow.AddDays(-2);
-            await AddShippedOrderAsync(repo, grace, secondPlacedOn, secondPlacedOn.AddHours(20),
+            await AddShippedOrderAsync(repo, DemoCustomerIds.Grace, secondPlacedOn, secondPlacedOn.AddHours(20),
             [
                 (DemoProductIds.UltrawideMonitor, "34\" Ultrawide Monitor", 549.00m, 2),
                 (DemoProductIds.UsbCDock, "USB-C Dock", 189.00m, 1)

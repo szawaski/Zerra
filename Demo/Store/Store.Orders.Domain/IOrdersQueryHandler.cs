@@ -10,5 +10,10 @@ namespace Store.Orders.Domain
         Task<CustomerModel[]> GetCustomers(CancellationToken cancellationToken);
         Task<OrderModel[]> GetOrders(CancellationToken cancellationToken);
         Task<OrderModel> GetOrder(Guid orderID, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// True if the customer has a shipped order containing the product. Called by the Reviews service to mark a review as a verified purchase.
+        /// </summary>
+        Task<bool> HasPurchased(Guid customerID, Guid productID, CancellationToken cancellationToken);
     }
 }

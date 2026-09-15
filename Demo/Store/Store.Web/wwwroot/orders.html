@@ -15,6 +15,8 @@
                 <a href="catalog.html">Catalog</a>
                 <a href="inventory.html">Inventory</a>
                 <a href="orders.html" class="active">Orders</a>
+                <a href="shipping.html">Shipping</a>
+                <a href="reviews.html">Reviews</a>
             </nav>
         </div>
     </header>
@@ -23,7 +25,7 @@
         <h1 class="page-title">Orders</h1>
         <p class="page-lead">
             Owned by the Orders service. Placing an order takes prices from the Catalog and reserves stock in Inventory before it's saved.
-            Shipping and cancelling publish events that Inventory handles on its own.
+            Shipping and cancelling publish events that Inventory and the Shipping service each handle on their own; the tracking numbers here come from the Shipping service.
         </p>
 
         <div class="grid grid-2">
@@ -40,6 +42,7 @@
                                 <th>Items</th>
                                 <th class="num">Total</th>
                                 <th>Status</th>
+                                <th>Tracking</th>
                                 <th></th>
                             </tr>
                         </thead>

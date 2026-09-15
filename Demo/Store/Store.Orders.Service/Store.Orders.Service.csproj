@@ -11,6 +11,8 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\Framework\Zerra.Repository.Memory\Zerra.Repository.Memory.csproj" />
         <ProjectReference Include="..\..\..\Framework\Zerra.Repository.MsSql\Zerra.Repository.MsSql.csproj" />
+        <!-- Only for KestrelCqrsClient, to publish events to the Shipping service over HTTP -->
+        <ProjectReference Include="..\..\..\Framework\Zerra.Web\Zerra.Web.csproj" />
         <ProjectReference Include="..\Store.Catalog.Domain\Store.Catalog.Domain.csproj" />
         <ProjectReference Include="..\Store.Common\Store.Common.csproj" />
         <ProjectReference Include="..\Store.Inventory.Domain\Store.Inventory.Domain.csproj" />

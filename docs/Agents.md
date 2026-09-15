@@ -10,7 +10,7 @@ Zerra is a CQRS (Command Query Responsibility Segregation) framework for .NET 10
 
 Working samples to copy from:
 
-- `Demo/Store`: three microservices (Catalog, Inventory, Orders) behind an ASP.NET CQRS gateway, static pages calling the gateway with `Bus.js`, a database per service with in-memory fallback, and seeding on startup. Its `README.md` maps each feature to the file that shows it.
+- `Demo/Store`: five microservices (Catalog, Inventory, Orders, Shipping, Reviews) behind an ASP.NET CQRS gateway, static pages calling the gateway with `Bus.js`, a database per service (PostgreSQL, MySQL, SQL Server, MariaDB) with in-memory fallback, and seeding on startup. Shipping is hosted in ASP.NET Core/Kestrel instead of raw TCP and needs no database at all. Its `README.md` maps each feature to the file that shows it.
 - `Demo/Pets.Domain` and `Demo/Pets.Service`: a single service.
 
 Keep samples focused on Zerra: handlers read and write data models through `IRepo` and check business rules inline. Don't add aggregate or repository layers on top.
@@ -94,6 +94,51 @@ await bus.WaitForExitAsync(exitToken);
 ```
 
 Handler instances are created once and shared by concurrent messages, so keep them stateless. Inside a handler, use `Bus.Call<IOtherQueryHandler>().Method(...)`, `Bus.DispatchAsync(...)`, `Bus.DispatchAwaitAsync(...)`, `Repo`, `Log`, and `Context.GetService<T>()`. More in [Server Setup](ServerSetup.md), [Client Setup](ClientSetup.md), and [Service Injection](ServiceInjection.md).
+
+### Hosting a Service in ASP.NET Core Instead of TCP
+
+A service doesn't have to use `TcpCqrsServer`. Hosting it in ASP.NET Core/Kestrel over HTTP is a `ProjectReference` to `Zerra.Web` plus one shared settings object instead of one server object:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+//... build repo, busServices, bus, and add handlers exactly as with any other service
+
+var settings = new KestrelCqrsServerLinkedSettings(route: null, authorizer: null, contentType: ContentType.Bytes);
+bus.AddQueryServer<IShippingQueryHandler>(new KestrelCqrsServerQueryServer(settings));
+bus.AddCommandConsumer<IShippingCommandHandler>(new KestrelCqrsServerCommandConsumer(settings));
+bus.AddEventConsumer<IOrderEventHandler>(new KestrelCqrsServerEventConsumer(settings));
+
+var app = builder.Build();
+app.Lifetime.ApplicationStopping.Register(bus.StopServices);
+app.UseKestrelCqrsServer(serializer, encryptor, log, settings);
+app.Run();
+```
+
+A caller reaches it with `KestrelCqrsClient` (also in `Zerra.Web`) instead of `TcpCqrsClient`/`HttpCqrsClient`, same constructor shape plus an `authorizer` and `route` (both `null` if the server used `null`). Query and command handling work exactly like any other service; only the transport differs, so a gateway or another service can mix TCP and HTTP clients for different downstream services without anything else changing.
+
+### Two Services Subscribing to the Same Event
+
+`Bus.AddEventProducer<TInterface>` allows only one producer per concrete event type; registering a second producer for a type that's already registered is rejected (logged, not thrown) rather than added alongside the first. To have more than one downstream service receive the same event over direct TCP/HTTP producers (no message broker), compose the producers behind one `IEventProducer` and register that:
+
+```csharp
+public sealed class MultiEventProducer : IEventProducer
+{
+    private readonly IEventProducer[] producers;
+    public MultiEventProducer(params IEventProducer[] producers) => this.producers = producers;
+    public string MessageHost => String.Join(", ", producers.Select(x => x.MessageHost));
+    public void RegisterEventType(int maxConcurrent, string topic, Type type)
+    {
+        foreach (var producer in producers)
+            producer.RegisterEventType(maxConcurrent, topic, type);
+    }
+    public Task DispatchAsync(IEvent @event, string source, CancellationToken cancellationToken)
+        => Task.WhenAll(producers.Select(x => x.DispatchAsync(@event, source, cancellationToken)));
+}
+
+bus.AddEventProducer<IOrderEventHandler>(new MultiEventProducer(inventoryClient, shippingClient));
+```
+
+See `Store.Common/MultiEventProducer.cs` and its use in `Store.Orders.Service/Program.cs`. A message broker producer (Kafka/RabbitMQ/AzureServiceBus) doesn't need this, it fans out to every subscribed consumer group on its own.
 
 ### Web Gateway for Browsers
 

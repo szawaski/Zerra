@@ -13,11 +13,16 @@ namespace Store.Common
         public static string CatalogServiceUrl => Get("STORE_CATALOG_URL", "localhost:9101");
         public static string InventoryServiceUrl => Get("STORE_INVENTORY_URL", "localhost:9102");
         public static string OrdersServiceUrl => Get("STORE_ORDERS_URL", "localhost:9103");
+        public static string ReviewsServiceUrl => Get("STORE_REVIEWS_URL", "localhost:9104");
+
+        //Shipping is hosted in ASP.NET Core, so its address is an HTTP endpoint rather than a bare TCP host:port
+        public static string ShippingServiceUrl => Get("STORE_SHIPPING_URL", "http://localhost:9105");
 
         //Each service owns its own data store, a short connect timeout keeps the in-memory fallback quick when the database isn't running
         public static string CatalogPostgreSql => Get("STORE_CATALOG_POSTGRESQL", "Host=localhost;Port=5432;User ID=postgres;Password=password123;Database=zerrastorecatalog;Timeout=3");
         public static string InventoryMySql => Get("STORE_INVENTORY_MYSQL", "Server=localhost;Port=3306;Uid=root;Pwd=password123;Database=ZerraStoreInventory;Connect Timeout=3");
         public static string OrdersMsSql => Get("STORE_ORDERS_MSSQL", "Data Source=.;Initial Catalog=ZerraStoreOrders;Integrated Security=True;TrustServerCertificate=True;Connect Timeout=3");
+        public static string ReviewsMariaDb => Get("STORE_REVIEWS_MARIADB", "Server=localhost;Port=3307;Uid=root;Pwd=password123;Database=ZerraStoreReviews;Connect Timeout=3");
 
         /// <summary>
         /// Skip the databases and use the in-memory stores, set STORE_IN_MEMORY=true.

@@ -10,6 +10,7 @@ using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Logging;
 using Zerra.Repository;
+using Zerra.Web;
 
 Console.Title = "Store - Orders Service";
 ILogger log = new ConsoleLogger();
@@ -47,7 +48,11 @@ bus.AddQueryClient<ICatalogQueryHandler>(catalogClient);
 
 var inventoryClient = new TcpCqrsClient(StoreSettings.InventoryServiceUrl, serializer, encryptor, log);
 bus.AddCommandProducer<IStockReservationHandler>(inventoryClient);
-bus.AddEventProducer<IOrderEventHandler>(inventoryClient);
+
+//Shipping subscribes to the same events as Inventory, over HTTP/Kestrel instead of TCP. The bus allows only one producer
+//per event type, so both downstream clients are composed behind one MultiEventProducer and registered as a single producer.
+var shippingClient = new KestrelCqrsClient(StoreSettings.ShippingServiceUrl, serializer, encryptor, log, null, null);
+bus.AddEventProducer<IOrderEventHandler>(new MultiEventProducer(inventoryClient, shippingClient));
 
 log.Info($"Orders service listening on {StoreSettings.OrdersServiceUrl}, press Ctrl+C to stop");
 

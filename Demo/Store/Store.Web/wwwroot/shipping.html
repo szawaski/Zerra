@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zerra Store - Shipping</title>
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="inner">
+            <a class="brand" href="index.html">Zerra <span>Store</span></a>
+            <nav class="site-nav">
+                <a href="index.html">Overview</a>
+                <a href="catalog.html">Catalog</a>
+                <a href="inventory.html">Inventory</a>
+                <a href="orders.html">Orders</a>
+                <a href="shipping.html" class="active">Shipping</a>
+                <a href="reviews.html">Reviews</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <h1 class="page-title">Shipping</h1>
+        <p class="page-lead">
+            Owned by the Shipping service, the only one hosted inside ASP.NET Core over HTTP/Kestrel instead of the raw TCP the other services use.
+            It has no database of its own, either, it only reacts to events. It subscribes to the same <code>OrderShippedEvent</code> as Inventory:
+            when Orders publishes once, both services receive it and do their own thing with the notification.
+        </p>
+
+        <div class="grid grid-2">
+            <section class="card">
+                <div class="card-header">
+                    <h2>Shipments</h2>
+                    <label class="checkbox"><input type="checkbox" id="auto-refresh" checked /> Live</label>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Carrier</th>
+                                <th>Tracking</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="shipments"></tbody>
+                    </table>
+                </div>
+                <p class="card-note">A shipment appears here a moment after an order ships on the Orders page, once the event arrives.</p>
+            </section>
+        </div>
+    </main>
+
+    <script src="lib/jquery/jquery.min.js"></script>
+    <script src="js/Bus.js"></script>
+    <script src="js/BusRoutes.js"></script>
+    <script src="js/JavaScriptModels.js"></script>
+    <script src="js/site.js"></script>
+    <script src="js/shipping.js"></script>
+</body>
+</html>

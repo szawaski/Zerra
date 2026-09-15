@@ -4,7 +4,9 @@ $(function () {
     const services = {
         catalog: ICatalogQueryHandler.GetDataStoreName,
         inventory: IInventoryQueryHandler.GetDataStoreName,
-        orders: IOrdersQueryHandler.GetDataStoreName
+        orders: IOrdersQueryHandler.GetDataStoreName,
+        shipping: IShippingQueryHandler.GetDataStoreName,
+        reviews: IReviewsQueryHandler.GetDataStoreName
     };
 
     for (const name in services) {

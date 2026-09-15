@@ -12,6 +12,8 @@
         <ProjectReference Include="..\Store.Common\Store.Common.csproj" />
         <ProjectReference Include="..\Store.Inventory.Domain\Store.Inventory.Domain.csproj" />
         <ProjectReference Include="..\Store.Orders.Domain\Store.Orders.Domain.csproj" />
+        <ProjectReference Include="..\Store.Reviews.Domain\Store.Reviews.Domain.csproj" />
+        <ProjectReference Include="..\Store.Shipping.Domain\Store.Shipping.Domain.csproj" />
     </ItemGroup>
 
     <ItemGroup>

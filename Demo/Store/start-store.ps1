@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Builds and starts the Store demo: the Catalog, Inventory, and Orders services and the web gateway, each in its own window.
+    Builds and starts the Store demo: the Catalog, Inventory, Orders, Shipping, and Reviews services and the web gateway, each in its own window.
 
 .PARAMETER InMemory
     Skip the databases and run every service on its in-memory store.
@@ -22,6 +22,8 @@ $projects = @(
     'Store.Catalog.Service',
     'Store.Inventory.Service',
     'Store.Orders.Service',
+    'Store.Shipping.Service',
+    'Store.Reviews.Service',
     'Store.Web'
 )
 

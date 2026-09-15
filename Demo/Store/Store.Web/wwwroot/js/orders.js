@@ -4,6 +4,7 @@ $(function () {
     const $lines = $("#order-lines");
     let products = [];
     let available = {};
+    let shipments = {};
 
     const statusBadges = {
         Placed: "info",
@@ -101,10 +102,19 @@ $(function () {
     }
 
     async function loadOrders() {
-        const orders = await Store.query(IOrdersQueryHandler.GetOrders);
+        //Shipping is a separate service the gateway forwards to over HTTP, its data is joined onto the orders here in the browser
+        const [orders, shipmentList] = await Promise.all([
+            Store.query(IOrdersQueryHandler.GetOrders),
+            Store.query(IShippingQueryHandler.GetShipments)
+        ]);
+
+        shipments = {};
+        for (const shipment of shipmentList)
+            shipments[shipment.OrderID] = shipment;
+
         $orders.empty();
         if (orders.length === 0) {
-            $orders.append(Store.messageRow(5, "No orders yet."));
+            $orders.append(Store.messageRow(6, "No orders yet."));
             return;
         }
         for (const order of orders)
@@ -122,6 +132,11 @@ $(function () {
             $items.append($("<div>").text(line.Quantity + " × " + line.ProductName).attr("title", Store.money(line.UnitPrice) + " each"));
         $row.append($("<td>").addClass("num").text(Store.money(order.Total)));
         $row.append($("<td>").append(Store.badge(order.Status, statusBadges[order.Status] || "neutral")));
+
+        const shipment = shipments[order.ID];
+        $row.append($("<td>").append(shipment
+            ? [$("<div>").text(shipment.Carrier), $("<div>").addClass("subtle").append($("<code>").text(shipment.TrackingNumber), " · " + shipment.Status)]
+            : $("<span>").addClass("subtle").text("—")));
 
         const $actions = $("<td>").addClass("actions").appendTo($row);
         if (order.Status === "Placed") {
@@ -164,9 +179,9 @@ $(function () {
         Store.busy(this, Promise.all([loadOrders(), loadFormData()])).catch(function () { });
     });
 
-    $orders.append(Store.messageRow(5, "Loading…"));
+    $orders.append(Store.messageRow(6, "Loading…"));
     loadOrders().catch(function () {
-        $orders.empty().append(Store.messageRow(5, "Couldn't load orders. Is the Orders service running?"));
+        $orders.empty().append(Store.messageRow(6, "Couldn't load orders. Is the Orders service running?"));
     });
     loadFormData().catch(function () { });
 });

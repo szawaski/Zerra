@@ -1,4 +1,4 @@
-const CategoryModelType =
+﻿const CategoryModelType =
 {
     ID: "string",
     Name: "string",
@@ -61,6 +61,37 @@ const OrderLineModelType =
     LineTotal: "number",
 }
 
+const ReviewModelType =
+{
+    ID: "string",
+    ProductID: "string",
+    ProductName: "string",
+    CustomerID: "string",
+    CustomerName: "string",
+    Rating: "number",
+    Comment: "string",
+    VerifiedPurchase: "boolean",
+    CreatedOn: "Date",
+}
+
+const ProductRatingModelType =
+{
+    ProductID: "string",
+    AverageRating: "number",
+    ReviewCount: "number",
+}
+
+const ShipmentModelType =
+{
+    OrderID: "string",
+    OrderNumber: "string",
+    Carrier: "string",
+    TrackingNumber: "string",
+    Status: "string",
+    ShippedOn: "Date",
+    DeliveredOn: "Date",
+}
+
 const AddProductResultType =
 {
     ProductID: "string",
@@ -86,6 +117,12 @@ const PlaceOrderResultType =
     Total: "number",
 }
 
+const SubmitReviewResultType =
+{
+    ReviewID: "string",
+    VerifiedPurchase: "boolean",
+}
+
 const ModelTypeDictionary =
 {
     CategoryModel: CategoryModelType,
@@ -95,10 +132,14 @@ const ModelTypeDictionary =
     CustomerModel: CustomerModelType,
     OrderModel: OrderModelType,
     OrderLineModel: OrderLineModelType,
+    ReviewModel: ReviewModelType,
+    ProductRatingModel: ProductRatingModelType,
+    ShipmentModel: ShipmentModelType,
     AddProductResult: AddProductResultType,
     StockReservationLine: StockReservationLineType,
     OrderItemRequest: OrderItemRequestType,
     PlaceOrderResult: PlaceOrderResultType,
+    SubmitReviewResult: SubmitReviewResultType,
 }
 
 const ICatalogQueryHandler = {
@@ -143,6 +184,33 @@ const IOrdersQueryHandler = {
     },
     GetOrder: function(orderID, onComplete, onFail) {
         Bus.Call("Store.Orders.Domain.IOrdersQueryHandler", "GetOrder", [orderID, null], OrderModelType, false, onComplete, onFail);
+    },
+    HasPurchased: function(customerID, productID, onComplete, onFail) {
+        Bus.Call("Store.Orders.Domain.IOrdersQueryHandler", "HasPurchased", [customerID, productID, null], null, false, onComplete, onFail);
+    },
+}
+
+const IReviewsQueryHandler = {
+    GetDataStoreName: function(onComplete, onFail) {
+        Bus.Call("Store.Reviews.Domain.IReviewsQueryHandler", "GetDataStoreName", [null], null, false, onComplete, onFail);
+    },
+    GetRecentReviews: function(count, onComplete, onFail) {
+        Bus.Call("Store.Reviews.Domain.IReviewsQueryHandler", "GetRecentReviews", [count, null], ReviewModelType, true, onComplete, onFail);
+    },
+    GetReviewsForProduct: function(productID, onComplete, onFail) {
+        Bus.Call("Store.Reviews.Domain.IReviewsQueryHandler", "GetReviewsForProduct", [productID, null], ReviewModelType, true, onComplete, onFail);
+    },
+    GetProductRatings: function(onComplete, onFail) {
+        Bus.Call("Store.Reviews.Domain.IReviewsQueryHandler", "GetProductRatings", [null], ProductRatingModelType, true, onComplete, onFail);
+    },
+}
+
+const IShippingQueryHandler = {
+    GetDataStoreName: function(onComplete, onFail) {
+        Bus.Call("Store.Shipping.Domain.IShippingQueryHandler", "GetDataStoreName", [null], null, false, onComplete, onFail);
+    },
+    GetShipments: function(onComplete, onFail) {
+        Bus.Call("Store.Shipping.Domain.IShippingQueryHandler", "GetShipments", [null], ShipmentModelType, true, onComplete, onFail);
     },
 }
 
@@ -218,4 +286,24 @@ const ShipOrderCommand = function(properties) {
     this.ResultType = null;
     this.ResultTypeHasMany = false;
 }
+
+const SubmitReviewCommand = function(properties) {
+    this.CustomerID = (properties === undefined || properties.CustomerID === undefined) ? null : properties.CustomerID;
+    this.ProductID = (properties === undefined || properties.ProductID === undefined) ? null : properties.ProductID;
+    this.Rating = (properties === undefined || properties.Rating === undefined) ? null : properties.Rating;
+    this.Comment = (properties === undefined || properties.Comment === undefined) ? null : properties.Comment;
+    this.CommandType = "Store.Reviews.Domain.Commands.SubmitReviewCommand";
+    this.CommandWithResult = true;
+    this.ResultType = SubmitReviewResultType;
+    this.ResultTypeHasMany = false;
+}
+
+const MarkDeliveredCommand = function(properties) {
+    this.OrderID = (properties === undefined || properties.OrderID === undefined) ? null : properties.OrderID;
+    this.CommandType = "Store.Shipping.Domain.Commands.MarkDeliveredCommand";
+    this.CommandWithResult = false;
+    this.ResultType = null;
+    this.ResultTypeHasMany = false;
+}
+
 

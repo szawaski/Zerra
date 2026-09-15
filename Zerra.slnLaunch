@@ -15,6 +15,14 @@
         "Action": "Start"
       },
       {
+        "Path": "Demo\\Store\\Store.Shipping.Service\\Store.Shipping.Service.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Demo\\Store\\Store.Reviews.Service\\Store.Reviews.Service.csproj",
+        "Action": "Start"
+      },
+      {
         "Path": "Demo\\Store\\Store.Web\\Store.Web.csproj",
         "Action": "Start",
         "DebugTarget": "Store.Web"

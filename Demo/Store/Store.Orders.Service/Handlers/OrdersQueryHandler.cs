@@ -34,6 +34,16 @@ namespace Store.Orders.Service.Handlers
             return ToModels([order])[0];
         }
 
+        public async Task<bool> HasPurchased(Guid customerID, Guid productID, CancellationToken cancellationToken)
+        {
+            var shippedOrderIDs = (await Repo.ManyAsync<OrderDataModel>(x => x.CustomerID == customerID && x.Status == nameof(OrderStatus.Shipped)))
+                .Select(x => x.ID)
+                .ToArray();
+            if (shippedOrderIDs.Length == 0)
+                return false;
+            return await Repo.AnyAsync<OrderLineDataModel>(x => shippedOrderIDs.Contains(x.OrderID) && x.ProductID == productID);
+        }
+
         //all order columns plus the related customer for its name and the lines, the lines of every order load in one query
         private static Graph<OrderDataModel> WithRelations() => new(true, x => x.Customer, x => x.Lines);
 

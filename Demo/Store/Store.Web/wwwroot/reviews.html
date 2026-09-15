@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zerra Store - Reviews</title>
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="inner">
+            <a class="brand" href="index.html">Zerra <span>Store</span></a>
+            <nav class="site-nav">
+                <a href="index.html">Overview</a>
+                <a href="catalog.html">Catalog</a>
+                <a href="inventory.html">Inventory</a>
+                <a href="orders.html">Orders</a>
+                <a href="shipping.html">Shipping</a>
+                <a href="reviews.html" class="active">Reviews</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <h1 class="page-title">Reviews</h1>
+        <p class="page-lead">
+            Owned by the Reviews service, stored in MariaDB. Submitting a review calls the Catalog service for the product's name and the
+            Orders service to check whether the customer actually received it, marking the review a verified purchase without Reviews keeping its own copy of order history.
+        </p>
+
+        <div class="grid grid-2">
+            <section class="card">
+                <div class="card-header">
+                    <h2>Recent reviews</h2>
+                    <button class="secondary small" id="refresh-reviews">Refresh</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Rating</th>
+                                <th>Review</th>
+                                <th>Customer</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reviews"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="card-header"><h2>Write a review</h2></div>
+                <form id="new-review" autocomplete="off">
+                    <div class="field">
+                        <label for="review-customer">Customer</label>
+                        <select id="review-customer"></select>
+                    </div>
+                    <div class="field">
+                        <label for="review-product">Product</label>
+                        <select id="review-product"></select>
+                    </div>
+                    <div class="field">
+                        <label for="review-rating">Rating</label>
+                        <select id="review-rating">
+                            <option value="5">★★★★★ Excellent</option>
+                            <option value="4">★★★★☆ Good</option>
+                            <option value="3" selected>★★★☆☆ Average</option>
+                            <option value="2">★★☆☆☆ Poor</option>
+                            <option value="1">★☆☆☆☆ Terrible</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="review-comment">Comment</label>
+                        <textarea id="review-comment" rows="3" placeholder="Optional"></textarea>
+                    </div>
+                    <button type="submit" id="submit-review">Submit review</button>
+                </form>
+                <p class="card-note">One review per customer per product. A customer who never received the product still gets a review, just not the verified badge.</p>
+            </section>
+        </div>
+    </main>
+
+    <script src="lib/jquery/jquery.min.js"></script>
+    <script src="js/Bus.js"></script>
+    <script src="js/BusRoutes.js"></script>
+    <script src="js/JavaScriptModels.js"></script>
+    <script src="js/site.js"></script>
+    <script src="js/reviews.js"></script>
+</body>
+</html>

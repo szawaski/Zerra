@@ -37,6 +37,10 @@ const Store = {
         return $("<span>").addClass("badge badge-" + kind).text(text);
     },
 
+    stars: function (rating) {
+        return "★★★★★☆☆☆☆☆".substring(5 - rating, 10 - rating);
+    },
+
     //A single table row spanning every column, for loading and empty states
     messageRow: function (columns, text) {
         return $("<tr>").addClass("message-row").append($("<td>").attr("colspan", columns).text(text));

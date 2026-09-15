@@ -3,6 +3,8 @@ using Store.Common;
 using Store.Common.Logging;
 using Store.Inventory.Domain;
 using Store.Orders.Domain;
+using Store.Reviews.Domain;
+using Store.Shipping.Domain;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Serialization;
@@ -31,6 +33,15 @@ bus.AddCommandProducer<IInventoryCommandHandler>(inventoryClient);
 var ordersClient = new TcpCqrsClient(StoreSettings.OrdersServiceUrl, serializer, encryptor, log);
 bus.AddQueryClient<IOrdersQueryHandler>(ordersClient);
 bus.AddCommandProducer<IOrdersCommandHandler>(ordersClient);
+
+var reviewsClient = new TcpCqrsClient(StoreSettings.ReviewsServiceUrl, serializer, encryptor, log);
+bus.AddQueryClient<IReviewsQueryHandler>(reviewsClient);
+bus.AddCommandProducer<IReviewsCommandHandler>(reviewsClient);
+
+//Shipping is hosted in ASP.NET Core, so it's an HTTP client here instead of the TCP clients above; the gateway doesn't care which transport a service uses
+var shippingClient = new KestrelCqrsClient(StoreSettings.ShippingServiceUrl, serializer, encryptor, log, null, null);
+bus.AddQueryClient<IShippingQueryHandler>(shippingClient);
+bus.AddCommandProducer<IShippingCommandHandler>(shippingClient);
 
 //The gateway middleware resolves the bus, serializer, and logger from DI, browsers send and receive JSON
 builder.Services.AddSingleton<IBus>(bus);

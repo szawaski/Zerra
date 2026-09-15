@@ -277,6 +277,11 @@ td code {
 .badge-danger { background: var(--danger-soft); color: var(--danger); }
 .badge-neutral { background: var(--neutral-soft); color: var(--text-muted); }
 
+.stars {
+    color: var(--warning);
+    letter-spacing: 1px;
+}
+
 /* Forms and buttons */
 
 label {

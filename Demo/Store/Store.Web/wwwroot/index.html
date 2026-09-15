@@ -15,15 +15,17 @@
                 <a href="catalog.html">Catalog</a>
                 <a href="inventory.html">Inventory</a>
                 <a href="orders.html">Orders</a>
+                <a href="shipping.html">Shipping</a>
+                <a href="reviews.html">Reviews</a>
             </nav>
         </div>
     </header>
 
     <main>
-        <h1 class="page-title">A storefront on three microservices</h1>
+        <h1 class="page-title">A storefront on five microservices</h1>
         <p class="page-lead">
             These pages are static HTML and JavaScript. Every query and command goes through one CQRS gateway on this site,
-            which forwards it over encrypted TCP to the service that owns it. Each service keeps its own data store and seeds it on startup.
+            which forwards it to the service that owns it, over encrypted TCP for most services and HTTP for Shipping. Each service keeps its own data store (or none, by design) and seeds it on startup.
         </p>
 
         <div class="grid grid-cards" id="services">
@@ -63,6 +65,24 @@
                     <dt>Data store</dt><dd class="store">Checking…</dd>
                 </dl>
             </section>
+            <section class="card service-card" data-service="shipping">
+                <h3><span class="status-dot"></span>Shipping</h3>
+                <p class="role">Tracks shipments, hosted in ASP.NET Core</p>
+                <dl>
+                    <dt>Project</dt><dd>Store.Shipping.Service</dd>
+                    <dt>Address</dt><dd>HTTP localhost:9105</dd>
+                    <dt>Data store</dt><dd class="store">Checking…</dd>
+                </dl>
+            </section>
+            <section class="card service-card" data-service="reviews">
+                <h3><span class="status-dot"></span>Reviews</h3>
+                <p class="role">Product ratings and comments</p>
+                <dl>
+                    <dt>Project</dt><dd>Store.Reviews.Service</dd>
+                    <dt>Address</dt><dd>TCP localhost:9104</dd>
+                    <dt>Data store</dt><dd class="store">Checking…</dd>
+                </dl>
+            </section>
         </div>
 
         <div class="grid grid-2" style="margin-top: 20px">
@@ -74,17 +94,18 @@
                     <li>The Orders command handler checks the order rules: at least one item, quantities from 1 to 100, no discontinued products.</li>
                     <li>Orders sends <code>ReserveStockCommand</code> to the <b>Inventory</b> service and waits. If any product is short, Inventory throws, nothing is reserved, and the error comes back to this page.</li>
                     <li>The order is saved in the Orders data store and the result is returned to the page.</li>
-                    <li>Shipping or cancelling later publishes <code>OrderShippedEvent</code> or <code>OrderCancelledEvent</code>. Inventory handles the event on its own to ship or release the reserved stock.</li>
+                    <li>Shipping the order later publishes <code>OrderShippedEvent</code>. Both Inventory and Shipping subscribe to it: Inventory takes the units off the shelf, and Shipping creates a tracking number, entirely independently.</li>
                 </ol>
             </section>
             <section class="card">
                 <div class="card-header"><h2>Things to try</h2></div>
                 <ul class="tips">
                     <li>Order 3 Standing Desks. Only 2 are in stock, so Inventory rejects the order.</li>
-                    <li>Place an order, then open Inventory to see the reservation. Ship it and the units leave the shelf.</li>
+                    <li>Place an order, then open Inventory to see the reservation. Ship it and the units leave the shelf, and a shipment appears on the Shipping page.</li>
                     <li>Discontinue a product in the Catalog, then try to order it.</li>
                     <li>Add a product, restock it in Inventory, then order it.</li>
                     <li>Stop the Inventory service and try to place an order to see how the failure comes back.</li>
+                    <li>Write a review as a customer who received the product, then as one who never ordered it, and compare the badges on the Reviews page.</li>
                 </ul>
             </section>
         </div>

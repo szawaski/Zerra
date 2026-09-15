@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Framework\Zerra.Web\Zerra.Web.csproj" />
+        <ProjectReference Include="..\..\..\Framework\Zerra.Repository.Memory\Zerra.Repository.Memory.csproj" />
+        <ProjectReference Include="..\Store.Common\Store.Common.csproj" />
+        <ProjectReference Include="..\Store.Orders.Domain\Store.Orders.Domain.csproj" />
+        <ProjectReference Include="..\Store.Shipping.Domain\Store.Shipping.Domain.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+</Project>

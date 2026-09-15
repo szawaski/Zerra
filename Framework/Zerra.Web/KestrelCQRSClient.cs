@@ -118,7 +118,7 @@ namespace Zerra.Web
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken)
         {
             var messageType = commandType.AssemblyQualifiedName;
-            var messageData = serializer.SerializeBytes(command);
+            var messageData = serializer.SerializeBytes(command, commandType);
 
             string[][]? claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -141,7 +141,7 @@ namespace Zerra.Web
         protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
         {
             var messageType = commandType.AssemblyQualifiedName;
-            var messageData = serializer.SerializeBytes(command);
+            var messageData = serializer.SerializeBytes(command, commandType);
 
             string[][]? claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
@@ -164,7 +164,7 @@ namespace Zerra.Web
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
         {
             var messageType = eventType.AssemblyQualifiedName;
-            var messageData = serializer.SerializeBytes(@event);
+            var messageData = serializer.SerializeBytes(@event, eventType);
 
             string[][]? claims = null;
             if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
