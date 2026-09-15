@@ -243,7 +243,10 @@ namespace Zerra.Test.CQRS.Network
             var buffer = new byte[10];
 
             if (async)
+                //a single inexact read is the point of this test, it should observe the short read and throw
+#pragma warning disable CA2022 // Avoid inexact read
                 _ = await Assert.ThrowsAsync<ConnectionAbortedException>(async () => await stream.ReadAsync(buffer, TestContext.Current.CancellationToken));
+#pragma warning restore CA2022 // Avoid inexact read
             else
                 _ = await Assert.ThrowsAsync<ConnectionAbortedException>(() => Task.Run(() => stream.Read(buffer, 0, buffer.Length), TestContext.Current.CancellationToken));
         }
@@ -258,7 +261,10 @@ namespace Zerra.Test.CQRS.Network
             var buffer = new byte[10];
 
             if (async)
+                //a single inexact read is the point of this test, it should observe the short read and throw
+#pragma warning disable CA2022 // Avoid inexact read
                 _ = await Assert.ThrowsAsync<ConnectionAbortedException>(async () => await stream.ReadAsync(buffer, TestContext.Current.CancellationToken));
+#pragma warning restore CA2022 // Avoid inexact read
             else
                 _ = await Assert.ThrowsAsync<ConnectionAbortedException>(() => Task.Run(() => stream.Read(buffer, 0, buffer.Length), TestContext.Current.CancellationToken));
         }

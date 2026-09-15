@@ -45,7 +45,7 @@ namespace Zerra.Repository.Test.KurrentDb
                         }
                     });
                 }
-            });
+            }, TestContext.Current.CancellationToken);
 
             using var engine = new KurrentDbEngine($"http://127.0.0.1:{port}", true);
             var isValid = await Task.Run(engine.ValidateDataSource);

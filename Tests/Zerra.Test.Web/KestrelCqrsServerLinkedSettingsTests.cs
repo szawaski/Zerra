@@ -56,7 +56,7 @@ namespace Zerra.Test.Web
             settings.Dispose();
 
             Assert.Empty(settings.Types);
-            _ = Assert.Throws<ObjectDisposedException>(() => throttle.Wait(0));
+            _ = Assert.Throws<ObjectDisposedException>(() => throttle.Wait(0, TestContext.Current.CancellationToken));
         }
     }
 }

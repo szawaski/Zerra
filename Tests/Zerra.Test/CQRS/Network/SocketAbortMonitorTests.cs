@@ -223,9 +223,9 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
-        public void SendAndAcknowledgeAbort_Sync_WithValidHandshake_ReturnsTrue()
+        public async Task SendAndAcknowledgeAbort_Sync_WithValidHandshake_ReturnsTrue()
         {
-            var (clientSocket, serverSocket) = CreateConnectedSocketPairAsync().GetAwaiter().GetResult();
+            var (clientSocket, serverSocket) = await CreateConnectedSocketPairAsync();
 
             try
             {
@@ -261,9 +261,9 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
-        public void SendAndAcknowledgeAbort_Sync_WithValidHandshake_RestoresOriginalTimeouts()
+        public async Task SendAndAcknowledgeAbort_Sync_WithValidHandshake_RestoresOriginalTimeouts()
         {
-            var (clientSocket, serverSocket) = CreateConnectedSocketPairAsync().GetAwaiter().GetResult();
+            var (clientSocket, serverSocket) = await CreateConnectedSocketPairAsync();
 
             try
             {
