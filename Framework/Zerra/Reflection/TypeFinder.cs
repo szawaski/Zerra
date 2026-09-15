@@ -27,6 +27,7 @@ namespace Zerra.Reflection
         /// <exception cref="ArgumentNullException">Thrown if name is null or whitespace.</exception>
         /// <exception cref="InvalidOperationException">Thrown if the type cannot be found.</exception>
         /// <exception cref="Exception">Thrown if multiple types match the given name.</exception>
+        [UnconditionalSuppressMessage("Trimming", "IL2057:Unrecognized value passed to the parameter of method. It's not possible to guarantee the availability of the target type.", Justification = "Callers accept that a name resolved only by string may not exist if trimmed.")]
         public static Type GetTypeFromName(string name)
         {
             if (String.IsNullOrWhiteSpace(name))
@@ -34,9 +35,7 @@ namespace Zerra.Reflection
 
             if (!typeByName.TryGetValue(name, out var matches))
             {
-#pragma warning disable IL2057 // Unrecognized value passed to the parameter of method. It's not possible to guarantee the availability of the target type.
                 var type = Type.GetType(name);
-#pragma warning restore IL2057 // Unrecognized value passed to the parameter of method. It's not possible to guarantee the availability of the target type.
                 if (type == null)
                     throw new InvalidOperationException($"Could not find type {name}. It may have been trimmed depending on the build configuration.");
                 matches = typeByName.GetOrAdd(name, static (key) => new());
@@ -70,6 +69,7 @@ namespace Zerra.Reflection
         /// <returns>True if the type was successfully resolved; otherwise false.</returns>
         /// <exception cref="ArgumentNullException">Thrown if name is null or whitespace.</exception>
         /// <exception cref="Exception">Thrown if multiple types match the given name.</exception>
+        [UnconditionalSuppressMessage("Trimming", "IL2057:Unrecognized value passed to the parameter of method. It's not possible to guarantee the availability of the target type.", Justification = "Callers accept that a name resolved only by string may not exist if trimmed.")]
         public static bool TryGetTypeFromName(string name, [NotNullWhen(true)] out Type? type)
         {
             if (String.IsNullOrWhiteSpace(name))
@@ -77,9 +77,7 @@ namespace Zerra.Reflection
 
             if (!typeByName.TryGetValue(name, out var matches))
             {
-#pragma warning disable IL2057 // Unrecognized value passed to the parameter of method. It's not possible to guarantee the availability of the target type.
                 type = Type.GetType(name);
-#pragma warning restore IL2057 // Unrecognized value passed to the parameter of method. It's not possible to guarantee the availability of the target type.
                 if (type != null)
                 {
                     matches = typeByName.GetOrAdd(name, static (key) => new());

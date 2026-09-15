@@ -144,6 +144,7 @@ namespace Zerra.Repository.Reflection
             return $"{Type.Name} {Name}";
         }
 
+        [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "We don't necessarily know that this will fail with AOT, so we let it fail at runtime.")]
         internal ModelDetail(TypeDetail typeDetail)
         {
             this.TypeDetail = typeDetail;
@@ -151,9 +152,7 @@ namespace Zerra.Repository.Reflection
 
             try
             {
-#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
                 this.LambdaDelegateType = typeof(Func<,>).MakeGenericType(this.Type, typeof(bool));
-#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
             }
             catch (Exception ex)
             {

@@ -287,35 +287,35 @@ public sealed class EnumName : Attribute
     private static readonly ConcurrentFactoryDictionary<Type, EnumInfo> enumInfoCache = new();
     private static EnumInfo GetEnumInfo(Type type)
     {
-        return enumInfoCache.GetOrAdd(type, (Func<Type, EnumInfo>)(static (type) =>
+        return enumInfoCache.GetOrAdd(type, BuildEnumInfo);
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2070:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.", Justification = "Enum fields are never trimmed.")]
+    private static EnumInfo BuildEnumInfo(Type type)
+    {
+        var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+        var enumFieldInfos = new EnumFieldInfo[fields.Length];
+        for (var i = 0; i < fields.Length; i++)
         {
-            //Enum fields are never trimmed
-#pragma warning disable IL2070 // 'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.
-            var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-#pragma warning restore IL2070 // 'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.
-            var enumFieldInfos = new EnumFieldInfo[fields.Length];
-            for (var i = 0; i < fields.Length; i++)
+            var field = fields[i];
+            var enumValue = field.GetValue(null)!;
+            string? enumText = null;
+            foreach (var attribute in field.GetCustomAttributes(true))
             {
-                var field = fields[i];
-                var enumValue = field.GetValue(null)!;
-                string? enumText = null;
-                foreach (var attribute in field.GetCustomAttributes(true))
-                {
-                    if (attribute is EnumName enumNameAttribute && enumNameAttribute.Text is not null)
-                        enumText = enumNameAttribute.Text;
-                }
-                enumFieldInfos[i] = new EnumFieldInfo(field.Name, enumText, enumValue);
+                if (attribute is EnumName enumNameAttribute && enumNameAttribute.Text is not null)
+                    enumText = enumNameAttribute.Text;
             }
-            if (!TypeLookup.GetCoreEnumType(Enum.GetUnderlyingType(type), out var underlyingType))
-                throw new NotImplementedException("Should not happen");
+            enumFieldInfos[i] = new EnumFieldInfo(field.Name, enumText, enumValue);
+        }
+        if (!TypeLookup.GetCoreEnumType(Enum.GetUnderlyingType(type), out var underlyingType))
+            throw new NotImplementedException("Should not happen");
 
-            var hasFlagsAttribute = type.GetCustomAttributes(true).Any(x => x is FlagsAttribute);
+        var hasFlagsAttribute = type.GetCustomAttributes(true).Any(x => x is FlagsAttribute);
 
-            object creator() => EnumName.CreateEnum(type);
-            object bitOr(object value1, object value2) => EnumName.BitOr(type, (CoreEnumType)underlyingType, value1, value2);
-            var enumInfo = new EnumInfo((CoreEnumType)underlyingType, hasFlagsAttribute, enumFieldInfos, creator, bitOr);
-            return enumInfo;
-        }));
+        object creator() => EnumName.CreateEnum(type);
+        object bitOr(object value1, object value2) => EnumName.BitOr(type, (CoreEnumType)underlyingType, value1, value2);
+        var enumInfo = new EnumInfo((CoreEnumType)underlyingType, hasFlagsAttribute, enumFieldInfos, creator, bitOr);
+        return enumInfo;
     }
 
     internal static void Register(Type type, CoreEnumType underlyingType, bool hasFlagsAttribute, EnumFieldInfo[] fields, Func<object> creator, Func<object, object, object> bitOr)

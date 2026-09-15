@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using Zerra.Collections;
@@ -174,6 +175,7 @@ namespace Zerra.Repository
         /// <param name="models">The models whose relations should be populated.</param>
         /// <param name="graph">The graph specifying which members to populate.</param>
         /// <returns>The models with related properties populated.</returns>
+        [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "Only interface members reach MakeArrayType, models are reference types so the array code is shared.")]
         public IReadOnlyCollection<TModel> OnGetWithRelations(IReadOnlyCollection<TModel> models, Graph? graph)
         {
             var returnModels = models;
@@ -308,10 +310,7 @@ namespace Zerra.Repository
                             }
                             else
                             {
-                                //only interface members reach MakeArrayType, models are reference types so the array code is shared
-#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
                                 var arrayType = modelPropertyInfo.Type.IsArray ? modelPropertyInfo.Type : relatedType.MakeArrayType();
-#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
                                 var matches = new List<object>();
                                 foreach (var model in returnModels)
                                 {
@@ -343,6 +342,7 @@ namespace Zerra.Repository
         /// <param name="models">The models whose relations should be populated.</param>
         /// <param name="graph">The graph specifying which members to populate.</param>
         /// <returns>A task representing the asynchronous operation, containing the models with related properties populated.</returns>
+        [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "Only interface members reach MakeArrayType, models are reference types so the array code is shared.")]
         public async Task<IReadOnlyCollection<TModel>> OnGetWithRelationsAsync(IReadOnlyCollection<TModel> models, Graph? graph)
         {
             var returnModels = models;
@@ -477,10 +477,7 @@ namespace Zerra.Repository
                             }
                             else
                             {
-                                //only interface members reach MakeArrayType, models are reference types so the array code is shared
-#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
                                 var arrayType = modelPropertyInfo.Type.IsArray ? modelPropertyInfo.Type : relatedType.MakeArrayType();
-#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
                                 var matches = new List<object>();
                                 foreach (var model in returnModels)
                                 {

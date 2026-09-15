@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Zerra.Reflection;
@@ -955,6 +956,7 @@ namespace Zerra.Repository
             var lambda = (LambdaExpression)exp;
             return lambda.Compile().DynamicInvoke();
         }
+        [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "Falls back to InvalidOperationException at runtime when dynamic code is unsupported.")]
         private static object? EvaluateInvoke(Expression exp)
         {
             if (exp.NodeType == ExpressionType.Call && exp.Type.Name == "ReadOnlySpan`1" || exp.Type.Name == "Span`1")
@@ -969,9 +971,7 @@ namespace Zerra.Repository
 
             try
             {
-#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
                 var value = Expression.Lambda(exp).Compile().DynamicInvoke();
-#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
                 return value;
             }
             catch (Exception ex)

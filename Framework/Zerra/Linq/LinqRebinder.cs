@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
@@ -52,6 +53,7 @@ namespace Zerra.Linq
             return result;
         }
 
+        [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "Rebinding an already-compiled expression tree, only reached when the caller's own expression tree required dynamic code.")]
         private static Expression Rebind(Expression exp, RebinderContext context)
         {
             if (context.Current is not null && context.Replacement is not null && exp == context.Current)

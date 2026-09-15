@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Zerra.Repository.Reflection;
 using Zerra.Reflection;
@@ -338,6 +339,7 @@ namespace Zerra.Repository.Memory
         {
             MapRelated(model, modelDetail, isDelete, new Stack<object>());
         }
+        [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "Only interface members reach MakeArrayType, models are reference types so the array code is shared.")]
         private static void MapRelated(object model, ModelDetail modelDetail, bool isDelete, Stack<object> stack)
         {
             foreach (var member in modelDetail.Members)
@@ -363,10 +365,7 @@ namespace Zerra.Repository.Memory
                             else
                             {
                                 var matches = relatedEnumerable.ToArray();
-                                //only interface members reach MakeArrayType, models are reference types so the array code is shared
-#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
                                 var array = Array.CreateInstanceFromArrayType(member.Type.IsArray ? member.Type : member.ActualType.MakeArrayType(), matches.Length);
-#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
                                 for (var i = 0; i < matches.Length; i++)
                                     array.SetValue(matches[i], i);
                                 member.SetterBoxed(model, array);

@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.Reflection;
@@ -68,6 +69,7 @@ namespace Zerra.Serialization.Json.Converters
             creators[type] = converter;
         }
 
+        [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "We don't necessarily know that this will fail with AOT, so we let it fail at runtime.")]
         internal static Func<JsonConverter> GenerateJsonConverterCreator(TypeDetail typeDetail)
         {
             //if (!RuntimeFeature.IsDynamicCodeSupported)
@@ -80,10 +82,7 @@ namespace Zerra.Serialization.Json.Converters
 
             var findCreatorMethodDefinition = typeof(JsonConverterFactory).GetMethod(nameof(FindCreator), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
 
-            //We don't necessarily know that this will fail with AOT, so we will suppress the warning here and let it fail at runtime.
-#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
             var findCreatorMethod = findCreatorMethodDefinition.MakeGenericMethod(type, enumerableType, dictionaryKeyType, dictionaryValueType);
-#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
 
             var creator = (Func<JsonConverter>)findCreatorMethod.Invoke(null, [typeDetail])!;
             return creator;

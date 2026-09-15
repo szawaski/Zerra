@@ -31,6 +31,7 @@ namespace Zerra.Reflection
         /// <exception cref="InvalidOperationException">Thrown when the MemberInfo for the specified name cannot be found.</exception>
         public MemberInfo MemberInfo
         {
+            [UnconditionalSuppressMessage("Trimming", "IL2080:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The source field does not have matching annotations.", Justification = "SourceGeneration explicitly calls typeof().GetMembers() so the compiler can guarantee existence.")]
             get
             {
                 //Expression trees often need MemberInfo.
@@ -39,9 +40,7 @@ namespace Zerra.Reflection
 
                 if (memberInfo == null)
                 {
-#pragma warning disable IL2080 // 'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The source field does not have matching annotations.
                     memberInfo = ParentType.GetMember(Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static).FirstOrDefault();
-#pragma warning restore IL2080 // 'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The source field does not have matching annotations.
                     if (memberInfo == null)
                         throw new InvalidOperationException($"MemberInfo '{Name}' was not found.");
                 }

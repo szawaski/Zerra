@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using Zerra.Linq;
@@ -43,6 +44,8 @@ namespace Zerra.Repository.Linq
         /// <param name="member">The property or field on <typeparamref name="T"/> to target.</param>
         /// <param name="expression">The predicate expression to apply to the member.</param>
         /// <returns>A new expression combining <paramref name="it"/> with the member predicate.</returns>
+        [UnconditionalSuppressMessage("Trimming", "IL2060:Call to 'System.Reflection.MethodInfo.MakeGenericMethod(params Type[])' can not be statically analyzed. It's not possible to guarantee the availability of requirements of the generic method.", Justification = "anyMethod1/anyMethod2 are Enumerable.Any<T>, always available and never trimmed.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "We don't necessarily know that this will fail with AOT, so we let it fail at runtime.")]
         public static Expression<Func<T, bool>> AppendExpressionOnMember<T>(Expression<Func<T, bool>> it, MemberInfo member, LambdaExpression expression)
         {
             PropertyInfo? propertyInfo = null;
