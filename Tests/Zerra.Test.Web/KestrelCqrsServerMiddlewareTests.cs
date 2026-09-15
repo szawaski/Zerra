@@ -38,7 +38,7 @@ namespace Zerra.Test.Web
                 receivedArgument = serializer.Deserialize<int>(arguments[0]);
                 return Task.FromResult(new RemoteQueryCallResponse(42));
             });
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), enc);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), enc, TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -54,7 +54,7 @@ namespace Zerra.Test.Web
         {
             var resultStream = new DisposeSignalStream([1, 2, 3]);
             using var middleware = CreateMiddleware(null, query: (_, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(resultStream)));
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetStream)), null);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetStream)), null, TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -67,7 +67,7 @@ namespace Zerra.Test.Web
         {
             using var middleware = CreateMiddleware(null, query: (_, _, _, _, _, _) =>
                 Task.FromException<RemoteQueryCallResponse>(new InvalidOperationException("query failed")));
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -86,7 +86,7 @@ namespace Zerra.Test.Web
                 handlerInvoked = true;
                 return Task.FromResult(new RemoteQueryCallResponse(42));
             });
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, origin: "allowed.example.com");
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, TestContext.Current.CancellationToken, origin: "allowed.example.com");
 
             await middleware.Invoke(context);
 
@@ -108,7 +108,7 @@ namespace Zerra.Test.Web
                 handlerInvoked = true;
                 return Task.FromResult(new RemoteQueryCallResponse(42));
             });
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, origin: origin);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, TestContext.Current.CancellationToken, origin: origin);
 
             await middleware.Invoke(context);
 
@@ -126,7 +126,7 @@ namespace Zerra.Test.Web
                 command: (command, _, _) => { received = command; return Task.CompletedTask; },
                 commandAwait: (command, _, _) => { received = command; return Task.CompletedTask; });
             //the command bytes come from the configured serializer, not JSON
-            var context = CreateContext(MessageRequest(new TestCommand { Value = 5 }, messageAwait, false), null);
+            var context = CreateContext(MessageRequest(new TestCommand { Value = 5 }, messageAwait, false), null, TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -144,7 +144,7 @@ namespace Zerra.Test.Web
             var enc = encrypt ? encryptor : null;
             using var middleware = CreateMiddleware(enc, commandWithResult: (command, _, _) =>
                 Task.FromResult<object?>(((TestCommandWithResult)command).Value * 2));
-            var context = CreateContext(MessageRequest(new TestCommandWithResult { Value = 21 }, true, true), enc);
+            var context = CreateContext(MessageRequest(new TestCommandWithResult { Value = 21 }, true, true), enc, TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -160,7 +160,7 @@ namespace Zerra.Test.Web
         {
             IEvent? received = null;
             using var middleware = CreateMiddleware(null, @event: (@event, _) => { received = @event; return Task.CompletedTask; });
-            var context = CreateContext(MessageRequest(new TestEvent { Value = 7 }, false, false), null);
+            var context = CreateContext(MessageRequest(new TestEvent { Value = 7 }, false, false), null, TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -176,7 +176,7 @@ namespace Zerra.Test.Web
         public async Task Query_OriginMatchesAllowedOriginOrHost(string allowOrigin, string origin)
         {
             using var middleware = CreateMiddleware(null, allowOrigins: [allowOrigin], query: (_, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(42)));
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, origin: origin);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, TestContext.Current.CancellationToken, origin: origin);
 
             await middleware.Invoke(context);
 
@@ -189,7 +189,7 @@ namespace Zerra.Test.Web
         public async Task Preflight_AllowedOrigin_EchoesOnlyThatOrigin(string origin)
         {
             using var middleware = CreateMiddleware(null, allowOrigins: ["a.example.com", "https://b.example.com"]);
-            var context = CreatePreflightContext(origin);
+            var context = CreatePreflightContext(origin, TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -202,7 +202,7 @@ namespace Zerra.Test.Web
         public async Task Preflight_OriginNotAllowed_HasNoAllowOrigin()
         {
             using var middleware = CreateMiddleware(null, allowOrigins: ["a.example.com", "b.example.com"]);
-            var context = CreatePreflightContext("https://other.example.com");
+            var context = CreatePreflightContext("https://other.example.com", TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -213,7 +213,7 @@ namespace Zerra.Test.Web
         public async Task Preflight_WithoutAllowOrigins_AllowsAll()
         {
             using var middleware = CreateMiddleware(null);
-            var context = CreatePreflightContext("https://other.example.com");
+            var context = CreatePreflightContext("https://other.example.com", TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -238,12 +238,12 @@ namespace Zerra.Test.Web
             var middleware = new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, null, null, settings);
 
             //the first request holds the only slot
-            var first = middleware.Invoke(CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null));
+            var first = middleware.Invoke(CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, TestContext.Current.CancellationToken));
             await firstStarted.Task;
 
             //the second gives up while waiting for it
             using var cts = new CancellationTokenSource();
-            var secondContext = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null);
+            var secondContext = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, TestContext.Current.CancellationToken);
             secondContext.RequestAborted = cts.Token;
             var second = middleware.Invoke(secondContext);
             await Task.Delay(100, TestContext.Current.CancellationToken);
@@ -264,7 +264,7 @@ namespace Zerra.Test.Web
             var nextInvoked = false;
             var settings = CreateSettings("/cqrs", null, null, null, null, null, null);
             using var middleware = new KestrelCqrsServerMiddleware(_ => { nextInvoked = true; return Task.CompletedTask; }, serializer, null, null, settings);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, TestContext.Current.CancellationToken);
             context.Request.Path = "/other";
 
             await middleware.Invoke(context);
@@ -283,7 +283,7 @@ namespace Zerra.Test.Web
             var builder = new ApplicationBuilder(new ServiceCollection().BuildServiceProvider());
             _ = builder.UseKestrelCqrsServer(serializer, enc, null, settings);
             var app = builder.Build();
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), enc);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), enc, TestContext.Current.CancellationToken);
 
             await app(context);
 
@@ -300,7 +300,7 @@ namespace Zerra.Test.Web
             var nextInvoked = false;
             _ = builder.Use(next => context => { nextInvoked = true; return Task.CompletedTask; });
             var app = builder.Build();
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, TestContext.Current.CancellationToken);
             context.Request.Path = "/other";
 
             await app(context);
@@ -357,7 +357,7 @@ namespace Zerra.Test.Web
         };
 
         //what KestrelCqrsClient sends
-        private static DefaultHttpContext CreateContext(CqrsRequestData data, IEncryptor? encryptor, string? origin = null)
+        private static DefaultHttpContext CreateContext(CqrsRequestData data, IEncryptor? encryptor, CancellationToken cancellationToken, string? origin = null)
         {
             var body = new MemoryStream();
             if (encryptor is not null)
@@ -373,6 +373,7 @@ namespace Zerra.Test.Web
             }
 
             var context = new DefaultHttpContext();
+            context.RequestAborted = cancellationToken;
             context.Request.Method = "POST";
             context.Request.ContentType = HttpCommon.ContentTypeBytes;
             context.Request.Headers[HttpCommon.ProviderTypeHeader] = data.ProviderType ?? data.MessageType;
@@ -384,9 +385,10 @@ namespace Zerra.Test.Web
         }
 
         //what a browser sends before a cross origin request
-        private static DefaultHttpContext CreatePreflightContext(string origin)
+        private static DefaultHttpContext CreatePreflightContext(string origin, CancellationToken cancellationToken)
         {
             var context = new DefaultHttpContext();
+            context.RequestAborted = cancellationToken;
             context.Request.Method = "OPTIONS";
             context.Request.Headers.Origin = origin;
             context.Response.Body = new MemoryStream();

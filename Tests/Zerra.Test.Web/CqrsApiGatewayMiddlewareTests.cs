@@ -27,7 +27,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -44,7 +44,7 @@ namespace Zerra.Test.Web
             var resultStream = new DisposeSignalStream([1, 2, 3]);
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(resultStream) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetStream)));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetStream)), TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -57,7 +57,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryException = new InvalidOperationException("query failed") };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -72,7 +72,7 @@ namespace Zerra.Test.Web
             //the error came from a handler in another service, the browser sees the type it was thrown as
             var bus = new MockBus { QueryException = new RemoteServiceException(nameof(InvalidOperationException), "remote failed", "remote-service", null) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -87,7 +87,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryException = new RemoteServiceException(nameof(System.Security.SecurityException), "not yours", "remote-service", null) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -101,7 +101,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, authorizer: new RejectingAuthorizer());
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -121,6 +121,7 @@ namespace Zerra.Test.Web
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, jsonSerializer);
 
             var context = new DefaultHttpContext();
+            context.RequestAborted = TestContext.Current.CancellationToken;
             context.Request.Method = "POST";
             context.Request.ContentType = "application/json; charset=utf-8";
             context.Request.Headers.Accept = "application/jsonnameless; charset=utf-8";
@@ -148,7 +149,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.ContentType = null;
 
             await middleware.Invoke(context);
@@ -162,7 +163,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.ContentType = "application/json";
 
             await middleware.Invoke(context);
@@ -176,7 +177,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Headers.Accept = "application/json";
 
             await middleware.Invoke(context);
@@ -190,7 +191,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Headers.Origin = "https://anywhere.example";
 
             await middleware.Invoke(context);
@@ -204,7 +205,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["https://app.example"]);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Headers.Origin = "https://app.example";
 
             await middleware.Invoke(context);
@@ -220,7 +221,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["app.example"]);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Headers.Origin = "https://APP.example:8443";
 
             await middleware.Invoke(context);
@@ -234,7 +235,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["https://app.example"]);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Headers.Origin = "https://evil.example";
 
             await middleware.Invoke(context);
@@ -250,7 +251,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["https://app.example"]);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -265,7 +266,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["https://app.example", "gateway.example"]);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Headers.Origin = "gateway.example";
 
             await middleware.Invoke(context);
@@ -281,12 +282,14 @@ namespace Zerra.Test.Web
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["https://app.example"]);
 
             var allowed = new DefaultHttpContext();
+            allowed.RequestAborted = TestContext.Current.CancellationToken;
             allowed.Request.Method = "OPTIONS";
             allowed.Request.Headers.Origin = "https://app.example";
             await middleware.Invoke(allowed);
             Assert.Equal("https://app.example", allowed.Response.Headers.AccessControlAllowOrigin.ToString());
 
             var disallowed = new DefaultHttpContext();
+            disallowed.RequestAborted = TestContext.Current.CancellationToken;
             disallowed.Request.Method = "OPTIONS";
             disallowed.Request.Headers.Origin = "https://evil.example";
             await middleware.Invoke(disallowed);
@@ -298,7 +301,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, allowOrigins: ["*"]);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Headers.Origin = "https://anywhere.example";
 
             await middleware.Invoke(context);
@@ -314,7 +317,7 @@ namespace Zerra.Test.Web
             var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).BuildServiceProvider());
             _ = builder.UseCqrsApiGateway("/api", ["https://app.example"]);
             var app = builder.Build();
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Path = "/api";
             context.Request.Headers.Origin = "https://evil.example";
 
@@ -330,7 +333,7 @@ namespace Zerra.Test.Web
             var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).BuildServiceProvider());
             _ = builder.UseCqrsApiGateway(null, ["https://app.example"]);
             var app = builder.Build();
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Path = "/any/path";
             context.Request.Headers.Origin = "https://app.example";
 
@@ -348,7 +351,7 @@ namespace Zerra.Test.Web
             var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).BuildServiceProvider());
             _ = builder.UseCqrsApiGateway(null);
             var app = builder.Build();
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Path = "/any/path";
 
             await app(context);
@@ -366,7 +369,7 @@ namespace Zerra.Test.Web
             var nextInvoked = false;
             _ = builder.Use(next => context => { nextInvoked = true; return Task.CompletedTask; });
             var app = builder.Build();
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21));
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Path = "/other";
 
             await app(context);
@@ -384,9 +387,10 @@ namespace Zerra.Test.Web
         };
 
         //what ApiClient sends
-        private static DefaultHttpContext CreateContext(ApiRequestData data)
+        private static DefaultHttpContext CreateContext(ApiRequestData data, CancellationToken cancellationToken)
         {
             var context = new DefaultHttpContext();
+            context.RequestAborted = cancellationToken;
             context.Request.Method = "POST";
             context.Request.ContentType = HttpCommon.ContentTypeBytes;
             context.Request.Body = new MemoryStream(serializer.SerializeBytes(data));

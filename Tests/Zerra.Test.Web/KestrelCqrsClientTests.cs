@@ -51,7 +51,7 @@ namespace Zerra.Test.Web
             using var client = CreateClient(server, null);
 
             for (var i = 0; i < 3; i++)
-                Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source)));
+                Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken));
         }
 
         [Theory(Timeout = timeout)]
@@ -77,7 +77,7 @@ namespace Zerra.Test.Web
             using var server = new FakeServer(null, _ => new FakeResponse(200, [1, 2, 3, 4, 5]));
             using var client = CreateClient(server, null);
 
-            using var stream = await Task.Run(() => ((IQueryClient)client).Call<Stream>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream), [], [], source));
+            using var stream = await Task.Run(() => ((IQueryClient)client).Call<Stream>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream), [], [], source), TestContext.Current.CancellationToken);
             using var ms = new MemoryStream();
             stream.CopyTo(ms);
 
@@ -129,7 +129,7 @@ namespace Zerra.Test.Web
             using var client = CreateClient(server, null);
 
             var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => Task.Run(() =>
-                ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source)));
+                ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken));
 
             Assert.Contains("401 Unauthorized", exception.Message);
             Assert.EndsWith($"for {nameof(ITestQueryHandler)}.{nameof(ITestQueryHandler.GetThings)}", exception.Message);

@@ -50,14 +50,14 @@ namespace Zerra.Test.CQRS.Network
                 return Task.FromResult(new RemoteQueryCallResponse(receivedArgument * 2));
             });
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), enc);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), enc, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.False(header.IsError);
             Assert.Equal(serializer.ContentType, header.ContentType);
-            Assert.Equal(42, await connection.ReadBodyAsync<int>(header, enc));
+            Assert.Equal(42, await connection.ReadBodyAsync<int>(header, enc, TestContext.Current.CancellationToken));
 
             Assert.Equal(typeof(ITestQueryHandler), receivedType);
             Assert.Equal(nameof(ITestQueryHandler.GetThings), receivedMethod);
@@ -74,13 +74,13 @@ namespace Zerra.Test.CQRS.Network
             using var server = StartQueryServer(out var port, enc, (_, _, _, _, _, _) =>
                 Task.FromResult(new RemoteQueryCallResponse(new MemoryStream([1, 2, 3, 4, 5]))));
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream)), enc);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream)), enc, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.False(header.IsError);
-            Assert.Equal([1, 2, 3, 4, 5], await connection.ReadBodyBytesAsync(header, enc));
+            Assert.Equal([1, 2, 3, 4, 5], await connection.ReadBodyBytesAsync(header, enc, TestContext.Current.CancellationToken));
         }
 
         [Fact(Timeout = timeout)]
@@ -90,12 +90,12 @@ namespace Zerra.Test.CQRS.Network
             using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
                 Task.FromResult(new RemoteQueryCallResponse(resultStream)));
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream)), null);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream)), null, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
-            Assert.Equal([1, 2, 3], await connection.ReadBodyBytesAsync(header, null));
+            Assert.Equal([1, 2, 3], await connection.ReadBodyBytesAsync(header, null, TestContext.Current.CancellationToken));
             await resultStream.Disposed.Task; //the handler's stream is released once it's sent, such as a file handle
         }
 
@@ -106,10 +106,10 @@ namespace Zerra.Test.CQRS.Network
                 Task.FromResult(new RemoteQueryCallResponse(1)));
 
             //without Content-Length or chunked the body is empty, reading it as chunked would wait for data that never comes
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendRawAsync($"POST / HTTP/1.1\r\nContent-Type: {HttpCommon.ContentTypeBytes}\r\nHost: 127.0.0.1\r\n\r\n");
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendRawAsync($"POST / HTTP/1.1\r\nContent-Type: {HttpCommon.ContentTypeBytes}\r\nHost: 127.0.0.1\r\n\r\n", TestContext.Current.CancellationToken);
 
-            Assert.Equal("", await connection.ReadRawAsync()); //the empty request is rejected
+            Assert.Equal("", await connection.ReadRawAsync(TestContext.Current.CancellationToken)); //the empty request is rejected
         }
 
         [Theory(Timeout = timeout)]
@@ -121,13 +121,13 @@ namespace Zerra.Test.CQRS.Network
             using var server = StartQueryServer(out var port, enc, (_, _, _, _, _, _) =>
                 Task.FromException<RemoteQueryCallResponse>(new InvalidOperationException("query failed")));
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), enc);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), enc, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.True(header.IsError);
-            var exception = await connection.ReadErrorAsync(header, enc);
+            var exception = await connection.ReadErrorAsync(header, enc, TestContext.Current.CancellationToken);
             Assert.Equal("query failed", exception.Message);
             Assert.Equal(nameof(InvalidOperationException), exception.ErrorType);
         }
@@ -145,10 +145,10 @@ namespace Zerra.Test.CQRS.Network
             var request = QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21);
             request.Claims = [["name", "tester"]];
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(request, null);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(request, null, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.False(header.IsError);
             var claimsPrincipal = Assert.IsType<ClaimsPrincipal>(principal);
@@ -165,23 +165,23 @@ namespace Zerra.Test.CQRS.Network
                 return Task.FromResult(new RemoteQueryCallResponse(1));
             });
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(QueryRequest(typeof(IOtherQueryHandler), nameof(IOtherQueryHandler.GetOther)), null);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(QueryRequest(typeof(IOtherQueryHandler), nameof(IOtherQueryHandler.GetOther)), null, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.True(header.IsError);
-            var exception = await connection.ReadErrorAsync(header, null);
+            var exception = await connection.ReadErrorAsync(header, null, TestContext.Current.CancellationToken);
             Assert.StartsWith("Unhandled Provider Type", exception.Message);
             Assert.False(handlerInvoked);
 
             //the request was fully read so the connection is still usable
             handlerInvoked = false;
-            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null);
-            header = await connection.ReadHeaderAsync();
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null, cancellationToken: TestContext.Current.CancellationToken);
+            header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.False(header.IsError);
-            Assert.Equal(1, await connection.ReadBodyAsync<int>(header, null));
+            Assert.Equal(1, await connection.ReadBodyAsync<int>(header, null, TestContext.Current.CancellationToken));
             Assert.True(handlerInvoked);
         }
 
@@ -195,14 +195,14 @@ namespace Zerra.Test.CQRS.Network
                 return Task.FromResult(new RemoteQueryCallResponse(1));
             });
 
-            await using var connection = await TestConnection.ConnectAsync(port);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
             try
             {
-                await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null, ContentType.Json);
+                await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null, ContentType.Json, cancellationToken: TestContext.Current.CancellationToken);
             }
             catch (IOException) { } //server may reset the connection before the body is sent
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.True(header is null || header.IsError);
             Assert.False(handlerInvoked);
         }
@@ -214,11 +214,11 @@ namespace Zerra.Test.CQRS.Network
             using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
                 Task.FromResult(new RemoteQueryCallResponse(1)), authorizer);
 
-            await using var connection = await TestConnection.ConnectAsync(port);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
             await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null,
-                authHeaders: new() { ["Authorization"] = ["Bearer token"] });
+                authHeaders: new() { ["Authorization"] = ["Bearer token"] }, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.False(header.IsError);
             Assert.NotNull(authorizer.ReceivedHeaders);
@@ -236,13 +236,13 @@ namespace Zerra.Test.CQRS.Network
                 return Task.FromResult(new RemoteQueryCallResponse(1));
             }, authorizer);
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.True(header.IsError);
-            var exception = await connection.ReadErrorAsync(header, null);
+            var exception = await connection.ReadErrorAsync(header, null, TestContext.Current.CancellationToken);
             Assert.Equal(nameof(UnauthorizedAccessException), exception.ErrorType);
             Assert.False(handlerInvoked);
         }
@@ -254,10 +254,10 @@ namespace Zerra.Test.CQRS.Network
             using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
                 Task.FromResult(new RemoteQueryCallResponse(1)), allowOrigins: ["127.0.0.1"]);
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.False(header.IsError);
         }
@@ -271,10 +271,10 @@ namespace Zerra.Test.CQRS.Network
             using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
                 Task.FromResult(new RemoteQueryCallResponse(1)), allowOrigins: [allowOrigin]);
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null, origin: origin);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null, origin: origin, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.False(header.IsError);
         }
@@ -289,11 +289,11 @@ namespace Zerra.Test.CQRS.Network
                 return Task.FromResult(new RemoteQueryCallResponse(1));
             }, allowOrigins: ["allowed.example.com"]);
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null, cancellationToken: TestContext.Current.CancellationToken);
 
             //an empty 401 like Kestrel so the client reports the status
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.True(header.IsError);
             Assert.Equal("401 Unauthorized", header.ErrorStatus);
@@ -301,11 +301,11 @@ namespace Zerra.Test.CQRS.Network
             Assert.False(handlerInvoked);
 
             //the body was read so the connection is still usable
-            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null, origin: "https://allowed.example.com");
-            header = await connection.ReadHeaderAsync();
+            await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21), null, origin: "https://allowed.example.com", cancellationToken: TestContext.Current.CancellationToken);
+            header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.False(header.IsError);
-            Assert.Equal(1, await connection.ReadBodyAsync<int>(header, null));
+            Assert.Equal(1, await connection.ReadBodyAsync<int>(header, null, TestContext.Current.CancellationToken));
             Assert.True(handlerInvoked);
         }
 
@@ -315,15 +315,15 @@ namespace Zerra.Test.CQRS.Network
             using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
                 Task.FromResult(new RemoteQueryCallResponse(1)), allowOrigins: ["allowed.example.com"]);
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendRawAsync("OPTIONS / HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: https://allowed.example.com\r\n\r\n");
-            var allowed = await connection.ReadRawAsync();
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendRawAsync("OPTIONS / HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: https://allowed.example.com\r\n\r\n", TestContext.Current.CancellationToken);
+            var allowed = await connection.ReadRawAsync(TestContext.Current.CancellationToken);
             Assert.StartsWith("HTTP/1.1 200 OK\r\n", allowed);
             Assert.Contains("Access-Control-Allow-Origin: https://allowed.example.com\r\n", allowed);
             Assert.Contains("Vary: Origin\r\n", allowed);
 
-            await connection.SendRawAsync("OPTIONS / HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: https://evil.example.com\r\n\r\n");
-            var disallowed = await connection.ReadRawAsync();
+            await connection.SendRawAsync("OPTIONS / HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: https://evil.example.com\r\n\r\n", TestContext.Current.CancellationToken);
+            var disallowed = await connection.ReadRawAsync(TestContext.Current.CancellationToken);
             Assert.StartsWith("HTTP/1.1 200 OK\r\n", disallowed);
             Assert.DoesNotContain("Access-Control-Allow-Origin", disallowed);
         }
@@ -334,13 +334,13 @@ namespace Zerra.Test.CQRS.Network
             using var server = StartQueryServer(out var port, null, (_, _, arguments, _, _, _) =>
                 Task.FromResult(new RemoteQueryCallResponse(serializer.Deserialize<int>(arguments[0]) * 2)));
 
-            await using var connection = await TestConnection.ConnectAsync(port);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
             for (var i = 1; i <= 3; i++)
             {
-                await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), i), null);
-                var header = await connection.ReadHeaderAsync();
+                await connection.SendAsync(QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), i), null, cancellationToken: TestContext.Current.CancellationToken);
+                var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
                 Assert.NotNull(header);
-                Assert.Equal(i * 2, await connection.ReadBodyAsync<int>(header, null));
+                Assert.Equal(i * 2, await connection.ReadBodyAsync<int>(header, null, TestContext.Current.CancellationToken));
             }
         }
 
@@ -350,10 +350,10 @@ namespace Zerra.Test.CQRS.Network
             using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
                 Task.FromResult(new RemoteQueryCallResponse(1)));
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendRawAsync("OPTIONS / HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: http://example.com\r\n\r\n");
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendRawAsync("OPTIONS / HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: http://example.com\r\n\r\n", TestContext.Current.CancellationToken);
 
-            var response = await connection.ReadRawAsync();
+            var response = await connection.ReadRawAsync(TestContext.Current.CancellationToken);
             Assert.StartsWith("HTTP/1.1 200 OK\r\n", response);
             Assert.Contains("Access-Control-Allow-Origin: http://example.com\r\n", response);
             Assert.EndsWith("\r\n\r\n", response);
@@ -369,10 +369,10 @@ namespace Zerra.Test.CQRS.Network
                 return Task.CompletedTask;
             });
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(MessageRequest(new TestCommand { Value = 5 }, false, false), null);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(MessageRequest(new TestCommand { Value = 5 }, false, false), null, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.False(header.IsError);
             Assert.Equal(0, header.ContentLength); //no body so it must not claim a chunked one
@@ -390,10 +390,10 @@ namespace Zerra.Test.CQRS.Network
                 handled = true;
             });
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(MessageRequest(new TestCommand { Value = 5 }, true, false), null);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(MessageRequest(new TestCommand { Value = 5 }, true, false), null, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.False(header.IsError);
             Assert.True(handled);
@@ -408,13 +408,13 @@ namespace Zerra.Test.CQRS.Network
             using var server = StartMessageServer(out var port, enc, commandWithResult: (command, _, _) =>
                 Task.FromResult<object?>(((TestCommandWithResult)command).Value * 2));
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(MessageRequest(new TestCommandWithResult { Value = 21 }, true, true), enc);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(MessageRequest(new TestCommandWithResult { Value = 21 }, true, true), enc, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.False(header.IsError);
-            Assert.Equal(42, await connection.ReadBodyAsync<int>(header, enc));
+            Assert.Equal(42, await connection.ReadBodyAsync<int>(header, enc, TestContext.Current.CancellationToken));
         }
 
         [Theory(Timeout = timeout)]
@@ -426,13 +426,13 @@ namespace Zerra.Test.CQRS.Network
             using var server = StartMessageServer(out var port, enc, commandAwait: (_, _, _) =>
                 Task.FromException(new InvalidOperationException("command failed")));
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(MessageRequest(new TestCommand { Value = 5 }, true, false), enc);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(MessageRequest(new TestCommand { Value = 5 }, true, false), enc, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.True(header.IsError);
-            var exception = await connection.ReadErrorAsync(header, enc);
+            var exception = await connection.ReadErrorAsync(header, enc, TestContext.Current.CancellationToken);
             Assert.Equal("command failed", exception.Message);
         }
 
@@ -446,10 +446,10 @@ namespace Zerra.Test.CQRS.Network
                 return Task.CompletedTask;
             });
 
-            await using var connection = await TestConnection.ConnectAsync(port);
-            await connection.SendAsync(MessageRequest(new TestEvent { Value = 7 }, false, false), null);
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(MessageRequest(new TestEvent { Value = 7 }, false, false), null, cancellationToken: TestContext.Current.CancellationToken);
 
-            var header = await connection.ReadHeaderAsync();
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.NotNull(header);
             Assert.False(header.IsError);
             Assert.Equal(0, header.ContentLength);
@@ -583,14 +583,14 @@ namespace Zerra.Test.CQRS.Network
                 this.serviceUri = new Uri($"http://127.0.0.1:{port}");
             }
 
-            public static async Task<TestConnection> ConnectAsync(int port)
+            public static async Task<TestConnection> ConnectAsync(int port, CancellationToken cancellationToken = default)
             {
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-                await socket.ConnectAsync(IPAddress.Loopback, port);
+                await socket.ConnectAsync(IPAddress.Loopback, port, cancellationToken);
                 return new TestConnection(socket, port);
             }
 
-            public async Task SendAsync(CqrsRequestData data, IEncryptor? encryptor, ContentType? contentType = null, Dictionary<string, List<string?>>? authHeaders = null, string? origin = null)
+            public async Task SendAsync(CqrsRequestData data, IEncryptor? encryptor, ContentType? contentType = null, Dictionary<string, List<string?>>? authHeaders = null, string? origin = null, CancellationToken cancellationToken = default)
             {
                 var buffer = new byte[HttpCommon.BufferLength];
                 var headerLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.ProviderType ?? data.MessageType, contentType ?? serializer.ContentType, authHeaders);
@@ -601,38 +601,38 @@ namespace Zerra.Test.CQRS.Network
                     buffer = Encoding.UTF8.GetBytes(header);
                     headerLength = buffer.Length;
                 }
-                await stream.WriteAsync(buffer.AsMemory(0, headerLength));
+                await stream.WriteAsync(buffer.AsMemory(0, headerLength), cancellationToken);
 
                 var body = new HttpProtocolBodyStream(null, stream, null, true, true);
                 if (encryptor is not null)
                 {
                     var cryptoStream = encryptor.Encrypt(body, true);
-                    await serializer.SerializeAsync(cryptoStream, data, default);
+                    await serializer.SerializeAsync(cryptoStream, data, cancellationToken);
                     await cryptoStream.FlushFinalBlockAsync();
                     await cryptoStream.DisposeAsync();
                 }
                 else
                 {
-                    await serializer.SerializeAsync(body, data, default);
-                    await body.FlushAsync();
+                    await serializer.SerializeAsync(body, data, cancellationToken);
+                    await body.FlushAsync(cancellationToken);
                     await body.DisposeAsync();
                 }
             }
 
-            public async Task SendRawAsync(string request)
+            public async Task SendRawAsync(string request, CancellationToken cancellationToken = default)
             {
-                await stream.WriteAsync(Encoding.UTF8.GetBytes(request));
+                await stream.WriteAsync(Encoding.UTF8.GetBytes(request), cancellationToken);
             }
 
-            public async Task<string> ReadRawAsync()
+            public async Task<string> ReadRawAsync(CancellationToken cancellationToken = default)
             {
                 var buffer = new byte[HttpCommon.BufferLength];
-                var read = await stream.ReadAsync(buffer);
+                var read = await stream.ReadAsync(buffer, cancellationToken);
                 return Encoding.UTF8.GetString(buffer, 0, read);
             }
 
             //returns null when the server closes the connection without responding
-            public async Task<HttpRequestHeader?> ReadHeaderAsync()
+            public async Task<HttpRequestHeader?> ReadHeaderAsync(CancellationToken cancellationToken = default)
             {
                 var buffer = new byte[HttpCommon.BufferLength];
                 var position = 0;
@@ -643,7 +643,7 @@ namespace Zerra.Test.CQRS.Network
                     {
                         if (position < 0)
                             position = 0;
-                        var read = await stream.ReadAsync(buffer.AsMemory(length));
+                        var read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
                         if (read == 0)
                             return null;
                         length += read;
@@ -657,24 +657,24 @@ namespace Zerra.Test.CQRS.Network
                 return HttpCommon.ReadHeader(buffer.AsMemory(0, length), position);
             }
 
-            public async Task<T?> ReadBodyAsync<T>(HttpRequestHeader header, IEncryptor? encryptor)
+            public async Task<T?> ReadBodyAsync<T>(HttpRequestHeader header, IEncryptor? encryptor, CancellationToken cancellationToken = default)
             {
                 await using var body = OpenBody(header, encryptor);
-                return await serializer.DeserializeAsync<T>(body, default);
+                return await serializer.DeserializeAsync<T>(body, cancellationToken);
             }
 
-            public async Task<byte[]> ReadBodyBytesAsync(HttpRequestHeader header, IEncryptor? encryptor)
+            public async Task<byte[]> ReadBodyBytesAsync(HttpRequestHeader header, IEncryptor? encryptor, CancellationToken cancellationToken = default)
             {
                 await using var body = OpenBody(header, encryptor);
                 using var ms = new MemoryStream();
-                await body.CopyToAsync(ms);
+                await body.CopyToAsync(ms, cancellationToken);
                 return ms.ToArray();
             }
 
-            public async Task<RemoteServiceException> ReadErrorAsync(HttpRequestHeader header, IEncryptor? encryptor)
+            public async Task<RemoteServiceException> ReadErrorAsync(HttpRequestHeader header, IEncryptor? encryptor, CancellationToken cancellationToken = default)
             {
                 await using var body = OpenBody(header, encryptor);
-                return await ExceptionSerializer.DeserializeAsync("test", serializer, body, default);
+                return await ExceptionSerializer.DeserializeAsync("test", serializer, body, cancellationToken);
             }
 
             private Stream OpenBody(HttpRequestHeader header, IEncryptor? encryptor)

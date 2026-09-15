@@ -52,7 +52,7 @@ namespace Zerra.Test.CQRS.Network
             using var client = CreateClient(server);
 
             for (var i = 0; i < 3; i++)
-                Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source)));
+                Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken));
         }
 
         [Fact(Timeout = timeout)]
