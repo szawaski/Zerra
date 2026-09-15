@@ -155,9 +155,11 @@ namespace Zerra.Repository.MariaDb
                                 break;
                             case CoreType.String:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, string>)columnProperty.Setter)(model, (string)value);
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetString(i);
+                                        ((Action<object, string>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.BooleanNullable:
@@ -169,100 +171,128 @@ namespace Zerra.Repository.MariaDb
                                 break;
                             case CoreType.ByteNullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, byte?>)columnProperty.Setter)(model, (byte?)(sbyte)value);
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetByte(i);
+                                        ((Action<object, byte?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.Int16Nullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, short?>)columnProperty.Setter)(model, (short?)value);
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetInt16(i);
+                                        ((Action<object, short?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.Int32Nullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, int?>)columnProperty.Setter)(model, (int?)value);
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetInt32(i);
+                                        ((Action<object, int?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.Int64Nullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, long?>)columnProperty.Setter)(model, (long?)value);
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetInt64(i);
+                                        ((Action<object, long?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.SingleNullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, float?>)columnProperty.Setter)(model, (float?)value);
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetFloat(i);
+                                        ((Action<object, float?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.DoubleNullable:
                                 {
-                                    var value = reader.GetValue(i);  //GetSqlDouble doesn't handle SqlMoney
-                                    if (value != DBNull.Value)
-                                        ((Action<object, double?>)columnProperty.Setter)(model, (double?)value);
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetDouble(i);
+                                        ((Action<object, double?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.DecimalNullable:
                                 {
-                                    var value = reader.GetValue(i);  //GetSqlDecimal doesn't handle SqlMoney
-                                    if (value != DBNull.Value)
-                                        ((Action<object, decimal?>)columnProperty.Setter)(model, (decimal?)value);
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetDecimal(i);
+                                        ((Action<object, decimal?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.CharNullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, char?>)columnProperty.Setter)(model, (char?)((string)value)[0]);
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetString(i);
+                                        ((Action<object, char?>)columnProperty.Setter)(model, value[0]);
+                                    }
                                 }
                                 break;
                             case CoreType.DateTimeNullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, DateTime?>)columnProperty.Setter)(model, (DateTime?)new DateTime(((DateTime)value).Ticks, DateTimeKind.Utc));
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetDateTime(i);
+                                        ((Action<object, DateTime?>)columnProperty.Setter)(model, new DateTime(value.Ticks, DateTimeKind.Utc));
+                                    }
                                 }
                                 break;
                             case CoreType.DateTimeOffsetNullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, DateTimeOffset?>)columnProperty.Setter)(model, (DateTimeOffset?)new DateTimeOffset(new DateTime(((DateTime)value).Ticks, DateTimeKind.Utc)));
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetDateTime(i);
+                                        ((Action<object, DateTimeOffset?>)columnProperty.Setter)(model, new DateTimeOffset(new DateTime(value.Ticks, DateTimeKind.Utc)));
+                                    }
                                 }
                                 break;
                             case CoreType.TimeSpanNullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, TimeSpan?>)columnProperty.Setter)(model, (TimeSpan?)value);
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = ((MySqlDataReader)reader).GetTimeSpan(i);
+                                        ((Action<object, TimeSpan?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.DateOnlyNullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, DateOnly?>)columnProperty.Setter)(model, (DateOnly?)DateOnly.FromDateTime((DateTime)value));
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetDateTime(i);
+                                        ((Action<object, DateOnly?>)columnProperty.Setter)(model, DateOnly.FromDateTime(value));
+                                    }
                                 }
                                 break;
                             case CoreType.TimeOnlyNullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, TimeOnly?>)columnProperty.Setter)(model, (TimeOnly?)TimeOnly.FromTimeSpan((TimeSpan)value));
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = ((MySqlDataReader)reader).GetTimeSpan(i);
+                                        ((Action<object, TimeOnly?>)columnProperty.Setter)(model, TimeOnly.FromTimeSpan(value));
+                                    }
                                 }
                                 break;
                             case CoreType.GuidNullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, Guid?>)columnProperty.Setter)(model, (Guid?)value);
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetGuid(i);
+                                        ((Action<object, Guid?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
 
@@ -274,9 +304,8 @@ namespace Zerra.Repository.MariaDb
                     {
                         if (!reader.IsDBNull(i))
                         {
-                            var value = reader.GetValue(i);
-                            if (value != DBNull.Value)
-                                ((Action<object, byte[]>)columnProperty.Setter)(model, (byte[])value);
+                            var value = reader.GetFieldValue<byte[]>(i);
+                            ((Action<object, byte[]>)columnProperty.Setter)(model, value);
                         }
                     }
                     else

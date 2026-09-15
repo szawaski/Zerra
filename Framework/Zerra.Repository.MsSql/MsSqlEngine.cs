@@ -204,16 +204,20 @@ namespace Zerra.Repository.MsSql
                                 break;
                             case CoreType.DoubleNullable:
                                 {
-                                    var value = reader.GetValue(i);  //GetSqlDouble doesn't handle SqlMoney
-                                    if (value != DBNull.Value)
-                                        ((Action<object, double?>)columnProperty.Setter)(model, (double?)value);
+                                    if (!reader.IsDBNull(i))  //GetSqlDouble doesn't handle SqlMoney
+                                    {
+                                        var value = reader.GetDouble(i);
+                                        ((Action<object, double?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.DecimalNullable:
                                 {
-                                    var value = reader.GetValue(i);  //GetSqlDecimal doesn't handle SqlMoney
-                                    if (value != DBNull.Value)
-                                        ((Action<object, decimal?>)columnProperty.Setter)(model, (decimal?)value);
+                                    if (!reader.IsDBNull(i))  //GetSqlDecimal doesn't handle SqlMoney
+                                    {
+                                        var value = reader.GetDecimal(i);
+                                        ((Action<object, decimal?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.CharNullable:
@@ -225,37 +229,47 @@ namespace Zerra.Repository.MsSql
                                 break;
                             case CoreType.DateTimeNullable:
                                 {
-                                    var value = reader.GetValue(i); //GetSqlDateTime doesn't handle null
-                                    if (value != DBNull.Value)
-                                        ((Action<object, DateTime?>)columnProperty.Setter)(model, (DateTime?)new DateTime(((DateTime)value).Ticks, DateTimeKind.Utc));
+                                    if (!reader.IsDBNull(i)) //GetSqlDateTime doesn't handle null
+                                    {
+                                        var value = reader.GetDateTime(i);
+                                        ((Action<object, DateTime?>)columnProperty.Setter)(model, new DateTime(value.Ticks, DateTimeKind.Utc));
+                                    }
                                 }
                                 break;
                             case CoreType.DateTimeOffsetNullable:
                                 {
-                                    var value = reader.GetValue(i); //GetSqlDateTime doesn't handle null
-                                    if (value != DBNull.Value)
-                                        ((Action<object, DateTimeOffset?>)columnProperty.Setter)(model, (DateTimeOffset?)value);
+                                    if (!reader.IsDBNull(i)) //GetSqlDateTime doesn't handle null
+                                    {
+                                        var value = reader.GetDateTimeOffset(i);
+                                        ((Action<object, DateTimeOffset?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.TimeSpanNullable:
                                 {
-                                    var value = reader.GetValue(i); //GetSqlDateTime doesn't handle null
-                                    if (value != DBNull.Value)
-                                        ((Action<object, TimeSpan?>)columnProperty.Setter)(model, (TimeSpan?)value);
+                                    if (!reader.IsDBNull(i)) //GetSqlDateTime doesn't handle null
+                                    {
+                                        var value = reader.GetTimeSpan(i);
+                                        ((Action<object, TimeSpan?>)columnProperty.Setter)(model, value);
+                                    }
                                 }
                                 break;
                             case CoreType.DateOnlyNullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, DateOnly?>)columnProperty.Setter)(model, (DateOnly?)DateOnly.FromDateTime((DateTime)value));
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetDateTime(i);
+                                        ((Action<object, DateOnly?>)columnProperty.Setter)(model, DateOnly.FromDateTime(value));
+                                    }
                                 }
                                 break;
                             case CoreType.TimeOnlyNullable:
                                 {
-                                    var value = reader.GetValue(i);
-                                    if (value != DBNull.Value)
-                                        ((Action<object, TimeOnly?>)columnProperty.Setter)(model, (TimeOnly?)TimeOnly.FromTimeSpan((TimeSpan)value));
+                                    if (!reader.IsDBNull(i))
+                                    {
+                                        var value = reader.GetTimeSpan(i);
+                                        ((Action<object, TimeOnly?>)columnProperty.Setter)(model, TimeOnly.FromTimeSpan(value));
+                                    }
                                 }
                                 break;
                             case CoreType.GuidNullable:
