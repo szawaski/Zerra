@@ -16,26 +16,26 @@ namespace Zerra.Serialization.Json
         /// <summary>
         /// A special feature to write JSON objects as arrays instead of property names. The exact same model is needed to deserialize.
         /// </summary>
-        public bool Nameless { get; set; }
+        public bool Nameless { get; init; }
         /// <summary>
         /// Properties with null values will not be written.
         /// </summary>
-        public bool DoNotWriteNullProperties { get; set; }
+        public bool DoNotWriteNullProperties { get; init; }
         /// <summary>
         /// Properties with default values will not be written.
         /// </summary>
-        public bool DoNotWriteDefaultProperties { get; set; }
+        public bool DoNotWriteDefaultProperties { get; init; }
         /// <summary>
         /// Enums will serialize as their numeric value instead of the name string.
         /// </summary>
-        public bool EnumAsNumber { get; set; }
+        public bool EnumAsNumber { get; init; }
         /// <summary>
         /// When the JSON cannot be converted to the type given an error will be thrown.  Normally it will use the default value.
         /// </summary>
-        public bool ErrorOnTypeMismatch { get; set; }
+        public bool ErrorOnTypeMismatch { get; init; }
         /// <summary>
         /// Object members do not need match the case of the JSON when reading. This performs more slowly.
         /// </summary>
-        public bool IgnoreCase { get; set; }
+        public bool IgnoreCase { get; init; }
     }
 }

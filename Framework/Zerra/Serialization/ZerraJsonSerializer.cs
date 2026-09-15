@@ -29,6 +29,11 @@ namespace Zerra.Serialization
             contentType = options != null && options.Nameless ? ContentType.JsonNameless : ContentType.Json;
         }
 
+        /// <summary>
+        /// Gets the JSON serialization options used by this serializer.
+        /// </summary>
+        public JsonSerializerOptions? Options => options;
+
         /// <inheritdoc />
         public ContentType ContentType => contentType;
 

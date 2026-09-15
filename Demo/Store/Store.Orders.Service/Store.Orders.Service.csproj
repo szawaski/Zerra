@@ -6,7 +6,6 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PublishAot>true</PublishAot>
-        <!-- No InvariantGlobalization here, Microsoft.Data.SqlClient can't connect in that mode -->
     </PropertyGroup>
 
     <ItemGroup>

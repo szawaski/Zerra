@@ -23,6 +23,11 @@ namespace Zerra.Serialization
             this.options = options;
         }
 
+        /// <summary>
+        /// Gets the binary serialization options used by this serializer.
+        /// </summary>
+        public ByteSerializerOptions? Options => options;
+
         /// <inheritdoc />
         public ContentType ContentType => ContentType.Bytes;
 
