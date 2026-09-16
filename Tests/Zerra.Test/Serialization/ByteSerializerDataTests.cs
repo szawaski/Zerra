@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+ï»¿// Copyright ï¿½ KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -762,6 +762,42 @@ namespace Zerra.Test.Serialization
             stream4.Position = 0;
             var result4 = ByteSerializer.Deserialize(stream4, typeof(string));
             AssertHelper.AreEqual(model, result4);
+        }
+
+        [Fact]
+        public void GraphMembers()
+        {
+            var model1 = new Graph<GraphModel>(x => x.Prop1, x => x.Class.Value1);
+            model1.RemoveMember(nameof(GraphModel.Prop2));
+
+            var bytes = ByteSerializer.Serialize(model1);
+            var model2 = ByteSerializer.Deserialize<Graph<GraphModel>>(bytes);
+
+            Assert.NotNull(model2);
+            Assert.Equal(model1, model2);
+            Assert.True(model2.HasMember(nameof(GraphModel.Prop1)));
+            Assert.False(model2.HasMember(nameof(GraphModel.Prop2)));
+            var childGraph = model2.GetChildGraph(nameof(GraphModel.Class));
+            Assert.NotNull(childGraph);
+            Assert.True(childGraph.HasMember(nameof(SimpleModel.Value1)));
+        }
+
+        [Fact]
+        public void GraphAsBaseType()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                UseTypes = true
+            };
+
+            Graph model1 = new Graph<GraphModel>(true, x => x.Prop1);
+
+            var bytes = ByteSerializer.Serialize(model1, options);
+            var model2 = ByteSerializer.Deserialize<Graph>(bytes, options);
+
+            _ = Assert.IsType<Graph<GraphModel>>(model2);
+            Assert.Equal(model1, model2);
+            Assert.True(model2.IncludeAllMembers);
         }
     }
 }

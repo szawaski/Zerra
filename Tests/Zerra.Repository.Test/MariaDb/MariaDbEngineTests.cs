@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+ï»¿// Copyright ï¿½ KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -54,8 +54,8 @@ namespace Zerra.Repository.Test.MariaDb
             CodeFirstGeneration.Generate<MariaDbTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
             RepoTest.AssertSchemaMatchesModels<MariaDbTestSqlDataContext>(modelTypes);
 
-            RepoTest.TestSequence<MariaDbTestSqlDataContext>();
-            await RepoTest.TestSequenceAsync<MariaDbTestSqlDataContext>();
+            RepoTest.TestSequenceTransactStore<MariaDbTestSqlDataContext>();
+            await RepoTest.TestSequenceTransactStoreAsync<MariaDbTestSqlDataContext>();
 
             const string changeColumn = "ALTER TABLE `TestTypes` MODIFY `Int32Thing` bigint NULL";
             const string addColumn = "ALTER TABLE `TestTypes` ADD `DummyToMakeNullable` int NOT NULL";

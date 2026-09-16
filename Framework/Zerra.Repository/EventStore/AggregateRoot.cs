@@ -136,7 +136,11 @@ namespace Zerra.Repository
                 this.LastEventDate = eventData.Date;
                 this.LastEventName = eventData.EventName;
                 if (eventData.Deleted)
+                {
+                    //a terminating event carries no data, there is nothing to apply
                     this.IsDeleted = true;
+                    continue;
+                }
                 var eventModel = EventStoreCommon.Deserialize<IEvent>(eventData.Data.Span);
                 if (eventModel is null)
                     throw new Exception("Failed to deserialize Model");

@@ -1,4 +1,4 @@
-// Copyright � KaKush LLC
+﻿// Copyright � KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -2323,6 +2323,53 @@ namespace Zerra.Test.Serialization
             stream4.Position = 0;
             var result4 = JsonSerializer.Deserialize(stream4, typeof(string));
             AssertHelper.AreEqual(model, result4);
+        }
+
+        [Fact]
+        public void GraphMembers()
+        {
+            var model1 = new Graph<GraphModel>(x => x.Prop1, x => x.Class.Value1);
+            model1.RemoveMember(nameof(GraphModel.Prop2));
+
+            //a graph is written as its signature
+            var json = JsonSerializer.Serialize(model1);
+            Assert.Equal($"\"{model1.Signature}\"", json);
+
+            var model2 = JsonSerializer.Deserialize<Graph<GraphModel>>(json);
+
+            Assert.NotNull(model2);
+            Assert.Equal(model1, model2);
+            Assert.True(model2.HasMember(nameof(GraphModel.Prop1)));
+            Assert.False(model2.HasMember(nameof(GraphModel.Prop2)));
+            var childGraph = model2.GetChildGraph(nameof(GraphModel.Class));
+            Assert.NotNull(childGraph);
+            Assert.True(childGraph.HasMember(nameof(SimpleModel.Value1)));
+        }
+
+        [Fact]
+        public void GraphAllMembers()
+        {
+            var model1 = new Graph(true);
+
+            var json = JsonSerializer.Serialize(model1);
+            Assert.Equal("\"A:\"", json);
+
+            var model2 = JsonSerializer.Deserialize<Graph>(json);
+
+            Assert.NotNull(model2);
+            Assert.Equal(model1, model2);
+            Assert.True(model2.IncludeAllMembers);
+        }
+
+        [Fact]
+        public void GraphNull()
+        {
+            Graph? model1 = null;
+
+            var json = JsonSerializer.Serialize(model1);
+            Assert.Equal("null", json);
+
+            Assert.Null(JsonSerializer.Deserialize<Graph>(json));
         }
     }
 }

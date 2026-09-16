@@ -69,6 +69,8 @@ namespace Zerra.Repository
             this.TemporalOrder = query.TemporalOrder;
             this.TemporalDateFrom = query.TemporalDateFrom;
             this.TemporalDateTo = query.TemporalDateTo;
+            this.TemporalNumberFrom = query.TemporalNumberFrom;
+            this.TemporalNumberTo = query.TemporalNumberTo;
             this.TemporalSkip = query.TemporalSkip;
             this.TemporalTake = query.TemporalTake;
             this.Where = query.Where;

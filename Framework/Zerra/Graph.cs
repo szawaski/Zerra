@@ -104,7 +104,7 @@ namespace Zerra
         public Graph(bool includeAllMembers)
         {
             this.includeAllMembers = includeAllMembers;
-            this.signature = "A";
+            this.signature = includeAllMembers ? "A:" : String.Empty;
         }
         /// <summary>
         /// Initializes a new instance of the <see cref="Graph"/> class with the specified members included.
@@ -233,6 +233,117 @@ namespace Zerra
                     _ = sb.Append("G:").Append(graph.Key).Append(":(");
                     graph.Value.GenerateSignatureBuilder(sb);
                     _ = sb.Append(")");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reads the <see cref="Signature"/> string representation of a graph into a new graph.
+        /// </summary>
+        /// <param name="signature">The signature of a graph.</param>
+        /// <returns>A graph with the members of the signature.</returns>
+        public static Graph ParseSignature(string signature)
+        {
+            var graph = new Graph();
+            ParseSignature(signature, graph);
+            return graph;
+        }
+        /// <summary>
+        /// Reads the <see cref="Signature"/> string representation of a graph into an existing graph, replacing any members it has.
+        /// </summary>
+        /// <param name="signature">The signature of a graph.</param>
+        /// <param name="graph">The graph to read the members into.</param>
+        public static unsafe void ParseSignature(string signature, Graph graph)
+        {
+            if (signature is null)
+                throw new ArgumentNullException(nameof(signature));
+            if (graph is null)
+                throw new ArgumentNullException(nameof(graph));
+
+            graph.includeAllMembers = false;
+            graph.addedMembers = null;
+            graph.removedMembers = null;
+            graph.childGraphs = null;
+
+            if (signature.Length == 0)
+            {
+                graph.signature = String.Empty;
+                return;
+            }
+
+            graph.signature = null;
+
+            fixed (char* pFixed = signature)
+            {
+                var end = pFixed + signature.Length;
+                var p = pFixed;
+                ParseSignature(graph, ref p, end, signature);
+                if (p != end)
+                    throw new FormatException($"Invalid graph signature {signature}");
+            }
+        }
+        //a signature is a run of tokens: A: for all members, P:member for added, R:member for removed, G:member:(tokens) for a child graph
+        //member names cannot contain a colon so a name ends at the colon of the next token, at a closing parenthesis, or at the end
+        private static unsafe void ParseSignature(Graph graph, ref char* p, char* end, string signature)
+        {
+            while (p < end)
+            {
+                if (*p == ')')
+                    return;
+                if (p + 1 >= end || *(p + 1) != ':')
+                    throw new FormatException($"Invalid graph signature {signature}");
+
+                var token = *p;
+                p += 2;
+                switch (token)
+                {
+                    case 'A':
+                        graph.includeAllMembers = true;
+                        break;
+                    case 'P':
+                        {
+                            var start = p;
+                            while (p < end && *p != ':' && *p != ')')
+                                p++;
+                            if (p < end && *p == ':')
+                                p--; //the character before the colon opens the next token
+                            graph.addedMembers ??= new();
+                            _ = graph.addedMembers.Add(new string(start, 0, (int)(p - start)));
+                            break;
+                        }
+                    case 'R':
+                        {
+                            var start = p;
+                            while (p < end && *p != ':' && *p != ')')
+                                p++;
+                            if (p < end && *p == ':')
+                                p--; //the character before the colon opens the next token
+                            graph.removedMembers ??= new();
+                            _ = graph.removedMembers.Add(new string(start, 0, (int)(p - start)));
+                            break;
+                        }
+                    case 'G':
+                        {
+                            var start = p;
+                            while (p < end && *p != ':')
+                                p++;
+                            if (p + 1 >= end || *(p + 1) != '(')
+                                throw new FormatException($"Invalid graph signature {signature}");
+                            var member = new string(start, 0, (int)(p - start));
+                            p += 2;
+
+                            var childGraph = new Graph();
+                            ParseSignature(childGraph, ref p, end, signature);
+                            if (p >= end || *p != ')')
+                                throw new FormatException($"Invalid graph signature {signature}");
+                            p++;
+
+                            graph.childGraphs ??= new();
+                            graph.childGraphs.Add(member, childGraph);
+                            break;
+                        }
+                    default:
+                        throw new FormatException($"Invalid graph signature {signature}");
                 }
             }
         }

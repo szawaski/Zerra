@@ -674,6 +674,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (typeDetail.Type.FullName == "System.Type")
                 return static () => new ByteConverterType();
+            if (typeDetail.Type.FullName == "Zerra.Graph" || (typeDetail.Type.Name == "Graph`1" && typeDetail.Type.Namespace == "Zerra"))
+                return static () => new ByteConverterGraph<TType>();
             if (typeDetail.Type.FullName == "System.Threading.CancellationToken")
                 return static () => new ByteConverterCancellationToken();
             if (typeDetail.IsNullable && typeDetail.InnerType!.FullName == "System.Threading.CancellationToken")

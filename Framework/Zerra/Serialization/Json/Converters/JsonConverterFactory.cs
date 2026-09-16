@@ -197,6 +197,8 @@ namespace Zerra.Serialization.Json.Converters
 
             if (typeDetail.Type.FullName == "System.Type")
                 return static () => new JsonConverterType();
+            if (typeDetail.Type.FullName == "Zerra.Graph" || (typeDetail.Type.Name == "Graph`1" && typeDetail.Type.Namespace == "Zerra"))
+                return static () => new JsonConverterGraph<TType>();
             if (typeDetail.Type.FullName == "System.Threading.CancellationToken")
                 return static () => new JsonConverterCancellationToken();
             if (typeDetail.IsNullable && typeDetail.InnerType!.FullName == "System.Threading.CancellationToken")

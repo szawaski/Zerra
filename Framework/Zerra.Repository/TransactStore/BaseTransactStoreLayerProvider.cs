@@ -66,6 +66,10 @@ namespace Zerra.Repository
                 QueryOperation.Count => Count(query),
                 QueryOperation.Any => Any(query),
                 QueryOperation.EventMany => EventMany(query),
+                QueryOperation.EventFirst => EventFirst(query),
+                QueryOperation.EventSingle => EventSingle(query),
+                QueryOperation.EventCount => EventCount(query),
+                QueryOperation.EventAny => EventAny(query),
                 _ => throw new NotImplementedException(),
             };
             ;
@@ -83,6 +87,10 @@ namespace Zerra.Repository
                 QueryOperation.Count => CountAsync(query),
                 QueryOperation.Any => AnyAsync(query),
                 QueryOperation.EventMany => EventManyAsync(query),
+                QueryOperation.EventFirst => EventFirstAsync(query),
+                QueryOperation.EventSingle => EventSingleAsync(query),
+                QueryOperation.EventCount => EventCountAsync(query),
+                QueryOperation.EventAny => EventAnyAsync(query),
                 _ => throw new NotImplementedException(),
             };
             ;
@@ -112,6 +120,22 @@ namespace Zerra.Repository
         /// <param name="query">The query parameters.</param>
         /// <returns>The matching event models as an object.</returns>
         public abstract object? EventMany(Query query);
+        /// <summary>Executes an event-first query and returns the first matching event model, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The first matching event model, or <see langword="null"/>.</returns>
+        public abstract object? EventFirst(Query query);
+        /// <summary>Executes an event-single query and returns the single matching event model, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The single matching event model, or <see langword="null"/>.</returns>
+        public abstract object? EventSingle(Query query);
+        /// <summary>Executes an event-count query and returns the count of matching event models.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>The count as an object.</returns>
+        public abstract object? EventCount(Query query);
+        /// <summary>Executes an event-any query and returns whether any matching event models exist.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A boolean result as an object.</returns>
+        public abstract object? EventAny(Query query);
 
         /// <summary>Asynchronously executes a many query and returns the matching models.</summary>
         /// <param name="query">The query parameters.</param>
@@ -137,6 +161,22 @@ namespace Zerra.Repository
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing the matching event models.</returns>
         public abstract Task<object?> EventManyAsync(Query query);
+        /// <summary>Asynchronously executes an event-first query and returns the first matching event model, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the first matching event model, or <see langword="null"/>.</returns>
+        public abstract Task<object?> EventFirstAsync(Query query);
+        /// <summary>Asynchronously executes an event-single query and returns the single matching event model, or <see langword="null"/>.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the single matching event model, or <see langword="null"/>.</returns>
+        public abstract Task<object?> EventSingleAsync(Query query);
+        /// <summary>Asynchronously executes an event-count query and returns the count of matching event models.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing the count.</returns>
+        public abstract Task<object?> EventCountAsync(Query query);
+        /// <summary>Asynchronously executes an event-any query and returns whether any matching event models exist.</summary>
+        /// <param name="query">The query parameters.</param>
+        /// <returns>A task containing a boolean result.</returns>
+        public abstract Task<object?> EventAnyAsync(Query query);
 
         /// <summary>Executes a synchronous persist operation (create, update, or delete).</summary>
         /// <param name="persist">The persist operation to execute.</param>

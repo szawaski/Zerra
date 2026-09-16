@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+ï»¿// Copyright ï¿½ KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -54,8 +54,8 @@ namespace Zerra.Repository.Test.MsSql
             CodeFirstGeneration.Generate<MsSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
             RepoTest.AssertSchemaMatchesModels<MsSqlTestSqlDataContext>(modelTypes);
 
-            RepoTest.TestSequence<MsSqlTestSqlDataContext>();
-            await RepoTest.TestSequenceAsync<MsSqlTestSqlDataContext>();
+            RepoTest.TestSequenceTransactStore<MsSqlTestSqlDataContext>();
+            await RepoTest.TestSequenceTransactStoreAsync<MsSqlTestSqlDataContext>();
 
             const string changeColumn = "ALTER TABLE [TestTypes] ALTER COLUMN [Int32Thing] bigint NULL";
             const string addColumn = "ALTER TABLE [TestTypes] ADD [DummyToMakeNullable] int NOT NULL";

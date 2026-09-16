@@ -290,6 +290,62 @@ namespace Zerra.Repository
 
             return eventModels;
         }
+        /// <inheritdoc/>
+        public override sealed object? EventFirst(Query query)
+        {
+            var whereCompressed = CompressWhere(query.Where);
+            var orderCompressed = CompressOrder(query.Order);
+
+            var appenedQuery = new Query(query);
+            appenedQuery.Where = whereCompressed;
+            appenedQuery.Order = orderCompressed;
+
+            var eventModel = (EventModel<TModel>?)NextProvider.Query(appenedQuery);
+
+            if (eventModel is null)
+                return null;
+
+            eventModel.Model = DecompressModel(eventModel.Model, query.Graph, true);
+            return eventModel;
+        }
+        /// <inheritdoc/>
+        public override sealed object? EventSingle(Query query)
+        {
+            var whereCompressed = CompressWhere(query.Where);
+
+            var appenedQuery = new Query(query);
+            appenedQuery.Where = whereCompressed;
+
+            var eventModel = (EventModel<TModel>?)NextProvider.Query(appenedQuery);
+
+            if (eventModel is null)
+                return null;
+
+            eventModel.Model = DecompressModel(eventModel.Model, query.Graph, true);
+            return eventModel;
+        }
+        /// <inheritdoc/>
+        public override sealed object? EventCount(Query query)
+        {
+            var whereCompressed = CompressWhere(query.Where);
+
+            var appenedQuery = new Query(query);
+            appenedQuery.Where = whereCompressed;
+
+            var count = NextProvider.Query(appenedQuery)!;
+            return count;
+        }
+        /// <inheritdoc/>
+        public override sealed object? EventAny(Query query)
+        {
+            var whereCompressed = CompressWhere(query.Where);
+
+            var appenedQuery = new Query(query);
+            appenedQuery.Where = whereCompressed;
+
+            var any = NextProvider.Query(appenedQuery)!;
+            return any;
+        }
 
         /// <inheritdoc/>
         public override sealed async Task<object?> ManyAsync(Query query)
@@ -390,6 +446,62 @@ namespace Zerra.Repository
             }
 
             return eventModels;
+        }
+        /// <inheritdoc/>
+        public override sealed async Task<object?> EventFirstAsync(Query query)
+        {
+            var whereCompressed = CompressWhere(query.Where);
+            var orderCompressed = CompressOrder(query.Order);
+
+            var appenedQuery = new Query(query);
+            appenedQuery.Where = whereCompressed;
+            appenedQuery.Order = orderCompressed;
+
+            var eventModel = (EventModel<TModel>?)await NextProvider.QueryAsync(appenedQuery);
+
+            if (eventModel is null)
+                return null;
+
+            eventModel.Model = DecompressModel(eventModel.Model, query.Graph, true);
+            return eventModel;
+        }
+        /// <inheritdoc/>
+        public override sealed async Task<object?> EventSingleAsync(Query query)
+        {
+            var whereCompressed = CompressWhere(query.Where);
+
+            var appenedQuery = new Query(query);
+            appenedQuery.Where = whereCompressed;
+
+            var eventModel = (EventModel<TModel>?)await NextProvider.QueryAsync(appenedQuery);
+
+            if (eventModel is null)
+                return null;
+
+            eventModel.Model = DecompressModel(eventModel.Model, query.Graph, true);
+            return eventModel;
+        }
+        /// <inheritdoc/>
+        public override sealed async Task<object?> EventCountAsync(Query query)
+        {
+            var whereCompressed = CompressWhere(query.Where);
+
+            var appenedQuery = new Query(query);
+            appenedQuery.Where = whereCompressed;
+
+            var count = (await NextProvider.QueryAsync(appenedQuery))!;
+            return count;
+        }
+        /// <inheritdoc/>
+        public override sealed async Task<object?> EventAnyAsync(Query query)
+        {
+            var whereCompressed = CompressWhere(query.Where);
+
+            var appenedQuery = new Query(query);
+            appenedQuery.Where = whereCompressed;
+
+            var any = (await NextProvider.QueryAsync(appenedQuery))!;
+            return any;
         }
 
         private object[] CompressModels(object[] models, Graph? graph, bool newCopy)

@@ -253,6 +253,74 @@ namespace Zerra.Repository
         }
 
         /// <inheritdoc/>
+        public override sealed object? EventFirst(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+            appenedQuery.Where = where;
+
+            var eventModel = (EventModel<TModel>?)NextProvider.Query(appenedQuery);
+
+            if (eventModel is null)
+                return null;
+
+            var returnModel = OnGet(new TModel[] { eventModel.Model }, appenedQuery.Graph).Cast<TModel>().FirstOrDefault();
+            return returnModel is null ? null : eventModel;
+        }
+
+        /// <inheritdoc/>
+        public override sealed object? EventSingle(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+            appenedQuery.Where = where;
+
+            var eventModel = (EventModel<TModel>?)NextProvider.Query(appenedQuery);
+
+            if (eventModel is null)
+                return null;
+
+            var returnModel = OnGet(new TModel[] { eventModel.Model }, appenedQuery.Graph).Cast<TModel>().SingleOrDefault();
+            return returnModel is null ? null : eventModel;
+        }
+
+        /// <inheritdoc/>
+        public override sealed object? EventCount(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+            appenedQuery.Where = where;
+
+            var count = NextProvider.Query(appenedQuery);
+
+            return count;
+        }
+
+        /// <inheritdoc/>
+        public override sealed object? EventAny(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+            appenedQuery.Where = where;
+
+            var any = NextProvider.Query(appenedQuery);
+
+            return any;
+        }
+
+        /// <inheritdoc/>
         public override sealed async Task<object?> ManyAsync(Query query)
         {
             var appenedQuery = new Query(query);
@@ -377,6 +445,74 @@ namespace Zerra.Repository
             }
 
             return returnEventModels;
+        }
+
+        /// <inheritdoc/>
+        public override sealed async Task<object?> EventFirstAsync(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+            appenedQuery.Where = where;
+
+            var eventModel = (EventModel<TModel>?)await NextProvider.QueryAsync(appenedQuery);
+
+            if (eventModel is null)
+                return null;
+
+            var returnModel = OnGet(new TModel[] { eventModel.Model }, appenedQuery.Graph).Cast<TModel>().FirstOrDefault();
+            return returnModel is null ? null : eventModel;
+        }
+
+        /// <inheritdoc/>
+        public override sealed async Task<object?> EventSingleAsync(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+            appenedQuery.Where = where;
+
+            var eventModel = (EventModel<TModel>?)await NextProvider.QueryAsync(appenedQuery);
+
+            if (eventModel is null)
+                return null;
+
+            var returnModel = OnGet(new TModel[] { eventModel.Model }, appenedQuery.Graph).Cast<TModel>().SingleOrDefault();
+            return returnModel is null ? null : eventModel;
+        }
+
+        /// <inheritdoc/>
+        public override sealed async Task<object?> EventCountAsync(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+            appenedQuery.Where = where;
+
+            var count = await NextProvider.QueryAsync(appenedQuery);
+
+            return count;
+        }
+
+        /// <inheritdoc/>
+        public override sealed async Task<object?> EventAnyAsync(Query query)
+        {
+            var appenedQuery = new Query(query);
+
+            OnQuery(appenedQuery.Graph);
+
+            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
+            appenedQuery.Where = where;
+
+            var any = await NextProvider.QueryAsync(appenedQuery);
+
+            return any;
         }
 
         /// <summary>Called before models are created. Override to validate or transform the models prior to persistence.</summary>

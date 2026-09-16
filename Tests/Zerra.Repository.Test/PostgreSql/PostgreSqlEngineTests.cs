@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+ï»¿// Copyright ï¿½ KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -57,8 +57,8 @@ namespace Zerra.Repository.Test.PostgreSql
             CodeFirstGeneration.Generate<PostgreSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
             RepoTest.AssertSchemaMatchesModels<PostgreSqlTestSqlDataContext>(modelTypes);
 
-            RepoTest.TestSequence<PostgreSqlTestSqlDataContext>();
-            await RepoTest.TestSequenceAsync<PostgreSqlTestSqlDataContext>();
+            RepoTest.TestSequenceTransactStore<PostgreSqlTestSqlDataContext>();
+            await RepoTest.TestSequenceTransactStoreAsync<PostgreSqlTestSqlDataContext>();
 
             const string changeColumn = "ALTER TABLE testtypes ALTER COLUMN int32thing TYPE bigint; ALTER TABLE testtypes ALTER COLUMN int32thing DROP NOT NULL;";
             const string addColumn = "ALTER TABLE testtypes ADD dummytomakenullable int NOT NULL";

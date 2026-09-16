@@ -403,6 +403,10 @@ namespace Zerra.Repository
                             var modelStates = new List<TModel>();
                             foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
+                                //a terminating event carries no data, the model no longer exists
+                                if (eventData.Deleted)
+                                    return Array.Empty<TModel>();
+
                                 var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModel is null)
                                     throw new Exception("Failed to deserialize Model");
@@ -446,10 +450,11 @@ namespace Zerra.Repository
                             var skipCount = 0;
                             foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
-                                var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModel is null)
-                                    throw new Exception("Failed to deserialize Model");
+                                //a terminating event carries no data, the model no longer exists
+                                if (eventData.Deleted)
+                                    return Array.Empty<TModel>();
 
+                                var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModel is null)
                                     throw new Exception("Failed to deserialize Model");
 
@@ -488,6 +493,10 @@ namespace Zerra.Repository
                         {
                             foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
+                                //a terminating event carries no data, the model no longer exists
+                                if (eventData.Deleted)
+                                    return Array.Empty<TModel>();
+
                                 var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModel is null)
                                     throw new Exception("Failed to deserialize Model");
@@ -505,6 +514,10 @@ namespace Zerra.Repository
                         {
                             foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
+                                //a terminating event carries no data, the model no longer exists
+                                if (eventData.Deleted)
+                                    return Array.Empty<TModel>();
+
                                 var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModel is null)
                                     throw new Exception("Failed to deserialize Model");
@@ -539,6 +552,10 @@ namespace Zerra.Repository
                             var eventModels = new List<EventModel<TModel>>();
                             foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
+                                //a terminating event carries no data, there is nothing to replay from it
+                                if (eventData.Deleted)
+                                    continue;
+
                                 var eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModelData is null)
                                     throw new Exception("Failed to deserialize Model");
@@ -596,6 +613,10 @@ namespace Zerra.Repository
                             var skipCount = 0;
                             foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
+                                //a terminating event carries no data, there is nothing to replay from it
+                                if (eventData.Deleted)
+                                    continue;
+
                                 var eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModelData is null)
                                     throw new Exception("Failed to deserialize Model");
@@ -650,6 +671,10 @@ namespace Zerra.Repository
                             EventStoreEventData? thisEventData = null;
                             foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
+                                //a terminating event carries no data, there is nothing to replay from it
+                                if (eventData.Deleted)
+                                    continue;
+
                                 thisEventData = eventData;
                                 eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModelData is null)
@@ -689,6 +714,10 @@ namespace Zerra.Repository
                             EventStoreEventData? thisEventData = null;
                             foreach (var eventData in eventDatas.AsEnumerable().Reverse())
                             {
+                                //a terminating event carries no data, there is nothing to replay from it
+                                if (eventData.Deleted)
+                                    continue;
+
                                 thisEventData = eventData;
                                 eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                                 if (eventModelData is null)

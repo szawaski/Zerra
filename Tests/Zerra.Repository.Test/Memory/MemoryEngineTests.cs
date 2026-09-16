@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+﻿// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -11,8 +11,15 @@ namespace Zerra.Repository.Test.Memory
         [Fact]
         public async Task TestSequence()
         {
-            RepoTest.TestSequence<MemoryTestDataContext>();
-            await RepoTest.TestSequenceAsync<MemoryTestDataContext>();
+            RepoTest.TestSequenceTransactStore<MemoryTestDataContext>();
+            await RepoTest.TestSequenceTransactStoreAsync<MemoryTestDataContext>();
+        }
+
+        [Fact]
+        public async Task TestSequenceEventStore()
+        {
+            RepoTest.TestSequenceEventStore<MemoryTestDataContext>();
+            await RepoTest.TestSequenceEventStoreAsync<MemoryTestDataContext>();
         }
     }
 }

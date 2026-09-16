@@ -388,6 +388,100 @@ Class
             Assert.Equal(strCheck, str);
         }
 
+        [Fact]
+        public void ParseSignatureEmpty()
+        {
+            var graph = Graph.ParseSignature(String.Empty);
+            Assert.True(graph.IsEmpty);
+            Assert.Equal(String.Empty, graph.Signature);
+            Assert.Equal(new Graph(), graph);
+        }
+
+        [Fact]
+        public void ParseSignatureAllMembers()
+        {
+            var graph = new Graph(true);
+            Assert.Equal("A:", graph.Signature);
+
+            var parsed = Graph.ParseSignature(graph.Signature);
+            Assert.True(parsed.IncludeAllMembers);
+            Assert.Equal(graph, parsed);
+        }
+
+        [Fact]
+        public void ParseSignatureMembers()
+        {
+            var graph = new Graph("Prop1", "Prop2");
+            graph.RemoveMember("Prop3");
+
+            var parsed = Graph.ParseSignature(graph.Signature);
+
+            Assert.Equal(graph, parsed);
+            Assert.True(parsed.HasMember("Prop1"));
+            Assert.True(parsed.HasMember("Prop2"));
+            Assert.False(parsed.HasMember("Prop3"));
+            Assert.True(parsed.HasRemovedMembers);
+            Assert.Equal<string>(["Prop1", "Prop2"], parsed.ExplicitMembers.Order());
+        }
+
+        [Fact]
+        public void ParseSignatureChildGraphs()
+        {
+            var graph = new Graph<GraphModel>(
+                x => x.Prop1,
+                x => x.Array.Select(x => x.Value1),
+                x => x.Class.Value1
+            );
+
+            var parsed = Graph.ParseSignature(graph.Signature);
+
+            Assert.Equal(graph.Signature, parsed.Signature);
+            TestBasic(parsed);
+        }
+
+        [Fact]
+        public void ParseSignatureNestedChildGraphs()
+        {
+            var graph = new Graph<GraphModel>(
+                x => x.Nested.Class.Value1,
+                x => x.Nested.Prop2
+            );
+            graph.RemoveMember("Prop1");
+
+            var parsed = Graph.ParseSignature(graph.Signature);
+
+            Assert.Equal(graph.Signature, parsed.Signature);
+            var nested = parsed.GetChildGraph("Nested");
+            Assert.NotNull(nested);
+            Assert.True(nested.HasMember("Prop2"));
+            var nestedClass = nested.GetChildGraph("Class");
+            Assert.NotNull(nestedClass);
+            Assert.True(nestedClass.HasMember("Value1"));
+            Assert.False(parsed.HasMember("Prop1"));
+        }
+
+        [Fact]
+        public void ParseSignatureIntoExistingGraph()
+        {
+            var graph = new Graph<GraphModel>(x => x.Prop2);
+            Graph.ParseSignature(new Graph<GraphModel>(x => x.Prop1).Signature, graph);
+
+            //the members it had are replaced, not merged
+            Assert.True(graph.HasMember("Prop1"));
+            Assert.False(graph.HasMember("Prop2"));
+        }
+
+        [Theory]
+        [InlineData("X")]
+        [InlineData("X:")]
+        [InlineData("P:Prop1:")]
+        [InlineData("G:Child")]
+        [InlineData("G:Child:(P:Value1")]
+        public void ParseSignatureInvalid(string signature)
+        {
+            _ = Assert.Throws<FormatException>(() => Graph.ParseSignature(signature));
+        }
+
         private void TestBasic(Graph graph)
         {
             //Validates graph only has these
