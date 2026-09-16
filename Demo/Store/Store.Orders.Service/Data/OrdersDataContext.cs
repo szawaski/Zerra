@@ -6,18 +6,23 @@ using Zerra.Repository.MsSql;
 namespace Store.Orders.Service.Data
 {
     /// <summary>
-    /// The Orders service's own data store: SQL Server when it's reachable, otherwise in-memory.
+    /// The Orders service's own data store: SQL Server when it's reachable, logging in with the SQL Server account and then Windows authentication, otherwise in-memory.
     /// </summary>
     public sealed class OrdersDataContext : DataContextSelector
     {
         protected override IEnumerable<DataContext> LoadDataContexts() => StoreSettings.InMemoryOnly
             ? [new OrdersMemoryContext()]
-            : [new OrdersMsSqlContext(), new OrdersMemoryContext()];
+            : [new OrdersMsSqlContext(), new OrdersMsSqlWindowsAuthContext(), new OrdersMemoryContext()];
     }
 
     public sealed class OrdersMsSqlContext : MsSqlDataContext
     {
         public override string GetConnectionString() => StoreSettings.OrdersMsSql;
+    }
+
+    public sealed class OrdersMsSqlWindowsAuthContext : MsSqlDataContext
+    {
+        public override string GetConnectionString() => StoreSettings.OrdersMsSqlWindowsAuth;
     }
 
     public sealed class OrdersMemoryContext : MemoryDataContext

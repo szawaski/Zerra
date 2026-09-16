@@ -1,0 +1,195 @@
+#Data stores and messaging services for the demos and tests, all grouped under the zerra-demo project.
+#Use start-infrastructure.ps1 rather than running this directly, it only starts what isn't already available locally.
+name: zerra-demo
+
+services:
+
+  #Data stores
+  #------------------------------------------------------------------------------------
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: zerra-mssql
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      #SQL Server's password policy rejects password123
+      MSSQL_SA_PASSWORD: "Password123"
+      #SQL Server otherwise sizes itself to most of the VM's memory, test databases need far less
+      MSSQL_MEMORY_LIMIT_MB: "1024"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -b -Q \"SELECT 1\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  mysql:
+    image: mysql:8.4
+    container_name: zerra-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "password123"
+    #the defaults are sized for a production server, a small buffer pool and no performance schema are plenty for tests
+    command: ["--performance-schema=OFF", "--innodb-buffer-pool-size=32M", "--innodb-log-buffer-size=8M"]
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  mariadb:
+    image: mariadb:11
+    container_name: zerra-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: "password123"
+    #the demo puts MariaDB on 3307 so it can sit next to MySQL
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  postgresql:
+    image: postgres:17
+    container_name: zerra-postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: "password123"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  kurrentdb:
+    image: docker.kurrent.io/kurrent-latest/kurrentdb:latest
+    container_name: zerra-kurrentdb
+    restart: unless-stopped
+    environment:
+      KURRENTDB_CLUSTER_SIZE: "1"
+      #Zerra reads and writes streams directly, so projections, secondary indexes (an in-process DuckDB), and connectors are turned off
+      KURRENTDB_RUN_PROJECTIONS: "None"
+      KURRENTDB_SECONDARY_INDEXING__ENABLED: "false"
+      KURRENTDB_CONNECTORS__ENABLED: "false"
+      KURRENTDB_NODE_PORT: "2113"
+      KURRENTDB_INSECURE: "true"
+      KURRENTDB_ENABLE_ATOM_PUB_OVER_HTTP: "true"
+      #.NET server GC keeps a heap per CPU, workstation GC keeps the footprint small on machines with many cores
+      DOTNET_gcServer: "0"
+      DOTNET_PROCESSOR_COUNT: "2"
+      #by default about 512 MB of chunks are cached in memory and the stream cache is sized for production
+      KURRENTDB_CACHED_CHUNKS: "0"
+      KURRENTDB_STREAM_INFO_CACHE_CAPACITY: "10000"
+    ports:
+      - "2113:2113"
+    volumes:
+      - kurrentdb-data:/var/lib/kurrentdb
+      - kurrentdb-logs:/var/log/kurrentdb
+
+  #Messaging
+  #------------------------------------------------------------------------------------
+
+  kafka:
+    image: apache/kafka:latest
+    container_name: zerra-kafka
+    restart: unless-stopped
+    environment:
+      #the JVM otherwise sizes the heap and thread pools to the VM's memory and CPUs
+      KAFKA_HEAP_OPTS: "-Xmx256m -Xms256m"
+      KAFKA_OPTS: "-XX:ActiveProcessorCount=2"
+    #the image's default single node KRaft config listens and advertises on localhost:9092
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 15s
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: zerra-rabbitmq
+    restart: unless-stopped
+    environment:
+      #Erlang otherwise starts a scheduler per CPU
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "+S 2:2"
+    #guest/guest, the image allows guest from outside the container
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 15s
+
+  #The Service Bus emulator needs its own SQL Server, it isn't exposed so it never conflicts with a local SQL Server.
+  #The emulator rebuilds its databases on every start and fails on files left by an unclean shutdown, so neither restarts on its own,
+  #start-infrastructure.ps1 recreates both fresh instead.
+  servicebus-sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: zerra-servicebus-sql
+    restart: "no"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Password123"
+      MSSQL_MEMORY_LIMIT_MB: "1024"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -b -Q \"SELECT 1\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  servicebus:
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    container_name: zerra-servicebus
+    restart: "no"
+    depends_on:
+      servicebus-sql:
+        condition: service_healthy
+    environment:
+      ACCEPT_EULA: "Y"
+      SQL_SERVER: "servicebus-sql"
+      MSSQL_SA_PASSWORD: "Password123"
+      SQL_WAIT_INTERVAL: "0"
+    #AMQP is moved to 5673 since RabbitMQ owns 5672, 5300 is the emulator's management and health endpoint
+    ports:
+      - "5673:5672"
+      - "5300:5300"
+    volumes:
+      - ./servicebus-config.json:/ServiceBus_Emulator/ConfigFiles/Config.json:ro
+
+volumes:
+  mssql-data:
+  mysql-data:
+  mariadb-data:
+  postgresql-data:
+  kurrentdb-data:
+  kurrentdb-logs:
+  rabbitmq-data:

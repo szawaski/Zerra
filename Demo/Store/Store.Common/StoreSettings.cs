@@ -21,7 +21,9 @@ namespace Store.Common
         //Each service owns its own data store, a short connect timeout keeps the in-memory fallback quick when the database isn't running
         public static string CatalogPostgreSql => Get("STORE_CATALOG_POSTGRESQL", "Host=localhost;Port=5432;User ID=postgres;Password=password123;Database=zerrastorecatalog;Timeout=3");
         public static string InventoryMySql => Get("STORE_INVENTORY_MYSQL", "Server=localhost;Port=3306;Uid=root;Pwd=password123;Database=ZerraStoreInventory;Connect Timeout=3");
-        public static string OrdersMsSql => Get("STORE_ORDERS_MSSQL", "Data Source=.;Initial Catalog=ZerraStoreOrders;Integrated Security=True;TrustServerCertificate=True;Connect Timeout=3");
+        public static string OrdersMsSql => Get("STORE_ORDERS_MSSQL", "Data Source=.;Initial Catalog=ZerraStoreOrders;User ID=sa;Password=Password123;TrustServerCertificate=True;Connect Timeout=3");
+        //used when the SQL Server account can't log in, e.g. a local install without it
+        public static string OrdersMsSqlWindowsAuth => Get("STORE_ORDERS_MSSQL_WINDOWS_AUTH", "Data Source=.;Initial Catalog=ZerraStoreOrders;Integrated Security=True;TrustServerCertificate=True;Connect Timeout=3");
         public static string ReviewsMariaDb => Get("STORE_REVIEWS_MARIADB", "Server=localhost;Port=3307;Uid=root;Pwd=password123;Database=ZerraStoreReviews;Connect Timeout=3");
 
         /// <summary>

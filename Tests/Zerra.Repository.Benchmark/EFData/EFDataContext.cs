@@ -3,19 +3,19 @@
 // Licensed to you under the MIT license
 
 using Microsoft.EntityFrameworkCore;
+using Zerra.Repository.Test.MsSql;
 
 namespace Zerra.Repository.Benchmark.EFData
 {
     public sealed class EFDataContext : DbContext
     {
-        private const string connectionString = "data source=.;initial catalog=ZerraSqlTest;integrated security=True;MultipleActiveResultSets=True;TrustServerCertificate=True;";
-
         public DbSet<EFTestTypesModel> TestTypes { get; set; }
         public DbSet<EFTestRelationsModel> TestRelations { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(connectionString);
+            //same database as the Zerra side of the benchmark, including its SQL Server account then Windows authentication fallback
+            optionsBuilder.UseSqlServer(new MsSqlTestSqlDataContext().GetConnectionString());
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

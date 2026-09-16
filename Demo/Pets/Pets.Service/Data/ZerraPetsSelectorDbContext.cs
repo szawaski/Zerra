@@ -8,6 +8,7 @@ namespace Pets.Service.Data
         {
             yield return new ZerraPetsMemoryContext();
             yield return new ZerraPetsMsSqlContext();
+            yield return new ZerraPetsMsSqlWindowsAuthContext();
             yield return new ZerraPetsMySqlContext();
             yield return new ZerraPetsMariaDbContext();
             yield return new ZerraPetsPostgreSqlContext();

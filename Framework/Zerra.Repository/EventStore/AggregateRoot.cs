@@ -13,19 +13,8 @@ namespace Zerra.Repository
     /// </summary>
     public abstract class AggregateRoot
     {
-        private static Type? typeCache = null;
-        private static readonly Lock typeCacheLock = new();
-        private Type GetAggregateType()
-        {
-            if (typeCache is null)
-            {
-                lock (typeCacheLock)
-                {
-                    typeCache ??= this.GetType();
-                }
-            }
-            return typeCache;
-        }
+        //the concrete type is per instance, a cache shared by every aggregate would hand out the first type created
+        private readonly Type aggregateType;
 
         /// <summary>
         /// Gets or sets the unique identifier of the aggregate.
@@ -64,7 +53,8 @@ namespace Zerra.Repository
         {
             this.eventStore = eventStore;
             this.ID = id;
-            this.streamName = $"{GetAggregateType().FullName}-{id}";
+            this.aggregateType = this.GetType();
+            this.streamName = $"{aggregateType.FullName}-{id}";
         }
 
         /// <summary>
@@ -81,7 +71,7 @@ namespace Zerra.Repository
             await ApplyEvent(@event, eventType);
 
             var eventBytes = EventStoreCommon.Serialize(@event);
-            _ = await this.eventStore.AppendAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.NotExisting : EventStoreState.Existing) : EventStoreState.Any, eventBytes);
+            _ = await this.eventStore.AppendAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any, eventBytes);
 
             await Bus.DispatchAsync(@event);
         }
@@ -99,7 +89,9 @@ namespace Zerra.Repository
 
             await ApplyEvent(@event, eventType);
 
-            _ = await this.eventStore.TerminateAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.NotExisting : EventStoreState.Existing) : EventStoreState.Any);
+            _ = await this.eventStore.TerminateAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any);
+
+            this.IsDeleted = true;
 
             await Bus.DispatchAsync(@event);
         }
@@ -149,12 +141,13 @@ namespace Zerra.Repository
             return true;
         }
 
-        private static readonly ConcurrentFactoryDictionary<Type, MethodDetail> methodCache = new();
+        //cached per aggregate type, different aggregates can accept the same event with their own methods
+        private static readonly ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<Type, MethodDetail>> methodCache = new();
         private Task ApplyEvent(IEvent @event, Type eventType)
         {
-            var methodDetail = methodCache.GetOrAdd(eventType, (eventType) =>
+            var methodsByEventType = methodCache.GetOrAdd(aggregateType, static () => new());
+            var methodDetail = methodsByEventType.GetOrAdd(eventType, aggregateType, static (eventType, aggregateType) =>
             {
-                var aggregateType = GetAggregateType();
                 var aggregateTypeDetail = TypeAnalyzer.GetTypeDetail(aggregateType);
                 MethodDetail? methodDetail = null;
                 foreach (var method in aggregateTypeDetail.Methods)

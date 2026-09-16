@@ -1,5 +1,12 @@
 <Solution>
   <Folder Name="/Demo/" />
+  <Folder Name="/Demo/Infrastructure/">
+    <File Path="Demo/Infrastructure/start-infrastructure.ps1" />
+    <File Path="Demo/Infrastructure/remove-infrastructure.ps1" />
+    <File Path="Demo/Infrastructure/infrastructure-common.ps1" />
+    <File Path="Demo/Infrastructure/docker-compose.yml" />
+    <File Path="Demo/Infrastructure/servicebus-config.json" />
+  </Folder>
   <Folder Name="/Demo/Pets/">
     <Project Path="Demo/Pets/Pets.Domain/Pets.Domain.csproj" />
     <Project Path="Demo/Pets/Pets.Service/Pets.Service.csproj" />

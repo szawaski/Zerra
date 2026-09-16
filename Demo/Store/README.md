@@ -74,9 +74,13 @@ Each service's `DataContextSelector` lists its database first and an in-memory s
 |---|---|---|
 | Catalog | PostgreSQL | `Host=localhost;Port=5432;User ID=postgres;Password=password123;Database=zerrastorecatalog` |
 | Inventory | MySQL | `Server=localhost;Port=3306;Uid=root;Pwd=password123;Database=ZerraStoreInventory` |
-| Orders | SQL Server | `Data Source=.;Initial Catalog=ZerraStoreOrders;Integrated Security=True` |
+| Orders | SQL Server | `Data Source=.;Initial Catalog=ZerraStoreOrders;User ID=sa;Password=Password123`, then `Data Source=.;Initial Catalog=ZerraStoreOrders;Integrated Security=True` |
 | Reviews | MariaDB | `Server=localhost;Port=3307;Uid=root;Pwd=password123;Database=ZerraStoreReviews` |
 | Shipping | none, in-memory only | — |
+
+Orders lists two SQL Server contexts ahead of the in-memory store: the SQL Server account first, which a SQL Server in Docker needs since it has no Windows authentication, then Windows authentication for a local install without that account.
+
+To run all the databases in Docker, use `Demo/Infrastructure/start-infrastructure.ps1`. It starts only the ones that aren't already running locally, and `remove-infrastructure.ps1` removes them again.
 
 Seeders only run against an empty store, so data in a database survives restarts. Drop a demo database to reseed it.
 
@@ -89,7 +93,7 @@ All settings have defaults in `Store.Common/StoreSettings.cs` and can be overrid
 | `STORE_IN_MEMORY` | not set. Set it to `true` to skip the databases. |
 | `STORE_CATALOG_URL`, `STORE_INVENTORY_URL`, `STORE_ORDERS_URL`, `STORE_REVIEWS_URL` | `localhost:9101`, `localhost:9102`, `localhost:9103`, `localhost:9104` |
 | `STORE_SHIPPING_URL` | `http://localhost:9105`, an HTTP endpoint since Shipping is hosted in ASP.NET Core |
-| `STORE_CATALOG_POSTGRESQL`, `STORE_INVENTORY_MYSQL`, `STORE_ORDERS_MSSQL`, `STORE_REVIEWS_MARIADB` | the connection strings above |
+| `STORE_CATALOG_POSTGRESQL`, `STORE_INVENTORY_MYSQL`, `STORE_ORDERS_MSSQL`, `STORE_ORDERS_MSSQL_WINDOWS_AUTH`, `STORE_REVIEWS_MARIADB` | the connection strings above |
 | `STORE_SHARED_KEY` | the demo key for the traffic encryption |
 
 ## Things to try

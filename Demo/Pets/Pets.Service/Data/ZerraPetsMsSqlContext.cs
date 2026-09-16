@@ -10,7 +10,7 @@ namespace Pets.Service.Data
         private readonly string connectionString;
         public ZerraPetsMsSqlContext()
         {
-            this.connectionString = "Data Source=.;Initial Catalog=ZerraPets;Integrated Security=True;MultipleActiveResultSets=True;TrustServerCertificate=True";
+            this.connectionString = "Data Source=.;Initial Catalog=ZerraPets;User ID=sa;Password=Password123;MultipleActiveResultSets=True;TrustServerCertificate=True";
         }
 
         public static async Task DeleteMsSql(MsSqlEngine engine)

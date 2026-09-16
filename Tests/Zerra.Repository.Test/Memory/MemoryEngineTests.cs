@@ -9,7 +9,7 @@ namespace Zerra.Repository.Test.Memory
     public class MemoryEngineTests
     {
         [Fact]
-        public async Task TestSequence()
+        public async Task TestSequenceTransactStore()
         {
             RepoTest.TestSequenceTransactStore<MemoryTestDataContext>();
             await RepoTest.TestSequenceTransactStoreAsync<MemoryTestDataContext>();
@@ -20,6 +20,18 @@ namespace Zerra.Repository.Test.Memory
         {
             RepoTest.TestSequenceEventStore<MemoryTestDataContext>();
             await RepoTest.TestSequenceEventStoreAsync<MemoryTestDataContext>();
+        }
+
+        [Fact]
+        public async Task TestSequenceAggregate()
+        {
+            await AggregateTest.TestSequenceAsync<MemoryTestDataContext>();
+        }
+
+        [Fact]
+        public async Task TestAggregateConcurrency()
+        {
+            await AggregateTest.TestConcurrencyAsync<MemoryTestDataContext>();
         }
     }
 }
