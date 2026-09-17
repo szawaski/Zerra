@@ -29,7 +29,8 @@ namespace Zerra.CQRS
         /// <param name="commandConsumer">The command consumer service.</param>
         void AddCommandConsumer<TInterface>(ICommandConsumer commandConsumer);
         /// <summary>
-        /// Add an event producer service to send commands to remote services.
+        /// Add an event producer service to send events to remote services.
+        /// An event type can have several producers, such as one per downstream service, and each is sent every event.
         /// </summary>
         /// <typeparam name="TInterface">An interface inheriting event handler interface(s) for the types of events to send.</typeparam>
         /// <param name="eventProducer">The event producer service.</param>

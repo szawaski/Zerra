@@ -6,6 +6,7 @@ using Store.Orders.Domain;
 using Store.Reviews.Domain;
 using Store.Shipping.Domain;
 using Zerra.CQRS;
+using Zerra.CQRS.AzureServiceBus;
 using Zerra.CQRS.Network;
 using Zerra.Serialization;
 using Zerra.Web;
@@ -36,7 +37,18 @@ bus.AddCommandProducer<IOrdersCommandHandler>(ordersClient);
 
 var reviewsClient = new TcpCqrsClient(StoreSettings.ReviewsServiceUrl, serializer, encryptor, log);
 bus.AddQueryClient<IReviewsQueryHandler>(reviewsClient);
-bus.AddCommandProducer<IReviewsCommandHandler>(reviewsClient);
+//Review commands go through Azure Service Bus when it's running, otherwise straight to Reviews over TCP. Queries always go directly,
+//a broker only carries commands and events. The bus takes one producer per command, so the choice is made here at startup, and Reviews makes the same check.
+if (!StoreSettings.DirectMessagingOnly && await AzureServiceBusConnection.TestAsync(StoreSettings.AzureServiceBusConnectionString, log: log))
+{
+    bus.AddCommandProducer<IReviewsCommandHandler>(new AzureServiceBusProducer(StoreSettings.AzureServiceBusConnectionString, serializer, encryptor, log, null));
+    log.Info("Review commands to Reviews: Azure Service Bus");
+}
+else
+{
+    bus.AddCommandProducer<IReviewsCommandHandler>(reviewsClient);
+    log.Info("Review commands to Reviews: direct TCP");
+}
 
 //Shipping is hosted in ASP.NET Core, so it's an HTTP client here instead of the TCP clients above; the gateway doesn't care which transport a service uses
 var shippingClient = new KestrelCqrsClient(StoreSettings.ShippingServiceUrl, serializer, encryptor, log, null, null);

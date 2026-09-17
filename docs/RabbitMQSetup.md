@@ -339,6 +339,19 @@ var consumer = new RabbitMQConsumer("amqps://myUser:myPassword@rabbit.example.co
 
 The URI contains secrets, so load it from configuration or a secret store rather than hard-coding it. Zerra never logs the host value.
 
+## Checking the Connection
+
+`RabbitMQConnection.Test` opens and closes a connection and returns whether it opened, waiting five seconds unless given another timeout. It's synchronous because the RabbitMQ client only connects synchronously. Use it at startup to fall back to a direct transport when RabbitMQ isn't running. Subscribers make the same check and register the matching consumer, so both ends pick the same route:
+
+```csharp
+if (RabbitMQConnection.Test(rabbitMQHost, log: logger))
+    bus.AddEventProducer<IOrderEventHandler>(new RabbitMQProducer(rabbitMQHost, serializer, encryptor, logger, null));
+else
+    bus.AddEventProducer<IOrderEventHandler>(new TcpCqrsClient("localhost:9102", serializer, encryptor, logger));
+```
+
+The logger, if given, is told why the connection failed. The Store demo uses this for order events, see `Demo/Store/Store.Orders.Service/Program.cs`, `Demo/Store/Store.Inventory.Service/Program.cs`, and `Demo/Store/Store.Shipping.Service/Program.cs`.
+
 ## Environment Isolation
 
 The optional `environment` parameter allows multiple environments (dev, staging, production) to share the same RabbitMQ server by prefixing exchange names:

@@ -6,6 +6,7 @@ using Confluent.Kafka;
 using System.Security.Claims;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Reflection;
 
 namespace Zerra.CQRS.Kafka
 {
@@ -142,7 +143,7 @@ namespace Zerra.CQRS.Kafka
                         if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                             throw new Exception("Invalid Message");
 
-                        var @event = serializer.Deserialize(message.MessageData, message.MessageType) as IEvent;
+                        var @event = serializer.Deserialize(message.MessageData, TypeFinder.GetTypeFromName(message.MessageType)) as IEvent;
                         if (@event is null)
                             throw new Exception("Invalid Message");
 
@@ -163,7 +164,8 @@ namespace Zerra.CQRS.Kafka
                 }
                 catch (Exception ex)
                 {
-                    if (inHandlerContext)
+                    //the bus logs handler errors, anything before the handler such as a message that can't be read is logged here
+                    if (!inHandlerContext)
                         log?.Error(topic, ex);
                 }
                 finally

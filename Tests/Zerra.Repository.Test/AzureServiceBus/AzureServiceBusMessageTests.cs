@@ -14,6 +14,14 @@ namespace Zerra.Repository.Test.AzureServiceBus
         //the Service Bus emulator from Demo/Infrastructure, its AMQP port is moved to 5673 since RabbitMQ owns 5672
         private const string host = "Endpoint=sb://localhost:5673;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
 
+        [Fact]
+        public async Task TestConnection()
+        {
+            Assert.True(await AzureServiceBusConnection.TestAsync(host, null));
+            //not the emulator, so its management port isn't substituted, and nothing listens on port 1
+            Assert.False(await AzureServiceBusConnection.TestAsync("Endpoint=sb://localhost:1;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;", TimeSpan.FromSeconds(2)));
+        }
+
         [Fact(Timeout = 300000)]
         public async Task TestSequence()
         {

@@ -10,6 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\..\Framework\Zerra.CQRS.AzureServiceBus\Zerra.CQRS.AzureServiceBus.csproj" />
         <ProjectReference Include="..\..\..\Framework\Zerra.Web\Zerra.Web.csproj" />
         <ProjectReference Include="..\Store.Catalog.Domain\Store.Catalog.Domain.csproj" />
         <ProjectReference Include="..\Store.Common\Store.Common.csproj" />

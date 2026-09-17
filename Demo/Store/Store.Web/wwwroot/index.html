@@ -25,7 +25,7 @@
         <h1 class="page-title">A storefront on five microservices</h1>
         <p class="page-lead">
             These pages are static HTML and JavaScript. Every query and command goes through one CQRS gateway on this site,
-            which forwards it to the service that owns it, over encrypted TCP for most services and HTTP for Shipping. Each service keeps its own data store (or none, by design) and seeds it on startup.
+            which forwards it to the service that owns it, over encrypted TCP for most services and HTTP for Shipping. Each service keeps its own data store (or none, by design) and seeds it on startup. Some commands and events between services go through Kafka, RabbitMQ, or Azure Service Bus when they're running, and directly when they aren't.
         </p>
 
         <div class="grid grid-cards" id="services">
@@ -36,6 +36,7 @@
                     <dt>Project</dt><dd>Store.Web</dd>
                     <dt>Endpoint</dt><dd><code>POST /CQRS</code></dd>
                     <dt>Data store</dt><dd>None, it owns no data</dd>
+                    <dt>Messaging</dt><dd>None, it receives no messages</dd>
                 </dl>
             </section>
             <section class="card service-card" data-service="catalog">
@@ -45,6 +46,7 @@
                     <dt>Project</dt><dd>Store.Catalog.Service</dd>
                     <dt>Address</dt><dd>TCP localhost:9101</dd>
                     <dt>Data store</dt><dd class="store">Checking…</dd>
+                    <dt>Messaging</dt><dd class="messaging">Checking…</dd>
                 </dl>
             </section>
             <section class="card service-card" data-service="inventory">
@@ -54,6 +56,7 @@
                     <dt>Project</dt><dd>Store.Inventory.Service</dd>
                     <dt>Address</dt><dd>TCP localhost:9102</dd>
                     <dt>Data store</dt><dd class="store">Checking…</dd>
+                    <dt>Messaging</dt><dd class="messaging">Checking…</dd>
                 </dl>
             </section>
             <section class="card service-card" data-service="orders">
@@ -63,6 +66,7 @@
                     <dt>Project</dt><dd>Store.Orders.Service</dd>
                     <dt>Address</dt><dd>TCP localhost:9103</dd>
                     <dt>Data store</dt><dd class="store">Checking…</dd>
+                    <dt>Messaging</dt><dd class="messaging">Checking…</dd>
                 </dl>
             </section>
             <section class="card service-card" data-service="shipping">
@@ -72,6 +76,7 @@
                     <dt>Project</dt><dd>Store.Shipping.Service</dd>
                     <dt>Address</dt><dd>HTTP localhost:9105</dd>
                     <dt>Data store</dt><dd class="store">Checking…</dd>
+                    <dt>Messaging</dt><dd class="messaging">Checking…</dd>
                 </dl>
             </section>
             <section class="card service-card" data-service="reviews">
@@ -81,6 +86,7 @@
                     <dt>Project</dt><dd>Store.Reviews.Service</dd>
                     <dt>Address</dt><dd>TCP localhost:9104</dd>
                     <dt>Data store</dt><dd class="store">Checking…</dd>
+                    <dt>Messaging</dt><dd class="messaging">Checking…</dd>
                 </dl>
             </section>
         </div>

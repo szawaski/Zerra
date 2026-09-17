@@ -31,6 +31,17 @@ namespace Store.Common
         /// </summary>
         public static bool InMemoryOnly => String.Equals(Environment.GetEnvironmentVariable("STORE_IN_MEMORY"), "true", StringComparison.OrdinalIgnoreCase);
 
+        //Message brokers, each carries one flow between services when it's reachable at startup, otherwise that flow goes directly over TCP or HTTP
+        public static string KafkaHost => Get("STORE_KAFKA", "localhost:9092");
+        public static string RabbitMQHost => Get("STORE_RABBITMQ", "localhost");
+        //the Service Bus emulator from Demo/Infrastructure, its AMQP port is moved to 5673 since RabbitMQ owns 5672
+        public static string AzureServiceBusConnectionString => Get("STORE_AZURESERVICEBUS", "Endpoint=sb://localhost:5673;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;");
+
+        /// <summary>
+        /// Skip the message brokers and send everything directly between services, set STORE_DIRECT_MESSAGING=true.
+        /// </summary>
+        public static bool DirectMessagingOnly => String.Equals(Environment.GetEnvironmentVariable("STORE_DIRECT_MESSAGING"), "true", StringComparison.OrdinalIgnoreCase);
+
         /// <summary>
         /// Serializer for traffic between the gateway and the services, and between services.
         /// </summary>

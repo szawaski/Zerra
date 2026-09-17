@@ -9,6 +9,9 @@
 .PARAMETER InMemory
     Skip the databases and run every service on its in-memory store.
 
+.PARAMETER DirectMessaging
+    Skip the message brokers and send every command and event directly between services over TCP or HTTP.
+
 .PARAMETER NoBrowser
     Don't open the site in the browser.
 
@@ -18,6 +21,7 @@
 param(
     [string]$PublishDir = (Join-Path $PSScriptRoot 'publish'),
     [switch]$InMemory,
+    [switch]$DirectMessaging,
     [switch]$NoBrowser
 )
 
@@ -37,9 +41,11 @@ foreach ($project in $projects) {
     if (-not (Test-Path $exePath)) { throw "$exePath not found, run .\publish-store-aot.ps1 first" }
 }
 
-#the service windows inherit this, it's restored afterwards so it doesn't stick to this shell
+#the service windows inherit these, they're restored afterwards so they don't stick to this shell
 $previousInMemory = $env:STORE_IN_MEMORY
+$previousDirectMessaging = $env:STORE_DIRECT_MESSAGING
 $env:STORE_IN_MEMORY = if ($InMemory) { 'true' } else { $null }
+$env:STORE_DIRECT_MESSAGING = if ($DirectMessaging) { 'true' } else { $null }
 try {
     foreach ($project in $projects) {
         Write-Host "Starting $project" -ForegroundColor Green
@@ -59,6 +65,7 @@ try {
 }
 finally {
     $env:STORE_IN_MEMORY = $previousInMemory
+    $env:STORE_DIRECT_MESSAGING = $previousDirectMessaging
 }
 
 Write-Host "Store demo (native AOT) starting at http://localhost:5100, close the windows or press Ctrl+C in each to stop" -ForegroundColor Green

@@ -13,6 +13,14 @@ namespace Zerra.Repository.Test.Kafka
     {
         private const string host = "localhost:9092";
 
+        [Fact]
+        public async Task TestConnection()
+        {
+            Assert.True(await KafkaConnection.TestAsync(host, null, null));
+            //nothing listens on port 1
+            Assert.False(await KafkaConnection.TestAsync("localhost:1", null, null, TimeSpan.FromSeconds(2)));
+        }
+
         [Fact(Timeout = 300000)]
         public async Task TestSequence()
         {

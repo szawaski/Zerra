@@ -7,6 +7,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Reflection;
 using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMQ
@@ -92,7 +93,7 @@ namespace Zerra.CQRS.RabbitMQ
                             if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                                 throw new Exception("Invalid Message");
 
-                            var @event = serializer.Deserialize(message.MessageData, message.MessageType) as IEvent;
+                            var @event = serializer.Deserialize(message.MessageData, TypeFinder.GetTypeFromName(message.MessageType)) as IEvent;
                             if (@event is null)
                                 throw new Exception("Invalid Message");
 

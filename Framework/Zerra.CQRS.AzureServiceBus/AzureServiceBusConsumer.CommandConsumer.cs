@@ -6,6 +6,7 @@ using Azure.Messaging.ServiceBus;
 using System.Security.Claims;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Reflection;
 using Zerra.CQRS.Network;
 using Zerra.Serialization;
 
@@ -132,7 +133,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                         throw new Exception("Invalid Message");
 
-                    var command = serializer.Deserialize(message.MessageData, message.MessageType) as ICommand;
+                    var command = serializer.Deserialize(message.MessageData, TypeFinder.GetTypeFromName(message.MessageType)) as ICommand;
                     if (command is null)
                         throw new Exception("Invalid Message");
 

@@ -2,6 +2,7 @@ using Store.Catalog.Domain;
 using Store.Catalog.Domain.Models;
 using Store.Catalog.Service.Data;
 using Store.Common.Data;
+using Store.Common.Messaging;
 using Zerra;
 using Zerra.Repository;
 
@@ -10,6 +11,7 @@ namespace Store.Catalog.Service.Handlers
     public sealed class CatalogQueryHandler : BaseHandlerWithRepo, ICatalogQueryHandler
     {
         public Task<string> GetDataStoreName(CancellationToken cancellationToken) => Task.FromResult(Context.GetService<IDataStoreInfo>().Description);
+        public Task<string> GetMessagingName(CancellationToken cancellationToken) => Task.FromResult(Context.GetService<IMessagingInfo>().Description);
 
         public async Task<CategoryModel[]> GetCategories(CancellationToken cancellationToken)
         {

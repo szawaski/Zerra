@@ -360,6 +360,19 @@ var producer = new KafkaProducer(
 
 The implementation uses SASL/PLAIN authentication mechanism.
 
+## Checking the Connection
+
+`KafkaConnection.TestAsync` asks the cluster to describe itself and returns whether it answered, waiting five seconds unless given another timeout. Use it at startup to fall back to a direct transport when Kafka isn't running. The receiver makes the same check and registers the matching consumer, so both ends pick the same route:
+
+```csharp
+if (await KafkaConnection.TestAsync(bootstrapServers, userName: null, password: null, log: logger))
+    bus.AddCommandProducer<IStockReservationHandler>(new KafkaProducer(bootstrapServers, serializer, encryptor, logger, null, null, null));
+else
+    bus.AddCommandProducer<IStockReservationHandler>(new TcpCqrsClient("localhost:9102", serializer, encryptor, logger));
+```
+
+The logger, if given, is told why the connection failed. The Store demo uses this for stock reservations, see `Demo/Store/Store.Orders.Service/Program.cs` and `Demo/Store/Store.Inventory.Service/Program.cs`.
+
 ## Environment Isolation
 
 The optional `environment` parameter allows multiple environments (dev, staging, production) to share the same Kafka cluster by prefixing topic names:

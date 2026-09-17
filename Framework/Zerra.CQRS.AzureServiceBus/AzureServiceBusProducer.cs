@@ -121,8 +121,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 var message = new AzureServiceBusMessage()
                 {
-                    MessageData = serializer.SerializeBytes(command),
-                    MessageType = command.GetType(),
+                    MessageData = serializer.SerializeBytes(command, command.GetType()),
+                    MessageType = commandType.AssemblyQualifiedName,
                     HasResult = false,
                     Claims = claims,
                     Source = source
@@ -157,7 +157,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                         await waiter.WaitAsync(cancellationToken);
 
-                        Acknowledgement.ThrowIfFailed(message.MessageType.Name, serializer, acknowledgement);
+                        Acknowledgement.ThrowIfFailed(commandType.Name, serializer, acknowledgement);
                     }
                     finally
                     {
@@ -222,8 +222,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 var message = new AzureServiceBusMessage()
                 {
-                    MessageData = serializer.SerializeBytes(command),
-                    MessageType = command.GetType(),
+                    MessageData = serializer.SerializeBytes(command, command.GetType()),
+                    MessageType = commandType.AssemblyQualifiedName,
                     HasResult = true,
                     Claims = claims,
                     Source = source
@@ -256,7 +256,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                     await waiter.WaitAsync(cancellationToken);
 
-                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(message.MessageType.Name, serializer, acknowledgement)!;
+                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(commandType.Name, serializer, acknowledgement)!;
 
                     return result;
                 }
@@ -295,8 +295,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 var message = new AzureServiceBusMessage()
                 {
-                    MessageData = serializer.SerializeBytes(@event),
-                    MessageType = @event.GetType(),
+                    MessageData = serializer.SerializeBytes(@event, @event.GetType()),
+                    MessageType = eventType.AssemblyQualifiedName,
                     HasResult = false,
                     Claims = claims,
                     Source = source

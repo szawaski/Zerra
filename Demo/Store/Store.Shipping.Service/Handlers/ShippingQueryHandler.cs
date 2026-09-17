@@ -1,4 +1,5 @@
 using Store.Common.Data;
+using Store.Common.Messaging;
 using Store.Shipping.Domain;
 using Store.Shipping.Domain.Models;
 using Store.Shipping.Service.Data;
@@ -12,6 +13,7 @@ namespace Store.Shipping.Service.Handlers
         private const int recentShipmentCount = 50;
 
         public Task<string> GetDataStoreName(CancellationToken cancellationToken) => Task.FromResult(Context.GetService<IDataStoreInfo>().Description);
+        public Task<string> GetMessagingName(CancellationToken cancellationToken) => Task.FromResult(Context.GetService<IMessagingInfo>().Description);
 
         public async Task<ShipmentModel[]> GetShipments(CancellationToken cancellationToken)
         {

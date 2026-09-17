@@ -2,11 +2,13 @@ using Store.Catalog.Domain;
 using Store.Common;
 using Store.Common.Data;
 using Store.Common.Logging;
+using Store.Common.Messaging;
 using Store.Orders.Domain;
 using Store.Reviews.Domain;
 using Store.Reviews.Service.Data;
 using Store.Reviews.Service.Handlers;
 using Zerra.CQRS;
+using Zerra.CQRS.AzureServiceBus;
 using Zerra.CQRS.Network;
 using Zerra.Logging;
 using Zerra.Repository;
@@ -23,9 +25,15 @@ var repo = Repo.New();
 repo.AddProvider(new ReviewsStoreProvider<ReviewDataModel>());
 await ReviewsSeeder.SeedAsync(repo, log);
 
+//Message brokers: Azure Service Bus is used when it's running, checked here first so the choice can be reported like the data store
+var useServiceBus = !StoreSettings.DirectMessagingOnly && await AzureServiceBusConnection.TestAsync(StoreSettings.AzureServiceBusConnectionString, log: log);
+IMessagingInfo messaging = new MessagingInfo($"{(useServiceBus ? "Azure Service Bus" : "Direct TCP")}.{(StoreSettings.DirectMessagingOnly ? " (STORE_DIRECT_MESSAGING=true)" : null)}");
+log.Info($"Messaging: {messaging.Description}");
+
 var busServices = new BusServices();
 busServices.AddRepo(repo);
 busServices.AddService<IDataStoreInfo>(dataStore);
+busServices.AddService<IMessagingInfo>(messaging);
 
 //Bus: handle review queries and commands from the gateway
 var bus = Bus.New("Reviews", log, new ConsoleBusLogger(), busServices);
@@ -37,7 +45,13 @@ var encryptor = StoreSettings.CreateServiceEncryptor();
 
 var server = new TcpCqrsServer(StoreSettings.ReviewsServiceUrl, serializer, encryptor, log);
 bus.AddQueryServer<IReviewsQueryHandler>(server);
-bus.AddCommandConsumer<IReviewsCommandHandler>(server);
+
+//The gateway sends review commands through Azure Service Bus when it's running, otherwise directly over TCP. The gateway makes the same check,
+//so this service listens on whichever route the gateway will use. Queries always come directly over TCP.
+if (useServiceBus)
+    bus.AddCommandConsumer<IReviewsCommandHandler>(new AzureServiceBusConsumer(StoreSettings.AzureServiceBusConnectionString, serializer, encryptor, log, null));
+else
+    bus.AddCommandConsumer<IReviewsCommandHandler>(server);
 
 //Downstream services: the product's name from Catalog, purchase history from Orders to mark a review Verified
 var catalogClient = new TcpCqrsClient(StoreSettings.CatalogServiceUrl, serializer, encryptor, log);

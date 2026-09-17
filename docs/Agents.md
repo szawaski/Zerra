@@ -118,27 +118,14 @@ A caller reaches it with `KestrelCqrsClient` (also in `Zerra.Web`) instead of `T
 
 ### Two Services Subscribing to the Same Event
 
-`Bus.AddEventProducer<TInterface>` allows only one producer per concrete event type; registering a second producer for a type that's already registered is rejected (logged, not thrown) rather than added alongside the first. To have more than one downstream service receive the same event over direct TCP/HTTP producers (no message broker), compose the producers behind one `IEventProducer` and register that:
+An event type can have more than one producer. Register an event producer for each downstream service and the bus sends every event to all of them. Adding the same producer instance twice for one event type is ignored (logged) so it isn't sent twice:
 
 ```csharp
-public sealed class MultiEventProducer : IEventProducer
-{
-    private readonly IEventProducer[] producers;
-    public MultiEventProducer(params IEventProducer[] producers) => this.producers = producers;
-    public string MessageHost => String.Join(", ", producers.Select(x => x.MessageHost));
-    public void RegisterEventType(int maxConcurrent, string topic, Type type)
-    {
-        foreach (var producer in producers)
-            producer.RegisterEventType(maxConcurrent, topic, type);
-    }
-    public Task DispatchAsync(IEvent @event, string source, CancellationToken cancellationToken)
-        => Task.WhenAll(producers.Select(x => x.DispatchAsync(@event, source, cancellationToken)));
-}
-
-bus.AddEventProducer<IOrderEventHandler>(new MultiEventProducer(inventoryClient, shippingClient));
+bus.AddEventProducer<IOrderEventHandler>(inventoryClient);   //TcpCqrsClient
+bus.AddEventProducer<IOrderEventHandler>(shippingClient);    //KestrelCqrsClient
 ```
 
-See `Store.Common/MultiEventProducer.cs` and its use in `Store.Orders.Service/Program.cs`. A message broker producer (Kafka/RabbitMQ/AzureServiceBus) doesn't need this, it fans out to every subscribed consumer group on its own.
+See `Store.Orders.Service/Program.cs`. A message broker producer (Kafka/RabbitMQ/AzureServiceBus) only needs registering once, the broker delivers each event to every subscribed consumer on its own.
 
 ### Web Gateway for Browsers
 
@@ -378,9 +365,13 @@ Both close consumers/servers, dispose all producers/consumers/clients/servers, a
 ## Integration Points
 
 ### Message Broker Implementations
-- `Zerra.CQRS.Kafka`: Kafka producer/consumer
-- `Zerra.CQRS.RabbitMQ`: RabbitMQ producer/consumer
-- `Zerra.CQRS.AzureServiceBus`: Azure Service Bus producer/consumer
+- `Zerra.CQRS.Kafka`: Kafka producer/consumer, `KafkaConnection.TestAsync` to check the cluster is reachable
+- `Zerra.CQRS.RabbitMQ`: RabbitMQ producer/consumer, `RabbitMQConnection.Test` to check the server is reachable
+- `Zerra.CQRS.AzureServiceBus`: Azure Service Bus producer/consumer, `AzureServiceBusConnection.TestAsync` to check the namespace is reachable
+
+The Store demo checks each broker at startup and falls back to direct TCP/HTTP when it isn't running: the sender registers either the broker's producer or the direct client, and the receiver makes the same check and registers either the broker's consumer or its direct consumer, so both ends pick the same route. See "Message brokers" in `Demo/Store/README.md`.
+
+Types the brokers serialize must work without dynamic code (an app with `PublishAot` disables it even under `dotnet run`): messages are serialized by their runtime type, the envelopes carry the message type as an assembly qualified name resolved by `TypeFinder`, and the envelope and `Acknowledgement` classes have `[GenerateTypeDetail]` with public setters, since the source generator only sets public properties.
 
 ### HTTP/Network
 - `TcpCqrsServer` / `HttpCqrsServer` act as query servers and command/event consumers

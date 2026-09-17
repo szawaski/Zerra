@@ -21,7 +21,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         //the Service Bus emulator only serves the administration API on its management port, while the connection string's endpoint is its AMQP port,
         //so for the emulator the administration client gets the same connection string pointed at the management port
-        private static ServiceBusAdministrationClient CreateAdministrationClient(string host)
+        public static ServiceBusAdministrationClient CreateAdministrationClient(string host, ServiceBusAdministrationClientOptions? options = null)
         {
             var parts = host.Split(';', StringSplitOptions.RemoveEmptyEntries);
 
@@ -40,12 +40,12 @@ namespace Zerra.CQRS.AzureServiceBus
             }
 
             if (!isEmulator || endpointIndex < 0)
-                return new ServiceBusAdministrationClient(host);
+                return new ServiceBusAdministrationClient(host, options ?? new());
 
             var endpointPart = parts[endpointIndex];
             var endpoint = new UriBuilder(endpointPart.Substring(endpointPart.IndexOf('=') + 1).Trim()) { Port = emulatorAdministrationPort };
             parts[endpointIndex] = $"Endpoint={endpoint.Uri}";
-            return new ServiceBusAdministrationClient(String.Join(";", parts));
+            return new ServiceBusAdministrationClient(String.Join(";", parts), options ?? new());
         }
 
         public static async Task EnsureQueue(string host, string queue, bool deleteWhenIdle)

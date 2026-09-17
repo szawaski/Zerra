@@ -137,12 +137,15 @@ namespace Zerra.CQRS
 
             if (eventProducers != null)
             {
-                foreach (var eventProducer in eventProducers.Values)
+                foreach (var eventProducerList in eventProducers.Values)
                 {
-                    if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
+                    foreach (var eventProducer in eventProducerList)
                     {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
+                        if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
+                        {
+                            disposable.Dispose();
+                            _ = disposed.Add(disposable);
+                        }
                     }
                 }
                 eventProducers.Clear();
@@ -239,17 +242,20 @@ namespace Zerra.CQRS
 
             if (eventProducers != null)
             {
-                foreach (var eventProducer in eventProducers.Values)
+                foreach (var eventProducerList in eventProducers.Values)
                 {
-                    if (eventProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    foreach (var eventProducer in eventProducerList)
                     {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
+                        if (eventProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                        {
+                            await asyncDisposable.DisposeAsync();
+                            _ = asyncDisposed.Add(asyncDisposable);
+                        }
+                        else if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
+                        {
+                            disposable.Dispose();
+                            _ = disposed.Add(disposable);
+                        }
                     }
                 }
                 eventProducers.Clear();
@@ -1205,18 +1211,19 @@ namespace Zerra.CQRS
             var topic = info.InterfaceName;
             foreach (var eventType in info.EventTypes)
             {
-                if (eventProducers != null && eventProducers.ContainsKey(eventType))
-                {
-                    context.Log?.Error($"Cannot add Event Producer: type already added as Producer {eventType.Name}");
-                    continue;
-                }
-                eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
+                //an event can have several producers, each one is sent every event, such as one per downstream service
                 eventProducers ??= new();
                 if (!eventProducers.TryGetValue(eventType, out var eventProducerList))
                 {
                     eventProducerList = new();
                     eventProducers.Add(eventType, eventProducerList);
                 }
+                else if (eventProducerList.Contains(eventProducer))
+                {
+                    context.Log?.Error($"Cannot add Event Producer: the same producer is already added for {eventType.Name}");
+                    continue;
+                }
+                eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
                 eventProducerList.Add(eventProducer);
                 handledTypes ??= new();
                 _ = handledTypes.Add(eventType);

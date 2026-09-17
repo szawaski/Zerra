@@ -1,4 +1,5 @@
 using Store.Common.Data;
+using Store.Common.Messaging;
 using Store.Reviews.Domain;
 using Store.Reviews.Domain.Models;
 using Store.Reviews.Service.Data;
@@ -12,6 +13,7 @@ namespace Store.Reviews.Service.Handlers
         private const int recentReviewCount = 50;
 
         public Task<string> GetDataStoreName(CancellationToken cancellationToken) => Task.FromResult(Context.GetService<IDataStoreInfo>().Description);
+        public Task<string> GetMessagingName(CancellationToken cancellationToken) => Task.FromResult(Context.GetService<IMessagingInfo>().Description);
 
         public async Task<ReviewModel[]> GetRecentReviews(int count, CancellationToken cancellationToken)
         {

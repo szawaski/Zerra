@@ -1,4 +1,5 @@
 using Store.Common.Data;
+using Store.Common.Messaging;
 using Store.Inventory.Domain;
 using Store.Inventory.Domain.Models;
 using Store.Inventory.Service.Data;
@@ -9,6 +10,7 @@ namespace Store.Inventory.Service.Handlers
     public sealed class InventoryQueryHandler : BaseHandlerWithRepo, IInventoryQueryHandler
     {
         public Task<string> GetDataStoreName(CancellationToken cancellationToken) => Task.FromResult(Context.GetService<IDataStoreInfo>().Description);
+        public Task<string> GetMessagingName(CancellationToken cancellationToken) => Task.FromResult(Context.GetService<IMessagingInfo>().Description);
 
         public async Task<StockLevelModel[]> GetStockLevels(CancellationToken cancellationToken)
         {

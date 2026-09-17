@@ -7,6 +7,7 @@ using System.Security.Claims;
 using System.Text;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Reflection;
 using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.Kafka
@@ -160,7 +161,7 @@ namespace Zerra.CQRS.Kafka
                         if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                             throw new Exception("Invalid Message");
 
-                        var command = serializer.Deserialize(message.MessageData, message.MessageType) as ICommand;
+                        var command = serializer.Deserialize(message.MessageData, TypeFinder.GetTypeFromName(message.MessageType)) as ICommand;
                         if (command is null)
                             throw new Exception("Invalid Message");
 

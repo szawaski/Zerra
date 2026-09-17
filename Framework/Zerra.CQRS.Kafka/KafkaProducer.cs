@@ -5,6 +5,7 @@
 using Confluent.Kafka;
 using System.Collections.Concurrent;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using System.Text;
 using Zerra.Encryption;
@@ -54,6 +55,11 @@ namespace Zerra.CQRS.Kafka
         /// <param name="userName">Optional username for SASL authentication. Must be paired with password.</param>
         /// <param name="password">Optional password for SASL authentication. Must be paired with userName.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
+        //Confluent.Kafka binds its native library by finding these methods and fields through reflection, which native AOT would otherwise trim away
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.NonPublicFields, "Confluent.Kafka.Impl.Librdkafka", "Confluent.Kafka")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods", "Confluent.Kafka")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Alpine", "Confluent.Kafka")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Centos8", "Confluent.Kafka")]
         public KafkaProducer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, string? userName, string? password)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
@@ -147,8 +153,8 @@ namespace Zerra.CQRS.Kafka
 
                 var message = new KafkaMessage()
                 {
-                    MessageData = serializer.SerializeBytes(command),
-                    MessageType = command.GetType(),
+                    MessageData = serializer.SerializeBytes(command, command.GetType()),
+                    MessageType = commandType.AssemblyQualifiedName,
                     HasResult = false,
                     Claims = claims,
                     Source = source
@@ -184,7 +190,7 @@ namespace Zerra.CQRS.Kafka
 
                         await waiter.WaitAsync(cancellationToken);
 
-                        Acknowledgement.ThrowIfFailed(message.MessageType.Name, serializer, acknowledgement);
+                        Acknowledgement.ThrowIfFailed(commandType.Name, serializer, acknowledgement);
                     }
                     finally
                     {
@@ -249,8 +255,8 @@ namespace Zerra.CQRS.Kafka
 
                 var message = new KafkaMessage()
                 {
-                    MessageData = serializer.SerializeBytes(command),
-                    MessageType = command.GetType(),
+                    MessageData = serializer.SerializeBytes(command, command.GetType()),
+                    MessageType = commandType.AssemblyQualifiedName,
                     HasResult = true,
                     Claims = claims,
                     Source = source
@@ -284,7 +290,7 @@ namespace Zerra.CQRS.Kafka
 
                     await waiter.WaitAsync(cancellationToken);
 
-                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(message.MessageType.Name, serializer, acknowledgement)!;
+                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(commandType.Name, serializer, acknowledgement)!;
 
                     return result;
                 }
@@ -323,8 +329,8 @@ namespace Zerra.CQRS.Kafka
 
                 var message = new KafkaMessage()
                 {
-                    MessageData = serializer.SerializeBytes(@event),
-                    MessageType = @event.GetType(),
+                    MessageData = serializer.SerializeBytes(@event, @event.GetType()),
+                    MessageType = eventType.AssemblyQualifiedName,
                     HasResult = false,
                     Claims = claims,
                     Source = source

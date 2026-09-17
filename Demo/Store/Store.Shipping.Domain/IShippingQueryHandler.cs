@@ -6,6 +6,7 @@ namespace Store.Shipping.Domain
     public interface IShippingQueryHandler : IQueryHandler
     {
         Task<string> GetDataStoreName(CancellationToken cancellationToken);
+        Task<string> GetMessagingName(CancellationToken cancellationToken);
 
         Task<ShipmentModel[]> GetShipments(CancellationToken cancellationToken);
     }

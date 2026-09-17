@@ -323,6 +323,23 @@ public AzureServiceBusConsumer(
     string? environment)     // Optional environment prefix for queues/topics
 ```
 
+## Checking the Connection
+
+`AzureServiceBusConnection.TestAsync` reads the namespace's properties through the administration endpoint, the same one that creates queues and topics, and returns whether it answered, waiting five seconds unless given another timeout. Use it at startup to fall back to a direct transport when Service Bus isn't reachable. The receiver makes the same check and registers the matching consumer, so both ends pick the same route:
+
+```csharp
+if (await AzureServiceBusConnection.TestAsync(connectionString, log: logger))
+    bus.AddCommandProducer<IReviewsCommandHandler>(new AzureServiceBusProducer(connectionString, serializer, encryptor, logger, null));
+else
+    bus.AddCommandProducer<IReviewsCommandHandler>(new TcpCqrsClient("localhost:9104", serializer, encryptor, logger));
+```
+
+The logger, if given, is told why the connection failed. The Store demo uses this for review commands, see `Demo/Store/Store.Web/Program.cs` and `Demo/Store/Store.Reviews.Service/Program.cs`.
+
+### The Service Bus Emulator
+
+The emulator serves AMQP on its endpoint's port and the administration API only on port 5300. When the connection string has `UseDevelopmentEmulator=true`, Zerra sends administration calls, including the connection test, to port 5300 on the same host, so a single connection string works for both.
+
 ## Environment Isolation
 
 The optional `environment` parameter allows multiple environments (dev, staging, production) to share the same Azure Service Bus namespace by prefixing queue and topic names:

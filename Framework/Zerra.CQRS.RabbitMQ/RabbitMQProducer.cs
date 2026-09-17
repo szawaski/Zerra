@@ -120,8 +120,8 @@ namespace Zerra.CQRS.RabbitMQ
 
                     var rabbitMessage = new RabbitMQMessage()
                     {
-                        MessageData = serializer.SerializeBytes(command),
-                        MessageType = command.GetType(),
+                        MessageData = serializer.SerializeBytes(command, command.GetType()),
+                        MessageType = commandType.AssemblyQualifiedName,
                         HasResult = false,
                         Claims = claims,
                         Source = source
@@ -181,7 +181,7 @@ namespace Zerra.CQRS.RabbitMQ
                     {
                         await waiter!.WaitAsync(cancellationToken);
 
-                        Acknowledgement.ThrowIfFailed(rabbitMessage.MessageType.Name, serializer, acknowledgement);
+                        Acknowledgement.ThrowIfFailed(commandType.Name, serializer, acknowledgement);
                     }
 
                     channel.Close();
@@ -239,8 +239,8 @@ namespace Zerra.CQRS.RabbitMQ
 
                     var rabbitMessage = new RabbitMQMessage()
                     {
-                        MessageData = serializer.SerializeBytes(command),
-                        MessageType = command.GetType(),
+                        MessageData = serializer.SerializeBytes(command, command.GetType()),
+                        MessageType = commandType.AssemblyQualifiedName,
                         HasResult = true,
                         Claims = claims,
                         Source = source
@@ -296,7 +296,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     await waiter.WaitAsync(cancellationToken);
 
-                    var result =(TResult)Acknowledgement.GetResultOrThrowIfFailed(rabbitMessage.MessageType.Name, serializer, acknowledgement)!;
+                    var result =(TResult)Acknowledgement.GetResultOrThrowIfFailed(commandType.Name, serializer, acknowledgement)!;
 
                     channel.Close();
 
@@ -355,8 +355,8 @@ namespace Zerra.CQRS.RabbitMQ
 
                     var rabbitMessage = new RabbitMQMessage()
                     {
-                        MessageData = serializer.SerializeBytes(@event),
-                        MessageType = @event.GetType(),
+                        MessageData = serializer.SerializeBytes(@event, @event.GetType()),
+                        MessageType = eventType.AssemblyQualifiedName,
                         HasResult = false,
                         Claims = claims,
                         Source = source

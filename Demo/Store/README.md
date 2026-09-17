@@ -8,17 +8,17 @@ flowchart LR
     Web -- "TCP" --> Catalog["Catalog service<br/>PostgreSQL"]
     Web -- "TCP" --> Inventory["Inventory service<br/>MySQL"]
     Web -- "TCP" --> Orders["Orders service<br/>SQL Server"]
-    Web -- "TCP" --> Reviews["Reviews service<br/>MariaDB"]
+    Web -- "TCP<br/>review commands: Azure Service Bus or TCP" --> Reviews["Reviews service<br/>MariaDB"]
     Web -- "HTTP" --> Shipping["Shipping service<br/>ASP.NET Core, in-memory"]
     Orders -- "query: GetProductsByIDs" --> Catalog
-    Orders -- "command: ReserveStockCommand" --> Inventory
-    Orders -. "event: OrderShippedEvent" .-> Inventory
-    Orders -. "event: OrderShippedEvent" .-> Shipping
+    Orders -- "command: ReserveStockCommand<br/>Kafka or TCP" --> Inventory
+    Orders -. "event: OrderShippedEvent<br/>RabbitMQ or TCP" .-> Inventory
+    Orders -. "event: OrderShippedEvent<br/>RabbitMQ or HTTP" .-> Shipping
     Reviews -- "query: GetProductsByIDs" --> Catalog
     Reviews -- "query: HasPurchased" --> Orders
 ```
 
-Traffic between the gateway and most services, and between services, uses the binary serializer over TCP, encrypted with a shared key. Shipping is hosted inside ASP.NET Core, so its traffic is the same serializer and encryption over HTTP instead. Browsers only talk JSON to the gateway.
+Traffic between the gateway and most services, and between services, uses the binary serializer over TCP, encrypted with a shared key. Shipping is hosted inside ASP.NET Core, so its traffic is the same serializer and encryption over HTTP instead. Three flows go through a message broker when it's running, one per broker, and fall back to the direct route when it isn't (see [Message brokers](#message-brokers)). Browsers only talk JSON to the gateway.
 
 ## Projects
 
@@ -35,7 +35,7 @@ Traffic between the gateway and most services, and between services, uses the bi
 | `Store.Shipping.Service` | Tracks shipments. Hosted inside ASP.NET Core over HTTP/Kestrel instead of the raw TCP the other services use, and needs no database, it only reacts to events and holds state in memory. Subscribes to order events, the same interface Inventory subscribes to. |
 | `Store.Reviews.Domain` | Reviews contracts: `IReviewsQueryHandler`, `IReviewsCommandHandler`. |
 | `Store.Reviews.Service` | Product ratings and comments, MariaDB store. Calls Catalog for the product's name and Orders to mark a review a verified purchase. |
-| `Store.Common` | Shared plumbing: settings, console loggers, `DomainException`, `MultiEventProducer`, data store setup, and the seed product and customer IDs. |
+| `Store.Common` | Shared plumbing: settings, console loggers, `DomainException`, data store setup, the messaging description, and the seed product and customer IDs. |
 
 Each service follows the same layout:
 
@@ -49,8 +49,9 @@ Each service follows the same layout:
 **Script:**
 
 ```powershell
-.\Demo\Store\start-store.ps1            # use the databases when they're reachable
-.\Demo\Store\start-store.ps1 -InMemory  # skip the databases
+.\Demo\Store\start-store.ps1                    # use the databases and message brokers when they're reachable
+.\Demo\Store\start-store.ps1 -InMemory          # skip the databases
+.\Demo\Store\start-store.ps1 -DirectMessaging   # skip the message brokers
 ```
 
 It builds the six projects and starts each one in its own window.
@@ -84,6 +85,22 @@ To run all the databases in Docker, use `Demo/Infrastructure/start-infrastructur
 
 Seeders only run against an empty store, so data in a database survives restarts. Drop a demo database to reseed it.
 
+## Message brokers
+
+Three flows between services use a different message broker each, and each falls back to the direct route when its broker isn't running:
+
+| Flow | Broker | Without the broker |
+|---|---|---|
+| `ReserveStockCommand` from Orders to Inventory, awaited with a result | Kafka | TCP |
+| `OrderShippedEvent` and `OrderCancelledEvent` from Orders to Inventory and Shipping | RabbitMQ, which delivers each event to both subscribers on its own | TCP to Inventory and HTTP to Shipping, one event producer each |
+| `SubmitReviewCommand` from the gateway to Reviews, awaited with a result | Azure Service Bus (the emulator) | TCP |
+
+At startup each service checks the brokers it uses with `KafkaConnection.TestAsync`, `RabbitMQConnection.Test`, or `AzureServiceBusConnection.TestAsync`, and logs which route it chose. The Overview page shows the consumers each service hosts, next to its data store. Outbound choices, such as Orders' and the gateway's, are only in their consoles. The sending service registers either the broker's producer or the direct client, and the receiving service makes the same check and registers either the broker's consumer or its TCP or Kestrel consumer, so both ends pick the same route.
+
+Queries always go directly, brokers only carry commands and events.
+
+To run the brokers in Docker, use `Demo/Infrastructure/start-infrastructure.ps1`, the same script that starts the databases.
+
 ## Settings
 
 All settings have defaults in `Store.Common/StoreSettings.cs` and can be overridden with environment variables.
@@ -94,6 +111,10 @@ All settings have defaults in `Store.Common/StoreSettings.cs` and can be overrid
 | `STORE_CATALOG_URL`, `STORE_INVENTORY_URL`, `STORE_ORDERS_URL`, `STORE_REVIEWS_URL` | `localhost:9101`, `localhost:9102`, `localhost:9103`, `localhost:9104` |
 | `STORE_SHIPPING_URL` | `http://localhost:9105`, an HTTP endpoint since Shipping is hosted in ASP.NET Core |
 | `STORE_CATALOG_POSTGRESQL`, `STORE_INVENTORY_MYSQL`, `STORE_ORDERS_MSSQL`, `STORE_ORDERS_MSSQL_WINDOWS_AUTH`, `STORE_REVIEWS_MARIADB` | the connection strings above |
+| `STORE_DIRECT_MESSAGING` | not set. Set it to `true` to skip the message brokers. |
+| `STORE_KAFKA` | `localhost:9092` |
+| `STORE_RABBITMQ` | `localhost` |
+| `STORE_AZURESERVICEBUS` | the Service Bus emulator from `Demo/Infrastructure`: `Endpoint=sb://localhost:5673;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;` |
 | `STORE_SHARED_KEY` | the demo key for the traffic encryption |
 
 ## Things to try
@@ -105,6 +126,7 @@ All settings have defaults in `Store.Common/StoreSettings.cs` and can be overrid
 - Add a product, restock it, then order it.
 - Write a review as a customer who received the product, then as one who never ordered it, and compare the Verified purchase badges on the Reviews page. The average rating then shows up next to that product on the Catalog page.
 - Stop one service and use the pages to see how the failure surfaces. Stopping Shipping doesn't stop orders from shipping, Inventory still gets the event.
+- Start the services with the brokers running and again with `-DirectMessaging`. The pages work the same either way, and each service's window shows which route it chose for each flow.
 
 ## Where to look
 
@@ -116,10 +138,11 @@ All settings have defaults in `Store.Common/StoreSettings.cs` and can be overrid
 | A service with no database at all | `Store.Shipping.Service/Data/ShippingDataContext.cs`, a plain `MemoryDataContext` with no selector |
 | Query called from another service | `OrdersCommandHandler` calls `ICatalogQueryHandler.GetProductsByIDs`; `ReviewsCommandHandler` calls both `ICatalogQueryHandler` and `IOrdersQueryHandler` |
 | Command with a result, awaited across services | `PlaceOrderCommand`, and `ReserveStockCommand` from Orders to Inventory |
-| Events between services, including two subscribers to the same event | Orders publishes `IOrderEventHandler` events through `Store.Common/MultiEventProducer.cs`, which composes an Inventory `TcpCqrsClient` and a Shipping `KestrelCqrsClient` behind one producer since the bus allows only one producer per event type; `OrderEventHandler` in each of `Store.Inventory.Service` and `Store.Shipping.Service` handles the notification its own way |
+| Events between services, including two subscribers to the same event | Orders publishes `IOrderEventHandler` events through RabbitMQ, or without it registers two event producers, an Inventory `TcpCqrsClient` and a Shipping `KestrelCqrsClient`, and the bus sends each event to both (`Store.Orders.Service/Program.cs`); `OrderEventHandler` in each of `Store.Inventory.Service` and `Store.Shipping.Service` handles the notification its own way |
+| Message brokers with a fallback to direct TCP/HTTP | Kafka in `Store.Orders.Service/Program.cs` and `Store.Inventory.Service/Program.cs`, RabbitMQ in those two and `Store.Shipping.Service/Program.cs`, Azure Service Bus in `Store.Web/Program.cs` and `Store.Reviews.Service/Program.cs` |
 | Repository with a store per service and in-memory fallback | `Store.*.Service/Data/*DataContext.cs`, `Store.Common/Data/DataStoreSetup.cs` |
 | Relations with `Graph` and partial updates | `CatalogQueryHandler` (product with category), `OrdersQueryHandler` (order with customer and lines), `CatalogCommandHandler`, `OrdersCommandHandler`, and `ShippingCommandHandler` (updates limited to the changed columns) |
-| Service injection | `IDataStoreInfo` added to `BusServices`, read by the `GetDataStoreName` queries |
+| Service injection | `IDataStoreInfo` and `IMessagingInfo` added to `BusServices`, read by the `GetDataStoreName` and `GetMessagingName` queries |
 | Data joined from two services in the browser | `catalog.js` joins Reviews' ratings onto Catalog's products; `orders.js` joins Shipping's tracking onto Orders' orders |
 | Browser calls | `Store.Web/wwwroot/js/*.js`, using the generated `JavaScriptModels.js` |
 
@@ -134,3 +157,4 @@ This is a demo, so some things a production system needs are left out:
 - The gateway has no `ICqrsAuthorizer` and allows every origin. See [Security](../../docs/Security.md) and [Zerra.Web](../../docs/ZerraWeb.md).
 - Events are published after the order is saved, without an outbox. If Inventory or Shipping is down when an order ships, the order is still marked shipped and that service never settles its side once it comes back.
 - Inventory serializes stock changes with an in-process lock, which only works for a single instance.
+- Each service checks the brokers only at startup and assumes the service on the other end of the flow makes the same choice. If a broker starts or stops while the services are running, restart the services on both ends of that flow, otherwise one end can be using the broker while the other uses the direct route. An awaited command sent through a broker also waits until it's handled rather than failing fast the way a TCP connection to a stopped service does.

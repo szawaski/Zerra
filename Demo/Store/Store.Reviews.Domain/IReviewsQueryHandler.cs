@@ -6,6 +6,7 @@ namespace Store.Reviews.Domain
     public interface IReviewsQueryHandler : IQueryHandler
     {
         Task<string> GetDataStoreName(CancellationToken cancellationToken);
+        Task<string> GetMessagingName(CancellationToken cancellationToken);
 
         Task<ReviewModel[]> GetRecentReviews(int count, CancellationToken cancellationToken);
         Task<ReviewModel[]> GetReviewsForProduct(Guid productID, CancellationToken cancellationToken);

@@ -14,6 +14,14 @@ namespace Zerra.Repository.Test.RabbitMQ
     {
         private const string host = "localhost";
 
+        [Fact]
+        public void TestConnection()
+        {
+            Assert.True(RabbitMQConnection.Test(host));
+            //nothing listens on port 1
+            Assert.False(RabbitMQConnection.Test("amqp://guest:guest@localhost:1", TimeSpan.FromSeconds(2)));
+        }
+
         [Fact(Timeout = 300000)]
         public async Task TestSequence()
         {

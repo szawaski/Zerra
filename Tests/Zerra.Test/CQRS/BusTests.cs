@@ -121,6 +121,47 @@ namespace Zerra.Test.CQRS
             await BusDispatches(busClient, waiter, results);
         }
 
+        [Fact]
+        public async Task BusMultipleEventProducersTcp()
+        {
+            var url1 = "http://localhost:9005";
+            var url2 = "http://localhost:9006";
+            var serializer = new ZerraByteSerializer();
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
+
+            using var waiter1 = new SemaphoreSlim(0, 1);
+            var results1 = new List<int>();
+            var busServer1 = Bus.New("test-server1", null, null, null);
+            busServer1.AddHandler<ITestEventHandler>(new TestEventHandler(results1, waiter1));
+            busServer1.AddEventConsumer<ITestEventHandler>(new TcpCqrsServer(url1, serializer, encryptor, null));
+
+            using var waiter2 = new SemaphoreSlim(0, 1);
+            var results2 = new List<int>();
+            var busServer2 = Bus.New("test-server2", null, null, null);
+            busServer2.AddHandler<ITestEventHandler>(new TestEventHandler(results2, waiter2));
+            busServer2.AddEventConsumer<ITestEventHandler>(new TcpCqrsServer(url2, serializer, encryptor, null));
+
+            //each producer is sent the event, adding the same producer again is ignored so it isn't sent twice
+            var busClient = Bus.New("test-client", null, null, null);
+            var client1 = new TcpCqrsClient(url1, serializer, encryptor, null);
+            busClient.AddEventProducer<ITestEventHandler>(client1);
+            busClient.AddEventProducer<ITestEventHandler>(client1);
+            busClient.AddEventProducer<ITestEventHandler>(new TcpCqrsClient(url2, serializer, encryptor, null));
+
+            await busClient.DispatchAsync(new TestEvent { Thing = 41 });
+            Assert.True(await waiter1.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+            Assert.True(await waiter2.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+            Assert.Equal([41], results1);
+            Assert.Equal([41], results2);
+
+            await Task.Delay(200, TestContext.Current.CancellationToken);
+            Assert.Single(results1);
+
+            await busClient.StopServicesAsync();
+            await busServer1.StopServicesAsync();
+            await busServer2.StopServicesAsync();
+        }
+
         private static async Task BusCalls(IBus bus, string serviceName)
         {
             var service = bus.Call<ITestQueryHandler>().GetServiceName();

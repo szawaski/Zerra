@@ -11,20 +11,21 @@ namespace Zerra.CQRS.Network
     /// A response from a service that a CQRS operation was completed and if it was successful.
     /// This may contain a result or an exception.
     /// </summary>
+    [GenerateTypeDetail]
     public sealed class Acknowledgement
     {
         /// <summary>
         /// The serialized exception content if the acknowledgment was a failure.
         /// </summary>
-        public byte[]? Exception { get; private set; }
+        public byte[]? Exception { get; set; }
         /// <summary>
         /// The data type of the result or the exception.
         /// </summary>
-        public string? DataType { get; private set; }
+        public string? DataType { get; set; }
         /// <summary>
         /// The serialized data of the result or the exception.
         /// </summary>
-        public byte[]? Data { get; private set; }
+        public byte[]? Data { get; set; }
 
         /// <summary>
         /// Creates an empty acknowledgement for deserialization, the other constructors take a serializer so they can't be matched to the members.

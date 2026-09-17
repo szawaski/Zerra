@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Reflection;
+
 namespace Zerra.CQRS.AzureServiceBus
 {
     /// <summary>
@@ -11,6 +13,7 @@ namespace Zerra.CQRS.AzureServiceBus
     /// Wraps command or event data with metadata including message type, result indication,
     /// security claims, and message source for routing and processing in Azure Service Bus-based CQRS systems.
     /// </remarks>
+    [GenerateTypeDetail]
     public sealed class AzureServiceBusMessage
     {
         /// <summary>
@@ -19,9 +22,9 @@ namespace Zerra.CQRS.AzureServiceBus
         public byte[]? MessageData { get; set; }
 
         /// <summary>
-        /// Gets or sets the type of the message (command or event class).
+        /// Gets or sets the assembly qualified name of the message type (command or event class), resolved with the type finder like the direct transports.
         /// </summary>
-        public Type? MessageType { get; set; }
+        public string? MessageType { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the message expects a result response.

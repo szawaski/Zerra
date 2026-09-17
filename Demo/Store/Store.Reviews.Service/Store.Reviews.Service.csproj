@@ -11,6 +11,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\..\Framework\Zerra.CQRS.AzureServiceBus\Zerra.CQRS.AzureServiceBus.csproj" />
         <ProjectReference Include="..\..\..\Framework\Zerra.Repository.Memory\Zerra.Repository.Memory.csproj" />
         <ProjectReference Include="..\..\..\Framework\Zerra.Repository.MariaDb\Zerra.Repository.MariaDb.csproj" />
         <ProjectReference Include="..\Store.Catalog.Domain\Store.Catalog.Domain.csproj" />

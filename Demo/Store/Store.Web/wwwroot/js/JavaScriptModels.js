@@ -146,6 +146,9 @@ const ICatalogQueryHandler = {
     GetDataStoreName: function(onComplete, onFail) {
         Bus.Call("Store.Catalog.Domain.ICatalogQueryHandler", "GetDataStoreName", [null], null, false, onComplete, onFail);
     },
+    GetMessagingName: function(onComplete, onFail) {
+        Bus.Call("Store.Catalog.Domain.ICatalogQueryHandler", "GetMessagingName", [null], null, false, onComplete, onFail);
+    },
     GetCategories: function(onComplete, onFail) {
         Bus.Call("Store.Catalog.Domain.ICatalogQueryHandler", "GetCategories", [null], CategoryModelType, true, onComplete, onFail);
     },
@@ -164,6 +167,9 @@ const IInventoryQueryHandler = {
     GetDataStoreName: function(onComplete, onFail) {
         Bus.Call("Store.Inventory.Domain.IInventoryQueryHandler", "GetDataStoreName", [null], null, false, onComplete, onFail);
     },
+    GetMessagingName: function(onComplete, onFail) {
+        Bus.Call("Store.Inventory.Domain.IInventoryQueryHandler", "GetMessagingName", [null], null, false, onComplete, onFail);
+    },
     GetStockLevels: function(onComplete, onFail) {
         Bus.Call("Store.Inventory.Domain.IInventoryQueryHandler", "GetStockLevels", [null], StockLevelModelType, true, onComplete, onFail);
     },
@@ -175,6 +181,9 @@ const IInventoryQueryHandler = {
 const IOrdersQueryHandler = {
     GetDataStoreName: function(onComplete, onFail) {
         Bus.Call("Store.Orders.Domain.IOrdersQueryHandler", "GetDataStoreName", [null], null, false, onComplete, onFail);
+    },
+    GetMessagingName: function(onComplete, onFail) {
+        Bus.Call("Store.Orders.Domain.IOrdersQueryHandler", "GetMessagingName", [null], null, false, onComplete, onFail);
     },
     GetCustomers: function(onComplete, onFail) {
         Bus.Call("Store.Orders.Domain.IOrdersQueryHandler", "GetCustomers", [null], CustomerModelType, true, onComplete, onFail);
@@ -194,6 +203,9 @@ const IReviewsQueryHandler = {
     GetDataStoreName: function(onComplete, onFail) {
         Bus.Call("Store.Reviews.Domain.IReviewsQueryHandler", "GetDataStoreName", [null], null, false, onComplete, onFail);
     },
+    GetMessagingName: function(onComplete, onFail) {
+        Bus.Call("Store.Reviews.Domain.IReviewsQueryHandler", "GetMessagingName", [null], null, false, onComplete, onFail);
+    },
     GetRecentReviews: function(count, onComplete, onFail) {
         Bus.Call("Store.Reviews.Domain.IReviewsQueryHandler", "GetRecentReviews", [count, null], ReviewModelType, true, onComplete, onFail);
     },
@@ -208,6 +220,9 @@ const IReviewsQueryHandler = {
 const IShippingQueryHandler = {
     GetDataStoreName: function(onComplete, onFail) {
         Bus.Call("Store.Shipping.Domain.IShippingQueryHandler", "GetDataStoreName", [null], null, false, onComplete, onFail);
+    },
+    GetMessagingName: function(onComplete, onFail) {
+        Bus.Call("Store.Shipping.Domain.IShippingQueryHandler", "GetMessagingName", [null], null, false, onComplete, onFail);
     },
     GetShipments: function(onComplete, onFail) {
         Bus.Call("Store.Shipping.Domain.IShippingQueryHandler", "GetShipments", [null], ShipmentModelType, true, onComplete, onFail);

@@ -6,6 +6,7 @@ namespace Store.Catalog.Domain
     public interface ICatalogQueryHandler : IQueryHandler
     {
         Task<string> GetDataStoreName(CancellationToken cancellationToken);
+        Task<string> GetMessagingName(CancellationToken cancellationToken);
 
         Task<CategoryModel[]> GetCategories(CancellationToken cancellationToken);
         Task<ProductModel[]> GetProducts(CancellationToken cancellationToken);

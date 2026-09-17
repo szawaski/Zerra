@@ -1,5 +1,6 @@
 using Store.Common;
 using Store.Common.Data;
+using Store.Common.Messaging;
 using Store.Orders.Domain;
 using Store.Orders.Domain.Models;
 using Store.Orders.Service.Data;
@@ -13,6 +14,7 @@ namespace Store.Orders.Service.Handlers
         private const int recentOrderCount = 50;
 
         public Task<string> GetDataStoreName(CancellationToken cancellationToken) => Task.FromResult(Context.GetService<IDataStoreInfo>().Description);
+        public Task<string> GetMessagingName(CancellationToken cancellationToken) => Task.FromResult(Context.GetService<IMessagingInfo>().Description);
 
         public async Task<CustomerModel[]> GetCustomers(CancellationToken cancellationToken)
         {
