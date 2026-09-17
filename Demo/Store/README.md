@@ -1,6 +1,6 @@
 # Store Demo
 
-A small storefront split into six microservices behind one CQRS gateway. The web app serves static HTML and JavaScript pages that call the gateway with the Zerra front end scripts (`Bus.js`). Each service is a bounded context with its own data store (or none, by design), and it creates and seeds that store on startup.
+A small storefront split into seven microservices, one of them the CQRS gateway the other six sit behind. The web app serves static HTML and JavaScript pages that call the gateway with the Zerra front end scripts (`Bus.js`). Each service is a bounded context with its own data store (or none, by design), and it creates and seeds that store on startup.
 
 ```mermaid
 flowchart LR
@@ -51,7 +51,7 @@ Carts is the exception. It stores events instead of rows, so it has no data mode
 
 ## Running
 
-**Visual Studio (17.11 or later):** pick the **Store Demo (In Memory, Direct Messaging)** launch profile in the startup project dropdown and press F5. It starts the six services and the web app with `STORE_IN_MEMORY` and `STORE_DIRECT_MESSAGING` set, so no databases or message brokers are needed, and the browser opens `http://localhost:5100`. **Store Demo (Databases, Message Brokers)** starts them the same way but uses the databases and message brokers when they're reachable. The profiles are in `Zerra.slnLaunch` at the repository root, and each uses the profile with the same name in every project's `Properties/launchSettings.json`. "In Memory, Direct Messaging" is listed first, so it's each project's default.
+**Visual Studio (17.11 or later):** pick the **Store Demo (In Memory, Direct Messaging)** launch profile in the startup project dropdown and press F5. It starts all seven services with `STORE_IN_MEMORY` and `STORE_DIRECT_MESSAGING` set, so no databases or message brokers are needed, and the browser opens `http://localhost:5100`. **Store Demo (Databases, Message Brokers)** starts them the same way but uses the databases and message brokers when they're reachable. The profiles are in `Zerra.slnLaunch` at the repository root, and each uses the profile with the same name in every project's `Properties/launchSettings.json`. "In Memory, Direct Messaging" is listed first, so it's each project's default.
 
 **Script:**
 

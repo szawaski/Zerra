@@ -23,7 +23,7 @@
     </header>
 
     <main>
-        <h1 class="page-title">A storefront on six microservices</h1>
+        <h1 class="page-title">A storefront on seven microservices</h1>
         <p class="page-lead">
             These pages are static HTML and JavaScript. Every query and command goes through one CQRS gateway on this site,
             which forwards it to the service that owns it, over encrypted TCP for most services and HTTP for Shipping. Each service keeps its own data store (or none, by design) and seeds it on startup. Some commands and events between services go through Kafka, RabbitMQ, or Azure Service Bus when they're running, and directly when they aren't.
