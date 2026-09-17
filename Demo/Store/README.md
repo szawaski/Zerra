@@ -44,7 +44,7 @@ Each service follows the same layout:
 
 ## Running
 
-**Visual Studio (17.11 or later):** pick the **Store Demo (Databases, Message Brokers)** launch profile in the startup project dropdown and press F5. It starts the five services and the web app, which use the databases and message brokers when they're reachable, and the browser opens `http://localhost:5100`. The profiles are in `Zerra.slnLaunch` at the repository root. **Store Demo (In Memory, Direct Messaging)** starts them the same way with `STORE_IN_MEMORY` and `STORE_DIRECT_MESSAGING` set, so no databases or message brokers are needed. Each uses the profile with the same name, "Databases, Message Brokers" or "In Memory, Direct Messaging", in every project's `Properties/launchSettings.json`.
+**Visual Studio (17.11 or later):** pick the **Store Demo (In Memory, Direct Messaging)** launch profile in the startup project dropdown and press F5. It starts the five services and the web app with `STORE_IN_MEMORY` and `STORE_DIRECT_MESSAGING` set, so no databases or message brokers are needed, and the browser opens `http://localhost:5100`. **Store Demo (Databases, Message Brokers)** starts them the same way but uses the databases and message brokers when they're reachable. The profiles are in `Zerra.slnLaunch` at the repository root, and each uses the profile with the same name in every project's `Properties/launchSettings.json`. "In Memory, Direct Messaging" is listed first, so it's each project's default.
 
 **Script:**
 
@@ -56,7 +56,7 @@ Each service follows the same layout:
 
 It builds the six projects and starts each one in its own window.
 
-**By hand:** `dotnet run` each of `Store.Catalog.Service`, `Store.Inventory.Service`, `Store.Orders.Service`, `Store.Shipping.Service`, `Store.Reviews.Service`, and `Store.Web`, in any order. Clients connect on first use.
+**By hand:** `dotnet run` each of `Store.Catalog.Service`, `Store.Inventory.Service`, `Store.Orders.Service`, `Store.Shipping.Service`, `Store.Reviews.Service`, and `Store.Web`, in any order. Clients connect on first use. That uses the default "In Memory, Direct Messaging" profile, add `--launch-profile "Databases, Message Brokers"` to use the databases and message brokers.
 
 **Native AOT:** every project (including the two ASP.NET Core ones, `Store.Web` and `Store.Shipping.Service`) sets `<PublishAot>true</PublishAot>`. Two scripts mirror `start-store.ps1`:
 

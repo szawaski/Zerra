@@ -1,14 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "Databases, Message Brokers": {
-      "commandName": "Project",
-      "launchBrowser": false,
-      "applicationUrl": "http://localhost:9105",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    },
     "In Memory, Direct Messaging": {
       "commandName": "Project",
       "launchBrowser": false,
@@ -17,6 +9,14 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "STORE_IN_MEMORY": "true",
         "STORE_DIRECT_MESSAGING": "true"
+      }
+    },
+    "Databases, Message Brokers": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:9105",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
   }

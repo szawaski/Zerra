@@ -1,15 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "Databases, Message Brokers": {
-      "commandName": "Project"
-    },
     "In Memory, Direct Messaging": {
       "commandName": "Project",
       "environmentVariables": {
         "STORE_IN_MEMORY": "true",
         "STORE_DIRECT_MESSAGING": "true"
       }
+    },
+    "Databases, Message Brokers": {
+      "commandName": "Project"
     }
   }
 }

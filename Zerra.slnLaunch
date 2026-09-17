@@ -1,40 +1,5 @@
 [
   {
-    "Name": "Store Demo (Databases, Message Brokers)",
-    "Projects": [
-      {
-        "Path": "Demo\\Store\\Store.Catalog.Service\\Store.Catalog.Service.csproj",
-        "Action": "Start",
-        "DebugTarget": "Databases, Message Brokers"
-      },
-      {
-        "Path": "Demo\\Store\\Store.Inventory.Service\\Store.Inventory.Service.csproj",
-        "Action": "Start",
-        "DebugTarget": "Databases, Message Brokers"
-      },
-      {
-        "Path": "Demo\\Store\\Store.Orders.Service\\Store.Orders.Service.csproj",
-        "Action": "Start",
-        "DebugTarget": "Databases, Message Brokers"
-      },
-      {
-        "Path": "Demo\\Store\\Store.Shipping.Service\\Store.Shipping.Service.csproj",
-        "Action": "Start",
-        "DebugTarget": "Databases, Message Brokers"
-      },
-      {
-        "Path": "Demo\\Store\\Store.Reviews.Service\\Store.Reviews.Service.csproj",
-        "Action": "Start",
-        "DebugTarget": "Databases, Message Brokers"
-      },
-      {
-        "Path": "Demo\\Store\\Store.Web\\Store.Web.csproj",
-        "Action": "Start",
-        "DebugTarget": "Databases, Message Brokers"
-      }
-    ]
-  },
-  {
     "Name": "Store Demo (In Memory, Direct Messaging)",
     "Projects": [
       {
@@ -66,6 +31,41 @@
         "Path": "Demo\\Store\\Store.Web\\Store.Web.csproj",
         "Action": "Start",
         "DebugTarget": "In Memory, Direct Messaging"
+      }
+    ]
+  },
+  {
+    "Name": "Store Demo (Databases, Message Brokers)",
+    "Projects": [
+      {
+        "Path": "Demo\\Store\\Store.Catalog.Service\\Store.Catalog.Service.csproj",
+        "Action": "Start",
+        "DebugTarget": "Databases, Message Brokers"
+      },
+      {
+        "Path": "Demo\\Store\\Store.Inventory.Service\\Store.Inventory.Service.csproj",
+        "Action": "Start",
+        "DebugTarget": "Databases, Message Brokers"
+      },
+      {
+        "Path": "Demo\\Store\\Store.Orders.Service\\Store.Orders.Service.csproj",
+        "Action": "Start",
+        "DebugTarget": "Databases, Message Brokers"
+      },
+      {
+        "Path": "Demo\\Store\\Store.Shipping.Service\\Store.Shipping.Service.csproj",
+        "Action": "Start",
+        "DebugTarget": "Databases, Message Brokers"
+      },
+      {
+        "Path": "Demo\\Store\\Store.Reviews.Service\\Store.Reviews.Service.csproj",
+        "Action": "Start",
+        "DebugTarget": "Databases, Message Brokers"
+      },
+      {
+        "Path": "Demo\\Store\\Store.Web\\Store.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "Databases, Message Brokers"
       }
     ]
   }

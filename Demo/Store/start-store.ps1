@@ -47,7 +47,8 @@ try {
         Write-Host "Starting $project" -ForegroundColor Green
         $directory = Join-Path $PSScriptRoot $project
         #-NoExit keeps the window open if the service stops, so its output can still be read
-        Start-Process powershell.exe -WorkingDirectory $directory -ArgumentList @('-NoExit', '-NoProfile', '-Command', "dotnet run --no-build --project '$directory'")
+        #the launch profile with no store settings, the default profile would force in-memory and direct messaging over this script's switches
+        Start-Process powershell.exe -WorkingDirectory $directory -ArgumentList @('-NoExit', '-NoProfile', '-Command', "dotnet run --no-build --project '$directory' --launch-profile 'Databases, Message Brokers'")
     }
 }
 finally {
