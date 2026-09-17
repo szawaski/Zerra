@@ -30,7 +30,7 @@ await InventorySeeder.SeedAsync(repo, log);
 //Message brokers: each is used when it's running, checked here first so the choice can be reported like the data store
 var useKafka = !StoreSettings.DirectMessagingOnly && await KafkaConnection.TestAsync(StoreSettings.KafkaHost, null, null, log: log);
 var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnection.Test(StoreSettings.RabbitMQHost, log: log);
-IMessagingInfo messaging = new MessagingInfo($"{(useKafka ? "Kafka" : "Direct TCP")}. Order events: {(useRabbitMQ ? "RabbitMQ" : "Direct TCP")}.{(StoreSettings.DirectMessagingOnly ? " (STORE_DIRECT_MESSAGING=true)" : null)}");
+IMessagingInfo messaging = new MessagingInfo($"{(useKafka ? "Kafka" : "Direct TCP")}. Order events: {(useRabbitMQ ? "RabbitMQ" : "Direct TCP")}.");
 log.Info($"Messaging: {messaging.Description}");
 
 var busServices = new BusServices();

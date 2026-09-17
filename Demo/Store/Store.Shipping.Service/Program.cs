@@ -30,7 +30,7 @@ repo.AddProvider(new ShippingStoreProvider<ShipmentDataModel>());
 
 //Message brokers: RabbitMQ is used when it's running, checked here first so the choice can be reported like the data store
 var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnection.Test(StoreSettings.RabbitMQHost, log: log);
-IMessagingInfo messaging = new MessagingInfo($"Order events: {(useRabbitMQ ? "RabbitMQ" : "direct HTTP")}.{(StoreSettings.DirectMessagingOnly ? " (STORE_DIRECT_MESSAGING=true)" : null)}");
+IMessagingInfo messaging = new MessagingInfo($"Order events: {(useRabbitMQ ? "RabbitMQ" : "direct HTTP")}.");
 log.Info($"Messaging: {messaging.Description}");
 
 var busServices = new BusServices();

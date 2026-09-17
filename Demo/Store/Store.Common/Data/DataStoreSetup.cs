@@ -26,7 +26,7 @@ namespace Store.Common.Data
             IDataStoreInfo info;
             if (engine is MemoryEngine)
             {
-                info = new DataStoreInfo(StoreSettings.InMemoryOnly ? "In-memory (STORE_IN_MEMORY=true)" : $"In-memory ({preferredStore} not reachable)");
+                info = new DataStoreInfo(StoreSettings.InMemoryOnly ? "In-memory" :$"In-memory ({preferredStore} not reachable)");
                 log.Warn($"Data store: {info.Description}, data resets when the service restarts");
             }
             else

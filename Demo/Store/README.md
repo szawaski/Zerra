@@ -44,7 +44,7 @@ Each service follows the same layout:
 
 ## Running
 
-**Visual Studio (17.11 or later):** pick the **Store Demo** launch profile in the startup project dropdown and press F5. It starts the five services and the web app, and the browser opens `http://localhost:5100`. The profile is in `Zerra.slnLaunch` at the repository root.
+**Visual Studio (17.11 or later):** pick the **Store Demo (Databases, Message Brokers)** launch profile in the startup project dropdown and press F5. It starts the five services and the web app, which use the databases and message brokers when they're reachable, and the browser opens `http://localhost:5100`. The profiles are in `Zerra.slnLaunch` at the repository root. **Store Demo (In Memory, Direct Messaging)** starts them the same way with `STORE_IN_MEMORY` and `STORE_DIRECT_MESSAGING` set, so no databases or message brokers are needed. Each uses the profile with the same name, "Databases, Message Brokers" or "In Memory, Direct Messaging", in every project's `Properties/launchSettings.json`.
 
 **Script:**
 

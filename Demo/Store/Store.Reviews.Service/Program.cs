@@ -27,7 +27,7 @@ await ReviewsSeeder.SeedAsync(repo, log);
 
 //Message brokers: Azure Service Bus is used when it's running, checked here first so the choice can be reported like the data store
 var useServiceBus = !StoreSettings.DirectMessagingOnly && await AzureServiceBusConnection.TestAsync(StoreSettings.AzureServiceBusConnectionString, log: log);
-IMessagingInfo messaging = new MessagingInfo($"{(useServiceBus ? "Azure Service Bus" : "Direct TCP")}.{(StoreSettings.DirectMessagingOnly ? " (STORE_DIRECT_MESSAGING=true)" : null)}");
+IMessagingInfo messaging = new MessagingInfo($"{(useServiceBus ? "Azure Service Bus" : "Direct TCP")}.");
 log.Info($"Messaging: {messaging.Description}");
 
 var busServices = new BusServices();
