@@ -21,12 +21,12 @@ Log.SetLog(log); //framework messages too, such as why a database was skipped
 log.Info("Starting Orders service");
 
 //Data store: this service's own database, schema from the data models, then seed data
-var dataStore = DataStoreSetup.Prepare<OrdersDataContext>("SQL Server", [typeof(CustomerDataModel), typeof(OrderDataModel), typeof(OrderLineDataModel)], log);
+var dataStore = DataStoreSetup.Prepare<OrdersDataContext>("SQL Server", [typeof(CustomerDataModel), typeof(OrderDataModel), typeof(OrderItemDataModel)], log);
 
 var repo = Repo.New();
 repo.AddProvider(new OrdersStoreProvider<CustomerDataModel>());
 repo.AddProvider(new OrdersStoreProvider<OrderDataModel>());
-repo.AddProvider(new OrdersStoreProvider<OrderLineDataModel>());
+repo.AddProvider(new OrdersStoreProvider<OrderItemDataModel>());
 await OrdersSeeder.SeedAsync(repo, log);
 
 //Message brokers: each is used when it's running, checked here first so the choice can be reported like the data store

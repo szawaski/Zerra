@@ -1,7 +1,7 @@
 $(function () {
 
     const $orders = $("#orders");
-    const $lines = $("#order-lines");
+    const $orderItems = $("#order-items");
     let products = [];
     let available = {};
     let shipments = {};
@@ -34,14 +34,14 @@ $(function () {
             available[level.ProductID] = level.Available;
 
         //refresh the product choices without losing what's selected
-        $lines.find(".order-line").each(function () {
+        $orderItems.find(".order-item").each(function () {
             const $select = $(this).find("select");
             const selected = $select.val();
             fillProductOptions($select);
             $select.val(selected);
         });
-        if ($lines.children().length === 0)
-            addLine();
+        if ($orderItems.children().length === 0)
+            addItem();
         updateTotal();
     }
 
@@ -59,15 +59,15 @@ $(function () {
         }
     }
 
-    function addLine() {
+    function addItem() {
         const $select = $("<select>");
         fillProductOptions($select);
         const $quantity = $("<input type='number' min='1' max='100' value='1'>");
         const $remove = $("<button type='button'>").addClass("secondary small").attr("title", "Remove").text("✕");
-        const $line = $("<div>").addClass("order-line").append($select, $quantity, $remove).appendTo($lines);
+        const $item = $("<div>").addClass("order-item").append($select, $quantity, $remove).appendTo($orderItems);
 
-        //start each new line on a product not already in the order
-        const used = $lines.find("select").not($select).map(function () { return $(this).val(); }).get();
+        //start each new item on a product not already in the order
+        const used = $orderItems.find("select").not($select).map(function () { return $(this).val(); }).get();
         const next = products.find(function (x) { return x.IsActive && used.indexOf(x.ID) < 0; });
         if (next)
             $select.val(next.ID);
@@ -75,14 +75,14 @@ $(function () {
         $select.on("change", updateTotal);
         $quantity.on("input", updateTotal);
         $remove.on("click", function () {
-            $line.remove();
+            $item.remove();
             updateTotal();
         });
         updateTotal();
     }
 
     function readItems() {
-        return $lines.find(".order-line").map(function () {
+        return $orderItems.find(".order-item").map(function () {
             return {
                 ProductID: $(this).find("select").val(),
                 Quantity: parseInt($(this).find("input").val(), 10) || 0
@@ -98,7 +98,7 @@ $(function () {
                 total += product.Price * item.Quantity;
         }
         $("#order-total").text(Store.money(total));
-        $("#place-order").prop("disabled", $lines.children().length === 0);
+        $("#place-order").prop("disabled", $orderItems.children().length === 0);
     }
 
     async function loadOrders() {
@@ -128,8 +128,8 @@ $(function () {
             $("<div>").addClass("subtle").text(order.CustomerName + " · " + Store.dateTime(order.PlacedOn))
         ));
         const $items = $("<td>").appendTo($row);
-        for (const line of order.Lines || [])
-            $items.append($("<div>").text(line.Quantity + " × " + line.ProductName).attr("title", Store.money(line.UnitPrice) + " each"));
+        for (const item of order.Items || [])
+            $items.append($("<div>").text(item.Quantity + " × " + item.ProductName).attr("title", Store.money(item.UnitPrice) + " each"));
         $row.append($("<td>").addClass("num").text(Store.money(order.Total)));
         $row.append($("<td>").append(Store.badge(order.Status, statusBadges[order.Status] || "neutral")));
 
@@ -157,7 +157,7 @@ $(function () {
             .catch(function () { });
     }
 
-    $("#add-line").on("click", addLine);
+    $("#add-item").on("click", addItem);
 
     $("#new-order").on("submit", function (e) {
         e.preventDefault();
@@ -169,7 +169,7 @@ $(function () {
         Store.busy("#place-order", Store.send(command))
             .then(function (result) {
                 Store.toast("Order " + result.OrderNumber + " placed for " + Store.money(result.Total), "success");
-                $lines.empty();
+                $orderItems.empty();
                 return Promise.all([loadOrders(), loadFormData()]);
             })
             .catch(function () { });

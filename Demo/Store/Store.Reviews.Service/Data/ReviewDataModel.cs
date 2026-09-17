@@ -10,7 +10,7 @@ namespace Store.Reviews.Service.Data
 
         public Guid ProductID { get; set; }
 
-        //a snapshot of the name at review time, the same pattern OrderLineDataModel uses for its product name
+        //a snapshot of the name at review time, the same pattern OrderItemDataModel uses for its product name
         [StoreProperties(true, 128)]
         public string? ProductName { get; set; }
 

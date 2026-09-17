@@ -9,6 +9,6 @@ namespace Store.Orders.Domain.Models
         public DateTime PlacedOn { get; set; }
         public string? Status { get; set; }
         public decimal Total { get; set; }
-        public OrderLineModel[]? Lines { get; set; }
+        public OrderItemModel[]? Items { get; set; }
     }
 }

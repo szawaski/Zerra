@@ -14,7 +14,7 @@ namespace Store.Orders.Service.Handlers
 {
     public sealed class OrdersCommandHandler : BaseHandlerWithRepo, IOrdersCommandHandler
     {
-        private const int maxLines = 20;
+        private const int maxItems = 20;
         private const int maxQuantity = 100;
 
         public async Task<PlaceOrderResult> Handle(PlaceOrderCommand command, CancellationToken cancellationToken)
@@ -28,8 +28,8 @@ namespace Store.Orders.Service.Handlers
                 .GroupBy(x => x.ProductID)
                 .Select(x => (ProductID: x.Key, Quantity: x.Sum(y => y.Quantity)))
                 .ToArray();
-            if (items.Length > maxLines)
-                throw new DomainException($"An order can have at most {maxLines} different products.");
+            if (items.Length > maxItems)
+                throw new DomainException($"An order can have at most {maxItems} different products.");
 
             //Query the Catalog service: names and prices come from the catalog, never from the browser
             var productIDs = items.Select(x => x.ProductID).ToArray();
@@ -46,7 +46,7 @@ namespace Store.Orders.Service.Handlers
             };
 
             //the name and price are a snapshot of the catalog when the order is placed
-            var lines = new OrderLineDataModel[items.Length];
+            var orderItems = new OrderItemDataModel[items.Length];
             for (var i = 0; i < items.Length; i++)
             {
                 if (!products.TryGetValue(items[i].ProductID, out var product))
@@ -56,7 +56,7 @@ namespace Store.Orders.Service.Handlers
                 if (items[i].Quantity < 1 || items[i].Quantity > maxQuantity)
                     throw new DomainException($"Quantity of {product.Name} must be between 1 and {maxQuantity}.");
 
-                lines[i] = new OrderLineDataModel()
+                orderItems[i] = new OrderItemDataModel()
                 {
                     ID = Guid.NewGuid(),
                     OrderID = order.ID,
@@ -66,20 +66,20 @@ namespace Store.Orders.Service.Handlers
                     Quantity = items[i].Quantity
                 };
             }
-            var total = lines.Sum(x => x.UnitPrice * x.Quantity);
+            var total = orderItems.Sum(x => x.UnitPrice * x.Quantity);
 
             //Command the Inventory service and wait: if any product is short it throws and the order is never saved
             await Bus.DispatchAwaitAsync(new ReserveStockCommand()
             {
                 OrderID = order.ID,
                 OrderNumber = order.OrderNumber,
-                Lines = lines.Select(x => new StockReservationLine() { ProductID = x.ProductID, ProductName = x.ProductName, Quantity = x.Quantity }).ToArray()
+                Items = orderItems.Select(x => new StockReservationItem() { ProductID = x.ProductID, ProductName = x.ProductName, Quantity = x.Quantity }).ToArray()
             });
 
             try
             {
                 await Repo.CreateAsync(order);
-                await Repo.CreateAsync(lines);
+                await Repo.CreateAsync(orderItems);
             }
             catch
             {

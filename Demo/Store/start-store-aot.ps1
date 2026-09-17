@@ -33,6 +33,7 @@ $projects = @(
     'Store.Orders.Service',
     'Store.Shipping.Service',
     'Store.Reviews.Service',
+    'Store.Carts.Service',
     'Store.Web'
 )
 

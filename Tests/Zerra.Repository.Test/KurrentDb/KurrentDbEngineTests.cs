@@ -13,6 +13,12 @@ namespace Zerra.Repository.Test.KurrentDb
     public class KurrentDbEngineTests
     {
         [Fact]
+        public async Task TestAggregateConcurrency()
+        {
+            await AggregateTest.TestConcurrencyAsync<KurrentDbTestDataContext>();
+        }
+
+        [Fact]
         public async Task ValidateDataSource_HealthCheckAnswers_IsValid()
         {
             //stands in for the server's HTTP health endpoint, the client may open its own connections too so every connection is accepted

@@ -2,8 +2,8 @@ using Zerra.Repository;
 
 namespace Store.Orders.Service.Data
 {
-    [Entity("SalesOrderLine")]
-    public sealed class OrderLineDataModel
+    [Entity("SalesOrderItem")]
+    public sealed class OrderItemDataModel
     {
         [Identity(false)]
         public Guid ID { get; set; }

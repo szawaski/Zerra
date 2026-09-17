@@ -5,6 +5,7 @@ $(function () {
     const services = {
         catalog: ICatalogQueryHandler,
         inventory: IInventoryQueryHandler,
+        carts: ICartsQueryHandler,
         orders: IOrdersQueryHandler,
         shipping: IShippingQueryHandler,
         reviews: IReviewsQueryHandler

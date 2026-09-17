@@ -1,4 +1,33 @@
-﻿const CategoryModelType =
+﻿const CartModelType =
+{
+    CustomerID: "string",
+    Items: "CartItemModel[]",
+    ItemCount: "number",
+    Total: "number",
+    LastEventNumber: "number",
+    UpdatedOn: "Date",
+    LastOrderNumber: "string",
+}
+
+const CartItemModelType =
+{
+    ProductID: "string",
+    ProductName: "string",
+    UnitPrice: "number",
+    Quantity: "number",
+    Total: "number",
+}
+
+const CartHistoryModelType =
+{
+    EventNumber: "number",
+    EventName: "string",
+    OccurredOn: "Date",
+    ItemCount: "number",
+    Total: "number",
+}
+
+const CategoryModelType =
 {
     ID: "string",
     Name: "string",
@@ -49,16 +78,16 @@ const OrderModelType =
     PlacedOn: "Date",
     Status: "string",
     Total: "number",
-    Lines: "OrderLineModel[]",
+    Items: "OrderItemModel[]",
 }
 
-const OrderLineModelType =
+const OrderItemModelType =
 {
     ProductID: "string",
     ProductName: "string",
     UnitPrice: "number",
     Quantity: "number",
-    LineTotal: "number",
+    Total: "number",
 }
 
 const ReviewModelType =
@@ -92,12 +121,19 @@ const ShipmentModelType =
     DeliveredOn: "Date",
 }
 
+const CheckoutCartResultType =
+{
+    OrderID: "string",
+    OrderNumber: "string",
+    Total: "number",
+}
+
 const AddProductResultType =
 {
     ProductID: "string",
 }
 
-const StockReservationLineType =
+const StockReservationItemType =
 {
     ProductID: "string",
     ProductName: "string",
@@ -125,21 +161,40 @@ const SubmitReviewResultType =
 
 const ModelTypeDictionary =
 {
+    CartModel: CartModelType,
+    CartItemModel: CartItemModelType,
+    CartHistoryModel: CartHistoryModelType,
     CategoryModel: CategoryModelType,
     ProductModel: ProductModelType,
     StockLevelModel: StockLevelModelType,
     StockMovementModel: StockMovementModelType,
     CustomerModel: CustomerModelType,
     OrderModel: OrderModelType,
-    OrderLineModel: OrderLineModelType,
+    OrderItemModel: OrderItemModelType,
     ReviewModel: ReviewModelType,
     ProductRatingModel: ProductRatingModelType,
     ShipmentModel: ShipmentModelType,
+    CheckoutCartResult: CheckoutCartResultType,
     AddProductResult: AddProductResultType,
-    StockReservationLine: StockReservationLineType,
+    StockReservationItem: StockReservationItemType,
     OrderItemRequest: OrderItemRequestType,
     PlaceOrderResult: PlaceOrderResultType,
     SubmitReviewResult: SubmitReviewResultType,
+}
+
+const ICartsQueryHandler = {
+    GetDataStoreName: function(onComplete, onFail) {
+        Bus.Call("Store.Carts.Domain.ICartsQueryHandler", "GetDataStoreName", [null], null, false, onComplete, onFail);
+    },
+    GetMessagingName: function(onComplete, onFail) {
+        Bus.Call("Store.Carts.Domain.ICartsQueryHandler", "GetMessagingName", [null], null, false, onComplete, onFail);
+    },
+    GetCart: function(customerID, onComplete, onFail) {
+        Bus.Call("Store.Carts.Domain.ICartsQueryHandler", "GetCart", [customerID, null], CartModelType, false, onComplete, onFail);
+    },
+    GetCartHistory: function(customerID, onComplete, onFail) {
+        Bus.Call("Store.Carts.Domain.ICartsQueryHandler", "GetCartHistory", [customerID, null], CartHistoryModelType, true, onComplete, onFail);
+    },
 }
 
 const ICatalogQueryHandler = {
@@ -229,6 +284,41 @@ const IShippingQueryHandler = {
     },
 }
 
+const AddToCartCommand = function(properties) {
+    this.CustomerID = (properties === undefined || properties.CustomerID === undefined) ? null : properties.CustomerID;
+    this.ProductID = (properties === undefined || properties.ProductID === undefined) ? null : properties.ProductID;
+    this.Quantity = (properties === undefined || properties.Quantity === undefined) ? null : properties.Quantity;
+    this.CommandType = "Store.Carts.Domain.Commands.AddToCartCommand";
+    this.CommandWithResult = false;
+    this.ResultType = null;
+    this.ResultTypeHasMany = false;
+}
+
+const CheckoutCartCommand = function(properties) {
+    this.CustomerID = (properties === undefined || properties.CustomerID === undefined) ? null : properties.CustomerID;
+    this.CommandType = "Store.Carts.Domain.Commands.CheckoutCartCommand";
+    this.CommandWithResult = true;
+    this.ResultType = CheckoutCartResultType;
+    this.ResultTypeHasMany = false;
+}
+
+const EmptyCartCommand = function(properties) {
+    this.CustomerID = (properties === undefined || properties.CustomerID === undefined) ? null : properties.CustomerID;
+    this.CommandType = "Store.Carts.Domain.Commands.EmptyCartCommand";
+    this.CommandWithResult = false;
+    this.ResultType = null;
+    this.ResultTypeHasMany = false;
+}
+
+const RemoveFromCartCommand = function(properties) {
+    this.CustomerID = (properties === undefined || properties.CustomerID === undefined) ? null : properties.CustomerID;
+    this.ProductID = (properties === undefined || properties.ProductID === undefined) ? null : properties.ProductID;
+    this.CommandType = "Store.Carts.Domain.Commands.RemoveFromCartCommand";
+    this.CommandWithResult = false;
+    this.ResultType = null;
+    this.ResultTypeHasMany = false;
+}
+
 const AddProductCommand = function(properties) {
     this.CategoryID = (properties === undefined || properties.CategoryID === undefined) ? null : properties.CategoryID;
     this.Sku = (properties === undefined || properties.Sku === undefined) ? null : properties.Sku;
@@ -261,7 +351,7 @@ const DiscontinueProductCommand = function(properties) {
 const ReserveStockCommand = function(properties) {
     this.OrderID = (properties === undefined || properties.OrderID === undefined) ? null : properties.OrderID;
     this.OrderNumber = (properties === undefined || properties.OrderNumber === undefined) ? null : properties.OrderNumber;
-    this.Lines = (properties === undefined || properties.Lines === undefined) ? null : properties.Lines;
+    this.Items = (properties === undefined || properties.Items === undefined) ? null : properties.Items;
     this.CommandType = "Store.Inventory.Domain.Commands.ReserveStockCommand";
     this.CommandWithResult = false;
     this.ResultType = null;

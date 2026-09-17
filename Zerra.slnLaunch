@@ -28,6 +28,11 @@
         "DebugTarget": "In Memory, Direct Messaging"
       },
       {
+        "Path": "Demo\\Store\\Store.Carts.Service\\Store.Carts.Service.csproj",
+        "Action": "Start",
+        "DebugTarget": "In Memory, Direct Messaging"
+      },
+      {
         "Path": "Demo\\Store\\Store.Web\\Store.Web.csproj",
         "Action": "Start",
         "DebugTarget": "In Memory, Direct Messaging"
@@ -59,6 +64,11 @@
       },
       {
         "Path": "Demo\\Store\\Store.Reviews.Service\\Store.Reviews.Service.csproj",
+        "Action": "Start",
+        "DebugTarget": "Databases, Message Brokers"
+      },
+      {
+        "Path": "Demo\\Store\\Store.Carts.Service\\Store.Carts.Service.csproj",
         "Action": "Start",
         "DebugTarget": "Databases, Message Brokers"
       },

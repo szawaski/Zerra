@@ -43,25 +43,25 @@ namespace Store.Orders.Service.Handlers
                 .ToArray();
             if (shippedOrderIDs.Length == 0)
                 return false;
-            return await Repo.AnyAsync<OrderLineDataModel>(x => shippedOrderIDs.Contains(x.OrderID) && x.ProductID == productID);
+            return await Repo.AnyAsync<OrderItemDataModel>(x => shippedOrderIDs.Contains(x.OrderID) && x.ProductID == productID);
         }
 
-        //all order columns plus the related customer for its name and the lines, the lines of every order load in one query
-        private static Graph<OrderDataModel> WithRelations() => new(true, x => x.Customer, x => x.Lines);
+        //all order columns plus the related customer for its name and the items, the items of every order load in one query
+        private static Graph<OrderDataModel> WithRelations() => new(true, x => x.Customer, x => x.Items);
 
         private static OrderModel[] ToModels(IReadOnlyCollection<OrderDataModel> orders)
         {
             return orders.Select(order =>
             {
-                var orderLines = order.Lines!
+                var orderItems = order.Items!
                     .OrderBy(x => x.ProductName)
-                    .Select(x => new OrderLineModel()
+                    .Select(x => new OrderItemModel()
                     {
                         ProductID = x.ProductID,
                         ProductName = x.ProductName,
                         UnitPrice = x.UnitPrice,
                         Quantity = x.Quantity,
-                        LineTotal = x.UnitPrice * x.Quantity
+                        Total = x.UnitPrice * x.Quantity
                     })
                     .ToArray();
 
@@ -73,8 +73,8 @@ namespace Store.Orders.Service.Handlers
                     CustomerName = order.Customer?.Name,
                     PlacedOn = order.PlacedOn,
                     Status = order.Status,
-                    Total = orderLines.Sum(x => x.LineTotal),
-                    Lines = orderLines
+                    Total = orderItems.Sum(x => x.Total),
+                    Items = orderItems
                 };
             }).ToArray();
         }

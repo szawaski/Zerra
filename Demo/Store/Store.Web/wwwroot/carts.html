@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zerra Store - Carts</title>
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="inner">
+            <a class="brand" href="index.html">Zerra <span>Store</span></a>
+            <nav class="site-nav">
+                <a href="index.html">Overview</a>
+                <a href="catalog.html">Catalog</a>
+                <a href="inventory.html">Inventory</a>
+                <a href="carts.html" class="active">Carts</a>
+                <a href="orders.html">Orders</a>
+                <a href="shipping.html">Shipping</a>
+                <a href="reviews.html">Reviews</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <h1 class="page-title">Carts</h1>
+        <p class="page-lead">
+            Owned by the Carts service, event sourced in KurrentDB. A cart has no table: each command rebuilds the customer's cart aggregate by replaying its events,
+            checks the rules, and appends one new event. Checking out sends the cart to the Orders service as an order.
+        </p>
+
+        <div class="grid grid-2">
+            <section class="card">
+                <div class="card-header">
+                    <h2>Cart</h2>
+                    <div class="toolbar">
+                        <select id="customer" aria-label="Customer"></select>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th class="num">Price</th>
+                                <th class="num">Qty</th>
+                                <th class="num">Total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="items"></tbody>
+                    </table>
+                </div>
+                <div class="order-total">
+                    <span id="cart-summary">Cart</span>
+                    <span id="cart-total">$0.00</span>
+                </div>
+                <div class="toolbar" style="margin-top: 12px; justify-content: flex-end">
+                    <button class="secondary" id="empty-cart">Empty cart</button>
+                    <button id="checkout">Check out</button>
+                </div>
+
+                <form id="add-item" autocomplete="off" style="margin-top: 20px">
+                    <label for="product">Add to cart</label>
+                    <div class="order-item">
+                        <select id="product"></select>
+                        <input type="number" id="quantity" min="1" max="100" value="1" aria-label="Quantity" />
+                        <button type="submit" id="add">Add</button>
+                    </div>
+                </form>
+                <p class="card-note">Prices are taken from the Catalog when an item is added. Checking out reprices the order from the Catalog and reserves the stock in Inventory.</p>
+            </section>
+
+            <section class="card">
+                <div class="card-header">
+                    <h2>Event stream</h2>
+                    <button class="secondary small" id="refresh">Refresh</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="num">#</th>
+                                <th>Event</th>
+                                <th class="num">Items</th>
+                                <th class="num">Cart total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history"></tbody>
+                    </table>
+                </div>
+                <p class="card-note">The newest events in this customer's stream. Each row is the cart replayed up to that event, one event at a time.</p>
+            </section>
+        </div>
+    </main>
+
+    <script src="lib/jquery/jquery.min.js"></script>
+    <script src="js/Bus.js"></script>
+    <script src="js/BusRoutes.js"></script>
+    <script src="js/JavaScriptModels.js"></script>
+    <script src="js/site.js"></script>
+    <script src="js/carts.js"></script>
+</body>
+</html>

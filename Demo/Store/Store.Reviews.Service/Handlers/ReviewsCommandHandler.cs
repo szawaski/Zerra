@@ -23,7 +23,7 @@ namespace Store.Reviews.Service.Handlers
             if (await Repo.AnyAsync<ReviewDataModel>(x => x.CustomerID == command.CustomerID && x.ProductID == command.ProductID))
                 throw new DomainException("You've already reviewed this product.");
 
-            //the product's name comes from the Catalog service, same as OrdersCommandHandler does for order lines
+            //the product's name comes from the Catalog service, same as OrdersCommandHandler does for order items
             var products = await Bus.Call<ICatalogQueryHandler>().GetProductsByIDs([command.ProductID], cancellationToken);
             var product = products.FirstOrDefault() ?? throw new DomainException("Product not found.");
 

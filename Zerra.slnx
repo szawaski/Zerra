@@ -16,6 +16,8 @@
     <File Path="Demo/Store/start-store.ps1" />
     <File Path="Demo/Store/publish-store-aot.ps1" />
     <File Path="Demo/Store/start-store-aot.ps1" />
+    <Project Path="Demo/Store/Store.Carts.Domain/Store.Carts.Domain.csproj" />
+    <Project Path="Demo/Store/Store.Carts.Service/Store.Carts.Service.csproj" />
     <Project Path="Demo/Store/Store.Catalog.Domain/Store.Catalog.Domain.csproj" />
     <Project Path="Demo/Store/Store.Catalog.Service/Store.Catalog.Service.csproj" />
     <Project Path="Demo/Store/Store.Common/Store.Common.csproj" />

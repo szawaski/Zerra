@@ -36,5 +36,34 @@ namespace Store.Common.Data
             }
             return info;
         }
+
+        /// <summary>
+        /// Resolves the service's event store and describes the store that was chosen. An event store has no schema, a stream is created by its first event.
+        /// </summary>
+        /// <typeparam name="TContext">The service's <see cref="DataContextSelector"/>, listing the preferred event store first and the in-memory store last.</typeparam>
+        /// <param name="preferredStore">Display name of the preferred event store, e.g. "KurrentDB".</param>
+        /// <param name="log">Receives which store was chosen.</param>
+        /// <param name="eventStore">The engine to build aggregates on. Resolved once and shared, the in-memory engine keeps its events in the instance.</param>
+        public static IDataStoreInfo PrepareEventStore<TContext>(string preferredStore, ILogger log, out IEventStoreEngine eventStore)
+            where TContext : DataContext, new()
+        {
+            var context = new TContext();
+            if (!context.TryGetEngine(out var engine))
+                throw new InvalidOperationException($"{typeof(TContext).Name} has no available data store");
+            eventStore = engine as IEventStoreEngine ?? throw new InvalidOperationException($"{typeof(TContext).Name} chose {engine.GetType().Name}, which is not an event store");
+
+            IDataStoreInfo info;
+            if (engine is MemoryEngine)
+            {
+                info = new DataStoreInfo(StoreSettings.InMemoryOnly ? "In-memory event store" : $"In-memory event store ({preferredStore} not reachable)");
+                log.Warn($"Data store: {info.Description}, data resets when the service restarts");
+            }
+            else
+            {
+                info = new DataStoreInfo(preferredStore);
+                log.Info($"Data store: {info.Description}");
+            }
+            return info;
+        }
     }
 }

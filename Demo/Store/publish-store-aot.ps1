@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Publishes the Store demo's six projects as native AOT executables, one folder per project.
+    Publishes the Store demo's seven projects as native AOT executables, one folder per project.
 
 .PARAMETER OutputDir
     Where each project's published executable goes, one subfolder per project. Defaults to ".\publish" next to this
@@ -28,6 +28,7 @@ $projects = @(
     'Store.Orders.Service',
     'Store.Shipping.Service',
     'Store.Reviews.Service',
+    'Store.Carts.Service',
     'Store.Web'
 )
 

@@ -25,7 +25,7 @@ namespace Store.Orders.Service.Data
         [Relation(nameof(CustomerID))]
         public CustomerDataModel? Customer { get; set; }
 
-        [Relation(nameof(OrderLineDataModel.OrderID))]
-        public OrderLineDataModel[]? Lines { get; set; }
+        [Relation(nameof(OrderItemDataModel.OrderID))]
+        public OrderItemDataModel[]? Items { get; set; }
     }
 }

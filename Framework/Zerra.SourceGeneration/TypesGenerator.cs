@@ -78,9 +78,13 @@ namespace Zerra.SourceGeneration
 
                 _ = sb.Append(", ");
 
-                //GenerateMethods(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);
+                //methods are only generated where the framework calls them, AggregateRoot looks up the method that applies each event
+                if (Helper.FindBase("Zerra.Repository", "AggregateRoot", model.TypeSymbol) != null)
+                    GenerateMethods(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);
+                else
+                    _ = sb.Append("null");
 
-                _ = sb.Append("null, ");
+                _ = sb.Append(", ");
 
                 GenerateCreators(sb, model.TypeName, namedTypeSymbol, symbolMembers);
 

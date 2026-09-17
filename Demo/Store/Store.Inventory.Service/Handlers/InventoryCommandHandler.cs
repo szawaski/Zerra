@@ -56,7 +56,7 @@ namespace Store.Inventory.Service.Handlers
 
         public async Task Handle(ReserveStockCommand command, CancellationToken cancellationToken)
         {
-            if (command.Lines is null || command.Lines.Length == 0)
+            if (command.Items is null || command.Items.Length == 0)
                 throw new DomainException("There is nothing to reserve.");
 
             await StockGate.WaitAsync(cancellationToken);
@@ -66,31 +66,31 @@ namespace Store.Inventory.Service.Handlers
                 if (await Repo.AnyAsync<StockReservationDataModel>(x => x.OrderID == command.OrderID))
                     return;
 
-                var lines = command.Lines
+                var items = command.Items
                     .GroupBy(x => x.ProductID)
                     .Select(x => (ProductID: x.Key, ProductName: x.First().ProductName ?? "A product", Quantity: x.Sum(y => y.Quantity)))
                     .ToArray();
 
-                var productIDs = lines.Select(x => x.ProductID).ToArray();
-                var items = (await Repo.ManyAsync<StockItemDataModel>(x => productIDs.Contains(x.ProductID))).ToDictionary(x => x.ProductID);
+                var productIDs = items.Select(x => x.ProductID).ToArray();
+                var stockItems = (await Repo.ManyAsync<StockItemDataModel>(x => productIDs.Contains(x.ProductID))).ToDictionary(x => x.ProductID);
 
-                //every line is checked before anything is saved, so a short product fails the order without reserving the rest
-                foreach (var line in lines)
+                //every item is checked before anything is saved, so a short product fails the order without reserving the rest
+                foreach (var item in items)
                 {
-                    if (line.Quantity <= 0)
+                    if (item.Quantity <= 0)
                         throw new DomainException("Reserved quantity must be at least 1.");
 
-                    var available = items.TryGetValue(line.ProductID, out var item) ? item.OnHand - item.Reserved : 0;
+                    var available = stockItems.TryGetValue(item.ProductID, out var stockItem) ? stockItem.OnHand - stockItem.Reserved : 0;
                     if (available == 0)
-                        throw new DomainException($"{line.ProductName} is out of stock.");
-                    if (line.Quantity > available)
-                        throw new DomainException($"Only {available} of {line.ProductName} available, {line.Quantity} requested.");
+                        throw new DomainException($"{item.ProductName} is out of stock.");
+                    if (item.Quantity > available)
+                        throw new DomainException($"Only {available} of {item.ProductName} available, {item.Quantity} requested.");
 
-                    item!.Reserved += line.Quantity;
+                    stockItem!.Reserved += item.Quantity;
                 }
 
-                await Repo.UpdateAsync(items.Values.ToArray());
-                await Repo.CreateAsync(lines.Select(x => new StockReservationDataModel()
+                await Repo.UpdateAsync(stockItems.Values.ToArray());
+                await Repo.CreateAsync(items.Select(x => new StockReservationDataModel()
                 {
                     ID = Guid.NewGuid(),
                     OrderID = command.OrderID,
@@ -100,7 +100,7 @@ namespace Store.Inventory.Service.Handlers
                 }).ToArray());
 
                 var now = DateTime.UtcNow;
-                await Repo.CreateAsync(lines.Select(x => new StockMovementDataModel()
+                await Repo.CreateAsync(items.Select(x => new StockMovementDataModel()
                 {
                     ID = Guid.NewGuid(),
                     ProductID = x.ProductID,
@@ -110,7 +110,7 @@ namespace Store.Inventory.Service.Handlers
                     OccurredOn = now
                 }).ToArray());
 
-                Log?.Info($"Reserved {lines.Sum(x => x.Quantity)} units for order {command.OrderNumber}");
+                Log?.Info($"Reserved {items.Sum(x => x.Quantity)} units for order {command.OrderNumber}");
             }
             finally
             {

@@ -13,6 +13,7 @@ using Zerra.Repository.IO;
 using System.Collections;
 using MySql.Data.MySqlClient;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Zerra.Repository.MySql
 {
@@ -26,6 +27,20 @@ namespace Zerra.Repository.MySql
         /// Initializes a new instance of <see cref="MySqlEngine"/>.
         /// </summary>
         /// <param name="connectionString">The MySQL connection string.</param>
+        //MySql.Data creates these by name with reflection, so AOT trimming removes them without these roots
+        //ConfigurationManager builds its host with Activator in MySqlConfiguration's static constructor
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors, "System.Configuration.ClientConfigurationHost", "System.Configuration.ConfigurationManager")]
+        //AuthenticationPluginManager creates the plugin the server asks for with Type.GetType
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors, "MySql.Data.MySqlClient.Authentication.CachingSha2AuthenticationPlugin", "MySql.Data")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors, "MySql.Data.MySqlClient.Authentication.MySqlNativePasswordPlugin", "MySql.Data")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors, "MySql.Data.MySqlClient.Authentication.MySqlClearPasswordPlugin", "MySql.Data")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors, "MySql.Data.MySqlClient.Authentication.Sha256AuthenticationPlugin", "MySql.Data")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors, "MySql.Data.MySqlClient.Authentication.MySqlSASLPlugin", "MySql.Data")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors, "MySql.Data.MySqlClient.Authentication.MySqlWindowsAuthenticationPlugin", "MySql.Data")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors, "MySql.Data.MySqlClient.Authentication.KerberosAuthenticationPlugin", "MySql.Data")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors, "MySql.Data.MySqlClient.Authentication.OciAuthenticationPlugin", "MySql.Data")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors, "MySql.Data.MySqlClient.Authentication.WebAuthnAuthenticationPlugin", "MySql.Data")]
+        [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors, "MySql.Data.MySqlClient.Authentication.OpenIdConnectClientAuthentication", "MySql.Data")]
         public MySqlEngine(string connectionString)
         {
             this.connectionString = connectionString;

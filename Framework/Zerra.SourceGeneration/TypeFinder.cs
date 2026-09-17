@@ -52,6 +52,9 @@ namespace Zerra.SourceGeneration
             }
             if (Helper.FindBase("Zerra.Map", "MapDefinition", namedTypeSymbol) != null)
                 return true;
+            //an aggregate finds the methods that apply its events through its type detail
+            if (Helper.FindBase("Zerra.Repository", "AggregateRoot", namedTypeSymbol) != null)
+                return true;
             if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IMapDefinition" && x.ContainingNamespace.ToString() == "Zerra.Map"))
                 return true;
             return false;

@@ -1,6 +1,6 @@
 # Store Demo
 
-A small storefront split into five microservices behind one CQRS gateway. The web app serves static HTML and JavaScript pages that call the gateway with the Zerra front end scripts (`Bus.js`). Each service is a bounded context with its own data store (or none, by design), and it creates and seeds that store on startup.
+A small storefront split into six microservices behind one CQRS gateway. The web app serves static HTML and JavaScript pages that call the gateway with the Zerra front end scripts (`Bus.js`). Each service is a bounded context with its own data store (or none, by design), and it creates and seeds that store on startup.
 
 ```mermaid
 flowchart LR
@@ -16,6 +16,9 @@ flowchart LR
     Orders -. "event: OrderShippedEvent<br/>RabbitMQ or HTTP" .-> Shipping
     Reviews -- "query: GetProductsByIDs" --> Catalog
     Reviews -- "query: HasPurchased" --> Orders
+    Web -- "TCP" --> Carts["Carts service<br/>KurrentDB, aggregates"]
+    Carts -- "query: GetProductsByIDs" --> Catalog
+    Carts -- "command: PlaceOrderCommand" --> Orders
 ```
 
 Traffic between the gateway and most services, and between services, uses the binary serializer over TCP, encrypted with a shared key. Shipping is hosted inside ASP.NET Core, so its traffic is the same serializer and encryption over HTTP instead. Three flows go through a message broker when it's running, one per broker, and fall back to the direct route when it isn't (see [Message brokers](#message-brokers)). Browsers only talk JSON to the gateway.
@@ -35,6 +38,8 @@ Traffic between the gateway and most services, and between services, uses the bi
 | `Store.Shipping.Service` | Tracks shipments. Hosted inside ASP.NET Core over HTTP/Kestrel instead of the raw TCP the other services use, and needs no database, it only reacts to events and holds state in memory. Subscribes to order events, the same interface Inventory subscribes to. |
 | `Store.Reviews.Domain` | Reviews contracts: `IReviewsQueryHandler`, `IReviewsCommandHandler`. |
 | `Store.Reviews.Service` | Product ratings and comments, MariaDB store. Calls Catalog for the product's name and Orders to mark a review a verified purchase. |
+| `Store.Carts.Domain` | Carts contracts, plus the events the cart aggregate appends and `ICartEventHandler` for subscribers. |
+| `Store.Carts.Service` | One shopping cart per customer, event sourced in KurrentDB. Commands rebuild the cart aggregate from its events and append new ones, no tables and no `IRepo`. Checking out places the order through Orders. |
 | `Store.Common` | Shared plumbing: settings, console loggers, `DomainException`, data store setup, the messaging description, and the seed product and customer IDs. |
 
 Each service follows the same layout:
@@ -42,9 +47,11 @@ Each service follows the same layout:
 - `Handlers/`: the bus handlers. Command handlers check the rules, throwing `DomainException` with a message for the user, then read and write data models through `IRepo` and publish events. Query handlers read data models and map them to the contract models.
 - `Data/`: data models, the `DataContextSelector` (or, for Shipping, a plain memory-only context), the store provider, and the seeder.
 
+Carts is the exception. It stores events instead of rows, so it has no data models or store provider. It has an `Aggregates/` folder with `CartAggregate`, an `AggregateRoot` whose `On` methods apply each event to the cart. Its handlers build the aggregate on the event store themselves (see [Where to look](#where-to-look)).
+
 ## Running
 
-**Visual Studio (17.11 or later):** pick the **Store Demo (In Memory, Direct Messaging)** launch profile in the startup project dropdown and press F5. It starts the five services and the web app with `STORE_IN_MEMORY` and `STORE_DIRECT_MESSAGING` set, so no databases or message brokers are needed, and the browser opens `http://localhost:5100`. **Store Demo (Databases, Message Brokers)** starts them the same way but uses the databases and message brokers when they're reachable. The profiles are in `Zerra.slnLaunch` at the repository root, and each uses the profile with the same name in every project's `Properties/launchSettings.json`. "In Memory, Direct Messaging" is listed first, so it's each project's default.
+**Visual Studio (17.11 or later):** pick the **Store Demo (In Memory, Direct Messaging)** launch profile in the startup project dropdown and press F5. It starts the six services and the web app with `STORE_IN_MEMORY` and `STORE_DIRECT_MESSAGING` set, so no databases or message brokers are needed, and the browser opens `http://localhost:5100`. **Store Demo (Databases, Message Brokers)** starts them the same way but uses the databases and message brokers when they're reachable. The profiles are in `Zerra.slnLaunch` at the repository root, and each uses the profile with the same name in every project's `Properties/launchSettings.json`. "In Memory, Direct Messaging" is listed first, so it's each project's default.
 
 **Script:**
 
@@ -54,14 +61,14 @@ Each service follows the same layout:
 .\Demo\Store\start-store.ps1 -DirectMessaging   # skip the message brokers
 ```
 
-It builds the six projects and starts each one in its own window.
+It builds the seven projects and starts each one in its own window.
 
-**By hand:** `dotnet run` each of `Store.Catalog.Service`, `Store.Inventory.Service`, `Store.Orders.Service`, `Store.Shipping.Service`, `Store.Reviews.Service`, and `Store.Web`, in any order. Clients connect on first use. That uses the default "In Memory, Direct Messaging" profile, add `--launch-profile "Databases, Message Brokers"` to use the databases and message brokers.
+**By hand:** `dotnet run` each of `Store.Catalog.Service`, `Store.Inventory.Service`, `Store.Orders.Service`, `Store.Shipping.Service`, `Store.Reviews.Service`, `Store.Carts.Service`, and `Store.Web`, in any order. Clients connect on first use. That uses the default "In Memory, Direct Messaging" profile, add `--launch-profile "Databases, Message Brokers"` to use the databases and message brokers.
 
 **Native AOT:** every project (including the two ASP.NET Core ones, `Store.Web` and `Store.Shipping.Service`) sets `<PublishAot>true</PublishAot>`. Two scripts mirror `start-store.ps1`:
 
 ```powershell
-.\Demo\Store\publish-store-aot.ps1            # publishes all six to .\Demo\Store\publish\<project>\<project>.exe
+.\Demo\Store\publish-store-aot.ps1            # publishes all seven to .\Demo\Store\publish\<project>\<project>.exe
 .\Demo\Store\start-store-aot.ps1 -InMemory    # starts the published executables, each in its own window
 ```
 
@@ -78,8 +85,11 @@ Each service's `DataContextSelector` lists its database first and an in-memory s
 | Orders | SQL Server | `Data Source=.;Initial Catalog=ZerraStoreOrders;User ID=sa;Password=Password123`, then `Data Source=.;Initial Catalog=ZerraStoreOrders;Integrated Security=True` |
 | Reviews | MariaDB | `Server=localhost;Port=3307;Uid=root;Pwd=password123;Database=ZerraStoreReviews` |
 | Shipping | none, in-memory only | — |
+| Carts | KurrentDB, an event store | `http://localhost:2113`, without TLS |
 
 Orders lists two SQL Server contexts ahead of the in-memory store: the SQL Server account first, which a SQL Server in Docker needs since it has no Windows authentication, then Windows authentication for a local install without that account.
+
+Carts selects between two event stores instead, KurrentDB and the in-memory event store. An event store has no schema to generate, a cart's stream is created by its first event. Its seeder starts a cart for Grace only when her stream has no events.
 
 To run all the databases in Docker, use `Demo/Infrastructure/start-infrastructure.ps1`. It starts only the ones that aren't already running locally, and `remove-infrastructure.ps1` removes them again.
 
@@ -110,7 +120,8 @@ All settings have defaults in `Store.Common/StoreSettings.cs` and can be overrid
 | `STORE_IN_MEMORY` | not set. Set it to `true` to skip the databases. |
 | `STORE_CATALOG_URL`, `STORE_INVENTORY_URL`, `STORE_ORDERS_URL`, `STORE_REVIEWS_URL` | `localhost:9101`, `localhost:9102`, `localhost:9103`, `localhost:9104` |
 | `STORE_SHIPPING_URL` | `http://localhost:9105`, an HTTP endpoint since Shipping is hosted in ASP.NET Core |
-| `STORE_CATALOG_POSTGRESQL`, `STORE_INVENTORY_MYSQL`, `STORE_ORDERS_MSSQL`, `STORE_ORDERS_MSSQL_WINDOWS_AUTH`, `STORE_REVIEWS_MARIADB` | the connection strings above |
+| `STORE_CARTS_URL` | `localhost:9106` |
+| `STORE_CATALOG_POSTGRESQL`, `STORE_INVENTORY_MYSQL`, `STORE_ORDERS_MSSQL`, `STORE_ORDERS_MSSQL_WINDOWS_AUTH`, `STORE_REVIEWS_MARIADB`, `STORE_CARTS_KURRENTDB` | the connection strings above |
 | `STORE_DIRECT_MESSAGING` | not set. Set it to `true` to skip the message brokers. |
 | `STORE_KAFKA` | `localhost:9092` |
 | `STORE_RABBITMQ` | `localhost` |
@@ -125,6 +136,7 @@ All settings have defaults in `Store.Common/StoreSettings.cs` and can be overrid
 - Discontinue a product, then try to order it.
 - Add a product, restock it, then order it.
 - Write a review as a customer who received the product, then as one who never ordered it, and compare the Verified purchase badges on the Reviews page. The average rating then shows up next to that product on the Catalog page.
+- Fill a cart, empty it, fill it again, and check it out. The Carts page lists the events in the cart's stream with the cart as it stood after each one, and the order appears on the Orders page. Put 3 Standing Desks in a cart and check out: Inventory rejects the order and the cart keeps its items.
 - Stop one service and use the pages to see how the failure surfaces. Stopping Shipping doesn't stop orders from shipping, Inventory still gets the event.
 - Start the services with the brokers running and again with `-DirectMessaging`. The pages work the same either way, and each service's window shows which route it chose for each flow.
 
@@ -141,7 +153,8 @@ All settings have defaults in `Store.Common/StoreSettings.cs` and can be overrid
 | Events between services, including two subscribers to the same event | Orders publishes `IOrderEventHandler` events through RabbitMQ, or without it registers two event producers, an Inventory `TcpCqrsClient` and a Shipping `KestrelCqrsClient`, and the bus sends each event to both (`Store.Orders.Service/Program.cs`); `OrderEventHandler` in each of `Store.Inventory.Service` and `Store.Shipping.Service` handles the notification its own way |
 | Message brokers with a fallback to direct TCP/HTTP | Kafka in `Store.Orders.Service/Program.cs` and `Store.Inventory.Service/Program.cs`, RabbitMQ in those two and `Store.Shipping.Service/Program.cs`, Azure Service Bus in `Store.Web/Program.cs` and `Store.Reviews.Service/Program.cs` |
 | Repository with a store per service and in-memory fallback | `Store.*.Service/Data/*DataContext.cs`, `Store.Common/Data/DataStoreSetup.cs` |
-| Relations with `Graph` and partial updates | `CatalogQueryHandler` (product with category), `OrdersQueryHandler` (order with customer and lines), `CatalogCommandHandler`, `OrdersCommandHandler`, and `ShippingCommandHandler` (updates limited to the changed columns) |
+| Event sourcing with `AggregateRoot` | `Store.Carts.Service/Aggregates/CartAggregate.cs` applies each event in an `On` method; `CartsCommandHandler` rebuilds the cart, checks the rules, and calls `Append` with `validateEventNumber` so a command acting on a stale cart is rejected; `CartsQueryHandler.GetCartHistory` uses `Rebuild` up to an event number and `RebuildOneEvent`; `Store.Common/Data/DataStoreSetup.cs` (`PrepareEventStore`) picks KurrentDB or the in-memory event store |
+| Relations with `Graph` and partial updates | `CatalogQueryHandler` (product with category), `OrdersQueryHandler` (order with customer and items), `CatalogCommandHandler`, `OrdersCommandHandler`, and `ShippingCommandHandler` (updates limited to the changed columns) |
 | Service injection | `IDataStoreInfo` and `IMessagingInfo` added to `BusServices`, read by the `GetDataStoreName` and `GetMessagingName` queries |
 | Data joined from two services in the browser | `catalog.js` joins Reviews' ratings onto Catalog's products; `orders.js` joins Shipping's tracking onto Orders' orders |
 | Browser calls | `Store.Web/wwwroot/js/*.js`, using the generated `JavaScriptModels.js` |
@@ -157,4 +170,5 @@ This is a demo, so some things a production system needs are left out:
 - The gateway has no `ICqrsAuthorizer` and allows every origin. See [Security](../../docs/Security.md) and [Zerra.Web](../../docs/ZerraWeb.md).
 - Events are published after the order is saved, without an outbox. If Inventory or Shipping is down when an order ships, the order is still marked shipped and that service never settles its side once it comes back.
 - Inventory serializes stock changes with an in-process lock, which only works for a single instance.
+- Checking out places the order in Orders before the cart appends its checked-out event. If another command changes the cart in between, that append is rejected and the order stays placed with the cart still full. A cart changed by two commands at once shows the event store's concurrency error rather than a friendlier message.
 - Each service checks the brokers only at startup and assumes the service on the other end of the flow makes the same choice. If a broker starts or stops while the services are running, restart the services on both ends of that flow, otherwise one end can be using the broker while the other uses the direct route. An awaited command sent through a broker also waits until it's handled rather than failing fast the way a TCP connection to a stopped service does.

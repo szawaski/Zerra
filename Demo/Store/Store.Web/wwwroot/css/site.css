@@ -408,13 +408,13 @@ button.link:hover {
 
 /* Order form */
 
-.order-lines {
+.order-items {
     display: grid;
     gap: 8px;
     margin-bottom: 10px;
 }
 
-.order-line {
+.order-item {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 72px auto;
     gap: 8px;

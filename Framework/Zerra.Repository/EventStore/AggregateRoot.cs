@@ -133,7 +133,8 @@ namespace Zerra.Repository
                     this.IsDeleted = true;
                     continue;
                 }
-                var eventModel = EventStoreCommon.Deserialize<IEvent>(eventData.Data.Span);
+                //read as object, the stored type name gives the event's type, and an interface like IEvent has no source generated type detail
+                var eventModel = EventStoreCommon.Deserialize<object>(eventData.Data.Span) as IEvent;
                 if (eventModel is null)
                     throw new Exception("Failed to deserialize Model");
                 await ApplyEvent(eventModel, eventModel.GetType());

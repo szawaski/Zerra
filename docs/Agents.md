@@ -10,7 +10,7 @@ Zerra is a CQRS (Command Query Responsibility Segregation) framework for .NET 10
 
 Working samples to copy from:
 
-- `Demo/Store`: five microservices (Catalog, Inventory, Orders, Shipping, Reviews) behind an ASP.NET CQRS gateway, static pages calling the gateway with `Bus.js`, a database per service (PostgreSQL, MySQL, SQL Server, MariaDB) with in-memory fallback, and seeding on startup. Shipping is hosted in ASP.NET Core/Kestrel instead of raw TCP and needs no database at all. Its `README.md` maps each feature to the file that shows it.
+- `Demo/Store`: six microservices (Catalog, Inventory, Orders, Shipping, Reviews, Carts) behind an ASP.NET CQRS gateway, static pages calling the gateway with `Bus.js`, a database per service (PostgreSQL, MySQL, SQL Server, MariaDB, KurrentDB) with in-memory fallback, and seeding on startup. Shipping is hosted in ASP.NET Core/Kestrel instead of raw TCP and needs no database at all. Carts is event sourced with `AggregateRoot` on KurrentDB. Its `README.md` maps each feature to the file that shows it.
 - `Demo/Pets.Domain` and `Demo/Pets.Service`: a single service.
 
 Keep samples focused on Zerra: handlers read and write data models through `IRepo` and check business rules inline. Don't add aggregate or repository layers on top.

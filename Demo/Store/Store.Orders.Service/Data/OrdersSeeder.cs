@@ -40,7 +40,7 @@ namespace Store.Orders.Service.Data
             log.Info("Seeded 3 customers and 2 shipped orders");
         }
 
-        private static async Task AddShippedOrderAsync(IRepo repo, Guid customerID, DateTime placedOn, DateTime shippedOn, (Guid ProductID, string ProductName, decimal UnitPrice, int Quantity)[] lines)
+        private static async Task AddShippedOrderAsync(IRepo repo, Guid customerID, DateTime placedOn, DateTime shippedOn, (Guid ProductID, string ProductName, decimal UnitPrice, int Quantity)[] items)
         {
             var order = new OrderDataModel()
             {
@@ -52,7 +52,7 @@ namespace Store.Orders.Service.Data
                 ClosedOn = shippedOn
             };
             await repo.CreateAsync(order);
-            await repo.CreateAsync(lines.Select(x => new OrderLineDataModel()
+            await repo.CreateAsync(items.Select(x => new OrderItemDataModel()
             {
                 ID = Guid.NewGuid(),
                 OrderID = order.ID,
