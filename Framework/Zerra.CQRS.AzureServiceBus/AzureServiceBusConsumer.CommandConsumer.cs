@@ -92,9 +92,10 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 catch (Exception ex)
                 {
-                    log?.Error(queue, ex);
+                    //closing cancels the receive, that isn't an error
                     if (!canceller.IsCancellationRequested)
                     {
+                        log?.Error(queue, ex);
                         await Task.Delay(AzureServiceBusCommon.RetryDelay);
                         goto retry;
                     }

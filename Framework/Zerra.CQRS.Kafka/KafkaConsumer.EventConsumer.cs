@@ -22,6 +22,8 @@ namespace Zerra.CQRS.Kafka
             private readonly ILogger? log;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
+            //every event consumer gets its own group so each one receives every event, it's kept across retries and deleted when the consumer stops
+            private readonly string groupId;
 
             public EventConsumer(int maxConcurrent, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteEventDispatch handlerAsync)
             {
@@ -38,6 +40,7 @@ namespace Zerra.CQRS.Kafka
                 this.log = log;
                 this.handlerAsync = handlerAsync;
                 this.canceller = new CancellationTokenSource();
+                this.groupId = Guid.NewGuid().ToString("N");
             }
 
             public void Open(string host, string? userName, string? password)
@@ -61,7 +64,7 @@ namespace Zerra.CQRS.Kafka
 
                     var consumerConfig = new ConsumerConfig();
                     consumerConfig.BootstrapServers = host;
-                    consumerConfig.GroupId = Guid.NewGuid().ToString("N");
+                    consumerConfig.GroupId = groupId;
                     consumerConfig.EnableAutoCommit = false;
                     if (userName is not null && password is not null)
                     {
@@ -92,15 +95,17 @@ namespace Zerra.CQRS.Kafka
                         }
                         finally
                         {
-                            consumer.Unsubscribe();
+                            //Close leaves the group right away, Unsubscribe and Dispose leave its member until the session times out
+                            consumer.Close();
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    log?.Error(topic, ex);
+                    //closing cancels the consume, that isn't an error
                     if (!canceller.IsCancellationRequested)
                     {
+                        log?.Error(topic, ex);
                         await Task.Delay(KafkaCommon.RetryDelay);
                         goto retry;
                     }
@@ -108,6 +113,16 @@ namespace Zerra.CQRS.Kafka
                 finally
                 {
                     throttle.Dispose();
+                }
+
+                //only reached once the consumer is stopping and has left the group
+                try
+                {
+                    await KafkaCommon.DeleteConsumerGroup(host, userName, password, groupId);
+                }
+                catch (Exception ex)
+                {
+                    log?.Error(topic, ex);
                 }
             }
 

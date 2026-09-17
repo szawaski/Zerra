@@ -170,7 +170,9 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.ConsumerCancelled += (sender, e) =>
                     {
-                        _ = Task.Run(() => ListeningThread(connection));
+                        //disposing closes the channel which also cancels the consumer, that shouldn't start listening again
+                        if (!canceller.IsCancellationRequested)
+                            _ = Task.Run(() => ListeningThread(connection));
                         return Task.CompletedTask;
                     };
 
@@ -178,10 +180,10 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    log?.Error(topic, ex);
-
                     if (!canceller.IsCancellationRequested)
                     {
+                        log?.Error(topic, ex);
+
                         if (channel is not null)
                         {
                             channel.Close();

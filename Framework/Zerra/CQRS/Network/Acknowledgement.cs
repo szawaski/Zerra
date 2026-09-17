@@ -27,6 +27,11 @@ namespace Zerra.CQRS.Network
         public byte[]? Data { get; private set; }
 
         /// <summary>
+        /// Creates an empty acknowledgement for deserialization, the other constructors take a serializer so they can't be matched to the members.
+        /// </summary>
+        public Acknowledgement() { }
+
+        /// <summary>
         /// Creates a acknowledgement response that indicates a failure.
         /// </summary>
         /// <param name="serializer">The serializer to use for serializing the exception.</param>

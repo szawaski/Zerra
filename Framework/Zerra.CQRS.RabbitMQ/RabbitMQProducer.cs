@@ -133,28 +133,17 @@ namespace Zerra.CQRS.RabbitMQ
 
                     var properties = channel.CreateBasicProperties();
 
-                    EventingBasicConsumer? consumer = null;
-                    string? consumerTag = null;
-                    string? correlationId = null;
+                    Acknowledgement? acknowledgement = null;
+                    using var waiter = requireAcknowledgement ? new SemaphoreSlim(0, 1) : null;
                     if (requireAcknowledgement)
                     {
                         var replyQueue = channel.QueueDeclare(String.Empty, false, true, true);
-                        consumer = new EventingBasicConsumer(channel);
-                        consumerTag = channel.BasicConsume(replyQueue.QueueName, true, consumer);
+                        var consumer = new EventingBasicConsumer(channel);
+                        var correlationId = Guid.NewGuid().ToString("N");
+                        string? consumerTag = null;
 
-                        correlationId = Guid.NewGuid().ToString("N");
-                        properties.ReplyTo = replyQueue.QueueName;
-                        properties.CorrelationId = correlationId;
-                    }
-
-                    channel.BasicPublish(topic, String.Empty, properties, body);
-
-                    if (requireAcknowledgement)
-                    {
-                        Acknowledgement? acknowledgement = null;
-                        using var waiter = new SemaphoreSlim(0, 1);
-
-                        consumer!.Received += (sender, e) =>
+                        //attached before consuming and publishing, a reply that arrives first would otherwise be missed
+                        consumer.Received += (sender, e) =>
                         {
                             try
                             {
@@ -176,11 +165,21 @@ namespace Zerra.CQRS.RabbitMQ
                             }
                             finally
                             {
-                                _ = waiter.Release();
+                                _ = waiter!.Release();
                             }
                         };
 
-                        await waiter.WaitAsync(cancellationToken);
+                        consumerTag = channel.BasicConsume(replyQueue.QueueName, true, consumer);
+
+                        properties.ReplyTo = replyQueue.QueueName;
+                        properties.CorrelationId = correlationId;
+                    }
+
+                    channel.BasicPublish(topic, String.Empty, properties, body);
+
+                    if (requireAcknowledgement)
+                    {
+                        await waiter!.WaitAsync(cancellationToken);
 
                         Acknowledgement.ThrowIfFailed(rabbitMessage.MessageType.Name, serializer, acknowledgement);
                     }
@@ -255,18 +254,14 @@ namespace Zerra.CQRS.RabbitMQ
 
                     var replyQueue = channel.QueueDeclare(String.Empty, false, true, true);
                     var consumer = new EventingBasicConsumer(channel);
-                    var consumerTag = channel.BasicConsume(replyQueue.QueueName, true, consumer);
-
                     var correlationId = Guid.NewGuid().ToString("N");
-                    properties.ReplyTo = replyQueue.QueueName;
-                    properties.CorrelationId = correlationId;
-
-                    channel.BasicPublish(topic, String.Empty, properties, body);
+                    string? consumerTag = null;
 
                     Acknowledgement? acknowledgement = null;
                     using var waiter = new SemaphoreSlim(0, 1);
 
-                    consumer!.Received += (sender, e) =>
+                    //attached before consuming and publishing, a reply that arrives first would otherwise be missed
+                    consumer.Received += (sender, e) =>
                     {
                         try
                         {
@@ -292,9 +287,16 @@ namespace Zerra.CQRS.RabbitMQ
                         }
                     };
 
+                    consumerTag = channel.BasicConsume(replyQueue.QueueName, true, consumer);
+
+                    properties.ReplyTo = replyQueue.QueueName;
+                    properties.CorrelationId = correlationId;
+
+                    channel.BasicPublish(topic, String.Empty, properties, body);
+
                     await waiter.WaitAsync(cancellationToken);
 
-                    var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(rabbitMessage.MessageType.Name, serializer, acknowledgement)!;
+                    var result =(TResult)Acknowledgement.GetResultOrThrowIfFailed(rabbitMessage.MessageType.Name, serializer, acknowledgement)!;
 
                     channel.Close();
 

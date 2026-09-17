@@ -85,9 +85,10 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 catch (Exception ex)
                 {
-                    log?.Error(topic, ex);
+                    //closing cancels the receive, that isn't an error
                     if (!canceller.IsCancellationRequested)
                     {
+                        log?.Error(topic, ex);
                         await Task.Delay(AzureServiceBusCommon.RetryDelay);
                         goto retry;
                     }
@@ -95,14 +96,16 @@ namespace Zerra.CQRS.AzureServiceBus
                 finally
                 {
                     throttle.Dispose();
-                    try
-                    {
-                        await AzureServiceBusCommon.DeleteSubscription(host, topic, subscription);
-                    }
-                    catch (Exception ex)
-                    {
-                        log?.Error(ex);
-                    }
+                }
+
+                //only reached once the consumer is stopping, a retry keeps the subscription so events sent meanwhile are still received
+                try
+                {
+                    await AzureServiceBusCommon.DeleteSubscription(host, topic, subscription);
+                }
+                catch (Exception ex)
+                {
+                    log?.Error(ex);
                 }
             }
 

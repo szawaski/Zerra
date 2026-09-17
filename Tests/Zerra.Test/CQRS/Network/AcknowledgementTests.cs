@@ -179,5 +179,43 @@ namespace Zerra.Test.CQRS.Network
             Assert.Null(ack.Data);
             Assert.Null(ack.DataType);
         }
+
+        //the messaging transports send acknowledgements through the serializer
+        [Fact]
+        public void Serialize_WithResult_RoundTrips()
+        {
+            var serializer = CreateTestSerializer();
+            var ack = new Acknowledgement(serializer, 42, null);
+
+            var deserialized = serializer.Deserialize<Acknowledgement>(serializer.SerializeBytes(ack));
+
+            Assert.NotNull(deserialized);
+            Assert.Equal(42, Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, deserialized));
+        }
+
+        [Fact]
+        public void Serialize_WithException_RoundTrips()
+        {
+            var serializer = CreateTestSerializer();
+            var ack = new Acknowledgement(serializer, null, new InvalidOperationException("Remote failure"));
+
+            var deserialized = serializer.Deserialize<Acknowledgement>(serializer.SerializeBytes(ack));
+
+            Assert.NotNull(deserialized);
+            var exception = Assert.Throws<RemoteServiceException>(() => Acknowledgement.ThrowIfFailed("Test Source", serializer, deserialized));
+            Assert.Equal("Remote failure", exception.Message);
+        }
+
+        [Fact]
+        public void Serialize_WithNoResult_RoundTrips()
+        {
+            var serializer = CreateTestSerializer();
+            var ack = new Acknowledgement(serializer, null, null);
+
+            var deserialized = serializer.Deserialize<Acknowledgement>(serializer.SerializeBytes(ack));
+
+            Assert.NotNull(deserialized);
+            Acknowledgement.ThrowIfFailed("Test Source", serializer, deserialized);
+        }
     }
 }

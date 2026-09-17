@@ -81,17 +81,54 @@ namespace Zerra.CQRS.Kafka
             {
                 using (var client = new AdminClientBuilder(clientConfig).Build())
                 {
+                    //deleted directly rather than checked first, a metadata request for a missing topic can create it again when the broker auto creates topics
                     try
                     {
-                        var metadata = client.GetMetadata(topic, TimeSpan.FromSeconds(10));
-                        if (metadata.Topics.Any(x => x.Topic == topic))
-                        {
-                            await client.DeleteTopicsAsync(new string[] { topic });
-                        }
+                        await client.DeleteTopicsAsync(new string[] { topic });
+                    }
+                    catch (DeleteTopicsException ex) when (ex.Results.All(x => x.Error.Code == ErrorCode.UnknownTopicOrPart))
+                    {
                     }
                     catch (Exception ex)
                     {
                         throw new Exception($"{nameof(KafkaCommon)} failed to delete topic {topic}", ex);
+                    }
+                }
+            }
+            finally
+            {
+                _ = locker.Release();
+            }
+        }
+
+        //the group's consumers must have left first, a group that doesn't exist is already deleted
+        public static async Task DeleteConsumerGroup(string host, string? userName, string? password, string group)
+        {
+            var clientConfig = new AdminClientConfig();
+            clientConfig.BootstrapServers = host;
+            if (userName is not null && password is not null)
+            {
+                clientConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
+                clientConfig.SaslMechanism = SaslMechanism.Plain;
+                clientConfig.SaslUsername = userName;
+                clientConfig.SaslPassword = password;
+            }
+
+            await locker.WaitAsync();
+            try
+            {
+                using (var client = new AdminClientBuilder(clientConfig).Build())
+                {
+                    try
+                    {
+                        await client.DeleteGroupsAsync(new string[] { group });
+                    }
+                    catch (DeleteGroupsException ex) when (ex.Results.All(x => x.Error.Code == ErrorCode.GroupIdNotFound))
+                    {
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"{nameof(KafkaCommon)} failed to delete consumer group {group}", ex);
                     }
                 }
             }

@@ -320,50 +320,55 @@ namespace Zerra.CQRS.AzureServiceBus
 
         private async Task AckListeningThread()
         {
-        retry:
-
+            //the retry stays inside the outer try, a goto out of it would run the finally and dispose the canceller on a transient error
             try
             {
-                await using (var receiver = client.CreateReceiver(ackQueue))
+            retry:
+
+                try
                 {
-                    for (; ; )
+                    await using (var receiver = client.CreateReceiver(ackQueue))
                     {
-                        var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
-                        if (serviceBusMessage is null)
-                            continue;
-                        await receiver.CompleteMessageAsync(serviceBusMessage);
-
-                        if (!ackCallbacks.TryRemove(serviceBusMessage.SessionId, out var callback))
-                            continue;
-
-                        Acknowledgement? acknowledgement = null;
-                        try
+                        for (; ; )
                         {
-                            var response = serviceBusMessage.Body.ToStream();
-                            if (encryptor is not null)
-                                response = encryptor.Decrypt(response, false);
-                            acknowledgement = await serializer.DeserializeAsync<Acknowledgement>(response, canceller.Token);
-                            acknowledgement ??= new Acknowledgement(serializer, "Invalid Acknowledgement");
-                        }
-                        catch (Exception ex)
-                        {
-                            acknowledgement = new Acknowledgement(serializer, ex.Message);
-                        }
+                            var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
+                            if (serviceBusMessage is null)
+                                continue;
+                            await receiver.CompleteMessageAsync(serviceBusMessage);
 
-                        callback(acknowledgement);
+                            if (!ackCallbacks.TryRemove(serviceBusMessage.SessionId, out var callback))
+                                continue;
 
-                        if (canceller.IsCancellationRequested)
-                            break;
+                            Acknowledgement? acknowledgement = null;
+                            try
+                            {
+                                var response = serviceBusMessage.Body.ToStream();
+                                if (encryptor is not null)
+                                    response = encryptor.Decrypt(response, false);
+                                acknowledgement = await serializer.DeserializeAsync<Acknowledgement>(response, canceller.Token);
+                                acknowledgement ??= new Acknowledgement(serializer, "Invalid Acknowledgement");
+                            }
+                            catch (Exception ex)
+                            {
+                                acknowledgement = new Acknowledgement(serializer, ex.Message);
+                            }
+
+                            callback(acknowledgement);
+
+                            if (canceller.IsCancellationRequested)
+                                break;
+                        }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                log?.Error(ex);
-                if (!canceller.IsCancellationRequested)
+                catch (Exception ex)
                 {
-                    await Task.Delay(AzureServiceBusCommon.RetryDelay);
-                    goto retry;
+                    //disposing cancels the receive, that isn't an error
+                    if (!canceller.IsCancellationRequested)
+                    {
+                        log?.Error(ex);
+                        await Task.Delay(AzureServiceBusCommon.RetryDelay);
+                        goto retry;
+                    }
                 }
             }
             finally
@@ -372,7 +377,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
-                    await AzureServiceBusCommon.DeleteTopic(host, ackQueue);
+                    await AzureServiceBusCommon.DeleteQueue(host, ackQueue);
                 }
                 catch (Exception ex)
                 {

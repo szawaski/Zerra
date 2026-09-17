@@ -121,10 +121,10 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    log?.Error(topic, ex);
-
                     if (!canceller.IsCancellationRequested)
                     {
+                        log?.Error(topic, ex);
+
                         if (channel is not null)
                         {
                             channel.Close();
