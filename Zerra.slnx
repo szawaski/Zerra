@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Benchmarks/">
+    <Project Path="Benchmarks/Zerra.Benchmark/Zerra.Benchmark.csproj" />
+    <Project Path="Benchmarks/Zerra.Repository.Benchmark/Zerra.Repository.Benchmark.csproj" />
+  </Folder>
   <Folder Name="/Demo/" />
   <Folder Name="/Demo/Infrastructure/">
     <File Path="Demo/Infrastructure/start-infrastructure.ps1" />
@@ -65,9 +69,7 @@
     <File Path="Front End Scripts/TypeScript/TypeScriptModels.ts" />
     <File Path="Front End Scripts/TypeScript/TypeScriptModels.tt" />
   </Folder>
-  <Folder Name="/Test/">
-    <Project Path="Tests/Zerra.Benchmark/Zerra.Benchmark.csproj" />
-    <Project Path="Tests/Zerra.Repository.Benchmark/Zerra.Repository.Benchmark.csproj" />
+  <Folder Name="/Tests/">
     <Project Path="Tests/Zerra.Repository.Test/Zerra.Repository.Test.csproj" />
     <Project Path="Tests/Zerra.SourceGeneration.Test/Zerra.SourceGeneration.Test.csproj" />
     <Project Path="Tests/Zerra.T4.TestDev/Zerra.T4.TestDev.csproj" />
