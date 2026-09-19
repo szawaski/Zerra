@@ -4,8 +4,8 @@ using Store.Inventory.Domain.Commands;
 using Store.Inventory.Domain.Models;
 using Store.Orders.Domain;
 using Store.Orders.Domain.Commands;
+using Store.Orders.Domain.Events;
 using Store.Orders.Domain.Models;
-using Store.Shipping.Domain.Commands;
 using Store.Orders.Service.Data;
 using Zerra;
 using Zerra.Repository;
@@ -107,10 +107,10 @@ namespace Store.Orders.Service.Handlers
         {
             var order = await CloseOrderAsync(command.OrderID, OrderStatus.Shipped, "shipped");
 
-            //Two services have work to do, and both are commands because both write once: Inventory takes the reserved units off
-            //the shelf, Shipping creates the shipment. Neither is an event, which would reach every replica of each service.
-            await Bus.DispatchAsync(new ShipReservedStockCommand() { OrderID = order.ID, OrderNumber = order.OrderNumber! });
-            await Bus.DispatchAsync(new CreateShipmentCommand() { OrderID = order.ID, OrderNumber = order.OrderNumber!, ShippedOn = order.ClosedOn!.Value });
+            //One event, announced once, and Orders doesn't name who acts on it. Inventory takes the reserved units off the shelf and
+            //Shipping creates the shipment, and both write once, which normally rules an event out. Both subscribe with
+            //EventConsumerMode.PerService, so their replicas compete for the event and one replica of each service handles it.
+            await Bus.DispatchAsync(new OrderShippedEvent() { OrderID = order.ID, OrderNumber = order.OrderNumber!, ShippedOn = order.ClosedOn!.Value });
 
             Log?.Info($"Shipped order {order.OrderNumber}");
         }

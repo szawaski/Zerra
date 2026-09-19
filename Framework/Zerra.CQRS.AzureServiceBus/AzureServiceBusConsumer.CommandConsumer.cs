@@ -36,10 +36,13 @@ namespace Zerra.CQRS.AzureServiceBus
                 this.maxConcurrent = commandCounter.ReceiveCountBeforeExit.HasValue ? Math.Min(commandCounter.ReceiveCountBeforeExit.Value, maxConcurrent) : maxConcurrent;
                 this.commandCounter = commandCounter;
 
+                bool truncated;
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.queue = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, queue);
+                    this.queue = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, queue, out truncated);
                 else
-                    this.queue = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
+                    this.queue = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength, out truncated);
+                if (truncated)
+                    log?.Warn($"{nameof(AzureServiceBusConsumer)} truncated the command queue to {AzureServiceBusCommon.EntityNameMaxLength} characters: {this.queue}. Another queue truncating to the same name would be consumed as this one.");
 
                 this.serializer = serializer;
                 this.encryptor = encryptor;

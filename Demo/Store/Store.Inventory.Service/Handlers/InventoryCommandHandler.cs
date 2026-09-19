@@ -2,11 +2,17 @@ using Store.Common;
 using Store.Inventory.Domain;
 using Store.Inventory.Domain.Commands;
 using Store.Inventory.Service.Data;
+using Store.Orders.Domain;
+using Store.Orders.Domain.Events;
 using Zerra.Repository;
 
 namespace Store.Inventory.Service.Handlers
 {
-    public sealed class InventoryCommandHandler : BaseHandlerWithRepo, IInventoryCommandHandler, IStockReservationHandler
+    /// <summary>
+    /// Also subscribes to the Orders service, because shipping and cancelling settle the same reservations through the one private
+    /// method below. <see cref="Handle(OrderShippedEvent)"/> is an event and the rest are commands, and both run once per service.
+    /// </summary>
+    public sealed class InventoryCommandHandler : BaseHandlerWithRepo, IInventoryCommandHandler, IStockReservationHandler, IOrdersEventHandler
     {
         private const int maxRestockQuantity = 10_000;
 
@@ -118,10 +124,15 @@ namespace Store.Inventory.Service.Handlers
             }
         }
         /// <summary>
-        /// The order shipped: its reserved units leave the shelf. A command, so one replica does this however many are running.
+        /// The order shipped: its reserved units leave the shelf.
         /// </summary>
-        public Task Handle(ShipReservedStockCommand command, CancellationToken cancellationToken)
-            => SettleReservationsAsync(command.OrderID, command.OrderNumber, StockMovementKind.Shipped);
+        /// <remarks>
+        /// An event, but the service registers it with <see cref="Zerra.CQRS.EventConsumerMode.PerService"/>, so the replicas compete
+        /// and one of them takes the units off the shelf. Under the default <see cref="Zerra.CQRS.EventConsumerMode.PerReplica"/>
+        /// every replica would do it, and the stock would drop once per replica. That is why this used to be a command.
+        /// </remarks>
+        public Task Handle(OrderShippedEvent @event)
+            => SettleReservationsAsync(@event.OrderID, @event.OrderNumber, StockMovementKind.Shipped);
 
         /// <summary>
         /// The order was cancelled: its reserved units go back on the shelf.

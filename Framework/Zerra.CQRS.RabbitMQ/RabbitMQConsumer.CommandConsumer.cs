@@ -41,10 +41,13 @@ namespace Zerra.CQRS.RabbitMQ
                 this.maxConcurrent = commandCounter.ReceiveCountBeforeExit.HasValue ? Math.Min(commandCounter.ReceiveCountBeforeExit.Value, maxConcurrent) : maxConcurrent;
                 this.commandCounter = commandCounter;
 
+                bool truncated;
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
+                    this.topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic, out truncated);
                 else
-                    this.topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
+                    this.topic = topic.Truncate(RabbitMQCommon.TopicMaxLength, out truncated);
+                if (truncated)
+                    log?.Warn($"{nameof(RabbitMQConsumer)} truncated the command exchange and queue to {RabbitMQCommon.TopicMaxLength} characters: {this.topic}. Another exchange truncating to the same name would be consumed as this one.");
                 this.serializer = serializer;
                 this.encryptor = encryptor;
                 this.log = log;
@@ -81,7 +84,9 @@ namespace Zerra.CQRS.RabbitMQ
                     this.channel.BasicQos(0, (ushort)maxConcurrent, false);
                     this.channel.ExchangeDeclare(this.topic, ExchangeType.Direct);
 
-                    var queue = this.channel.QueueDeclare(this.topic, false, false, true);
+                    //durable because a broker refuses a transient queue that isn't exclusive, it only makes the queue survive a restart and
+                    //the messages are still transient; auto delete still takes the queue with the last replica to disconnect
+                    var queue = this.channel.QueueDeclare(this.topic, true, false, true);
                     this.channel.QueueBind(queue.QueueName, this.topic, String.Empty);
 
                     var consumer = new AsyncEventingBasicConsumer(this.channel);

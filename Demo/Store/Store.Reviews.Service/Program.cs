@@ -61,9 +61,9 @@ else
 //Catalog publishes its product events through RabbitMQ when it's running, otherwise straight here over TCP. Catalog makes the same check,
 //so this service listens on whichever route it will use. Every Reviews replica gets a copy and drops its own cached product.
 if (useRabbitMQ)
-    bus.AddEventConsumer<ICatalogEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null));
+    bus.AddEventConsumer<ICatalogEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null), EventConsumerMode.PerReplica);
 else
-    bus.AddEventConsumer<ICatalogEventHandler>(server);
+    bus.AddEventConsumer<ICatalogEventHandler>(server, EventConsumerMode.PerReplica);
 
 //Downstream services: the product's name from Catalog, purchase history from Orders to mark a review Verified
 var catalogClient = new TcpCqrsClient(StoreSettings.CatalogServiceUrl, serializer, encryptor, log);

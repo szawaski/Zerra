@@ -106,7 +106,7 @@ var builder = WebApplication.CreateBuilder(args);
 var settings = new KestrelCqrsServerLinkedSettings(route: null, authorizer: null, contentType: ContentType.Bytes);
 bus.AddQueryServer<IShippingQueryHandler>(new KestrelCqrsServerQueryServer(settings));
 bus.AddCommandConsumer<IShippingCommandHandler>(new KestrelCqrsServerCommandConsumer(settings));
-bus.AddEventConsumer<IOrderEventHandler>(new KestrelCqrsServerEventConsumer(settings));
+bus.AddEventConsumer<IOrderEventHandler>(new KestrelCqrsServerEventConsumer(settings), EventConsumerMode.PerReplica);
 
 var app = builder.Build();
 app.Lifetime.ApplicationStopping.Register(bus.StopServices);
@@ -127,7 +127,7 @@ bus.AddEventProducer<IOrderEventHandler>(shippingClient);    //KestrelCqrsClient
 
 See `Store.Orders.Service/Program.cs`. A message broker producer (Kafka/RabbitMQ/AzureServiceBus) only needs registering once, the broker delivers each event to every subscribed consumer on its own.
 
-That means every *replica* of each subscriber too, so each subscriber's handler has to be correct when several instances run it at the same time. See [Command or Event?](#command-or-event-read-this-first).
+That means every *replica* of each subscriber too, so each subscriber's handler has to be correct when several instances run it at the same time, unless that subscriber registers its consumer with `EventConsumerMode.PerService`. See [Command or Event?](#command-or-event-read-this-first).
 
 ### Web Gateway for Browsers
 
@@ -194,15 +194,22 @@ public sealed class OrderDataModel
 
 ### Command or Event? (read this first)
 
-A command is **handled once**, by one replica. An event is delivered to **every subscriber and every replica of every subscriber**: three replicas means the handler runs three times on three copies of the message. Kafka gives command consumers one shared group and each event consumer its own group id; Azure Service Bus gives commands a shared queue and each event consumer its own subscription; RabbitMQ publishes events to a Fanout exchange.
+A command is **handled once**, by one replica. An event is delivered to **every subscriber**, and how many replicas of each subscriber get it is that subscriber's own choice, made with the `EventConsumerMode` its `AddEventConsumer` takes. There is no default: every registration states one.
 
-So: **put work in an event handler only when it is still correct if every replica does it.** Dropping a cache the replica holds in its own memory, an in-memory read model, pushing to that replica's connected browsers, logging and metrics all qualify. Writing to a shared database or event store, moving stock or money, creating a record, sending mail or charging a card do not - those are commands.
+- **`PerReplica`**: every replica gets a copy, so three replicas means the handler runs three times on three copies of the message. Kafka gives each event consumer its own group id; Azure Service Bus its own subscription; RabbitMQ an exclusive queue per replica on a Fanout exchange.
+- **`PerService`**: the replicas share one subscription and compete, so one of them handles each event, the same as a command consumer. Other subscribers still get their own copy.
 
-One state change often needs both, for two reasons. In `Demo/Store`, a price change dispatches `ProductPriceChangedEvent` so every Carts and Reviews replica drops its cached product, and `RepriceCartItemsCommand` so the carts are repriced once. Service-to-service commands go on their own interface that the web gateway does not register (`ICartRepricingHandler`, `IStockReservationHandler`, `IShipmentHandler`), so browsers cannot send them.
+Commands are handled once either way: Kafka gives command consumers one shared group, Azure Service Bus a shared queue, RabbitMQ a Direct exchange with one queue.
+
+So: **`PerReplica` work has to be correct when every replica does it.** Dropping a cache the replica holds in its own memory, an in-memory read model, pushing to that replica's connected browsers, logging and metrics all qualify. Writing to a shared database or event store, moving stock or money, creating a record, sending mail or charging a card do not. Those need a command, or an event the subscriber registers `PerService`.
+
+One state change often needs both, for two reasons. In `Demo/Store`, a price change dispatches `ProductPriceChangedEvent` so every Carts and Reviews replica drops its cached product, and `RepriceCartItemsCommand` so the carts are repriced once. Service-to-service commands go on their own interface that the web gateway does not register (`ICartRepricingHandler`, `IStockReservationHandler`), so browsers cannot send them. The same demo has the `PerService` case too: shipping an order publishes `OrderShippedEvent`, and Inventory and Shipping each subscribe `PerService` so one replica of each settles the reservation and creates the shipment.
 
 **Aggregate events are a third thing, not covered by any of this.** The events an `AggregateRoot` appends to its stream are the aggregate's state, replayed by `Rebuild`, read by nobody else. They implement `Zerra.Repository.IAggregateEvent`, never `IEvent`; `Append` and `Delete` require it, and source generation uses it to emit their type detail. They never go on the bus and they live with the aggregate in the service project, not in a shared `*.Domain`. See [Events](Events.md#aggregate-events-are-not-cqrs-events) and `Store.Carts.Service/Aggregates/`.
 
 Idempotent handlers cover redelivery to the same replica. They do not stop several replicas doing the work at once, which is what the command/event choice is for. See [Events](Events.md#events-are-fanned-out-to-every-replica).
+
+A subscriber can turn the fanout off for itself with `bus.AddEventConsumer<T>(consumer, EventConsumerMode.PerService)`, and then its replicas compete for each event the way they do for a command. It changes nothing for the publisher or for the other subscribers. Use it when the work must happen once *and* the publisher has no business knowing the subscriber exists; when the publisher does know what it wants done, that is a command. See [Events](Events.md#choosing-per-replica-or-per-service).
 
 ### Commands (`ICommand`)
 - Represent actions that modify state
@@ -213,7 +220,7 @@ Idempotent handlers cover redelivery to the same replica. They do not stop sever
 
 ### Events (`IEvent`)
 - Represent state changes that have occurred
-- Published to zero or more subscribers, **and to every replica of each one**
+- Published to zero or more subscribers, **and to every replica of each one** unless that subscriber registers its consumer with `EventConsumerMode.PerService`
 - Multiple handlers can respond to the same event
 - Used for event sourcing and eventual consistency
 
@@ -450,7 +457,7 @@ When working with Zerra code:
 - Consider concurrency limits when routing high-volume operations
 
 ### When Implementing Commands
-- Use a command whenever the work must happen exactly once; one replica handles it
+- Use a command whenever the work must happen exactly once and the sender knows what it wants done; one replica handles it
 - Use `ICommand` for fire-and-forget operations
 - Use `ICommand<TResult>` when caller needs a response
 - Simple commands should be idempotent when used with `DispatchAwaitAsync()`
@@ -458,8 +465,8 @@ When working with Zerra code:
 ### When Implementing Events
 - Events should represent completed state changes, not intents
 - An aggregate's own stream events are not these: `IAggregateEvent` instead of `IEvent`, no bus, kept with the aggregate
-- Design for multiple subscribers, **and for every replica of each subscriber receiving a copy**
-- Never change shared state in an event handler: use a command for anything that must happen exactly once
+- Design for multiple subscribers, **and for every replica of each subscriber receiving a copy**; a subscriber that needs one replica per event instead registers its consumer with `EventConsumerMode.PerService`
+- Never change shared state in a `PerReplica` event handler: anything that must happen exactly once needs a command, or a consumer registered `PerService`
 - Handle duplicate events gracefully (idempotent handlers), which is a separate concern from the replica fanout above
 
 ### When Creating Query Interfaces

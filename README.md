@@ -301,7 +301,7 @@ var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
 bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
 bus.AddHandler<IUserEvents>(userEventHandler);
 bus.AddCommandConsumer<IUserCommandHandlers>(tcpServer);
-bus.AddEventConsumer<IUserEvents>(tcpServer);
+bus.AddEventConsumer<IUserEvents>(tcpServer, EventConsumerMode.PerReplica);
 
 // Client side
 var tcpClient = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
@@ -325,7 +325,7 @@ var kafkaConsumer = new KafkaConsumer("localhost:9092", serializer, encryptor, l
 bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
 bus.AddHandler<IUserEvents>(userEventHandler);
 bus.AddCommandConsumer<IUserCommandHandlers>(kafkaConsumer);
-bus.AddEventConsumer<IUserEvents>(kafkaConsumer);
+bus.AddEventConsumer<IUserEvents>(kafkaConsumer, EventConsumerMode.PerReplica);
 
 // Client side
 var kafkaProducer = new KafkaProducer("localhost:9092", serializer, encryptor, log, environment: "dev", userName: null, password: null);

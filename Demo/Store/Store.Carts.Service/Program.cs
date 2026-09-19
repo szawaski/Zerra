@@ -57,9 +57,9 @@ bus.AddCommandConsumer<ICartRepricingHandler>(server);
 //...and publishes its changes as events, through RabbitMQ when it's running and straight here over TCP when it isn't. Every Carts
 //instance gets a copy, which is what dropping a per-instance cache needs: a command would reach one of them and leave the rest stale.
 if (useRabbitMQ)
-    bus.AddEventConsumer<ICatalogEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null));
+    bus.AddEventConsumer<ICatalogEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null), EventConsumerMode.PerReplica);
 else
-    bus.AddEventConsumer<ICatalogEventHandler>(server);
+    bus.AddEventConsumer<ICatalogEventHandler>(server, EventConsumerMode.PerReplica);
 
 //Downstream services: product names and prices from Catalog, the customer list and checkout from Orders
 var catalogClient = new TcpCqrsClient(StoreSettings.CatalogServiceUrl, serializer, encryptor, log);

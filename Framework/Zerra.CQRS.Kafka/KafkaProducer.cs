@@ -73,7 +73,9 @@ namespace Zerra.CQRS.Kafka
             this.password = password;
 
             var entryAssemblyName = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name;
-            var clientID = StringExtensions.Join(KafkaCommon.TopicMaxLength - 4 - 33, "_", environment ?? "Unknown_Environment", Environment.MachineName, entryAssemblyName ?? "Unknown_Assembly");
+            var clientID = StringExtensions.Join(KafkaCommon.TopicMaxLength - 4 - 33, "_", environment ?? "Unknown_Environment", Environment.MachineName, entryAssemblyName ?? "Unknown_Assembly", out var clientIDTruncated);
+            if (clientIDTruncated)
+                log?.Warn($"{nameof(KafkaProducer)} truncated the client ID to {KafkaCommon.TopicMaxLength - 4 - 33} characters: {clientID}. It only names the producer in the broker's logs, the acknowledgement topic it prefixes is still unique.");
             //unique per producer, instances of the same app on the same machine would otherwise share a group and only one would receive the acknowledgements
             this.ackTopic = $"ACK-{clientID}_{Guid.NewGuid():N}";
             this.topicsByCommandType = new();
@@ -120,11 +122,6 @@ namespace Zerra.CQRS.Kafka
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(KafkaCommon.TopicMaxLength);
-
                 if (requireAcknowledgement)
                 {
                     if (!listenerStarted)
@@ -225,11 +222,6 @@ namespace Zerra.CQRS.Kafka
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(KafkaCommon.TopicMaxLength);
-
                 if (!listenerStarted)
                 {
                     try
@@ -318,11 +310,6 @@ namespace Zerra.CQRS.Kafka
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(KafkaCommon.TopicMaxLength);
-
                 string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
@@ -459,6 +446,7 @@ namespace Zerra.CQRS.Kafka
         {
             if (topicsByCommandType.ContainsKey(type))
                 return;
+            topic = BuildTopic(topic, "command");
             _ = topicsByCommandType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
@@ -471,12 +459,25 @@ namespace Zerra.CQRS.Kafka
         {
             if (topicsByEventType.ContainsKey(type))
                 return;
+            topic = BuildTopic(topic, "event");
             _ = topicsByEventType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
+        }
+
+        private string BuildTopic(string topic, string kind)
+        {
+            bool truncated;
+            if (!String.IsNullOrWhiteSpace(environment))
+                topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic, out truncated);
+            else
+                topic = topic.Truncate(KafkaCommon.TopicMaxLength, out truncated);
+            if (truncated)
+                log?.Warn($"{nameof(KafkaProducer)} truncated the {kind} topic to {KafkaCommon.TopicMaxLength} characters: {topic}. Another topic truncating to the same name would receive these messages.");
+            return topic;
         }
     }
 }

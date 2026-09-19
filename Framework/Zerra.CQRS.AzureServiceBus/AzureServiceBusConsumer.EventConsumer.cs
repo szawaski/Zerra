@@ -25,19 +25,36 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly ILogger? log;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
+            //PerReplica gets a subscription of its own so this replica receives every event, it's deleted when the consumer stops
+            //PerService gets a subscription named for the service so its replicas compete for the events, it's shared so it's never deleted
+            private readonly bool deleteSubscriptionOnStop;
 
-            public EventConsumer(int maxConcurrent, string topic, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
                 this.maxConcurrent = maxConcurrent;
 
+                bool truncated;
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, topic);
+                    this.topic = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, topic, out truncated);
                 else
-                    this.topic = topic.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
+                    this.topic = topic.Truncate(AzureServiceBusCommon.EntityNameMaxLength, out truncated);
+                if (truncated)
+                    log?.Warn($"{nameof(AzureServiceBusConsumer)} truncated the event topic to {AzureServiceBusCommon.EntityNameMaxLength} characters: {this.topic}. Another topic truncating to the same name would be consumed as this one.");
 
-                this.subscription = $"EVT-{Guid.NewGuid():N}";
+                if (eventConsumerMode == EventConsumerMode.PerService)
+                {
+                    this.subscription = $"EVT-{serviceName}".Truncate(AzureServiceBusCommon.EntityNameMaxLength, out truncated);
+                    if (truncated)
+                        log?.Warn($"{nameof(AzureServiceBusConsumer)} truncated the {EventConsumerMode.PerService} subscription to {AzureServiceBusCommon.EntityNameMaxLength} characters: {this.subscription}. Another service truncating to the same subscription would compete with this one for the events.");
+                    this.deleteSubscriptionOnStop = false;
+                }
+                else
+                {
+                    this.subscription = $"EVT-{Guid.NewGuid():N}";
+                    this.deleteSubscriptionOnStop = true;
+                }
                 this.serializer = serializer;
                 this.encryptor = encryptor;
                 this.log = log;
@@ -62,7 +79,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 try
                 {
                     await AzureServiceBusCommon.EnsureTopic(host, topic, false);
-                    await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, true);
+                    await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, deleteSubscriptionOnStop);
 
                     await using (var receiver = client.CreateReceiver(topic, subscription, receiverOptions))
                     {
@@ -100,13 +117,17 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
 
                 //only reached once the consumer is stopping, a retry keeps the subscription so events sent meanwhile are still received
-                try
+                //a PerService subscription belongs to the other replicas too so it stays
+                if (deleteSubscriptionOnStop)
                 {
-                    await AzureServiceBusCommon.DeleteSubscription(host, topic, subscription);
-                }
-                catch (Exception ex)
-                {
-                    log?.Error(ex);
+                    try
+                    {
+                        await AzureServiceBusCommon.DeleteSubscription(host, topic, subscription);
+                    }
+                    catch (Exception ex)
+                    {
+                        log?.Error(ex);
+                    }
                 }
             }
 

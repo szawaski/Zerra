@@ -11,8 +11,9 @@ flowchart LR
     Web -- "TCP<br/>review commands: Azure Service Bus or TCP" --> Reviews["Reviews service<br/>MariaDB"]
     Web -- "HTTP" --> Shipping["Shipping service<br/>ASP.NET Core, in-memory"]
     Orders -- "query: GetProductsByIDs" --> Catalog
-    Orders -- "commands: ReserveStockCommand<br/>ShipReservedStockCommand<br/>ReleaseReservedStockCommand<br/>Kafka or TCP" --> Inventory
-    Orders -- "command: CreateShipmentCommand" --> Shipping
+    Orders -- "commands: ReserveStockCommand<br/>ReleaseReservedStockCommand<br/>Kafka or TCP" --> Inventory
+    Orders -. "event: OrderShippedEvent, PerService<br/>RabbitMQ or direct" .-> Inventory
+    Orders -. "same event" .-> Shipping
     Reviews -- "query: GetProductsByIDs" --> Catalog
     Reviews -- "query: HasPurchased" --> Orders
     Web -- "TCP" --> Carts["Carts service<br/>KurrentDB, aggregates"]
@@ -33,11 +34,11 @@ Traffic between the gateway and most services, and between services, uses the bi
 | `Store.Catalog.Domain` | Catalog contracts: `ICatalogQueryHandler`, `ICatalogCommandHandler`, commands, and models, plus the events it publishes and `ICatalogEventHandler` for subscribers. |
 | `Store.Catalog.Service` | Products and categories, PostgreSQL store. On a price change it commands Carts to reprice and publishes an event so every Carts replica drops its cached product. |
 | `Store.Inventory.Domain` | Inventory contracts. `IStockReservationHandler` is for service-to-service use only. |
-| `Store.Inventory.Service` | Stock levels, reservations, and the movement log, MySQL store. Every stock change arrives as a command from Orders. |
-| `Store.Orders.Domain` | Orders contracts: `IOrdersQueryHandler`, `IOrdersCommandHandler`, commands, and models. |
-| `Store.Orders.Service` | Customers and orders, SQL Server store. Coordinates Catalog and Inventory, publishes to both Inventory and Shipping. |
-| `Store.Shipping.Domain` | Shipping contracts: `IShippingQueryHandler`, `IShippingCommandHandler`. `IShipmentHandler` is for service-to-service use only. |
-| `Store.Shipping.Service` | Tracks shipments. Hosted inside ASP.NET Core over HTTP/Kestrel instead of the raw TCP the other services use, and needs no database, it holds state in memory. Orders sends it `CreateShipmentCommand` when an order ships. |
+| `Store.Inventory.Service` | Stock levels, reservations, and the movement log, MySQL store. Reserving and releasing arrive as commands from Orders; shipping arrives as `OrderShippedEvent`, subscribed `PerService` so one replica settles the reservation. |
+| `Store.Orders.Domain` | Orders contracts: `IOrdersQueryHandler`, `IOrdersCommandHandler`, commands, and models, plus `OrderShippedEvent` and `IOrdersEventHandler` for subscribers. |
+| `Store.Orders.Service` | Customers and orders, SQL Server store. Coordinates Catalog and Inventory, and announces `OrderShippedEvent` for Inventory and Shipping to act on. |
+| `Store.Shipping.Domain` | Shipping contracts: `IShippingQueryHandler`, `IShippingCommandHandler`. |
+| `Store.Shipping.Service` | Tracks shipments. Hosted inside ASP.NET Core over HTTP/Kestrel instead of the raw TCP the other services use, and needs no database, it holds state in memory. Subscribes to the Orders service's `OrderShippedEvent`, `PerService` so one replica creates the shipment. |
 | `Store.Reviews.Domain` | Reviews contracts: `IReviewsQueryHandler`, `IReviewsCommandHandler`. |
 | `Store.Reviews.Service` | Product ratings and comments, MariaDB store. Calls Catalog for the product's name and Orders to mark a review a verified purchase, and subscribes to the Catalog's product events to drop its cached copy. |
 | `Store.Carts.Domain` | Carts contracts. `ICartRepricingHandler` is for service-to-service use only. The aggregate's own events are not here, they live with the aggregate in the service. |
@@ -101,12 +102,13 @@ Seeders only run against an empty store, so data in a database survives restarts
 
 ## Commands and events
 
-A command is handled **once**, by one replica of the service that owns it. An event is delivered to **every subscriber, and to every replica of every subscriber**. Run three copies of a service and its event handlers run three times on three copies of the message, in parallel.
+A command is handled **once**, by one replica of the service that owns it. An event is delivered to **every subscriber**, and each subscriber picks how many of its own replicas get a copy when it registers its consumer. `EventConsumerMode.PerReplica` gives every replica one, so three copies of a service run its event handlers three times on three copies of the message, in parallel. `EventConsumerMode.PerService` has the replicas compete instead, so one of them handles each event. There is no default; every `AddEventConsumer` in this demo says which it is.
 
 So the choice isn't about wording, it's about how many times the work runs:
 
-- **Command** when the work must happen exactly once: writing to a database or an event store, moving stock, creating a shipment.
+- **Command** when the work must happen exactly once and the sender knows what it wants done: writing to a database or an event store, moving stock.
 - **Event** when every replica has to do it for itself, or when doing it N times changes nothing: dropping a cache that replica holds in its own memory, logging, metrics.
+- **Event with `EventConsumerMode.PerService`** when the work must happen once but the publisher has no business knowing who does it. The subscriber says so at its own registration, and its replicas compete for each event the way they do for a command. Other subscribers still get their own copy.
 
 Changing a product's price is the clearest place to see both, because it needs one of each (`CatalogCommandHandler.Handle(ChangeProductPriceCommand)`):
 
@@ -119,15 +121,32 @@ Every message between services in the demo, and why it is what it is:
 
 | Message | From → to | Kind | Why |
 |---|---|---|---|
-| `ReserveStockCommand` | Orders → Inventory | command | moves stock, must happen once |
-| `ShipReservedStockCommand`, `ReleaseReservedStockCommand` | Orders → Inventory | command | settles the reservation, moves stock, must happen once |
-| `CreateShipmentCommand` | Orders → Shipping | command | creates the shipment record, must happen once |
+| `ReserveStockCommand` | Orders → Inventory | command | moves stock, must happen once, and the order can't be saved until it succeeds, so Orders awaits the result |
+| `ReleaseReservedStockCommand` | Orders → Inventory | command | puts the stock back, must happen once. Orders sends it to compensate a failed save as well as on cancel, so it is addressed work, not an announcement |
 | `RepriceCartItemsCommand` | Catalog → Carts | command | appends to the cart streams, must happen once |
 | `PlaceOrderCommand` | Carts → Orders | command | creates the order, must happen once |
-| `ProductPriceChangedEvent`, `ProductDiscontinuedEvent` | Catalog → Carts and Reviews | event | drops a cache entry each replica holds in its own memory, so every replica needs its own copy |
+| `ProductPriceChangedEvent`, `ProductDiscontinuedEvent` | Catalog → Carts and Reviews | event, `PerReplica` | drops a cache entry each replica holds in its own memory, so every replica needs its own copy |
+| `OrderShippedEvent` | Orders → Inventory and Shipping | event, `PerService` | a fact both services act on for themselves: Inventory settles the reservation, Shipping creates the shipment. Each writes once, so each subscribes `PerService` and one replica of each handles it. See [below](#the-one-that-used-to-be-two-commands) |
 | `CartItemAddedEvent` and the rest of the cart stream | Carts → nobody | neither | aggregate events, not CQRS events: they are the cart's state in its stream, they don't implement `IEvent`, and they never reach the bus. See [below](#aggregate-events-are-not-cqrs-events) |
 
-Shipping an order used to publish `OrderShippedEvent` and have Inventory and Shipping each write their side in an event handler. That is the mistake this section is about: two replicas of Inventory would each take the same units off the shelf, and two of Shipping would each create a shipment with its own tracking number. Both are now commands, and the events are gone because nothing was left that needed telling.
+### The one that used to be two commands
+
+Shipping an order is the interesting case. Orders publishes one `OrderShippedEvent`, Inventory takes the reserved units off the shelf and Shipping creates the shipment, and both of those write once.
+
+Under the default `PerReplica` that is the classic mistake: two replicas of Inventory would each take the same units off the shelf, and two of Shipping would each create a shipment with its own tracking number. The demo used to avoid it by sending two commands instead, `ShipReservedStockCommand` and `CreateShipmentCommand`, one addressed to each service.
+
+Both subscribers now register `IOrdersEventHandler` with `EventConsumerMode.PerService`, which is what makes the event correct:
+
+```csharp
+// Store.Inventory.Service/Program.cs and Store.Shipping.Service/Program.cs
+bus.AddEventConsumer<IOrdersEventHandler>(consumer, EventConsumerMode.PerService);
+```
+
+The replicas of Inventory share one subscription and compete for the event, so one of them settles the reservation. The replicas of Shipping share a different one, so one of them creates the shipment. Two services, two subscriptions, each event handled once per service.
+
+What that buys is in `OrdersCommandHandler.Handle(ShipOrderCommand)`: Orders announces the fact and stops there. It no longer names Inventory or Shipping, and a fourth service that wants to know an order shipped subscribes without Orders changing.
+
+The place and cancel paths stay commands, and that is the line to take from this. `ReserveStockCommand` is awaited for its result, because a short product has to fail the order before it is saved, and `ReleaseReservedStockCommand` is also sent to compensate a failed save. Both are Orders telling Inventory to do something at a moment of its choosing, which is a command. `PerService` is for the other shape: the work must happen once, and the publisher has no business knowing who does it.
 
 ## Aggregate events are not CQRS events
 
@@ -147,11 +166,12 @@ Three flows between services use a different message broker each, and each falls
 
 | Flow | Broker | Without the broker |
 |---|---|---|
-| `ReserveStockCommand`, `ShipReservedStockCommand` and `ReleaseReservedStockCommand` from Orders to Inventory | Kafka, one shared consumer group, so one Inventory replica handles each | TCP |
-| `ProductPriceChangedEvent` and `ProductDiscontinuedEvent` from Catalog to Carts and Reviews | RabbitMQ, a fanout exchange, so every subscriber and every replica of each gets a copy | TCP to each, one event producer per subscriber |
+| `ReserveStockCommand` and `ReleaseReservedStockCommand` from Orders to Inventory | Kafka, one shared consumer group, so one Inventory replica handles each | TCP |
+| `ProductPriceChangedEvent` and `ProductDiscontinuedEvent` from Catalog to Carts and Reviews | RabbitMQ, a Fanout exchange with an exclusive queue per replica, so every subscriber and every replica of each gets a copy | TCP to each, one event producer per subscriber |
+| `OrderShippedEvent` from Orders to Inventory and Shipping | RabbitMQ, the same Fanout exchange shape but with one queue per **service**, since both subscribe `PerService` | TCP to Inventory and HTTP/Kestrel to Shipping, one event producer per subscriber |
 | `SubmitReviewCommand` from the gateway to Reviews, awaited with a result | Azure Service Bus (the emulator) | TCP |
 
-The split is not an accident. Kafka and Azure Service Bus carry the commands, which one replica handles, and RabbitMQ carries the events, which every replica gets: that is what each is configured for, and [Commands and events](#commands-and-events) is why each flow is one or the other.
+The split is not an accident. Kafka and Azure Service Bus carry the commands, which one replica handles, and RabbitMQ carries the events. The two RabbitMQ flows are worth opening the management UI for: on one exchange every replica has its own exclusive queue, on the other each service has one queue its replicas share. That is `PerReplica` and `PerService` side by side, and [Commands and events](#commands-and-events) is why each flow is what it is.
 
 At startup each service checks the brokers it uses with `KafkaConnection.TestAsync`, `RabbitMQConnection.Test`, or `AzureServiceBusConnection.TestAsync`, and logs which route it chose. The Overview page shows the consumers each service hosts, next to its data store. Outbound choices, such as Orders' and the Catalog's, are only in their consoles. The sending service registers either the broker's producer or the direct client, and the receiving service makes the same check and registers either the broker's consumer or its TCP or Kestrel consumer, so both ends pick the same route.
 
@@ -179,7 +199,7 @@ All settings have defaults in `Store.Common/StoreSettings.cs` and can be overrid
 ## Things to try
 
 - Order 3 Standing Desks. Only 2 are in stock, so Inventory rejects the order. The error comes back through Orders and the gateway to the page.
-- Place an order and open Inventory: the units are reserved. Ship the order and Orders commands Inventory to take them off the shelf and Shipping to create the shipment, or cancel it and the reservation is released. Three writes, three commands, each handled once.
+- Place an order and open Inventory: the units are reserved. Ship the order and one `OrderShippedEvent` has Inventory take them off the shelf and Shipping create the shipment, or cancel it and a command releases the reservation. Watch the Orders, Inventory and Shipping windows together: Orders logs one event, and each of the other two logs its own handler running once. [The one that used to be two commands](#the-one-that-used-to-be-two-commands) explains why one event can do the work of two commands here.
 - Open the Shipping page after shipping an order, then mark it delivered.
 - Discontinue a product, then try to order it.
 - Add a product, restock it, then order it.
@@ -205,8 +225,9 @@ All settings have defaults in `Store.Common/StoreSettings.cs` and can be overrid
 | Message brokers with a fallback to direct TCP/HTTP | Kafka in `Store.Orders.Service/Program.cs` and `Store.Inventory.Service/Program.cs`, RabbitMQ in those two and `Store.Shipping.Service/Program.cs`, Azure Service Bus in `Store.Web/Program.cs` and `Store.Reviews.Service/Program.cs` |
 | Repository with a store per service and in-memory fallback | `Store.*.Service/Data/*DataContext.cs`, `Store.Common/Data/DataStoreSetup.cs` |
 | Why a message is a command or an event | [Commands and events](#commands-and-events), then `CatalogCommandHandler.Handle(ChangeProductPriceCommand)`, which dispatches one of each for the same price change |
-| An event handler that is safe on every replica | `Store.Carts.Service/Handlers/CatalogEventHandler.cs` drops an entry from `Data/CatalogProductCache.cs`, the cache this instance uses in `AddToCartCommand`. Every replica has its own cache, so every replica has to get the event |
-| Choosing a command over an event for work that must happen once | `CatalogCommandHandler` sends `RepriceCartItemsCommand` after the price is saved, and `CartsCommandHandler` handles it by appending a `CartItemRepricedEvent` to each cart holding the product. An event is fanned out to every replica, so all of them would reprice the same carts; a command is handled by one. `IStockReservationHandler` is the same idea from Orders to Inventory |
+| A `PerReplica` event handler, safe on every replica | `Store.Carts.Service/Handlers/CatalogEventHandler.cs` drops an entry from `Data/CatalogProductCache.cs`, the cache this instance uses in `AddToCartCommand`. Every replica has its own cache, so every replica has to get the event. Registered in `Store.Carts.Service/Program.cs` with `EventConsumerMode.PerReplica` |
+| A `PerService` event handler, work that must happen once | `InventoryCommandHandler.Handle(OrderShippedEvent)` settles the reservation and `ShippingCommandHandler.Handle(OrderShippedEvent)` creates the shipment. Both services register `IOrdersEventHandler` with `EventConsumerMode.PerService`, so their replicas compete and one of each does the work. See [The one that used to be two commands](#the-one-that-used-to-be-two-commands) |
+| Choosing a command over an event for work that must happen once | `CatalogCommandHandler` sends `RepriceCartItemsCommand` after the price is saved, and `CartsCommandHandler` handles it by appending a `CartItemRepricedEvent` to each cart holding the product. A `PerReplica` event would have all of them reprice the same carts; a command is handled by one, and the Catalog knows it wants the carts repriced, which is what makes it a command rather than a `PerService` event. `IStockReservationHandler` is the same idea from Orders to Inventory |
 | Event sourcing with `AggregateRoot` | `Store.Carts.Service/Aggregates/CartAggregate.cs` applies each event in an `On` method; `CartsCommandHandler` rebuilds the cart, checks the rules, and calls `Append` with `validateEventNumber` so a command acting on a stale cart is rejected; `CartsQueryHandler.GetCartHistory` uses `Rebuild` up to an event number and `RebuildOneEvent`; `Store.Common/Data/DataStoreSetup.cs` (`PrepareEventStore`) picks KurrentDB or the in-memory event store |
 | Relations with `Graph` and partial updates | `CatalogQueryHandler` (product with category), `OrdersQueryHandler` (order with customer and items), `CatalogCommandHandler`, `OrdersCommandHandler`, and `ShippingCommandHandler` (updates limited to the changed columns) |
 | Service injection | `IDataStoreInfo` and `IMessagingInfo` added to `BusServices`, read by the `GetDataStoreName` and `GetMessagingName` queries |

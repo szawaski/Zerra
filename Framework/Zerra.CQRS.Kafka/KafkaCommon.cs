@@ -13,6 +13,8 @@ namespace Zerra.CQRS.Kafka
 
         public const int TopicMaxLength = 249;
 
+        public const int GroupMaxLength = 249;
+
         public const int RetryDelay = 5000;
 
         public const string MessageKey = "Body";

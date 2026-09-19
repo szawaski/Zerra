@@ -515,8 +515,8 @@ namespace Zerra.Test.CQRS.Network
             commandConsumer.RegisterCommandType(10, "test", typeof(TestCommand));
             commandConsumer.RegisterCommandType(10, "test", typeof(TestCommandWithResult));
             IEventConsumer eventConsumer = server;
-            eventConsumer.Setup(@event ?? ((_, _) => Task.CompletedTask));
-            eventConsumer.RegisterEventType(10, "test", typeof(TestEvent));
+            eventConsumer.Setup("test-service", @event ?? ((_, _) => Task.CompletedTask));
+            eventConsumer.RegisterEventType(10, "test", typeof(TestEvent), EventConsumerMode.PerReplica);
             commandConsumer.Open();
             return server;
         }

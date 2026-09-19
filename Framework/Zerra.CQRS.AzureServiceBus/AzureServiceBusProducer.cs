@@ -88,11 +88,6 @@ namespace Zerra.CQRS.AzureServiceBus
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    queue = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, queue);
-                else
-                    queue = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
-
                 if (requireAcknowledgement)
                 {
                     if (!listenerStarted)
@@ -192,11 +187,6 @@ namespace Zerra.CQRS.AzureServiceBus
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    queue = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, queue);
-                else
-                    queue = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
-
                 if (!listenerStarted)
                 {
                     await listenerStartedLock.WaitAsync();
@@ -284,11 +274,6 @@ namespace Zerra.CQRS.AzureServiceBus
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
-
                 string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
@@ -410,6 +395,7 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             if (queueByCommandType.ContainsKey(type))
                 return;
+            topic = BuildEntityName(topic, "command queue");
             _ = queueByCommandType.TryAdd(type, topic);
             if (throttleByQueueOrTopic.ContainsKey(topic))
                 return;
@@ -422,12 +408,25 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             if (topicByEventType.ContainsKey(type))
                 return;
+            topic = BuildEntityName(topic, "event topic");
             _ = topicByEventType.TryAdd(type, topic);
             if (throttleByQueueOrTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByQueueOrTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
+        }
+
+        private string BuildEntityName(string topic, string kind)
+        {
+            bool truncated;
+            if (!String.IsNullOrWhiteSpace(environment))
+                topic = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, topic, out truncated);
+            else
+                topic = topic.Truncate(AzureServiceBusCommon.EntityNameMaxLength, out truncated);
+            if (truncated)
+                log?.Warn($"{nameof(AzureServiceBusProducer)} truncated the {kind} to {AzureServiceBusCommon.EntityNameMaxLength} characters: {topic}. Another entity truncating to the same name would receive these messages.");
+            return topic;
         }
     }
 }

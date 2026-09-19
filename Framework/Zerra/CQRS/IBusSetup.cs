@@ -40,7 +40,8 @@ namespace Zerra.CQRS
         /// </summary>
         /// <typeparam name="TInterface">An interface inheriting event handler interface(s) for the types of events to receive.</typeparam>
         /// <param name="eventConsumer">The event consumer service.</param>
-        void AddEventConsumer<TInterface>(IEventConsumer eventConsumer);
+        /// <param name="eventConsumerMode">Whether every replica of this service receives each event or the replicas compete so only one of them does. There is no default: it decides whether a handler may do work that must happen once, so every registration states it.</param>
+        void AddEventConsumer<TInterface>(IEventConsumer eventConsumer, EventConsumerMode eventConsumerMode);
         /// <summary>
         /// Add a query client service to call for queries to remote services.
         /// </summary>

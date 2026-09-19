@@ -23,25 +23,41 @@ namespace Zerra.CQRS.Kafka
             private readonly ILogger? log;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
-            //every event consumer gets its own group so each one receives every event, it's kept across retries and deleted when the consumer stops
+            //PerReplica gets a group of its own so this replica receives every event, it's kept across retries and deleted when the consumer stops
+            //PerService gets a group named for the service so its replicas compete for the events, it's shared so it's never deleted
             private readonly string groupId;
+            private readonly bool deleteGroupOnStop;
 
-            public EventConsumer(int maxConcurrent, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
                 this.maxConcurrent = maxConcurrent;
 
+                bool truncated;
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
+                    this.topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic, out truncated);
                 else
-                    this.topic = topic.Truncate(KafkaCommon.TopicMaxLength);
+                    this.topic = topic.Truncate(KafkaCommon.TopicMaxLength, out truncated);
+                if (truncated)
+                    log?.Warn($"{nameof(KafkaConsumer)} truncated the event topic to {KafkaCommon.TopicMaxLength} characters: {this.topic}. Another topic truncating to the same name would be consumed as this one.");
                 this.serializer = serializer;
                 this.encryptor = encryptor;
                 this.log = log;
                 this.handlerAsync = handlerAsync;
                 this.canceller = new CancellationTokenSource();
-                this.groupId = Guid.NewGuid().ToString("N");
+                if (eventConsumerMode == EventConsumerMode.PerService)
+                {
+                    this.groupId = StringExtensions.Join(KafkaCommon.GroupMaxLength, "_", this.topic, serviceName, out truncated);
+                    if (truncated)
+                        log?.Warn($"{nameof(KafkaConsumer)} truncated the {EventConsumerMode.PerService} consumer group to {KafkaCommon.GroupMaxLength} characters: {this.groupId}. Another service truncating to the same group would compete with this one for the events.");
+                    this.deleteGroupOnStop = false;
+                }
+                else
+                {
+                    this.groupId = Guid.NewGuid().ToString("N");
+                    this.deleteGroupOnStop = true;
+                }
             }
 
             public void Open(string host, string? userName, string? password)
@@ -116,14 +132,17 @@ namespace Zerra.CQRS.Kafka
                     throttle.Dispose();
                 }
 
-                //only reached once the consumer is stopping and has left the group
-                try
+                //only reached once the consumer is stopping and has left the group, a PerService group belongs to the other replicas too so it stays
+                if (deleteGroupOnStop)
                 {
-                    await KafkaCommon.DeleteConsumerGroup(host, userName, password, groupId);
-                }
-                catch (Exception ex)
-                {
-                    log?.Error(topic, ex);
+                    try
+                    {
+                        await KafkaCommon.DeleteConsumerGroup(host, userName, password, groupId);
+                    }
+                    catch (Exception ex)
+                    {
+                        log?.Error(topic, ex);
+                    }
                 }
             }
 

@@ -109,12 +109,14 @@ namespace Zerra.CQRS.Network
             _ = types.Add(type);
         }
 
-        void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(string serviceName, HandleRemoteEventDispatch handlerAsync)
         {
             this.eventHandlerAsync = handlerAsync;
         }
 
-        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
+        //the producer decides who gets a copy for a direct connection: a client per replica url reaches every replica, one load balanced url reaches one of them,
+        //so the server has nothing to change for the mode
+        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode)
         {
             if (throttle is not null)
                 throttle.Dispose();

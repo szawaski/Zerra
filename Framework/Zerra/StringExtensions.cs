@@ -17,13 +17,28 @@ public static class StringExtensions
     /// <returns>The original string if it is shorter than or equal to maxLength; otherwise, a substring of the specified length.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="it"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="maxLength"/> is less than zero.</exception>
-    public static string Truncate(this string? it, int maxLength)
+    public static string Truncate(this string? it, int maxLength) => Truncate(it, maxLength, out _);
+
+    /// <summary>
+    /// Truncates the string to the specified maximum length and reports whether anything was cut off.
+    /// </summary>
+    /// <param name="it">The string to truncate. Must not be null.</param>
+    /// <param name="maxLength">The maximum length of the truncated string. Must be non-negative.</param>
+    /// <param name="truncated">When this method returns, true if characters were cut off; otherwise false.</param>
+    /// <returns>The original string if it is shorter than or equal to maxLength; otherwise, a substring of the specified length.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="it"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="maxLength"/> is less than zero.</exception>
+    public static string Truncate(this string? it, int maxLength, out bool truncated)
     {
         if (it is null) throw new ArgumentNullException(nameof(it));
         if (maxLength < 0) throw new ArgumentException("Cannot be less than zero", nameof(maxLength));
 
-        if (it.Length < maxLength)
+        if (it.Length <= maxLength)
+        {
+            truncated = false;
             return it;
+        }
+        truncated = true;
         return it.Substring(0, maxLength);
     }
 
@@ -37,13 +52,30 @@ public static class StringExtensions
     /// <param name="str2">The second string to join.</param>
     /// <returns>The joined string, truncated if necessary to fit within maxLength.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="maxLength"/> is shorter than the separator length.</exception>
-    public unsafe static string Join(int maxLength, string seperator, string str1, string str2)
+    public static string Join(int maxLength, string seperator, string str1, string str2) => Join(maxLength, seperator, str1, str2, out _);
+
+    /// <summary>
+    /// Joins two strings with a separator, truncating to the specified maximum length if necessary, and reports whether anything was cut off.
+    /// Truncation is applied proportionally to the longer string first.
+    /// </summary>
+    /// <param name="maxLength">The maximum length of the result. Must be at least as long as the separator.</param>
+    /// <param name="seperator">The string to use as a separator between the two strings.</param>
+    /// <param name="str1">The first string to join.</param>
+    /// <param name="str2">The second string to join.</param>
+    /// <param name="truncated">When this method returns, true if characters were cut off; otherwise false.</param>
+    /// <returns>The joined string, truncated if necessary to fit within maxLength.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="maxLength"/> is shorter than the separator length.</exception>
+    public unsafe static string Join(int maxLength, string seperator, string str1, string str2, out bool truncated)
     {
         if (maxLength - seperator.Length < 0) throw new ArgumentException("Cannot be shorter than the seperator length", nameof(maxLength));
 
         var over = str1.Length + str2.Length + seperator.Length - maxLength;
         if (over <= 0)
+        {
+            truncated = false;
             return String.Join(seperator, str1, str2);
+        }
+        truncated = true;
 
         var seperatorSpan = seperator.AsSpan();
         var span1 = str1.AsSpan();
@@ -98,13 +130,31 @@ public static class StringExtensions
     /// <param name="str3">The third string to join.</param>
     /// <returns>The joined string, truncated if necessary to fit within maxLength.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="maxLength"/> is shorter than twice the separator length.</exception>
-    public unsafe static string Join(int maxLength, string seperator, string str1, string str2, string str3)
+    public static string Join(int maxLength, string seperator, string str1, string str2, string str3) => Join(maxLength, seperator, str1, str2, str3, out _);
+
+    /// <summary>
+    /// Joins three strings with a separator, truncating to the specified maximum length if necessary, and reports whether anything was cut off.
+    /// Truncation is applied evenly to the longest strings.
+    /// </summary>
+    /// <param name="maxLength">The maximum length of the result. Must be at least twice the separator length.</param>
+    /// <param name="seperator">The string to use as a separator between the strings.</param>
+    /// <param name="str1">The first string to join.</param>
+    /// <param name="str2">The second string to join.</param>
+    /// <param name="str3">The third string to join.</param>
+    /// <param name="truncated">When this method returns, true if characters were cut off; otherwise false.</param>
+    /// <returns>The joined string, truncated if necessary to fit within maxLength.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="maxLength"/> is shorter than twice the separator length.</exception>
+    public unsafe static string Join(int maxLength, string seperator, string str1, string str2, string str3, out bool truncated)
     {
         if (maxLength - (seperator.Length * 2) < 0) throw new ArgumentException("Cannot be shorter than the seperator length", nameof(maxLength));
 
         var over = str1.Length + str2.Length + str3.Length + seperator.Length * 2 - maxLength;
         if (over <= 0)
+        {
+            truncated = false;
             return String.Join(seperator, str1, str2, str3);
+        }
+        truncated = true;
 
         var seperatorSpan = seperator.AsSpan();
         var span1 = str1.AsSpan();
@@ -168,13 +218,32 @@ public static class StringExtensions
     /// <param name="str4">The fourth string to join.</param>
     /// <returns>The joined string, truncated if necessary to fit within maxLength.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="maxLength"/> is shorter than three times the separator length.</exception>
-    public unsafe static string Join(int maxLength, string seperator, string str1, string str2, string str3, string str4)
+    public static string Join(int maxLength, string seperator, string str1, string str2, string str3, string str4) => Join(maxLength, seperator, str1, str2, str3, str4, out _);
+
+    /// <summary>
+    /// Joins four strings with a separator, truncating to the specified maximum length if necessary, and reports whether anything was cut off.
+    /// Truncation is applied evenly to the longest strings.
+    /// </summary>
+    /// <param name="maxLength">The maximum length of the result. Must be at least three times the separator length.</param>
+    /// <param name="seperator">The string to use as a separator between the strings.</param>
+    /// <param name="str1">The first string to join.</param>
+    /// <param name="str2">The second string to join.</param>
+    /// <param name="str3">The third string to join.</param>
+    /// <param name="str4">The fourth string to join.</param>
+    /// <param name="truncated">When this method returns, true if characters were cut off; otherwise false.</param>
+    /// <returns>The joined string, truncated if necessary to fit within maxLength.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="maxLength"/> is shorter than three times the separator length.</exception>
+    public unsafe static string Join(int maxLength, string seperator, string str1, string str2, string str3, string str4, out bool truncated)
     {
         if (maxLength - (seperator.Length * 3) < 0) throw new ArgumentException("Cannot be shorter than the seperator length", nameof(maxLength));
 
         var over = str1.Length + str2.Length + str3.Length + str4.Length + seperator.Length * 3 - maxLength;
         if (over <= 0)
+        {
+            truncated = false;
             return String.Join(seperator, str1, str2, str3, str4);
+        }
+        truncated = true;
 
         var seperatorSpan = seperator.AsSpan();
         var span1 = str1.AsSpan();

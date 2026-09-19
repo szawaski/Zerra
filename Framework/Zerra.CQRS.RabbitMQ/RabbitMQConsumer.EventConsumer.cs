@@ -25,20 +25,35 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly ILogger? log;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
+            //null for PerReplica so the broker names an exclusive queue for this replica alone, a queue named for the service for PerService so its replicas compete for the events
+            private readonly string? queue;
 
             private IModel? channel = null;
             private SemaphoreSlim? throttle = null;
 
-            public EventConsumer(int maxConcurrent, string topic, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
                 this.maxConcurrent = maxConcurrent;
 
+                bool truncated;
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
+                    this.topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic, out truncated);
                 else
-                    this.topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
+                    this.topic = topic.Truncate(RabbitMQCommon.TopicMaxLength, out truncated);
+                if (truncated)
+                    log?.Warn($"{nameof(RabbitMQConsumer)} truncated the event exchange to {RabbitMQCommon.TopicMaxLength} characters: {this.topic}. Another exchange truncating to the same name would be consumed as this one.");
+                if (eventConsumerMode == EventConsumerMode.PerService)
+                {
+                    this.queue = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", this.topic, serviceName, out truncated);
+                    if (truncated)
+                        log?.Warn($"{nameof(RabbitMQConsumer)} truncated the {EventConsumerMode.PerService} queue to {RabbitMQCommon.TopicMaxLength} characters: {this.queue}. Another service truncating to the same queue would compete with this one for the events.");
+                }
+                else
+                {
+                    this.queue = null;
+                }
                 this.serializer = serializer;
                 this.encryptor = encryptor;
                 this.log = log;
@@ -70,7 +85,12 @@ namespace Zerra.CQRS.RabbitMQ
                     this.channel.BasicQos(0, (ushort)maxConcurrent, false);
                     this.channel.ExchangeDeclare(this.topic, ExchangeType.Fanout);
 
-                    var queue = this.channel.QueueDeclare(String.Empty, false, true, true);
+                    //an exclusive server named queue reaches this replica alone, a queue named for the service is shared by its replicas so they compete.
+                    //the shared one is durable because a broker refuses a transient queue that isn't exclusive, it only makes the queue survive a restart
+                    //and the events are still transient; auto delete still takes the queue with the last replica to disconnect
+                    var queue = this.queue is null
+                        ? this.channel.QueueDeclare(String.Empty, false, true, true)
+                        : this.channel.QueueDeclare(this.queue, true, false, true);
                     this.channel.QueueBind(queue.QueueName, this.topic, String.Empty);
 
                     var consumer = new AsyncEventingBasicConsumer(this.channel);

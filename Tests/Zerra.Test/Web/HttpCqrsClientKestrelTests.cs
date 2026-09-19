@@ -184,8 +184,8 @@ namespace Zerra.Test.Web
                 commandConsumer.RegisterCommandType(10, "test", typeof(TestCommandWithResult));
 
                 IEventConsumer eventConsumer = new KestrelCqrsServerEventConsumer(settings);
-                eventConsumer.Setup((@event, eventSource) => { _ = server.eventReceived.TrySetResult(((TestEvent)@event).Value); return Task.CompletedTask; });
-                eventConsumer.RegisterEventType(10, "test", typeof(TestEvent));
+                eventConsumer.Setup("test-service", (@event, eventSource) => { _ = server.eventReceived.TrySetResult(((TestEvent)@event).Value); return Task.CompletedTask; });
+                eventConsumer.RegisterEventType(10, "test", typeof(TestEvent), EventConsumerMode.PerReplica);
 
                 return server;
             }

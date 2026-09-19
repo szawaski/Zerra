@@ -45,14 +45,39 @@ namespace Zerra.Repository.Test.RabbitMQ
             }
         }
 
+        [Fact(Timeout = 300000)]
+        public async Task TestEventConsumerModePerService()
+        {
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+            var log = new TestLogger();
+
+            try
+            {
+                //a consumer per connection, standing in for the replicas of two services
+                using (var serviceAReplica1 = new RabbitMQConsumer(host, serializer, encryptor, log, null))
+                using (var serviceAReplica2 = new RabbitMQConsumer(host, serializer, encryptor, log, null))
+                using (var serviceB = new RabbitMQConsumer(host, serializer, encryptor, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, encryptor, log, null))
+                {
+                    await MessageTest.TestEventConsumerModePerService(producer, serviceAReplica1, serviceAReplica2, serviceB, eventTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                DeleteExchanges(eventTopic);
+            }
+        }
+
         //the consumer declares an exchange per topic, which outlives the connection, its queues are exclusive and go with the connection
-        private static void DeleteExchanges(string commandTopic, string eventTopic)
+        private static void DeleteExchanges(params string[] topics)
         {
             var factory = RabbitMQCommon.CreateConnectionFactory(host);
             using var connection = factory.CreateConnection();
             using var channel = connection.CreateModel();
-            channel.ExchangeDelete(commandTopic, false);
-            channel.ExchangeDelete(eventTopic, false);
+            foreach (var topic in topics)
+                channel.ExchangeDelete(topic, false);
             channel.Close();
         }
     }

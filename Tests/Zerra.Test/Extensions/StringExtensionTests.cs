@@ -23,6 +23,42 @@ namespace Zerra.Test.Extensions
         }
 
         [Fact]
+        public void Truncate_ReportsTruncation()
+        {
+            Assert.Equal("hello", "hello".Truncate(10, out var truncated));
+            Assert.False(truncated);
+
+            //exactly at the limit is not a truncation
+            Assert.Equal("hello", "hello".Truncate(5, out truncated));
+            Assert.False(truncated);
+
+            Assert.Equal("hello", "hello world".Truncate(5, out truncated));
+            Assert.True(truncated);
+
+            Assert.Equal("", "test".Truncate(0, out truncated));
+            Assert.True(truncated);
+        }
+
+        [Fact]
+        public void Join_ReportsTruncation()
+        {
+            _ = StringExtensions.Join(11, "-", "hello", "world", out var truncated);
+            Assert.False(truncated);
+            _ = StringExtensions.Join(8, "-", "hello", "world", out truncated);
+            Assert.True(truncated);
+
+            _ = StringExtensions.Join(16, "-", "hello", "world", "test", out truncated);
+            Assert.False(truncated);
+            _ = StringExtensions.Join(10, "-", "hello", "world", "test", out truncated);
+            Assert.True(truncated);
+
+            _ = StringExtensions.Join(21, "-", "hello", "world", "test", "four", out truncated);
+            Assert.False(truncated);
+            _ = StringExtensions.Join(12, "-", "hello", "world", "test", "four", out truncated);
+            Assert.True(truncated);
+        }
+
+        [Fact]
         public void Join_TwoStrings()
         {
             _ = Assert.Throws<ArgumentException>(() => StringExtensions.Join(0, "-", "a", "b"));

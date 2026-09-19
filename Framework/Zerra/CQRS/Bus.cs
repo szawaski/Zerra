@@ -1232,14 +1232,14 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        void IBusSetup.AddEventConsumer<TInterface>(IEventConsumer eventConsumer)
+        void IBusSetup.AddEventConsumer<TInterface>(IEventConsumer eventConsumer, EventConsumerMode eventConsumerMode)
         {
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
                 throw new Exception($"{interfaceType.Name} is not an interface");
             ArgumentNullException.ThrowIfNull(eventConsumer);
 
-            eventConsumer.Setup(RemoteHandleEventDispatchAsync);
+            eventConsumer.Setup(context.ServiceName, RemoteHandleEventDispatchAsync);
             eventConsumers ??= new();
             _ = eventConsumers.Add(eventConsumer);
 
@@ -1252,10 +1252,10 @@ namespace Zerra.CQRS
             var topic = info.InterfaceName;
             foreach (var eventType in info.EventTypes)
             {
-                eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
+                eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType, eventConsumerMode);
                 handledTypes ??= new();
                 _ = handledTypes.Add(eventType);
-                context.Log?.Info($"{eventConsumer.GetType().Name} at {eventConsumer.MessageHost} - {eventType.Name}");
+                context.Log?.Info($"{eventConsumer.GetType().Name} at {eventConsumer.MessageHost} - {eventType.Name} ({eventConsumerMode})");
             }
 
             eventConsumer.Open();

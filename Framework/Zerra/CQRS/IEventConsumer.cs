@@ -19,12 +19,14 @@ namespace Zerra.CQRS
         /// <param name="maxConcurrent">The max number of concurrent requests for this event consumer.</param>
         /// <param name="topic">The message service topic.</param>
         /// <param name="type">The event type.</param>
-        void RegisterEventType(int maxConcurrent, string topic, Type type);
+        /// <param name="eventConsumerMode">Whether every replica of this service receives the event or the replicas compete so only one of them does.</param>
+        void RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode);
         /// <summary>
         /// A method called from <see cref="Bus"/> on startup to provide parts needed for the server.
         /// </summary>
+        /// <param name="serviceName">The name of this service, used to tell it apart from the other services subscribed to the same events.</param>
         /// <param name="handlerAsync">The hander delegate router that will link the acutal event methods.</param>
-        void Setup(HandleRemoteEventDispatch handlerAsync);
+        void Setup(string serviceName, HandleRemoteEventDispatch handlerAsync);
         /// <summary>
         /// A method called from <see cref="Bus"/> to start receiving.
         /// </summary>

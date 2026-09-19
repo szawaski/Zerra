@@ -59,7 +59,7 @@ var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, logger);
 // Register consumers and servers
 bus.AddCommandConsumer<IUserCommandHandler>(server);
 bus.AddQueryServer<IUserQueries>(server);
-bus.AddEventConsumer<IUserEventHandler>(server);
+bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
 
 // Wait for shutdown signal
 await bus.WaitForExitAsync(cancellationToken);
@@ -126,7 +126,7 @@ var server = new TcpCqrsServer(serverAddress, serializer, encryptor, logger);
 // Register consumers and servers
 bus.AddCommandConsumer<IUserCommandHandler>(server);
 bus.AddQueryServer<IUserQueries>(server);
-bus.AddEventConsumer<IUserEventHandler>(server);
+bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
 
 Console.WriteLine($"User Service started on {serverAddress}");
 Console.WriteLine("Press Ctrl+C to stop...");
@@ -208,7 +208,7 @@ builder.Services.AddSingleton<IBusSetup>(serviceProvider =>
     var server = new TcpCqrsServer(serverAddress, serializer, encryptor, logger);
     bus.AddCommandConsumer<IUserCommandHandler>(server);
     bus.AddQueryServer<IUserQueries>(server);
-    bus.AddEventConsumer<IUserEventHandler>(server);
+    bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
 
     return bus;
 });
@@ -261,7 +261,7 @@ var server = new TcpCqrsServer(
 
 bus.AddCommandConsumer<IUserCommandHandler>(server);
 bus.AddQueryServer<IUserQueries>(server);
-bus.AddEventConsumer<IUserEventHandler>(server);
+bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
 ```
 
 ### HTTP CQRS Server
@@ -280,7 +280,7 @@ var server = new HttpCqrsServer(
 
 bus.AddCommandConsumer<IUserCommandHandler>(server);
 bus.AddQueryServer<IUserQueries>(server);
-bus.AddEventConsumer<IUserEventHandler>(server);
+bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
 ```
 
 ### Multiple Protocols
@@ -303,6 +303,12 @@ bus.AddQueryServer<IUserQueries>(httpServer);
 
 Each broker consumer handles both commands and events. Topics/queues are named after the handler interface (e.g. `IUserCommandHandler`), prefixed with the optional `environment`.
 
+`AddEventConsumer` requires an `EventConsumerMode`, there is no default. `PerReplica` gives every replica of the service its own copy of each event, which is what the samples above use. `PerService` has the replicas compete for them instead, the way they do for commands - it is the subscriber's own choice and changes nothing for the publisher or for the other subscribers. See [Choosing per replica or per service](Events.md#choosing-per-replica-or-per-service).
+
+```csharp
+bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerService);
+```
+
 ### Kafka Consumer
 
 ```csharp
@@ -318,7 +324,7 @@ var kafkaConsumer = new KafkaConsumer(
     password: null            // optional SASL password
 );
 bus.AddCommandConsumer<IUserCommandHandler>(kafkaConsumer);
-bus.AddEventConsumer<IUserEventHandler>(kafkaConsumer);
+bus.AddEventConsumer<IUserEventHandler>(kafkaConsumer, EventConsumerMode.PerReplica);
 ```
 
 ### RabbitMQ Consumer
@@ -334,7 +340,7 @@ var rabbitConsumer = new RabbitMQConsumer(
     environment: "dev"        // optional exchange/queue prefix
 );
 bus.AddCommandConsumer<IUserCommandHandler>(rabbitConsumer);
-bus.AddEventConsumer<IUserEventHandler>(rabbitConsumer);
+bus.AddEventConsumer<IUserEventHandler>(rabbitConsumer, EventConsumerMode.PerReplica);
 ```
 
 ### Azure Service Bus Consumer
@@ -350,7 +356,7 @@ var asbConsumer = new AzureServiceBusConsumer(
     environment: "dev"        // optional queue/topic prefix
 );
 bus.AddCommandConsumer<IUserCommandHandler>(asbConsumer);
-bus.AddEventConsumer<IUserEventHandler>(asbConsumer);
+bus.AddEventConsumer<IUserEventHandler>(asbConsumer, EventConsumerMode.PerReplica);
 ```
 
 See [Kafka Setup](KafkaSetup.md), [RabbitMQ Setup](RabbitMQSetup.md), and [Azure Service Bus Setup](AzureServiceBusSetup.md) for details.

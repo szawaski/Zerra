@@ -439,7 +439,7 @@ namespace Zerra.Test.Web
             public void AddCommandProducer<TInterface>(ICommandProducer commandProducer) => throw new NotImplementedException();
             public void AddCommandConsumer<TInterface>(ICommandConsumer commandConsumer) => throw new NotImplementedException();
             public void AddEventProducer<TInterface>(IEventProducer eventProducer) => throw new NotImplementedException();
-            public void AddEventConsumer<TInterface>(IEventConsumer eventConsumer) => throw new NotImplementedException();
+            public void AddEventConsumer<TInterface>(IEventConsumer eventConsumer, EventConsumerMode eventConsumerMode) => throw new NotImplementedException();
             public void AddQueryClient<TInterface>(IQueryClient queryClient) => throw new NotImplementedException();
             public void AddQueryServer<TInterface>(IQueryServer queryServer) => throw new NotImplementedException();
             public TInterface Call<TInterface>() where TInterface : notnull => throw new NotImplementedException();

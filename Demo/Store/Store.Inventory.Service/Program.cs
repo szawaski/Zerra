@@ -5,9 +5,11 @@ using Store.Common.Messaging;
 using Store.Inventory.Domain;
 using Store.Inventory.Service.Data;
 using Store.Inventory.Service.Handlers;
+using Store.Orders.Domain;
 using Zerra.CQRS;
 using Zerra.CQRS.Kafka;
 using Zerra.CQRS.Network;
+using Zerra.CQRS.RabbitMQ;
 using Zerra.Logging;
 using Zerra.Repository;
 
@@ -27,7 +29,8 @@ await InventorySeeder.SeedAsync(repo, log);
 
 //Message brokers: each is used when it's running, checked here first so the choice can be reported like the data store
 var useKafka = !StoreSettings.DirectMessagingOnly && await KafkaConnection.TestAsync(StoreSettings.KafkaHost, null, null, log: log);
-IMessagingInfo messaging = new MessagingInfo($"Stock commands: {(useKafka ? "Kafka" : "Direct TCP")}.");
+var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnection.Test(StoreSettings.RabbitMQHost, log: log);
+IMessagingInfo messaging = new MessagingInfo($"Stock commands: {(useKafka ? "Kafka" : "Direct TCP")}. Order events: {(useRabbitMQ ? "RabbitMQ" : "Direct TCP")}.");
 log.Info($"Messaging: {messaging.Description}");
 
 var busServices = new BusServices();
@@ -41,6 +44,7 @@ var commandHandler = new InventoryCommandHandler();
 bus.AddHandler<IInventoryQueryHandler>(new InventoryQueryHandler());
 bus.AddHandler<IInventoryCommandHandler>(commandHandler);
 bus.AddHandler<IStockReservationHandler>(commandHandler);
+bus.AddHandler<IOrdersEventHandler>(commandHandler);
 
 var serializer = StoreSettings.CreateServiceSerializer();
 var encryptor = StoreSettings.CreateServiceEncryptor();
@@ -57,6 +61,15 @@ if (useKafka)
     bus.AddCommandConsumer<IStockReservationHandler>(new KafkaConsumer(StoreSettings.KafkaHost, serializer, encryptor, log, null, null, null));
 else
     bus.AddCommandConsumer<IStockReservationHandler>(server);
+
+//Shipping an order arrives as OrderShippedEvent instead, and this service settles the reservation for it. EventConsumerMode.PerService,
+//not the default PerReplica: the units leave the shelf once, so the replicas of this service have to compete for the event rather than
+//each get a copy. On RabbitMQ that is one queue named for this service on the Fanout exchange, shared by the replicas; the Shipping
+//service has its own queue on the same exchange and still gets every event.
+if (useRabbitMQ)
+    bus.AddEventConsumer<IOrdersEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null), EventConsumerMode.PerService);
+else
+    bus.AddEventConsumer<IOrdersEventHandler>(server, EventConsumerMode.PerService);
 
 log.Info($"Inventory service listening on {StoreSettings.InventoryServiceUrl}, press Ctrl+C to stop");
 

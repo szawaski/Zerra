@@ -10,7 +10,7 @@ Events in Zerra:
 - Represent state changes that have already occurred
 - Follow publish-subscribe pattern (one-to-many)
 - Multiple handlers can respond to the same event
-- **Delivered to every replica of every subscriber**, so a handler must be correct when N instances all run it (see [Events Are Fanned Out to Every Replica](#events-are-fanned-out-to-every-replica))
+- **Delivered to every replica of every subscriber** by default, so a handler must be correct when N instances all run it (see [Events Are Fanned Out to Every Replica](#events-are-fanned-out-to-every-replica)), unless the subscriber registers its consumer with [`EventConsumerMode.PerService`](#choosing-per-replica-or-per-service)
 - Dispatched asynchronously to local or remote handlers
 - Support distributed event-driven architecture
 - Used for eventual consistency and reactive workflows
@@ -20,20 +20,22 @@ Events in Zerra:
 
 **Read this before putting anything in an event handler.**
 
-A command is handled **once**. An event is delivered to **every subscriber, and to every running instance of every subscriber**. Run three replicas of a service that subscribes to an event and the handler runs three times, once per replica, in parallel, on three copies of the same message.
+A command is handled **once**. An event is delivered to **every subscriber**, and each subscriber decides for itself how many of its own replicas get a copy, with the `EventConsumerMode` its `AddEventConsumer` takes. `EventConsumerMode.PerReplica` is the fanout this section is about: run three replicas of a service that subscribes that way and the handler runs three times, once per replica, in parallel, on three copies of the same message.
 
 That is deliberate, and it is what the brokers are configured to do:
 
-| Transport | Commands | Events |
+| Transport | Commands | Events, `PerReplica` |
 |---|---|---|
 | Kafka | one consumer group named for the topic, so the replicas compete and **one** handles each command | a **new group id per consumer instance**, so **every replica** gets a copy |
 | Azure Service Bus | a shared **queue**, so **one** replica handles each command | a topic with a **new subscription per consumer instance**, so **every replica** gets a copy |
 | RabbitMQ | a Direct exchange | a **Fanout** exchange, so **every replica** gets a copy |
 | Direct TCP / Kestrel | sent to the endpoint registered for that command | sent to each endpoint registered for that event |
 
+The other mode, [`EventConsumerMode.PerService`](#choosing-per-replica-or-per-service), has the replicas of one subscriber compete for each event instead. There is no default, so every `AddEventConsumer` states which it is. Everything between here and that section is about `PerReplica`.
+
 ### The rule
 
-Put work in an event handler only when it is **still correct if every replica does it**. Anything else is a command.
+Put work in a `PerReplica` event handler only when it is **still correct if every replica does it**. Anything else is a command, or an event the subscriber registers `PerService`.
 
 ```csharp
 // ✅ Correct in an event handler - safe when every replica runs it
@@ -44,7 +46,7 @@ public Task Handle(ProductPriceChangedEvent @event)
     return Task.CompletedTask;
 }
 
-// ❌ Wrong in an event handler - three replicas decrement the stock three times
+// ❌ Wrong in a PerReplica event handler - three replicas decrement the stock three times
 public async Task Handle(OrderShippedEvent @event)
 {
     var item = await Repo.SingleAsync<StockItemDataModel>(x => x.ProductID == @event.ProductID);
@@ -52,6 +54,8 @@ public async Task Handle(OrderShippedEvent @event)
     await Repo.UpdateAsync(item);
 }
 ```
+
+The second one is a command, or an event the subscriber registers [`PerService`](#choosing-per-replica-or-per-service) so its replicas compete for it. What it cannot be is an event under the default fanout.
 
 Work that belongs in an **event** handler, because every replica must do it for itself, or because doing it N times changes nothing:
 
@@ -84,6 +88,43 @@ Send the command to a service-to-service command interface that the web gateway 
 ### Idempotency is not enough
 
 Making the handler idempotent guards against the *same* replica getting a duplicate delivery. It does not help when several replicas run concurrently: two replicas can both read "not done yet" and both do the work. Idempotency and the command/event choice are separate concerns, and you often need both.
+
+### Choosing per replica or per service
+
+The fanout above is `EventConsumerMode.PerReplica`, and it is what an event usually wants, because an event is a notification and each replica has its own cache, its own connected browsers and its own in-memory state to keep current.
+
+When a subscriber needs the opposite - each event handled once by the service however many replicas are running - it registers its consumer with `EventConsumerMode.PerService`:
+
+```csharp
+// every replica of this service receives each event
+bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerReplica);
+
+// one replica of this service receives each event, the replicas compete for them
+bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerService);
+```
+
+There is no default. `AddEventConsumer` takes the mode on every registration, because which one it is decides what a handler is allowed to do, and that is not something to leave to a default nobody reads.
+
+The mode belongs to the consumer registration, so it is the **subscriber's** choice alone. It changes nothing about what the publisher sends and nothing about what any other subscriber receives: two services subscribed to the same event still each get their own copy, and `PerService` only decides whether the replicas of *that* service share it.
+
+| | `PerReplica` | `PerService` |
+|---|---|---|
+| Kafka | a new group id per consumer instance | one group named for the topic and the service |
+| Azure Service Bus | a new subscription per consumer instance | one subscription named for the service |
+| RabbitMQ | an exclusive server-named queue per consumer instance | one queue named for the topic and the service, bound to the same Fanout exchange |
+| Direct TCP / Kestrel | no effect, see below | no effect, see below |
+
+The service name in those is the one passed to `Bus.New(serviceName, ...)`, so it is what keeps two services subscribed to the same event from sharing a subscription. Give each service its own, and keep it stable across deployments: changing it starts a new subscription. Where a broker's name limit is short enough to cut it, the consumer logs a warning naming the shortened result.
+
+Because the subscription is shared, `PerService` outlives any one replica: a replica stopping does not take it with it, and the events keep reaching the replicas still running. A `PerReplica` subscription is deleted with the replica that owned it.
+
+Whether events published while the *whole* service is down are still waiting when it returns is up to the broker. Kafka keeps the group's committed offsets and Azure Service Bus keeps the subscription, so they are. RabbitMQ auto-deletes the queue once its last consumer disconnects, the same as it does for a command queue, so they are not.
+
+On Kafka a topic is created with one partition, so `PerService` means one replica receives everything and the rest stand by to take over, the same as a command consumer. The other two brokers spread the events across the replicas.
+
+**Direct TCP and Kestrel ignore the mode.** On a direct connection the producer decides who gets a copy through the client URLs it is registered with: one client per replica URL reaches every replica, one client pointed at a load balancer in front of them reaches one of them. The server has nothing to change, so it takes the mode and does nothing with it.
+
+`PerService` is not a way around [choosing a command](#the-rule). Reach for it when the work must happen once *and* the publisher has no business knowing the subscriber exists - a projection into a shared read model, a subscriber that fans a change out to a third party. When the publisher does know what it wants done, say so with a command and it is clearer to everyone reading it.
 
 ## Aggregate Events Are Not CQRS Events
 
@@ -361,7 +402,7 @@ public class AnalyticsEventHandler : BaseHandler, IAnalyticsEventHandler
 
 Event handlers have full access to bus context:
 
-> The handler below reserves inventory and dispatches a payment command. Shown for the context API only: with several replicas it would reserve the items and charge the customer once per replica. Real work like that belongs in a command. See [Events Are Fanned Out to Every Replica](#events-are-fanned-out-to-every-replica).
+> The handler below reserves inventory and dispatches a payment command. Shown for the context API only: registered `PerReplica`, with several replicas, it would reserve the items and charge the customer once per replica. Real work like that belongs in a command, or in a consumer registered [`PerService`](#choosing-per-replica-or-per-service). See [Events Are Fanned Out to Every Replica](#events-are-fanned-out-to-every-replica).
 
 ```csharp
 public class OrderEventHandler : BaseHandler, IOrderEventHandler
@@ -530,7 +571,7 @@ bus.AddEventProducer<IUserEventHandler>(kafkaProducer);
 // Consumer side
 var kafkaConsumer = new KafkaConsumer("localhost:9092", serializer, encryptor, logger, environment: null, userName: null, password: null);
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
-bus.AddEventConsumer<IUserEventHandler>(kafkaConsumer);
+bus.AddEventConsumer<IUserEventHandler>(kafkaConsumer, EventConsumerMode.PerReplica);
 
 // Dispatch - publishes to Kafka topic
 await bus.DispatchAsync(new UserCreatedEvent 
@@ -553,7 +594,7 @@ bus.AddEventProducer<IUserEventHandler>(rabbitProducer);
 // Consumer side
 var rabbitConsumer = new RabbitMQConsumer("localhost", serializer, encryptor, logger, environment: null);
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
-bus.AddEventConsumer<IUserEventHandler>(rabbitConsumer);
+bus.AddEventConsumer<IUserEventHandler>(rabbitConsumer, EventConsumerMode.PerReplica);
 ```
 
 #### Azure Service Bus
@@ -568,7 +609,7 @@ bus.AddEventProducer<IUserEventHandler>(asbProducer);
 // Consumer side
 var asbConsumer = new AzureServiceBusConsumer(asbConnectionString, serializer, encryptor, logger, environment: null);
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
-bus.AddEventConsumer<IUserEventHandler>(asbConsumer);
+bus.AddEventConsumer<IUserEventHandler>(asbConsumer, EventConsumerMode.PerReplica);
 ```
 
 ### Hybrid - Local and Remote
@@ -897,7 +938,7 @@ public class UserEventHandler : BaseHandler, IEventHandler<UserCreatedEvent>
 
 ### Saga Coordination with Events
 
-> A saga step must run once. Every replica of the service below receives each event and dispatches its own copy of the next command, so the saga advances once per replica. Give the coordinator its own single-instance deployment, or drive the steps with commands.
+> A saga step must run once. Under `PerReplica` every replica of the service below receives each event and dispatches its own copy of the next command, so the saga advances once per replica. Register the coordinator's consumer [`PerService`](#choosing-per-replica-or-per-service) so its replicas compete, drive the steps with commands, or give the coordinator its own single-instance deployment.
 
 ```csharp
 public class OrderSagaEventHandler : BaseHandler,
@@ -964,7 +1005,7 @@ public class OrderSagaEventHandler : BaseHandler,
 
 ### CQRS Read Model Projection
 
-> A projection into a **shared** store, as below, must be written once: drive it with a command, or run exactly one projector instance. Projecting into a read model each replica keeps in its **own memory** is the case events are made for.
+> A projection into a **shared** store, as below, must be written once: drive it with a command, run exactly one projector instance, or register the consumer with [`EventConsumerMode.PerService`](#choosing-per-replica-or-per-service) so the replicas compete for the events. Projecting into a read model each replica keeps in its **own memory** is the case events are made for.
 
 ```csharp
 public class UserReadModelProjection : BaseHandler,

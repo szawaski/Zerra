@@ -6,7 +6,7 @@ namespace Store.Inventory.Domain.Commands
     /// The order was cancelled, so its reserved units go back on the shelf. Sent by the Orders service.
     /// </summary>
     /// <remarks>
-    /// A command and not an event, for the same reason as <see cref="ShipReservedStockCommand"/>: releasing stock has to happen once.
+    /// A command and not an event: releasing stock has to happen once, and Orders knows it wants the reservation undone.
     /// </remarks>
     public sealed class ReleaseReservedStockCommand : ICommand
     {

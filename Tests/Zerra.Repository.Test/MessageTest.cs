@@ -20,11 +20,20 @@ namespace Zerra.Repository.Test
         private const string source = "Zerra.Repository.Test";
         private const int maxConcurrent = 10;
         private const string claimType = "ZerraMessageTest";
+        private const string serviceName = "ZerraTestService";
+        /// <summary>
+        /// The service names <see cref="TestEventConsumerModePerService"/> registers under, which a transport's cleanup may need to name its subscriptions.
+        /// </summary>
+        public const string ServiceAName = "ZerraTestServiceA";
+        /// <inheritdoc cref="ServiceAName" />
+        public const string ServiceBName = "ZerraTestServiceB";
 
         //a consumer subscribes in the background after Open, and messages sent before it's listening can be missed, so readiness is retried
         private static readonly TimeSpan readyTimeout = TimeSpan.FromSeconds(90);
         private static readonly TimeSpan readyAttemptTimeout = TimeSpan.FromSeconds(5);
         private static readonly TimeSpan messageTimeout = TimeSpan.FromSeconds(30);
+        //long enough for a duplicate copy of an event to show up after the first one did
+        private static readonly TimeSpan settleDelay = TimeSpan.FromSeconds(3);
 
         /// <summary>
         /// A topic name unique to this run so leftovers from other runs are never received, short enough for every transport's name limit.
@@ -43,8 +52,8 @@ namespace Zerra.Repository.Test
             commandConsumer.Setup(new CommandCounter(), receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
             commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
             commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
-            eventConsumer.Setup(receiver.HandleEventAsync);
-            eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+            eventConsumer.Setup(serviceName, receiver.HandleEventAsync);
+            eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
 
             commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
             commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
@@ -239,6 +248,76 @@ namespace Zerra.Repository.Test
                 Assert.Equal(events[i].Value, Assert.IsType<TestEvent>(results[i].Message).Value);
         }
 
+        /// <summary>
+        /// The sequence for <see cref="EventConsumerMode.PerService"/>, only through the producer and consumer interfaces.
+        /// The first two consumers stand in for two replicas of one service and share each event between them,
+        /// the third is another service subscribed to the same events and gets its own copy of every one.
+        /// </summary>
+        public static async Task TestEventConsumerModePerService(IEventProducer eventProducer, IEventConsumer serviceAReplica1, IEventConsumer serviceAReplica2, IEventConsumer serviceB, string eventTopic, CancellationToken cancellationToken)
+        {
+            TypeFinder.Register(typeof(TestEvent));
+
+            var receivedA1 = new EventReceiver();
+            var receivedA2 = new EventReceiver();
+            var receivedB = new EventReceiver();
+
+            serviceAReplica1.Setup(ServiceAName, receivedA1.HandleEventAsync);
+            serviceAReplica1.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
+            serviceAReplica2.Setup(ServiceAName, receivedA2.HandleEventAsync);
+            serviceAReplica2.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
+            serviceB.Setup(ServiceBName, receivedB.HandleEventAsync);
+            serviceB.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
+
+            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+
+            serviceAReplica1.Open();
+            serviceAReplica2.Open();
+            serviceB.Open();
+            try
+            {
+                //the replicas share a subscription, so one of them receiving the probe means the service is listening
+                await RetryUntilReady("Event consumers", cancellationToken, async (attemptCancellationToken) =>
+                {
+                    await eventProducer.DispatchAsync(new TestEvent() { ID = Guid.NewGuid() }, source, attemptCancellationToken);
+                    await WaitUntil(() => receivedA1.Count + receivedA2.Count > 0 && receivedB.Count > 0, readyAttemptTimeout, attemptCancellationToken);
+                });
+
+                var events = Enumerable.Range(0, maxConcurrent * 3).Select(x => new TestEvent() { ID = Guid.NewGuid(), Value = x }).ToArray();
+                var expected = events.Select(x => x.ID).OrderBy(x => x).ToArray();
+
+                await Task.WhenAll(events.Select(x => eventProducer.DispatchAsync(x, source, cancellationToken))).WaitAsync(messageTimeout, cancellationToken);
+
+                //at least, so a duplicate is caught by the assertion below rather than making the wait time out
+                await WaitUntil(() => receivedB.Received(expected).Count >= expected.Length, messageTimeout, cancellationToken);
+                await WaitUntil(() => receivedA1.Received(expected).Count + receivedA2.Received(expected).Count >= expected.Length, messageTimeout, cancellationToken);
+
+                //a second copy of an event would arrive after the first, so the counts are only trustworthy once everything has settled
+                await Task.Delay(settleDelay, cancellationToken);
+
+                //the other service is subscribed on its own, so it gets every event
+                Assert.Equal(expected, receivedB.Received(expected));
+                //the replicas compete, so between them they get every event exactly once
+                Assert.Equal(expected, receivedA1.Received(expected).Concat(receivedA2.Received(expected)).OrderBy(x => x));
+            }
+            finally
+            {
+                serviceAReplica1.Close();
+                serviceAReplica2.Close();
+                serviceB.Close();
+            }
+        }
+
+        private static async Task WaitUntil(Func<bool> condition, TimeSpan timeout, CancellationToken cancellationToken)
+        {
+            var timer = Stopwatch.StartNew();
+            while (!condition())
+            {
+                if (timer.Elapsed >= timeout)
+                    throw new TimeoutException($"The condition was not met after {timeout.TotalSeconds} seconds");
+                await Task.Delay(100, cancellationToken);
+            }
+        }
+
         private static string ErrorMessage(Guid id) => $"Test Error {id}";
 
         private enum HandlerType
@@ -250,6 +329,23 @@ namespace Zerra.Repository.Test
         }
 
         private sealed record Received(object Message, string Source, HandlerType Handler, string? Claim);
+
+        //records every event ID it was given, including duplicates, so a test can count the copies a consumer received
+        private sealed class EventReceiver
+        {
+            private readonly ConcurrentQueue<Guid> ids = new();
+
+            public int Count => ids.Count;
+
+            //the probe events sent while waiting for the consumers to be listening are not part of any expectation
+            public List<Guid> Received(IReadOnlyCollection<Guid> expected) => ids.Where(expected.Contains).OrderBy(x => x).ToList();
+
+            public Task HandleEventAsync(IEvent @event, string source)
+            {
+                ids.Enqueue(Assert.IsType<TestEvent>(@event).ID);
+                return Task.CompletedTask;
+            }
+        }
 
         //records what each handler received by message ID, so a test can wait for exactly its own message
         private sealed class Receiver

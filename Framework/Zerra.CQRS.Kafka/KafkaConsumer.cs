@@ -39,6 +39,7 @@ namespace Zerra.CQRS.Kafka
         private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
         private CommandCounter? commandCounter = null;
+        private string? serviceName = null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="KafkaConsumer"/> class.
@@ -95,11 +96,13 @@ namespace Zerra.CQRS.Kafka
         /// <summary>
         /// Sets up the consumer with event handlers.
         /// </summary>
+        /// <param name="serviceName">The name of this service, used to name the consumer group for <see cref="EventConsumerMode.PerService"/>.</param>
         /// <param name="handlerAsync">The asynchronous handler for processing events.</param>
-        void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(string serviceName, HandleRemoteEventDispatch handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
+            this.serviceName = serviceName;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -214,10 +217,11 @@ namespace Zerra.CQRS.Kafka
         /// <param name="maxConcurrent">The maximum number of concurrent messages to process for this event type.</param>
         /// <param name="topic">The Kafka topic name for the event.</param>
         /// <param name="type">The event type.</param>
+        /// <param name="eventConsumerMode">Whether every replica of this service gets its own consumer group or the replicas share one and compete for the events.</param>
         /// <exception cref="Exception">Thrown if the consumer is not properly setup.</exception>
-        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
+        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode)
         {
-            if (eventHandlerAsync is null)
+            if (eventHandlerAsync is null || serviceName is null)
                 throw new Exception($"{nameof(KafkaConsumer)} is not setup");
 
             lock (eventExchanges)
@@ -226,7 +230,7 @@ namespace Zerra.CQRS.Kafka
                     return;
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, log, environment, eventHandlerAsync));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync));
                 OpenExchanges();
             }
         }

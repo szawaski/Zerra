@@ -8,7 +8,6 @@ namespace Store.Inventory.Domain
     /// </summary>
     public interface IStockReservationHandler :
         ICommandHandler<ReserveStockCommand>,
-        ICommandHandler<ShipReservedStockCommand>,
         ICommandHandler<ReleaseReservedStockCommand>
     {
     }

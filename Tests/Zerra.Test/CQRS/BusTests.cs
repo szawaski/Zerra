@@ -86,7 +86,7 @@ namespace Zerra.Test.CQRS
             busServer.AddHandler<ITestEventHandler>(new TestEventHandler(results, waiter));
             var server = new TcpCqrsServer(url, serializer, encryptor, null);
             busServer.AddCommandConsumer<ITestCommandHandler>(server);
-            busServer.AddEventConsumer<ITestEventHandler>(server);
+            busServer.AddEventConsumer<ITestEventHandler>(server, EventConsumerMode.PerReplica);
 
             var busClient = Bus.New("test-client", null, null, null);
             var client = new TcpCqrsClient(url, serializer, encryptor, null);
@@ -111,7 +111,7 @@ namespace Zerra.Test.CQRS
             busServer.AddHandler<ITestEventHandler>(new TestEventHandler(results, waiter));
             var server = new HttpCqrsServer(url, serializer, encryptor, null, null);
             busServer.AddCommandConsumer<ITestCommandHandler>(server);
-            busServer.AddEventConsumer<ITestEventHandler>(server);
+            busServer.AddEventConsumer<ITestEventHandler>(server, EventConsumerMode.PerReplica);
 
             var busClient = Bus.New("test-client", null, null, null);
             var client = new HttpCqrsClient(url, serializer, encryptor, null, null);
@@ -133,13 +133,13 @@ namespace Zerra.Test.CQRS
             var results1 = new List<int>();
             var busServer1 = Bus.New("test-server1", null, null, null);
             busServer1.AddHandler<ITestEventHandler>(new TestEventHandler(results1, waiter1));
-            busServer1.AddEventConsumer<ITestEventHandler>(new TcpCqrsServer(url1, serializer, encryptor, null));
+            busServer1.AddEventConsumer<ITestEventHandler>(new TcpCqrsServer(url1, serializer, encryptor, null), EventConsumerMode.PerReplica);
 
             using var waiter2 = new SemaphoreSlim(0, 1);
             var results2 = new List<int>();
             var busServer2 = Bus.New("test-server2", null, null, null);
             busServer2.AddHandler<ITestEventHandler>(new TestEventHandler(results2, waiter2));
-            busServer2.AddEventConsumer<ITestEventHandler>(new TcpCqrsServer(url2, serializer, encryptor, null));
+            busServer2.AddEventConsumer<ITestEventHandler>(new TcpCqrsServer(url2, serializer, encryptor, null), EventConsumerMode.PerReplica);
 
             //each producer is sent the event, adding the same producer again is ignored so it isn't sent twice
             var busClient = Bus.New("test-client", null, null, null);

@@ -57,8 +57,9 @@ namespace Zerra.Web
         /// Stores the event handler delegate for use during request processing.
         /// Called during initialization before the consumer starts receiving requests.
         /// </remarks>
+        /// <param name="serviceName">The name of this service, not used for Kestrel.</param>
         /// <param name="handlerAsync">The async delegate for event dispatch and notification.</param>
-        void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(string serviceName, HandleRemoteEventDispatch handlerAsync)
         {
             settings.EventHandlerAsync = handlerAsync;
         }
@@ -73,7 +74,8 @@ namespace Zerra.Web
         /// <param name="maxConcurrent">The maximum number of concurrent event handlers for this type.</param>
         /// <param name="topic">The topic or routing key for this event type (not used for Kestrel).</param>
         /// <param name="type">The event type to register.</param>
-        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
+        /// <param name="eventConsumerMode">Not used for Kestrel; the producer's client urls decide whether every replica or one of them receives each event.</param>
+        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode)
         {
             if (settings.Types.ContainsKey(type))
                 return;

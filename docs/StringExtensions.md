@@ -7,7 +7,7 @@ Zerra provides a set of useful extension methods for string manipulation, conver
 ## Overview
 
 String extensions in Zerra include:
-- **Truncation and joining** - Smart truncation with proportional shortening
+- **Truncation and joining** - Smart truncation with proportional shortening, and an overload that reports whether anything was cut off
 - **Type conversions** - Parse strings to common .NET types with defaults
 - **Null-safe operations** - Handle null strings gracefully
 - **Performance optimized** - Span-based implementations for efficiency
@@ -69,6 +69,22 @@ string result = StringExtensions.Join(40, "_", "One", "Two", "Three", "Four");
 string result = StringExtensions.Join(25, "_", "Environment", "Machine", "Assembly", "Process");
 // Result: "Enviro_Mach_Assem_Proce"
 ```
+
+### Knowing When It Truncated
+
+Every `Truncate` and `Join` has an overload with a trailing `out bool`, for when a truncated name could collide with something else's:
+
+```csharp
+var name = text.Truncate(10, out var truncated);
+if (truncated)
+    log.Warn($"Truncated to {name}, another name shortening to the same one would collide with it");
+
+var topic = StringExtensions.Join(249, "_", environment, topic, out truncated);
+```
+
+A string exactly `maxLength` long is not a truncation, so `truncated` is false and the original instance comes back.
+
+The framework's own message transports use this: each one warns once, when the consumer is constructed or the producer registers the type, if the broker's name limit cut its topic, queue, exchange, consumer group or subscription short. See [Kafka Setup](KafkaSetup.md), [RabbitMQ Setup](RabbitMQSetup.md), and [Azure Service Bus Setup](AzureServiceBusSetup.md).
 
 ### Truncation Logic
 
@@ -338,13 +354,16 @@ public string CreateServiceId(string environment, string machine, string service
 ### Creating Topic/Queue Names
 
 ```csharp
-public string CreateKafkaTopic(string environment, string eventType, string version)
+public string CreateKafkaTopic(string environment, string eventType, string version, ILogger? log)
 {
     const int maxTopicLength = 249; // Kafka limit
-    return StringExtensions.Join(maxTopicLength, ".", environment, eventType, version);
+    var topic = StringExtensions.Join(maxTopicLength, ".", environment, eventType, version, out var truncated);
+    if (truncated)
+        log?.Warn($"Topic name was shortened to {topic}, another topic shortening to the same name would share it");
+    return topic;
 }
 
-// Ensures topic name fits within limits even with long environment names
+// Ensures topic name fits within limits even with long environment names, and says so when it had to
 ```
 
 ## Null Handling

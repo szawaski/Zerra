@@ -173,10 +173,13 @@ The consumer declares a different topology for each, which is what makes a comma
 |---|---|---|---|
 | Commands | Direct | **one queue named for the topic, shared by every replica** | they compete, and **one** replica handles each command |
 | Events | Fanout | a server-named exclusive queue per replica | **every** replica gets its own copy |
+| Events, `PerService` | Fanout | **one queue named for the topic and the service, shared by every replica** | they compete, and **one** replica handles each event |
 
-Design handlers to match. Work that must happen once, such as writing to a database, belongs in a command handler. An event handler has to be correct when every replica runs it at the same time: dropping a cache the replica holds in its own memory is fine, moving stock is not. See [Events](Events.md#events-are-fanned-out-to-every-replica).
+Design handlers to match. A `PerReplica` event handler has to be correct when every replica runs it at the same time: dropping a cache the replica holds in its own memory is fine, moving stock is not. Work that must happen once belongs in a command handler, or in a consumer registered `PerService`, which is the last row. See [Events](Events.md#events-are-fanned-out-to-every-replica).
 
-Both queues are auto-deleted when their last consumer disconnects, so messages sent while a subscriber is down are not held for it.
+The last row is what `bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerService)` declares instead. It is the subscriber's own choice and changes nothing for the publisher or for the other services bound to the same Fanout exchange, which still get their own copy of every event. See [Choosing per replica or per service](Events.md#choosing-per-replica-or-per-service).
+
+Every one of these queues is auto-deleted when its last consumer disconnects, so messages sent while a subscriber is down are not held for it.
 
 ### Basic Consumer Configuration
 
@@ -227,7 +230,7 @@ var consumer = new RabbitMQConsumer(
 
 // Register consumers
 bus.AddCommandConsumer<IUserCommandHandler>(consumer);
-bus.AddEventConsumer<IUserEventHandler>(consumer);
+bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerReplica);
 
 // Wait for shutdown signal
 await bus.WaitForExitAsync(cancellationToken);
@@ -293,7 +296,7 @@ var consumer = new RabbitMQConsumer(
 
 // Register consumers
 bus.AddCommandConsumer<IUserCommandHandler>(consumer);
-bus.AddEventConsumer<IUserEventHandler>(consumer);
+bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerReplica);
 
 Console.WriteLine($"RabbitMQ Server started on {serviceName}");
 Console.WriteLine("Press Ctrl+C to stop...");
@@ -380,6 +383,8 @@ var prodProducer = new RabbitMQProducer("localhost", serializer, encryptor, logg
 Names are the handler interface name (e.g. `IUserCommandHandler`) prefixed with the environment:
 - `dev_IUserCommandHandler`
 - `prod_IUserCommandHandler`
+
+RabbitMQ caps a name at 255 characters, and a `PerService` queue is the exchange name plus the service name. Both are shortened to fit, and the producer and consumer log a warning naming the shortened result when that happens, since a different exchange or service shortening to the same name would share it.
 
 ## See Also
 

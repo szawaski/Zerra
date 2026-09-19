@@ -38,6 +38,7 @@ namespace Zerra.CQRS.AzureServiceBus
         private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
         private CommandCounter? commandCounter = null;
+        private string? serviceName = null;
 
         private static readonly ServiceBusReceiverOptions receiverOptions = new()
         {
@@ -82,10 +83,11 @@ namespace Zerra.CQRS.AzureServiceBus
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
             this.commandHandlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
         }
-        void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(string serviceName, HandleRemoteEventDispatch handlerAsync)
         {
             if (isOpen)
                 throw new InvalidOperationException("Connection already open");
+            this.serviceName = serviceName;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -178,9 +180,9 @@ namespace Zerra.CQRS.AzureServiceBus
             }
         }
 
-        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
+        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode)
         {
-            if (eventHandlerAsync is null)
+            if (eventHandlerAsync is null || serviceName is null)
                 throw new Exception($"{nameof(AzureServiceBusConsumer)} is not setup");
 
             lock (eventExchanges)
@@ -189,7 +191,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     return;
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, log, environment, eventHandlerAsync));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync));
                 OpenExchanges();
             }
         }

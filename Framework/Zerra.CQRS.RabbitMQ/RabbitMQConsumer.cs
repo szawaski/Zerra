@@ -37,6 +37,7 @@ namespace Zerra.CQRS.RabbitMQ
         private HandleRemoteEventDispatch? eventHandlerAsync = null;
 
         private CommandCounter? commandCounter = null;
+        private string? serviceName = null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RabbitMQConsumer"/> class.
@@ -74,10 +75,11 @@ namespace Zerra.CQRS.RabbitMQ
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
             this.commandHandlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
         }
-        void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
+        void IEventConsumer.Setup(string serviceName, HandleRemoteEventDispatch handlerAsync)
         {
             if (this.connection is not null)
                 throw new InvalidOperationException("Connection already open");
+            this.serviceName = serviceName;
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -185,9 +187,9 @@ namespace Zerra.CQRS.RabbitMQ
             }
         }
 
-        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type)
+        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode)
         {
-            if (eventHandlerAsync is null)
+            if (eventHandlerAsync is null || serviceName is null)
                 throw new Exception($"{nameof(RabbitMQConsumer)} is not setup");
 
             lock (eventExchanges)
@@ -196,7 +198,7 @@ namespace Zerra.CQRS.RabbitMQ
                     return;
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, log, environment, eventHandlerAsync));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync));
                 OpenExchanges();
             }
         }

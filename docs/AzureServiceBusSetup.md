@@ -165,6 +165,22 @@ finally
 
 A server application uses `AzureServiceBusConsumer` to receive and process commands and events from Azure Service Bus.
 
+### Queues and subscriptions
+
+Commands get a queue, events get a topic, and how the topic is subscribed decides how many replicas of the service handle each event:
+
+| | Entity | With several replicas of the service |
+|---|---|---|
+| Commands | one queue named for the topic, shared by every replica | they compete, and **one** replica handles each command |
+| Events, `EventConsumerMode.PerReplica` | a topic, with a new `EVT-{guid}` subscription per consumer instance | **every** replica gets its own copy |
+| Events, `EventConsumerMode.PerService` | the same topic, with one `EVT-{serviceName}` subscription shared by every replica | they compete, and **one** replica handles each event |
+
+`AddEventConsumer` takes the mode on every registration, there is no default. It is the subscriber's own choice and changes nothing for the publisher or for the other services subscribed to the same topic, each of which has its own subscription and still gets every event. See [Choosing per replica or per service](Events.md#choosing-per-replica-or-per-service).
+
+A `PerReplica` subscription belongs to the one consumer that made it, so it is created with `AutoDeleteOnIdle` and deleted when the consumer stops. A `PerService` subscription is shared by the replicas, so it never auto-deletes and stays when they stop, holding events published while the whole service is down.
+
+The service name comes from `Bus.New(serviceName, ...)`.
+
 ### Basic Consumer Configuration
 
 ```csharp
@@ -214,7 +230,7 @@ var consumer = new AzureServiceBusConsumer(
 
 // Register consumers
 bus.AddCommandConsumer<IUserCommandHandler>(consumer);
-bus.AddEventConsumer<IUserEventHandler>(consumer);
+bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerReplica);
 
 // Wait for shutdown signal
 await bus.WaitForExitAsync(cancellationToken);
@@ -281,7 +297,7 @@ var consumer = new AzureServiceBusConsumer(
 
 // Register consumers
 bus.AddCommandConsumer<IUserCommandHandler>(consumer);
-bus.AddEventConsumer<IUserEventHandler>(consumer);
+bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerReplica);
 
 Console.WriteLine($"Azure Service Bus Server started on {serviceName}");
 Console.WriteLine("Press Ctrl+C to stop...");
@@ -355,6 +371,8 @@ var prodProducer = new AzureServiceBusProducer(connectionString, serializer, enc
 Queue (commands) and topic (events) names are the handler interface name (e.g. `IUserCommandHandler`) prefixed with the environment:
 - `dev_IUserCommandHandler`
 - `prod_IUserCommandHandler`
+
+Azure Service Bus caps an entity name at 50 characters, which is short enough to hit with an environment prefix and a long interface name, and a `PerService` subscription is `EVT-` plus the service name. Both are shortened to fit, and the producer and consumer log a warning naming the shortened result when that happens, since a different entity or service shortening to the same name would share it.
 
 ## See Also
 

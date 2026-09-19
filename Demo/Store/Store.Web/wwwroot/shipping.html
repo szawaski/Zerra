@@ -26,8 +26,9 @@
         <h1 class="page-title">Shipping</h1>
         <p class="page-lead">
             Owned by the Shipping service, the only one hosted inside ASP.NET Core over HTTP/Kestrel instead of the raw TCP the other services use.
-            It has no database of its own, either, it keeps its shipments in memory. Orders sends it <code>CreateShipmentCommand</code> when an order ships:
-            a command and not an event, because the shipment has to be created once and an event would reach every replica of this service.
+            It has no database of its own, either, it keeps its shipments in memory. It subscribes to the Orders service's <code>OrderShippedEvent</code>
+            with <code>EventConsumerMode.PerService</code>: the shipment has to be created once, so the replicas of this service compete for the event
+            instead of each getting a copy, which would give one order a shipment per replica.
         </p>
 
         <div class="grid grid-2">

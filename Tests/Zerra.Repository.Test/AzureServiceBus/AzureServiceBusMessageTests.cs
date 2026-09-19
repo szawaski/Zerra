@@ -46,5 +46,31 @@ namespace Zerra.Repository.Test.AzureServiceBus
                 await AzureServiceBusCommon.DeleteTopic(host, eventTopic);
             }
         }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestEventConsumerModePerService()
+        {
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+            var log = new TestLogger();
+
+            try
+            {
+                //a consumer per client, standing in for the replicas of two services
+                await using (var serviceAReplica1 = new AzureServiceBusConsumer(host, serializer, encryptor, log, null))
+                await using (var serviceAReplica2 = new AzureServiceBusConsumer(host, serializer, encryptor, log, null))
+                await using (var serviceB = new AzureServiceBusConsumer(host, serializer, encryptor, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, log, null))
+                {
+                    await MessageTest.TestEventConsumerModePerService(producer, serviceAReplica1, serviceAReplica2, serviceB, eventTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                //a PerService subscription is shared by the replicas so it's left behind, deleting the topic takes it with it
+                await AzureServiceBusCommon.DeleteTopic(host, eventTopic);
+            }
+        }
     }
 }

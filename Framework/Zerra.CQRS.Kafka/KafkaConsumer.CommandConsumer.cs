@@ -38,10 +38,13 @@ namespace Zerra.CQRS.Kafka
                 this.maxConcurrent = commandCounter.ReceiveCountBeforeExit.HasValue ? Math.Min(commandCounter.ReceiveCountBeforeExit.Value, maxConcurrent) : maxConcurrent;
                 this.commandCounter = commandCounter;
 
+                bool truncated;
                 if (!String.IsNullOrWhiteSpace(environment))
-                    this.topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
+                    this.topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic, out truncated);
                 else
-                    this.topic = topic.Truncate(KafkaCommon.TopicMaxLength);
+                    this.topic = topic.Truncate(KafkaCommon.TopicMaxLength, out truncated);
+                if (truncated)
+                    log?.Warn($"{nameof(KafkaConsumer)} truncated the command topic to {KafkaCommon.TopicMaxLength} characters: {this.topic}. Another topic truncating to the same name would be consumed as this one.");
                 this.clientID = Environment.MachineName;
                 this.serializer = serializer;
                 this.encryptor = encryptor;

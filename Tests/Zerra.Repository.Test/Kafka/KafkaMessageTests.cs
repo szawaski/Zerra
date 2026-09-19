@@ -46,6 +46,35 @@ namespace Zerra.Repository.Test.Kafka
             }
         }
 
+        [Fact(Timeout = 300000)]
+        public async Task TestEventConsumerModePerService()
+        {
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+            var log = new TestLogger();
+
+            try
+            {
+                //a consumer per connection, standing in for the replicas of two services
+                using (var serviceAReplica1 = new KafkaConsumer(host, serializer, encryptor, log, null, null, null))
+                using (var serviceAReplica2 = new KafkaConsumer(host, serializer, encryptor, log, null, null, null))
+                using (var serviceB = new KafkaConsumer(host, serializer, encryptor, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, encryptor, log, null, null, null))
+                {
+                    await MessageTest.TestEventConsumerModePerService(producer, serviceAReplica1, serviceAReplica2, serviceB, eventTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await KafkaCommon.DeleteTopic(host, null, null, eventTopic);
+
+                //a PerService group is shared by the replicas, so the consumers leave it behind
+                await DeleteConsumerGroup($"{eventTopic}_{MessageTest.ServiceAName}");
+                await DeleteConsumerGroup($"{eventTopic}_{MessageTest.ServiceBName}");
+            }
+        }
+
         private static async Task Cleanup(string commandTopic, string eventTopic, string? ackTopic)
         {
             await KafkaCommon.DeleteTopic(host, null, null, commandTopic);

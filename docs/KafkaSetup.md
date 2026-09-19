@@ -173,6 +173,22 @@ finally
 
 A server application uses `KafkaConsumer` to receive and process commands and events from Kafka topics.
 
+### Consumer groups
+
+The group id decides how many replicas of the service handle each message, and it is the whole difference between a command and an event here:
+
+| | Consumer group | With several replicas of the service |
+|---|---|---|
+| Commands | one named for the topic, shared by every replica | they compete, and **one** replica handles each command |
+| Events, `EventConsumerMode.PerReplica` | a new group id per consumer instance | **every** replica gets its own copy |
+| Events, `EventConsumerMode.PerService` | one named for the topic and the service, shared by every replica | they compete, and **one** replica handles each event |
+
+`AddEventConsumer` takes the mode on every registration, there is no default. It is the subscriber's own choice and changes nothing for the publisher or for the other services subscribed to the same topic, which still get their own copy of every event. See [Choosing per replica or per service](Events.md#choosing-per-replica-or-per-service).
+
+A `PerReplica` group belongs to the one consumer that made it, so the consumer deletes it when it stops. A `PerService` group is shared by the replicas, so it stays, and its committed offsets mean events published while the whole service is down are waiting when it comes back.
+
+A topic is created with one partition, so `PerService` means one replica receives everything and the rest stand by to take over. That is what a Kafka command consumer already does.
+
 ### Basic Consumer Configuration
 
 ```csharp
@@ -224,7 +240,7 @@ var consumer = new KafkaConsumer(
 
 // Register consumers
 bus.AddCommandConsumer<IUserCommandHandler>(consumer);
-bus.AddEventConsumer<IUserEventHandler>(consumer);
+bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerReplica);
 
 // Wait for shutdown signal
 await bus.WaitForExitAsync(cancellationToken);
@@ -296,7 +312,7 @@ var consumer = new KafkaConsumer(
 
 // Register consumers
 bus.AddCommandConsumer<IUserCommandHandler>(consumer);
-bus.AddEventConsumer<IUserEventHandler>(consumer);
+bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerReplica);
 
 Console.WriteLine($"Kafka Server started on {serviceName}");
 Console.WriteLine("Press Ctrl+C to stop...");
@@ -388,6 +404,8 @@ var prodProducer = new KafkaProducer(bootstrapServers, serializer, encryptor, lo
 Topic names are the handler interface name (e.g. `IUserCommandHandler`) prefixed with the environment:
 - `dev_IUserCommandHandler`
 - `prod_IUserCommandHandler`
+
+Kafka caps a topic name at 249 characters, and a `PerService` consumer group is the topic name plus the service name. Both are shortened to fit, and the producer and consumer log a warning naming the shortened result when that happens, since a different topic or service shortening to the same name would share it.
 
 ## See Also
 

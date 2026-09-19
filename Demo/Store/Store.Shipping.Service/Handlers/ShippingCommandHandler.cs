@@ -1,4 +1,6 @@
 using Store.Common;
+using Store.Orders.Domain;
+using Store.Orders.Domain.Events;
 using Store.Shipping.Domain;
 using Store.Shipping.Domain.Commands;
 using Store.Shipping.Service.Data;
@@ -7,33 +9,37 @@ using Zerra.Repository;
 
 namespace Store.Shipping.Service.Handlers
 {
-    public sealed class ShippingCommandHandler : BaseHandlerWithRepo, IShippingCommandHandler, IShipmentHandler
+    public sealed class ShippingCommandHandler : BaseHandlerWithRepo, IShippingCommandHandler, IOrdersEventHandler
     {
         private static readonly string[] carriers = ["Ground Express", "Sky Freight", "QuickShip"];
 
         /// <summary>
-        /// Sent by the Orders service when an order ships. A command and not an event: it creates the shipment, which has to happen
-        /// once. An event reaches every replica and each would pick its own carrier and tracking number for the same order.
+        /// Published by the Orders service when an order ships, and a shipment is created for it.
         /// </summary>
-        public async Task Handle(CreateShipmentCommand command, CancellationToken cancellationToken)
+        /// <remarks>
+        /// An event, but the service registers it with <see cref="Zerra.CQRS.EventConsumerMode.PerService"/>, so the replicas compete
+        /// and one of them creates the shipment. Under the default <see cref="Zerra.CQRS.EventConsumerMode.PerReplica"/> every replica
+        /// would create its own shipment with its own carrier and tracking number. That is why this used to be a command.
+        /// </remarks>
+        public async Task Handle(OrderShippedEvent @event)
         {
-            //a command can be delivered twice, a shipment that already exists means there's nothing left to do
-            if (await Repo.AnyAsync<ShipmentDataModel>(x => x.OrderID == command.OrderID))
+            //an event can be delivered twice, a shipment that already exists means there's nothing left to do
+            if (await Repo.AnyAsync<ShipmentDataModel>(x => x.OrderID == @event.OrderID))
                 return;
 
             var shipment = new ShipmentDataModel()
             {
                 ID = Guid.NewGuid(),
-                OrderID = command.OrderID,
-                OrderNumber = command.OrderNumber,
+                OrderID = @event.OrderID,
+                OrderNumber = @event.OrderNumber,
                 Carrier = carriers[Random.Shared.Next(carriers.Length)],
                 TrackingNumber = $"TRK-{Random.Shared.Next(100000, 1000000)}",
                 Status = nameof(ShipmentStatus.InTransit),
-                ShippedOn = command.ShippedOn
+                ShippedOn = @event.ShippedOn
             };
             await Repo.CreateAsync(shipment);
 
-            Log?.Info($"Created shipment {shipment.TrackingNumber} for order {command.OrderNumber} via {shipment.Carrier}");
+            Log?.Info($"Created shipment {shipment.TrackingNumber} for order {@event.OrderNumber} via {shipment.Carrier}");
         }
 
         public async Task Handle(MarkDeliveredCommand command, CancellationToken cancellationToken)

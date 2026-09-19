@@ -91,11 +91,6 @@ namespace Zerra.CQRS.RabbitMQ
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
-
                 try
                 {
                     if (connection is null || connection!.IsOpen == false)
@@ -210,11 +205,6 @@ namespace Zerra.CQRS.RabbitMQ
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
-
                 try
                 {
                     if (connection is null || connection!.IsOpen == false)
@@ -326,11 +316,6 @@ namespace Zerra.CQRS.RabbitMQ
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
-
                 try
                 {
                     if (connection is null || connection.IsOpen == false)
@@ -401,6 +386,7 @@ namespace Zerra.CQRS.RabbitMQ
         {
             if (topicsByCommandType.ContainsKey(type))
                 return;
+            topic = BuildTopic(topic, "command");
             _ = topicsByCommandType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
@@ -413,12 +399,25 @@ namespace Zerra.CQRS.RabbitMQ
         {
             if (topicsByEventType.ContainsKey(type))
                 return;
+            topic = BuildTopic(topic, "event");
             _ = topicsByEventType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
+        }
+
+        private string BuildTopic(string topic, string kind)
+        {
+            bool truncated;
+            if (!String.IsNullOrWhiteSpace(environment))
+                topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic, out truncated);
+            else
+                topic = topic.Truncate(RabbitMQCommon.TopicMaxLength, out truncated);
+            if (truncated)
+                log?.Warn($"{nameof(RabbitMQProducer)} truncated the {kind} exchange to {RabbitMQCommon.TopicMaxLength} characters: {topic}. Another exchange truncating to the same name would receive these messages.");
+            return topic;
         }
     }
 }
