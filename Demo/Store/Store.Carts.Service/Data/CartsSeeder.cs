@@ -1,4 +1,3 @@
-using Store.Carts.Domain.Events;
 using Store.Carts.Service.Aggregates;
 using Store.Common;
 using Zerra.Logging;
@@ -10,7 +9,7 @@ namespace Store.Carts.Service.Data
     {
         /// <summary>
         /// Starts Grace's cart the first time the service runs against an event store with no stream for it, so the Carts page has something to show.
-        /// The events go through the aggregate like any command's would, which also dispatches them, so the bus has to be set up first.
+        /// The events go through the aggregate like any command's would, so the cart is built the same way a customer would build it.
         /// </summary>
         public static async Task SeedAsync(IEventStoreEngine eventStore, ILogger log)
         {

@@ -2,62 +2,27 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.CQRS;
-
 namespace Zerra.Repository.Test
 {
-    public sealed class TestAggregateCreated : IEvent
+    public sealed class TestAggregateCreated : IAggregateEvent
     {
         public string Name { get; set; } = null!;
         public int Amount { get; set; }
     }
 
-    public sealed class TestAggregateAmountAdded : IEvent
+    public sealed class TestAggregateAmountAdded : IAggregateEvent
     {
         public int Amount { get; set; }
     }
 
-    public sealed class TestAggregateRenamed : IEvent
+    public sealed class TestAggregateRenamed : IAggregateEvent
     {
         public string Name { get; set; } = null!;
     }
 
-    public sealed class TestAggregateRemoved : IEvent
+    public sealed class TestAggregateRemoved : IAggregateEvent
     {
         public string Reason { get; set; } = null!;
-    }
-
-    public interface ITestAggregateEventHandler :
-        IEventHandler<TestAggregateCreated>,
-        IEventHandler<TestAggregateAmountAdded>,
-        IEventHandler<TestAggregateRenamed>,
-        IEventHandler<TestAggregateRemoved>
-    { }
-
-    public sealed class TestAggregateEventHandler : BaseHandler, ITestAggregateEventHandler
-    {
-        public List<IEvent> Dispatched { get; } = new();
-
-        public Task Handle(TestAggregateCreated @event)
-        {
-            Dispatched.Add(@event);
-            return Task.CompletedTask;
-        }
-        public Task Handle(TestAggregateAmountAdded @event)
-        {
-            Dispatched.Add(@event);
-            return Task.CompletedTask;
-        }
-        public Task Handle(TestAggregateRenamed @event)
-        {
-            Dispatched.Add(@event);
-            return Task.CompletedTask;
-        }
-        public Task Handle(TestAggregateRemoved @event)
-        {
-            Dispatched.Add(@event);
-            return Task.CompletedTask;
-        }
     }
 
     /// <summary>

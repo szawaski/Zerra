@@ -1,10 +1,10 @@
 using Store.Catalog.Domain;
 using Store.Common;
 using Store.Orders.Domain;
+using Store.Reviews.Service.Data;
 using Store.Reviews.Domain;
 using Store.Reviews.Domain.Commands;
 using Store.Reviews.Domain.Models;
-using Store.Reviews.Service.Data;
 using Zerra;
 using Zerra.Repository;
 
@@ -23,9 +23,17 @@ namespace Store.Reviews.Service.Handlers
             if (await Repo.AnyAsync<ReviewDataModel>(x => x.CustomerID == command.CustomerID && x.ProductID == command.ProductID))
                 throw new DomainException("You've already reviewed this product.");
 
-            //the product's name comes from the Catalog service, same as OrdersCommandHandler does for order items
-            var products = await Bus.Call<ICatalogQueryHandler>().GetProductsByIDs([command.ProductID], cancellationToken);
-            var product = products.FirstOrDefault() ?? throw new DomainException("Product not found.");
+            //the product's name comes from the Catalog service, cached here until the Catalog's events say the product changed
+            var cache = Context.GetService<ICatalogProductCache>();
+            if (!cache.TryGet(command.ProductID, out var product))
+            {
+                var products = await Bus.Call<ICatalogQueryHandler>().GetProductsByIDs([command.ProductID], cancellationToken);
+                product = products.FirstOrDefault();
+                if (product is not null)
+                    cache.Set(product);
+            }
+            if (product is null)
+                throw new DomainException("Product not found.");
 
             //asking the Orders service whether this customer actually received the product marks the review Verified, without Reviews needing its own copy of order history
             var verifiedPurchase = await Bus.Call<IOrdersQueryHandler>().HasPurchased(command.CustomerID, command.ProductID, cancellationToken);

@@ -10,10 +10,128 @@ Events in Zerra:
 - Represent state changes that have already occurred
 - Follow publish-subscribe pattern (one-to-many)
 - Multiple handlers can respond to the same event
+- **Delivered to every replica of every subscriber**, so a handler must be correct when N instances all run it (see [Events Are Fanned Out to Every Replica](#events-are-fanned-out-to-every-replica))
 - Dispatched asynchronously to local or remote handlers
 - Support distributed event-driven architecture
 - Used for eventual consistency and reactive workflows
 - Can be consumed from message brokers for scalable processing
+
+## Events Are Fanned Out to Every Replica
+
+**Read this before putting anything in an event handler.**
+
+A command is handled **once**. An event is delivered to **every subscriber, and to every running instance of every subscriber**. Run three replicas of a service that subscribes to an event and the handler runs three times, once per replica, in parallel, on three copies of the same message.
+
+That is deliberate, and it is what the brokers are configured to do:
+
+| Transport | Commands | Events |
+|---|---|---|
+| Kafka | one consumer group named for the topic, so the replicas compete and **one** handles each command | a **new group id per consumer instance**, so **every replica** gets a copy |
+| Azure Service Bus | a shared **queue**, so **one** replica handles each command | a topic with a **new subscription per consumer instance**, so **every replica** gets a copy |
+| RabbitMQ | a Direct exchange | a **Fanout** exchange, so **every replica** gets a copy |
+| Direct TCP / Kestrel | sent to the endpoint registered for that command | sent to each endpoint registered for that event |
+
+### The rule
+
+Put work in an event handler only when it is **still correct if every replica does it**. Anything else is a command.
+
+```csharp
+// ✅ Correct in an event handler - safe when every replica runs it
+public Task Handle(ProductPriceChangedEvent @event)
+{
+    // this replica's own cache, so this replica has to be the one to drop it
+    Context.GetService<ProductCache>().Drop(@event.ProductID);
+    return Task.CompletedTask;
+}
+
+// ❌ Wrong in an event handler - three replicas decrement the stock three times
+public async Task Handle(OrderShippedEvent @event)
+{
+    var item = await Repo.SingleAsync<StockItemDataModel>(x => x.ProductID == @event.ProductID);
+    item.OnHand -= @event.Quantity;
+    await Repo.UpdateAsync(item);
+}
+```
+
+Work that belongs in an **event** handler, because every replica must do it for itself, or because doing it N times changes nothing:
+
+- dropping or refreshing a cache the replica holds in its own memory
+- an in-memory read model or lookup each replica keeps its own copy of
+- pushing to the browsers or sockets connected to *that* replica
+- logging, metrics, tracing
+
+Work that belongs in a **command**, because it must happen exactly once:
+
+- writing to a shared database or an event store
+- moving stock, money, or any other counter
+- creating a record, such as a shipment or an invoice
+- anything with an outside effect: sending mail, charging a card, calling a third party
+
+### When one change needs both
+
+A single state change often needs an event *and* a command, for two different reasons. `Demo/Store` does exactly this when a product's price changes:
+
+```csharp
+// every replica of every subscriber drops its cached copy of the product
+await Bus.DispatchAsync(new ProductPriceChangedEvent() { ProductID = ..., NewPrice = ... });
+
+// one replica reprices the carts holding it
+await Bus.DispatchAsync(new RepriceCartItemsCommand() { ProductID = ..., NewPrice = ... });
+```
+
+Send the command to a service-to-service command interface that the web gateway does not register, so browsers cannot send it. `ICartRepricingHandler` and `IStockReservationHandler` in `Demo/Store` are both this.
+
+### Idempotency is not enough
+
+Making the handler idempotent guards against the *same* replica getting a duplicate delivery. It does not help when several replicas run concurrently: two replicas can both read "not done yet" and both do the work. Idempotency and the command/event choice are separate concerns, and you often need both.
+
+## Aggregate Events Are Not CQRS Events
+
+Two different things in Zerra are called events, and the rules above apply to only one of them.
+
+**CQRS events** are the bus messages in this document: `IEvent` types you `Bus.DispatchAsync`, handled by `IEventHandler<T>` in other services, fanned out to every replica. They are notifications. Nothing stores them.
+
+**Aggregate events** are the events an `AggregateRoot` appends to its own stream in an event store (see [Repository](Repository.md)). They *are* the aggregate's state: `Rebuild` replays them to reconstruct it, and they are the source of truth for that one aggregate instance. They are not notifications, they are not addressed to anyone, and they belong to a single stream, not to a set of subscribers.
+
+|  | Aggregate event | CQRS event |
+|---|---|---|
+| What it is | the aggregate's state, in order | a notification that something happened |
+| Where it lives | one stream in the event store | nowhere, it is delivered and gone |
+| Who reads it | `Rebuild` on that one aggregate | every subscriber, and every replica of each |
+| Replay | yes, that is the point | no |
+| Fanout rules above | do not apply | apply |
+
+Because they are different things, they are written differently:
+
+- **An aggregate event implements `IAggregateEvent`, not `IEvent`.** `IEvent` marks a bus message, and an aggregate event is never one. `AggregateRoot.Append<TEvent>` and `Delete<TEvent>` require `IAggregateEvent`, and source generation uses the same marker to emit the type detail the event needs to be serialized into the stream in a trimmed or native AOT build.
+- **It lives with the aggregate, not in a shared contracts project.** No other domain reads it, so putting it in a `*.Domain` assembly next to the commands and queries advertises it as something other services can subscribe to. `Demo/Store` keeps `CartItemAddedEvent` in `Store.Carts.Service/Aggregates/` beside `CartAggregate`, not in `Store.Carts.Domain`.
+- **It never goes on the bus.** `Append` writes it to the stream and stops there.
+
+And the reasoning about them is different:
+
+- An aggregate event is not "fanned out to every replica". It is appended to one stream and read back by whoever rebuilds that aggregate.
+- An aggregate event changing state is correct and expected. That is what `On(SomeEvent)` does. The warning against changing state in a handler is about CQRS event handlers.
+- Naming a type `...Event` makes it neither. What makes it an aggregate event is being appended with `AggregateRoot.Append`; what makes it a CQRS event is implementing `IEvent` and being dispatched on the bus.
+
+```csharp
+using Zerra.Repository;
+
+namespace Store.Carts.Service.Aggregates        //with the aggregate, in the service
+{
+    public sealed class CartItemAddedEvent : IAggregateEvent
+    {
+        public required Guid ProductID { get; init; }
+        public required decimal UnitPrice { get; init; }
+    }
+
+    public sealed class CartAggregate : AggregateRoot
+    {
+        public Task On(CartItemAddedEvent @event) { ... }   //applied on Append, replayed by Rebuild
+    }
+}
+```
+
+When something outside the service does need to know, the handler that appended the event dispatches a CQRS event or a command of its own, and that one is a contract: it implements `IEvent` or `ICommand` and lives in the domain project. Choosing between those two is what the section above is about.
 
 ## Defining Events
 
@@ -243,6 +361,8 @@ public class AnalyticsEventHandler : BaseHandler, IAnalyticsEventHandler
 
 Event handlers have full access to bus context:
 
+> The handler below reserves inventory and dispatches a payment command. Shown for the context API only: with several replicas it would reserve the items and charge the customer once per replica. Real work like that belongs in a command. See [Events Are Fanned Out to Every Replica](#events-are-fanned-out-to-every-replica).
+
 ```csharp
 public class OrderEventHandler : BaseHandler, IOrderEventHandler
 {
@@ -331,6 +451,8 @@ public class UserCommandHandler : BaseHandler, IUserCommandHandler
 ### Event Chains
 
 Events can trigger other events:
+
+> Every replica that receives the first event runs the chain, so a three-replica service reserves inventory three times and dispatches three payment commands. Chain state-changing steps with commands, not events; use an event only for the notification at the end.
 
 ```csharp
 public class OrderEventHandler : BaseHandler, IOrderEventHandler
@@ -504,7 +626,7 @@ public class UserEventHandler : BaseHandler, IUserEventHandler
 
 ### Idempotent Event Handling
 
-Design handlers to be idempotent since events may be delivered multiple times:
+Design handlers to be idempotent since events may be delivered multiple times. Note that idempotency handles redelivery to the *same* replica; it does not stop several replicas from doing the work concurrently, which is a separate question answered by [choosing a command](#events-are-fanned-out-to-every-replica):
 
 ```csharp
 public async Task Handle(UserCreatedEvent @event)
@@ -775,6 +897,8 @@ public class UserEventHandler : BaseHandler, IEventHandler<UserCreatedEvent>
 
 ### Saga Coordination with Events
 
+> A saga step must run once. Every replica of the service below receives each event and dispatches its own copy of the next command, so the saga advances once per replica. Give the coordinator its own single-instance deployment, or drive the steps with commands.
+
 ```csharp
 public class OrderSagaEventHandler : BaseHandler,
     IEventHandler<OrderPlacedEvent>,
@@ -839,6 +963,8 @@ public class OrderSagaEventHandler : BaseHandler,
 ```
 
 ### CQRS Read Model Projection
+
+> A projection into a **shared** store, as below, must be written once: drive it with a command, or run exactly one projector instance. Projecting into a read model each replica keeps in its **own memory** is the case events are made for.
 
 ```csharp
 public class UserReadModelProjection : BaseHandler,

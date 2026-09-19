@@ -165,6 +165,19 @@ finally
 
 A server application uses `RabbitMQConsumer` to receive and process commands and events from RabbitMQ exchanges.
 
+### Commands compete, events fan out
+
+The consumer declares a different topology for each, which is what makes a command happen once and an event reach everyone:
+
+| | Exchange | Queue | With several replicas of the service |
+|---|---|---|---|
+| Commands | Direct | **one queue named for the topic, shared by every replica** | they compete, and **one** replica handles each command |
+| Events | Fanout | a server-named exclusive queue per replica | **every** replica gets its own copy |
+
+Design handlers to match. Work that must happen once, such as writing to a database, belongs in a command handler. An event handler has to be correct when every replica runs it at the same time: dropping a cache the replica holds in its own memory is fine, moving stock is not. See [Events](Events.md#events-are-fanned-out-to-every-replica).
+
+Both queues are auto-deleted when their last consumer disconnects, so messages sent while a subscriber is down are not held for it.
+
 ### Basic Consumer Configuration
 
 ```csharp

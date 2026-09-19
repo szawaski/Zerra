@@ -4,8 +4,8 @@ using Store.Inventory.Domain.Commands;
 using Store.Inventory.Domain.Models;
 using Store.Orders.Domain;
 using Store.Orders.Domain.Commands;
-using Store.Orders.Domain.Events;
 using Store.Orders.Domain.Models;
+using Store.Shipping.Domain.Commands;
 using Store.Orders.Service.Data;
 using Zerra;
 using Zerra.Repository;
@@ -83,8 +83,8 @@ namespace Store.Orders.Service.Handlers
             }
             catch
             {
-                //compensate: the stock is already reserved, publish the cancellation so Inventory releases it
-                await Bus.DispatchAsync(new OrderCancelledEvent() { OrderID = order.ID, OrderNumber = order.OrderNumber, CancelledOn = DateTime.UtcNow });
+                //compensate: the stock is already reserved, command Inventory to release it
+                await Bus.DispatchAsync(new ReleaseReservedStockCommand() { OrderID = order.ID, OrderNumber = order.OrderNumber });
                 throw;
             }
 
@@ -96,8 +96,9 @@ namespace Store.Orders.Service.Handlers
         {
             var order = await CloseOrderAsync(command.OrderID, OrderStatus.Cancelled, "cancelled");
 
-            //Publish an event: Inventory releases the reserved stock on its own time
-            await Bus.DispatchAsync(new OrderCancelledEvent() { OrderID = order.ID, OrderNumber = order.OrderNumber!, CancelledOn = order.ClosedOn!.Value });
+            //Command Inventory to release the reserved stock. A command, not an event: it moves stock, so it must happen once
+            //however many Inventory replicas are running.
+            await Bus.DispatchAsync(new ReleaseReservedStockCommand() { OrderID = order.ID, OrderNumber = order.OrderNumber! });
 
             Log?.Info($"Cancelled order {order.OrderNumber}");
         }
@@ -106,8 +107,10 @@ namespace Store.Orders.Service.Handlers
         {
             var order = await CloseOrderAsync(command.OrderID, OrderStatus.Shipped, "shipped");
 
-            //Publish an event: Inventory takes the reserved units off the shelf
-            await Bus.DispatchAsync(new OrderShippedEvent() { OrderID = order.ID, OrderNumber = order.OrderNumber!, ShippedOn = order.ClosedOn!.Value });
+            //Two services have work to do, and both are commands because both write once: Inventory takes the reserved units off
+            //the shelf, Shipping creates the shipment. Neither is an event, which would reach every replica of each service.
+            await Bus.DispatchAsync(new ShipReservedStockCommand() { OrderID = order.ID, OrderNumber = order.OrderNumber! });
+            await Bus.DispatchAsync(new CreateShipmentCommand() { OrderID = order.ID, OrderNumber = order.OrderNumber!, ShippedOn = order.ClosedOn!.Value });
 
             Log?.Info($"Shipped order {order.OrderNumber}");
         }

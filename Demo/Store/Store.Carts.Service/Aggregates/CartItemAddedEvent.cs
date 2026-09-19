@@ -1,11 +1,11 @@
-using Zerra.CQRS;
+using Zerra.Repository;
 
-namespace Store.Carts.Domain.Events
+namespace Store.Carts.Service.Aggregates
 {
     /// <summary>
     /// Units of a product were added to the cart. Adding a product that's already in the cart adds to its quantity.
     /// </summary>
-    public sealed class CartItemAddedEvent : IEvent
+    public sealed class CartItemAddedEvent : IAggregateEvent
     {
         public required Guid CustomerID { get; init; }
         public required Guid ProductID { get; init; }

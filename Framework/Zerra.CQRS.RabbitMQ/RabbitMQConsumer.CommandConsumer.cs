@@ -81,7 +81,7 @@ namespace Zerra.CQRS.RabbitMQ
                     this.channel.BasicQos(0, (ushort)maxConcurrent, false);
                     this.channel.ExchangeDeclare(this.topic, ExchangeType.Direct);
 
-                    var queue = this.channel.QueueDeclare(String.Empty, false, true, true);
+                    var queue = this.channel.QueueDeclare(this.topic, false, false, true);
                     this.channel.QueueBind(queue.QueueName, this.topic, String.Empty);
 
                     var consumer = new AsyncEventingBasicConsumer(this.channel);

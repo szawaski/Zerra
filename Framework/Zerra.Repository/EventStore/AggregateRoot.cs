@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Collections;
-using Zerra.CQRS;
 using Zerra.Reflection;
 
 namespace Zerra.Repository
@@ -58,12 +57,18 @@ namespace Zerra.Repository
         }
 
         /// <summary>
-        /// Applies and persists an event to the aggregate, then dispatches it on the bus.
+        /// Applies and persists an event to the aggregate's stream.
         /// </summary>
+        /// <remarks>
+        /// These are the aggregate's own events, not CQRS events: they are its state, <see cref="Rebuild(ulong?, DateTime?)"/> replays them,
+        /// and they never go on the bus. They implement <see cref="IAggregateEvent"/>, not <c>IEvent</c>, and belong with the aggregate rather than in a shared contracts
+        /// project, since no other domain reads them. To tell another service something happened, dispatch a CQRS event or a command from the
+        /// handler that called this.
+        /// </remarks>
         /// <typeparam name="TEvent">The type of the event.</typeparam>
         /// <param name="event">The event to append.</param>
         /// <param name="validateEventNumber">When <see langword="true"/>, enforces optimistic concurrency by validating the expected event number.</param>
-        public async Task Append<TEvent>(TEvent @event, bool validateEventNumber = false) where TEvent : IEvent
+        public async Task Append<TEvent>(TEvent @event, bool validateEventNumber = false) where TEvent : IAggregateEvent
         {
             var eventType = typeof(TEvent);
             var eventName = eventType.Name;
@@ -72,17 +77,16 @@ namespace Zerra.Repository
 
             var eventBytes = EventStoreCommon.Serialize(@event);
             _ = await this.eventStore.AppendAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any, eventBytes);
-
-            await Bus.DispatchAsync(@event);
         }
 
         /// <summary>
-        /// Applies and persists a terminating event that marks the aggregate as deleted, then dispatches it on the bus.
+        /// Applies and persists a terminating event to the aggregate's stream, marking it as deleted. Like <see cref="Append"/>, this stays
+        /// out of the bus.
         /// </summary>
         /// <typeparam name="TEvent">The type of the event.</typeparam>
         /// <param name="event">The event to use as the deletion marker.</param>
         /// <param name="validateEventNumber">When <see langword="true"/>, enforces optimistic concurrency by validating the expected event number.</param>
-        public async Task Delete<TEvent>(TEvent @event, bool validateEventNumber = false) where TEvent : IEvent
+        public async Task Delete<TEvent>(TEvent @event, bool validateEventNumber = false) where TEvent : IAggregateEvent
         {
             var eventType = typeof(TEvent);
             var eventName = eventType.Name;
@@ -92,8 +96,6 @@ namespace Zerra.Repository
             _ = await this.eventStore.TerminateAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any);
 
             this.IsDeleted = true;
-
-            await Bus.DispatchAsync(@event);
         }
 
         /// <summary>
@@ -133,8 +135,8 @@ namespace Zerra.Repository
                     this.IsDeleted = true;
                     continue;
                 }
-                //read as object, the stored type name gives the event's type, and an interface like IEvent has no source generated type detail
-                var eventModel = EventStoreCommon.Deserialize<object>(eventData.Data.Span) as IEvent;
+                //read as object, the stored type name gives the event's type
+                var eventModel = EventStoreCommon.Deserialize<object>(eventData.Data.Span);
                 if (eventModel is null)
                     throw new Exception("Failed to deserialize Model");
                 await ApplyEvent(eventModel, eventModel.GetType());
@@ -144,7 +146,7 @@ namespace Zerra.Repository
 
         //cached per aggregate type, different aggregates can accept the same event with their own methods
         private static readonly ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<Type, MethodDetail>> methodCache = new();
-        private Task ApplyEvent(IEvent @event, Type eventType)
+        private Task ApplyEvent(object @event, Type eventType)
         {
             var methodsByEventType = methodCache.GetOrAdd(aggregateType, static () => new());
             var methodDetail = methodsByEventType.GetOrAdd(eventType, aggregateType, static (eventType, aggregateType) =>

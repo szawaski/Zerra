@@ -7,8 +7,35 @@ using Zerra.Repository;
 
 namespace Store.Shipping.Service.Handlers
 {
-    public sealed class ShippingCommandHandler : BaseHandlerWithRepo, IShippingCommandHandler
+    public sealed class ShippingCommandHandler : BaseHandlerWithRepo, IShippingCommandHandler, IShipmentHandler
     {
+        private static readonly string[] carriers = ["Ground Express", "Sky Freight", "QuickShip"];
+
+        /// <summary>
+        /// Sent by the Orders service when an order ships. A command and not an event: it creates the shipment, which has to happen
+        /// once. An event reaches every replica and each would pick its own carrier and tracking number for the same order.
+        /// </summary>
+        public async Task Handle(CreateShipmentCommand command, CancellationToken cancellationToken)
+        {
+            //a command can be delivered twice, a shipment that already exists means there's nothing left to do
+            if (await Repo.AnyAsync<ShipmentDataModel>(x => x.OrderID == command.OrderID))
+                return;
+
+            var shipment = new ShipmentDataModel()
+            {
+                ID = Guid.NewGuid(),
+                OrderID = command.OrderID,
+                OrderNumber = command.OrderNumber,
+                Carrier = carriers[Random.Shared.Next(carriers.Length)],
+                TrackingNumber = $"TRK-{Random.Shared.Next(100000, 1000000)}",
+                Status = nameof(ShipmentStatus.InTransit),
+                ShippedOn = command.ShippedOn
+            };
+            await Repo.CreateAsync(shipment);
+
+            Log?.Info($"Created shipment {shipment.TrackingNumber} for order {command.OrderNumber} via {shipment.Carrier}");
+        }
+
         public async Task Handle(MarkDeliveredCommand command, CancellationToken cancellationToken)
         {
             var shipment = await Repo.SingleAsync<ShipmentDataModel>(x => x.OrderID == command.OrderID) ?? throw new DomainException("Shipment not found.");

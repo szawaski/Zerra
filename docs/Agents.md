@@ -127,6 +127,8 @@ bus.AddEventProducer<IOrderEventHandler>(shippingClient);    //KestrelCqrsClient
 
 See `Store.Orders.Service/Program.cs`. A message broker producer (Kafka/RabbitMQ/AzureServiceBus) only needs registering once, the broker delivers each event to every subscribed consumer on its own.
 
+That means every *replica* of each subscriber too, so each subscriber's handler has to be correct when several instances run it at the same time. See [Command or Event?](#command-or-event-read-this-first).
+
 ### Web Gateway for Browsers
 
 ```csharp
@@ -190,15 +192,28 @@ public sealed class OrderDataModel
 
 ## Core Concepts
 
+### Command or Event? (read this first)
+
+A command is **handled once**, by one replica. An event is delivered to **every subscriber and every replica of every subscriber**: three replicas means the handler runs three times on three copies of the message. Kafka gives command consumers one shared group and each event consumer its own group id; Azure Service Bus gives commands a shared queue and each event consumer its own subscription; RabbitMQ publishes events to a Fanout exchange.
+
+So: **put work in an event handler only when it is still correct if every replica does it.** Dropping a cache the replica holds in its own memory, an in-memory read model, pushing to that replica's connected browsers, logging and metrics all qualify. Writing to a shared database or event store, moving stock or money, creating a record, sending mail or charging a card do not - those are commands.
+
+One state change often needs both, for two reasons. In `Demo/Store`, a price change dispatches `ProductPriceChangedEvent` so every Carts and Reviews replica drops its cached product, and `RepriceCartItemsCommand` so the carts are repriced once. Service-to-service commands go on their own interface that the web gateway does not register (`ICartRepricingHandler`, `IStockReservationHandler`, `IShipmentHandler`), so browsers cannot send them.
+
+**Aggregate events are a third thing, not covered by any of this.** The events an `AggregateRoot` appends to its stream are the aggregate's state, replayed by `Rebuild`, read by nobody else. They implement `Zerra.Repository.IAggregateEvent`, never `IEvent`; `Append` and `Delete` require it, and source generation uses it to emit their type detail. They never go on the bus and they live with the aggregate in the service project, not in a shared `*.Domain`. See [Events](Events.md#aggregate-events-are-not-cqrs-events) and `Store.Carts.Service/Aggregates/`.
+
+Idempotent handlers cover redelivery to the same replica. They do not stop several replicas doing the work at once, which is what the command/event choice is for. See [Events](Events.md#events-are-fanned-out-to-every-replica).
+
 ### Commands (`ICommand`)
 - Represent actions that modify state
+- Handled once, by a single replica
 - Fire-and-forget or with acknowledgment from remote service
 - **Simple Command** (`ICommand`): No return value
 - **Command with Result** (`ICommand<TResult>`): Returns a typed result and automatically awaits remote completion
 
 ### Events (`IEvent`)
 - Represent state changes that have occurred
-- Published to zero or more subscribers
+- Published to zero or more subscribers, **and to every replica of each one**
 - Multiple handlers can respond to the same event
 - Used for event sourcing and eventual consistency
 
@@ -435,14 +450,17 @@ When working with Zerra code:
 - Consider concurrency limits when routing high-volume operations
 
 ### When Implementing Commands
+- Use a command whenever the work must happen exactly once; one replica handles it
 - Use `ICommand` for fire-and-forget operations
 - Use `ICommand<TResult>` when caller needs a response
 - Simple commands should be idempotent when used with `DispatchAwaitAsync()`
 
 ### When Implementing Events
 - Events should represent completed state changes, not intents
-- Design for multiple subscribers
-- Handle duplicate events gracefully (idempotent handlers)
+- An aggregate's own stream events are not these: `IAggregateEvent` instead of `IEvent`, no bus, kept with the aggregate
+- Design for multiple subscribers, **and for every replica of each subscriber receiving a copy**
+- Never change shared state in an event handler: use a command for anything that must happen exactly once
+- Handle duplicate events gracefully (idempotent handlers), which is a separate concern from the replica fanout above
 
 ### When Creating Query Interfaces
 - Keep interfaces focused (single responsibility)

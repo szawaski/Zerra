@@ -111,7 +111,7 @@
                     <li>The Orders command handler checks the order rules: at least one item, quantities from 1 to 100, no discontinued products.</li>
                     <li>Orders sends <code>ReserveStockCommand</code> to the <b>Inventory</b> service and waits. If any product is short, Inventory throws, nothing is reserved, and the error comes back to this page.</li>
                     <li>The order is saved in the Orders data store and the result is returned to the page.</li>
-                    <li>Shipping the order later publishes <code>OrderShippedEvent</code>. Both Inventory and Shipping subscribe to it: Inventory takes the units off the shelf, and Shipping creates a tracking number, entirely independently.</li>
+                    <li>Shipping the order later sends two commands: <code>ShipReservedStockCommand</code> to <b>Inventory</b>, which takes the units off the shelf, and <code>CreateShipmentCommand</code> to <b>Shipping</b>, which creates a tracking number. Commands rather than an event because each writes once, and an event reaches every replica.</li>
                 </ol>
             </section>
             <section class="card">

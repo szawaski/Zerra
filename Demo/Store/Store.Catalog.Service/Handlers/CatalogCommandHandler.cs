@@ -1,5 +1,8 @@
+using Store.Carts.Domain;
+using Store.Carts.Domain.Commands;
 using Store.Catalog.Domain;
 using Store.Catalog.Domain.Commands;
+using Store.Catalog.Domain.Events;
 using Store.Catalog.Domain.Models;
 using Store.Catalog.Service.Data;
 using Store.Common;
@@ -59,9 +62,29 @@ namespace Store.Catalog.Service.Handlers
             ValidatePrice(command.Price);
 
             var oldPrice = product.Price;
+            if (oldPrice == command.Price)
+                throw new DomainException($"{product.Name} is already {command.Price:0.00}.");
+
             product.Price = command.Price;
             //the graph limits the update to the price column
             await Repo.UpdateAsync(product, new Graph<ProductDataModel>(x => x.Price));
+
+            //The same price change needs both kinds of message, which is the clearest place in this demo to see the difference.
+            //An event is fanned out: every subscribing replica gets a copy, so every one of them drops its cached copy of the product.
+            await Bus.DispatchAsync(new ProductPriceChangedEvent()
+            {
+                ProductID = product.ID,
+                Name = product.Name!,
+                OldPrice = oldPrice,
+                NewPrice = product.Price
+            });
+            //A command is handled once: repricing the carts must happen one time, not once per replica.
+            await Bus.DispatchAsync(new RepriceCartItemsCommand()
+            {
+                ProductID = product.ID,
+                ProductName = product.Name!,
+                NewPrice = product.Price
+            });
 
             Log?.Info($"Changed price of {product.Sku} from {oldPrice:0.00} to {product.Price:0.00}");
         }
@@ -74,6 +97,9 @@ namespace Store.Catalog.Service.Handlers
 
             product.Status = nameof(ProductStatus.Discontinued);
             await Repo.UpdateAsync(product, new Graph<ProductDataModel>(x => x.Status));
+
+            //same reason as the price change: every subscriber replica has to drop its own cached copy
+            await Bus.DispatchAsync(new ProductDiscontinuedEvent() { ProductID = product.ID, Name = product.Name! });
 
             Log?.Info($"Discontinued {product.Sku} {product.Name}");
         }

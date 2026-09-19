@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Xunit;
-using Zerra.CQRS;
 
 namespace Zerra.Repository.Test
 {
@@ -11,16 +10,12 @@ namespace Zerra.Repository.Test
     {
         /// <summary>
         /// Exercises an <see cref="AggregateRoot"/> against an <see cref="IEventStoreEngine"/>. An aggregate applies an event to itself and appends it
-        /// to its own stream, so the state of a fresh instance comes only from replaying that stream.
+        /// to its own stream, so the state of a fresh instance comes only from replaying that stream. These events are the aggregate's state,
+        /// not CQRS events: they stay in the stream and never reach the bus, so no bus is needed here.
         /// </summary>
         public static async Task TestSequenceAsync<T>()
             where T : DataContext, new()
         {
-            //appending an event dispatches it, which needs a bus with a handler registered
-            var handler = new TestAggregateEventHandler();
-            var bus = Bus.New($"aggregate-test-{Guid.NewGuid():N}", null, null, null);
-            bus.AddHandler<ITestAggregateEventHandler>(handler);
-
             var eventStore = GetEventStore<T>();
 
             var id = Guid.NewGuid();
@@ -47,10 +42,6 @@ namespace Zerra.Repository.Test
             await aggregate.Append(new TestAggregateRenamed() { Name = "Second" });
             Assert.Equal("Second", aggregate.Name);
             Assert.Equal(3, aggregate.AppliedCount);
-
-            //every appended event is dispatched on the bus
-            Assert.Equal(3, handler.Dispatched.Count);
-            Assert.Equal([typeof(TestAggregateCreated), typeof(TestAggregateAmountAdded), typeof(TestAggregateRenamed)], handler.Dispatched.Select(x => x.GetType()));
 
             //a fresh instance has no state until it is rebuilt
             var rebuilt = new TestAggregate(id, eventStore);
@@ -112,7 +103,6 @@ namespace Zerra.Repository.Test
             Assert.True(aggregate.IsDeleted);
             Assert.Equal("Done", aggregate.RemovedReason);
             Assert.Equal(4, aggregate.AppliedCount);
-            Assert.Equal(4, handler.Dispatched.Count);
 
             //the stream is closed, nothing more can be appended
             _ = await Assert.ThrowsAnyAsync<Exception>(() => aggregate.Append(new TestAggregateAmountAdded() { Amount = 1 }));
@@ -164,10 +154,6 @@ namespace Zerra.Repository.Test
         public static async Task TestConcurrencyAsync<T>()
             where T : DataContext, new()
         {
-            var handler = new TestAggregateEventHandler();
-            var bus = Bus.New($"aggregate-test-{Guid.NewGuid():N}", null, null, null);
-            bus.AddHandler<ITestAggregateEventHandler>(handler);
-
             var eventStore = GetEventStore<T>();
 
             var id = Guid.NewGuid();

@@ -8,6 +8,7 @@ Commands represent operations that modify state in your application. Zerra provi
 
 Commands in Zerra:
 - Represent state-changing operations
+- **Handled once**, by a single replica, even when many replicas of the handling service are running. This is the difference from events, which every replica receives a copy of. Work that must happen exactly once belongs in a command, not an event handler - see [Events](Events.md#events-are-fanned-out-to-every-replica)
 - Can be fire-and-forget or awaitable
 - Can return results (`ICommand<TResult>`)
 - Dispatch asynchronously to local or remote handlers

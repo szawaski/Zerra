@@ -26,6 +26,7 @@
         <h1 class="page-title">Catalog</h1>
         <p class="page-lead">
             Owned by the Catalog service. Its command handler checks the pricing and SKU rules, try an invalid price or a duplicate SKU.
+            Changing a price sends a command to the Carts service, which reprices the product in every cart holding it.
             Ratings come from the Reviews service and are joined onto the products in the browser, the same way the Inventory page joins in product names.
         </p>
 

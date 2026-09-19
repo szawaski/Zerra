@@ -7,7 +7,9 @@ namespace Store.Inventory.Domain
     /// Service-to-service commands used by the Orders service. The web gateway doesn't register this interface, so browsers can't send them.
     /// </summary>
     public interface IStockReservationHandler :
-        ICommandHandler<ReserveStockCommand>
+        ICommandHandler<ReserveStockCommand>,
+        ICommandHandler<ShipReservedStockCommand>,
+        ICommandHandler<ReleaseReservedStockCommand>
     {
     }
 }

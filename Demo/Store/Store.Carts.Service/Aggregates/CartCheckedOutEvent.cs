@@ -1,11 +1,11 @@
-using Zerra.CQRS;
+using Zerra.Repository;
 
-namespace Store.Carts.Domain.Events
+namespace Store.Carts.Service.Aggregates
 {
     /// <summary>
     /// The cart became an order in the Orders service, which leaves the cart empty for the customer's next order.
     /// </summary>
-    public sealed class CartCheckedOutEvent : IEvent
+    public sealed class CartCheckedOutEvent : IAggregateEvent
     {
         public required Guid CustomerID { get; init; }
         public required Guid OrderID { get; init; }

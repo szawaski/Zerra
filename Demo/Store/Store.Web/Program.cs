@@ -54,7 +54,7 @@ else
 var cartsClient = new TcpCqrsClient(StoreSettings.CartsServiceUrl, serializer, encryptor, log);
 bus.AddQueryClient<ICartsQueryHandler>(cartsClient);
 bus.AddCommandProducer<ICartsCommandHandler>(cartsClient);
-//ICartEventHandler is left out too, the cart events are dispatched inside the Carts service
+//ICartRepricingHandler is left out too, only the Catalog service sends it. The cart aggregate events never reach the bus at all
 
 //Shipping is hosted in ASP.NET Core, so it's an HTTP client here instead of the TCP clients above; the gateway doesn't care which transport a service uses
 var shippingClient = new KestrelCqrsClient(StoreSettings.ShippingServiceUrl, serializer, encryptor, log, null, null);

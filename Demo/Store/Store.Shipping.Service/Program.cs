@@ -2,13 +2,11 @@ using Store.Common;
 using Store.Common.Data;
 using Store.Common.Logging;
 using Store.Common.Messaging;
-using Store.Orders.Domain;
 using Store.Shipping.Domain;
 using Store.Shipping.Service.Data;
 using Store.Shipping.Service.Handlers;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
-using Zerra.CQRS.RabbitMQ;
 using Zerra.Repository;
 using Zerra.Web;
 
@@ -28,9 +26,8 @@ log.Info($"Data store: {dataStore.Description}");
 var repo = Repo.New();
 repo.AddProvider(new ShippingStoreProvider<ShipmentDataModel>());
 
-//Message brokers: RabbitMQ is used when it's running, checked here first so the choice can be reported like the data store
-var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnection.Test(StoreSettings.RabbitMQHost, log: log);
-IMessagingInfo messaging = new MessagingInfo($"Order events: {(useRabbitMQ ? "RabbitMQ" : "direct HTTP")}.");
+//No message broker here: Shipping takes commands from the gateway and from Orders over HTTP/Kestrel
+IMessagingInfo messaging = new MessagingInfo("Direct HTTP");
 log.Info($"Messaging: {messaging.Description}");
 
 var busServices = new BusServices();
@@ -38,11 +35,12 @@ busServices.AddRepo(repo);
 busServices.AddService<IDataStoreInfo>(dataStore);
 busServices.AddService<IMessagingInfo>(messaging);
 
-//Bus: handle shipment queries and commands from the gateway, and the Orders service's events (Inventory also subscribes to the same events)
+//Bus: handle shipment queries and commands from the gateway, and the create-shipment command from the Orders service
 var bus = Bus.New("Shipping", log, new ConsoleBusLogger(), busServices);
+var commandHandler = new ShippingCommandHandler();
 bus.AddHandler<IShippingQueryHandler>(new ShippingQueryHandler());
-bus.AddHandler<IShippingCommandHandler>(new ShippingCommandHandler());
-bus.AddHandler<IOrderEventHandler>(new OrderEventHandler());
+bus.AddHandler<IShippingCommandHandler>(commandHandler);
+bus.AddHandler<IShipmentHandler>(commandHandler);
 
 var serializer = StoreSettings.CreateServiceSerializer();
 var encryptor = StoreSettings.CreateServiceEncryptor();
@@ -52,12 +50,9 @@ var kestrelSettings = new KestrelCqrsServerLinkedSettings(route: null, authorize
 bus.AddQueryServer<IShippingQueryHandler>(new KestrelCqrsServerQueryServer(kestrelSettings));
 bus.AddCommandConsumer<IShippingCommandHandler>(new KestrelCqrsServerCommandConsumer(kestrelSettings));
 
-//Orders publishes its events through RabbitMQ when it's running, otherwise directly over HTTP. Orders makes the same check,
-//so this service listens on whichever route Orders will use.
-if (useRabbitMQ)
-    bus.AddEventConsumer<IOrderEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null));
-else
-    bus.AddEventConsumer<IOrderEventHandler>(new KestrelCqrsServerEventConsumer(kestrelSettings));
+//Orders sends CreateShipmentCommand here when an order ships. A command and not an event because it creates the shipment, which has to
+//happen once: an event would reach every Shipping replica and each would create its own shipment with its own tracking number.
+bus.AddCommandConsumer<IShipmentHandler>(new KestrelCqrsServerCommandConsumer(kestrelSettings));
 
 var app = builder.Build();
 app.Lifetime.ApplicationStopping.Register(bus.StopServices);

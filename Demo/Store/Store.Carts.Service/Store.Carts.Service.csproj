@@ -8,9 +8,16 @@
         <PublishAot>true</PublishAot>
         <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
         <PublishDocumentationFiles>false</PublishDocumentationFiles>
+        <!-- KurrentDB.Client and Google.Protobuf are not trim annotated, so their warnings roll up into one IL2104 and
+             IL3053 apiece: reflection-based System.Text.Json for OpenTelemetry tracing metadata, which this demo does
+             not enable, and Marshal.SizeOf(Type) on a protobuf repeated-field fast path. The SDK never rolls up the
+             project's own assembly or its project references, so this only silences NuGet packages, never Zerra or the
+             Store projects. -->
+        <NoWarn>$(NoWarn);IL2104;IL3053</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\..\Framework\Zerra.CQRS.RabbitMQ\Zerra.CQRS.RabbitMQ.csproj" />
         <ProjectReference Include="..\..\..\Framework\Zerra.Repository.Memory\Zerra.Repository.Memory.csproj" />
         <ProjectReference Include="..\..\..\Framework\Zerra.Repository.KurrentDb\Zerra.Repository.KurrentDb.csproj" />
         <ProjectReference Include="..\Store.Carts.Domain\Store.Carts.Domain.csproj" />

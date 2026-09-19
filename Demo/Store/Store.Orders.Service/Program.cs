@@ -7,10 +7,10 @@ using Store.Inventory.Domain;
 using Store.Orders.Domain;
 using Store.Orders.Service.Data;
 using Store.Orders.Service.Handlers;
+using Store.Shipping.Domain;
 using Zerra.CQRS;
 using Zerra.CQRS.Kafka;
 using Zerra.CQRS.Network;
-using Zerra.CQRS.RabbitMQ;
 using Zerra.Logging;
 using Zerra.Repository;
 using Zerra.Web;
@@ -31,11 +31,10 @@ await OrdersSeeder.SeedAsync(repo, log);
 
 //Message brokers: each is used when it's running, checked here first so the choice can be reported like the data store
 var useKafka = !StoreSettings.DirectMessagingOnly && await KafkaConnection.TestAsync(StoreSettings.KafkaHost, null, null, log: log);
-var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnection.Test(StoreSettings.RabbitMQHost, log: log);
-//Orders only receives commands from the gateway over TCP, its Kafka and RabbitMQ use is outbound
+//Orders only receives commands from the gateway over TCP, its Kafka use is outbound
 IMessagingInfo messaging = new MessagingInfo("Direct TCP");
 log.Info($"Messaging: {messaging.Description}");
-log.Info($"Sending stock reservations over {(useKafka ? "Kafka" : "direct TCP")}, order events over {(useRabbitMQ ? "RabbitMQ" : "direct TCP and HTTP")}");
+log.Info($"Sending stock commands over {(useKafka ? "Kafka" : "direct TCP")}, shipment commands over direct HTTP");
 
 var busServices = new BusServices();
 busServices.AddRepo(repo);
@@ -60,24 +59,18 @@ bus.AddQueryClient<ICatalogQueryHandler>(catalogClient);
 
 var inventoryClient = new TcpCqrsClient(StoreSettings.InventoryServiceUrl, serializer, encryptor, log);
 
-//Stock reservations go through Kafka when it's running, otherwise straight to Inventory over TCP. The bus takes one producer per command,
-//so the choice is made here at startup, and Inventory makes the same check.
+//Every stock change goes to Inventory as a command on IStockReservationHandler, through Kafka when it's running and straight over TCP when
+//it isn't: reserving on placement, and settling the reservation on ship or cancel. Commands and not events because each one moves stock and
+//has to happen once; Kafka's shared consumer group means one Inventory replica handles each. The bus takes one producer per command, so the
+//choice is made here at startup, and Inventory makes the same check.
 if (useKafka)
     bus.AddCommandProducer<IStockReservationHandler>(new KafkaProducer(StoreSettings.KafkaHost, serializer, encryptor, log, null, null, null));
 else
     bus.AddCommandProducer<IStockReservationHandler>(inventoryClient);
 
-//Order events go to Inventory and Shipping. RabbitMQ delivers each event to every subscriber on its own. Without it they're sent directly
-//by one producer per subscriber, the bus sends each event to every producer registered for it, to Shipping over HTTP/Kestrel instead of TCP.
-if (useRabbitMQ)
-{
-    bus.AddEventProducer<IOrderEventHandler>(new RabbitMQProducer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null));
-}
-else
-{
-    bus.AddEventProducer<IOrderEventHandler>(inventoryClient);
-    bus.AddEventProducer<IOrderEventHandler>(new KestrelCqrsClient(StoreSettings.ShippingServiceUrl, serializer, encryptor, log, null, null));
-}
+//Shipping creates the shipment when an order ships. A command, like the stock changes above, because it writes a record that must exist
+//once. Shipping is hosted in ASP.NET Core, so this is an HTTP/Kestrel client instead of the TCP one Inventory gets.
+bus.AddCommandProducer<IShipmentHandler>(new KestrelCqrsClient(StoreSettings.ShippingServiceUrl, serializer, encryptor, log, null, null));
 
 log.Info($"Orders service listening on {StoreSettings.OrdersServiceUrl}, press Ctrl+C to stop");
 

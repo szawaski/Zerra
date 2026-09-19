@@ -8,6 +8,7 @@ $(function () {
     const eventBadges = {
         CartItemAddedEvent: ["Item added", "info"],
         CartItemRemovedEvent: ["Item removed", "neutral"],
+        CartItemRepricedEvent: ["Repriced", "warning"],
         CartEmptiedEvent: ["Emptied", "warning"],
         CartCheckedOutEvent: ["Checked out", "success"]
     };

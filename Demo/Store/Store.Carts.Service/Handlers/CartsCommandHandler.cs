@@ -1,10 +1,11 @@
 using Store.Carts.Domain;
 using Store.Carts.Domain.Commands;
-using Store.Carts.Domain.Events;
 using Store.Carts.Domain.Models;
 using Store.Carts.Service.Aggregates;
+using Store.Carts.Service.Data;
 using Store.Catalog.Domain;
 using Store.Common;
+using Store.Orders.Domain;
 using Store.Orders.Domain.Commands;
 using Store.Orders.Domain.Models;
 using Zerra.CQRS;
@@ -16,7 +17,7 @@ namespace Store.Carts.Service.Handlers
     /// Each command rebuilds the customer's cart from its events, checks the rules against that state, and appends one new event.
     /// Appending with <c>validateEventNumber</c> fails if another event reached the stream after the rebuild, so two commands on the same cart can't both act on stale state.
     /// </summary>
-    public sealed class CartsCommandHandler : BaseHandler, ICartsCommandHandler
+    public sealed class CartsCommandHandler : BaseHandler, ICartsCommandHandler, ICartRepricingHandler
     {
         //the same limits the Orders service puts on an order, so a cart can always be checked out
         private const int maxItems = 20;
@@ -35,9 +36,17 @@ namespace Store.Carts.Service.Handlers
             if (item is not null && item.Quantity + command.Quantity > maxQuantity)
                 throw new DomainException($"A cart can have at most {maxQuantity} of {item.ProductName}.");
 
-            //the name and price come from the Catalog service, never from the browser
-            var products = await Bus.Call<ICatalogQueryHandler>().GetProductsByIDs([command.ProductID], cancellationToken);
-            var product = products.FirstOrDefault() ?? throw new DomainException("Product not found.");
+            //the name and price come from the Catalog service, never from the browser, and are cached until the Catalog says otherwise
+            var cache = Context.GetService<ICatalogProductCache>();
+            if (!cache.TryGet(command.ProductID, out var product))
+            {
+                var products = await Bus.Call<ICatalogQueryHandler>().GetProductsByIDs([command.ProductID], cancellationToken);
+                product = products.FirstOrDefault();
+                if (product is not null)
+                    cache.Set(product);
+            }
+            if (product is null)
+                throw new DomainException("Product not found.");
             if (!product.IsActive)
                 throw new DomainException($"{product.Name} has been discontinued.");
 
@@ -100,6 +109,44 @@ namespace Store.Carts.Service.Handlers
 
             Log?.Info($"Checked out cart {command.CustomerID} as order {order.OrderNumber}");
             return new CheckoutCartResult() { OrderID = order.OrderID, OrderNumber = order.OrderNumber, Total = order.Total };
+        }
+
+        /// <summary>
+        /// Sent by the Catalog service when a price changes, so no cart shows a price the store no longer charges.
+        /// A command and not an event: an event is fanned out to every replica, a command is handled by one of them.
+        /// </summary>
+        public async Task Handle(RepriceCartItemsCommand command, CancellationToken cancellationToken)
+        {
+            //An event store answers "what happened to this cart", not "which carts hold this product", so every customer's cart is replayed.
+            //A store with more than a handful of customers would keep a projection of carts by product and only touch those.
+            var customers = await Bus.Call<IOrdersQueryHandler>().GetCustomers(cancellationToken);
+            var eventStore = Context.GetService<IEventStoreEngine>();
+
+            var carts = 0;
+            foreach (var customer in customers)
+            {
+                var cart = new CartAggregate(customer.ID, eventStore);
+                //false when the customer has never had a cart, there is no stream to reprice
+                if (!await cart.Rebuild())
+                    continue;
+
+                var item = cart.Items.FirstOrDefault(x => x.ProductID == command.ProductID);
+                //a command can be delivered twice, a cart already at the new price has nothing to append
+                if (item is null || item.UnitPrice == command.NewPrice)
+                    continue;
+
+                await cart.Append(new CartItemRepricedEvent()
+                {
+                    CustomerID = customer.ID,
+                    ProductID = command.ProductID,
+                    ProductName = item.ProductName,
+                    OldUnitPrice = item.UnitPrice,
+                    NewUnitPrice = command.NewPrice
+                }, true);
+                carts++;
+            }
+
+            Log?.Info($"Repriced {command.ProductName} to {command.NewPrice:0.00} in {carts} cart(s)");
         }
 
         private async Task<CartAggregate> RebuildCart(Guid customerID)

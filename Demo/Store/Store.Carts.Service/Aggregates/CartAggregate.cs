@@ -1,4 +1,3 @@
-using Store.Carts.Domain.Events;
 using Zerra.Repository;
 
 namespace Store.Carts.Service.Aggregates
@@ -14,6 +13,7 @@ namespace Store.Carts.Service.Aggregates
     public sealed class CartAggregate : AggregateRoot
     {
         private readonly List<CartItem> items = new();
+
 
         public CartAggregate(Guid customerID, IEventStoreEngine eventStore)
             : base(customerID, eventStore)
@@ -43,6 +43,15 @@ namespace Store.Carts.Service.Aggregates
         public Task On(CartItemRemovedEvent @event)
         {
             _ = items.RemoveAll(x => x.ProductID == @event.ProductID);
+            return Task.CompletedTask;
+        }
+
+        public Task On(CartItemRepricedEvent @event)
+        {
+            //the product may have left the cart between the Catalog price change and this event, and a replay then has nothing to reprice
+            var item = items.FirstOrDefault(x => x.ProductID == @event.ProductID);
+            if (item is not null)
+                item.UnitPrice = @event.NewUnitPrice;
             return Task.CompletedTask;
         }
 
