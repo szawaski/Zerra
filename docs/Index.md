@@ -10,6 +10,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 
 ### Getting Started
 - [Agents](Agents.md) - Architectural context for AI agents working with Zerra
+- [Upgrading from Zerra 5 to 6](UpgradeV5ToV6.md) - Step-by-step migration of a Zerra 5 solution, written for AI agents
 
 ### Configuration & Setup
 - [AOT (Ahead-of-Time Compilation)](AOT.md) - Automatic source generator for precompiled reflection and Native AOT support (included with Zerra package)

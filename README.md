@@ -1,6 +1,6 @@
 ﻿# Zerra CQRS Framework
 
-> **⚠️ Breaking Changes Notice:** Version 6 introduces many breaking changes from version 5. Please review the documentation and examples carefully before upgrading.
+> **Upgrading from version 5?** Version 6 changes how services are set up. Follow the [upgrade guide](docs/UpgradeV5ToV6.md) to move a v5 solution to v6 step by step.
 
 A high-performance, distributed CQRS (Command Query Responsibility Segregation) framework. Zerra enables message-driven architecture with unified, caller-agnostic routing that abstracts local and remote service boundaries for commands, queries, and events, supporting multiple transport services including Kafka, RabbitMQ, and Azure Service Bus.
 

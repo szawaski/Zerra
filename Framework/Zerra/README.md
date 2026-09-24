@@ -1,6 +1,6 @@
 ﻿# Zerra Framework
 
-> **⚠️ Breaking Changes Notice:** Version 6 introduces many breaking changes from version 5. Please review the documentation and examples carefully before upgrading.
+> **Upgrading from version 5?** Version 6 changes how services are set up: configuration moves from `cqrssettings.json` into code, and handlers get the bus, logger, and repository from their base class. Follow the [upgrade guide](https://github.com/szawaski/Zerra/blob/master/docs/UpgradeV5ToV6.md) to move a v5 solution to v6 step by step.
 
 A high-performance, distributed CQRS (Command Query Responsibility Segregation) framework for .NET. Zerra enables message-driven architecture with unified, caller-agnostic routing that abstracts local and remote service boundaries for commands, queries, and events, supporting multiple transport services including Kafka, RabbitMQ, and Azure Service Bus.
 
@@ -209,6 +209,7 @@ For comprehensive guides and examples, visit the [GitHub repository](https://git
 - [Server Setup](https://github.com/szawaski/Zerra/blob/master/docs/ServerSetup.md) - Server configuration
 - [Client Setup](https://github.com/szawaski/Zerra/blob/master/docs/ClientSetup.md) - Client configuration
 - [Zerra.Web](https://github.com/szawaski/Zerra/blob/master/docs/ZerraWeb.md) - ASP.NET integration
+- [Upgrading from v5](https://github.com/szawaski/Zerra/blob/master/docs/UpgradeV5ToV6.md) - Step-by-step migration from version 5
 
 ## Framework Packages
 

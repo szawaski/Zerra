@@ -29,7 +29,7 @@ namespace Zerra.Logging
         /// <param name="message">The message to log.</param>
         public static void Trace(string message)
         {
-            instance?.Info(message);
+            instance?.Trace(message);
         }
         /// <summary>
         /// Log an event with a level of Debug.
@@ -99,7 +99,7 @@ namespace Zerra.Logging
         [Obsolete("Use non-async version")]
         public static Task TraceAsync(string message)
         {
-            instance?.Info(message);
+            instance?.Trace(message);
             return Task.CompletedTask;
         }
         /// <summary>
