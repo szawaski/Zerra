@@ -546,7 +546,7 @@ namespace Zerra.Repository.MySql
                 {
                     case CoreType.String:
                         writer.Write('\'');
-                        writer.Write(((string)value).Replace("'", "''"));
+                        writer.Write(((string)value).Replace("\\", "\\\\").Replace("'", "''"));
                         writer.Write('\'');
                         return;
 
@@ -588,6 +588,8 @@ namespace Zerra.Repository.MySql
                         var castedChar = (char)value;
                         if (castedChar == '\'')
                             writer.Write("''");
+                        else if (castedChar == '\\')
+                            writer.Write("\\\\");
                         else
                             writer.Write(castedChar);
                         writer.Write('\'');

@@ -35,6 +35,9 @@ namespace Zerra.Repository
             /// <summary>Gets or sets a counter indicating how many nested call contexts suppress SQL rendering.</summary>
             public int InCallNoRender { get; set; }
 
+            /// <summary>Gets or sets whether the next related lambda body is written inverted, used by <c>All</c> to look for a related row that fails the condition.</summary>
+            public bool InvertRelatedLambda { get; set; }
+
             /// <summary>
             /// Initializes a new <see cref="MemberContext"/> with empty stacks and zero call-render counters.
             /// </summary>

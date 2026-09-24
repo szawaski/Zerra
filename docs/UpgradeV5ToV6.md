@@ -165,7 +165,7 @@ Watch for these:
 - **Always write the type argument** when passing a collection: `Repo.CreateAsync<LogNoteDTO>(items)`. Without it, a `List<T>` binds to the single-model overload with `TModel = List<T>`.
 - **Many queries return `IReadOnlyCollection<T>`** (v5 returned `ICollection<T>`). Fix declared variable types, `Mapper.Map<ICollection<X>, Y[]>(...)` calls, and any `.Add` on the result.
 - **Relation properties** declared as `ICollection<T>` on data models: change them to `List<T>` or `T[]`. KaKush made this change; arrays, `List<T>`, and `IReadOnlyList<T>` are the types documented for v6.
-- LINQ support in `Where` is listed in [Agents.md](Agents.md#zerrarepository). `StartsWith` and `EndsWith` aren't translated.
+- LINQ support in `Where` is listed in [Agents.md](Agents.md#zerrarepository).
 
 ### Data Contexts and Providers
 

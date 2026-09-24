@@ -52,7 +52,15 @@
             /// <summary>Null equality check (<c>IS NULL</c>).</summary>
             EqualsNull,
             /// <summary>Null inequality check (<c>IS NOT NULL</c>).</summary>
-            NotEqualsNull
+            NotEqualsNull,
+            /// <summary>Bitwise AND on integer operands (<c>&amp;</c>).</summary>
+            BitwiseAnd,
+            /// <summary>Bitwise OR on integer operands (<c>|</c>).</summary>
+            BitwiseOr,
+            /// <summary>Bitwise exclusive OR on integer operands (<c>^</c> or <c>#</c>).</summary>
+            BitwiseXor,
+            /// <summary>Bitwise complement of an integer operand (<c>~</c>).</summary>
+            BitwiseNot
         }
     }
 }

@@ -558,6 +558,161 @@ namespace Zerra.Repository.Test
 
         #endregion
 
+        #region Functions
+
+        [Fact]
+        public void Convert_StringStartsWith_EscapesWildcards()
+        {
+            Expression<Func<TestTypesModel, bool>> where = x => x.StringThing.StartsWith("a_b%");
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("LIKE", sql);
+            Assert.Contains("a!_b!%%'", sql);
+            Assert.Contains("ESCAPE '!'", sql);
+        }
+
+        [Fact]
+        public void Convert_NotStringEndsWith_GeneratesNotLike()
+        {
+            Expression<Func<TestTypesModel, bool>> where = x => !x.StringThing.EndsWith("b");
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("NOT LIKE", sql);
+            Assert.Contains("%b'", sql);
+        }
+
+        [Fact]
+        public void Convert_Coalesce_GeneratesCoalesce()
+        {
+            Expression<Func<TestTypesModel, bool>> where = x => (x.Int32NullableThing ?? 5) > 3;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("COALESCE(", sql);
+        }
+
+        [Fact]
+        public void Convert_HasValue_GeneratesIsNotNull()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.Int32NullableThing.HasValue;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains($"{d.Column("TestTypes", "Int32NullableThing")} IS NOT NULL", sql);
+        }
+
+        [Fact]
+        public void Convert_NotHasValue_GeneratesIsNull()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => !x.Int32NullableThing.HasValue;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains($"{d.Column("TestTypes", "Int32NullableThing")} IS NULL", sql);
+        }
+
+        [Fact]
+        public void Convert_CallValue_NotComparedToNull()
+        {
+            Expression<Func<TestTypesModel, bool>> where = x => x.KeyA != Guid.NewGuid();
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.DoesNotContain("NULL", sql);
+            Assert.Contains("!=", sql);
+        }
+
+        [Fact]
+        public void Convert_EnumValue_GeneratesNumber()
+        {
+            var day = DayOfWeek.Friday;
+            Expression<Func<TestTypesModel, bool>> where = x => x.Int32Thing == (int)day;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("(5)", sql);
+            Assert.DoesNotContain("Friday", sql);
+        }
+
+        [Fact]
+        public void Convert_InlineArrayContains_GeneratesIn()
+        {
+            Expression<Func<TestTypesModel, bool>> where = x => new[] { 1, 2 }.Contains(x.Int32Thing);
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("IN", sql);
+            Assert.Contains("(1,2)", sql);
+        }
+
+        [Fact]
+        public void Convert_BitwiseAnd_GeneratesBitwiseOperator()
+        {
+            Expression<Func<TestTypesModel, bool>> where = x => (x.Int32Thing & 4) != 0;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains(")&(4)", sql);
+            Assert.DoesNotContain("AND", sql);
+        }
+
+        [Fact]
+        public void Convert_NegateExpression_KeepsBrackets()
+        {
+            Expression<Func<TestTypesModel, bool>> where = x => -(x.Int32Thing + 1) == 4;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("-((", sql);
+        }
+
+        [Fact]
+        public void Convert_StringLength_GeneratesFunction()
+        {
+            Expression<Func<TestTypesModel, bool>> where = x => x.StringThing.Length > 3;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("LEN", sql.ToUpperInvariant());
+        }
+
+        [Fact]
+        public void Convert_MathAbs_GeneratesAbs()
+        {
+            Expression<Func<TestTypesModel, bool>> where = x => Math.Abs(x.Int32Thing) > 3;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("ABS((", sql);
+        }
+
+        [Fact]
+        public void Convert_RelationCountWithoutCondition_MatchesParent()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationB.Count() > 1;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("SELECT COUNT(1)", sql);
+            Assert.Contains($"{d.Column("TestTypes", "KeyA")}={d.Column("TestRelations", "RelationBKey")}", sql);
+        }
+
+        [Fact]
+        public void Convert_RelationAll_LooksForFailingRow()
+        {
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationB.All(r => r.SomeValue == "a");
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.StartsWith("NOT ", sql.Substring(sql.IndexOf("WHERE") + 6).TrimStart());
+            Assert.Contains("!=", sql);
+            Assert.DoesNotContain("ALL(", sql);
+        }
+
+        [Fact]
+        public void Convert_RelationSum_GeneratesSubquery()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationB.Sum(r => r.RelationAKey) > 1;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("COALESCE(SUM(", sql);
+            Assert.Contains(d.Column("TestRelations", "RelationAKey"), sql);
+        }
+
+        #endregion
+
         #region Graph
 
         [Fact]

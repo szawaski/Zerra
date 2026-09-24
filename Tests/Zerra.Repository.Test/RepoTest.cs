@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Linq.Expressions;
 using Xunit;
 using Zerra.Map;
 using Zerra.Repository.Reflection;
@@ -48,6 +49,7 @@ namespace Zerra.Repository.Test
             Assert.NotNull(relationBModelCheck);
 
             TestQuery(repo, model, relationBModelCheck);
+            TestQueryExpressions(repo, model, relationBModelCheck);
 
             var repoWithRules = Repo.New();
             repoWithRules.AddProvider(new TestTypesModelRuleProvider<T>());
@@ -674,6 +676,148 @@ namespace Zerra.Repository.Test
             Assert.Contains(connect1ManyWhereResult, m => m.KeyA == model.KeyA);
             var connect1ManyWhereMatch = connect1ManyWhereResult.First(m => m.KeyA == model.KeyA);
             AssertAreEqual(model, connect1ManyWhereMatch);
+        }
+
+        private static void TestQueryExpressions(IRepo repo, TestTypesModel model, TestRelationsModel relationModel)
+        {
+            var key = model.KeyA;
+            //the stored values, rounded to the store's precision, decide what each condition should match
+            var stored = repo.Single<TestTypesModel>(x => x.KeyA == key);
+            Assert.NotNull(stored);
+
+            void AssertFound(Expression<Func<TestTypesModel, bool>> where, bool expected)
+            {
+                var result = repo.Many<TestTypesModel>(where);
+                var found = result.Any(m => m.KeyA == key);
+                Assert.True(found == expected, $"{where} expected {(expected ? "a match" : "no match")}");
+            }
+            //the store should match the row the same as running the condition in memory
+            void AssertMatches(Expression<Func<TestTypesModel, bool>> where)
+            {
+                AssertFound(where, where.Compile()(stored));
+            }
+
+            //strings
+            AssertMatches(x => x.StringThing.StartsWith("Hello"));
+            AssertMatches(x => x.StringThing.StartsWith("World"));
+            AssertMatches(x => x.StringThing.EndsWith("World!"));
+            AssertMatches(x => !x.StringThing.EndsWith("World!"));
+            AssertMatches(x => x.StringThing.Contains("o\r\nW"));
+            AssertMatches(x => x.StringThing.Contains('W'));
+            AssertMatches(x => x.StringLengthThing.Contains("_"));
+            AssertMatches(x => x.StringLengthThing.Contains("%"));
+            AssertMatches(x => x.StringLengthThing.Contains("[a-z]"));
+            AssertMatches(x => x.StringLengthThing.Contains("\\"));
+            AssertMatches(x => x.StringLengthThing == "a\\' OR 1=1 -- ");
+            AssertMatches(x => x.StringLengthThing.StartsWith("bOUND", StringComparison.OrdinalIgnoreCase));
+            AssertMatches(x => x.StringLengthThing.StartsWith(x.StringLengthThing.Substring(0, 3)));
+            AssertMatches(x => x.StringLengthThing.StartsWith("Bound") == false);
+            AssertMatches(x => x.StringLengthThing.ToUpper() == "BOUNDED");
+            AssertMatches(x => x.StringLengthThing.ToLower() == "bounded");
+            AssertMatches(x => x.StringLengthThing.Length == 7);
+            AssertMatches(x => x.StringThing.Length == 13);
+            AssertMatches(x => x.StringLengthThing.Substring(1, 3) == "oun");
+            AssertMatches(x => x.StringLengthThing.Substring(2) == "unded");
+            AssertMatches(x => x.StringLengthThing.IndexOf("und") == 2);
+            AssertMatches(x => x.StringLengthThing.IndexOf('z') == -1);
+            AssertMatches(x => x.StringLengthThing.Replace("ound", "OUND") == "BOUNDed");
+            AssertMatches(x => x.StringLengthThing + "!" == "Bounded!");
+            AssertMatches(x => string.Concat(x.StringLengthThing, "-", x.StringLengthThing) == "Bounded-Bounded");
+            AssertMatches(x => x.StringThingNull + "a" == "a");
+            AssertMatches(x => string.IsNullOrEmpty(x.StringThingNull));
+            AssertMatches(x => string.IsNullOrEmpty(x.StringLengthThing));
+            AssertMatches(x => !string.IsNullOrWhiteSpace(x.StringLengthThing));
+            AssertMatches(x => x.StringLengthThing.Equals("Bounded"));
+            AssertMatches(x => string.Equals(x.StringLengthThing, "bOUNDED", StringComparison.OrdinalIgnoreCase));
+            AssertMatches(x => x.StringLengthThing.Trim() == "Bounded");
+            string? nullText = null;
+            AssertMatches(x => x.StringLengthThing.Contains(nullText ?? "ound"));
+            AssertMatches(x => (x.StringThingNull ?? "z") == "z");
+
+            //nullable and coalesce
+            AssertMatches(x => x.Int32NullableThing.HasValue);
+            AssertMatches(x => x.Int32NullableThingNull.HasValue);
+            AssertMatches(x => !x.Int32NullableThingNull.HasValue);
+            AssertMatches(x => x.Int32NullableThing.HasValue == true);
+            AssertMatches(x => (x.Int32NullableThingNull ?? 7) == 7);
+            AssertMatches(x => x.BooleanNullableThingNull ?? true);
+            AssertMatches(x => !(x.BooleanNullableThingNull ?? true));
+            AssertMatches(x => x.GuidNullableThingNull == default);
+            AssertMatches(x => x.KeyA != Guid.NewGuid());
+
+            //date and time parts
+            AssertMatches(x => x.DateTimeDefaultPrecisionThing.Year == 2024);
+            AssertMatches(x => x.DateTimeDefaultPrecisionThing.Month == 5);
+            AssertMatches(x => x.DateTimeDefaultPrecisionThing.Day == 6);
+            AssertMatches(x => x.DateTimeDefaultPrecisionThing.Hour == 7);
+            AssertMatches(x => x.DateTimeDefaultPrecisionThing.Minute == 8);
+            AssertMatches(x => x.DateTimeDefaultPrecisionThing.Second == 9);
+            AssertMatches(x => x.DateTimeDefaultPrecisionThing.DayOfYear == 127);
+            AssertMatches(x => x.DateTimeDefaultPrecisionThing.DayOfWeek == DayOfWeek.Monday);
+            var dayOfWeek = DayOfWeek.Monday;
+            AssertMatches(x => x.DateTimeDefaultPrecisionThing.DayOfWeek == dayOfWeek);
+            AssertMatches(x => x.DateTimeDefaultPrecisionThing.Date == new DateTime(2024, 5, 6, 0, 0, 0, DateTimeKind.Utc));
+            AssertMatches(x => x.DateTimeDefaultPrecisionThing < DateTime.Now.Date);
+            //MS SQL's default datetime keeps 1/300 of a second so milliseconds are checked with a precision set
+            var dateTime = stored.DateTimeThing;
+            AssertMatches(x => x.DateTimeThing.Year == dateTime.Year && x.DateTimeThing.Month == dateTime.Month && x.DateTimeThing.Day == dateTime.Day);
+            AssertMatches(x => x.DateTimeThing.Hour == dateTime.Hour && x.DateTimeThing.Minute == dateTime.Minute && x.DateTimeThing.Second == dateTime.Second);
+            AssertMatches(x => x.DateTimeThing.Millisecond == dateTime.Millisecond);
+            AssertMatches(x => x.DateTimeThing.DayOfYear == dateTime.DayOfYear && x.DateTimeThing.DayOfWeek == dateTime.DayOfWeek);
+            AssertMatches(x => x.DateTimeThing.Date == dateTime.Date);
+            var dateOnly = stored.DateOnlyThing;
+            AssertMatches(x => x.DateOnlyThing.Year == dateOnly.Year && x.DateOnlyThing.Month == dateOnly.Month && x.DateOnlyThing.Day == dateOnly.Day);
+            AssertMatches(x => x.DateOnlyThing.DayOfYear == dateOnly.DayOfYear && x.DateOnlyThing.DayOfWeek == dateOnly.DayOfWeek);
+            var timeOnly = stored.TimeOnlyThing;
+            AssertMatches(x => x.TimeOnlyThing.Hour == timeOnly.Hour && x.TimeOnlyThing.Minute == timeOnly.Minute && x.TimeOnlyThing.Second == timeOnly.Second && x.TimeOnlyThing.Millisecond == timeOnly.Millisecond);
+            var timeSpan = stored.TimeSpanThing;
+            AssertMatches(x => x.TimeSpanThing.Hours == timeSpan.Hours && x.TimeSpanThing.Minutes == timeSpan.Minutes && x.TimeSpanThing.Seconds == timeSpan.Seconds && x.TimeSpanThing.Milliseconds == timeSpan.Milliseconds);
+            var totalHours = timeSpan.TotalHours;
+            AssertMatches(x => x.TimeSpanThing.TotalHours > totalHours - 0.0001 && x.TimeSpanThing.TotalHours < totalHours + 0.0001);
+            var totalMilliseconds = timeSpan.TotalMilliseconds;
+            AssertMatches(x => x.TimeSpanThing.TotalMilliseconds > totalMilliseconds - 1 && x.TimeSpanThing.TotalMilliseconds < totalMilliseconds + 1);
+            var offsetYear = stored.DateTimeOffsetThing.Year;
+            AssertMatches(x => x.DateTimeOffsetThing.Year == offsetYear);
+
+            //math
+            AssertMatches(x => Math.Abs(x.Int32Thing) == 5);
+            AssertMatches(x => Math.Floor(x.DoubleThing) == -11);
+            AssertMatches(x => Math.Ceiling(x.DoubleThing) == -10);
+            AssertMatches(x => Math.Round(x.DecimalThing) == -11m);
+            AssertMatches(x => Math.Round(x.DecimalThing, 0) == -11m);
+            AssertMatches(x => Math.Round(x.DoubleThing, 1) > -10.21 && Math.Round(x.DoubleThing, 1) < -10.19);
+            AssertMatches(x => Math.Pow(x.Int32Thing, 2) == 25);
+            AssertMatches(x => Math.Sqrt(x.ByteThing) == 1);
+            AssertMatches(x => -(x.Int32Thing + 1) == 4);
+
+            //bitwise
+            AssertMatches(x => (x.Int32Thing & 1) == 1);
+            AssertMatches(x => (x.Int32Thing | 2) == -5);
+            AssertMatches(x => (x.Int32Thing ^ 1) == -6);
+            AssertMatches(x => ~x.Int32Thing == 4);
+            AssertMatches(x => (x.ByteThing & 2) == 0);
+
+            //values evaluated before the query
+            AssertMatches(x => new[] { key }.Contains(x.KeyA));
+            AssertMatches(x => new List<Guid> { key }.Contains(x.KeyA));
+            var flag = true;
+            AssertMatches(x => x.Int32Thing == (flag ? -5 : 0));
+            var flagFalse = false;
+            AssertMatches(x => x.KeyA == key && !flagFalse);
+
+            //related rows
+            var relationKey = relationModel.RelationAKey;
+            AssertFound(x => x.RelationB.Count() == 1, true);
+            AssertFound(x => x.RelationB.Count() == 2, false);
+            AssertFound(x => x.RelationB.LongCount(r => r.SomeValue.StartsWith("Hello")) == 1, true);
+            AssertFound(x => x.RelationB.Sum(r => r.RelationAKey) == relationKey, true);
+            AssertFound(x => x.RelationB.Min(r => r.RelationAKey) == relationKey, true);
+            AssertFound(x => x.RelationB.Max(r => r.RelationAKey) == relationKey, true);
+            AssertFound(x => x.RelationB.Average(r => r.RelationAKey) == relationKey, true);
+            AssertFound(x => x.RelationB.All(r => r.SomeValue.StartsWith("Hello")), true);
+            AssertFound(x => x.RelationB.All(r => r.SomeValue.StartsWith("Nope")), false);
+            AssertFound(x => !x.RelationB.All(r => r.SomeValue.StartsWith("Nope")), true);
+            AssertFound(x => x.RelationB.Any(r => r.SomeValue.EndsWith("World!")), true);
         }
 
         private static async Task TestQueryAsync(IRepo repo, TestTypesModel model, TestRelationsModel relationModel)

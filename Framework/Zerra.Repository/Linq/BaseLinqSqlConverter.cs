@@ -95,7 +95,10 @@ namespace Zerra.Repository
             switch (exp.NodeType)
             {
                 case ExpressionType.Add:
-                    ConvertToSqlBinary(Operator.Add, exp, ref sb, context);
+                    if (exp.Type == typeof(string))
+                        ConvertToSqlStringConcat(exp, ref sb, context);
+                    else
+                        ConvertToSqlBinary(Operator.Add, exp, ref sb, context);
                     break;
                 case ExpressionType.AddAssign:
                     throw new NotImplementedException();
@@ -105,7 +108,10 @@ namespace Zerra.Repository
                     ConvertToSqlBinary(Operator.Add, exp, ref sb, context);
                     break;
                 case ExpressionType.And:
-                    ConvertToSqlBinary(context.Inverted ? Operator.Or : Operator.And, exp, ref sb, context);
+                    if (exp.Type == typeof(bool) || exp.Type == typeof(bool?))
+                        ConvertToSqlBinary(context.Inverted ? Operator.Or : Operator.And, exp, ref sb, context);
+                    else
+                        ConvertToSqlBinary(Operator.BitwiseAnd, exp, ref sb, context);
                     break;
                 case ExpressionType.AndAlso:
                     ConvertToSqlBinary(context.Inverted ? Operator.Or : Operator.And, exp, ref sb, context);
@@ -116,7 +122,8 @@ namespace Zerra.Repository
                     ConvertToSqlArrayIndex(exp, ref sb, context);
                     break;
                 case ExpressionType.ArrayLength:
-                    throw new NotImplementedException();
+                    ConvertToSqlEvaluateOnly(exp, ref sb, context);
+                    break;
                 case ExpressionType.Assign:
                     throw new NotImplementedException();
                 case ExpressionType.Block:
@@ -125,9 +132,16 @@ namespace Zerra.Repository
                     ConvertToSqlCall(exp, ref sb, context);
                     break;
                 case ExpressionType.Coalesce:
-                    throw new NotImplementedException();
+                    if (IsEvaluatable(exp))
+                        ConvertToSqlEvaluate(exp, ref sb, context);
+                    else
+                        ConvertToSqlCoalesce(exp, ref sb, context);
+                    break;
                 case ExpressionType.Conditional:
-                    ConvertToSqlConditional(exp, ref sb, context);
+                    if (IsEvaluatable(exp))
+                        ConvertToSqlEvaluate(exp, ref sb, context);
+                    else
+                        ConvertToSqlConditional(exp, ref sb, context);
                     break;
                 case ExpressionType.Constant:
                     ConvertToSqlConstant(exp, ref sb, context);
@@ -143,7 +157,8 @@ namespace Zerra.Repository
                 case ExpressionType.Decrement:
                     throw new NotImplementedException();
                 case ExpressionType.Default:
-                    throw new NotImplementedException();
+                    ConvertToSqlEvaluate(exp, ref sb, context);
+                    break;
                 case ExpressionType.Divide:
                     ConvertToSqlBinary(Operator.Divide, exp, ref sb, context);
                     break;
@@ -155,7 +170,10 @@ namespace Zerra.Repository
                     ConvertToSqlBinary(context.Inverted ? Operator.NotEquals : Operator.Equals, exp, ref sb, context);
                     break;
                 case ExpressionType.ExclusiveOr:
-                    throw new NotImplementedException();
+                    if (exp.Type == typeof(bool) || exp.Type == typeof(bool?))
+                        throw new NotSupportedException("Exclusive or of conditions is not supported");
+                    ConvertToSqlBinary(Operator.BitwiseXor, exp, ref sb, context);
+                    break;
                 case ExpressionType.ExclusiveOrAssign:
                     throw new NotImplementedException();
                 case ExpressionType.Extension:
@@ -171,9 +189,11 @@ namespace Zerra.Repository
                 case ExpressionType.Increment:
                     throw new NotImplementedException();
                 case ExpressionType.Index:
-                    throw new NotImplementedException();
+                    ConvertToSqlEvaluateOnly(exp, ref sb, context);
+                    break;
                 case ExpressionType.Invoke:
-                    throw new NotImplementedException();
+                    ConvertToSqlEvaluateOnly(exp, ref sb, context);
+                    break;
                 case ExpressionType.IsFalse:
                     throw new NotImplementedException();
                 case ExpressionType.IsTrue:
@@ -194,14 +214,16 @@ namespace Zerra.Repository
                     ConvertToSqlBinary(context.Inverted ? Operator.GreaterThan : Operator.LessThanOrEquals, exp, ref sb, context);
                     break;
                 case ExpressionType.ListInit:
-                    throw new NotImplementedException();
+                    ConvertToSqlEvaluateOnly(exp, ref sb, context);
+                    break;
                 case ExpressionType.Loop:
                     throw new NotImplementedException();
                 case ExpressionType.MemberAccess:
                     ConvertToSqlMember(exp, ref sb, context);
                     break;
                 case ExpressionType.MemberInit:
-                    throw new NotImplementedException();
+                    ConvertToSqlEvaluateOnly(exp, ref sb, context);
+                    break;
                 case ExpressionType.Modulo:
                     ConvertToSqlBinary(Operator.Modulus, exp, ref sb, context);
                     break;
@@ -227,21 +249,35 @@ namespace Zerra.Repository
                     ConvertToSqlNew(exp, ref sb, context);
                     break;
                 case ExpressionType.NewArrayBounds:
-                    throw new NotImplementedException();
+                    ConvertToSqlEvaluateOnly(exp, ref sb, context);
+                    break;
                 case ExpressionType.NewArrayInit:
-                    throw new NotImplementedException();
+                    ConvertToSqlEvaluateOnly(exp, ref sb, context);
+                    break;
                 case ExpressionType.Not:
-                    context.InvertStack++;
-                    ConvertToSqlUnary(Operator.Not, exp, ref sb, context);
-                    context.InvertStack--;
+                    if (exp.Type == typeof(bool) || exp.Type == typeof(bool?))
+                    {
+                        context.InvertStack++;
+                        ConvertToSqlUnary(Operator.Not, exp, ref sb, context);
+                        context.InvertStack--;
+                    }
+                    else
+                    {
+                        //C# writes ~ on an integer as Not
+                        ConvertToSqlUnary(Operator.BitwiseNot, exp, ref sb, context);
+                    }
                     break;
                 case ExpressionType.NotEqual:
                     ConvertToSqlBinary(context.Inverted ? Operator.Equals : Operator.NotEquals, exp, ref sb, context);
                     break;
                 case ExpressionType.OnesComplement:
-                    throw new NotImplementedException();
+                    ConvertToSqlUnary(Operator.BitwiseNot, exp, ref sb, context);
+                    break;
                 case ExpressionType.Or:
-                    ConvertToSqlBinary(context.Inverted ? Operator.And : Operator.Or, exp, ref sb, context);
+                    if (exp.Type == typeof(bool) || exp.Type == typeof(bool?))
+                        ConvertToSqlBinary(context.Inverted ? Operator.And : Operator.Or, exp, ref sb, context);
+                    else
+                        ConvertToSqlBinary(Operator.BitwiseOr, exp, ref sb, context);
                     break;
                 case ExpressionType.OrAssign:
                     throw new NotImplementedException();
@@ -256,7 +292,21 @@ namespace Zerra.Repository
                 case ExpressionType.PostIncrementAssign:
                     throw new NotImplementedException();
                 case ExpressionType.Power:
-                    throw new NotImplementedException();
+                    {
+                        //the Power node comes from VB, C# calls Math.Pow which the dialects convert
+                        context.MemberContext.OperatorStack.Push(Operator.Call);
+                        var invertStack = context.InvertStack;
+                        context.InvertStack = 0;
+                        var power = (BinaryExpression)exp;
+                        sb.Write("POWER((");
+                        ConvertToSql(power.Left, ref sb, context);
+                        sb.Write("),(");
+                        ConvertToSql(power.Right, ref sb, context);
+                        sb.Write("))");
+                        context.InvertStack = invertStack;
+                        _ = context.MemberContext.OperatorStack.Pop();
+                        break;
+                    }
                 case ExpressionType.PowerAssign:
                     throw new NotImplementedException();
                 case ExpressionType.PreDecrementAssign:
@@ -264,7 +314,8 @@ namespace Zerra.Repository
                 case ExpressionType.PreIncrementAssign:
                     throw new NotImplementedException();
                 case ExpressionType.Quote:
-                    throw new NotImplementedException();
+                    ConvertToSql(((UnaryExpression)exp).Operand, ref sb, context);
+                    break;
                 case ExpressionType.RightShift:
                     throw new NotImplementedException();
                 case ExpressionType.RightShiftAssign:
@@ -288,15 +339,20 @@ namespace Zerra.Repository
                 case ExpressionType.Try:
                     throw new NotImplementedException();
                 case ExpressionType.TypeAs:
-                    throw new NotImplementedException();
+                    ConvertToSqlEvaluateOnly(exp, ref sb, context);
+                    break;
                 case ExpressionType.TypeEqual:
-                    throw new NotImplementedException();
+                    ConvertToSqlEvaluateOnly(exp, ref sb, context);
+                    break;
                 case ExpressionType.TypeIs:
-                    throw new NotImplementedException();
+                    ConvertToSqlEvaluateOnly(exp, ref sb, context);
+                    break;
                 case ExpressionType.UnaryPlus:
-                    throw new NotImplementedException();
+                    ConvertToSqlUnary(Operator.Null, exp, ref sb, context);
+                    break;
                 case ExpressionType.Unbox:
-                    throw new NotImplementedException();
+                    ConvertToSqlUnary(Operator.Null, exp, ref sb, context);
+                    break;
                 default:
                     throw new NotImplementedException();
             }
@@ -313,12 +369,27 @@ namespace Zerra.Repository
             context.MemberContext.OperatorStack.Push(prefixOperation);
 
             var unary = (UnaryExpression)exp;
-            sb.Write(OperatorToString(prefixOperation));
+            var prefix = OperatorToString(prefixOperation);
 
-            ConvertToSql(unary.Operand, ref sb, context);
+            if (prefix is null)
+            {
+                ConvertToSql(unary.Operand, ref sb, context);
+            }
+            else
+            {
+                var castSigned = prefixOperation == Operator.BitwiseNot && BitwiseResultUnsigned;
+                if (castSigned)
+                    sb.Write("CAST(");
 
-            //if (suffixOperation is not null)
-            //    sb.Write(suffixOperation);
+                //the operand may be an expression like a+b so it needs its own brackets
+                sb.Write(prefix);
+                sb.Write('(');
+                ConvertToSql(unary.Operand, ref sb, context);
+                sb.Write(')');
+
+                if (castSigned)
+                    sb.Write(" AS SIGNED)");
+            }
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
@@ -346,6 +417,10 @@ namespace Zerra.Repository
                 }
             }
 
+            var castSigned = BitwiseResultUnsigned && (operation == Operator.BitwiseAnd || operation == Operator.BitwiseOr || operation == Operator.BitwiseXor);
+            if (castSigned)
+                sb.Write("CAST(");
+
             sb.Write('(');
             ConvertToSql(binaryLeft, ref sb, context);
             sb.Write(')');
@@ -363,8 +438,15 @@ namespace Zerra.Repository
                 sb.Write(" NULL");
             }
 
+            if (castSigned)
+                sb.Write(" AS SIGNED)");
+
             _ = context.MemberContext.OperatorStack.Pop();
         }
+        /// <summary>
+        /// Whether bitwise operators give an unsigned 64 bit result, such as in MySQL, so the result is cast back to a signed number to match .NET.
+        /// </summary>
+        protected virtual bool BitwiseResultUnsigned => false;
         private void ConvertToSqlArrayIndex(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             var array = (BinaryExpression)exp;
@@ -393,17 +475,40 @@ namespace Zerra.Repository
         {
             var member = (MemberExpression)exp;
 
-            if (member.Expression is null)
+            if (member.Expression is null || IsEvaluatable(member.Expression))
             {
                 ConvertToSqlEvaluate(member, ref sb, context);
             }
-            else
+            else if (!ConvertToSqlMemberFunction(member, ref sb, context))
             {
                 context.MemberContext.MemberAccessStack.Push(member);
                 ConvertToSql(member.Expression, ref sb, context);
                 _ = context.MemberContext.MemberAccessStack.Pop();
             }
         }
+        /// <summary>
+        /// Converts a member that is a SQL function of the expression it is read from, such as <c>string.Length</c>, <c>DateTime.Year</c>, or <c>Nullable.HasValue</c>.
+        /// Only called when the expression the member is read from can't be evaluated, so it involves the model.
+        /// </summary>
+        /// <param name="member">The member access expression to convert.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
+        /// <returns><see langword="true"/> if the member was written; <see langword="false"/> if it is not a function member.</returns>
+        protected abstract bool ConvertToSqlMemberFunction(MemberExpression member, ref CharWriter sb, BuilderContext context);
+        /// <summary>
+        /// Converts a null coalescing (<c>??</c>) expression into its SQL representation.
+        /// </summary>
+        /// <param name="exp">The coalesce expression to convert.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
+        protected abstract void ConvertToSqlCoalesce(Expression exp, ref CharWriter sb, BuilderContext context);
+        /// <summary>
+        /// Converts a string addition (<c>a + b</c>) into its SQL representation.
+        /// </summary>
+        /// <param name="exp">The add expression with a string result to convert.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
+        protected abstract void ConvertToSqlStringConcat(Expression exp, ref CharWriter sb, BuilderContext context);
         private void ConvertToSqlConstant(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             var constant = (ConstantExpression)exp;
@@ -522,12 +627,15 @@ namespace Zerra.Repository
         /// <param name="context">The current builder context.</param>
         protected void ConvertToSqlEvaluate(Expression exp, ref CharWriter sb, BuilderContext context)
         {
-            context.MemberContext.OperatorStack.Push(Operator.Evaluate);
-
+            //no operator is pushed, a boolean value needs to see the operator it is used in to know if it is a condition
             var value = Evaluate(exp);
             ConvertToSqlValue(exp.Type, value, ref sb, context);
-
-            _ = context.MemberContext.OperatorStack.Pop();
+        }
+        private void ConvertToSqlEvaluateOnly(Expression exp, ref CharWriter sb, BuilderContext context)
+        {
+            if (!IsEvaluatable(exp))
+                throw new NotSupportedException($"Cannot convert {exp.NodeType} expression that uses the model");
+            ConvertToSqlEvaluate(exp, ref sb, context);
         }
 
         /// <summary>
@@ -576,151 +684,243 @@ namespace Zerra.Repository
         /// <returns><see langword="true"/> if the expression is evaluatable; otherwise, <see langword="false"/>.</returns>
         protected bool IsEvaluatable(Expression exp)
         {
-            return exp.NodeType switch
+            return IsEvaluatable(exp, null);
+        }
+        //scope holds the parameters of lambdas and blocks inside the expression, those have values when it's evaluated
+        private bool IsEvaluatable(Expression exp, List<ParameterExpression>? scope)
+        {
+            switch (exp.NodeType)
             {
-                ExpressionType.Add => IsEvaluatableBinary(exp),
-                ExpressionType.AddAssign => IsEvaluatableBinary(exp),
-                ExpressionType.AddAssignChecked => IsEvaluatableBinary(exp),
-                ExpressionType.AddChecked => IsEvaluatableBinary(exp),
-                ExpressionType.And => IsEvaluatableBinary(exp),
-                ExpressionType.AndAlso => IsEvaluatableBinary(exp),
-                ExpressionType.AndAssign => IsEvaluatableBinary(exp),
-                ExpressionType.ArrayIndex => IsEvaluatableBinary(exp),
-                ExpressionType.ArrayLength => IsEvaluatableUnary(exp),
-                ExpressionType.Assign => IsEvaluatableBinary(exp),
-                ExpressionType.Block => IsEvaluatableBlock(exp),
-                ExpressionType.Call => IsEvaluatableCall(exp),
-                ExpressionType.Coalesce => throw new NotImplementedException(),
-                ExpressionType.Conditional => throw new NotImplementedException(),
-                ExpressionType.Constant => IsEvaluatableConstant(exp),
-                ExpressionType.Convert => IsEvaluatableUnary(exp),
-                ExpressionType.ConvertChecked => throw new NotImplementedException(),
-                ExpressionType.DebugInfo => throw new NotImplementedException(),
-                ExpressionType.Decrement => IsEvaluatableUnary(exp),
-                ExpressionType.Default => throw new NotImplementedException(),
-                ExpressionType.Divide => IsEvaluatableBinary(exp),
-                ExpressionType.DivideAssign => IsEvaluatableBinary(exp),
-                ExpressionType.Dynamic => throw new NotImplementedException(),
-                ExpressionType.Equal => IsEvaluatableBinary(exp),
-                ExpressionType.ExclusiveOr => IsEvaluatableBinary(exp),
-                ExpressionType.ExclusiveOrAssign => IsEvaluatableBinary(exp),
-                ExpressionType.Extension => throw new NotImplementedException(),
-                ExpressionType.Goto => throw new NotImplementedException(),
-                ExpressionType.GreaterThan => throw new NotImplementedException(),
-                ExpressionType.GreaterThanOrEqual => throw new NotImplementedException(),
-                ExpressionType.Increment => IsEvaluatableUnary(exp),
-                ExpressionType.Index => throw new NotImplementedException(),
-                ExpressionType.Invoke => throw new NotImplementedException(),
-                ExpressionType.IsFalse => throw new NotImplementedException(),
-                ExpressionType.IsTrue => throw new NotImplementedException(),
-                ExpressionType.Label => throw new NotImplementedException(),
-                ExpressionType.Lambda => throw new NotImplementedException(),
-                ExpressionType.LeftShift => IsEvaluatableBinary(exp),
-                ExpressionType.LeftShiftAssign => IsEvaluatableBinary(exp),
-                ExpressionType.LessThan => throw new NotImplementedException(),
-                ExpressionType.LessThanOrEqual => throw new NotImplementedException(),
-                ExpressionType.ListInit => throw new NotImplementedException(),
-                ExpressionType.Loop => throw new NotImplementedException(),
-                ExpressionType.MemberAccess => IsEvaluatableMemberAccess(exp),
-                ExpressionType.MemberInit => throw new NotImplementedException(),
-                ExpressionType.Modulo => IsEvaluatableBinary(exp),
-                ExpressionType.ModuloAssign => IsEvaluatableBinary(exp),
-                ExpressionType.Multiply => IsEvaluatableBinary(exp),
-                ExpressionType.MultiplyAssign => IsEvaluatableBinary(exp),
-                ExpressionType.MultiplyAssignChecked => IsEvaluatableBinary(exp),
-                ExpressionType.MultiplyChecked => IsEvaluatableBinary(exp),
-                ExpressionType.Negate => IsEvaluatableUnary(exp),
-                ExpressionType.NegateChecked => IsEvaluatableUnary(exp),
-                ExpressionType.New => throw new NotImplementedException(),
-                ExpressionType.NewArrayBounds => throw new NotImplementedException(),
-                ExpressionType.NewArrayInit => throw new NotImplementedException(),
-                ExpressionType.Not => IsEvaluatableUnary(exp),
-                ExpressionType.NotEqual => IsEvaluatableBinary(exp),
-                ExpressionType.OnesComplement => IsEvaluatableUnary(exp),
-                ExpressionType.Or => IsEvaluatableBinary(exp),
-                ExpressionType.OrAssign => IsEvaluatableBinary(exp),
-                ExpressionType.OrElse => IsEvaluatableBinary(exp),
-                ExpressionType.Parameter => false,
-                ExpressionType.PostDecrementAssign => IsEvaluatableUnary(exp),
-                ExpressionType.PostIncrementAssign => IsEvaluatableUnary(exp),
-                ExpressionType.Power => IsEvaluatableBinary(exp),
-                ExpressionType.PowerAssign => IsEvaluatableBinary(exp),
-                ExpressionType.PreDecrementAssign => IsEvaluatableUnary(exp),
-                ExpressionType.PreIncrementAssign => IsEvaluatableUnary(exp),
-                ExpressionType.Quote => throw new NotImplementedException(),
-                ExpressionType.RightShift => IsEvaluatableBinary(exp),
-                ExpressionType.RightShiftAssign => IsEvaluatableBinary(exp),
-                ExpressionType.RuntimeVariables => throw new NotImplementedException(),
-                ExpressionType.Subtract => IsEvaluatableBinary(exp),
-                ExpressionType.SubtractAssign => IsEvaluatableBinary(exp),
-                ExpressionType.SubtractAssignChecked => IsEvaluatableBinary(exp),
-                ExpressionType.SubtractChecked => IsEvaluatableBinary(exp),
-                ExpressionType.Switch => throw new NotImplementedException(),
-                ExpressionType.Throw => throw new NotImplementedException(),
-                ExpressionType.Try => throw new NotImplementedException(),
-                ExpressionType.TypeAs => IsEvaluatableUnary(exp),
-                ExpressionType.TypeEqual => IsEvaluatableUnary(exp),
-                ExpressionType.TypeIs => IsEvaluatableUnary(exp),
-                ExpressionType.UnaryPlus => IsEvaluatableUnary(exp),
-                ExpressionType.Unbox => IsEvaluatableUnary(exp),
-                _ => throw new NotImplementedException(),
-            };
-            ;
-        }
-        private bool IsEvaluatableUnary(Expression exp)
-        {
-            var unary = (UnaryExpression)exp;
-            return IsEvaluatable(unary.Operand);
-        }
-        private bool IsEvaluatableBinary(Expression exp)
-        {
-            var binary = (BinaryExpression)exp;
-            return IsEvaluatable(binary.Left) && IsEvaluatable(binary.Right);
-        }
-        private bool IsEvaluatableConstant(Expression exp)
-        {
-            return true;
-        }
-        private bool IsEvaluatableBlock(Expression exp)
-        {
-            var block = (BlockExpression)exp;
-            foreach (var variable in block.Variables)
-            {
-                if (!IsEvaluatable(variable))
+                case ExpressionType.Constant:
+                case ExpressionType.Default:
+                    return true;
+
+                case ExpressionType.Parameter:
+                    return scope is not null && scope.Contains((ParameterExpression)exp);
+
+                case ExpressionType.MemberAccess:
+                    {
+                        var member = (MemberExpression)exp;
+                        return member.Expression is null || IsEvaluatable(member.Expression, scope);
+                    }
+
+                case ExpressionType.Call:
+                    {
+                        var call = (MethodCallExpression)exp;
+                        foreach (var arg in call.Arguments)
+                        {
+                            if (!IsEvaluatable(arg, scope))
+                                return false;
+                        }
+                        return call.Object is null || IsEvaluatable(call.Object, scope);
+                    }
+
+                case ExpressionType.Lambda:
+                    {
+                        var lambda = (LambdaExpression)exp;
+                        scope ??= new();
+                        foreach (var parameter in lambda.Parameters)
+                            scope.Add(parameter);
+                        var result = IsEvaluatable(lambda.Body, scope);
+                        foreach (var parameter in lambda.Parameters)
+                            _ = scope.Remove(parameter);
+                        return result;
+                    }
+
+                case ExpressionType.Block:
+                    {
+                        var block = (BlockExpression)exp;
+                        scope ??= new();
+                        foreach (var variable in block.Variables)
+                            scope.Add(variable);
+                        var result = true;
+                        foreach (var expression in block.Expressions)
+                        {
+                            if (!IsEvaluatable(expression, scope))
+                            {
+                                result = false;
+                                break;
+                            }
+                        }
+                        foreach (var variable in block.Variables)
+                            _ = scope.Remove(variable);
+                        return result;
+                    }
+
+                case ExpressionType.Conditional:
+                    {
+                        var conditional = (ConditionalExpression)exp;
+                        return IsEvaluatable(conditional.Test, scope) && IsEvaluatable(conditional.IfTrue, scope) && IsEvaluatable(conditional.IfFalse, scope);
+                    }
+
+                case ExpressionType.New:
+                    {
+                        var newExp = (NewExpression)exp;
+                        foreach (var arg in newExp.Arguments)
+                        {
+                            if (!IsEvaluatable(arg, scope))
+                                return false;
+                        }
+                        return true;
+                    }
+
+                case ExpressionType.NewArrayInit:
+                case ExpressionType.NewArrayBounds:
+                    {
+                        var newArray = (NewArrayExpression)exp;
+                        foreach (var expression in newArray.Expressions)
+                        {
+                            if (!IsEvaluatable(expression, scope))
+                                return false;
+                        }
+                        return true;
+                    }
+
+                case ExpressionType.ListInit:
+                    {
+                        var listInit = (ListInitExpression)exp;
+                        if (!IsEvaluatable(listInit.NewExpression, scope))
+                            return false;
+                        foreach (var initializer in listInit.Initializers)
+                        {
+                            foreach (var arg in initializer.Arguments)
+                            {
+                                if (!IsEvaluatable(arg, scope))
+                                    return false;
+                            }
+                        }
+                        return true;
+                    }
+
+                case ExpressionType.MemberInit:
+                    {
+                        var memberInit = (MemberInitExpression)exp;
+                        return IsEvaluatable(memberInit.NewExpression, scope) && IsEvaluatableBindings(memberInit.Bindings, scope);
+                    }
+
+                case ExpressionType.Invoke:
+                    {
+                        var invoke = (InvocationExpression)exp;
+                        foreach (var arg in invoke.Arguments)
+                        {
+                            if (!IsEvaluatable(arg, scope))
+                                return false;
+                        }
+                        return IsEvaluatable(invoke.Expression, scope);
+                    }
+
+                case ExpressionType.Index:
+                    {
+                        var index = (IndexExpression)exp;
+                        foreach (var arg in index.Arguments)
+                        {
+                            if (!IsEvaluatable(arg, scope))
+                                return false;
+                        }
+                        return index.Object is null || IsEvaluatable(index.Object, scope);
+                    }
+
+                case ExpressionType.TypeIs:
+                case ExpressionType.TypeEqual:
+                    return IsEvaluatable(((TypeBinaryExpression)exp).Expression, scope);
+
+                case ExpressionType.ArrayLength:
+                case ExpressionType.Convert:
+                case ExpressionType.ConvertChecked:
+                case ExpressionType.Decrement:
+                case ExpressionType.Increment:
+                case ExpressionType.IsFalse:
+                case ExpressionType.IsTrue:
+                case ExpressionType.Negate:
+                case ExpressionType.NegateChecked:
+                case ExpressionType.Not:
+                case ExpressionType.OnesComplement:
+                case ExpressionType.PostDecrementAssign:
+                case ExpressionType.PostIncrementAssign:
+                case ExpressionType.PreDecrementAssign:
+                case ExpressionType.PreIncrementAssign:
+                case ExpressionType.Quote:
+                case ExpressionType.TypeAs:
+                case ExpressionType.UnaryPlus:
+                case ExpressionType.Unbox:
+                    return IsEvaluatable(((UnaryExpression)exp).Operand, scope);
+
+                case ExpressionType.Add:
+                case ExpressionType.AddAssign:
+                case ExpressionType.AddAssignChecked:
+                case ExpressionType.AddChecked:
+                case ExpressionType.And:
+                case ExpressionType.AndAlso:
+                case ExpressionType.AndAssign:
+                case ExpressionType.ArrayIndex:
+                case ExpressionType.Assign:
+                case ExpressionType.Coalesce:
+                case ExpressionType.Divide:
+                case ExpressionType.DivideAssign:
+                case ExpressionType.Equal:
+                case ExpressionType.ExclusiveOr:
+                case ExpressionType.ExclusiveOrAssign:
+                case ExpressionType.GreaterThan:
+                case ExpressionType.GreaterThanOrEqual:
+                case ExpressionType.LeftShift:
+                case ExpressionType.LeftShiftAssign:
+                case ExpressionType.LessThan:
+                case ExpressionType.LessThanOrEqual:
+                case ExpressionType.Modulo:
+                case ExpressionType.ModuloAssign:
+                case ExpressionType.Multiply:
+                case ExpressionType.MultiplyAssign:
+                case ExpressionType.MultiplyAssignChecked:
+                case ExpressionType.MultiplyChecked:
+                case ExpressionType.NotEqual:
+                case ExpressionType.Or:
+                case ExpressionType.OrAssign:
+                case ExpressionType.OrElse:
+                case ExpressionType.Power:
+                case ExpressionType.PowerAssign:
+                case ExpressionType.RightShift:
+                case ExpressionType.RightShiftAssign:
+                case ExpressionType.Subtract:
+                case ExpressionType.SubtractAssign:
+                case ExpressionType.SubtractAssignChecked:
+                case ExpressionType.SubtractChecked:
+                    {
+                        var binary = (BinaryExpression)exp;
+                        return IsEvaluatable(binary.Left, scope) && IsEvaluatable(binary.Right, scope);
+                    }
+
+                default:
+                    //control flow such as Goto, Loop, Switch, Throw, and Try isn't written by C# in an expression tree
                     return false;
             }
-
-            foreach (var expression in block.Expressions)
-            {
-                if (!IsEvaluatable(expression))
-                    return false;
-            }
-
-            return true;
         }
-        private bool IsEvaluatableCall(Expression exp)
+        private bool IsEvaluatableBindings(IEnumerable<MemberBinding> bindings, List<ParameterExpression>? scope)
         {
-            var call = (MethodCallExpression)exp;
-
-            foreach (var arg in call.Arguments)
+            foreach (var binding in bindings)
             {
-                if (!IsEvaluatable(arg))
-                    return false;
+                switch (binding.BindingType)
+                {
+                    case MemberBindingType.Assignment:
+                        if (!IsEvaluatable(((MemberAssignment)binding).Expression, scope))
+                            return false;
+                        break;
+                    case MemberBindingType.MemberBinding:
+                        if (!IsEvaluatableBindings(((MemberMemberBinding)binding).Bindings, scope))
+                            return false;
+                        break;
+                    case MemberBindingType.ListBinding:
+                        foreach (var initializer in ((MemberListBinding)binding).Initializers)
+                        {
+                            foreach (var arg in initializer.Arguments)
+                            {
+                                if (!IsEvaluatable(arg, scope))
+                                    return false;
+                            }
+                        }
+                        break;
+                }
             }
-
-            if (call.Object is not null)
-                return IsEvaluatable(call.Object);
-
             return true;
-        }
-        private bool IsEvaluatableMemberAccess(Expression exp)
-        {
-            var member = (MemberExpression)exp;
-            if (member.Expression is null)
-            {
-                return true;
-            }
-            return IsEvaluatable(member.Expression);
         }
 
         /// <summary>
@@ -744,14 +944,14 @@ namespace Zerra.Repository
                 ExpressionType.Assign => false,
                 ExpressionType.Block => false,
                 ExpressionType.Call => IsNullCall(exp),
-                ExpressionType.Coalesce => false,
-                ExpressionType.Conditional => false,
+                ExpressionType.Coalesce => IsNullEvaluated(exp),
+                ExpressionType.Conditional => IsNullEvaluated(exp),
                 ExpressionType.Constant => IsNullConstant(exp),
                 ExpressionType.Convert => IsNullUnary(exp),
                 ExpressionType.ConvertChecked => false,
                 ExpressionType.DebugInfo => false,
                 ExpressionType.Decrement => false,
-                ExpressionType.Default => false,
+                ExpressionType.Default => !exp.Type.IsValueType || exp.Type.Name == nullableTypeName,
                 ExpressionType.Divide => false,
                 ExpressionType.DivideAssign => false,
                 ExpressionType.Dynamic => false,
@@ -833,22 +1033,17 @@ namespace Zerra.Repository
         }
         private bool IsNullCall(Expression exp)
         {
-            var call = (MethodCallExpression)exp;
-            if (call.Object is null)
-            {
-                var result = true;
-                foreach (var arg in call.Arguments)
-                {
-                    result &= IsNull(arg);
-                    if (!result)
-                        break;
-                }
-                return result;
-            }
-            else
-            {
-                return IsNull(call.Object);
-            }
+            //a call that uses the model is written as SQL so it isn't a null literal
+            return IsNullEvaluated(exp);
+        }
+        private bool IsNullEvaluated(Expression exp)
+        {
+            //only a type that can hold null is evaluated, so a call like Guid.NewGuid() isn't run an extra time
+            if (exp.Type.IsValueType && exp.Type.Name != nullableTypeName)
+                return false;
+            if (!IsEvaluatable(exp))
+                return false;
+            return Evaluate(exp) is null;
         }
         private bool IsNullArrayIndex(Expression exp)
         {
@@ -908,15 +1103,42 @@ namespace Zerra.Repository
             return value is null;
         }
 
-        private static object? Evaluate(Expression exp)
+        /// <summary>
+        /// Evaluates an expression that doesn't use the model to its value.
+        /// </summary>
+        /// <param name="exp">The expression to evaluate.</param>
+        /// <returns>The value of the expression.</returns>
+        protected static object? Evaluate(Expression exp)
         {
             return exp.NodeType switch
             {
                 ExpressionType.Constant => EvaluateConstant(exp),
                 ExpressionType.MemberAccess => EvaluateMemberAccess(exp),
                 ExpressionType.Lambda => EvaludateLambda(exp),
+                ExpressionType.Default => EvaluateDefault(exp),
+                ExpressionType.Coalesce => EvaluateCoalesce(exp),
+                ExpressionType.Conditional => EvaluateConditional(exp),
                 _ => EvaluateInvoke(exp),
             };
+        }
+        [UnconditionalSuppressMessage("Trimming", "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method.", Justification = "Only value types are created here and their default value doesn't use a constructor.")]
+        private static object? EvaluateDefault(Expression exp)
+        {
+            if (!exp.Type.IsValueType || exp.Type.Name == nullableTypeName)
+                return null;
+            return RuntimeHelpers.GetUninitializedObject(exp.Type);
+        }
+        private static object? EvaluateCoalesce(Expression exp)
+        {
+            var coalesce = (BinaryExpression)exp;
+            if (coalesce.Conversion is not null)
+                return EvaluateInvoke(exp);
+            return Evaluate(coalesce.Left) ?? Evaluate(coalesce.Right);
+        }
+        private static object? EvaluateConditional(Expression exp)
+        {
+            var conditional = (ConditionalExpression)exp;
+            return (bool)Evaluate(conditional.Test)! ? Evaluate(conditional.IfTrue) : Evaluate(conditional.IfFalse);
         }
         private static object? EvaluateConstant(Expression exp)
         {
@@ -959,7 +1181,7 @@ namespace Zerra.Repository
         [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "Falls back to InvalidOperationException at runtime when dynamic code is unsupported.")]
         private static object? EvaluateInvoke(Expression exp)
         {
-            if (exp.NodeType == ExpressionType.Call && exp.Type.Name == "ReadOnlySpan`1" || exp.Type.Name == "Span`1")
+            if (exp.NodeType == ExpressionType.Call && (exp.Type.Name == "ReadOnlySpan`1" || exp.Type.Name == "Span`1"))
             {
                 var call = (MethodCallExpression)exp;
                 if (call.Method.Name == "op_Implicit")
