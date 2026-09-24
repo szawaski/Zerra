@@ -260,6 +260,42 @@ namespace Zerra.T4.Test
             Assert.Contains("    Note!: Note | null;", output);
         }
 
+        [Fact]
+        public void Records()
+        {
+            var source = """
+                using System.Collections.Generic;
+                using System.Threading.Tasks;
+                using Zerra.CQRS;
+
+                namespace TestApp
+                {
+                    public record Widget(int ID, string Name, List<Part> Parts);
+                    public record struct Part(decimal Weight);
+                    public record WidgetResult(bool Saved);
+
+                    public interface IWidgetQueryHandler : IQueryHandler
+                    {
+                        Task<Widget> GetWidget(int id);
+                    }
+
+                    public record SaveWidgetCommand(Widget Widget) : ICommand<WidgetResult>;
+                }
+                """;
+
+            var typeScript = GeneratorRunner.TypeScript(source);
+            Assert.Contains("export class Widget {\r\n    ID!: number;\r\n    Name!: string | null;\r\n    Parts!: Part[];\r\n}", typeScript);
+            Assert.Contains("export class Part {\r\n    Weight!: number;\r\n}", typeScript);
+            Assert.Contains("        return Bus.Call(\"TestApp.IWidgetQueryHandler\", \"GetWidget\", [id], WidgetType, false);", typeScript);
+            Assert.Contains("export class SaveWidgetCommand implements ICommand {", typeScript);
+            Assert.Contains("        self[\"ResultType\"] = WidgetResultType;", typeScript);
+            Assert.Contains("    Widget!: Widget | null;", typeScript);
+
+            var javaScript = GeneratorRunner.JavaScript(source);
+            Assert.Contains("const WidgetType =\r\n{\r\n    ID: \"number\",\r\n    Name: \"string\",\r\n    Parts: \"Part[]\",\r\n}", javaScript);
+            Assert.Contains("    this.Widget = (properties === undefined || properties.Widget === undefined) ? null : properties.Widget;", javaScript);
+        }
+
         //the real demo domain, uses project files for implicit usings and spans multiple folders
         [Fact]
         public void PetsDomain()

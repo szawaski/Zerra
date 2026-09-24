@@ -203,9 +203,20 @@ namespace Zerra.T4.CSharp
                         currentKeywords.Clear();
                         break;
                     case "record":
-                        var csRecord = ParseObject(solution, context, chars, ref index, CSharpObjectType.Record, currentKeywords);
-                        solution.Structs.Add(csRecord);
-                        currentKeywords.Clear();
+                        {
+                            //"record class" and "record struct" continue to their keyword, a plain record is a class
+                            var recordIndex = index;
+                            var recordLine = context.Line;
+                            var recordNext = ReadKeywordOrToken(context, chars, ref index);
+                            index = recordIndex;
+                            context.Line = recordLine;
+                            currentKeywords.Add(keyword);
+                            if (recordNext == "class" || recordNext == "struct")
+                                break;
+                            var csRecord = ParseObject(solution, context, chars, ref index, CSharpObjectType.Class, currentKeywords);
+                            solution.Classes.Add(csRecord);
+                            currentKeywords.Clear();
+                        }
                         break;
                     default:
                         if (modifierKeywords.Contains(keyword) || keyword.StartsWith("["))
@@ -268,6 +279,16 @@ namespace Zerra.T4.CSharp
             SkipWhiteSpace(context, chars, ref index);
             var c = chars[index];
 
+            //a primary constructor, a record's parameters are also its properties
+            List<CSharpParameter>? primaryParameters = null;
+            if (c == '(')
+            {
+                index++;
+                primaryParameters = ParseParameters(solution, context, chars, ref index);
+                SkipWhiteSpace(context, chars, ref index);
+                c = chars[index];
+            }
+
             if (c == ':')
             {
                 index++;
@@ -275,11 +296,19 @@ namespace Zerra.T4.CSharp
                 implements.Add(new CSharpUnresolvedType(solution, context.CurrentNamespace, context.Usings, implementsName));
                 SkipWhiteSpace(context, chars, ref index);
                 c = chars[index];
-                while (c == ',')
+                while (c == ',' || c == '(')
                 {
                     index++;
-                    implementsName = ReadKeywordOrToken(context, chars, ref index);
-                    implements.Add(new CSharpUnresolvedType(solution, context.CurrentNamespace, context.Usings, implementsName));
+                    if (c == '(')
+                    {
+                        //arguments to the base primary constructor
+                        SkipParenthesis(context, chars, ref index);
+                    }
+                    else
+                    {
+                        implementsName = ReadKeywordOrToken(context, chars, ref index);
+                        implements.Add(new CSharpUnresolvedType(solution, context.CurrentNamespace, context.Usings, implementsName));
+                    }
                     SkipWhiteSpace(context, chars, ref index);
                     c = chars[index];
                 }
@@ -290,7 +319,8 @@ namespace Zerra.T4.CSharp
                 var keyword = ReadKeywordOrToken(context, chars, ref index);
                 if (keyword != "where")
                     throw new Exception($"Unexpected keyword {keyword} at {index} in {context.FileName}");
-                SkipToToken(context, chars, ref index, '{');
+                //a record can end without a body
+                SkipToToken(context, chars, ref index, '{', ';');
             }
 
             var classes = new List<CSharpObject>();
@@ -301,6 +331,13 @@ namespace Zerra.T4.CSharp
             var fields = new List<CSharpField>();
             var properties = new List<CSharpProperty>();
             var methods = new List<CSharpMethod>();
+
+            var isRecord = modifiers.Contains("record");
+            if (isRecord && primaryParameters is not null)
+            {
+                foreach (var parameter in primaryParameters)
+                    properties.Add(new CSharpProperty(parameter.Name, parameter.Type, true, false, false, false, true, true, true, true, []));
+            }
 
             if (HasToken(context, chars, ref index, '{'))
             {
@@ -353,6 +390,24 @@ namespace Zerra.T4.CSharp
                             currentKeywords.Clear();
                             statementType = null;
                             statementName = null;
+                            break;
+                        case "record":
+                            {
+                                //"record class" and "record struct" continue to their keyword, a plain record is a class
+                                var recordIndex = index;
+                                var recordLine = context.Line;
+                                var recordNext = ReadKeywordOrToken(context, chars, ref index);
+                                index = recordIndex;
+                                context.Line = recordLine;
+                                currentKeywords.Add(keyword);
+                                if (recordNext == "class" || recordNext == "struct")
+                                    break;
+                                var csRecord = ParseObject(solution, context, chars, ref index, CSharpObjectType.Class, currentKeywords);
+                                classes.Add(csRecord);
+                                currentKeywords.Clear();
+                                statementType = null;
+                                statementName = null;
+                            }
                             break;
                         case ";":
                         case "=":
@@ -444,6 +499,7 @@ namespace Zerra.T4.CSharp
                 throw new Exception("Invalid object declaration");
 
             var csObject = new CSharpObject(context.CurrentNamespace, context.Usings, name, objectType, implements, isPublic, isStatic, isAbstract, isPartial, classes, structs, interfaces, enums, delegates, properties, methods, attributes);
+            csObject.IsRecord = isRecord;
             return csObject;
         }
 

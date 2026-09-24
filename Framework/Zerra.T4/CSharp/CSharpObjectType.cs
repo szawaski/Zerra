@@ -32,11 +32,6 @@ namespace Zerra.T4.CSharp
         /// <summary>
         /// A delegate type.
         /// </summary>
-        Delegate,
-
-        /// <summary>
-        /// A record type.
-        /// </summary>
-        Record
+        Delegate
     }
 }

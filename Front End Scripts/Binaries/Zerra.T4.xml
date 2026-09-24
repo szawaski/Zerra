@@ -375,6 +375,11 @@
             Gets or sets a value indicating whether the type is declared as partial.
             </summary>
         </member>
+        <member name="P:Zerra.T4.CSharp.CSharpObject.IsRecord">
+            <summary>
+            Gets or sets a value indicating whether the type is declared as a record, a record class is a <see cref="F:Zerra.T4.CSharp.CSharpObjectType.Class"/> and a record struct is a <see cref="F:Zerra.T4.CSharp.CSharpObjectType.Struct"/>.
+            </summary>
+        </member>
         <member name="P:Zerra.T4.CSharp.CSharpObject.InnerClasses">
             <summary>
             Gets the inner classes declared within this type.
@@ -473,11 +478,6 @@
         <member name="F:Zerra.T4.CSharp.CSharpObjectType.Delegate">
             <summary>
             A delegate type.
-            </summary>
-        </member>
-        <member name="F:Zerra.T4.CSharp.CSharpObjectType.Record">
-            <summary>
-            A record type.
             </summary>
         </member>
         <member name="T:Zerra.T4.CSharp.CSharpParameter">

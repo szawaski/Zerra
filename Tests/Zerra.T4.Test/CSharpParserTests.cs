@@ -103,6 +103,102 @@ namespace Zerra.T4.Test
         }
 
         [Fact]
+        public void Records()
+        {
+            var solution = GeneratorRunner.Parse("""
+                namespace App
+                {
+                    public record Point(int X, int Y);
+                    public record Named(string Name, int Count = 1) : Base(Name), IThing
+                    {
+                        public string Extra { get; init; }
+                    }
+                    public record class Plain
+                    {
+                        public int Value { get; init; }
+                    }
+                    public readonly record struct Pair([property: System.Obsolete] int A, string B);
+                    public record Box<T>(T Value) where T : class;
+                    public class Outer
+                    {
+                        public record Inner(int I);
+                        public record struct InnerStruct(int S);
+                    }
+                    public abstract record Base(string Key);
+                    public interface IThing { }
+                    public class After { }
+                }
+                """);
+
+            Assert.Equal(["Point", "Named", "Plain", "Box<T>", "Outer", "Base", "After"], solution.Classes.Select(x => x.Name));
+
+            var point = Single(solution.Classes, "Point");
+            Assert.True(point.IsRecord);
+            Assert.Equal(CSharpObjectType.Class, point.ObjectType);
+            Assert.Equal(["X", "Y"], point.Properties.Select(x => x.Name));
+            AssertProperty(point, "X", hasGet: true, hasSet: true, isSetPublic: true);
+            Assert.Equal(typeof(int), Resolve(point, "Y").NativeType);
+
+            //positional properties come before the ones in the body, base constructor arguments are skipped
+            var named = Single(solution.Classes, "Named");
+            Assert.Equal(["Name", "Count", "Extra"], named.Properties.Select(x => x.Name));
+            Assert.Equal(["Base", "IThing"], named.Implements.Select(x => x.Name));
+            Assert.Same(Single(solution.Classes, "Base"), named.Implements[0].Resolved.SolutionType);
+
+            var plain = Single(solution.Classes, "Plain");
+            Assert.True(plain.IsRecord);
+            Assert.Equal("Value", Assert.Single(plain.Properties).Name);
+
+            var pair = Single(solution.Structs, "Pair");
+            Assert.True(pair.IsRecord);
+            Assert.Equal(CSharpObjectType.Struct, pair.ObjectType);
+            Assert.Equal(["A", "B"], pair.Properties.Select(x => x.Name));
+            Assert.Equal("string", Single(pair.Properties, "B").Type.Name);
+
+            Assert.Equal("Value", Assert.Single(Single(solution.Classes, "Box<T>").Properties).Name);
+
+            var outer = Single(solution.Classes, "Outer");
+            Assert.False(outer.IsRecord);
+            var inner = Assert.Single(outer.InnerClasses);
+            Assert.True(inner.IsRecord);
+            Assert.Equal("I", Assert.Single(inner.Properties).Name);
+            var innerStruct = Assert.Single(outer.InnerStructs);
+            Assert.True(innerStruct.IsRecord);
+            Assert.Equal("S", Assert.Single(innerStruct.Properties).Name);
+
+            Assert.True(Single(solution.Classes, "Base").IsAbstract);
+        }
+
+        //unlike a record, a primary constructor's parameters aren't properties
+        [Fact]
+        public void PrimaryConstructors()
+        {
+            var solution = GeneratorRunner.Parse("""
+                namespace App
+                {
+                    public class Base(int value) { }
+                    public class Service(string name, int count = 2) : Base(count)
+                    {
+                        public string Name => name;
+                        public int Count { get; } = count;
+                    }
+                    public struct Measure(double amount)
+                    {
+                        public double Amount { get; } = amount;
+                    }
+                    public class After { }
+                }
+                """);
+
+            Assert.Equal(["Base", "Service", "After"], solution.Classes.Select(x => x.Name));
+            var service = Single(solution.Classes, "Service");
+            Assert.False(service.IsRecord);
+            Assert.Equal(["Name", "Count"], service.Properties.Select(x => x.Name));
+            Assert.Equal(["Base"], service.Implements.Select(x => x.Name));
+            Assert.Equal("Amount", Assert.Single(Single(solution.Structs, "Measure").Properties).Name);
+        }
+
+        [Fact]
         public void Properties()
         {
             var solution = GeneratorRunner.Parse("""

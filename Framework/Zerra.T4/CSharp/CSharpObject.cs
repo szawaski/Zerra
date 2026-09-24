@@ -55,6 +55,11 @@ namespace Zerra.T4.CSharp
         public bool IsPartial { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether the type is declared as a record, a record class is a <see cref="CSharpObjectType.Class"/> and a record struct is a <see cref="CSharpObjectType.Struct"/>.
+        /// </summary>
+        public bool IsRecord { get; set; }
+
+        /// <summary>
         /// Gets the inner classes declared within this type.
         /// </summary>
         public IReadOnlyList<CSharpObject> InnerClasses { get; }
