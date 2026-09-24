@@ -39,6 +39,8 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" />
+        <!--referenced so the generated code can be compiled against the real Register API-->
+        <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
     </ItemGroup>
 
 </Project>

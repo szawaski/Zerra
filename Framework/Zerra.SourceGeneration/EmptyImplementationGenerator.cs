@@ -5,7 +5,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Zerra.SourceGeneration.Discovery
 {
@@ -35,39 +34,8 @@ namespace Zerra.SourceGeneration.Discovery
                     continue;
 
                 var typeNameForClass = Helper.GetClassSafeName(model.TypeSymbol);
+                //models are only closed types, so the class is never generic and restating the interface's constraints would not compile
                 var className = $"Empty_{typeNameForClass}";
-                var typeName = namedTypeSymbol.IsGenericType
-                    ? Regex.Replace(className, @"<[^>]+>", m => "<" + string.Concat(Enumerable.Repeat(",", m.Value.Count(c => c == ','))) + ">")
-                    : className;
-
-                string? where = null;
-                if (namedTypeSymbol.IsGenericType)
-                {
-                    var sbWhere = new StringBuilder();
-                    foreach (var genericParameter in namedTypeSymbol.TypeParameters)
-                    {
-                        var constraints = new List<string>();
-                        foreach (var constraintType in genericParameter.ConstraintTypes)
-                            constraints.Add(Helper.GetFullName(constraintType));
-                        if (genericParameter.HasConstructorConstraint)
-                            constraints.Add("new()");
-                        if (genericParameter.HasReferenceTypeConstraint)
-                            constraints.Add("class");
-                        if (genericParameter.HasValueTypeConstraint)
-                            constraints.Add("struct");
-                        if (genericParameter.HasNotNullConstraint)
-                            constraints.Add("notnull");
-                        if (genericParameter.HasUnmanagedTypeConstraint)
-                            constraints.Add("unmanaged");
-
-                        if (constraints.Count == 0)
-                            continue;
-
-                        _ = sbWhere.Append(" where ").Append(Helper.GetFullName(genericParameter)).Append(" : ");
-                        _ = sbWhere.Append(string.Join(", ", constraints));
-                    }
-                    where = sbWhere.ToString();
-                }
 
                 var sb = new StringBuilder();
 
@@ -84,7 +52,7 @@ namespace Zerra.SourceGeneration.Discovery
 
                 namespace {{ns}}.SourceGeneration
                 {
-                    public class {{className}} : {{Helper.GetFullName(model.TypeSymbol)}}{{where}}
+                    public class {{className}} : {{Helper.GetFullName(model.TypeSymbol)}}
                     {
                         {{membersLines}}
                     }
@@ -114,7 +82,7 @@ namespace Zerra.SourceGeneration.Discovery
                     _ = sb.Append(EnvironmentHelper.NewLine).Append("        ");
 
                 _ = sb.Append(method.ReturnsVoid ? "void" : Helper.GetFullName(method.ReturnType)).Append(' ');
-                _ = sb.Append(Helper.GetFullName(method.ContainingType)).Append('.').Append(method.Name);
+                _ = sb.Append(Helper.GetFullName(method.ContainingType)).Append(".@").Append(method.Name);
 
                 if (method.IsGenericMethod)
                 {
@@ -191,7 +159,7 @@ namespace Zerra.SourceGeneration.Discovery
                 }
                 else
                 {
-                    _ = sb.Append(property.Name);
+                    _ = sb.Append('@').Append(property.Name);
                     _ = sb.Append(" {");
                     if (property.GetMethod is not null && property.GetMethod.DeclaredAccessibility == Accessibility.Public)
                         _ = sb.Append(" get;");

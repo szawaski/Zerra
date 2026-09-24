@@ -3,6 +3,8 @@
 // Licensed to you under the MIT license
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using System.Globalization;
 using System.Text;
 
 namespace Zerra.SourceGeneration
@@ -198,26 +200,69 @@ namespace Zerra.SourceGeneration
             return result;
         }
 
+        //written as code, so every value is a valid literal of its exact type: a boxed or overloaded argument depends on the type,
+        //and numbers are formatted invariant so a culture using a decimal comma does not break the code
         public static void TypedConstantToString(TypedConstant constant, StringBuilder sb)
         {
             switch (constant.Kind)
             {
                 case TypedConstantKind.Primitive:
-                    if (constant.Type?.Name == "String")
-                        _ = sb.Append("\"").Append(constant.Value?.ToString()).Append("\"");
-                    else if (constant.Type?.Name == "Boolean")
-                        _ = sb.Append((bool?)constant.Value == true ? "true" : "false");
-                    else
-                        _ = sb.Append(constant.Value?.ToString() ?? "null");
+                    switch (constant.Value)
+                    {
+                        case null:
+                            _ = sb.Append("null");
+                            break;
+                        case string stringValue:
+                            _ = sb.Append(SymbolDisplay.FormatLiteral(stringValue, true));
+                            break;
+                        case char charValue:
+                            _ = sb.Append(SymbolDisplay.FormatLiteral(charValue, true));
+                            break;
+                        case bool boolValue:
+                            _ = sb.Append(BoolString(boolValue));
+                            break;
+                        case float floatValue:
+                            if (Single.IsNaN(floatValue))
+                                _ = sb.Append("float.NaN");
+                            else if (Single.IsPositiveInfinity(floatValue))
+                                _ = sb.Append("float.PositiveInfinity");
+                            else if (Single.IsNegativeInfinity(floatValue))
+                                _ = sb.Append("float.NegativeInfinity");
+                            else
+                                _ = sb.Append(floatValue.ToString("R", CultureInfo.InvariantCulture)).Append('F');
+                            break;
+                        case double doubleValue:
+                            if (Double.IsNaN(doubleValue))
+                                _ = sb.Append("double.NaN");
+                            else if (Double.IsPositiveInfinity(doubleValue))
+                                _ = sb.Append("double.PositiveInfinity");
+                            else if (Double.IsNegativeInfinity(doubleValue))
+                                _ = sb.Append("double.NegativeInfinity");
+                            else
+                                _ = sb.Append(doubleValue.ToString("R", CultureInfo.InvariantCulture)).Append('D');
+                            break;
+                        default:
+                            //integers, cast so a byte stays a byte when boxed to object
+                            _ = sb.Append('(').Append(GetFullName(constant.Type!)).Append(")(").Append(((IFormattable)constant.Value).ToString(null, CultureInfo.InvariantCulture)).Append(')');
+                            break;
+                    }
                     break;
                 case TypedConstantKind.Enum:
-                    _ = sb.Append('(').Append(constant.Type!.ToString()).Append(')').Append(constant.Value?.ToString() ?? "null");
+                    _ = sb.Append('(').Append(GetFullName(constant.Type!)).Append(")(").Append(((IFormattable)constant.Value!).ToString(null, CultureInfo.InvariantCulture)).Append(')');
                     break;
                 case TypedConstantKind.Type:
-                    //guessing
-                    _ = sb.Append("typeof(").Append(constant.Value?.ToString() ?? "null").Append(')');
+                    if (constant.Value is ITypeSymbol typeValue)
+                        _ = sb.Append("typeof(").Append(GetFullName(typeValue)).Append(')');
+                    else
+                        _ = sb.Append("null");
                     break;
                 case TypedConstantKind.Array:
+                    if (constant.IsNull)
+                    {
+                        _ = sb.Append("null");
+                        break;
+                    }
+                    _ = sb.Append("new ").Append(GetFullName(((IArrayTypeSymbol)constant.Type!).ElementType)).Append("[] { ");
                     var pastFirstValue = false;
                     foreach (var value in constant.Values)
                     {
@@ -227,6 +272,7 @@ namespace Zerra.SourceGeneration
                             pastFirstValue = true;
                         TypedConstantToString(value, sb);
                     }
+                    _ = sb.Append(" }");
                     break;
                 default:
                     throw new NotImplementedException();

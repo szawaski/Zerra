@@ -39,13 +39,18 @@ namespace Zerra.SourceGeneration
         {
             var discoverySymbols = new List<ITypeSymbol>();
 
+            //each declaration of a partial type is its own syntax node, the type must only be generated once
+            var seen = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
             foreach (var symbol in symbols)
             {
+                if (!seen.Add(symbol))
+                    continue;
                 //filter
                 discoverySymbols.Add(symbol);
             }
 
-            var ns = symbols.Where(x => x.ContainingNamespace is not null).Select(x => x.ContainingNamespace.ToString()).OrderBy(x => x.Length).FirstOrDefault() ?? "Unknown";
+            //types in the global namespace have no name to build on
+            var ns = symbols.Where(x => x.ContainingNamespace is not null && !x.ContainingNamespace.IsGlobalNamespace).Select(x => x.ContainingNamespace.ToString()).OrderBy(x => x.Length).FirstOrDefault() ?? "Unknown";
 
             var sbInitializer = new StringBuilder();
             var typesToGenerate = new Dictionary<string, TypeToGenerate>();

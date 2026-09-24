@@ -104,7 +104,7 @@ namespace Zerra.SourceGeneration
                 if (sb.Length > 0)
                     _ = sb.Append(EnvironmentHelper.NewLine).Append("        ");
 
-                _ = sb.Append("public ").Append(method.ReturnsVoid ? "void" : Helper.GetFullNameWithNullability(method.ReturnType)).Append(' ').Append(method.Name);
+                _ = sb.Append("public ").Append(method.ReturnsVoid ? "void" : Helper.GetFullNameWithNullability(method.ReturnType)).Append(" @").Append(method.Name);
                 if (method.IsGenericMethod)
                 {
                     _ = sb.Append('<');
@@ -131,36 +131,25 @@ namespace Zerra.SourceGeneration
                 }
                 _ = sb.Append(") ");
 
-                var firstConstraintPassed = false;
-                var constraints = new List<string>();
-                foreach (var constraintType in method.TypeParameters)
+                foreach (var typeParameter in method.TypeParameters)
                 {
-                    foreach (var c in constraintType.ConstraintTypes)
-                    {
-                        constraints.Add(c.ToString());
-                    }
-                    if (constraintType.HasConstructorConstraint)
-                        constraints.Add("new()");
-                    if (constraintType.HasReferenceTypeConstraint)
-                        constraints.Add("class");
-                    if (constraintType.HasValueTypeConstraint)
-                        constraints.Add("struct");
-                    if (constraintType.HasNotNullConstraint)
-                        constraints.Add("notnull");
-                    if (constraintType.HasUnmanagedTypeConstraint)
+                    //C# requires class/struct/unmanaged/notnull first and new() last, and unmanaged already implies struct
+                    var constraints = new List<string>();
+                    if (typeParameter.HasUnmanagedTypeConstraint)
                         constraints.Add("unmanaged");
+                    else if (typeParameter.HasValueTypeConstraint)
+                        constraints.Add("struct");
+                    else if (typeParameter.HasReferenceTypeConstraint)
+                        constraints.Add("class");
+                    else if (typeParameter.HasNotNullConstraint)
+                        constraints.Add("notnull");
+                    foreach (var constraintType in typeParameter.ConstraintTypes)
+                        constraints.Add(Helper.GetFullName(constraintType));
+                    if (typeParameter.HasConstructorConstraint && !typeParameter.HasValueTypeConstraint)
+                        constraints.Add("new()");
+
                     if (constraints.Count > 0)
-                    {
-                        _ = sb.Append("where ").Append(constraintType.Name).Append(" : ");
-                        foreach (var c in constraints)
-                        {
-                            if (firstConstraintPassed)
-                                _ = sb.Append(", ");
-                            else
-                                firstConstraintPassed = true;
-                            _ = sb.Append(c);
-                        }
-                    }
+                        _ = sb.Append("where @").Append(typeParameter.Name).Append(" : ").Append(String.Join(", ", constraints)).Append(' ');
                 }
                 _ = sb.Append(" => ");
 

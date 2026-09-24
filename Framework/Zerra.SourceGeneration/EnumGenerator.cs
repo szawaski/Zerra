@@ -84,8 +84,8 @@ namespace Zerra.SourceGeneration
 
                 _ = sb.Append("new global::EnumName.EnumFieldInfo(");
                 _ = sb.Append("\"").Append(@field.Name).Append("\", ");
-                _ = sb.Append("\"").Append(text).Append("\", ");
-                _ = sb.Append(typeName).Append(".").Append(@field.Name);
+                _ = sb.Append(Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(text, true)).Append(", ");
+                _ = sb.Append(typeName).Append(".@").Append(@field.Name);
                 _ = sb.Append(")");
             }
 

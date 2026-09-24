@@ -53,6 +53,10 @@ namespace Zerra.SourceGeneration.Test
             var results = driverResult.GetRunResult();
             var result = results.Results.Single();
 
+            //the Demo is parsed without its references so it will not compile here, this only proves the generator survives a real code base
+            Assert.Null(result.Exception);
+            Assert.Contains(result.GeneratedSources, x => x.HintName == "ZerraSourceGenerationInitializer.cs");
+
             //var path = $"C:{Path.DirectorySeparatorChar}Temp{Path.DirectorySeparatorChar}SourceGenerationTests";
             //if (!Directory.Exists(path))
             //    _ = Directory.CreateDirectory(path);

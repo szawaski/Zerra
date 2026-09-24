@@ -81,7 +81,7 @@ namespace Zerra.SourceGeneration
                 _ = sb.Append("static (object instance, object?[]? args) => ");
                 if (method.ReturnsVoid)
                     _ = sb.Append("{");
-                _ = sb.Append("((").Append(typeNameForInterface).Append(")instance).").Append(method.Name).Append("(");
+                _ = sb.Append("((").Append(typeNameForInterface).Append(")instance).@").Append(method.Name).Append("(");
                 i = 0;
                 foreach (var parameter in method.Parameters)
                 {

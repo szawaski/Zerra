@@ -74,7 +74,10 @@ namespace Zerra.SourceGeneration
 
                 _ = sb.Append(", ");
 
-                GenerateConstructors(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);
+                //tuple syntax such as (int, string) cannot follow new, the same type written as ValueTuple can
+                var constructableTypeName = namedTypeSymbol is not null && namedTypeSymbol.IsTupleType ? GetValueTupleName(namedTypeSymbol) : model.TypeName;
+
+                GenerateConstructors(sb, isCoreType, constructableTypeName, namedTypeSymbol, symbolMembers);
 
                 _ = sb.Append(", ");
 
@@ -86,7 +89,7 @@ namespace Zerra.SourceGeneration
 
                 _ = sb.Append(", ");
 
-                GenerateCreators(sb, model.TypeName, namedTypeSymbol, symbolMembers);
+                GenerateCreators(sb, constructableTypeName, namedTypeSymbol, symbolMembers);
 
                 _ = sb.Append(", ");
 
@@ -126,6 +129,13 @@ namespace Zerra.SourceGeneration
             }
         }
 
+        private static string GetValueTupleName(INamedTypeSymbol tupleTypeSymbol)
+        {
+            //past seven elements the rest is a nested tuple, which as a type argument can stay in tuple syntax
+            var underlying = tupleTypeSymbol.TupleUnderlyingType ?? tupleTypeSymbol;
+            return $"global::System.ValueTuple<{String.Join(", ", underlying.TypeArguments.Select(Helper.GetFullName))}>";
+        }
+
         private static void GenerateMembers(StringBuilder sb, bool isCoreType, string typeName, INamedTypeSymbol? namedTypeSymbol, ImmutableArray<ISymbol> symbolMembers)
         {
             _ = sb.Append("[");
@@ -133,6 +143,8 @@ namespace Zerra.SourceGeneration
             if (!isCoreType && namedTypeSymbol != null)
             {
                 (var properties, var fields) = TypeFinder.GetPropertiesAndFields(namedTypeSymbol, symbolMembers);
+                //casting would assign to an unboxed copy, which does not compile, so struct members are set on the boxed value itself
+                var setterInstance = namedTypeSymbol.IsValueType ? $"global::System.Runtime.CompilerServices.Unsafe.Unbox<{typeName}>(x)" : $"(({typeName})x)";
                 var hasFirst = false;
                 foreach (var propertySets in properties)
                 {
@@ -173,13 +185,13 @@ namespace Zerra.SourceGeneration
                     {
                         if (property.IsStatic)
                         {
-                            _ = sb.Append("static (object x) => ").Append(typeName).Append(".").Append(property.Name).Append(", ");
-                            _ = sb.Append("static (object x) => ").Append(typeName).Append(".").Append(property.Name).Append(", ");
+                            _ = sb.Append("static (object x) => ").Append(typeName).Append(".@").Append(property.Name).Append(", ");
+                            _ = sb.Append("static (object x) => ").Append(typeName).Append(".@").Append(property.Name).Append(", ");
                         }
                         else
                         {
-                            _ = sb.Append("static (object x) => ((").Append(typeName).Append(")x)").Append(".").Append(property.Name).Append(", ");
-                            _ = sb.Append("static (object x) => ((").Append(typeName).Append(")x)").Append(".").Append(property.Name).Append(", ");
+                            _ = sb.Append("static (object x) => ((").Append(typeName).Append(")x)").Append(".@").Append(property.Name).Append(", ");
+                            _ = sb.Append("static (object x) => ((").Append(typeName).Append(")x)").Append(".@").Append(property.Name).Append(", ");
                         }
                     }
                     else
@@ -190,13 +202,13 @@ namespace Zerra.SourceGeneration
                     {
                         if (property.IsStatic)
                         {
-                            _ = sb.Append("static (object x, ").Append(propertyTypeName).Append(property.Type.IsValueType ? null : '?').Append(" value) => ").Append(typeName).Append(".").Append(property.Name).Append(" = value!, ");
-                            _ = sb.Append("static (object x, object? value) => ((").Append(typeName).Append(")x).").Append(property.Name).Append(" = (").Append(propertyTypeName).Append(")value!, ");
+                            _ = sb.Append("static (object x, ").Append(propertyTypeName).Append(property.Type.IsValueType ? null : '?').Append(" value) => ").Append(typeName).Append(".@").Append(property.Name).Append(" = value!, ");
+                            _ = sb.Append("static (object x, object? value) => ").Append(typeName).Append(".@").Append(property.Name).Append(" = (").Append(propertyTypeName).Append(")value!, ");
                         }
                         else
                         {
-                            _ = sb.Append("static (object x, ").Append(propertyTypeName).Append(property.Type.IsValueType ? null : '?').Append(" value) => ((").Append(typeName).Append(")x).").Append(property.Name).Append(" = value!, ");
-                            _ = sb.Append("static (object x, object? value) => ((").Append(typeName).Append(")x).").Append(property.Name).Append(" = (").Append(propertyTypeName).Append(")value!, ");
+                            _ = sb.Append("static (object x, ").Append(propertyTypeName).Append(property.Type.IsValueType ? null : '?').Append(" value) => ").Append(setterInstance).Append(".@").Append(property.Name).Append(" = value!, ");
+                            _ = sb.Append("static (object x, object? value) => ").Append(setterInstance).Append(".@").Append(property.Name).Append(" = (").Append(propertyTypeName).Append(")value!, ");
                         }
                     }
                     else
@@ -230,26 +242,26 @@ namespace Zerra.SourceGeneration
 
                     if (@field.IsStatic)
                     {
-                        _ = sb.Append("static (object x) => ").Append(typeName).Append(".").Append(@field.Name).Append(", ");
-                        _ = sb.Append("static (object x) => ").Append(typeName).Append(".").Append(@field.Name).Append(", ");
+                        _ = sb.Append("static (object x) => ").Append(typeName).Append(".@").Append(@field.Name).Append(", ");
+                        _ = sb.Append("static (object x) => ").Append(typeName).Append(".@").Append(@field.Name).Append(", ");
                     }
                     else
                     {
-                        _ = sb.Append("static (object x) => ((").Append(typeName).Append(")x).").Append(@field.Name).Append(", ");
-                        _ = sb.Append("static (object x) => ((").Append(typeName).Append(")x).").Append(@field.Name).Append(", ");
+                        _ = sb.Append("static (object x) => ((").Append(typeName).Append(")x).@").Append(@field.Name).Append(", ");
+                        _ = sb.Append("static (object x) => ((").Append(typeName).Append(")x).@").Append(@field.Name).Append(", ");
                     }
 
                     if (!field.IsReadOnly && !field.IsConst)
                     {
                         if (@field.IsStatic)
                         {
-                            _ = sb.Append("static (object x, ").Append(fieldTypeName).Append(@field.Type.IsValueType ? null : '?').Append(" value) => ").Append(typeName).Append(".").Append(@field.Name).Append(" = value!, ");
-                            _ = sb.Append("static (object x, object? value) => ").Append(typeName).Append(".").Append(@field.Name).Append(" = (").Append(fieldTypeName).Append(")value!, ");
+                            _ = sb.Append("static (object x, ").Append(fieldTypeName).Append(@field.Type.IsValueType ? null : '?').Append(" value) => ").Append(typeName).Append(".@").Append(@field.Name).Append(" = value!, ");
+                            _ = sb.Append("static (object x, object? value) => ").Append(typeName).Append(".@").Append(@field.Name).Append(" = (").Append(fieldTypeName).Append(")value!, ");
                         }
                         else
                         {
-                            _ = sb.Append("static (object x, ").Append(fieldTypeName).Append(@field.Type.IsValueType ? null : '?').Append(" value) => ((").Append(typeName).Append(")x).").Append(@field.Name).Append(" = value!, ");
-                            _ = sb.Append("static (object x, object? value) => ((").Append(typeName).Append(")x).").Append(@field.Name).Append(" = (").Append(fieldTypeName).Append(")value!, ");
+                            _ = sb.Append("static (object x, ").Append(fieldTypeName).Append(@field.Type.IsValueType ? null : '?').Append(" value) => ").Append(setterInstance).Append(".@").Append(@field.Name).Append(" = value!, ");
+                            _ = sb.Append("static (object x, object? value) => ").Append(setterInstance).Append(".@").Append(@field.Name).Append(" = (").Append(fieldTypeName).Append(")value!, ");
                         }
                     }
                     else
@@ -329,7 +341,7 @@ namespace Zerra.SourceGeneration
                             else
                                 hasFirstRequired = true;
                             var memberTypeName = Helper.GetFullName(member.Type);
-                            _ = sb.Append(member.Name).Append(" = (").Append(memberTypeName).Append(")(args![").Append(argCount++).Append("] ?? default(").Append(memberTypeName).Append(")!)");
+                            _ = sb.Append('@').Append(member.Name).Append(" = (").Append(memberTypeName).Append(")(args![").Append(argCount++).Append("] ?? default(").Append(memberTypeName).Append(")!)");
                         }
                         _ = sb.Append(" }");
                     }
@@ -363,7 +375,7 @@ namespace Zerra.SourceGeneration
                             else
                                 hasFirstRequired = true;
                             var memberTypeName = Helper.GetFullName(member.Type);
-                            _ = sb.Append(member.Name).Append(" = (").Append(memberTypeName).Append(")(args![").Append(argCount++).Append("] ?? default(").Append(memberTypeName).Append(")!)");
+                            _ = sb.Append('@').Append(member.Name).Append(" = (").Append(memberTypeName).Append(")(args![").Append(argCount++).Append("] ?? default(").Append(memberTypeName).Append(")!)");
                         }
                         _ = sb.Append(" }");
                     }
@@ -414,7 +426,7 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ");
                     _ = sb.Append("\"").Append(methodName).Append("\", ");
 
-                    _ = sb.Append("new Type[] { ");
+                    _ = sb.Append("new global::System.Type[] { ");
                     for (var i = 0; i < method.TypeParameters.Length; i++)
                     {
                         if (i > 0)
@@ -431,7 +443,7 @@ namespace Zerra.SourceGeneration
                         _ = sb.Append("static (object? x, object?[]? args) => ");
                         if (isVoid)
                             _ = sb.Append("{ ");
-                        _ = sb.Append(typeName).Append(".").Append(method.Name).Append("(");
+                        _ = sb.Append(typeName).Append(".@").Append(method.Name).Append("(");
                         foreach (var parameter in method.Parameters)
                         {
                             var parameterTypeName = Helper.GetFullName(parameter.Type);
@@ -447,7 +459,7 @@ namespace Zerra.SourceGeneration
                         _ = sb.Append("static (object? x, object?[]? args) => ");
                         if (isVoid)
                             _ = sb.Append("{ ");
-                        _ = sb.Append(typeName).Append(".").Append(method.Name).Append("(");
+                        _ = sb.Append(typeName).Append(".@").Append(method.Name).Append("(");
                         foreach (var parameter in method.Parameters)
                         {
                             var parameterTypeName = Helper.GetFullName(parameter.Type);
@@ -465,7 +477,7 @@ namespace Zerra.SourceGeneration
                         _ = sb.Append("static (object? x, object?[]? args) => ");
                         if (isVoid)
                             _ = sb.Append("{ ");
-                        _ = sb.Append("((").Append(typeName).Append(")x!)").Append(".").Append(method.Name).Append("(");
+                        _ = sb.Append("((").Append(typeName).Append(")x!)").Append(".@").Append(method.Name).Append("(");
                         foreach (var parameter in method.Parameters)
                         {
                             var parameterTypeName = Helper.GetFullName(parameter.Type);
@@ -488,7 +500,7 @@ namespace Zerra.SourceGeneration
                         _ = sb.Append("static (object? x, object?[]? args) => ");
                         if (isVoid)
                             _ = sb.Append("{ ");
-                        _ = sb.Append("((").Append(typeName).Append(")x!)").Append(".").Append(method.Name).Append("(");
+                        _ = sb.Append("((").Append(typeName).Append(")x!)").Append(".@").Append(method.Name).Append("(");
                         foreach (var parameter in method.Parameters)
                         {
                             var parameterTypeName = Helper.GetFullName(parameter.Type);
