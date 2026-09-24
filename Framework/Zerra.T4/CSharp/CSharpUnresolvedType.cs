@@ -45,6 +45,11 @@ namespace Zerra.T4.CSharp
         }
         private CSharpType Resolve(string typeName)
         {
+            //generic arguments after the first come with the space following the comma
+            typeName = typeName.Trim();
+            if (typeName.StartsWith("global::", StringComparison.Ordinal))
+                typeName = typeName.Substring("global::".Length);
+
             var chars = typeName.ToCharArray();
             var index = 0;
             var buffer = new List<char>();
@@ -149,15 +154,19 @@ namespace Zerra.T4.CSharp
             CSharpObject? solutionType = null;
             if (nativeType is null)
             {
+                //a qualified name says its namespace, otherwise the type's namespace has to be in scope
+                var lastDot = genericName.LastIndexOf('.');
+                var itemName = lastDot > 0 ? genericName.Substring(lastDot + 1) : genericName;
+                var itemNamespace = lastDot > 0 ? genericName.Substring(0, lastDot) : null;
                 foreach (var item in solution.Classes.Concat(solution.Structs).Concat(solution.Interfaces).Concat(solution.Enums).Concat(solution.Delegates))
                 {
-                    if (ns?.ToString() == item.Namespace?.ToString() || usings.Any(x => x.ToString() == item.Namespace?.ToString()))
+                    if (item.Name != itemName)
+                        continue;
+                    var itemNs = item.Namespace?.ToString();
+                    if (itemNamespace is not null ? itemNs == itemNamespace : ns?.ToString() == itemNs || usings.Any(x => x.ToString() == itemNs))
                     {
-                        if (item.Name == genericName)
-                        {
-                            solutionType = item;
-                            break;
-                        }
+                        solutionType = item;
+                        break;
                     }
                 }
             }

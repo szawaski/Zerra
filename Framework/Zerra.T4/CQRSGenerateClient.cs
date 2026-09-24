@@ -343,7 +343,8 @@ namespace Zerra.T4
             }
             else
             {
-                var modelReference = references.FirstOrDefault(x => x.Name == csharpType.Name);
+                //the resolved type when there is one, a qualified name won't match a model's name
+                var modelReference = csharpType.SolutionType ?? references.FirstOrDefault(x => x.Name == csharpType.Name);
                 if (modelReference is not null)
                 {
                     if (modelReference.ObjectType == CSharpObjectType.Enum)

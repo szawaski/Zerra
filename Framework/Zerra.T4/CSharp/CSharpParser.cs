@@ -240,7 +240,12 @@ namespace Zerra.T4.CSharp
             if (!solution.Namespaces.Any(x => x.ToString() == csNamespace.ToString()))
                 solution.Namespaces.Add(csNamespace);
             context.Namespaces.Push(csNamespace);
-            ExpectToken(context, chars, ref index, '{');
+            SkipWhiteSpace(context, chars, ref index);
+            //a file scoped namespace applies to the rest of the file
+            if (index < chars.Length && chars[index] == ';')
+                index++;
+            else
+                ExpectToken(context, chars, ref index, '{');
             ParseNamespaceBody(solution, context, chars, ref index);
             _ = context.Namespaces.Pop();
         }
@@ -309,6 +314,9 @@ namespace Zerra.T4.CSharp
                     {
                         break;
                     }
+                    //interface members are public unless they say otherwise
+                    if (objectType == CSharpObjectType.Interface && (keyword == "{" || keyword == "(" || keyword == "=") && !currentKeywords.Contains("public") && !currentKeywords.Contains("private") && !currentKeywords.Contains("protected") && !currentKeywords.Contains("internal"))
+                        currentKeywords.Add("public");
                     switch (keyword)
                     {
                         case "class":
@@ -350,6 +358,20 @@ namespace Zerra.T4.CSharp
                         case "=":
                             if (statementType == null || statementName == null)
                                 throw new Exception("Invalid field declaration");
+
+                            if (keyword == "=" && index < chars.Length && chars[index] == '>')
+                            {
+                                //expression bodied property, only has a get
+                                SkipToToken(context, chars, ref index, ';');
+                                index++;
+                                var csExpressionProperty = new CSharpProperty(statementName, new CSharpUnresolvedType(solution, context.CurrentNamespace, context.Usings, statementType), currentKeywords.Contains("public"), currentKeywords.Contains("static"), currentKeywords.Contains("virtual"), currentKeywords.Contains("abstract"), true, false, true, false, AttributesFromKeywords(context, currentKeywords));
+                                properties.Add(csExpressionProperty);
+
+                                currentKeywords.Clear();
+                                statementType = null;
+                                statementName = null;
+                                break;
+                            }
 
                             var csField = ParseField(solution, context, chars, ref index, statementType, statementName, currentKeywords);
                             fields.Add(csField);
@@ -455,7 +477,8 @@ namespace Zerra.T4.CSharp
 
             ExpectToken(context, chars, ref index, '{');
 
-            long largestValue = 0;
+            //a value without an initializer is one more than the value before it, starting at zero
+            long nextValue = 0;
             var enumValues = new List<CSharpEnumValue>();
             while (index < chars.Length)
             {
@@ -497,15 +520,10 @@ namespace Zerra.T4.CSharp
                     if (!Int64.TryParse(valueKeyword, out var parsedValue))
                         throw new Exception($"Invalid keyword {valueKeyword} at {index} in {context.FileName}");
                     value = parsedValue;
-                    if (value.Value > largestValue)
-                        largestValue = value.Value;
                 }
 
-                if (!value.HasValue)
-                {
-                    largestValue++;
-                    value = largestValue;
-                }
+                value ??= nextValue;
+                nextValue = value.Value + 1;
 
                 if (valueName == null)
                     throw new Exception("Enum value name cannot be null");
@@ -662,15 +680,29 @@ namespace Zerra.T4.CSharp
                         var pDefaultValue = (string?)null;
                         if (parameterKeyword == "=")
                         {
+                            var start = index;
                             var methodLevel = 0;
+                            var quote = '\0';
                             for (; index < chars.Length; index++)
                             {
                                 var c = chars[index];
-                                if (c == '(')
+                                if (quote != '\0')
+                                {
+                                    //a comma or parenthesis in a string or char literal isn't the end of the value
+                                    if (c == '\\')
+                                        index++;
+                                    else if (c == quote)
+                                        quote = '\0';
+                                }
+                                else if (c == '"' || c == '\'')
+                                {
+                                    quote = c;
+                                }
+                                else if (c == '(')
                                 {
                                     methodLevel++;
                                 }
-                                else if (c == ')')
+                                else if (c == ')' || c == ']')
                                 {
                                     if (methodLevel == 0)
                                         break;
@@ -681,6 +713,7 @@ namespace Zerra.T4.CSharp
                                     break;
                                 }
                             }
+                            pDefaultValue = new string(chars, start, index - start).Trim();
                         }
                         parameterKeywords.Clear();
                         var unresolvedType = new CSharpUnresolvedType(solution, context.CurrentNamespace, context.Usings, pType);
@@ -728,7 +761,7 @@ namespace Zerra.T4.CSharp
                 var keyword = ReadKeywordOrToken(context, chars, ref index);
                 if (keyword != "where")
                     throw new Exception($"Unexpected keyword {keyword} at {index} in {context.FileName}");
-                SkipToToken(context, chars, ref index, '{', ';');
+                SkipToToken(context, chars, ref index, '{', ';', '=');
                 c = chars[index];
             }
             if (c == '{')
@@ -743,7 +776,9 @@ namespace Zerra.T4.CSharp
             }
             else if (c == '=')
             {
+                //expression bodied
                 index++;
+                isImplemented = true;
                 SkipToToken(context, chars, ref index, ';');
                 index++;
             }
@@ -1096,8 +1131,7 @@ namespace Zerra.T4.CSharp
                             }
                             else if (quote == 1)
                             {
-                                if (chars[index - 1] != '\\')
-                                    quote = 0;
+                                quote = 0;
                             }
                             else if (quote == 2)
                             {
@@ -1123,10 +1157,16 @@ namespace Zerra.T4.CSharp
                             }
                             else if (quote == 3)
                             {
-                                if (chars[index - 1] != '\'' || chars[index - 2] != '\\')
-                                    quote = 0;
+                                quote = 0;
                             }
                         }
+                        break;
+                    case '\\':
+                        if (comment == 1)
+                            comment = 0;
+                        //the escaped character can't end the literal
+                        if (comment < 2 && (quote == 1 || quote == 3))
+                            index++;
                         break;
                     default:
                         if (comment == 1)
@@ -1211,8 +1251,7 @@ namespace Zerra.T4.CSharp
                             }
                             else if (quote == 1)
                             {
-                                if (chars[index - 1] != '\\')
-                                    quote = 0;
+                                quote = 0;
                             }
                             else if (quote == 2)
                             {
@@ -1238,10 +1277,16 @@ namespace Zerra.T4.CSharp
                             }
                             else if (quote == 3)
                             {
-                                if (chars[index - 1] != '\'' || chars[index - 2] != '\\')
-                                    quote = 0;
+                                quote = 0;
                             }
                         }
+                        break;
+                    case '\\':
+                        if (comment == 1)
+                            comment = 0;
+                        //the escaped character can't end the literal
+                        if (comment < 2 && (quote == 1 || quote == 3))
+                            index++;
                         break;
                     case '{':
                         if (comment == 1)
@@ -1343,8 +1388,7 @@ namespace Zerra.T4.CSharp
                             }
                             else if (quote == 1)
                             {
-                                if (chars[index - 1] != '\\')
-                                    quote = 0;
+                                quote = 0;
                             }
                             else if (quote == 2)
                             {
@@ -1370,10 +1414,16 @@ namespace Zerra.T4.CSharp
                             }
                             else if (quote == 3)
                             {
-                                if (chars[index - 1] != '\'' || chars[index - 2] != '\\')
-                                    quote = 0;
+                                quote = 0;
                             }
                         }
+                        break;
+                    case '\\':
+                        if (comment == 1)
+                            comment = 0;
+                        //the escaped character can't end the literal
+                        if (comment < 2 && (quote == 1 || quote == 3))
+                            index++;
                         break;
                     case '(':
                         if (comment == 1)

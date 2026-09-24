@@ -40,7 +40,8 @@ namespace Zerra.T4.CSharp
                 this.Name = $"{root.Name}.{name}";
             else
                 this.Name = name;
-            this.Names = name.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
+            //from the full name so a namespace declared inside another includes the outer one
+            this.Names = this.Name.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
         }
 
         /// <inheritdoc/>
