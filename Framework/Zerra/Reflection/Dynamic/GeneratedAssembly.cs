@@ -8,10 +8,16 @@ using System.Reflection.Emit;
 
 namespace Zerra.Reflection.Dynamic
 {
+#if !NETSTANDARD2_0
     [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
     internal static class GeneratedAssembly
     {
+#if NETSTANDARD2_0
+        private static readonly object moduleBuilderLock = new();
+#else
         private static readonly Lock moduleBuilderLock = new();
+#endif
         private static ModuleBuilder? moduleBuilderCache = null;
         public static ModuleBuilder GetModuleBuilder()
         {

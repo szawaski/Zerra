@@ -133,7 +133,11 @@ namespace Zerra.Web
                 return;
             }
 
+#if NETSTANDARD2_0
+            var accepts = (string?)context.Request.Headers["Accept"];
+#else
             var accepts = (string?)context.Request.Headers.Accept;
+#endif
             ContentType? acceptContentType;
             if (accepts is not null)
             {
@@ -213,16 +217,28 @@ namespace Zerra.Web
                     };
 
                     context.Response.ContentLength = response.Bytes.Length;
+#if NETSTANDARD2_0
+                    await context.Response.Body.WriteAsync(response.Bytes, 0, response.Bytes.Length, context.RequestAborted);
+#else
                     await context.Response.Body.WriteAsync(response.Bytes.AsMemory(0, response.Bytes.Length), context.RequestAborted);
+#endif
                 }
                 else if (response.Stream is not null)
                 {
                     //the stream may hold a pooled connection to another service, it's only released on dispose
+#if NETSTANDARD2_0
+                    using (response.Stream)
+#else
                     await using (response.Stream)
+#endif
                     {
                         context.Response.ContentType = "application/octet-stream";
 
+#if NETSTANDARD2_0
+                        await response.Stream.CopyToAsync(context.Response.Body, 81920, context.RequestAborted);
+#else
                         await response.Stream.CopyToAsync(context.Response.Body, context.RequestAborted);
+#endif
                         await context.Response.Body.FlushAsync(context.RequestAborted);
                     }
                 }

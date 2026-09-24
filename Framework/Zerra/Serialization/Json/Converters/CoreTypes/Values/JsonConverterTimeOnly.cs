@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
 
 using System.Buffers.Text;
 using Zerra.Serialization.Json.IO;

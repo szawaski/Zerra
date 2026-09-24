@@ -205,7 +205,11 @@ namespace Zerra.CQRS.Network
                                 }
                                 else if (key.Equals(ContentLengthHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
                                 {
+#if NETSTANDARD2_0
+                                    if (!headerInfo.ContentLength.HasValue && Int32.TryParse(valueString ?? value.ToString(), out var contentLength))
+#else
                                     if (!headerInfo.ContentLength.HasValue && Int32.TryParse(value, out var contentLength))
+#endif
                                         headerInfo.ContentLength = contentLength;
                                 }
                                 else if (key.Equals(TransferEncodingHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
@@ -288,13 +292,13 @@ namespace Zerra.CQRS.Network
             var chars = ArrayPoolHelper<char>.Rent(encoding.GetMaxCharCount(position));
             try
             {
-                var charsLength = encoding.GetChars(buffer.Span[..position], chars.AsSpan());
+                var charsLength = encoding.GetChars(buffer.Span.Slice(0, position), chars.AsSpan());
 #endif
                 var headerInfo = new HttpRequestHeader();
-                if (!ParseHeaders(chars.AsSpan()[..charsLength], headerInfo, parseAllHeaders))
+                if (!ParseHeaders(chars.AsSpan().Slice(0, charsLength), headerInfo, parseAllHeaders))
                     throw new Exception("Invalid Header");
 
-                headerInfo.BodyStartBuffer = buffer[position..];
+                headerInfo.BodyStartBuffer = buffer.Slice(position);
 
                 return headerInfo;
 #if !NETSTANDARD2_0
@@ -375,7 +379,11 @@ namespace Zerra.CQRS.Network
             else if (!String.IsNullOrWhiteSpace(origin))
             {
                 headerBuffer.Write(corsAllowOriginHeadersBytes);
+#if NETSTANDARD2_0
+                headerBuffer.Write(encoding.GetBytes(origin));
+#else
                 headerBuffer.Advance(encoding.GetBytes(origin, headerBuffer.Remaining));
+#endif
                 headerBuffer.Write(newLineBytes);
                 headerBuffer.Write(varyOriginHeaderBytes);
                 headerBuffer.Write(newLineBytes);
@@ -402,14 +410,22 @@ namespace Zerra.CQRS.Network
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
 
             headerBuffer.Write(postRequestBytes);
+#if NETSTANDARD2_0
+            headerBuffer.Write(encoding.GetBytes(serviceUrl.PathAndQuery)); //the escaped path, the host goes in the Host header
+#else
             headerBuffer.Advance(encoding.GetBytes(serviceUrl.PathAndQuery, headerBuffer.Remaining)); //the escaped path, the host goes in the Host header
+#endif
             headerBuffer.Write(requestEndingBytes);
             headerBuffer.Write(newLineBytes);
 
             if (!String.IsNullOrWhiteSpace(providerType))
             {
                 headerBuffer.Write(providerTypeHeaderBytes);
+#if NETSTANDARD2_0
+                headerBuffer.Write(encoding.GetBytes(providerType));
+#else
                 headerBuffer.Advance(encoding.GetBytes(providerType, headerBuffer.Remaining));
+#endif
                 headerBuffer.Write(newLineBytes);
             }
 
@@ -440,9 +456,17 @@ namespace Zerra.CQRS.Network
                     {
                         if (authHeaderValue is null)
                             continue;
+#if NETSTANDARD2_0
+                        headerBuffer.Write(encoding.GetBytes(authHeader.Key));
+#else
                         headerBuffer.Advance(encoding.GetBytes(authHeader.Key, headerBuffer.Remaining));
+#endif
                         headerBuffer.Write(headerSplitBytes);
+#if NETSTANDARD2_0
+                        headerBuffer.Write(encoding.GetBytes(authHeaderValue));
+#else
                         headerBuffer.Advance(encoding.GetBytes(authHeaderValue, headerBuffer.Remaining));
+#endif
                         headerBuffer.Write(newLineBytes);
                     }
                 }
@@ -454,11 +478,19 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(newLineBytes);
 
             headerBuffer.Write(hostHeadersBytes);
+#if NETSTANDARD2_0
+            headerBuffer.Write(encoding.GetBytes(serviceUrl.Authority));
+#else
             headerBuffer.Advance(encoding.GetBytes(serviceUrl.Authority, headerBuffer.Remaining));
+#endif
             headerBuffer.Write(newLineBytes);
 
             headerBuffer.Write(corsOriginHeadersBytes);
+#if NETSTANDARD2_0
+            headerBuffer.Write(encoding.GetBytes(serviceUrl.Host));
+#else
             headerBuffer.Advance(encoding.GetBytes(serviceUrl.Host, headerBuffer.Remaining));
+#endif
             headerBuffer.Write(newLineBytes);
 
             headerBuffer.Write(newLineBytes);
@@ -476,7 +508,11 @@ namespace Zerra.CQRS.Network
             if (!String.IsNullOrWhiteSpace(origin))
             {
                 headerBuffer.Write(corsAllowOriginHeadersBytes);
+#if NETSTANDARD2_0
+                headerBuffer.Write(encoding.GetBytes(origin));
+#else
                 headerBuffer.Advance(encoding.GetBytes(origin, headerBuffer.Remaining));
+#endif
                 headerBuffer.Write(newLineBytes);
                 headerBuffer.Write(varyOriginHeaderBytes);
                 headerBuffer.Write(newLineBytes);
@@ -537,7 +573,11 @@ namespace Zerra.CQRS.Network
             if (!String.IsNullOrWhiteSpace(providerType))
             {
                 headerBuffer.Write(providerTypeHeaderBytes);
+#if NETSTANDARD2_0
+                headerBuffer.Write(encoding.GetBytes(providerType));
+#else
                 headerBuffer.Advance(encoding.GetBytes(providerType, headerBuffer.Remaining));
+#endif
                 headerBuffer.Write(newLineBytes);
             }
 
@@ -568,9 +608,17 @@ namespace Zerra.CQRS.Network
                     {
                         if (authHeaderValue is null)
                             continue;
+#if NETSTANDARD2_0
+                        headerBuffer.Write(encoding.GetBytes(authHeader.Key));
+#else
                         headerBuffer.Advance(encoding.GetBytes(authHeader.Key, headerBuffer.Remaining));
+#endif
                         headerBuffer.Write(headerSplitBytes);
+#if NETSTANDARD2_0
+                        headerBuffer.Write(encoding.GetBytes(authHeaderValue));
+#else
                         headerBuffer.Advance(encoding.GetBytes(authHeaderValue, headerBuffer.Remaining));
+#endif
                         headerBuffer.Write(newLineBytes);
                     }
                 }
@@ -584,7 +632,11 @@ namespace Zerra.CQRS.Network
             else
             {
                 headerBuffer.Write(corsAllowOriginHeadersBytes);
+#if NETSTANDARD2_0
+                headerBuffer.Write(encoding.GetBytes(origion));
+#else
                 headerBuffer.Advance(encoding.GetBytes(origion, headerBuffer.Remaining));
+#endif
                 headerBuffer.Write(newLineBytes);
                 headerBuffer.Write(varyOriginHeaderBytes);
                 headerBuffer.Write(newLineBytes);

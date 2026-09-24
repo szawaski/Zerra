@@ -20,8 +20,10 @@ namespace Zerra.Reflection
 
         private static Type GenerateEmptyImplementation(Type interfaceType)
         {
+#if !NETSTANDARD2_0
             if (!RuntimeFeature.IsDynamicCodeSupported)
                 throw new NotSupportedException($"Cannot generate empty implementation for {interfaceType.Name}. Dynamic code generation is not supported in this build configuration.");
+#endif
 
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
             return EmptyImplementationGenerator.GenerateEmptyImplementation(interfaceType);

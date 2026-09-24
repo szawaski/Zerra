@@ -284,29 +284,51 @@ namespace Zerra.Web
                                 {
                                     responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
+#if NETSTANDARD2_0
+                                    while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, context.RequestAborted)) > 0)
+                                        await responseBodyCryptoStream.WriteAsync(bufferOwner, 0, bytesRead, context.RequestAborted);
+#else
                                     while ((bytesRead = await result.Stream.ReadAsync(buffer)) > 0)
                                         await responseBodyCryptoStream.WriteAsync(buffer.Slice(0, bytesRead), context.RequestAborted);
+#endif
+#if NETSTANDARD2_0
+                                    responseBodyCryptoStream.FlushFinalBlock();
+#else
                                     await responseBodyCryptoStream.FlushFinalBlockAsync(context.RequestAborted);
+#endif
                                 }
                                 finally
                                 {
                                     if (responseBodyCryptoStream is not null)
                                     {
+#if NETSTANDARD2_0
+                                        responseBodyCryptoStream.Dispose();
+#else
                                         await responseBodyCryptoStream.DisposeAsync();
+#endif
                                     }
                                 }
                             }
                             else
                             {
+#if NETSTANDARD2_0
+                                while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, context.RequestAborted)) > 0)
+                                    await responseBodyStream.WriteAsync(bufferOwner, 0, bytesRead, context.RequestAborted);
+#else
                                 while ((bytesRead = await result.Stream.ReadAsync(buffer)) > 0)
                                     await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead), context.RequestAborted);
+#endif
                                 await responseBodyStream.FlushAsync(context.RequestAborted);
                             }
                         }
                         finally
                         {
                             ArrayPoolHelper<byte>.Return(bufferOwner);
+#if NETSTANDARD2_0
+                            result.Stream.Dispose(); //the handler's stream is done once sent
+#else
                             await result.Stream.DisposeAsync(); //the handler's stream is done once sent
+#endif
                         }
                         await context.Response.Body.FlushAsync(context.RequestAborted);
 
@@ -322,14 +344,22 @@ namespace Zerra.Web
                                 responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
                                 await serializer.SerializeAsync(responseBodyCryptoStream, result.Model, context.RequestAborted);
+#if NETSTANDARD2_0
+                                responseBodyCryptoStream.FlushFinalBlock();
+#else
                                 await responseBodyCryptoStream.FlushFinalBlockAsync(context.RequestAborted);
+#endif
                                 return;
                             }
                             finally
                             {
                                 if (responseBodyCryptoStream is not null)
                                 {
+#if NETSTANDARD2_0
+                                    responseBodyCryptoStream.Dispose();
+#else
                                     await responseBodyCryptoStream.DisposeAsync();
+#endif
                                 }
                             }
                         }
@@ -435,8 +465,16 @@ namespace Zerra.Web
                         {
                             var responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
                             await serializer.SerializeAsync(responseBodyCryptoStream, result, context.RequestAborted);
+#if NETSTANDARD2_0
+                            responseBodyCryptoStream.FlushFinalBlock();
+#else
                             await responseBodyCryptoStream.FlushFinalBlockAsync(context.RequestAborted);
+#endif
+#if NETSTANDARD2_0
+                            responseBodyCryptoStream.Dispose();
+#else
                             await responseBodyCryptoStream.DisposeAsync();
+#endif
                         }
                         else
                         {
@@ -487,8 +525,16 @@ namespace Zerra.Web
                 {
                     var responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
                     await ExceptionSerializer.SerializeAsync(serializer, responseBodyCryptoStream, ex, context.RequestAborted);
+#if NETSTANDARD2_0
+                    responseBodyCryptoStream.FlushFinalBlock();
+#else
                     await responseBodyCryptoStream.FlushFinalBlockAsync();
+#endif
+#if NETSTANDARD2_0
+                    responseBodyCryptoStream.Dispose();
+#else
                     await responseBodyCryptoStream.DisposeAsync();
+#endif
                 }
                 else
                 {

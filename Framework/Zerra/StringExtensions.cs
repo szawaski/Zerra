@@ -814,7 +814,7 @@ public static class StringExtensions
             return null;
     }
 
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
     /// <summary>
     /// Converts the string to a DateOnly value, returning a default value if the string is null or empty.
     /// </summary>
@@ -921,7 +921,7 @@ public static class StringExtensions
             return null;
     }
 
-#if !NET5_0_OR_GREATER
+#if NETSTANDARD2_0
     /// <summary>
     /// Splits the string using the specified separator string.
     /// </summary>

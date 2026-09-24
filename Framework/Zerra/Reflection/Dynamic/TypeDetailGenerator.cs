@@ -23,7 +23,7 @@ namespace Zerra.Reflection.Dynamic
         private static readonly string ListGenericTypeName = typeof(List<>).Name;
         private static readonly string iReadOnlyListTypeName = typeof(IReadOnlyList<>).Name;
         private static readonly string iSetGenericTypeName = typeof(ISet<>).Name;
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
         private static readonly string iReadOnlySetGenericTypeName = typeof(IReadOnlySet<>).Name;
 #else
         private static readonly string iReadOnlySetGenericTypeName = "IReadOnlySet`1";
@@ -45,8 +45,10 @@ namespace Zerra.Reflection.Dynamic
         private static readonly MethodInfo generateConstructorMethod = typeof(TypeDetailGenerator).GetMethod(nameof(GenerateConstructorsGeneric), BindingFlags.Public | BindingFlags.Static)!;
 #pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
 
+#if !NETSTANDARD2_0
         [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
         [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
         public static TypeDetail GenerateTypeDetail(Type type)
         {
             if (type.ContainsGenericParameters || type.IsByRefLike)
@@ -60,8 +62,10 @@ namespace Zerra.Reflection.Dynamic
             }
         }
 
+#if !NETSTANDARD2_0
         [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
         [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
         private static TypeDetail GenerateIncomplete(Type type)
         {
             var constructors = new List<ConstructorDetail>(0);
@@ -248,8 +252,10 @@ namespace Zerra.Reflection.Dynamic
             return typeDetail;
         }
 
+#if !NETSTANDARD2_0
         [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
         [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
         private static TypeDetail<T> Generate<T>(Type type)
         {
             //var constructors = GenerateConstructors<T>(type);
@@ -455,8 +461,10 @@ namespace Zerra.Reflection.Dynamic
             return typeDetail;
         }
 
+#if !NETSTANDARD2_0
         [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
         [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
         public static List<MemberDetail> GenerateMembers(Type type, IReadOnlyCollection<Type> interfaces)
         {
             var items = new List<MemberDetail>();
@@ -655,15 +663,19 @@ namespace Zerra.Reflection.Dynamic
             return items;
         }
 
+#if !NETSTANDARD2_0
         [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
         [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
         public static List<ConstructorDetail> GenerateConstructors(Type type)
         {
             return (List<ConstructorDetail>)generateConstructorMethod.MakeGenericMethod(type).Invoke(null, [type])!;
         }
 
+#if !NETSTANDARD2_0
         [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
         [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
         public static List<ConstructorDetail> GenerateConstructorsGeneric<T>(Type type)
         {
             var items = new List<ConstructorDetail>();
@@ -696,8 +708,10 @@ namespace Zerra.Reflection.Dynamic
             return items;
         }
 
+#if !NETSTANDARD2_0
         [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
         [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
         public static List<MethodDetail> GenerateMethods(Type type, IReadOnlyCollection<Type> interfaces)
         {
             var items = new List<MethodDetail>();
@@ -822,7 +836,9 @@ namespace Zerra.Reflection.Dynamic
             return items;
         }
 
+#if !NETSTANDARD2_0
         [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+#endif
         public static Type[] GenerateInterfaces(Type type)
         {
             return type.GetInterfaces();

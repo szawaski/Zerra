@@ -17,8 +17,10 @@ namespace Zerra.Serialization
     /// in the <see cref="JsonSerializerOptions"/> using a <see cref="System.Text.Json.Serialization.JsonSerializerContext"/>.
     /// Requires unreferenced code and dynamic code attributes due to reflection-based serialization.
     /// </remarks>
+#if !NETSTANDARD2_0
     [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
     [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
     public sealed class SystemTextJsonSerializer : ISerializer
     {
         private readonly JsonSerializerOptions? options;

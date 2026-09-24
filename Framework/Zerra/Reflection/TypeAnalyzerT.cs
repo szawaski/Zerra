@@ -17,7 +17,11 @@ namespace Zerra.Reflection
     /// <typeparam name="T">The type to provide analysis for.</typeparam>
     public static class TypeAnalyzer<T>
     {
-        private static readonly Lock typeDetailLock = new Lock();
+#if NETSTANDARD2_0
+        private static readonly object typeDetailLock = new();
+#else
+        private static readonly Lock typeDetailLock = new();
+#endif
         private static TypeDetail<T>? typeDetail = null;
         
         /// <summary>

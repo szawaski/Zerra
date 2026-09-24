@@ -8,7 +8,9 @@ using System.Reflection.Emit;
 
 namespace Zerra.Reflection.Dynamic
 {
+#if !NETSTANDARD2_0
     [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
     internal static class AccessorGenerator
     {
         public static Func<object, object?>? GenerateGetter(PropertyInfo propertyInfo)

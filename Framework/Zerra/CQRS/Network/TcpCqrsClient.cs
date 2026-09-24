@@ -77,7 +77,11 @@ namespace Zerra.CQRS.Network
                     //Request Header
                     var requestHeaderLength = TcpCommon.BufferHeader(buffer, data.ProviderType, serializer.ContentType);
 
+#if NETSTANDARD2_0
+                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, CancellationToken.None);
+#else
                     stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, ReadOnlySpan<byte>.Empty, requireNewConnection, CancellationToken.None);
+#endif
 
                     requestBodyStream = new TcpProtocolBodyStream(stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
@@ -107,7 +111,11 @@ namespace Zerra.CQRS.Network
                         if (headerLength == buffer.Length)
                             throw new CqrsNetworkException($"{nameof(TcpCqrsClient)} Header Too Long");
 
+#if NETSTANDARD2_0
+                        var bytesRead = stream.Read(bufferOwner, headerPosition, buffer.Length - headerPosition);
+#else
                         var bytesRead = stream.Read(buffer.Span.Slice(headerPosition, buffer.Length - headerPosition));
+#endif
 
                         if (bytesRead == 0)
                         {
@@ -129,7 +137,7 @@ namespace Zerra.CQRS.Network
 
                         requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
-                    var responseHeader = TcpCommon.ReadHeader(buffer[..headerLength], headerPosition);
+                    var responseHeader = TcpCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
                     if (isStream)
@@ -269,7 +277,7 @@ namespace Zerra.CQRS.Network
                     {
                         requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
                         await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
                         await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                         requestBodyCryptoStream.FlushFinalBlock();
@@ -329,7 +337,7 @@ namespace Zerra.CQRS.Network
 
                         requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
-                    var responseHeader = TcpCommon.ReadHeader(buffer[..headerLength], headerPosition);
+                    var responseHeader = TcpCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
                     if (isStream)
@@ -500,7 +508,7 @@ namespace Zerra.CQRS.Network
                     {
                         requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
                         await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
                         await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                         requestBodyCryptoStream.FlushFinalBlock();
@@ -561,7 +569,7 @@ namespace Zerra.CQRS.Network
 
                         requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
-                    var responseHeader = TcpCommon.ReadHeader(buffer[..headerLength], headerPosition);
+                    var responseHeader = TcpCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
                     responseBodyStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
@@ -714,7 +722,7 @@ namespace Zerra.CQRS.Network
                     {
                         requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
                         await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
                         await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                         requestBodyCryptoStream.FlushFinalBlock();
@@ -775,7 +783,7 @@ namespace Zerra.CQRS.Network
 
                         requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
-                    var responseHeader = TcpCommon.ReadHeader(buffer[..headerLength], headerPosition);
+                    var responseHeader = TcpCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
                     responseBodyStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
@@ -938,7 +946,7 @@ namespace Zerra.CQRS.Network
                     {
                         requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
                         await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
                         await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                         requestBodyCryptoStream.FlushFinalBlock();
@@ -999,7 +1007,7 @@ namespace Zerra.CQRS.Network
 
                         requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                     }
-                    var responseHeader = TcpCommon.ReadHeader(buffer[..headerLength], headerPosition);
+                    var responseHeader = TcpCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
                     responseBodyStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);

@@ -216,7 +216,7 @@ public sealed class EnumName : Attribute
                 if (c != seperator)
                     continue;
 
-                var str = chars[start..i].ToString();
+                var str = chars.Slice(start, i - start).ToString();
                 start = i + 1;
                 if (!enumInfo.ValuesByName.TryGetValue(str, out var valueSplitItem))
                     continue;
@@ -226,7 +226,7 @@ public sealed class EnumName : Attribute
             }
             if (i > start)
             {
-                var str = chars[start..i].ToString();
+                var str = chars.Slice(start, i - start).ToString();
                 if (enumInfo.ValuesByName.TryGetValue(str, out var valueSplitItem))
                 {
                     found = true;
@@ -248,8 +248,10 @@ public sealed class EnumName : Attribute
     private static readonly MethodInfo bitOrMethod = typeof(EnumName).GetMethod(nameof(BitOrGeneric), BindingFlags.NonPublic | BindingFlags.Static)!;
     private static object BitOr(Type type, CoreEnumType underlyingType, object value1, object value2)
     {
+#if !NETSTANDARD2_0
         if (!RuntimeFeature.IsDynamicCodeSupported)
             throw new NotSupportedException($"Cannot parse enums with flag attribute for {type.Name}.  Dynamic code generation is not supported in this build configuration.");
+#endif
 #pragma warning disable IL2060 // Call to 'System.Reflection.MethodInfo.MakeGenericMethod' can not be statically analyzed. It's not possible to guarantee the availability of requirements of the generic method.
         var genericMethod = bitOrMethod.MakeGenericMethod(type);
 #pragma warning restore IL2060 // Call to 'System.Reflection.MethodInfo.MakeGenericMethod' can not be statically analyzed. It's not possible to guarantee the availability of requirements of the generic method.
@@ -257,8 +259,10 @@ public sealed class EnumName : Attribute
     }
     private static object CreateEnum(Type type)
     {
+#if !NETSTANDARD2_0
         if (!RuntimeFeature.IsDynamicCodeSupported)
             throw new NotSupportedException($"Cannot create enum for {type.Name}.  Dynamic code generation is not supported in this build configuration.");
+#endif
 #pragma warning disable IL2067 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.
         return Activator.CreateInstance(type)!;
 #pragma warning restore IL2067 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.
@@ -290,7 +294,9 @@ public sealed class EnumName : Attribute
         return enumInfoCache.GetOrAdd(type, BuildEnumInfo);
     }
 
+#if !NETSTANDARD2_0
     [UnconditionalSuppressMessage("Trimming", "IL2070:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.", Justification = "Enum fields are never trimmed.")]
+#endif
     private static EnumInfo BuildEnumInfo(Type type)
     {
         var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);

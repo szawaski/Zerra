@@ -29,7 +29,11 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync;
             private readonly CancellationTokenSource canceller;
-            private readonly Lock isOpenLock = new Lock();
+#if NETSTANDARD2_0
+            private readonly object isOpenLock = new();
+#else
+            private readonly Lock isOpenLock = new();
+#endif
 
             private IModel? channel = null;
             private SemaphoreSlim? throttle = null;
@@ -109,7 +113,11 @@ namespace Zerra.CQRS.RabbitMQ
                         {
                             RabbitMQMessage? message;
                             if (encryptor is not null)
+#if NETSTANDARD2_0
+                                message = serializer.Deserialize<RabbitMQMessage>(encryptor.Decrypt(e.Body.ToArray()));
+#else
                                 message = serializer.Deserialize<RabbitMQMessage>(encryptor.Decrypt(e.Body.Span));
+#endif
                             else
                                 message = serializer.Deserialize<RabbitMQMessage>(e.Body.Span);
 

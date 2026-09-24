@@ -225,7 +225,7 @@ dotnet build
 **Checklist**:
 - ✅ Zerra package is referenced in the project
 - ✅ Project contains CQRS types (commands, queries, events, or handlers)
-- ✅ Project targets `net10.0` (the Zerra package targets .NET 10)
+- ✅ Project targets `net10.0`, or `netstandard2.0`/.NET Framework (the generator runs for both; native AOT needs `net10.0`)
 - ✅ Clean and rebuild the project
 
 ### AOT Publishing Warnings

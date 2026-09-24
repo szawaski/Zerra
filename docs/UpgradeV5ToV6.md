@@ -12,7 +12,7 @@ Zerra 6 does no scanning. Each service's `Program.cs` builds everything itself: 
 
 | Area | Zerra 5 | Zerra 6 |
 |---|---|---|
-| Target framework | netstandard2.0 through net10.0 | net10.0 only |
+| Target framework | netstandard2.0 through net10.0 | net10.0 and netstandard2.0 for `Zerra`, `Zerra.Web`, `Zerra.CQRS.*`; net10.0 only for `Zerra.Repository.*` |
 | Routing config | `cqrssettings.json` + `CQRSSettings.Get` + `Bus.StartServices(settings, serviceCreator)` | Code in `Program.cs`: `Bus.New(...)`, `AddHandler`, `AddQueryServer`/`AddQueryClient`, `AddCommandConsumer`/`AddCommandProducer`, `AddEventConsumer`/`AddEventProducer` |
 | Handlers | Found by discovery | Created with `new` and registered with `bus.AddHandler<IInterface>(handler)`. Must derive from `BaseHandler` |
 | Bus | Static `Bus` class | `IBusSetup` instance from `Bus.New`. A static `Bus` wrapper remains but should be avoided |
@@ -61,7 +61,7 @@ Search the solution (skip `bin`/`obj`) and write down which of these appear. Eac
 
 ## 2. Projects and Packages
 
-- **Target `net10.0`** in every project that references Zerra. v6 builds only for net10.0.
+- **Target `net10.0`** in services and in every project that references `Zerra.Repository.*`, which builds only for net10.0. Libraries (such as `*.Domain` projects) and .NET Framework apps that reference only `Zerra`, `Zerra.Web`, or `Zerra.CQRS.*` can stay on `netstandard2.0` or .NET Framework 4.7.2+; check the limits in [.NET Standard 2.0](Agents.md#net-standard-20) (sync `ApiClient` and `KestrelCqrsClient` query calls throw there).
 - **Zerra 6 isn't on NuGet yet.** Replace the `Zerra.*` `PackageReference`s with `ProjectReference`s to a local Zerra checkout on `master`. Adjust the relative path:
   ```xml
   <ProjectReference Include="..\..\Zerra\Framework\Zerra\Zerra.csproj" />

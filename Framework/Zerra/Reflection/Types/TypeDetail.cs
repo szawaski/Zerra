@@ -15,7 +15,11 @@ namespace Zerra.Reflection
     public partial class TypeDetail
     {
         /// <summary>Synchronization lock used to ensure thread-safe lazy initialization of members, constructors, and methods.</summary>
+#if NETSTANDARD2_0
+        protected readonly object locker = new();
+#else
         protected readonly Lock locker = new();
+#endif
 
         /// <summary>The type being analyzed.</summary>
         public readonly Type Type;
@@ -28,8 +32,10 @@ namespace Zerra.Reflection
             {
                 if (members == null)
                 {
+#if !NETSTANDARD2_0
                     if (!RuntimeFeature.IsDynamicCodeSupported)
                         throw new NotSupportedException($"Cannot generate methods for {Type.Name}.  Dynamic code generation is not supported in this build configuration.");
+#endif
                     lock (locker)
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
                         members ??= TypeDetailGenerator.GenerateMembers(this.Type, Interfaces);
@@ -47,8 +53,10 @@ namespace Zerra.Reflection
             {
                 if (constructors == null)
                 {
+#if !NETSTANDARD2_0
                     if (!RuntimeFeature.IsDynamicCodeSupported)
                         throw new NotSupportedException($"Cannot generate methods for {Type.Name}.  Dynamic code generation is not supported in this build configuration.");
+#endif
                     lock (locker)
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
                         constructors ??= TypeDetailGenerator.GenerateConstructors(this.Type);
@@ -66,8 +74,10 @@ namespace Zerra.Reflection
             {
                 if (methods == null)
                 {
+#if !NETSTANDARD2_0
                     if (!RuntimeFeature.IsDynamicCodeSupported)
                         throw new NotSupportedException($"Cannot generate methods for {Type.Name}.  Dynamic code generation is not supported in this build configuration.");
+#endif
                     lock (locker)
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
                         methods ??= TypeDetailGenerator.GenerateMethods(this.Type, Interfaces);

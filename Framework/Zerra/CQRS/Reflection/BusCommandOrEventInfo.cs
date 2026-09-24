@@ -41,8 +41,10 @@ namespace Zerra.CQRS.Reflection
 
         private static CommandOrEventInfo GenerateMessageInfo(Type interfaceOrCommandOrEventType, IEnumerable<Type>? typesToSearch)
         {
+#if !NETSTANDARD2_0
             if (!RuntimeFeature.IsDynamicCodeSupported)
                 throw new NotSupportedException($"Cannot generate command or event info for {interfaceOrCommandOrEventType.Name}. Dynamic code generation is not supported in this build configuration.");
+#endif
 
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
             return BusCommandOrEventInfoGenerator.GenerateMessageInfo(interfaceOrCommandOrEventType, typesToSearch);

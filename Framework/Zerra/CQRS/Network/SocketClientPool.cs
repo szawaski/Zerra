@@ -114,7 +114,7 @@ namespace Zerra.CQRS.Network
                     }
                 }
 
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 var ips = await Dns.GetHostAddressesAsync(host, cancellationToken);
 #else
                 var ips = await Dns.GetHostAddressesAsync(host);
@@ -133,7 +133,7 @@ namespace Zerra.CQRS.Network
 
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
                         socket.NoDelay = true;
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
                         await socket.ConnectAsync(endPoint, cancellationToken);
 #else
                         await socket.ConnectAsync(endPoint);
@@ -243,7 +243,7 @@ namespace Zerra.CQRS.Network
                     }
                 }
 
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 var ips = await Dns.GetHostAddressesAsync(host, cancellationToken);
 #else
                 var ips = await Dns.GetHostAddressesAsync(host);
@@ -263,7 +263,7 @@ namespace Zerra.CQRS.Network
                         socket = new Socket(endPoint.AddressFamily, SocketType.Stream, protocol);
                         socket.NoDelay = true;
 
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
                         await socket.ConnectAsync(endPoint, cancellationToken);
 #else
                         await socket.ConnectAsync(endPoint);

@@ -200,8 +200,16 @@ namespace Zerra.Web
                     {
                         var cryptoStream = encryptor.Encrypt(new LeaveOpenStream(postStream), true);
                         await serializer.SerializeAsync(cryptoStream, data, cancellationToken);
+#if NETSTANDARD2_0
+                        cryptoStream.FlushFinalBlock();
+#else
                         await cryptoStream.FlushFinalBlockAsync(cancellationToken);
+#endif
+#if NETSTANDARD2_0
+                        cryptoStream.Dispose();
+#else
                         await cryptoStream.DisposeAsync();
+#endif
                     }
                     else
                     {
@@ -231,7 +239,11 @@ namespace Zerra.Web
                 //headers only so the body streams instead of buffering, the response stays undisposed for a stream result
                 response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
+#if NETSTANDARD2_0
+                responseStream = await response.Content.ReadAsStreamAsync();
+#else
                 responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+#endif
 
                 if (encryptor is not null)
                     responseStream = encryptor.Decrypt(responseStream, false);
@@ -248,7 +260,11 @@ namespace Zerra.Web
 
                 if (!getResponseData)
                 {
+#if NETSTANDARD2_0
+                    responseStream.Dispose();
+#else
                     await responseStream.DisposeAsync();
+#endif
                     response.Dispose();
                     return default!;
                 }
@@ -260,7 +276,11 @@ namespace Zerra.Web
                 else
                 {
                     var result = await serializer.DeserializeAsync<TReturn>(responseStream, cancellationToken);
+#if NETSTANDARD2_0
+                    responseStream.Dispose();
+#else
                     await responseStream.DisposeAsync();
+#endif
                     response.Dispose();
                     return result!;
                 }
@@ -271,7 +291,11 @@ namespace Zerra.Web
                 {
                     try
                     {
+#if NETSTANDARD2_0
+                        responseStream.Dispose();
+#else
                         await responseStream.DisposeAsync();
+#endif
                     }
                     catch { }
                 }
@@ -286,6 +310,10 @@ namespace Zerra.Web
 
         private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, string sourceName, CqrsRequestData data, bool getResponseData)
         {
+#if NETSTANDARD2_0
+            //HttpClient has no synchronous send in netstandard2.0
+            throw new PlatformNotSupportedException($"{nameof(KestrelCqrsClient)} synchronous calls are not supported on this platform, use the async methods.");
+#else
             throttle.Wait();
 
             HttpResponseMessage? response = null;
@@ -382,6 +410,7 @@ namespace Zerra.Web
             {
                 _ = throttle.Release();
             }
+#endif
         }
 
         /// <summary>

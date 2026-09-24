@@ -8,8 +8,10 @@ using System.Reflection.Emit;
 
 namespace Zerra.Reflection.Dynamic
 {
+#if !NETSTANDARD2_0
     [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
     [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
     internal static class EmptyImplementationGenerator
     {
         private static readonly Type taskType = typeof(Task);
@@ -175,7 +177,7 @@ namespace Zerra.Reflection.Dynamic
                     case CoreType.DateTime:
                     case CoreType.DateTimeOffset:
                     case CoreType.TimeSpan:
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                     case CoreType.DateOnly:
                     case CoreType.TimeOnly:
 #endif

@@ -273,7 +273,7 @@ namespace Zerra.Serialization.Json
             return true;
         }
 
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public static bool TryParse(ReadOnlySpan<byte> source, out DateOnly value)
         {
             if (!TryParse(source, out DateTime date))
@@ -540,7 +540,7 @@ namespace Zerra.Serialization.Json
             return true;
         }
 
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public static bool TryParse(ReadOnlySpan<char> source, out DateOnly value)
         {
             if (!TryParse(source, out DateTime date))

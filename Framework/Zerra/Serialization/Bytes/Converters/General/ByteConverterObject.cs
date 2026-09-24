@@ -397,9 +397,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 for (var i = 0; i < args.Length; i++)
                 {
 #if NETSTANDARD2_0
-                    if (collectedValues!.TryGetValue(parameterConstructor.ParameterDetails[i].Name!, out var parameter))
+                    if (collectedValues!.TryGetValue(parameterConstructor.Parameters[i].Name!, out var parameter))
                     {
-                        collectedValues.Remove(parameterConstructor.ParameterDetails[i].Name!);
+                        collectedValues.Remove(parameterConstructor.Parameters[i].Name!);
                         args[i] = parameter;
                     }
 #else

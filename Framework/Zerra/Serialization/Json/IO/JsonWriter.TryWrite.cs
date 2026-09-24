@@ -31,7 +31,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 _ = value.TryFormat(bufferBytes.Slice(position), out var written);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
@@ -77,7 +77,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 _ = value.TryFormat(bufferBytes.Slice(position), out var written);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
@@ -123,7 +123,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 _ = value.TryFormat(bufferBytes.Slice(position), out var written);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
@@ -169,7 +169,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 _ = value.TryFormat(bufferBytes.Slice(position), out var written);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
@@ -215,7 +215,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 _ = value.TryFormat(bufferBytes.Slice(position), out var written);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
@@ -261,7 +261,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 _ = value.TryFormat(bufferBytes.Slice(position), out var written);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
@@ -300,7 +300,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 _ = value.TryFormat(bufferBytes.Slice(position), out var written);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
@@ -346,7 +346,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 _ = value.TryFormat(bufferBytes.Slice(position), out var written);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
@@ -392,7 +392,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 _ = value.TryFormat(bufferBytes.Slice(position), out var written);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
@@ -439,7 +439,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 _ = value.TryFormat(bufferBytes.Slice(position), out var written);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
@@ -486,7 +486,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 _ = value.TryFormat(bufferBytes.Slice(position), out var written);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
@@ -1217,7 +1217,7 @@ namespace Zerra.Serialization.Json.IO
             }
         }
 
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         /// <summary>
         /// Attempts to write a DateOnly value in ISO8601 format to the buffer.
         /// </summary>
@@ -1441,7 +1441,7 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 _ = value.TryFormat(bufferBytes.Slice(position), out var written);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);

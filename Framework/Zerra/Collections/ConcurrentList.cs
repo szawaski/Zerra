@@ -12,7 +12,11 @@ namespace Zerra.Collections
     /// <typeparam name="T">The type of elements in the list.</typeparam>
     public class ConcurrentList<T> : ICollection<T>, IEnumerable<T>, IEnumerable, IList<T>, IReadOnlyCollection<T>, IReadOnlyList<T>, ICollection, IList
     {
+#if NETSTANDARD2_0
+        private readonly object locker = new();
+#else
         private readonly Lock locker = new();
+#endif
         private readonly List<T> list = new();
 
         /// <summary>

@@ -118,7 +118,7 @@ namespace Zerra.Encryption
                 cryptoStream.FlushFinalBlock();
         }
 
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ValueTask FlushFinalBlockAsync(CancellationToken cancellationToken = default)
         {
             if (cryptoStream is not null)

@@ -48,7 +48,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     else if (attribute is System.Text.Json.Serialization.JsonIgnoreAttribute jsonIgnore2)
                     {
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
                         switch (jsonIgnore2.Condition)
                         {
                             case System.Text.Json.Serialization.JsonIgnoreCondition.Never:
@@ -390,7 +390,11 @@ namespace Zerra.Serialization.Json.Converters.General
                                 if (reader.ValueBytes.Length == 0)
                                     throw reader.CreateException();
 
+#if NETSTANDARD2_0
+                                var name = System.Text.Encoding.UTF8.GetString(reader.ValueBytes.ToArray());
+#else
                                 var name = System.Text.Encoding.UTF8.GetString(reader.ValueBytes);
+#endif
 
                                 if (!membersByName.TryGetValue(name, out member))
                                     member = null;
@@ -644,9 +648,9 @@ namespace Zerra.Serialization.Json.Converters.General
                 for (var i = 0; i < args.Length; i++)
                 {
 #if NETSTANDARD2_0
-                    if (collectedValues!.TryGetValue(parameterConstructor.ParameterDetails[i].Name!, out var parameter))
+                    if (collectedValues!.TryGetValue(parameterConstructor.Parameters[i].Name!, out var parameter))
                     {
-                        collectedValues.Remove(parameterConstructor.ParameterDetails[i].Name!);
+                        collectedValues.Remove(parameterConstructor.Parameters[i].Name!);
                         args[i] = parameter;
                     }
 #else

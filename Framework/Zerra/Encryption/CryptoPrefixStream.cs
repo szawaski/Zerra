@@ -44,7 +44,7 @@ namespace Zerra.Encryption
                 using (var rng = RandomNumberGenerator.Create())
                 {
 #if NETSTANDARD2_0
-                    rng.GetBytes(keyBufferOwner, 0, keySizeBytes);
+                    rng.GetBytes(prefixBufferOwner, 0, keySizeBytes);
 #else
                     rng.GetBytes(prefixBuffer.Span);
 #endif
@@ -84,7 +84,7 @@ namespace Zerra.Encryption
                 cryptoStream.FlushFinalBlock();
         }
 
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ValueTask FlushFinalBlockAsync(CancellationToken cancellationToken = default)
         {
             if (cryptoStream is not null)
@@ -104,11 +104,7 @@ namespace Zerra.Encryption
 
         protected override int InternalRead(Span<byte> buffer)
         {
-#if NETSTANDARD2_0
-            if (!CanRead || workingBufferOwner is null)
-#else
             if (!CanRead)
-#endif
                 throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
 
             var readTotal = 0;
@@ -134,7 +130,7 @@ namespace Zerra.Encryption
                         int prefixRead;
 
 #if NETSTANDARD2_0
-                        keyRead = stream.Read(keyBufferOwner, keyPosition, keySizeBytes - keyPosition);
+                        prefixRead = stream.Read(prefixBufferOwner!, prefixPosition, keySizeBytes - prefixPosition);
 #else
                         if (prefixPosition == 0)
                             prefixRead = stream.Read(prefixBuffer.Span);
@@ -162,9 +158,7 @@ namespace Zerra.Encryption
                 int read;
 
 #if NETSTANDARD2_0
-                var size = Math.Min(workingBufferOwner.Length - readTotal, buffer.Length - readTotal);
-                read = stream.Read(workingBufferOwner, 0, size);
-                workingBuffer.Span.Slice(0, read).CopyTo(buffer.Slice(readTotal, read));
+                read = stream.ReadToSpan(buffer.Slice(readTotal));
 #else
                 read = stream.Read(buffer[readTotal..]);
 #endif
@@ -183,11 +177,7 @@ namespace Zerra.Encryption
         }
         protected override async ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-#if NETSTANDARD2_0
-            if (!CanRead || workingBufferOwner is null)
-#else
             if (!CanRead)
-#endif
                 throw new InvalidOperationException($"Cannot read in {nameof(CryptoStreamMode)}.{mode}");
 
             var readTotal = 0;
@@ -213,7 +203,7 @@ namespace Zerra.Encryption
                         int prefixRead;
 
 #if NETSTANDARD2_0
-                        keyRead = await stream.ReadAsync(keyBufferOwner, keyPosition, keySizeBytes - keyPosition, cancellationToken);
+                        prefixRead = await stream.ReadAsync(prefixBufferOwner!, prefixPosition, keySizeBytes - prefixPosition, cancellationToken);
 #else
                         if (prefixPosition == 0)
                             prefixRead = await stream.ReadAsync(prefixBuffer, cancellationToken);
@@ -241,9 +231,7 @@ namespace Zerra.Encryption
                 int read;
 
 #if NETSTANDARD2_0
-                var size = Math.Min(workingBufferOwner.Length - readTotal, buffer.Length - readTotal);
-                read = await stream.ReadAsync(workingBufferOwner, 0, size, cancellationToken);
-                workingBuffer.Slice(0, read).CopyTo(buffer.Slice(readTotal, read));
+                read = await stream.ReadToMemoryAsync(buffer.Slice(readTotal), cancellationToken);
 #else
                 read = await stream.ReadAsync(buffer[readTotal..], cancellationToken);
 #endif
@@ -273,7 +261,7 @@ namespace Zerra.Encryption
                 if (!removePrefix)
                 {
 #if NETSTANDARD2_0
-                    stream.Write(keyBufferOwner, 0, keySizeBytes);
+                    stream.Write(prefixBufferOwner!, 0, keySizeBytes);
 #else
                     stream.Write(prefixBuffer.Span);
 #endif
@@ -297,7 +285,7 @@ namespace Zerra.Encryption
             {
                 var read = buffer.Length - readTotal;
 #if NETSTANDARD2_0
-                stream.Write(buffer, readTotal, read);
+                stream.Write(buffer.Slice(readTotal, read).ToArray(), 0, read);
 #else
                 stream.Write(buffer.Slice(readTotal, read));
 #endif
@@ -318,7 +306,7 @@ namespace Zerra.Encryption
                 if (!removePrefix)
                 {
 #if NETSTANDARD2_0
-                    await stream.WriteAsync(keyBufferOwner, 0, keySizeBytes, cancellationToken);
+                    await stream.WriteAsync(prefixBufferOwner!, 0, keySizeBytes, cancellationToken);
 #else
                     await stream.WriteAsync(prefixBuffer, cancellationToken);
 #endif
@@ -343,7 +331,7 @@ namespace Zerra.Encryption
                 var read = buffer.Length - readTotal;
 
 #if NETSTANDARD2_0
-                await stream.WriteAsync(buffer, readTotal, read, cancellationToken);
+                await stream.WriteAsync(buffer.Slice(readTotal, read).ToArray(), 0, read, cancellationToken);
 #else
                 await stream.WriteAsync(buffer.Slice(readTotal, read), cancellationToken);
 #endif

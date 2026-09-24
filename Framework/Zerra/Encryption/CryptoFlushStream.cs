@@ -4,7 +4,7 @@
 
 using System.Security.Cryptography;
 
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
 #endif
 using Zerra.IO;
 
@@ -55,7 +55,7 @@ namespace Zerra.Encryption
                 cryptoShiftStream.FlushFinalBlock();
         }
 
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
         /// <summary>
         /// Calls the underlying FlushFinalBlockAsync
         /// </summary>

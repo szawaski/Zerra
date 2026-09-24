@@ -5044,7 +5044,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         /// <summary>Reads a <see cref="DateOnly"/> value from the buffer.</summary>
         /// <param name="value">When this method returns <see langword="true"/>, contains the value read from the buffer; otherwise, the default value.</param>
         /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the total number of bytes the value needs, counted from the current position where the value starts.</param>

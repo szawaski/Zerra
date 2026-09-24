@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
 
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;

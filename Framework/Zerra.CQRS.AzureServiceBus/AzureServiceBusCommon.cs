@@ -23,7 +23,11 @@ namespace Zerra.CQRS.AzureServiceBus
         //so for the emulator the administration client gets the same connection string pointed at the management port
         public static ServiceBusAdministrationClient CreateAdministrationClient(string host, ServiceBusAdministrationClientOptions? options = null)
         {
+#if NETSTANDARD2_0
+            var parts = host.Split([';'], StringSplitOptions.RemoveEmptyEntries);
+#else
             var parts = host.Split(';', StringSplitOptions.RemoveEmptyEntries);
+#endif
 
             var isEmulator = false;
             var endpointIndex = -1;
@@ -34,7 +38,11 @@ namespace Zerra.CQRS.AzureServiceBus
                     continue;
                 var key = parts[i].AsSpan(0, separator).Trim();
                 if (key.Equals("UseDevelopmentEmulator", StringComparison.OrdinalIgnoreCase))
+#if NETSTANDARD2_0
+                    isEmulator = bool.TryParse(parts[i].Substring(separator + 1).Trim(), out var value) && value;
+#else
                     isEmulator = bool.TryParse(parts[i].AsSpan(separator + 1).Trim(), out var value) && value;
+#endif
                 else if (key.Equals("Endpoint", StringComparison.OrdinalIgnoreCase))
                     endpointIndex = i;
             }

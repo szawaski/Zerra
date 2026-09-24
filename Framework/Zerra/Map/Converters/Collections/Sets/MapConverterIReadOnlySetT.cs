@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+#if !NETSTANDARD2_0
+
 using Zerra.Reflection;
 
 namespace Zerra.Map.Converters.Collections.Sets
@@ -46,3 +48,5 @@ namespace Zerra.Map.Converters.Collections.Sets
         }
     }
 }
+
+#endif

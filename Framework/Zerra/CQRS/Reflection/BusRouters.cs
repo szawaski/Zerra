@@ -27,8 +27,10 @@ namespace Zerra.CQRS.Reflection
 
         private static Func<IBusInternal, string, object> GenerateBusCaller(Type interfaceType)
         {
+#if !NETSTANDARD2_0
             if (!RuntimeFeature.IsDynamicCodeSupported)
                 throw new NotSupportedException($"Cannot generate caller for {interfaceType.Name}. Dynamic code generation is not supported in this build configuration.");
+#endif
 
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
             return BusRouterGenerator.GenerateBusCaller(interfaceType);
@@ -37,8 +39,10 @@ namespace Zerra.CQRS.Reflection
 
         private static DispatchToBus GenerateBusDispatcher(Type commandType)
         {
+#if !NETSTANDARD2_0
             if (!RuntimeFeature.IsDynamicCodeSupported)
                 throw new NotSupportedException($"Cannot generate dispatcher for {commandType.Name}. Dynamic code generation is not supported in this build configuration.");
+#endif
 
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
             return BusRouterGenerator.GenerateBusDispatcher(commandType);

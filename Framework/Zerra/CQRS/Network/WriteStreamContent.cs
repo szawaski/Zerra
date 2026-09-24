@@ -46,7 +46,7 @@ namespace Zerra.CQRS.Network
             else
                 throw new InvalidOperationException($"{nameof(WriteStreamContent)} did not initialize correctly");
         }
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
         /// <inheritdoc />
         protected override void SerializeToStream(Stream stream, TransportContext? context, CancellationToken cancellationToken)
         {

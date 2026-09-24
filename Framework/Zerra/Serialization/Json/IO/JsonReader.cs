@@ -58,8 +58,10 @@ namespace Zerra.Serialization.Json.IO
         private static readonly char[] rueChars = ['r', 'u', 'e'];
         private static readonly char[] alseChars = ['a', 'l', 's', 'e'];
 
+#if !NETSTANDARD2_0
         private static readonly SearchValues<byte> quoteEscapeBytes = SearchValues.Create((byte)'"', (byte)'\\');
         private static readonly SearchValues<char> quoteEscapeChars = SearchValues.Create('"', '\\');
+#endif
 
         private const byte uByte = (byte)'u';
         private const byte bByte = (byte)'b';

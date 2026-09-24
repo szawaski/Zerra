@@ -4,6 +4,9 @@
 
 using Zerra.Buffers;
 using Zerra.IO;
+#if NETSTANDARD2_0
+using System.Runtime.InteropServices;
+#endif
 
 namespace Zerra.CQRS.Network
 {
@@ -262,7 +265,12 @@ namespace Zerra.CQRS.Network
 
                 if (writeBufferPosition == writeBufferSource!.Length - endingBytes.Length)
                 {
+#if NETSTANDARD2_0
+                    var dataLength = writeBufferPosition - writeSegmentStart - segmentLengthBufferLength;
+                    MemoryMarshal.Write(writeBufferSource.AsSpan(writeSegmentStart), ref dataLength);
+#else
                     _ = BitConverter.TryWriteBytes(writeBufferSource.AsSpan(writeSegmentStart), writeBufferPosition - writeSegmentStart - segmentLengthBufferLength);
+#endif
 #if NETSTANDARD2_0
                     stream.Write(writeBufferSource, 0, writeBufferPosition);
 #else
@@ -290,7 +298,12 @@ namespace Zerra.CQRS.Network
 
                 if (writeBufferPosition == writeBufferSource!.Length - endingBytes.Length)
                 {
+#if NETSTANDARD2_0
+                    var dataLength = writeBufferPosition - writeSegmentStart - segmentLengthBufferLength;
+                    MemoryMarshal.Write(writeBufferSource.AsSpan(writeSegmentStart), ref dataLength);
+#else
                     _ = BitConverter.TryWriteBytes(writeBufferSource.AsSpan(writeSegmentStart), writeBufferPosition - writeSegmentStart - segmentLengthBufferLength);
+#endif
 #if NETSTANDARD2_0
                     await stream.WriteAsync(writeBufferSource, 0, writeBufferPosition, cancellationToken);
 #else
@@ -312,7 +325,11 @@ namespace Zerra.CQRS.Network
                 //the last segment and the ending go out together, without data the ending takes the segment's place
                 var dataLength = writeBufferPosition - writeSegmentStart - segmentLengthBufferLength;
                 if (dataLength > 0)
+#if NETSTANDARD2_0
+                    MemoryMarshal.Write(writeBufferSource.AsSpan(writeSegmentStart), ref dataLength);
+#else
                     _ = BitConverter.TryWriteBytes(writeBufferSource.AsSpan(writeSegmentStart), dataLength);
+#endif
                 else
                     writeBufferPosition = writeSegmentStart;
                 endingBytes.CopyTo(writeBufferSource.AsSpan(writeBufferPosition));
@@ -337,7 +354,11 @@ namespace Zerra.CQRS.Network
                 //the last segment and the ending go out together, without data the ending takes the segment's place
                 var dataLength = writeBufferPosition - writeSegmentStart - segmentLengthBufferLength;
                 if (dataLength > 0)
+#if NETSTANDARD2_0
+                    MemoryMarshal.Write(writeBufferSource.AsSpan(writeSegmentStart), ref dataLength);
+#else
                     _ = BitConverter.TryWriteBytes(writeBufferSource.AsSpan(writeSegmentStart), dataLength);
+#endif
                 else
                     writeBufferPosition = writeSegmentStart;
                 endingBytes.CopyTo(writeBufferSource.AsSpan(writeBufferPosition));

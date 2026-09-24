@@ -31,8 +31,10 @@ namespace Zerra.Reflection
 
         private static TypeDetail GenerateTypeDetail(Type type)
         {
+#if !NETSTANDARD2_0
             if (!RuntimeFeature.IsDynamicCodeSupported)
                 throw new NotSupportedException($"Cannot generate type detail for {type.Name}. Dynamic code generation is not supported in this build configuration.");
+#endif
 
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
             return TypeDetailGenerator.GenerateTypeDetail(type);
@@ -118,7 +120,7 @@ namespace Zerra.Reflection
                     CoreType.DateTime => default(DateTime),
                     CoreType.DateTimeOffset => default(DateTimeOffset),
                     CoreType.TimeSpan => default(TimeSpan),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                     CoreType.DateOnly => default(DateOnly),
                     CoreType.TimeOnly => default(TimeOnly),
 #endif
@@ -140,7 +142,7 @@ namespace Zerra.Reflection
                     CoreType.DateTimeNullable => null,
                     CoreType.DateTimeOffsetNullable => null,
                     CoreType.TimeSpanNullable => null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                     CoreType.DateOnlyNullable => null,
                     CoreType.TimeOnlyNullable => null,
 #endif
@@ -168,7 +170,7 @@ namespace Zerra.Reflection
                     CoreType.DateTime => System.Convert.ToDateTime(obj),
                     CoreType.DateTimeOffset => ConvertToDateTimeOffset(obj),
                     CoreType.TimeSpan => ConvertToTimeSpan(obj),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                     CoreType.DateOnly => ConvertToDateOnly(obj),
                     CoreType.TimeOnly => ConvertToTimeOnly(obj),
 #endif
@@ -190,7 +192,7 @@ namespace Zerra.Reflection
                     CoreType.DateTimeNullable => System.Convert.ToDateTime(obj),
                     CoreType.DateTimeOffsetNullable => System.Convert.ToDateTime(obj),
                     CoreType.TimeSpanNullable => ConvertToTimeSpan(obj),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                     CoreType.DateOnlyNullable => ConvertToDateOnly(obj),
                     CoreType.TimeOnlyNullable => ConvertToTimeOnly(obj),
 #endif
@@ -212,7 +214,7 @@ namespace Zerra.Reflection
                 return TimeSpan.MinValue;
             return TimeSpan.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
         }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         private static DateOnly ConvertToDateOnly(object? obj)
         {
             if (obj is null)

@@ -13,7 +13,11 @@ namespace Zerra.Collections
     /// <typeparam name="T">The type of elements in the set.</typeparam>
     public class ConcurrentHashSet<T> : ICollection<T>, IEnumerable<T>, IEnumerable, IReadOnlyCollection<T>, ISet<T>
     {
+#if NETSTANDARD2_0
+        private readonly object locker = new();
+#else
         private readonly Lock locker = new();
+#endif
         private readonly HashSet<T> hashSet = new();
 
         /// <summary>

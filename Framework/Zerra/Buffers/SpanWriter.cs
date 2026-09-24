@@ -37,7 +37,7 @@ namespace Zerra.Buffers
         /// <exception cref="InvalidOperationException">Throws if the values excede the remaining length of the span.</exception>
         public void Write(ReadOnlySpan<T> values)
         {
-            values.CopyTo(span[position..]);
+            values.CopyTo(span.Slice(position));
             position += values.Length;
         }
 
@@ -45,7 +45,7 @@ namespace Zerra.Buffers
         /// The part of the span not yet written to.
         /// Write to it directly, such as encoding a string, then call <see cref="Advance"/> with the count written.
         /// </summary>
-        public readonly Span<T> Remaining => span[position..];
+        public readonly Span<T> Remaining => span.Slice(position);
 
         /// <summary>
         /// Moves the position forward after writing directly to <see cref="Remaining"/>.

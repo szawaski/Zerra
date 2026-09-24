@@ -29,7 +29,11 @@ namespace Zerra.CQRS
         private HashSet<IQueryServer>? queryServers = null;
         private HashSet<Type>? handledTypes = null;
 
+#if NETSTANDARD2_0
+        private static readonly object exitLock = new();
+#else
         private static readonly Lock exitLock = new();
+#endif
         private static bool exited = false;
         private static SemaphoreSlim? processWaiter = null;
 
@@ -631,7 +635,7 @@ namespace Zerra.CQRS
 
             CancellationTokenSource? cancellationTokenSource = null;
             CancellationToken cancellationToken;
-            if (arguments.Length > 0 && arguments[^1] is CancellationToken argumentCancellationToken)
+            if (arguments.Length > 0 && arguments[arguments.Length - 1] is CancellationToken argumentCancellationToken)
             {
                 if (argumentCancellationToken != CancellationToken.None)
                 {
@@ -696,7 +700,7 @@ namespace Zerra.CQRS
 
             CancellationTokenSource? cancellationTokenSource = null;
             CancellationToken cancellationToken;
-            if (arguments.Length > 0 && arguments[^1] is CancellationToken argumentCancellationToken)
+            if (arguments.Length > 0 && arguments[arguments.Length - 1] is CancellationToken argumentCancellationToken)
             {
                 if (argumentCancellationToken != CancellationToken.None)
                 {
@@ -1111,7 +1115,8 @@ namespace Zerra.CQRS
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
                 throw new Exception($"{interfaceType.Name} is not an interface");
-            ArgumentNullException.ThrowIfNull(handler);
+            if (handler == null)
+                throw new ArgumentNullException(nameof(handler));
             if (handler is not IHandler iHandler)
                 throw new Exception($"{handler.GetType().Name} does not implement IHandler");
 
@@ -1129,7 +1134,8 @@ namespace Zerra.CQRS
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
                 throw new Exception($"{interfaceType.Name} is not an interface");
-            ArgumentNullException.ThrowIfNull(commandProducer);
+            if (commandProducer == null)
+                throw new ArgumentNullException(nameof(commandProducer));
 
             var info = BusCommandOrEventInfo.GetByType(interfaceType, handledTypes);
             if (info.CommandTypes.Count == 0)
@@ -1165,7 +1171,8 @@ namespace Zerra.CQRS
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
                 throw new Exception($"{interfaceType.Name} is not an interface");
-            ArgumentNullException.ThrowIfNull(commandConsumer);
+            if (commandConsumer == null)
+                throw new ArgumentNullException(nameof(commandConsumer));
 
             commandConsumer.Setup(commandCounter, RemoteHandleCommandDispatchAsync, RemoteHandleCommandDispatchAwaitAsync, RemoteHandleCommandWithResultDispatchAwaitAsync);
             commandConsumers ??= new();
@@ -1200,7 +1207,8 @@ namespace Zerra.CQRS
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
                 throw new Exception($"{interfaceType.Name} is not an interface");
-            ArgumentNullException.ThrowIfNull(eventProducer);
+            if (eventProducer == null)
+                throw new ArgumentNullException(nameof(eventProducer));
 
             var info = BusCommandOrEventInfo.GetByType(interfaceType, handledTypes);
             if (info.EventTypes.Count == 0)
@@ -1237,7 +1245,8 @@ namespace Zerra.CQRS
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
                 throw new Exception($"{interfaceType.Name} is not an interface");
-            ArgumentNullException.ThrowIfNull(eventConsumer);
+            if (eventConsumer == null)
+                throw new ArgumentNullException(nameof(eventConsumer));
 
             eventConsumer.Setup(context.ServiceName, RemoteHandleEventDispatchAsync);
             eventConsumers ??= new();
@@ -1267,7 +1276,8 @@ namespace Zerra.CQRS
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
                 throw new Exception($"{interfaceType.Name} is not an interface");
-            ArgumentNullException.ThrowIfNull(queryClient);
+            if (queryClient == null)
+                throw new ArgumentNullException(nameof(queryClient));
 
             if (handledTypes != null && handledTypes.Contains(interfaceType))
             {
@@ -1294,7 +1304,8 @@ namespace Zerra.CQRS
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
                 throw new Exception($"{interfaceType.Name} is not an interface");
-            ArgumentNullException.ThrowIfNull(queryServer);
+            if (queryServer == null)
+                throw new ArgumentNullException(nameof(queryServer));
 
             queryServer.Setup(commandCounter, RemoteHandleQueryCallAsync);
             queryServers ??= new();
@@ -1324,7 +1335,11 @@ namespace Zerra.CQRS
             => context.GetService<TInterface>();
 
         /// <inheritdoc />
-        public bool TryGetService<TInterface>([MaybeNullWhen(false)] out TInterface instance) where TInterface : notnull
+        public bool TryGetService<TInterface>(
+#if !NETSTANDARD2_0
+            [MaybeNullWhen(false)]
+#endif
+        out TInterface instance) where TInterface : notnull
             => context.TryGetService<TInterface>(out instance);
     }
 }

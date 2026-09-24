@@ -110,7 +110,7 @@ namespace Zerra.Reflection
             if (!altered)
                 return obj.GetHashCode();
 
-#if NET7_0_OR_GREATER
+#if !NETSTANDARD2_0
             return String.GetHashCode(chars.Slice(0, charsIndex));
 #else
             return chars.Slice(0, charsIndex).ToString().GetHashCode();

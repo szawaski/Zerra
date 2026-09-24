@@ -16,8 +16,10 @@ namespace Zerra.Map
     /// <remarks>
     /// This class requires dynamic code support and is not supported in AOT (Ahead-of-Time) compiled applications.
     /// </remarks>
+#if !NETSTANDARD2_0
     [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
     [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
     public static class MapDiscovery
     {
         /// <summary>
@@ -26,8 +28,10 @@ namespace Zerra.Map
         /// <exception cref="NotSupportedException">Thrown when dynamic code generation is not supported in the current build configuration.</exception>
         public static void Initialize()
         {
+#if !NETSTANDARD2_0
             if (!RuntimeFeature.IsDynamicCodeSupported)
                 throw new NotSupportedException($"{nameof(MapDiscovery)}.{nameof(Initialize)} not supported.  Dynamic code generation is not supported in this build configuration.");
+#endif
 
             var types = Discovery.GetClassesByInterface(typeof(IMapDefinition<,>));
             if (types.Count == 0)

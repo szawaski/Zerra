@@ -16,6 +16,10 @@ namespace Zerra.Map
         /// Use the <paramref name="map"/> parameter to define how properties from the source should map to the target.
         /// </summary>
         /// <param name="map">The map setup used to define custom mappings. Allows overriding automatic property mapping and defining two-way mappings.</param>
+#if NETSTANDARD2_0
+        void Define(IMapSetup<TSource, TTarget> map);
+#else
         public void Define(IMapSetup<TSource, TTarget> map) { }
+#endif
     }
 }

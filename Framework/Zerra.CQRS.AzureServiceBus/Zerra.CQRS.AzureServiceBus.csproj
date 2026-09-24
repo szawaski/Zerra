@@ -1,12 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net10.0</TargetFrameworks>
+        <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <InvariantGlobalization>true</InvariantGlobalization>
-        <IsAotCompatible>true</IsAotCompatible>
-        <PublishAot>true</PublishAot>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>14.0</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -24,6 +22,16 @@
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <PackageTags>Zerra, Service Bus, Message Broker</PackageTags>
         <Description>Azure Service Bus transport provider for the Zerra CQRS framework. Enables command, query, and event routing through Azure Service Bus for distributed message-driven architectures.</Description>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+        <IsAotCompatible>true</IsAotCompatible>
+        <PublishAot>true</PublishAot>
+    </PropertyGroup>
+
+    <!--netstandard2.0 has no nullable annotations-->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+        <NoWarn>$(NoWarn);CS8600;CS8601;CS8602;CS8603;CS8604;CS8625</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

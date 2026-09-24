@@ -90,7 +90,7 @@ namespace Zerra.CQRS.Network
 #if NETSTANDARD2_0
                             var bytesRead = await stream.ReadAsync(bufferOwner, headerLength, buffer.Length - headerLength, cancellationToken);
 #else
-                            var bytesRead = await stream.ReadAsync(buffer[headerLength..], cancellationToken);
+                            var bytesRead = await stream.ReadAsync(buffer.Slice(headerLength), cancellationToken);
 #endif
 
                             if (bytesRead == 0)
@@ -99,7 +99,7 @@ namespace Zerra.CQRS.Network
 
                             headerEnd = HttpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
                         }
-                        requestHeader = HttpCommon.ReadHeader(buffer[..headerLength], headerPosition, authorizer is not null); //all headers only for the authorizer
+                        requestHeader = HttpCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition, authorizer is not null); //all headers only for the authorizer
 
                         if (requestHeader.ContentType.HasValue && requestHeader.ContentType != serializer.ContentType)
                         {
@@ -274,7 +274,7 @@ namespace Zerra.CQRS.Network
                                     while ((bytesRead = await result.Stream.ReadAsync(buffer, cancellationToken)) > 0)
                                         await responseBodyCryptoStream.WriteAsync(buffer.Slice(0, bytesRead), cancellationToken);
 #endif
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
                                     await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                                     responseBodyCryptoStream.FlushFinalBlock();
@@ -301,7 +301,7 @@ namespace Zerra.CQRS.Network
                                     responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
                                     await serializer.SerializeAsync(responseBodyCryptoStream, result.Model, cancellationToken);
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
                                     await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                                     responseBodyCryptoStream.FlushFinalBlock();
@@ -422,7 +422,7 @@ namespace Zerra.CQRS.Network
                                     responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
                                     await serializer.SerializeAsync(responseBodyCryptoStream, result, cancellationToken);
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
                                     await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                                     responseBodyCryptoStream.FlushFinalBlock();
@@ -481,7 +481,7 @@ namespace Zerra.CQRS.Network
                                 responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
                                 await ExceptionSerializer.SerializeAsync(serializer, responseBodyCryptoStream, ex, cancellationToken);
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
                                 await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
                                 responseBodyCryptoStream.FlushFinalBlock();

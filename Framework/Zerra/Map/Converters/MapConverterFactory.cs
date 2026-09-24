@@ -59,7 +59,9 @@ namespace Zerra.Map.Converters
             creators[key] = converter;
         }
 
+#if !NETSTANDARD2_0
         [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "We don't necessarily know that this will fail with AOT, so we let it fail at runtime.")]
+#endif
         internal static Func<MapConverter> GenerateMapConverterCreator(TypeDetail sourceTypeDetail, TypeDetail targetTypeDetail)
         {
             //if (!RuntimeFeature.IsDynamicCodeSupported)
@@ -133,8 +135,10 @@ namespace Zerra.Map.Converters
 
             if (targetTypeDetail.IsISetGeneric)
                 return () => new MapConverterISetT<TSource, TSourceEnumerable, TTargetEnumerable>();
+#if !NETSTANDARD2_0
             if (targetTypeDetail.IsIReadOnlySetGeneric)
                 return () => new MapConverterIReadOnlySetT<TSource, TSourceEnumerable, TTargetEnumerable>();
+#endif
             //if (targetTypeDetail.IsHashSetGeneric)
             //    return () => new MapConverterHashSetT<TSource, TSourceEnumerable, TTargetEnumerable>();
 

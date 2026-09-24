@@ -92,7 +92,7 @@ namespace Zerra.Collections
 
         internal ConcurrentFactoryDictionary(int concurrencyLevel, int capacity, IEnumerable<KeyValuePair<TKey, TValue>>? collection, IEqualityComparer<TKey>? comparer)
         {
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
             if (collection is not null)
                 this.dictionary = new ConcurrentDictionary<TKey, TValue>(concurrencyLevel, collection, comparer);
             else
@@ -129,7 +129,11 @@ namespace Zerra.Collections
             //{
             //    this.comparer = EqualityComparer<TKey>.Default;
             //}
+#if NETSTANDARD2_0
+            this.comparer = comparer ?? EqualityComparer<TKey>.Default;
+#else
             this.comparer = dictionary.Comparer;
+#endif
             //#endif
         }
 
@@ -595,7 +599,7 @@ namespace Zerra.Collections
         /// <param name="value">When this method returns, contains the value associated with the key, if found; otherwise, the default value for the type of the value parameter.</param>
         /// <returns>true if the key was found; otherwise, false.</returns>
         public bool TryGetValue(TKey key,
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
             [MaybeNullWhen(false)]
 #endif
         out TValue value) => dictionary.TryGetValue(key, out value);

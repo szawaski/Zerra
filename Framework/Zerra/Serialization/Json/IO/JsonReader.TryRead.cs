@@ -49,7 +49,20 @@ namespace Zerra.Serialization.Json.IO
                     {
                         if (b == spaceByte || b == tabByte || b == returnByte || b == newlineByte)
                         {
+#if NETSTANDARD2_0
+                            var lengthToNonWhiteSpace = -1;
+                            for (var scan = position; scan < localBufferBytes.Length; scan++)
+                            {
+                                var value = localBufferBytes[scan];
+                                if (value != ' ' && value != '\t' && value != '\r' && value != '\n')
+                                {
+                                    lengthToNonWhiteSpace = scan - position;
+                                    break;
+                                }
+                            }
+#else
                             var lengthToNonWhiteSpace = localBufferBytes.Slice(position).IndexOfAnyExcept(whiteSpaceBytes);
+#endif
                             if (lengthToNonWhiteSpace == -1)
                             {
                                 sizeNeeded = 1;
@@ -155,7 +168,11 @@ namespace Zerra.Serialization.Json.IO
 
                                 PositionOfFirstEscape = -1;
 
+#if NETSTANDARD2_0
+                                var stringLength = localBufferBytes.Slice(position).IndexOfAny((byte)'"', (byte)'\\');
+#else
                                 var stringLength = localBufferBytes.Slice(position).IndexOfAny(quoteEscapeBytes);
+#endif
                                 if (stringLength == -1)
                                 {
                                     position = originalPosition;
@@ -204,7 +221,11 @@ namespace Zerra.Serialization.Json.IO
 
                                 for (; ; )
                                 {
+#if NETSTANDARD2_0
+                                    stringLength = localBufferBytes.Slice(position).IndexOfAny((byte)'"', (byte)'\\');
+#else
                                     stringLength = localBufferBytes.Slice(position).IndexOfAny(quoteEscapeBytes);
+#endif
                                     if (stringLength == -1)
                                     {
                                         position = originalPosition;
@@ -251,7 +272,20 @@ namespace Zerra.Serialization.Json.IO
                             {
                                 var startPosition = position;
 
+#if NETSTANDARD2_0
+                                var numberLength = -1;
+                                for (var scan = position; scan < localBufferBytes.Length; scan++)
+                                {
+                                    var value = localBufferBytes[scan];
+                                    if ((value < '0' || value > '9') && value != '+' && value != '-' && value != '.' && value != 'e' && value != 'E')
+                                    {
+                                        numberLength = scan - position;
+                                        break;
+                                    }
+                                }
+#else
                                 var numberLength = localBufferBytes.Slice(position).IndexOfAnyExcept(numberBytes);
+#endif
                                 if (numberLength == -1)
                                 {
                                     if (!isFinalBlock)
@@ -287,7 +321,20 @@ namespace Zerra.Serialization.Json.IO
                     {
                         if (c == ' ' || c == '\t' || c == '\r' || c == '\n')
                         {
+#if NETSTANDARD2_0
+                            var lengthToNonWhiteSpace = -1;
+                            for (var scan = position; scan < localBufferChars.Length; scan++)
+                            {
+                                var value = localBufferChars[scan];
+                                if (value != ' ' && value != '\t' && value != '\r' && value != '\n')
+                                {
+                                    lengthToNonWhiteSpace = scan - position;
+                                    break;
+                                }
+                            }
+#else
                             var lengthToNonWhiteSpace = localBufferChars.Slice(position).IndexOfAnyExcept(whiteSpaceChars);
+#endif
                             if (lengthToNonWhiteSpace == -1)
                             {
                                 sizeNeeded = 1;
@@ -393,7 +440,11 @@ namespace Zerra.Serialization.Json.IO
 
                                 PositionOfFirstEscape = -1;
 
+#if NETSTANDARD2_0
+                                var stringLength = localBufferChars.Slice(position).IndexOfAny('"', '\\');
+#else
                                 var stringLength = localBufferChars.Slice(position).IndexOfAny(quoteEscapeChars);
+#endif
                                 if (stringLength == -1)
                                 {
                                     position = originalPosition;
@@ -442,7 +493,11 @@ namespace Zerra.Serialization.Json.IO
 
                                 for (; ; )
                                 {
+#if NETSTANDARD2_0
+                                    stringLength = localBufferChars.Slice(position).IndexOfAny('"', '\\');
+#else
                                     stringLength = localBufferChars.Slice(position).IndexOfAny(quoteEscapeChars);
+#endif
                                     if (stringLength == -1)
                                     {
                                         position = originalPosition;
@@ -489,7 +544,20 @@ namespace Zerra.Serialization.Json.IO
                             {
                                 var startPosition = position;
 
+#if NETSTANDARD2_0
+                                var numberLength = -1;
+                                for (var scan = position; scan < localBufferChars.Length; scan++)
+                                {
+                                    var value = localBufferChars[scan];
+                                    if ((value < '0' || value > '9') && value != '+' && value != '-' && value != '.' && value != 'e' && value != 'E')
+                                    {
+                                        numberLength = scan - position;
+                                        break;
+                                    }
+                                }
+#else
                                 var numberLength = localBufferChars.Slice(position).IndexOfAnyExcept(numberChars);
+#endif
                                 if (numberLength == -1)
                                 {
                                     if (!isFinalBlock)

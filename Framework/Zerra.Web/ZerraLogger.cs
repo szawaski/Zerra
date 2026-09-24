@@ -26,10 +26,6 @@ namespace Zerra.Web
             this.log = log;
         }
 
-#if NET6_0
-#pragma warning disable CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
-#pragma warning disable CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
-#endif
         /// <summary>
         /// Begins a logical scope for the logger.
         /// </summary>
@@ -40,10 +36,6 @@ namespace Zerra.Web
         /// <param name="state">The scope state.</param>
         /// <returns>Always returns null.</returns>
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull
-#if NET6_0
-#pragma warning restore CS8766 // Nullability of reference types in return type doesn't match implicitly implemented member (possibly because of nullability attributes).
-#pragma warning restore CS8633 // Nullability in constraints for type parameter doesn't match the constraints for type parameter in implicitly implemented interface method'.
-#endif
         {
             return null;
         }

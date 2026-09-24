@@ -43,7 +43,9 @@ namespace Zerra.Encryption
             var blockSizeValue = (int)blockSize;
 
 #if NETSTANDARD2_0
-            using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes, iterations, hashAlgorithmName ?? defaultHashAlgorithm))
+            if ((hashAlgorithm ?? defaultHashAlgorithm) != HashAlgorithmName.SHA1)
+                throw new PlatformNotSupportedException($"Key derivation only supports {nameof(HashAlgorithmName.SHA1)} on this platform");
+            using (var deriveBytes = new Rfc2898DeriveBytes(password, saltBytes, deriveKeyIterations))
             {
                 var keyBytes = deriveBytes.GetBytes(keySizeValue / 8);
                 var ivBytes = deriveBytes.GetBytes(blockSizeValue / 8);

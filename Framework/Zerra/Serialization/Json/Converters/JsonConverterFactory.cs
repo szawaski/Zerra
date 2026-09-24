@@ -69,7 +69,9 @@ namespace Zerra.Serialization.Json.Converters
             creators[type] = converter;
         }
 
+#if !NETSTANDARD2_0
         [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "We don't necessarily know that this will fail with AOT, so we let it fail at runtime.")]
+#endif
         internal static Func<JsonConverter> GenerateJsonConverterCreator(TypeDetail typeDetail)
         {
             //if (!RuntimeFeature.IsDynamicCodeSupported)
@@ -119,7 +121,7 @@ namespace Zerra.Serialization.Json.Converters
                     case CoreType.DateTime: return static () => new JsonConverterDateTime();
                     case CoreType.DateTimeOffset: return static () => new JsonConverterDateTimeOffset();
                     case CoreType.TimeSpan: return static () => new JsonConverterTimeSpan();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                     case CoreType.DateOnly: return static () => new JsonConverterDateOnly();
                     case CoreType.TimeOnly: return static () => new JsonConverterTimeOnly();
 #endif
@@ -140,7 +142,7 @@ namespace Zerra.Serialization.Json.Converters
                     case CoreType.DateTimeNullable: return static () => new JsonConverterDateTimeNullable();
                     case CoreType.DateTimeOffsetNullable: return static () => new JsonConverterDateTimeOffsetNullable();
                     case CoreType.TimeSpanNullable: return static () => new JsonConverterTimeSpanNullable();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                     case CoreType.DateOnlyNullable: return static () => new JsonConverterDateOnlyNullable();
                     case CoreType.TimeOnlyNullable: return static () => new JsonConverterTimeOnlyNullable();
 #endif
@@ -169,8 +171,10 @@ namespace Zerra.Serialization.Json.Converters
 
             if (typeDetail.IsISetGeneric)
                 return static () => new JsonConverterISetT<TEnumerableType>();
+#if !NETSTANDARD2_0
             if (typeDetail.IsIReadOnlySetGeneric)
                 return static () => new JsonConverterIReadOnlySetT<TEnumerableType>();
+#endif
             if (typeDetail.IsHashSetGeneric)
                 return static () => new JsonConverterHashSetT<TEnumerableType>();
 

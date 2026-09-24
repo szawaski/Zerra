@@ -53,7 +53,9 @@ namespace Zerra.Linq
             return result;
         }
 
+#if !NETSTANDARD2_0
         [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "Rebinding an already-compiled expression tree, only reached when the caller's own expression tree required dynamic code.")]
+#endif
         private static Expression Rebind(Expression exp, RebinderContext context)
         {
             if (context.Current is not null && context.Replacement is not null && exp == context.Current)
@@ -204,8 +206,10 @@ namespace Zerra.Linq
                     }
                 case ExpressionType.Dynamic:
                     {
+#if !NETSTANDARD2_0
                         if (!RuntimeFeature.IsDynamicCodeSupported)
                             throw new NotSupportedException($"Cannot rebind Dynamic expressions. Dynamic code generation is not supported in this build configuration.");
+#endif
 
                         var cast = (DynamicExpression)exp;
 
@@ -447,8 +451,10 @@ namespace Zerra.Linq
                     }
                 case ExpressionType.NewArrayBounds:
                     {
+#if !NETSTANDARD2_0
                         if (!RuntimeFeature.IsDynamicCodeSupported)
                             throw new NotSupportedException($"Cannot rebind NewArrayBounds expressions. Dynamic code generation is not supported in this build configuration.");
+#endif
 
                         var cast = (NewArrayExpression)exp;
 
@@ -463,8 +469,10 @@ namespace Zerra.Linq
                     }
                 case ExpressionType.NewArrayInit:
                     {
+#if !NETSTANDARD2_0
                         if (!RuntimeFeature.IsDynamicCodeSupported)
                             throw new NotSupportedException($"Cannot rebind NewArrayInit expressions. Dynamic code generation is not supported in this build configuration.");
+#endif
 
                         var cast = (NewArrayExpression)exp;
 

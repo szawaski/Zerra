@@ -27,7 +27,9 @@ namespace Zerra.Reflection
         /// <exception cref="ArgumentNullException">Thrown if name is null or whitespace.</exception>
         /// <exception cref="InvalidOperationException">Thrown if the type cannot be found.</exception>
         /// <exception cref="Exception">Thrown if multiple types match the given name.</exception>
+#if !NETSTANDARD2_0
         [UnconditionalSuppressMessage("Trimming", "IL2057:Unrecognized value passed to the parameter of method. It's not possible to guarantee the availability of the target type.", Justification = "Callers accept that a name resolved only by string may not exist if trimmed.")]
+#endif
         public static Type GetTypeFromName(string name)
         {
             if (String.IsNullOrWhiteSpace(name))
@@ -69,8 +71,14 @@ namespace Zerra.Reflection
         /// <returns>True if the type was successfully resolved; otherwise false.</returns>
         /// <exception cref="ArgumentNullException">Thrown if name is null or whitespace.</exception>
         /// <exception cref="Exception">Thrown if multiple types match the given name.</exception>
+#if !NETSTANDARD2_0
         [UnconditionalSuppressMessage("Trimming", "IL2057:Unrecognized value passed to the parameter of method. It's not possible to guarantee the availability of the target type.", Justification = "Callers accept that a name resolved only by string may not exist if trimmed.")]
-        public static bool TryGetTypeFromName(string name, [NotNullWhen(true)] out Type? type)
+#endif
+        public static bool TryGetTypeFromName(string name,
+#if !NETSTANDARD2_0
+            [NotNullWhen(true)]
+#endif
+        out Type? type)
         {
             if (String.IsNullOrWhiteSpace(name))
                 throw new ArgumentNullException(nameof(name));

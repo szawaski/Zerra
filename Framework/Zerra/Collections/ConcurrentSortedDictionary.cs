@@ -15,7 +15,11 @@ namespace Zerra.Collections
     public class ConcurrentSortedDictionary<TKey, TValue> : ICollection<KeyValuePair<TKey, TValue>>, IEnumerable<KeyValuePair<TKey, TValue>>, IEnumerable, IDictionary<TKey, TValue>, IReadOnlyCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue>, ICollection, IDictionary
          where TKey : notnull
     {
+#if NETSTANDARD2_0
+        private readonly object locker = new();
+#else
         private readonly Lock locker = new();
+#endif
         private readonly SortedDictionary<TKey, TValue> dictionary;
 
         /// <summary>
@@ -462,7 +466,7 @@ namespace Zerra.Collections
         /// <param name="value">The value associated with the key if found; otherwise, the default value.</param>
         /// <returns>True if the key is found; otherwise, false.</returns>
         public bool TryGetValue(TKey key,
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
             [MaybeNullWhen(false)]
 #endif
         out TValue value)

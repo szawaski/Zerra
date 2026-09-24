@@ -34,7 +34,11 @@ namespace Zerra.Map.Converters.Collections.Sets
                 sourceCount = sourceEnumerable.Count();
 
             if (target == null || sourceCount != target.Count)
+#if NETSTANDARD2_0
+                target = new HashSet<TTargetInner>();
+#else
                 target = new HashSet<TTargetInner>(sourceCount);
+#endif
             else
                 target.Clear();
 

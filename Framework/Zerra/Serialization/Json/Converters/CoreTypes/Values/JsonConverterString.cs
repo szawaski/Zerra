@@ -26,7 +26,11 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     return true;
                 case JsonToken.Number:
                     if (reader.UseBytes)
+#if NETSTANDARD2_0
+                        value = System.Text.Encoding.UTF8.GetString(reader.ValueBytes.ToArray());
+#else
                         value = System.Text.Encoding.UTF8.GetString(reader.ValueBytes);
+#endif
                     else
                         value = reader.ValueChars.ToString();
                     return true;

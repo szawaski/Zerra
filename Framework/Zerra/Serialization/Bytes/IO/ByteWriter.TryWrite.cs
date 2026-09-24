@@ -1710,7 +1710,7 @@ namespace Zerra.Serialization.Bytes.IO
             return true;
         }
 
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         /// <summary>Writes a <see cref="DateOnly"/> value to the buffer.</summary>
         /// <param name="value">The value to write to the buffer.</param>
         /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the total number of bytes of buffer space the value needs.</param>

@@ -46,13 +46,13 @@ namespace Zerra.CQRS.Network
         public static unsafe TcpRequestHeader ReadHeader(ReadOnlyMemory<byte> buffer, int headerLength)
         {
 #if NETSTANDARD2_0
-            var chars = encoding.GetChars(buffer.Span.Slice(0, position).ToArray());
+            var chars = encoding.GetChars(buffer.Span.Slice(0, headerLength).ToArray());
             var charsLength = chars.Length;
 #else
             var chars = ArrayPoolHelper<char>.Rent(encoding.GetMaxCharCount(headerLength));
             try
             {
-                var charsLength = encoding.GetChars(buffer.Span[..headerLength], chars.AsSpan());
+                var charsLength = encoding.GetChars(buffer.Span.Slice(0, headerLength), chars.AsSpan());
 #endif
                 string? prefix = null;
                 string? providerType = null;
@@ -118,7 +118,7 @@ namespace Zerra.CQRS.Network
                 if (providerType is nullProviderType)
                     providerType = null;
 
-                return new TcpRequestHeader(buffer[headerLength..], isError, contentType.Value, providerType);
+                return new TcpRequestHeader(buffer.Slice(headerLength), isError, contentType.Value, providerType);
 #if !NETSTANDARD2_0
             }
             finally
@@ -135,7 +135,11 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(protocolRawPrefixBytes);
             if (!String.IsNullOrWhiteSpace(providerType))
             {
+#if NETSTANDARD2_0
+                headerBuffer.Write(encoding.GetBytes(providerType));
+#else
                 headerBuffer.Advance(encoding.GetBytes(providerType, headerBuffer.Remaining));
+#endif
                 headerBuffer.Write(headerSeperatorBytes);
             }
             else
@@ -157,7 +161,11 @@ namespace Zerra.CQRS.Network
             headerBuffer.Write(protocolErrorPrefixBytes);
             if (!String.IsNullOrWhiteSpace(providerType))
             {
+#if NETSTANDARD2_0
+                headerBuffer.Write(encoding.GetBytes(providerType));
+#else
                 headerBuffer.Advance(encoding.GetBytes(providerType, headerBuffer.Remaining));
+#endif
                 headerBuffer.Write(headerSeperatorBytes);
             }
             else

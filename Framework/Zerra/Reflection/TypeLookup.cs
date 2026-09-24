@@ -27,7 +27,7 @@ namespace Zerra.Reflection
             { typeof(DateTime), CoreType.DateTime },
             { typeof(DateTimeOffset), CoreType.DateTimeOffset },
             { typeof(TimeSpan), CoreType.TimeSpan },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
             { typeof(DateOnly), CoreType.DateOnly },
             { typeof(TimeOnly), CoreType.TimeOnly },
 #endif
@@ -51,7 +51,7 @@ namespace Zerra.Reflection
             { typeof(DateTime?), CoreType.DateTimeNullable },
             { typeof(DateTimeOffset?), CoreType.DateTimeOffsetNullable },
             { typeof(TimeSpan?), CoreType.TimeSpanNullable },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
             { typeof(DateOnly?), CoreType.DateOnlyNullable },
             { typeof(TimeOnly?), CoreType.TimeOnlyNullable },
 #endif

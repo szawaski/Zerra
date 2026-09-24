@@ -29,7 +29,7 @@ namespace Zerra.CQRS.Network
             {
                 //receive abort
                 var buffer = new byte[2];
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 var result = await stream.ReadAsync(buffer, cancellationTokenSource.Token);
 #else
                 var result = await stream.ReadAsync(buffer, 0, 2, cancellationTokenSource.Token);
@@ -43,7 +43,7 @@ namespace Zerra.CQRS.Network
                 //send abort acknowledged
                 try
                 {
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                     _ = stream.WriteAsync(abortMessageBytes, cancellationTokenSource.Token).AsTask();
 #else
                     _ = stream.WriteAsync(abortMessageBytes, 0, 1, cancellationTokenSource.Token);
@@ -52,7 +52,7 @@ namespace Zerra.CQRS.Network
                 catch { }
 
 
-#if NET8_0_OR_GREATER
+#if !NETSTANDARD2_0
                 await cancellationTokenSource.CancelAsync();
 #else
                 cancellationTokenSource.Cancel();
@@ -68,7 +68,7 @@ namespace Zerra.CQRS.Network
             try
             {
                 //send abort
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 await stream.WriteAsync(abortMessageBytes, source.Token);
 #else
                 await stream.WriteAsync(abortMessageBytes, 0, 1, source.Token);
@@ -76,7 +76,7 @@ namespace Zerra.CQRS.Network
 
                 //receive abort acknowledged
                 var buffer = new byte[2];
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 var result = await stream.ReadAsync(buffer, source.Token);
 #else
                 var result = await stream.ReadAsync(buffer, 0, 2, source.Token);

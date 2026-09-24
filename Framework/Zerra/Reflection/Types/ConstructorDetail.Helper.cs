@@ -18,7 +18,9 @@ namespace Zerra.Reflection
         /// <exception cref="InvalidOperationException">Thrown when the <see cref="ConstructorInfo"/> cannot be found.</exception>
         public ConstructorInfo GetConstructorInfo
         {
+#if !NETSTANDARD2_0
             [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+#endif
             get
             {
                 if (constructorInfo == null)

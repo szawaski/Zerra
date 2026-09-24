@@ -20,8 +20,10 @@ namespace Zerra.Reflection.Dynamic
     /// <see cref="Initialize"/> must be called before using any lookup methods.
     /// Discovery scans all loaded assemblies to build type relationship caches.
     /// </remarks>
+#if !NETSTANDARD2_0
     [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
     [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
     public static class Discovery
     {
         private static readonly ConcurrentDictionary<Type, List<Type>> typeByInterface = new();
@@ -48,8 +50,10 @@ namespace Zerra.Reflection.Dynamic
         /// <param name="forceLoadAssemblies">If true, attempts to load all assembly files from the application base directory before discovering types.</param>
         public static void Initialize(bool forceLoadAssemblies)
         {
+#if !NETSTANDARD2_0
             if (!RuntimeFeature.IsDynamicCodeSupported)
                 throw new NotSupportedException($"{nameof(Discovery)}.{nameof(Initialize)} not supported.  Dynamic code generation is not supported in this build configuration.");
+#endif
 
             if (discovered)
                 return;

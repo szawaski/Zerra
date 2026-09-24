@@ -26,7 +26,9 @@ A high-performance, distributed CQRS (Command Query Responsibility Segregation) 
 
 🔐 **Message Encryption** - Transparent symmetric encryption supporting AES, DES, TripleDES, RC2, and custom algorithms
 
-✨ **Zero Dependencies** - No external package dependencies, only .NET standard libraries
+✨ **Zero Dependencies** - No external package dependencies on .NET 10; the .NET Standard 2.0 build adds only Microsoft's System.* compatibility packages
+
+🧩 **.NET 10 and .NET Standard 2.0** - `Zerra`, `Zerra.Web`, and the `Zerra.CQRS.*` transports also run on .NET Framework 4.7.2+ and other .NET Standard 2.0 platforms
 
 ## Installation
 

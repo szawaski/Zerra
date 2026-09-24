@@ -43,7 +43,7 @@ namespace Zerra.Reflection
         DateTimeOffset,
         /// <summary>System.TimeSpan - time duration or interval.</summary>
         TimeSpan,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         /// <summary>System.DateOnly - date without time component (NET6.0 or greater).</summary>
         DateOnly,
         /// <summary>System.TimeOnly - time without date component (NET6.0 or greater).</summary>
@@ -84,7 +84,7 @@ namespace Zerra.Reflection
         DateTimeOffsetNullable,
         /// <summary>System.Nullable&lt;System.TimeSpan&gt; - nullable time duration or interval.</summary>
         TimeSpanNullable,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         /// <summary>System.Nullable&lt;System.DateOnly&gt; - nullable date without time component (NET6.0 or greater).</summary>
         DateOnlyNullable,
         /// <summary>System.Nullable&lt;System.TimeOnly&gt; - nullable time without date component (NET6.0 or greater).</summary>

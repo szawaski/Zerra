@@ -106,7 +106,11 @@ namespace Zerra.CQRS.RabbitMQ
                         {
                             RabbitMQMessage? message;
                             if (encryptor is not null)
+#if NETSTANDARD2_0
+                                message = serializer.Deserialize<RabbitMQMessage>(encryptor.Decrypt(e.Body.ToArray()));
+#else
                                 message = serializer.Deserialize<RabbitMQMessage>(encryptor.Decrypt(e.Body.Span));
+#endif
                             else
                                 message = serializer.Deserialize<RabbitMQMessage>(e.Body.Span);
 

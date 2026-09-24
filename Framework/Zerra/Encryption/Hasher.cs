@@ -170,7 +170,9 @@ namespace Zerra.Encryption
 
             byte[] hashBytes;
 #if NETSTANDARD2_0
-            using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations, HashAlgorithmName.SHA1))
+            if (hashAlgorithm.HasValue && hashAlgorithm.Value != HashAlgorithmName.SHA1)
+                throw new PlatformNotSupportedException($"PBKDF2 only supports {nameof(HashAlgorithmName.SHA1)} on this platform");
+            using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations))
             {
                 hashBytes = deriveBytes.GetBytes(pbkdf2HashByteSize);
             }
@@ -198,7 +200,7 @@ namespace Zerra.Encryption
             {
                 var hashBytes = Convert.FromBase64String(hash);
                 var plainBytes = Encoding.UTF8.GetBytes(plain);
-                return PBKDF2VerifyHash(plainBytes, hashBytes);
+                return PBKDF2VerifyHash(plainBytes, hashBytes, hashAlgorithm);
             }
             catch
             {
@@ -223,8 +225,10 @@ namespace Zerra.Encryption
             Array.Copy(hashWithSaltBytes, 0, hashBytes, 0, hashBytes.Length);
             Array.Copy(hashWithSaltBytes, pbkdf2HashByteSize, saltBytes, 0, saltBytes.Length);
 
-#if NETSTANDARD2_0 || NET48
-            using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations, hashAlgorithm ?? HashAlgorithmName.SHA1))
+#if NETSTANDARD2_0
+            if (hashAlgorithm.HasValue && hashAlgorithm.Value != HashAlgorithmName.SHA1)
+                throw new PlatformNotSupportedException($"PBKDF2 only supports {nameof(HashAlgorithmName.SHA1)} on this platform");
+            using (var deriveBytes = new Rfc2898DeriveBytes(plainBytes, saltBytes, rfc2898HashItterations))
             {
                 var expectedHashBytes = deriveBytes.GetBytes(pbkdf2HashByteSize);
 #else

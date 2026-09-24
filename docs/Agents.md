@@ -4,7 +4,7 @@ This document provides architectural context for AI agents working with the Zerr
 
 ## Overview
 
-Zerra is a CQRS (Command Query Responsibility Segregation) framework for .NET 10 that enables distributed message-driven architecture. It routes commands, events, and queries locally or remotely via message brokers (Kafka, RabbitMQ, Azure Service Bus) or HTTP.
+Zerra is a CQRS (Command Query Responsibility Segregation) framework for .NET 10 that enables distributed message-driven architecture. `Zerra`, `Zerra.Web`, and the `Zerra.CQRS.*` transports also target .NET Standard 2.0, so libraries and .NET Framework apps can use them (see [.NET Standard 2.0](#net-standard-20)). It routes commands, events, and queries locally or remotely via message brokers (Kafka, RabbitMQ, Azure Service Bus) or HTTP.
 
 ## Building an Application (Start Here)
 
@@ -27,7 +27,7 @@ Services share only `*.Domain` projects, never each other's data models or handl
 
 ### Project Setup
 
-- Target `net10.0`. The `Zerra` NuGet package brings the source generator (see [AOT](AOT.md)). Inside this repository, reference the projects directly and add the generator to every project that declares or implements CQRS types or data models:
+- Target `net10.0` for services. The `Zerra` NuGet package brings the source generator (see [AOT](AOT.md)). Inside this repository, reference the projects directly and add the generator to every project that declares or implements CQRS types or data models:
   ```xml
   <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
   <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
@@ -35,6 +35,16 @@ Services share only `*.Domain` projects, never each other's data models or handl
 - `<PublishAot>true</PublishAot>` also turns off dynamic code under `dotnet run`, so a type the generator missed fails in development, not first in production.
 - The "Source Generation Startup - ..." console lines at startup are expected.
 - Don't set `InvariantGlobalization` in a service that uses `Microsoft.Data.SqlClient`, it can't connect in that mode.
+
+### .NET Standard 2.0
+
+`Zerra`, `Zerra.Web`, `Zerra.CQRS.Kafka`, `Zerra.CQRS.RabbitMQ`, and `Zerra.CQRS.AzureServiceBus` target `netstandard2.0` as well as `net10.0`, so a `*.Domain` library or a .NET Framework (4.7.2 or later) app can reference them. The `Zerra.Repository.*` projects are `net10.0` only. The source generator works there too. On `netstandard2.0`:
+
+- There's no native AOT; types the generator misses are built at runtime as usual.
+- Synchronous query calls through `ApiClient` and `KestrelCqrsClient` throw `PlatformNotSupportedException`, because `HttpClient` has no synchronous send there. Use async query methods.
+- `Hasher.PBKDF2*` and `SymmetricEncryptor.GetKey` support only `HashAlgorithmName.SHA1`; any other algorithm throws `PlatformNotSupportedException`.
+- The serializers and the mapper don't handle `IReadOnlySet<T>`, `DateOnly`, or `TimeOnly`, and the span overloads of `IEncryptor` aren't there.
+- Zerra.Web uses the ASP.NET Core 2.3 packages instead of the `Microsoft.AspNetCore.App` framework reference.
 
 ### Contracts
 
@@ -480,7 +490,8 @@ When working with Zerra code:
 
 - Zerra is built for maximum runtime performance. In runtime code (serializers, the bus, network clients and servers, repository engines), make the smallest in-place change and match the existing style, even when that repeats a few lines. Don't extract shared helpers or add layers.
 - Never block on async code with `.GetAwaiter().GetResult()`, `.Result`, or `.Wait()`. Add a real synchronous path instead.
-- Runtime code must stay AOT compatible (`IsAotCompatible` is on). Get type information from `TypeDetail` (source generated) instead of generating it at runtime. Where a call is flagged with `RequiresDynamicCode` but is safe, suppress `IL3050` with a comment explaining why, as the existing code does.
+- `Zerra`, `Zerra.Web`, and `Zerra.CQRS.*` build for `netstandard2.0` and `net10.0`. Where an API is missing from `netstandard2.0`, branch with `#if NETSTANDARD2_0` / `#else` / `#endif` at the call site, keeping the `net10.0` path unchanged. Only `NETSTANDARD2_0` and `!NETSTANDARD2_0` are used; don't use `NETx_0_OR_GREATER`. AOT attributes (`RequiresUnreferencedCode`, `RequiresDynamicCode`, `UnconditionalSuppressMessage`, `DynamicDependency`) and nullable attributes like `MaybeNullWhen` go inside `#if !NETSTANDARD2_0`. Types the compiler itself needs (`IsExternalInit`, `RequiredMemberAttribute`) are in `Framework/Zerra/CompilerSupport.cs`. Build both targets after a change (`dotnet build -f netstandard2.0`).
+- Runtime code must stay AOT compatible (`IsAotCompatible` is on for `net10.0`). Get type information from `TypeDetail` (source generated) instead of generating it at runtime. Where a call is flagged with `RequiresDynamicCode` but is safe, suppress `IL3050` with a comment explaining why, as the existing code does.
 - Tests: `Tests/Zerra.Test` (core, serializers, CQRS network, plus `Web/` for the Kestrel middleware and clients), `Tests/Zerra.SourceGeneration.Test`, and `Tests/Zerra.Repository.Test`. The repository engine tests need local SQL Server, PostgreSQL (5432), MySQL (3306), and MariaDB (3307); the connection strings are in `Tests/Zerra.Repository.Test/*/*TestSqlDataContext.cs`. Each run drops and recreates the test database, and after code-first generation the tests assert the generated plan is empty. The messaging tests in the same project (`Kafka/`, `RabbitMQ/`, `AzureServiceBus/`) run the shared `MessageTest` sequence through the producer and consumer interfaces and need Kafka (9092), RabbitMQ (5672), and the Service Bus emulator (AMQP 5673, management 5300); each run uses its own topics and deletes them afterwards. `Demo/Infrastructure/start-infrastructure.ps1` starts any of these data stores and messaging services in Docker that aren't already running.
 - `Framework/Zerra.T4` targets net48 and copies its build to `Front End Scripts/Binaries`. Rebuild it after changing the JavaScript or TypeScript generators, and keep `Bus.js` and `Bus.ts` in step with each other.
 - The repository uses CRLF line endings in the working tree. Some command-line tools strip the CRs (Git Bash `sed -i`, for one), so check with `git ls-files --eol`.

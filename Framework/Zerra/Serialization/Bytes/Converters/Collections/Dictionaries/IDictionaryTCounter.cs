@@ -35,7 +35,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => throw new NotImplementedException();
         public bool Remove(TKey key) => throw new NotImplementedException();
         public bool Remove(KeyValuePair<TKey, TValue> item) => throw new NotImplementedException();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => throw new NotImplementedException();
 #else
         public bool TryGetValue(TKey key, out TValue value) => throw new NotImplementedException();

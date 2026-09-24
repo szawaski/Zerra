@@ -8,8 +8,10 @@ using static Zerra.CQRS.Reflection.BusHandlers;
 
 namespace Zerra.CQRS.Reflection.Dynamic
 {
+#if !NETSTANDARD2_0
     [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
     [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
     internal static class BusHandlerGenerator
     {
         public static MethodForHandler GenerateMethodForHandler(Type interfaceType, string methodName)

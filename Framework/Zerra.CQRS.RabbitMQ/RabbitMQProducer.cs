@@ -24,7 +24,11 @@ namespace Zerra.CQRS.RabbitMQ
     /// </remarks>
     public sealed class RabbitMQProducer : ICommandProducer, IEventProducer, IDisposable
     {
+#if NETSTANDARD2_0
+        private readonly object locker = new();
+#else
         private readonly Lock locker = new();
+#endif
 
         private readonly string host;
         private readonly ISerializer serializer;
@@ -149,7 +153,11 @@ namespace Zerra.CQRS.RabbitMQ
 
                                 var acknowledgementBody = e.Body.Span;
                                 if (encryptor is not null)
+#if NETSTANDARD2_0
+                                    acknowledgementBody = encryptor.Decrypt(acknowledgementBody.ToArray());
+#else
                                     acknowledgementBody = encryptor.Decrypt(acknowledgementBody);
+#endif
 
                                 acknowledgement = serializer.Deserialize<Acknowledgement>(acknowledgementBody);
                                 acknowledgement ??= new Acknowledgement(serializer, "Invalid Acknowledgement");
@@ -262,7 +270,11 @@ namespace Zerra.CQRS.RabbitMQ
 
                             var acknowledgementBody = e.Body.Span;
                             if (encryptor is not null)
+#if NETSTANDARD2_0
+                                acknowledgementBody = encryptor.Decrypt(acknowledgementBody.ToArray());
+#else
                                 acknowledgementBody = encryptor.Decrypt(acknowledgementBody);
+#endif
 
                             acknowledgement = serializer.Deserialize<Acknowledgement>(acknowledgementBody);
                             acknowledgement ??= new Acknowledgement(serializer, "Invalid Acknowledgement");

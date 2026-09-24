@@ -18,14 +18,18 @@ namespace Zerra.Encryption
         /// <returns>The resulting string.</returns>
         public static string ToBase64UrlString(ReadOnlySpan<byte> inArray)
         {
+#if NETSTANDARD2_0
+            var arrayString = Convert.ToBase64String(inArray.ToArray());
+#else
             var arrayString = Convert.ToBase64String(inArray);
+#endif
             var chars = arrayString.AsSpan();
 
             var length = chars.Length;
-            if (chars.Length > 0 && chars[^1] == '=')
+            if (chars.Length > 0 && chars[chars.Length - 1] == '=')
             {
                 length--;
-                if (chars.Length > 1 && chars[^2] == '=')
+                if (chars.Length > 1 && chars[chars.Length - 2] == '=')
                     length--;
             }
 
@@ -50,7 +54,7 @@ namespace Zerra.Encryption
                     _ => c,
                 };
             }
-            var filteredString = filtered[..length].ToString();
+            var filteredString = filtered.Slice(0, length).ToString();
             if (rentedArray != null)
                 ArrayPoolHelper<char>.Return(rentedArray);
             return filteredString;
@@ -106,7 +110,7 @@ namespace Zerra.Encryption
                     break;
             }
 
-            var filteredString = filtered[..filteredLength].ToString();
+            var filteredString = filtered.Slice(0, filteredLength).ToString();
             if (rentedArray != null)
                 ArrayPoolHelper<char>.Return(rentedArray);
             return Convert.FromBase64String(filteredString);

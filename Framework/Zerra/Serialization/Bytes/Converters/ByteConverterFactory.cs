@@ -18,7 +18,7 @@ using Zerra.Serialization.Bytes.Converters.CoreTypes.ICollectionTs;
 using Zerra.Serialization.Bytes.Converters.CoreTypes.IListTs;
 using Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyCollectionTs;
 using Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlyListTs;
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
 using Zerra.Serialization.Bytes.Converters.CoreTypes.IReadOnlySetTs;
 #endif
 using Zerra.Serialization.Bytes.Converters.CoreTypes.ISetTs;
@@ -102,7 +102,9 @@ namespace Zerra.Serialization.Bytes.Converters
             return cacheByteConverterTypeInfo;
         }
 
+#if !NETSTANDARD2_0
         [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "We don't necessarily know that this will fail with AOT, so we let it fail at runtime.")]
+#endif
         internal static Func<ByteConverter> GenerateByteConverterCreator(TypeDetail typeDetail)
         {
             //if (!RuntimeFeature.IsDynamicCodeSupported)
@@ -152,7 +154,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     case CoreType.DateTime: return static () => new ByteConverterDateTime();
                     case CoreType.DateTimeOffset: return static () => new ByteConverterDateTimeOffset();
                     case CoreType.TimeSpan: return static () => new ByteConverterTimeSpan();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                     case CoreType.DateOnly: return static () => new ByteConverterDateOnly();
                     case CoreType.TimeOnly: return static () => new ByteConverterTimeOnly();
 #endif
@@ -173,7 +175,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     case CoreType.DateTimeNullable: return static () => new ByteConverterDateTimeNullable();
                     case CoreType.DateTimeOffsetNullable: return static () => new ByteConverterDateTimeOffsetNullable();
                     case CoreType.TimeSpanNullable: return static () => new ByteConverterTimeSpanNullable();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                     case CoreType.DateOnlyNullable: return static () => new ByteConverterDateOnlyNullable();
                     case CoreType.TimeOnlyNullable: return static () => new ByteConverterTimeOnlyNullable();
 #endif
@@ -204,7 +206,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTime: return static () => new ByteConverterDateTimeArray();
                         case CoreType.DateTimeOffset: return static () => new ByteConverterDateTimeOffsetArray();
                         case CoreType.TimeSpan: return static () => new ByteConverterTimeSpanArray();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnly: return static () => new ByteConverterDateOnlyArray();
                         case CoreType.TimeOnly: return static () => new ByteConverterTimeOnlyArray();
 #endif
@@ -225,7 +227,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTimeNullable: return static () => new ByteConverterDateTimeNullableArray();
                         case CoreType.DateTimeOffsetNullable: return static () => new ByteConverterDateTimeOffsetNullableArray();
                         case CoreType.TimeSpanNullable: return static () => new ByteConverterTimeSpanNullableArray();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnlyNullable: return static () => new ByteConverterDateOnlyNullableArray();
                         case CoreType.TimeOnlyNullable: return static () => new ByteConverterTimeOnlyNullableArray();
 #endif
@@ -254,7 +256,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTime: return static () => new ByteConverterDateTimeList();
                         case CoreType.DateTimeOffset: return static () => new ByteConverterDateTimeOffsetList();
                         case CoreType.TimeSpan: return static () => new ByteConverterTimeSpanList();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnly: return static () => new ByteConverterDateOnlyList();
                         case CoreType.TimeOnly: return static () => new ByteConverterTimeOnlyList();
 #endif
@@ -275,7 +277,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTimeNullable: return static () => new ByteConverterDateTimeNullableList();
                         case CoreType.DateTimeOffsetNullable: return static () => new ByteConverterDateTimeOffsetNullableList();
                         case CoreType.TimeSpanNullable: return static () => new ByteConverterTimeSpanNullableList();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnlyNullable: return static () => new ByteConverterDateOnlyNullableList();
                         case CoreType.TimeOnlyNullable: return static () => new ByteConverterTimeOnlyNullableList();
 #endif
@@ -304,7 +306,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTime: return static () => new ByteConverterDateTimeIList();
                         case CoreType.DateTimeOffset: return static () => new ByteConverterDateTimeOffsetIList();
                         case CoreType.TimeSpan: return static () => new ByteConverterTimeSpanIList();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnly: return static () => new ByteConverterDateOnlyIList();
                         case CoreType.TimeOnly: return static () => new ByteConverterTimeOnlyIList();
 #endif
@@ -325,7 +327,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTimeNullable: return static () => new ByteConverterDateTimeNullableIList();
                         case CoreType.DateTimeOffsetNullable: return static () => new ByteConverterDateTimeOffsetNullableIList();
                         case CoreType.TimeSpanNullable: return static () => new ByteConverterTimeSpanNullableIList();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnlyNullable: return static () => new ByteConverterDateOnlyNullableIList();
                         case CoreType.TimeOnlyNullable: return static () => new ByteConverterTimeOnlyNullableIList();
 #endif
@@ -354,7 +356,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTime: return static () => new ByteConverterDateTimeIReadOnlyList();
                         case CoreType.DateTimeOffset: return static () => new ByteConverterDateTimeOffsetIReadOnlyList();
                         case CoreType.TimeSpan: return static () => new ByteConverterTimeSpanIReadOnlyList();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnly: return static () => new ByteConverterDateOnlyIReadOnlyList();
                         case CoreType.TimeOnly: return static () => new ByteConverterTimeOnlyIReadOnlyList();
 #endif
@@ -375,7 +377,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTimeNullable: return static () => new ByteConverterDateTimeNullableIReadOnlyList();
                         case CoreType.DateTimeOffsetNullable: return static () => new ByteConverterDateTimeOffsetNullableIReadOnlyList();
                         case CoreType.TimeSpanNullable: return static () => new ByteConverterTimeSpanNullableIReadOnlyList();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnlyNullable: return static () => new ByteConverterDateOnlyNullableIReadOnlyList();
                         case CoreType.TimeOnlyNullable: return static () => new ByteConverterTimeOnlyNullableIReadOnlyList();
 #endif
@@ -404,7 +406,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTime: return static () => new ByteConverterDateTimeICollection();
                         case CoreType.DateTimeOffset: return static () => new ByteConverterDateTimeOffsetICollection();
                         case CoreType.TimeSpan: return static () => new ByteConverterTimeSpanICollection();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnly: return static () => new ByteConverterDateOnlyICollection();
                         case CoreType.TimeOnly: return static () => new ByteConverterTimeOnlyICollection();
 #endif
@@ -425,7 +427,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTimeNullable: return static () => new ByteConverterDateTimeNullableICollection();
                         case CoreType.DateTimeOffsetNullable: return static () => new ByteConverterDateTimeOffsetNullableICollection();
                         case CoreType.TimeSpanNullable: return static () => new ByteConverterTimeSpanNullableICollection();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnlyNullable: return static () => new ByteConverterDateOnlyNullableICollection();
                         case CoreType.TimeOnlyNullable: return static () => new ByteConverterTimeOnlyNullableICollection();
 #endif
@@ -454,7 +456,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTime: return static () => new ByteConverterDateTimeIReadOnlyCollection();
                         case CoreType.DateTimeOffset: return static () => new ByteConverterDateTimeOffsetIReadOnlyCollection();
                         case CoreType.TimeSpan: return static () => new ByteConverterTimeSpanIReadOnlyCollection();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnly: return static () => new ByteConverterDateOnlyIReadOnlyCollection();
                         case CoreType.TimeOnly: return static () => new ByteConverterTimeOnlyIReadOnlyCollection();
 #endif
@@ -475,7 +477,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTimeNullable: return static () => new ByteConverterDateTimeNullableIReadOnlyCollection();
                         case CoreType.DateTimeOffsetNullable: return static () => new ByteConverterDateTimeOffsetNullableIReadOnlyCollection();
                         case CoreType.TimeSpanNullable: return static () => new ByteConverterTimeSpanNullableIReadOnlyCollection();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnlyNullable: return static () => new ByteConverterDateOnlyNullableIReadOnlyCollection();
                         case CoreType.TimeOnlyNullable: return static () => new ByteConverterTimeOnlyNullableIReadOnlyCollection();
 #endif
@@ -504,7 +506,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTime: return static () => new ByteConverterDateTimeHashSet();
                         case CoreType.DateTimeOffset: return static () => new ByteConverterDateTimeOffsetHashSet();
                         case CoreType.TimeSpan: return static () => new ByteConverterTimeSpanHashSet();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnly: return static () => new ByteConverterDateOnlyHashSet();
                         case CoreType.TimeOnly: return static () => new ByteConverterTimeOnlyHashSet();
 #endif
@@ -525,7 +527,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTimeNullable: return static () => new ByteConverterDateTimeNullableHashSet();
                         case CoreType.DateTimeOffsetNullable: return static () => new ByteConverterDateTimeOffsetNullableHashSet();
                         case CoreType.TimeSpanNullable: return static () => new ByteConverterTimeSpanNullableHashSet();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnlyNullable: return static () => new ByteConverterDateOnlyNullableHashSet();
                         case CoreType.TimeOnlyNullable: return static () => new ByteConverterTimeOnlyNullableHashSet();
 #endif
@@ -554,7 +556,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTime: return static () => new ByteConverterDateTimeISet();
                         case CoreType.DateTimeOffset: return static () => new ByteConverterDateTimeOffsetISet();
                         case CoreType.TimeSpan: return static () => new ByteConverterTimeSpanISet();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnly: return static () => new ByteConverterDateOnlyISet();
                         case CoreType.TimeOnly: return static () => new ByteConverterTimeOnlyISet();
 #endif
@@ -575,7 +577,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTimeNullable: return static () => new ByteConverterDateTimeNullableISet();
                         case CoreType.DateTimeOffsetNullable: return static () => new ByteConverterDateTimeOffsetNullableISet();
                         case CoreType.TimeSpanNullable: return static () => new ByteConverterTimeSpanNullableISet();
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                         case CoreType.DateOnlyNullable: return static () => new ByteConverterDateOnlyNullableISet();
                         case CoreType.TimeOnlyNullable: return static () => new ByteConverterTimeOnlyNullableISet();
 #endif
@@ -583,7 +585,7 @@ namespace Zerra.Serialization.Bytes.Converters
                             //case CoreType.String: return static () => new ByteConverterStringISet();
                     }
                 }
-
+#if !NETSTANDARD2_0
                 if (typeDetail.IsIReadOnlySetGeneric)
                 {
                     switch (typeDetail.IEnumerableGenericInnerTypeDetail.CoreType.Value)
@@ -604,10 +606,8 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTime: return static () => new ByteConverterDateTimeIReadOnlySet();
                         case CoreType.DateTimeOffset: return static () => new ByteConverterDateTimeOffsetIReadOnlySet();
                         case CoreType.TimeSpan: return static () => new ByteConverterTimeSpanIReadOnlySet();
-#if NET6_0_OR_GREATER
                         case CoreType.DateOnly: return static () => new ByteConverterDateOnlyIReadOnlySet();
                         case CoreType.TimeOnly: return static () => new ByteConverterTimeOnlyIReadOnlySet();
-#endif
                         case CoreType.Guid: return static () => new ByteConverterGuidIReadOnlySet();
                         case CoreType.BooleanNullable: return static () => new ByteConverterBooleanNullableIReadOnlySet();
                         case CoreType.ByteNullable: return static () => new ByteConverterByteNullableIReadOnlySet();
@@ -625,14 +625,13 @@ namespace Zerra.Serialization.Bytes.Converters
                         case CoreType.DateTimeNullable: return static () => new ByteConverterDateTimeNullableIReadOnlySet();
                         case CoreType.DateTimeOffsetNullable: return static () => new ByteConverterDateTimeOffsetNullableIReadOnlySet();
                         case CoreType.TimeSpanNullable: return static () => new ByteConverterTimeSpanNullableIReadOnlySet();
-#if NET6_0_OR_GREATER
                         case CoreType.DateOnlyNullable: return static () => new ByteConverterDateOnlyNullableIReadOnlySet();
                         case CoreType.TimeOnlyNullable: return static () => new ByteConverterTimeOnlyNullableIReadOnlySet();
-#endif
                         case CoreType.GuidNullable: return static () => new ByteConverterGuidNullableIReadOnlySet();
                             //case CoreType.String: return static () => new ByteConverterStringIReadOnlySet();
                     }
                 }
+#endif
             }
 
             if (typeDetail.IsIList)
@@ -646,8 +645,10 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (typeDetail.IsISetGeneric)
                 return static () => new ByteConverterISetT<TEnumerableType>();
+#if !NETSTANDARD2_0
             if (typeDetail.IsIReadOnlySetGeneric)
                 return static () => new ByteConverterIReadOnlySetT<TEnumerableType>();
+#endif
             if (typeDetail.IsHashSetGeneric)
                 return static () => new ByteConverterHashSetT<TEnumerableType>();
 

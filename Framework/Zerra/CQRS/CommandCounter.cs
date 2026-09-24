@@ -7,7 +7,11 @@ namespace Zerra.CQRS
     /// </summary>
     public sealed class CommandCounter
     {
+#if NETSTANDARD2_0
+        private readonly object locker = new();
+#else
         private readonly Lock locker = new();
+#endif
 
         private int started = 0;
         private int completed = 0;

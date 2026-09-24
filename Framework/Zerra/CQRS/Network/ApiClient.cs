@@ -241,6 +241,10 @@ namespace Zerra.CQRS.Network
 
         private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string providerType, ApiRequestData data, bool getResponseData)
         {
+#if NETSTANDARD2_0
+            //HttpClient has no synchronous send in netstandard2.0
+            throw new PlatformNotSupportedException($"{nameof(ApiClient)} synchronous calls are not supported on this platform, use the async methods.");
+#else
             throttle.Wait();
 
             HttpResponseMessage? response = null;
@@ -318,6 +322,7 @@ namespace Zerra.CQRS.Network
             {
                 throttle.Release();
             }
+#endif
         }
 
         /// <inheritdoc />

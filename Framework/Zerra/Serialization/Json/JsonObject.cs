@@ -559,7 +559,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return TimeSpan.Parse(obj.valueString!);
         }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         /// <summary>
         /// Converts this JSON object to a DateOnly value.
         /// </summary>
@@ -854,7 +854,7 @@ namespace Zerra.Serialization.Json
                 throw new InvalidCastException();
             return TimeSpan.Parse(obj.valueString!);
         }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         /// <summary>
         /// Converts this JSON object to a nullable DateOnly value.
         /// </summary>
