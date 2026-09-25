@@ -8,7 +8,8 @@ namespace Zerra.Repository.Memory
 {
     public sealed partial class MemoryEngine
     {
-        private static readonly ConcurrentFactoryDictionary<string, MemoryEventStream> streams = new();
+        //per instance, like the rows in MemoryEngine.TransactStore.cs: two engines never see each other's streams
+        private readonly ConcurrentFactoryDictionary<string, MemoryEventStream> streams = new();
 
         //streams are append only so an event number is always the index of that event in the list
         private sealed class MemoryEventStream

@@ -28,14 +28,27 @@ namespace Zerra.Repository
         protected readonly IEventStoreEngine Engine;
 
         /// <summary>
-        /// Initializes a new instance and resolves the <see cref="IEventStoreEngine"/> from the provided <typeparamref name="TContext"/>.
+        /// Initializes a new instance and resolves the <see cref="IEventStoreEngine"/> from the <typeparamref name="TContext"/> instance every provider on the type shares.
         /// </summary>
         /// <exception cref="Exception">
         /// Thrown when <typeparamref name="TContext"/> cannot produce an <see cref="IEventStoreEngine"/>.
         /// </exception>
         public EventStoreAsTransactStoreProvider()
+            : this(DataContextInstance<TContext>.Shared)
         {
-            var context = new TContext();
+        }
+
+        /// <summary>
+        /// Initializes a new instance and resolves the <see cref="IEventStoreEngine"/> from <paramref name="context"/>.
+        /// </summary>
+        /// <param name="context">The context to use. Providers given the same instance share its engine, so a new instance of an in-memory context is a new, empty store.</param>
+        /// <exception cref="Exception">
+        /// Thrown when <typeparamref name="TContext"/> cannot produce an <see cref="IEventStoreEngine"/>.
+        /// </exception>
+        public EventStoreAsTransactStoreProvider(TContext context)
+        {
+            if (context is null)
+                throw new ArgumentNullException(nameof(context));
             if (!context.TryGetEngine(out var engine))
                 throw new Exception($"{typeof(TContext).Name} could not produce an engine of {typeof(IEventStoreEngine).Name}");
             if (engine is not IEventStoreEngine eventStoreEngine)

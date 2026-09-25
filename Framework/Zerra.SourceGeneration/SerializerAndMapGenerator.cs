@@ -33,31 +33,40 @@ namespace Zerra.SourceGeneration
 
                 var namedTypeSymbol = model.TypeSymbol as INamedTypeSymbol;
 
-                INamedTypeSymbol? mapBaseOrInterface = null;
+                //a class can implement IMapDefinition for several type pairs, and each one is registered
+                INamedTypeSymbol[] mapBasesOrInterfaces = [];
                 if (namedTypeSymbol != null)
                 {
-                    mapBaseOrInterface = namedTypeSymbol.AllInterfaces.FirstOrDefault(x => x.Name == "IMapDefinition" && x.ContainingNamespace.ToString() == "Zerra.Map");
-                    mapBaseOrInterface ??= Helper.FindBase("Zerra.Map", "MapDefinition", model.TypeSymbol);
+                    mapBasesOrInterfaces = namedTypeSymbol.AllInterfaces.Where(x => x.Name == "IMapDefinition" && x.ContainingNamespace.ToString() == "Zerra.Map").ToArray();
+                    if (mapBasesOrInterfaces.Length == 0)
+                    {
+                        var mapBase = Helper.FindBase("Zerra.Map", "MapDefinition", model.TypeSymbol);
+                        if (mapBase != null)
+                            mapBasesOrInterfaces = [mapBase];
+                    }
                 }
 
-                if (namedTypeSymbol != null && mapBaseOrInterface != null)
+                if (namedTypeSymbol != null && mapBasesOrInterfaces.Length > 0)
                 {
-                    var sourceType = mapBaseOrInterface.TypeArguments[0];
-                    var targetType = mapBaseOrInterface.TypeArguments[1];
-                    var (sourceTypeName, sourceEnumerableTypeName, sourceDictionaryKeyTypeName, sourceDictionaryValueTypeName) = GetTypeParameters(sourceType);
-                    var (targetTypeName, targetEnumerableTypeName, targetDictionaryKeyTypeName, targetDictionaryValueTypeName) = GetTypeParameters(targetType);
+                    foreach (var mapBaseOrInterface in mapBasesOrInterfaces)
+                    {
+                        var sourceType = mapBaseOrInterface.TypeArguments[0];
+                        var targetType = mapBaseOrInterface.TypeArguments[1];
+                        var (sourceTypeName, sourceEnumerableTypeName, sourceDictionaryKeyTypeName, sourceDictionaryValueTypeName) = GetTypeParameters(sourceType);
+                        var (targetTypeName, targetEnumerableTypeName, targetDictionaryKeyTypeName, targetDictionaryValueTypeName) = GetTypeParameters(targetType);
 
-                    _ = sb.Append(EnvironmentHelper.NewLine);
-                    _ = sb.Append("global::Zerra.Reflection.Register.CustomMap<")
-                        .Append(sourceTypeName).Append(",")
-                        .Append(targetTypeName).Append(",")
-                        .Append(sourceEnumerableTypeName).Append(",")
-                        .Append(targetEnumerableTypeName).Append(",")
-                        .Append(sourceDictionaryKeyTypeName).Append(",")
-                        .Append(sourceDictionaryValueTypeName).Append(",")
-                        .Append(targetDictionaryKeyTypeName).Append(",")
-                        .Append(targetDictionaryValueTypeName)
-                        .Append(">(new ").Append(Helper.GetFullName(namedTypeSymbol)).Append("());");
+                        _ = sb.Append(EnvironmentHelper.NewLine);
+                        _ = sb.Append("global::Zerra.Reflection.Register.CustomMap<")
+                            .Append(sourceTypeName).Append(",")
+                            .Append(targetTypeName).Append(",")
+                            .Append(sourceEnumerableTypeName).Append(",")
+                            .Append(targetEnumerableTypeName).Append(",")
+                            .Append(sourceDictionaryKeyTypeName).Append(",")
+                            .Append(sourceDictionaryValueTypeName).Append(",")
+                            .Append(targetDictionaryKeyTypeName).Append(",")
+                            .Append(targetDictionaryValueTypeName)
+                            .Append(">(new ").Append(Helper.GetFullName(namedTypeSymbol)).Append("());");
+                    }
                 }
                 else
                 {

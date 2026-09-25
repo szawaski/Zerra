@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+// Copyright ï¿½ KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -304,6 +304,29 @@ namespace Zerra.Test.Map
             modelA = modelB.Map<ModelB, ModelA>();
             Assert.Equal(64, modelA.PropA);
             Assert.Equal(128, modelA.PropC);
+        }
+
+        private sealed class SameNameSourceOne { public int Value { get; set; } }
+        private sealed class SameNameTargetOne { public string? Text { get; set; } }
+        private sealed class SameNameSourceTwo { public int Value { get; set; } }
+        private sealed class SameNameTargetTwo { public string? Text { get; set; } }
+        private sealed class SameNameMaps : IMapDefinition<SameNameSourceOne, SameNameTargetOne>, IMapDefinition<SameNameSourceTwo, SameNameTargetTwo>
+        {
+            public void Define(IMapSetup<SameNameSourceOne, SameNameTargetOne> map) => map.Define(x => x.Text, x => $"one {x.Value}");
+            public void Define(IMapSetup<SameNameSourceTwo, SameNameTargetTwo> map) => map.Define(x => x.Text, x => $"two {x.Value}");
+        }
+
+        [Fact]
+        public void CustomizationsOfSameNamedMembersOnOtherTypes()
+        {
+            //each customization's converter holds getters of its own type pair, so two pairs defining a member with the same name
+            //and member types must not share it (the second map threw an InvalidCastException casting to the first pair's source)
+            var maps = new SameNameMaps();
+            MapDefinition.Register<SameNameSourceOne, SameNameTargetOne>(maps);
+            MapDefinition.Register<SameNameSourceTwo, SameNameTargetTwo>(maps);
+
+            Assert.Equal("one 1", new SameNameSourceOne() { Value = 1 }.Map<SameNameSourceOne, SameNameTargetOne>().Text);
+            Assert.Equal("two 2", new SameNameSourceTwo() { Value = 2 }.Map<SameNameSourceTwo, SameNameTargetTwo>().Text);
         }
 
         [Fact]

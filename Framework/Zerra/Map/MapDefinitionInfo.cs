@@ -6,6 +6,8 @@ namespace Zerra.Map
 {
     internal sealed class MapDefinitionInfo
     {
+        //the converter cache key, built once here: the name alone isn't unique across type pairs with same-typed members
+        public string Id { get; }
         public bool IsReverse { get; init; }
         public string Name { get; init; }
         public Type TargetType { get; init; }
@@ -13,8 +15,9 @@ namespace Zerra.Map
         public Type SourceType { get; init; }
         public Delegate SourceGetter { get; init; }
 
-        public MapDefinitionInfo(bool isReverse, string name, Type targetType, Delegate targetSetter, Type sourceType, Delegate sourceGetter)
+        public MapDefinitionInfo(Type parentSourceType, Type parentTargetType, bool isReverse, string name, Type targetType, Delegate targetSetter, Type sourceType, Delegate sourceGetter)
         {
+            this.Id = $"{parentSourceType.FullName} to {parentTargetType.FullName}.{name}";
             this.IsReverse = isReverse;
             this.Name = name;
             this.TargetType = targetType;

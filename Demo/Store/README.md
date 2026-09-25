@@ -52,6 +52,16 @@ Each service follows the same layout:
 
 Carts is the exception. It stores events instead of rows, so it has no data models or store provider. It has an `Aggregates/` folder with `CartAggregate`, an `AggregateRoot` whose `On` methods apply each event to the cart. Its handlers build the aggregate on the event store themselves (see [Where to look](#where-to-look)).
 
+## Tests
+
+Each service has an xUnit test project next to it, `Store.Catalog.Test` through `Store.Carts.Test`, that tests its query and command handlers, plus `CartAggregate` in Carts. None of them needs a database, a message broker, or another service running:
+
+- Each project's `*TestBus` builds a bus the way the service's `Program.cs` does, with `Bus.New` and `AddHandler`. The handlers read their repo and services from the bus context, the same as they do in the service.
+- The repo is the service's own store providers on the in-memory store, the same as the **In Memory** launch profile. Each test hands the providers a new data context, and a new in-memory context is a new, empty store, so every test starts from nothing and no test sees another's rows. The services themselves use the parameterless constructor, which shares one context per type. Carts gets a new in-memory event store per test.
+- The other services a handler calls or messages are small fake handlers added to the same bus, so the handler under test calls `Bus.Call<ICatalogQueryHandler>()` or dispatches a command as it normally would, and the test checks what the fake received.
+
+Run them from Visual Studio's Test Explorer, or build a project and run its exe, e.g. `Demo\Store\Store.Carts.Test\bin\Debug\net10.0\Store.Carts.Test.exe`.
+
 ## Running
 
 **Visual Studio (17.11 or later):** pick the **Store Demo (In Memory, Direct Messaging)** launch profile in the startup project dropdown and press F5. It starts all seven services with `STORE_IN_MEMORY` and `STORE_DIRECT_MESSAGING` set, so no databases or message brokers are needed, and the browser opens `http://localhost:5100`. **Store Demo (Databases, Message Brokers)** starts them the same way but uses the databases and message brokers when they're reachable. The profiles are in `Zerra.slnLaunch` at the repository root, and each uses the profile with the same name in every project's `Properties/launchSettings.json`. "In Memory, Direct Messaging" is listed first, so it's each project's default.

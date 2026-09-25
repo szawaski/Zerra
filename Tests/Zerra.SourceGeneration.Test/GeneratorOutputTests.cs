@@ -271,9 +271,110 @@ namespace Zerra.SourceGeneration.Test
             output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.AbstractModel,");
             output.AssertInitializerDoesNotContain("global::TestApp.IgnoredModel");
 
+            //generic dictionaries are SpecialType.Dictionary, as the runtime TypeDetail reports (the lookup is by metadata name, Dictionary`2)
+            output.AssertInitializerContains("global::Zerra.Reflection.SpecialType.Dictionary");
+
             //closed generic interfaces reached by a model get an empty implementation
             Assert.Contains("Empty_IHolder_TestApp_Child_.cs", output.Sources.Keys);
             output.AssertInitializerContains("global::Zerra.Reflection.Register.EmptyImplementation(typeof(global::TestApp.IHolder<global::TestApp.Child>), typeof(Empty_IHolder_TestApp_Child_));");
+        }
+
+        [Fact]
+        public void EmptyImplementationNullability()
+        {
+            //the empty implementation must restate nullable reference types, or it gets CS8767/CS8769 (errors under TreatWarningsAsErrors)
+            var output = GeneratorRunner.Run("""
+                using System.Collections.Generic;
+                using Zerra.Reflection;
+
+                namespace TestApp
+                {
+                    [GenerateTypeDetail]
+                    public class Model
+                    {
+                        public IEqualityComparer<string>? Comparer { get; set; }
+                        public ILookup<Child>? Lookup { get; set; }
+                    }
+
+                    public class Child
+                    {
+                        public int Value { get; set; }
+                    }
+
+                    public interface ILookup<T> where T : class
+                    {
+                        string? Label { get; set; }
+                        string Name { get; }
+                        T? Find(string? key, string required);
+                        System.Threading.Tasks.Task<string?> FindAsync(string? key);
+                    }
+                }
+                """);
+
+            Assert.Contains("Empty_IEqualityComparer_string_.cs", output.Sources.Keys);
+            Assert.Contains("Empty_ILookup_TestApp_Child_.cs", output.Sources.Keys);
+
+            //internal: a public type needs XML docs (CS1591) and collides with the same generated type in other assemblies (CS0436)
+            Assert.Contains("internal sealed class Empty_IEqualityComparer_string_", output.Sources["Empty_IEqualityComparer_string_.cs"]);
+        }
+
+        [Fact]
+        public void LibraryTypeShapes()
+        {
+            //shapes found on library types a model reaches, each of which generated code that did not compile
+            var output = GeneratorRunner.Run("""
+                using System;
+                using System.Diagnostics.CodeAnalysis;
+                using Zerra.Reflection;
+
+                namespace TestApp
+                {
+                    [GenerateTypeDetail]
+                    public class Model
+                    {
+                        public Client? Client { get; set; }
+                        public Func<Client>? Factory { get; set; }
+                    }
+
+                    public struct Options
+                    {
+                        public int Value { get; set; }
+                    }
+
+                    public class Client
+                    {
+                        //a parameterless constructor that isn't public can't be the creator
+                        protected Client() { }
+                        //an in parameter is passed the unboxed value, not by in
+                        public Client(in Options options) { }
+                        //a ref parameter can't be passed an object[] element
+                        public Client(ref int count) { }
+
+                        [Obsolete("Use Other", DiagnosticId = "TEST0001")]
+                        public string? Old { get; set; }
+
+                        [Experimental("TEST0002")]
+                        public string? Preview { get; set; }
+
+                        [Experimental("TEST0003")]
+                        public Settings? Settings { get; set; }
+                    }
+
+                    [Experimental("TEST0003")]
+                    public class Settings
+                    {
+                        public int Value { get; set; }
+                    }
+                }
+                """);
+
+            //the IDs of obsolete and experimental members and types are suppressed; CS0436 covers generated types an assembly also sees through InternalsVisibleTo
+            output.AssertInitializerContains("#pragma warning disable CS0436");
+            output.AssertInitializerContains("TEST0001, TEST0002, TEST0003");
+            output.AssertInitializerDoesNotContain("new global::TestApp.Client()");
+            output.AssertInitializerDoesNotContain("new global::System.Func<global::TestApp.Client>(");
+            output.AssertInitializerDoesNotContain("in (global::TestApp.Options)");
+            output.AssertInitializerDoesNotContain("ref (int)");
         }
 
         [Fact]
@@ -306,8 +407,23 @@ namespace Zerra.SourceGeneration.Test
                     public class SourcesToTargets : IMapDefinition<List<Source>, Target[]>
                     {
                     }
+
+                    public class Other
+                    {
+                        public int C { get; set; }
+                    }
+
+                    //one class defining several maps registers each of them
+                    public class SeveralMaps : IMapDefinition<Source, Other>, IMapDefinition<Target, Other>
+                    {
+                        public void Define(IMapSetup<Source, Other> map) => map.Define(x => x.C, x => x.A);
+                        public void Define(IMapSetup<Target, Other> map) => map.Define(x => x.C, x => x.B);
+                    }
                 }
                 """);
+
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.CustomMap<global::TestApp.Source,global::TestApp.Other,object,object,object,object,object,object>(new global::TestApp.SeveralMaps());");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.CustomMap<global::TestApp.Target,global::TestApp.Other,object,object,object,object,object,object>(new global::TestApp.SeveralMaps());");
 
             output.AssertInitializerContains("global::Zerra.Reflection.Register.CustomMap<global::TestApp.Source,global::TestApp.Target,object,object,object,object,object,object>(new global::TestApp.SourceToTarget());");
             output.AssertInitializerContains("global::Zerra.Reflection.Register.CustomMap<global::System.Collections.Generic.List<global::TestApp.Source>,global::TestApp.Target[],global::TestApp.Source,global::TestApp.Target,object,object,object,object>(new global::TestApp.SourcesToTargets());");
@@ -391,6 +507,8 @@ namespace Zerra.SourceGeneration.Test
                     {
                         public (int A, string B) Pair { get; set; }
                         public (int, int, int, int, int, int, int, int, int) Long { get; set; }
+                        //a HashSet brings IEqualityComparer<(int A, string B)>, whose empty implementation is named from the tuple
+                        public System.Collections.Generic.HashSet<(int A, string B)>? Pairs { get; set; }
                     }
 
                     public interface IWidgetQueryProvider : IQueryHandler
@@ -402,6 +520,7 @@ namespace Zerra.SourceGeneration.Test
 
             output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<(int, string),");
             output.AssertInitializerContains("new global::System.ValueTuple<int, string>(");
+            Assert.Contains("Empty_IEqualityComparer__intA_stringB__.cs", output.Sources.Keys);
         }
 
         [Fact]

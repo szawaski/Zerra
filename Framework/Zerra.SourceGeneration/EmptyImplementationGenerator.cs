@@ -52,7 +52,7 @@ namespace Zerra.SourceGeneration.Discovery
 
                 namespace {{ns}}.SourceGeneration
                 {
-                    public class {{className}} : {{Helper.GetFullName(model.TypeSymbol)}}
+                    internal sealed class {{className}} : {{Helper.GetFullName(model.TypeSymbol)}}
                     {
                         {{membersLines}}
                     }
@@ -81,7 +81,8 @@ namespace Zerra.SourceGeneration.Discovery
                 if (sb.Length > 0)
                     _ = sb.Append(EnvironmentHelper.NewLine).Append("        ");
 
-                _ = sb.Append(method.ReturnsVoid ? "void" : Helper.GetFullName(method.ReturnType)).Append(' ');
+                //member types keep their nullable reference annotations to match the interface (CS8766, CS8767, CS8769 otherwise)
+                _ = sb.Append(method.ReturnsVoid ? "void" : Helper.GetFullNameWithNullability(method.ReturnType)).Append(' ');
                 _ = sb.Append(Helper.GetFullName(method.ContainingType)).Append(".@").Append(method.Name);
 
                 if (method.IsGenericMethod)
@@ -108,7 +109,7 @@ namespace Zerra.SourceGeneration.Discovery
                     else
                         firstPassed = true;
 
-                    _ = sb.Append(Helper.GetFullName(parameter.Type)).Append(" @").Append(parameter.Name);
+                    _ = sb.Append(Helper.GetFullNameWithNullability(parameter.Type)).Append(" @").Append(parameter.Name);
                 }
                 _ = sb.Append(')');
                 if (method.ReturnsVoid)
@@ -140,7 +141,7 @@ namespace Zerra.SourceGeneration.Discovery
                 if (sb.Length > 0)
                     _ = sb.Append(EnvironmentHelper.NewLine).Append("        ");
 
-                _ = sb.Append(Helper.GetFullName(property.Type)).Append(" ");
+                _ = sb.Append(Helper.GetFullNameWithNullability(property.Type)).Append(" ");
                 _ = sb.Append(Helper.GetFullName(property.ContainingType)).Append('.');
                 if (property.IsIndexer)
                 {
@@ -152,7 +153,7 @@ namespace Zerra.SourceGeneration.Discovery
                             _ = sb.Append(", ");
                         else
                             firstPassed = true;
-                        _ = sb.Append(Helper.GetFullName(parameter.Type)).Append(" @").Append(parameter.Name);
+                        _ = sb.Append(Helper.GetFullNameWithNullability(parameter.Type)).Append(" @").Append(parameter.Name);
                     }
                     _ = sb.Append("]");
                     _ = sb.Append(" { get => throw new global::System.NotImplementedException(); set => throw new global::System.NotImplementedException(); }");
@@ -165,7 +166,8 @@ namespace Zerra.SourceGeneration.Discovery
                         _ = sb.Append(" get;");
                     if (property.SetMethod is not null && property.SetMethod.DeclaredAccessibility == Accessibility.Public && !property.SetMethod.IsInitOnly)
                         _ = sb.Append(" set;");
-                    _ = sb.Append(" }");
+                    //initialized so a non-nullable reference type property doesn't get CS8618
+                    _ = sb.Append(" } = default!;");
                 }
             }
         }

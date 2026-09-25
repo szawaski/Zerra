@@ -341,6 +341,65 @@ namespace Zerra.Test.Linq
             public int Value { get; set; }
         }
 
+        private class TestInitClass
+        {
+            public string? Text { get; set; }
+            public TestInitChildClass Child { get; } = new();
+            public List<int> Items { get; } = new();
+        }
+
+        private class TestInitChildClass
+        {
+            public string? Text { get; set; }
+        }
+
+        private sealed class TestCtorClass
+        {
+            public int Value { get; }
+            public TestCtorClass(int value) => Value = value;
+        }
+
+        [Fact]
+        public void RebindExpression_New_WithArguments()
+        {
+            //a constructor with arguments has no Members (only anonymous types do), and New must not be given null members
+            Expression<Func<TestMemberClass, TestCtorClass>> lambda = x => new TestCtorClass(x.Value);
+            var parent = Expression.Parameter(typeof(object), "parent");
+
+            var result = LinqRebinder.RebindExpression(lambda.Body, lambda.Parameters[0], Expression.Convert(parent, typeof(TestMemberClass)));
+            var getter = Expression.Lambda<Func<object, TestCtorClass>>(result, parent).Compile();
+
+            Assert.Equal(5, getter(new TestMemberClass() { Value = 5 }).Value);
+        }
+
+        [Fact]
+        public void RebindExpression_New_AnonymousType()
+        {
+            Expression<Func<TestMemberClass, object>> lambda = x => new { x.Value };
+            var parent = Expression.Parameter(typeof(object), "parent");
+
+            var result = LinqRebinder.RebindExpression(lambda.Body, lambda.Parameters[0], Expression.Convert(parent, typeof(TestMemberClass)));
+            var getter = Expression.Lambda<Func<object, object>>(result, parent).Compile();
+
+            Assert.Equal(new { Value = 5 }.ToString(), getter(new TestMemberClass() { Value = 5 }).ToString());
+        }
+
+        [Fact]
+        public void RebindExpression_MemberInit_RebindsBindings()
+        {
+            //the parameter appears only inside the initializer's bindings, as in a map definition x => new Target() { Text = x.Value.ToString() }
+            Expression<Func<TestMemberClass, TestInitClass>> lambda = x => new TestInitClass() { Text = x.Value.ToString(), Child = { Text = (x.Value + 1).ToString() }, Items = { x.Value, 7 } };
+            var parent = Expression.Parameter(typeof(object), "parent");
+
+            var result = LinqRebinder.RebindExpression(lambda.Body, lambda.Parameters[0], Expression.Convert(parent, typeof(TestMemberClass)));
+            var getter = Expression.Lambda<Func<object, TestInitClass>>(result, parent).Compile();
+
+            var value = getter(new TestMemberClass() { Value = 5 });
+            Assert.Equal("5", value.Text);
+            Assert.Equal("6", value.Child.Text);
+            Assert.Equal([5, 7], value.Items);
+        }
+
         // Constant Expression Tests
         [Fact]
         public void RebindExpression_Constant_NoReplacement()

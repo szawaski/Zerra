@@ -15,7 +15,7 @@ namespace Zerra.Map
         {
             var (targetName, targetResultType, targetSetter) = CreateTargetSetter(property);
             var (sourceResultType, sourceGetter) = CreateSourceGetter(value);
-            Results.Add(new(false, targetName, targetResultType, targetSetter, sourceResultType, sourceGetter));
+            Results.Add(new(typeof(TSource), typeof(TTarget), false, targetName, targetResultType, targetSetter, sourceResultType, sourceGetter));
         }
 
         public void DefineTwoWay<TPropertyValue1, TPropertyValue2>(Expression<Func<TTarget, TPropertyValue1?>> property1, Expression<Func<TSource, TPropertyValue2?>> property2)
@@ -23,12 +23,12 @@ namespace Zerra.Map
             {
                 var (property1Name, property1ResultType, property1Setter) = CreateTargetSetter(property1);
                 var (property2ResultType, property2Getter) = CreateSourceGetter(property2);
-                Results.Add(new(false, property1Name, property1ResultType, property1Setter, property2ResultType, property2Getter));
+                Results.Add(new(typeof(TSource), typeof(TTarget), false, property1Name, property1ResultType, property1Setter, property2ResultType, property2Getter));
             }
             {
                 var (property2Name, property2ResultType, property2Setter) = CreateTargetSetter(property2);
                 var (property1ResultType, property1Getter) = CreateSourceGetter(property1);
-                Results.Add(new(true, property2Name, property2ResultType, property2Setter, property1ResultType, property1Getter));
+                Results.Add(new(typeof(TTarget), typeof(TSource), true, property2Name, property2ResultType, property2Setter, property1ResultType, property1Getter));
             }
         }
 
@@ -36,7 +36,7 @@ namespace Zerra.Map
         {
             var (targetName, targetResultType, targetSetter) = CreateTargetSetter(property);
             var (sourceResultType, sourceGetter) = CreateSourceGetter(value);
-            Results.Add(new(true, targetName, targetResultType, targetSetter, sourceResultType, sourceGetter));
+            Results.Add(new(typeof(TTarget), typeof(TSource), true, targetName, targetResultType, targetSetter, sourceResultType, sourceGetter));
         }
 
         private static (Type, Func<object, V?>) CreateSourceGetter<T, V>(Expression<Func<T, V?>> value)

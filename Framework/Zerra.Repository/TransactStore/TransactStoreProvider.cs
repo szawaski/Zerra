@@ -23,11 +23,19 @@ namespace Zerra.Repository
         /// <summary>The engine used to execute queries and persist operations against the underlying data store.</summary>
         protected readonly ITransactStoreEngine Engine;
 
-        /// <summary>Initializes a new instance of <see cref="TransactStoreProvider{TContext, TModel}"/>, resolving the <see cref="ITransactStoreEngine"/> from a new <typeparamref name="TContext"/> instance.</summary>
+        /// <summary>Initializes a new instance of <see cref="TransactStoreProvider{TContext, TModel}"/>, resolving the <see cref="ITransactStoreEngine"/> from the <typeparamref name="TContext"/> instance every provider on the type shares.</summary>
         public TransactStoreProvider()
+            : this(DataContextInstance<TContext>.Shared)
         {
+        }
+
+        /// <summary>Initializes a new instance of <see cref="TransactStoreProvider{TContext, TModel}"/>, resolving the <see cref="ITransactStoreEngine"/> from <paramref name="context"/>.</summary>
+        /// <param name="context">The context to use. Providers given the same instance share its engine, so a new instance of an in-memory context is a new, empty store.</param>
+        public TransactStoreProvider(TContext context)
+        {
+            if (context is null)
+                throw new ArgumentNullException(nameof(context));
             this.deleteBatchSize = ModelTypeDetail.IdentityMembers.Count == 1 ? deleteBatchSizeSingleIdentity : deleteBatchSizeManyIdentity;
-            var context = new TContext();
             if (!context.TryGetEngine(out var engine))
                 throw new Exception($"{typeof(TContext).Name} could not produce an engine of {typeof(ITransactStoreEngine).Name}");
             if (engine is not ITransactStoreEngine transactStoreEngine)

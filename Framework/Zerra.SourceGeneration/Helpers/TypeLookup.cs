@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Microsoft.CodeAnalysis;
+
 namespace Zerra.SourceGeneration
 {
     /// <summary>
@@ -159,10 +161,10 @@ namespace Zerra.SourceGeneration
         /// <param name="type">The type name to look up.</param>
         /// <param name="specialType">When this method returns, contains the matched <see cref="SpecialType"/>, if found.</param>
         /// <returns><c>true</c> if a matching <see cref="SpecialType"/> was found; otherwise, <c>false</c>.</returns>
-        public static bool SpecialTypeLookup(string type, out SpecialType specialType)
+        //MetadataName is Roslyn's cached name with the generic arity, such as Dictionary`2, as Type.Name is at runtime; nothing is parsed or allocated
+        public static bool SpecialTypeLookup(ITypeSymbol typeSymbol, out SpecialType specialType)
         {
-            type = type.Split('<').First().Split('.').Last();
-            switch (type)
+            switch (typeSymbol.MetadataName)
             {
                 case "Task":
                 case "Task`1":
@@ -179,17 +181,14 @@ namespace Zerra.SourceGeneration
                 case "ConcurrentFactoryDictionary`2":
                     specialType = SpecialType.Dictionary;
                     return true;
-                case "object":
                 case "Object":
                     specialType = SpecialType.Object;
                     return true;
-                case "void":
+                case "Void":
                     specialType = SpecialType.Void;
                     return true;
                 case "IntPtr":
-                case "nint":
                 case "UIntPtr":
-                case "unint":
                     specialType = SpecialType.Pointer;
                     return true;
                 case "CancellationToken":

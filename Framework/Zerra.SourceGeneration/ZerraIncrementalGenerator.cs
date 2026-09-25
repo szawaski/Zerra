@@ -67,10 +67,86 @@ namespace Zerra.SourceGeneration
             EmptyImplementationGenerator.Generate(context, ns, sbInitializer, typesToGenerate);
             SerializerAndMapGenerator.Generate(sbInitializer, typesToGenerate);
 
-            GenerateInitializer(context, ns, sbInitializer);
+            GenerateInitializer(context, ns, sbInitializer, GetSuppressedDiagnosticIds(typesToGenerate));
         }
 
-        private static void GenerateInitializer(SourceProductionContext context, string ns, StringBuilder sbInitializer)
+        //The initializer touches members of every model type, including types from other libraries marked [Obsolete(DiagnosticId = ...)]
+        //or [Experimental(...)]. Those diagnostics carry their own IDs and fail projects built with TreatWarningsAsErrors, so each ID
+        //found on the models, their members and the types those members use is suppressed in the generated file.
+        private static string[] GetSuppressedDiagnosticIds(Dictionary<string, TypeToGenerate> models)
+        {
+            var ids = new HashSet<string>();
+            var seenTypes = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
+            foreach (var model in models.Values)
+            {
+                for (var type = model.TypeSymbol; type is not null; type = type.BaseType)
+                {
+                    AddTypeDiagnosticIds(type, ids, seenTypes);
+                    foreach (var member in type.GetMembers())
+                    {
+                        AddDiagnosticIds(member, ids);
+                        switch (member)
+                        {
+                            case IPropertySymbol property:
+                                AddTypeDiagnosticIds(property.Type, ids, seenTypes);
+                                break;
+                            case IFieldSymbol field:
+                                AddTypeDiagnosticIds(field.Type, ids, seenTypes);
+                                break;
+                            case IMethodSymbol method:
+                                AddTypeDiagnosticIds(method.ReturnType, ids, seenTypes);
+                                foreach (var parameter in method.Parameters)
+                                    AddTypeDiagnosticIds(parameter.Type, ids, seenTypes);
+                                break;
+                        }
+                    }
+                }
+            }
+            return ids.OrderBy(x => x, StringComparer.Ordinal).ToArray();
+        }
+
+        private static void AddTypeDiagnosticIds(ITypeSymbol type, HashSet<string> ids, HashSet<ITypeSymbol> seenTypes)
+        {
+            if (!seenTypes.Add(type))
+                return;
+            AddDiagnosticIds(type, ids);
+            AddDiagnosticIds(type.ContainingAssembly, ids);
+            if (type is IArrayTypeSymbol arrayType)
+                AddTypeDiagnosticIds(arrayType.ElementType, ids, seenTypes);
+            else if (type is INamedTypeSymbol namedType)
+            {
+                foreach (var typeArgument in namedType.TypeArguments)
+                    AddTypeDiagnosticIds(typeArgument, ids, seenTypes);
+            }
+        }
+
+        private static void AddDiagnosticIds(ISymbol? symbol, HashSet<string> ids)
+        {
+            if (symbol is null)
+                return;
+            foreach (var attribute in symbol.GetAttributes())
+            {
+                var attributeClass = attribute.AttributeClass;
+                if (attributeClass is null)
+                    continue;
+                var attributeNamespace = attributeClass.ContainingNamespace?.ToString();
+                if (attributeClass.Name == "ObsoleteAttribute" && attributeNamespace == "System")
+                {
+                    foreach (var namedArgument in attribute.NamedArguments)
+                    {
+                        if (namedArgument.Key == "DiagnosticId" && namedArgument.Value.Value is string obsoleteId && obsoleteId.Length > 0)
+                            _ = ids.Add(obsoleteId);
+                    }
+                }
+                else if (attributeClass.Name == "ExperimentalAttribute" && attributeNamespace == "System.Diagnostics.CodeAnalysis")
+                {
+                    if (attribute.ConstructorArguments.Length > 0 && attribute.ConstructorArguments[0].Value is string experimentalId && experimentalId.Length > 0)
+                        _ = ids.Add(experimentalId);
+                }
+            }
+        }
+
+        private static void GenerateInitializer(SourceProductionContext context, string ns, StringBuilder sbInitializer, string[] suppressedDiagnosticIds)
         {
             var lines = sbInitializer.ToString();
             var splits = lines.Split([EnvironmentHelper.NewLine], StringSplitOptions.RemoveEmptyEntries);
@@ -103,12 +179,18 @@ namespace Zerra.SourceGeneration
                 methodNumber++;
             }
 
+            //CS0436: a referenced assembly can expose the same generated type (such as Empty_*) to this one through InternalsVisibleTo; the local one is the one wanted
+            var suppressions = "#pragma warning disable CS0436";
+            if (suppressedDiagnosticIds.Length > 0)
+                suppressions += $"{EnvironmentHelper.NewLine}#pragma warning disable {String.Join(", ", suppressedDiagnosticIds)}";
+
             var code = $$"""
                 // <auto-generated/>
                 #nullable enable
                 #nullable disable warnings
 
                 #pragma warning disable CS0612, CS0618
+                {{suppressions}}
 
                 namespace {{ns}}.SourceGeneration
                 {

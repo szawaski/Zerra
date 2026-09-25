@@ -106,6 +106,22 @@ public sealed class MySqlProvider<TModel> : TransactStoreProvider<MyDbContext, T
 }
 ```
 
+Created without arguments, every provider on a context type shares one instance of the context. A provider can also be given a context instance, which matters for the in-memory store: each `MemoryDataContext` instance is its own store, so a test can start from an empty one. Providers for models related to each other must be given the same instance:
+
+```csharp
+public sealed class MySqlProvider<TModel> : TransactStoreProvider<MyDbContext, TModel>
+    where TModel : class, new()
+{
+    public MySqlProvider() { }
+    public MySqlProvider(MyDbContext context) : base(context) { }
+}
+
+//in a test, a store of its own
+var context = new MyDbContext();
+repo.AddProvider(new MySqlProvider<PetDataModel>(context));
+repo.AddProvider(new MySqlProvider<PetTypeDataModel>(context));
+```
+
 ### 3. Register the Repo in Program.cs
 
 Build the repo, add your providers, and register it with `BusServices`. Each entity type gets its own provider — and different providers can point to entirely different data sources:

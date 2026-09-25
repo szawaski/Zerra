@@ -294,9 +294,11 @@ namespace Zerra.SourceGeneration
                 var hasFirst = false;
                 foreach (var constructor in constructors)
                 {
-                    if (constructor.DeclaredAccessibility != Accessibility.Public)
+                    //a delegate's (object, IntPtr) constructor can't be called from C#
+                    if (constructor.DeclaredAccessibility != Accessibility.Public || namedTypeSymbol.TypeKind == TypeKind.Delegate)
                         continue;
-                    if (constructor.Parameters.Any(x => x.Type.IsRefLikeType || x.RefKind == RefKind.Out))
+                    //an object[] element can't be passed by ref or out; in parameters take the value
+                    if (constructor.Parameters.Any(x => x.Type.IsRefLikeType || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
                         continue;
 
                     if (hasFirst)
@@ -321,8 +323,6 @@ namespace Zerra.SourceGeneration
 
                         _ = parameter.RefKind switch
                         {
-                            RefKind.Ref => sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
-                            RefKind.In => sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
                             RefKind.Out => sb.Append("out args![").Append(parameter.Ordinal).Append("]!"),
                             _ => sb.Append("(").Append(parameterTypeName).Append(")(args![").Append(parameter.Ordinal).Append("] ?? default(").Append(parameterTypeName).Append(")!)"),
                         };
@@ -356,8 +356,6 @@ namespace Zerra.SourceGeneration
 
                         _ = parameter.RefKind switch
                         {
-                            RefKind.Ref => sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
-                            RefKind.In => sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
                             RefKind.Out => sb.Append("out args![").Append(parameter.Ordinal).Append("]!"),
                             _ => sb.Append("(").Append(parameterTypeName).Append(")(args![").Append(parameter.Ordinal).Append("] ?? default(").Append(parameterTypeName).Append(")!)"),
                         };
@@ -409,7 +407,7 @@ namespace Zerra.SourceGeneration
                         continue;
                     if (isExplicitFromInterface)
                         continue;
-                    if (method.Parameters.Any(x => x.Type.IsRefLikeType || x.RefKind == RefKind.Out))
+                    if (method.Parameters.Any(x => x.Type.IsRefLikeType || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
                         continue;
 
                     if (hasFirst)
@@ -486,8 +484,6 @@ namespace Zerra.SourceGeneration
 
                             _ = parameter.RefKind switch
                             {
-                                RefKind.Ref => sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
-                                RefKind.In => sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
                                 RefKind.Out => sb.Append("out args![").Append(parameter.Ordinal).Append("]!"),
                                 _ => sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
                             };
@@ -509,8 +505,6 @@ namespace Zerra.SourceGeneration
 
                             _ = parameter.RefKind switch
                             {
-                                RefKind.Ref => sb.Append("ref (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
-                                RefKind.In => sb.Append("in (").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
                                 RefKind.Out => sb.Append("out args![").Append(parameter.Ordinal).Append("]!"),
                                 _ => sb.Append("(").Append(parameterTypeName).Append(")args![").Append(parameter.Ordinal).Append("]!"),
                             };
@@ -534,7 +528,7 @@ namespace Zerra.SourceGeneration
         {
             if (namedTypeSymbol != null && !namedTypeSymbol.IsAbstract && !namedTypeSymbol.IsUnboundGenericType && namedTypeSymbol.TypeKind != TypeKind.Interface)
             {
-                if (namedTypeSymbol.Constructors.Any(x => x.Parameters.Length == 0) && !namedTypeSymbol.IsStatic)
+                if (namedTypeSymbol.Constructors.Any(x => x.Parameters.Length == 0 && x.DeclaredAccessibility == Accessibility.Public) && !namedTypeSymbol.IsStatic)
                 {
                     (var properties, var fields) = TypeFinder.GetPropertiesAndFields(namedTypeSymbol, symbolMembers);
                     var requiredMembers = TypeFinder.GetRequiredMembers(properties, fields);
@@ -583,7 +577,7 @@ namespace Zerra.SourceGeneration
             }
 
             SpecialType? specialType = null;
-            if (TypeLookup.SpecialTypeLookup(typeName, out var specialTypeParsed))
+            if (TypeLookup.SpecialTypeLookup(typeSymbol, out var specialTypeParsed))
                 specialType = specialTypeParsed;
 
             CoreEnumType? enumType = null;

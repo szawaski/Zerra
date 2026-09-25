@@ -149,7 +149,8 @@ namespace Zerra.SourceGeneration
             var name = typeSymbol.ToString();
             if (ns is not null && name.StartsWith(ns))
                 name = name.Substring(ns.Length + 1);
-            name = name.Replace('<', '_').Replace('>', '_').Replace('.', '_').Replace(",", "_").Replace(" ", String.Empty).Replace("[]", "Array");
+            //a tuple type such as (Guid ID, string Name) brings parentheses
+            name = name.Replace('<', '_').Replace('>', '_').Replace('(', '_').Replace(')', '_').Replace('.', '_').Replace(",", "_").Replace(" ", String.Empty).Replace("[]", "Array");
             if (name.EndsWith("?") && !typeSymbol.IsValueType)
                 name = name.Substring(0, name.Length - 1);
             name = name.Replace("?", "Nullable");

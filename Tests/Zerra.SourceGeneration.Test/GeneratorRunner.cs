@@ -55,11 +55,12 @@ namespace Zerra.SourceGeneration.Test
 
             var sources = result.GeneratedSources.ToDictionary(x => x.HintName, x => x.SourceText.ToString());
 
-            var outputErrors = outputCompilation.GetDiagnostics().Where(x => x.Severity == DiagnosticSeverity.Error).ToArray();
+            //nullable warnings (CS86xx, CS87xx) in the generated files count too: projects built with TreatWarningsAsErrors get them as errors
+            var outputErrors = outputCompilation.GetDiagnostics().Where(x => x.Severity == DiagnosticSeverity.Error || (x.Severity == DiagnosticSeverity.Warning && (x.Id.StartsWith("CS86") || x.Id.StartsWith("CS87")) && x.Location.SourceTree is not null && x.Location.SourceTree != syntaxTree)).ToArray();
             if (outputErrors.Length > 0)
             {
                 var sb = new StringBuilder();
-                _ = sb.AppendLine("Generated code does not compile:");
+                _ = sb.AppendLine("Generated code does not compile cleanly:");
                 foreach (var error in outputErrors)
                     _ = sb.AppendLine(error.ToString());
                 foreach (var file in outputErrors.Select(x => x.Location.SourceTree?.FilePath).Where(x => x is not null).Distinct())

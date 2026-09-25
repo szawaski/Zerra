@@ -43,7 +43,8 @@ namespace Zerra.Map
                 for (var i = 0; i < customizations.Length; i++)
                 {
                     var customization = customizations[i];
-                    var customConverter = MapConverterFactory.Get(customization.SourceType.GetTypeDetail(), customization.TargetType.GetTypeDetail(), customization.Name, customization.SourceGetter, null, customization.TargetSetter);
+                    //the converter holds this definition's getter and setter, so it is cached by the definition's Id
+                    var customConverter = MapConverterFactory.Get(customization.SourceType.GetTypeDetail(), customization.TargetType.GetTypeDetail(), customization.Id, customization.SourceGetter, null, customization.TargetSetter);
                     customConverters[i] = customConverter;
                 }
                 customizedMemberNames = new HashSet<string>(customizations.Select(x => x.Name));

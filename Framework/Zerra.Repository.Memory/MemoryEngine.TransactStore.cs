@@ -14,7 +14,8 @@ namespace Zerra.Repository.Memory
 {
     public sealed partial class MemoryEngine
     {
-        private static readonly ConcurrentFactoryDictionary<Type, object> data = new();
+        //per instance, so each engine is its own store; the graph cache below is only type metadata and is shared
+        private readonly ConcurrentFactoryDictionary<Type, object> data = new();
         private static readonly ConcurrentFactoryDictionary<Type, Graph> allLocalMemberGraph = new();
 
         /// <inheritdoc/>
@@ -322,12 +323,12 @@ namespace Zerra.Repository.Memory
             };
         }
 
-        private static void MapRelated(object model, ModelDetail modelDetail, bool isDelete)
+        private void MapRelated(object model, ModelDetail modelDetail, bool isDelete)
         {
             MapRelated(model, modelDetail, isDelete, new Stack<object>());
         }
         [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "Only interface members reach MakeArrayType, models are reference types so the array code is shared.")]
-        private static void MapRelated(object model, ModelDetail modelDetail, bool isDelete, Stack<object> stack)
+        private void MapRelated(object model, ModelDetail modelDetail, bool isDelete, Stack<object> stack)
         {
             foreach (var member in modelDetail.Members)
             {

@@ -385,7 +385,8 @@ namespace Zerra.Linq
                 case ExpressionType.MemberInit:
                     {
                         var cast = (MemberInitExpression)exp;
-                        return Expression.MemberInit((NewExpression)Rebind(cast.NewExpression, context), cast.Bindings);
+                        //the bindings' values reference the parameters too, as in x => new Model() { Value = x.Value }
+                        return Expression.MemberInit((NewExpression)Rebind(cast.NewExpression, context), cast.Bindings.Select(x => RebindBinding(x, context)));
                     }
                 case ExpressionType.Modulo:
                     {
@@ -441,8 +442,11 @@ namespace Zerra.Linq
                             }
 
 #pragma warning disable IL2026 // Should not break trimming since the expression already existed of this type
+                            //Members is only set for anonymous types; passing null members requires one per argument
+                            if (cast.Members is null)
+                                return Expression.New(cast.Constructor, replacementExpressions);
                             return Expression.New(cast.Constructor, replacementExpressions, cast.Members);
-#pragma warning restore IL2026 
+#pragma warning restore IL2026
                         }
                         else
                         {
@@ -683,6 +687,40 @@ namespace Zerra.Linq
                         var cast = (UnaryExpression)exp;
                         return Expression.Unbox(Rebind(cast.Operand, context), cast.Type);
                     }
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        private static MemberBinding RebindBinding(MemberBinding binding, RebinderContext context)
+        {
+            return binding switch
+            {
+                MemberAssignment assignment => Expression.Bind(assignment.Member, Rebind(assignment.Expression, context)),
+                MemberMemberBinding memberBinding => Expression.MemberBind(memberBinding.Member, memberBinding.Bindings.Select(x => RebindBinding(x, context))),
+                MemberListBinding listBinding => Expression.ListBind(listBinding.Member, listBinding.Initializers.Select(x => Expression.ElementInit(x.AddMethod, x.Arguments.Select(y => Rebind(y, context))))),
+                _ => throw new NotImplementedException()
+            };
+        }
+
+        private static void ExtractParametersBinding(MemberBinding binding, List<ParameterExpression> parameters)
+        {
+            switch (binding)
+            {
+                case MemberAssignment assignment:
+                    ExtractParametersExpressionInternal(assignment.Expression, parameters);
+                    return;
+                case MemberMemberBinding memberBinding:
+                    foreach (var item in memberBinding.Bindings)
+                        ExtractParametersBinding(item, parameters);
+                    return;
+                case MemberListBinding listBinding:
+                    foreach (var initializer in listBinding.Initializers)
+                    {
+                        foreach (var argument in initializer.Arguments)
+                            ExtractParametersExpressionInternal(argument, parameters);
+                    }
+                    return;
                 default:
                     throw new NotImplementedException();
             }
@@ -991,7 +1029,13 @@ namespace Zerra.Linq
                         return;
                     }
                 case ExpressionType.MemberInit:
-                    throw new NotImplementedException();
+                    {
+                        var cast = (MemberInitExpression)exp;
+                        ExtractParametersExpressionInternal(cast.NewExpression, parameters);
+                        foreach (var binding in cast.Bindings)
+                            ExtractParametersBinding(binding, parameters);
+                        return;
+                    }
                 case ExpressionType.Modulo:
                     {
                         var cast = (BinaryExpression)exp;

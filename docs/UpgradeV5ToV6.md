@@ -76,11 +76,14 @@ Search the solution (skip `bin`/`obj`) and write down which of these appear. Eac
   <ProjectReference Include="..\..\Zerra\Framework\Zerra.Web\Zerra.Web.csproj" />
   <ProjectReference Include="..\..\Zerra\Framework\Zerra.CQRS.RabbitMQ\Zerra.CQRS.RabbitMQ.csproj" />
   ```
-  Also add the source generator to projects that declare or implement commands, events, query interfaces, handlers, or data models. The NuGet package will bring it in automatically once v6 is published:
+  Also add the source generator. The NuGet package brings it to every project that references Zerra, directly or through another project. A project reference doesn't, so add it to every such project. A `Directory.Build.props` at the solution root does that in one place; remove it once Zerra is a `PackageReference` again:
   ```xml
-  <ProjectReference Include="..\..\Zerra\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+      <ProjectReference Include="$(MSBuildThisFileDirectory)..\Zerra\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
   ```
-  Without AOT the generator is optional. When a type isn't generated, Zerra builds what it needs at runtime.
+  **The generator is what registers `IMapDefinition` classes.** v5 found them through discovery; v6 doesn't. Without the generator, a map definition is silently ignored and `Map`/`Copy` fall back to matching member names, so custom members come back null or default. Without the generator, call `MapDiscovery.Initialize()` (after `Discovery.Initialize`) or `MapDefinition.Register(new XMap())` for each one at startup. For everything else, the generator is optional without AOT: when a type isn't generated, Zerra builds what it needs at runtime.
+  The first build with the generator compiles every map definition for the first time on v6. Run the tests afterwards: an expression that fails to compile throws from the assembly's module initializer (`The type initializer for '<Module>' threw an exception`), which fails every test that touches that assembly.
 - **Don't add `<PublishAot>true</PublishAot>`** in this upgrade. It turns off runtime code generation even under `dotnet run`, so any type the generator missed fails right away.
 - **These projects were removed**, so delete their references: `Zerra.Logger` (see [Logging](#7-logging)), `Zerra.CQRS.AzureEventHub` (no replacement; use Kafka, RabbitMQ, or Azure Service Bus), `Zerra.Repository.EventStoreDB` (use `Zerra.Repository.KurrentDB`), `Misc/Zerra.Identity`, and `Misc/Zerra.Tools` (see [Other removed APIs](#10-other-removed-apis)).
 - **Packages you used to get through Zerra.** Zerra 5 brought in `Microsoft.Extensions.Configuration`, `.Binder`, `.CommandLine`, `.EnvironmentVariables`, `.Json`, and `.UserSecrets`. Zerra 6 doesn't. Add them directly to any project that still uses them.

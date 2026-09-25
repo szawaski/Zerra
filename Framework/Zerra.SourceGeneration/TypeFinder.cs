@@ -84,7 +84,7 @@ namespace Zerra.SourceGeneration
                 return;
             }
 
-            if (TypeLookup.SpecialTypeLookup(name, out var specialType))
+            if (TypeLookup.SpecialTypeLookup(typeSymbol, out var specialType))
             {
                 if (specialType == SpecialType.Task || specialType == SpecialType.Dictionary)
                 {
