@@ -11,13 +11,12 @@ namespace Store.Shipping.Test
 {
     /// <summary>
     /// A bus with the Shipping handlers on the service's own store provider, which is always in-memory. Shipping calls no other service.
+    /// Tests send their commands, events, and queries through <see cref="Bus"/>, the way the gateway and the other services reach the handlers.
     /// </summary>
     public sealed class ShippingTestBus
     {
+        public IBus Bus { get; }
         public IRepo Repo { get; }
-
-        public ShippingQueryHandler Queries { get; } = new();
-        public ShippingCommandHandler Commands { get; } = new();
 
         public ShippingTestBus()
         {
@@ -32,10 +31,12 @@ namespace Store.Shipping.Test
             busServices.AddService<IDataStoreInfo>(new DataStoreInfo("Test data store"));
             busServices.AddService<IMessagingInfo>(new MessagingInfo("Test messaging"));
 
-            var bus = Bus.New("Shipping", busServices: busServices);
-            bus.AddHandler<IShippingQueryHandler>(Queries);
-            bus.AddHandler<IShippingCommandHandler>(Commands);
-            bus.AddHandler<IOrdersEventHandler>(Commands);
+            var bus = Zerra.CQRS.Bus.New("Shipping", busServices: busServices);
+            Bus = bus;
+            var commands = new ShippingCommandHandler();
+            bus.AddHandler<IShippingQueryHandler>(new ShippingQueryHandler());
+            bus.AddHandler<IShippingCommandHandler>(commands);
+            bus.AddHandler<IOrdersEventHandler>(commands);
         }
 
         public async Task<ShipmentDataModel[]> GetShipments(Guid orderID)

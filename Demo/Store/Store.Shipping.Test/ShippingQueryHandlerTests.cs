@@ -1,3 +1,4 @@
+using Store.Shipping.Domain;
 using Store.Shipping.Service.Data;
 using Xunit;
 using Zerra.Repository;
@@ -30,8 +31,8 @@ namespace Store.Shipping.Test
         {
             var test = new ShippingTestBus();
 
-            Assert.Equal("Test data store", await test.Queries.GetDataStoreName(Token));
-            Assert.Equal("Test messaging", await test.Queries.GetMessagingName(Token));
+            Assert.Equal("Test data store", await test.Bus.Call<IShippingQueryHandler>().GetDataStoreName(Token));
+            Assert.Equal("Test messaging", await test.Bus.Call<IShippingQueryHandler>().GetMessagingName(Token));
         }
 
         [Fact]
@@ -42,7 +43,7 @@ namespace Store.Shipping.Test
             var older = await AddShipment(test, now.AddSeconds(1), ShipmentStatus.Delivered);
             var newer = await AddShipment(test, now.AddSeconds(2));
 
-            var shipments = await test.Queries.GetShipments(Token);
+            var shipments = await test.Bus.Call<IShippingQueryHandler>().GetShipments(Token);
 
             Assert.Equal([newer.OrderID, older.OrderID], shipments.Select(x => x.OrderID).ToArray());
             Assert.Equal("Ground Express", shipments[0].Carrier);
@@ -60,7 +61,7 @@ namespace Store.Shipping.Test
             for (var i = 0; i < 51; i++)
                 _ = await AddShipment(test, now.AddSeconds(-i));
 
-            var shipments = await test.Queries.GetShipments(Token);
+            var shipments = await test.Bus.Call<IShippingQueryHandler>().GetShipments(Token);
 
             Assert.Equal(50, shipments.Length);
         }

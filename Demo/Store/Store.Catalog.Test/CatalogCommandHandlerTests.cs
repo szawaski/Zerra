@@ -1,3 +1,4 @@
+using Store.Catalog.Domain;
 using Store.Catalog.Domain.Commands;
 using Store.Catalog.Service.Data;
 using Store.Common;
@@ -16,7 +17,7 @@ namespace Store.Catalog.Test
             var category = await test.AddCategory("Lighting");
             var sku = CatalogTestBus.NewSku();
 
-            var result = await test.Commands.Handle(new AddProductCommand()
+            var result = await test.Bus.DispatchAwaitAsync(new AddProductCommand()
             {
                 CategoryID = category.ID,
                 Sku = $"  {sku.ToLowerInvariant()} ",
@@ -25,7 +26,7 @@ namespace Store.Catalog.Test
                 Price = 59.00m
             }, Token);
 
-            var product = Assert.Single(await test.Queries.GetProductsByIDs([result.ProductID], Token));
+            var product = Assert.Single(await test.Bus.Call<ICatalogQueryHandler>().GetProductsByIDs([result.ProductID], Token));
             Assert.Equal(sku, product.Sku);
             Assert.Equal("Desk Lamp", product.Name);
             Assert.Equal("Dimmable", product.Description);
@@ -40,9 +41,9 @@ namespace Store.Catalog.Test
             var test = new CatalogTestBus();
             var category = await test.AddCategory("Lighting");
 
-            var result = await test.Commands.Handle(new AddProductCommand() { CategoryID = category.ID, Sku = CatalogTestBus.NewSku(), Name = "Desk Lamp", Description = "   ", Price = 59.00m }, Token);
+            var result = await test.Bus.DispatchAwaitAsync(new AddProductCommand() { CategoryID = category.ID, Sku = CatalogTestBus.NewSku(), Name = "Desk Lamp", Description = "   ", Price = 59.00m }, Token);
 
-            var product = Assert.Single(await test.Queries.GetProductsByIDs([result.ProductID], Token));
+            var product = Assert.Single(await test.Bus.Call<ICatalogQueryHandler>().GetProductsByIDs([result.ProductID], Token));
             Assert.Null(product.Description);
         }
 
@@ -57,7 +58,7 @@ namespace Store.Catalog.Test
             var test = new CatalogTestBus();
             var category = await test.AddCategory("Lighting");
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new AddProductCommand() { CategoryID = category.ID, Sku = sku, Name = "Desk Lamp", Price = 59.00m }, Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new AddProductCommand() { CategoryID = category.ID, Sku = sku, Name = "Desk Lamp", Price = 59.00m }, Token));
             Assert.Contains("SKU", ex.Message);
         }
 
@@ -68,7 +69,7 @@ namespace Store.Catalog.Test
             var category = await test.AddCategory("Lighting");
             var existing = await test.AddProduct(category.ID, "Desk Lamp", 59.00m);
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new AddProductCommand() { CategoryID = category.ID, Sku = existing.Sku!, Name = "Floor Lamp", Price = 89.00m }, Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new AddProductCommand() { CategoryID = category.ID, Sku = existing.Sku!, Name = "Floor Lamp", Price = 89.00m }, Token));
             Assert.Contains("already in use", ex.Message);
         }
 
@@ -80,7 +81,7 @@ namespace Store.Catalog.Test
             var test = new CatalogTestBus();
             var category = await test.AddCategory("Lighting");
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new AddProductCommand() { CategoryID = category.ID, Sku = CatalogTestBus.NewSku(), Name = name, Price = 59.00m }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new AddProductCommand() { CategoryID = category.ID, Sku = CatalogTestBus.NewSku(), Name = name, Price = 59.00m }, Token));
         }
 
         [Fact]
@@ -89,7 +90,7 @@ namespace Store.Catalog.Test
             var test = new CatalogTestBus();
             var category = await test.AddCategory("Lighting");
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new AddProductCommand() { CategoryID = category.ID, Sku = CatalogTestBus.NewSku(), Name = new string('a', 129), Price = 59.00m }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new AddProductCommand() { CategoryID = category.ID, Sku = CatalogTestBus.NewSku(), Name = new string('a', 129), Price = 59.00m }, Token));
         }
 
         [Fact]
@@ -98,7 +99,7 @@ namespace Store.Catalog.Test
             var test = new CatalogTestBus();
             var category = await test.AddCategory("Lighting");
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new AddProductCommand() { CategoryID = category.ID, Sku = CatalogTestBus.NewSku(), Name = "Desk Lamp", Description = new string('a', 513), Price = 59.00m }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new AddProductCommand() { CategoryID = category.ID, Sku = CatalogTestBus.NewSku(), Name = "Desk Lamp", Description = new string('a', 513), Price = 59.00m }, Token));
         }
 
         [Theory]
@@ -111,7 +112,7 @@ namespace Store.Catalog.Test
             var test = new CatalogTestBus();
             var category = await test.AddCategory("Lighting");
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new AddProductCommand() { CategoryID = category.ID, Sku = CatalogTestBus.NewSku(), Name = "Desk Lamp", Price = Decimal.Parse(price) }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new AddProductCommand() { CategoryID = category.ID, Sku = CatalogTestBus.NewSku(), Name = "Desk Lamp", Price = Decimal.Parse(price) }, Token));
         }
 
         [Fact]
@@ -119,7 +120,7 @@ namespace Store.Catalog.Test
         {
             var test = new CatalogTestBus();
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new AddProductCommand() { CategoryID = Guid.NewGuid(), Sku = CatalogTestBus.NewSku(), Name = "Desk Lamp", Price = 59.00m }, Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new AddProductCommand() { CategoryID = Guid.NewGuid(), Sku = CatalogTestBus.NewSku(), Name = "Desk Lamp", Price = 59.00m }, Token));
             Assert.Equal("Category not found.", ex.Message);
         }
 
@@ -130,9 +131,9 @@ namespace Store.Catalog.Test
             var category = await test.AddCategory("Lighting");
             var lamp = await test.AddProduct(category.ID, "Desk Lamp", 59.00m);
 
-            await test.Commands.Handle(new ChangeProductPriceCommand() { ProductID = lamp.ID, Price = 45.00m }, Token);
+            await test.Bus.DispatchAwaitAsync(new ChangeProductPriceCommand() { ProductID = lamp.ID, Price = 45.00m }, Token);
 
-            var product = Assert.Single(await test.Queries.GetProductsByIDs([lamp.ID], Token));
+            var product = Assert.Single(await test.Bus.Call<ICatalogQueryHandler>().GetProductsByIDs([lamp.ID], Token));
             Assert.Equal(45.00m, product.Price);
 
             var priceChanged = Assert.Single(test.CatalogEvents.PriceChanges);
@@ -153,7 +154,7 @@ namespace Store.Catalog.Test
             var category = await test.AddCategory("Lighting");
             var lamp = await test.AddProduct(category.ID, "Desk Lamp", 59.00m);
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new ChangeProductPriceCommand() { ProductID = lamp.ID, Price = 59.00m }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new ChangeProductPriceCommand() { ProductID = lamp.ID, Price = 59.00m }, Token));
             Assert.Empty(test.CatalogEvents.PriceChanges);
             Assert.Empty(test.CartRepricing.Commands);
         }
@@ -165,9 +166,9 @@ namespace Store.Catalog.Test
             var category = await test.AddCategory("Lighting");
             var lamp = await test.AddProduct(category.ID, "Desk Lamp", 59.00m);
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new ChangeProductPriceCommand() { ProductID = lamp.ID, Price = 0m }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new ChangeProductPriceCommand() { ProductID = lamp.ID, Price = 0m }, Token));
 
-            var product = Assert.Single(await test.Queries.GetProductsByIDs([lamp.ID], Token));
+            var product = Assert.Single(await test.Bus.Call<ICatalogQueryHandler>().GetProductsByIDs([lamp.ID], Token));
             Assert.Equal(59.00m, product.Price);
         }
 
@@ -178,7 +179,7 @@ namespace Store.Catalog.Test
             var category = await test.AddCategory("Lighting");
             var lamp = await test.AddProduct(category.ID, "Desk Lamp", 59.00m, ProductStatus.Discontinued);
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new ChangeProductPriceCommand() { ProductID = lamp.ID, Price = 45.00m }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new ChangeProductPriceCommand() { ProductID = lamp.ID, Price = 45.00m }, Token));
         }
 
         [Fact]
@@ -186,7 +187,7 @@ namespace Store.Catalog.Test
         {
             var test = new CatalogTestBus();
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new ChangeProductPriceCommand() { ProductID = Guid.NewGuid(), Price = 45.00m }, Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new ChangeProductPriceCommand() { ProductID = Guid.NewGuid(), Price = 45.00m }, Token));
             Assert.Equal("Product not found.", ex.Message);
         }
 
@@ -197,9 +198,9 @@ namespace Store.Catalog.Test
             var category = await test.AddCategory("Lighting");
             var lamp = await test.AddProduct(category.ID, "Desk Lamp", 59.00m);
 
-            await test.Commands.Handle(new DiscontinueProductCommand() { ProductID = lamp.ID }, Token);
+            await test.Bus.DispatchAwaitAsync(new DiscontinueProductCommand() { ProductID = lamp.ID }, Token);
 
-            var product = Assert.Single(await test.Queries.GetProductsByIDs([lamp.ID], Token));
+            var product = Assert.Single(await test.Bus.Call<ICatalogQueryHandler>().GetProductsByIDs([lamp.ID], Token));
             Assert.False(product.IsActive);
             Assert.Equal(lamp.ID, Assert.Single(test.CatalogEvents.Discontinued).ProductID);
             //a discontinued product leaves the carts' prices alone, the carts refuse it when it's added
@@ -213,7 +214,7 @@ namespace Store.Catalog.Test
             var category = await test.AddCategory("Lighting");
             var lamp = await test.AddProduct(category.ID, "Desk Lamp", 59.00m, ProductStatus.Discontinued);
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new DiscontinueProductCommand() { ProductID = lamp.ID }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new DiscontinueProductCommand() { ProductID = lamp.ID }, Token));
             Assert.Empty(test.CatalogEvents.Discontinued);
         }
 
@@ -222,7 +223,7 @@ namespace Store.Catalog.Test
         {
             var test = new CatalogTestBus();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new DiscontinueProductCommand() { ProductID = Guid.NewGuid() }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new DiscontinueProductCommand() { ProductID = Guid.NewGuid() }, Token));
         }
     }
 }

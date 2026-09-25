@@ -3,9 +3,7 @@ using Store.Catalog.Domain.Models;
 using Store.Common.Data;
 using Store.Common.Messaging;
 using Store.Inventory.Domain;
-using Store.Inventory.Domain.Commands;
 using Store.Orders.Domain;
-using Store.Orders.Domain.Events;
 using Store.Orders.Service.Data;
 using Store.Orders.Service.Handlers;
 using Zerra.CQRS;
@@ -16,16 +14,16 @@ namespace Store.Orders.Test
     /// <summary>
     /// A bus with the Orders handlers on the service's own store providers, in-memory, and fakes of the Catalog and Inventory services
     /// and the order event subscribers.
+    /// Tests send their commands, events, and queries through <see cref="Bus"/>, the way the gateway and the other services reach the handlers.
     /// </summary>
     public sealed class OrdersTestBus
     {
+        private readonly FakeCatalogQueryHandler catalog = new();
+
+        public IBus Bus { get; }
         public IRepo Repo { get; }
-        public FakeCatalogQueryHandler Catalog { get; } = new();
         public FakeStockReservationHandler Inventory { get; } = new();
         public FakeOrdersEventHandler OrderEvents { get; } = new();
-
-        public OrdersQueryHandler Queries { get; } = new();
-        public OrdersCommandHandler Commands { get; } = new();
 
         public OrdersTestBus()
         {
@@ -44,12 +42,13 @@ namespace Store.Orders.Test
             busServices.AddService<IDataStoreInfo>(new DataStoreInfo("Test data store"));
             busServices.AddService<IMessagingInfo>(new MessagingInfo("Test messaging"));
 
-            var bus = Bus.New("Orders", busServices: busServices);
-            bus.AddHandler<IOrdersQueryHandler>(Queries);
-            bus.AddHandler<IOrdersCommandHandler>(Commands);
+            var bus = Zerra.CQRS.Bus.New("Orders", busServices: busServices);
+            Bus = bus;
+            bus.AddHandler<IOrdersQueryHandler>(new OrdersQueryHandler());
+            bus.AddHandler<IOrdersCommandHandler>(new OrdersCommandHandler());
 
             //the other services, answered in process
-            bus.AddHandler<ICatalogQueryHandler>(Catalog);
+            bus.AddHandler<ICatalogQueryHandler>(catalog);
             bus.AddHandler<IStockReservationHandler>(Inventory);
             bus.AddHandler<IOrdersEventHandler>(OrderEvents);
         }
@@ -64,58 +63,11 @@ namespace Store.Orders.Test
         public ProductModel AddProduct(string name, decimal price, bool isActive = true)
         {
             var product = new ProductModel() { ID = Guid.NewGuid(), Name = name, Price = price, IsActive = isActive };
-            Catalog.Products.Add(product);
+            catalog.Products.Add(product);
             return product;
         }
 
         public async Task<OrderDataModel?> GetOrder(Guid orderID)
             => await Repo.SingleAsync<OrderDataModel>(x => x.ID == orderID);
-    }
-
-    public sealed class FakeCatalogQueryHandler : BaseHandler, ICatalogQueryHandler
-    {
-        public List<ProductModel> Products { get; } = new();
-
-        public Task<ProductModel[]> GetProductsByIDs(Guid[] productIDs, CancellationToken cancellationToken)
-            => Task.FromResult(Products.Where(x => productIDs.Contains(x.ID)).ToArray());
-
-        public Task<string> GetDataStoreName(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<string> GetMessagingName(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<CategoryModel[]> GetCategories(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<ProductModel[]> GetProducts(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<ProductModel[]> GetProductsByCategory(Guid categoryID, CancellationToken cancellationToken) => throw new NotSupportedException();
-    }
-
-    public sealed class FakeStockReservationHandler : BaseHandler, IStockReservationHandler
-    {
-        public List<ReserveStockCommand> Reserved { get; } = new();
-        public List<ReleaseReservedStockCommand> Released { get; } = new();
-        /// <summary>When set, reserving fails with this, the way Inventory refuses an order it's short for.</summary>
-        public Exception? ReserveFailure { get; set; }
-
-        public Task Handle(ReserveStockCommand command, CancellationToken cancellationToken)
-        {
-            if (ReserveFailure is not null)
-                return Task.FromException(ReserveFailure);
-            Reserved.Add(command);
-            return Task.CompletedTask;
-        }
-
-        public Task Handle(ReleaseReservedStockCommand command, CancellationToken cancellationToken)
-        {
-            Released.Add(command);
-            return Task.CompletedTask;
-        }
-    }
-
-    public sealed class FakeOrdersEventHandler : BaseHandler, IOrdersEventHandler
-    {
-        public List<OrderShippedEvent> Shipped { get; } = new();
-
-        public Task Handle(OrderShippedEvent @event)
-        {
-            Shipped.Add(@event);
-            return Task.CompletedTask;
-        }
     }
 }

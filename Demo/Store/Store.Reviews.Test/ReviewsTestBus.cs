@@ -14,17 +14,14 @@ namespace Store.Reviews.Test
 {
     /// <summary>
     /// A bus with the Reviews handlers on the service's own store providers, in-memory, and fakes of the Catalog and Orders services they call.
+    /// Tests send their commands, events, and queries through <see cref="Bus"/>, the way the gateway and the other services reach the handlers.
     /// </summary>
     public sealed class ReviewsTestBus
     {
+        public IBus Bus { get; }
         public IRepo Repo { get; }
-        public CatalogProductCache ProductCache { get; } = new();
         public FakeCatalogQueryHandler Catalog { get; } = new();
         public FakeOrdersQueryHandler Orders { get; } = new();
-
-        public ReviewsQueryHandler Queries { get; } = new();
-        public ReviewsCommandHandler Commands { get; } = new();
-        public CatalogEventHandler CatalogEvents { get; } = new();
 
         public ReviewsTestBus()
         {
@@ -40,12 +37,13 @@ namespace Store.Reviews.Test
             busServices.AddRepo(repo);
             busServices.AddService<IDataStoreInfo>(new DataStoreInfo("Test data store"));
             busServices.AddService<IMessagingInfo>(new MessagingInfo("Test messaging"));
-            busServices.AddService<ICatalogProductCache>(ProductCache);
+            busServices.AddService<ICatalogProductCache>(new CatalogProductCache());
 
-            var bus = Bus.New("Reviews", busServices: busServices);
-            bus.AddHandler<IReviewsQueryHandler>(Queries);
-            bus.AddHandler<IReviewsCommandHandler>(Commands);
-            bus.AddHandler<ICatalogEventHandler>(CatalogEvents);
+            var bus = Zerra.CQRS.Bus.New("Reviews", busServices: busServices);
+            Bus = bus;
+            bus.AddHandler<IReviewsQueryHandler>(new ReviewsQueryHandler());
+            bus.AddHandler<IReviewsCommandHandler>(new ReviewsCommandHandler());
+            bus.AddHandler<ICatalogEventHandler>(new CatalogEventHandler());
 
             //the other services, answered in process
             bus.AddHandler<ICatalogQueryHandler>(Catalog);
@@ -65,38 +63,5 @@ namespace Store.Reviews.Test
             Orders.Customers.Add(customer);
             return customer;
         }
-    }
-
-    public sealed class FakeCatalogQueryHandler : BaseHandler, ICatalogQueryHandler
-    {
-        public List<ProductModel> Products { get; } = new();
-        public int GetProductsByIDsCalls { get; private set; }
-
-        public Task<ProductModel[]> GetProductsByIDs(Guid[] productIDs, CancellationToken cancellationToken)
-        {
-            GetProductsByIDsCalls++;
-            return Task.FromResult(Products.Where(x => productIDs.Contains(x.ID)).ToArray());
-        }
-
-        public Task<string> GetDataStoreName(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<string> GetMessagingName(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<CategoryModel[]> GetCategories(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<ProductModel[]> GetProducts(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<ProductModel[]> GetProductsByCategory(Guid categoryID, CancellationToken cancellationToken) => throw new NotSupportedException();
-    }
-
-    public sealed class FakeOrdersQueryHandler : BaseHandler, IOrdersQueryHandler
-    {
-        public List<CustomerModel> Customers { get; } = new();
-        /// <summary>The customer and product pairs that were shipped, a verified purchase.</summary>
-        public HashSet<(Guid CustomerID, Guid ProductID)> Purchases { get; } = new();
-
-        public Task<CustomerModel[]> GetCustomers(CancellationToken cancellationToken) => Task.FromResult(Customers.ToArray());
-        public Task<bool> HasPurchased(Guid customerID, Guid productID, CancellationToken cancellationToken) => Task.FromResult(Purchases.Contains((customerID, productID)));
-
-        public Task<string> GetDataStoreName(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<string> GetMessagingName(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<OrderModel[]> GetOrders(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<OrderModel> GetOrder(Guid orderID, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

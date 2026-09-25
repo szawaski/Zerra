@@ -1,3 +1,4 @@
+using Store.Inventory.Domain;
 using Store.Inventory.Service.Data;
 using Xunit;
 using Zerra.Repository;
@@ -13,8 +14,8 @@ namespace Store.Inventory.Test
         {
             var test = new InventoryTestBus();
 
-            Assert.Equal("Test data store", await test.Queries.GetDataStoreName(Token));
-            Assert.Equal("Test messaging", await test.Queries.GetMessagingName(Token));
+            Assert.Equal("Test data store", await test.Bus.Call<IInventoryQueryHandler>().GetDataStoreName(Token));
+            Assert.Equal("Test messaging", await test.Bus.Call<IInventoryQueryHandler>().GetMessagingName(Token));
         }
 
         [Fact]
@@ -24,7 +25,7 @@ namespace Store.Inventory.Test
             var productID = Guid.NewGuid();
             await test.Repo.CreateAsync(new StockItemDataModel() { ProductID = productID, OnHand = 10, Reserved = 3 });
 
-            var levels = await test.Queries.GetStockLevels(Token);
+            var levels = await test.Bus.Call<IInventoryQueryHandler>().GetStockLevels(Token);
 
             var level = Assert.Single(levels);
             Assert.Equal(productID, level.ProductID);
@@ -46,7 +47,7 @@ namespace Store.Inventory.Test
                 new() { ID = Guid.NewGuid(), ProductID = productID, Kind = nameof(StockMovementKind.Reserved), Quantity = 1, OrderNumber = "SO-2", OccurredOn = now.AddSeconds(2) }
             ]);
 
-            var movements = await test.Queries.GetRecentMovements(3, Token);
+            var movements = await test.Bus.Call<IInventoryQueryHandler>().GetRecentMovements(3, Token);
 
             Assert.Equal([nameof(StockMovementKind.Shipped), nameof(StockMovementKind.Reserved), nameof(StockMovementKind.Restocked)], movements.Select(x => x.Kind).ToArray());
             Assert.All(movements, x => Assert.Equal(productID, x.ProductID));
@@ -70,7 +71,7 @@ namespace Store.Inventory.Test
                 OccurredOn = now.AddSeconds(-i)
             }).ToArray());
 
-            var movements = await test.Queries.GetRecentMovements(count, Token);
+            var movements = await test.Bus.Call<IInventoryQueryHandler>().GetRecentMovements(count, Token);
 
             Assert.Equal(expected, movements.Length);
         }

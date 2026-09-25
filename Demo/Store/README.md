@@ -56,7 +56,7 @@ Carts is the exception. It stores events instead of rows, so it has no data mode
 
 Each service has an xUnit test project next to it, `Store.Catalog.Test` through `Store.Carts.Test`, that tests its query and command handlers, plus `CartAggregate` in Carts. None of them needs a database, a message broker, or another service running:
 
-- Each project's `*TestBus` builds a bus the way the service's `Program.cs` does, with `Bus.New` and `AddHandler`. The handlers read their repo and services from the bus context, the same as they do in the service.
+- Each project's `*TestBus` builds a bus the way the service's `Program.cs` does, with `Bus.New` and `AddHandler`. The handlers read their repo and services from the bus context, the same as they do in the service. Tests reach the handlers only through that bus: `Bus.DispatchAwaitAsync` for commands, `Bus.DispatchAsync` for events, and `Bus.Call<ICartsQueryHandler>()` for queries.
 - The repo is the service's own store providers on the in-memory store, the same as the **In Memory** launch profile. Each test hands the providers a new data context, and a new in-memory context is a new, empty store, so every test starts from nothing and no test sees another's rows. The services themselves use the parameterless constructor, which shares one context per type. Carts gets a new in-memory event store per test.
 - The other services a handler calls or messages are small fake handlers added to the same bus, so the handler under test calls `Bus.Call<ICatalogQueryHandler>()` or dispatches a command as it normally would, and the test checks what the fake received.
 

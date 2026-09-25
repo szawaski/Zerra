@@ -20,26 +20,38 @@
     <File Path="Demo/Store/start-store.ps1" />
     <File Path="Demo/Store/publish-store-aot.ps1" />
     <File Path="Demo/Store/start-store-aot.ps1" />
+    <Project Path="Demo/Store/Store.Common/Store.Common.csproj" />
+    <Project Path="Demo/Store/Store.Web/Store.Web.csproj" />
+  </Folder>
+  <Folder Name="/Demo/Store/Carts/">
     <Project Path="Demo/Store/Store.Carts.Domain/Store.Carts.Domain.csproj" />
     <Project Path="Demo/Store/Store.Carts.Service/Store.Carts.Service.csproj" />
     <Project Path="Demo/Store/Store.Carts.Test/Store.Carts.Test.csproj" />
+  </Folder>
+  <Folder Name="/Demo/Store/Catalog/">
     <Project Path="Demo/Store/Store.Catalog.Domain/Store.Catalog.Domain.csproj" />
     <Project Path="Demo/Store/Store.Catalog.Service/Store.Catalog.Service.csproj" />
     <Project Path="Demo/Store/Store.Catalog.Test/Store.Catalog.Test.csproj" />
-    <Project Path="Demo/Store/Store.Common/Store.Common.csproj" />
+  </Folder>
+  <Folder Name="/Demo/Store/Inventory/">
     <Project Path="Demo/Store/Store.Inventory.Domain/Store.Inventory.Domain.csproj" />
     <Project Path="Demo/Store/Store.Inventory.Service/Store.Inventory.Service.csproj" />
     <Project Path="Demo/Store/Store.Inventory.Test/Store.Inventory.Test.csproj" />
+  </Folder>
+  <Folder Name="/Demo/Store/Orders/">
     <Project Path="Demo/Store/Store.Orders.Domain/Store.Orders.Domain.csproj" />
     <Project Path="Demo/Store/Store.Orders.Service/Store.Orders.Service.csproj" />
     <Project Path="Demo/Store/Store.Orders.Test/Store.Orders.Test.csproj" />
+  </Folder>
+  <Folder Name="/Demo/Store/Reviews/">
     <Project Path="Demo/Store/Store.Reviews.Domain/Store.Reviews.Domain.csproj" />
     <Project Path="Demo/Store/Store.Reviews.Service/Store.Reviews.Service.csproj" />
     <Project Path="Demo/Store/Store.Reviews.Test/Store.Reviews.Test.csproj" />
+  </Folder>
+  <Folder Name="/Demo/Store/Shipping/">
     <Project Path="Demo/Store/Store.Shipping.Domain/Store.Shipping.Domain.csproj" />
     <Project Path="Demo/Store/Store.Shipping.Service/Store.Shipping.Service.csproj" />
     <Project Path="Demo/Store/Store.Shipping.Test/Store.Shipping.Test.csproj" />
-    <Project Path="Demo/Store/Store.Web/Store.Web.csproj" />
   </Folder>
   <Folder Name="/Framework/">
     <Project Path="Framework/Zerra.CQRS.AzureServiceBus/Zerra.CQRS.AzureServiceBus.csproj" />

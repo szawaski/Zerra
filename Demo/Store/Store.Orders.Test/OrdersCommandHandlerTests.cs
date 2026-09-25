@@ -21,7 +21,7 @@ namespace Store.Orders.Test
         {
             var customer = await test.AddCustomer("Ada Lovelace");
             var lamp = test.AddProduct("Desk Lamp", 59.00m);
-            return await test.Commands.Handle(Order(customer.ID, (lamp.ID, 1)), Token);
+            return await test.Bus.DispatchAwaitAsync(Order(customer.ID, (lamp.ID, 1)), Token);
         }
 
         [Fact]
@@ -32,7 +32,7 @@ namespace Store.Orders.Test
             var lamp = test.AddProduct("Desk Lamp", 59.00m);
             var mouse = test.AddProduct("Mouse", 49.99m);
 
-            var result = await test.Commands.Handle(Order(customer.ID, (lamp.ID, 2), (mouse.ID, 1)), Token);
+            var result = await test.Bus.DispatchAwaitAsync(Order(customer.ID, (lamp.ID, 2), (mouse.ID, 1)), Token);
 
             Assert.Equal(167.99m, result.Total);
             Assert.StartsWith("SO-", result.OrderNumber);
@@ -59,7 +59,7 @@ namespace Store.Orders.Test
             var customer = await test.AddCustomer("Ada Lovelace");
             var lamp = test.AddProduct("Desk Lamp", 59.00m);
 
-            var result = await test.Commands.Handle(Order(customer.ID, (lamp.ID, 2), (lamp.ID, 3)), Token);
+            var result = await test.Bus.DispatchAwaitAsync(Order(customer.ID, (lamp.ID, 2), (lamp.ID, 3)), Token);
 
             var item = Assert.Single(await test.Repo.ManyAsync<OrderItemDataModel>(x => x.OrderID == result.OrderID));
             Assert.Equal(5, item.Quantity);
@@ -72,7 +72,7 @@ namespace Store.Orders.Test
             var test = new OrdersTestBus();
             var lamp = test.AddProduct("Desk Lamp", 59.00m);
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(Order(Guid.NewGuid(), (lamp.ID, 1)), Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Order(Guid.NewGuid(), (lamp.ID, 1)), Token));
             Assert.Equal("Customer not found.", ex.Message);
             Assert.Empty(test.Inventory.Reserved);
         }
@@ -83,7 +83,7 @@ namespace Store.Orders.Test
             var test = new OrdersTestBus();
             var customer = await test.AddCustomer("Ada Lovelace");
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(Order(customer.ID), Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Order(customer.ID), Token));
         }
 
         [Fact]
@@ -93,7 +93,7 @@ namespace Store.Orders.Test
             var customer = await test.AddCustomer("Ada Lovelace");
             var items = Enumerable.Range(0, 21).Select(i => (test.AddProduct($"Product {i}", 1.00m).ID, 1)).ToArray();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(Order(customer.ID, items), Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Order(customer.ID, items), Token));
         }
 
         [Fact]
@@ -102,7 +102,7 @@ namespace Store.Orders.Test
             var test = new OrdersTestBus();
             var customer = await test.AddCustomer("Ada Lovelace");
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(Order(customer.ID, (Guid.NewGuid(), 1)), Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Order(customer.ID, (Guid.NewGuid(), 1)), Token));
             Assert.Empty(test.Inventory.Reserved);
         }
 
@@ -113,7 +113,7 @@ namespace Store.Orders.Test
             var customer = await test.AddCustomer("Ada Lovelace");
             var lamp = test.AddProduct("Desk Lamp", 59.00m, isActive: false);
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(Order(customer.ID, (lamp.ID, 1)), Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Order(customer.ID, (lamp.ID, 1)), Token));
             Assert.Contains("discontinued", ex.Message);
         }
 
@@ -126,7 +126,7 @@ namespace Store.Orders.Test
             var customer = await test.AddCustomer("Ada Lovelace");
             var lamp = test.AddProduct("Desk Lamp", 59.00m);
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(Order(customer.ID, (lamp.ID, quantity)), Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Order(customer.ID, (lamp.ID, quantity)), Token));
             Assert.Empty(test.Inventory.Reserved);
         }
 
@@ -138,7 +138,7 @@ namespace Store.Orders.Test
             var lamp = test.AddProduct("Desk Lamp", 59.00m);
             test.Inventory.ReserveFailure = new DomainException("Desk Lamp is out of stock.");
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(Order(customer.ID, (lamp.ID, 1)), Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Order(customer.ID, (lamp.ID, 1)), Token));
             Assert.Equal("Desk Lamp is out of stock.", ex.Message);
 
             Assert.False(await test.Repo.AnyAsync<OrderDataModel>());
@@ -150,7 +150,7 @@ namespace Store.Orders.Test
             var test = new OrdersTestBus();
             var placed = await Placed(test);
 
-            await test.Commands.Handle(new CancelOrderCommand() { OrderID = placed.OrderID }, Token);
+            await test.Bus.DispatchAwaitAsync(new CancelOrderCommand() { OrderID = placed.OrderID }, Token);
 
             var order = (await test.GetOrder(placed.OrderID))!;
             Assert.Equal(nameof(OrderStatus.Cancelled), order.Status);
@@ -167,7 +167,7 @@ namespace Store.Orders.Test
             var test = new OrdersTestBus();
             var placed = await Placed(test);
 
-            await test.Commands.Handle(new ShipOrderCommand() { OrderID = placed.OrderID }, Token);
+            await test.Bus.DispatchAwaitAsync(new ShipOrderCommand() { OrderID = placed.OrderID }, Token);
 
             var order = (await test.GetOrder(placed.OrderID))!;
             Assert.Equal(nameof(OrderStatus.Shipped), order.Status);
@@ -184,9 +184,9 @@ namespace Store.Orders.Test
         {
             var test = new OrdersTestBus();
             var placed = await Placed(test);
-            await test.Commands.Handle(new CancelOrderCommand() { OrderID = placed.OrderID }, Token);
+            await test.Bus.DispatchAwaitAsync(new CancelOrderCommand() { OrderID = placed.OrderID }, Token);
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new ShipOrderCommand() { OrderID = placed.OrderID }, Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new ShipOrderCommand() { OrderID = placed.OrderID }, Token));
             Assert.Contains("cancelled", ex.Message);
             Assert.Empty(test.OrderEvents.Shipped);
         }
@@ -196,9 +196,9 @@ namespace Store.Orders.Test
         {
             var test = new OrdersTestBus();
             var placed = await Placed(test);
-            await test.Commands.Handle(new ShipOrderCommand() { OrderID = placed.OrderID }, Token);
+            await test.Bus.DispatchAwaitAsync(new ShipOrderCommand() { OrderID = placed.OrderID }, Token);
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new CancelOrderCommand() { OrderID = placed.OrderID }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new CancelOrderCommand() { OrderID = placed.OrderID }, Token));
             Assert.Empty(test.Inventory.Released);
         }
 
@@ -207,7 +207,7 @@ namespace Store.Orders.Test
         {
             var test = new OrdersTestBus();
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new CancelOrderCommand() { OrderID = Guid.NewGuid() }, Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new CancelOrderCommand() { OrderID = Guid.NewGuid() }, Token));
             Assert.Equal("Order not found.", ex.Message);
         }
 
@@ -216,7 +216,7 @@ namespace Store.Orders.Test
         {
             var test = new OrdersTestBus();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new ShipOrderCommand() { OrderID = Guid.NewGuid() }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new ShipOrderCommand() { OrderID = Guid.NewGuid() }, Token));
         }
     }
 }

@@ -18,7 +18,7 @@ namespace Store.Reviews.Test
             var lamp = test.AddProduct("Desk Lamp");
             var ada = test.AddCustomer("Ada Lovelace");
 
-            var result = await test.Commands.Handle(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 4, Comment = "  Bright enough.  " }, Token);
+            var result = await test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 4, Comment = "  Bright enough.  " }, Token);
 
             Assert.False(result.VerifiedPurchase);
             var review = await test.Repo.SingleAsync<ReviewDataModel>(x => x.ID == result.ReviewID);
@@ -39,7 +39,7 @@ namespace Store.Reviews.Test
             var ada = test.AddCustomer("Ada Lovelace");
             _ = test.Orders.Purchases.Add((ada.ID, lamp.ID));
 
-            var result = await test.Commands.Handle(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 5 }, Token);
+            var result = await test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 5 }, Token);
 
             Assert.True(result.VerifiedPurchase);
             Assert.True((await test.Repo.SingleAsync<ReviewDataModel>(x => x.ID == result.ReviewID))!.VerifiedPurchase);
@@ -52,7 +52,7 @@ namespace Store.Reviews.Test
             var lamp = test.AddProduct("Desk Lamp");
             var ada = test.AddCustomer("Ada Lovelace");
 
-            var result = await test.Commands.Handle(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 3, Comment = "   " }, Token);
+            var result = await test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 3, Comment = "   " }, Token);
 
             Assert.Null((await test.Repo.SingleAsync<ReviewDataModel>(x => x.ID == result.ReviewID))!.Comment);
         }
@@ -66,7 +66,7 @@ namespace Store.Reviews.Test
             var lamp = test.AddProduct("Desk Lamp");
             var ada = test.AddCustomer("Ada Lovelace");
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = rating }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = rating }, Token));
         }
 
         [Fact]
@@ -76,7 +76,7 @@ namespace Store.Reviews.Test
             var lamp = test.AddProduct("Desk Lamp");
             var ada = test.AddCustomer("Ada Lovelace");
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 3, Comment = new string('a', 1001) }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 3, Comment = new string('a', 1001) }, Token));
         }
 
         [Fact]
@@ -85,9 +85,9 @@ namespace Store.Reviews.Test
             var test = new ReviewsTestBus();
             var lamp = test.AddProduct("Desk Lamp");
             var ada = test.AddCustomer("Ada Lovelace");
-            _ = await test.Commands.Handle(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 4 }, Token);
+            _ = await test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 4 }, Token);
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 1 }, Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 1 }, Token));
             Assert.Contains("already reviewed", ex.Message);
             Assert.Single(await test.Repo.ManyAsync<ReviewDataModel>(x => x.ProductID == lamp.ID));
         }
@@ -98,7 +98,7 @@ namespace Store.Reviews.Test
             var test = new ReviewsTestBus();
             var ada = test.AddCustomer("Ada Lovelace");
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = Guid.NewGuid(), Rating = 4 }, Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = Guid.NewGuid(), Rating = 4 }, Token));
             Assert.Equal("Product not found.", ex.Message);
         }
 
@@ -108,7 +108,7 @@ namespace Store.Reviews.Test
             var test = new ReviewsTestBus();
             var lamp = test.AddProduct("Desk Lamp");
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new SubmitReviewCommand() { CustomerID = Guid.NewGuid(), ProductID = lamp.ID, Rating = 4 }, Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = Guid.NewGuid(), ProductID = lamp.ID, Rating = 4 }, Token));
             Assert.Equal("Customer not found.", ex.Message);
             Assert.Empty(await test.Repo.ManyAsync<ReviewDataModel>(x => x.ProductID == lamp.ID));
         }
@@ -122,13 +122,13 @@ namespace Store.Reviews.Test
             var grace = test.AddCustomer("Grace Hopper");
             var alan = test.AddCustomer("Alan Turing");
 
-            _ = await test.Commands.Handle(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 4 }, Token);
-            _ = await test.Commands.Handle(new SubmitReviewCommand() { CustomerID = grace.ID, ProductID = lamp.ID, Rating = 5 }, Token);
+            _ = await test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 4 }, Token);
+            _ = await test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = grace.ID, ProductID = lamp.ID, Rating = 5 }, Token);
             Assert.Equal(1, test.Catalog.GetProductsByIDsCalls);
 
             lamp.Name = "LED Desk Lamp";
-            await test.CatalogEvents.Handle(new ProductDiscontinuedEvent() { ProductID = lamp.ID, Name = "LED Desk Lamp" });
-            var result = await test.Commands.Handle(new SubmitReviewCommand() { CustomerID = alan.ID, ProductID = lamp.ID, Rating = 3 }, Token);
+            await test.Bus.DispatchAsync(new ProductDiscontinuedEvent() { ProductID = lamp.ID, Name = "LED Desk Lamp" });
+            var result = await test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = alan.ID, ProductID = lamp.ID, Rating = 3 }, Token);
 
             Assert.Equal(2, test.Catalog.GetProductsByIDsCalls);
             Assert.Equal("LED Desk Lamp", (await test.Repo.SingleAsync<ReviewDataModel>(x => x.ID == result.ReviewID))!.ProductName);

@@ -18,7 +18,7 @@ namespace Store.Shipping.Test
             var test = new ShippingTestBus();
             var shipped = Shipped();
 
-            await test.Commands.Handle(shipped);
+            await test.Bus.DispatchAsync(shipped);
 
             var shipment = Assert.Single(await test.GetShipments(shipped.OrderID));
             Assert.Equal("SO-TEST-1", shipment.OrderNumber);
@@ -35,8 +35,8 @@ namespace Store.Shipping.Test
             var test = new ShippingTestBus();
             var shipped = Shipped();
 
-            await test.Commands.Handle(shipped);
-            await test.Commands.Handle(shipped);
+            await test.Bus.DispatchAsync(shipped);
+            await test.Bus.DispatchAsync(shipped);
 
             Assert.Single(await test.GetShipments(shipped.OrderID));
         }
@@ -46,9 +46,9 @@ namespace Store.Shipping.Test
         {
             var test = new ShippingTestBus();
             var shipped = Shipped();
-            await test.Commands.Handle(shipped);
+            await test.Bus.DispatchAsync(shipped);
 
-            await test.Commands.Handle(new MarkDeliveredCommand() { OrderID = shipped.OrderID }, Token);
+            await test.Bus.DispatchAwaitAsync(new MarkDeliveredCommand() { OrderID = shipped.OrderID }, Token);
 
             var shipment = Assert.Single(await test.GetShipments(shipped.OrderID));
             Assert.Equal(nameof(ShipmentStatus.Delivered), shipment.Status);
@@ -60,10 +60,10 @@ namespace Store.Shipping.Test
         {
             var test = new ShippingTestBus();
             var shipped = Shipped();
-            await test.Commands.Handle(shipped);
-            await test.Commands.Handle(new MarkDeliveredCommand() { OrderID = shipped.OrderID }, Token);
+            await test.Bus.DispatchAsync(shipped);
+            await test.Bus.DispatchAwaitAsync(new MarkDeliveredCommand() { OrderID = shipped.OrderID }, Token);
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new MarkDeliveredCommand() { OrderID = shipped.OrderID }, Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new MarkDeliveredCommand() { OrderID = shipped.OrderID }, Token));
             Assert.Contains("already marked delivered", ex.Message);
         }
 
@@ -72,7 +72,7 @@ namespace Store.Shipping.Test
         {
             var test = new ShippingTestBus();
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new MarkDeliveredCommand() { OrderID = Guid.NewGuid() }, Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new MarkDeliveredCommand() { OrderID = Guid.NewGuid() }, Token));
             Assert.Equal("Shipment not found.", ex.Message);
         }
     }

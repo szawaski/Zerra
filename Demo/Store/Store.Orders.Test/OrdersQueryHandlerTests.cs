@@ -1,4 +1,5 @@
 using Store.Common;
+using Store.Orders.Domain;
 using Store.Orders.Service.Data;
 using Xunit;
 using Zerra.Repository;
@@ -38,8 +39,8 @@ namespace Store.Orders.Test
         {
             var test = new OrdersTestBus();
 
-            Assert.Equal("Test data store", await test.Queries.GetDataStoreName(Token));
-            Assert.Equal("Test messaging", await test.Queries.GetMessagingName(Token));
+            Assert.Equal("Test data store", await test.Bus.Call<IOrdersQueryHandler>().GetDataStoreName(Token));
+            Assert.Equal("Test messaging", await test.Bus.Call<IOrdersQueryHandler>().GetMessagingName(Token));
         }
 
         [Fact]
@@ -49,7 +50,7 @@ namespace Store.Orders.Test
             var grace = await test.AddCustomer("Grace Hopper");
             var ada = await test.AddCustomer("Ada Lovelace");
 
-            var customers = await test.Queries.GetCustomers(Token);
+            var customers = await test.Bus.Call<IOrdersQueryHandler>().GetCustomers(Token);
 
             Assert.Equal([ada.ID, grace.ID], customers.Select(x => x.ID).ToArray());
             Assert.Equal("ada.lovelace@example.com", customers[0].Email);
@@ -64,7 +65,7 @@ namespace Store.Orders.Test
             var mouseID = Guid.NewGuid();
             var order = await AddOrder(test, customer.ID, OrderStatus.Placed, DateTime.UtcNow, (mouseID, "Mouse", 49.99m, 1), (lampID, "Desk Lamp", 59.00m, 2));
 
-            var model = await test.Queries.GetOrder(order.ID, Token);
+            var model = await test.Bus.Call<IOrdersQueryHandler>().GetOrder(order.ID, Token);
 
             Assert.Equal(order.OrderNumber, model.OrderNumber);
             Assert.Equal("Ada Lovelace", model.CustomerName);
@@ -80,7 +81,7 @@ namespace Store.Orders.Test
         {
             var test = new OrdersTestBus();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Queries.GetOrder(Guid.NewGuid(), Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.Call<IOrdersQueryHandler>().GetOrder(Guid.NewGuid(), Token));
         }
 
         [Fact]
@@ -92,7 +93,7 @@ namespace Store.Orders.Test
             var older = await AddOrder(test, customer.ID, OrderStatus.Shipped, now.AddSeconds(1), (Guid.NewGuid(), "Desk Lamp", 59.00m, 1));
             var newer = await AddOrder(test, customer.ID, OrderStatus.Placed, now.AddSeconds(2), (Guid.NewGuid(), "Mouse", 49.99m, 2));
 
-            var orders = await test.Queries.GetOrders(Token);
+            var orders = await test.Bus.Call<IOrdersQueryHandler>().GetOrders(Token);
 
             Assert.Equal([newer.ID, older.ID], orders.Select(x => x.ID).ToArray());
             Assert.Equal("Ada Lovelace", orders[0].CustomerName);
@@ -109,7 +110,7 @@ namespace Store.Orders.Test
             for (var i = 0; i < 51; i++)
                 _ = await AddOrder(test, customer.ID, OrderStatus.Placed, now.AddSeconds(-i), (Guid.NewGuid(), "Desk Lamp", 59.00m, 1));
 
-            var orders = await test.Queries.GetOrders(Token);
+            var orders = await test.Bus.Call<IOrdersQueryHandler>().GetOrders(Token);
 
             Assert.Equal(50, orders.Length);
         }
@@ -126,10 +127,10 @@ namespace Store.Orders.Test
             _ = await AddOrder(test, customer.ID, OrderStatus.Placed, DateTime.UtcNow, (placedProductID, "Mouse", 49.99m, 1));
             _ = await AddOrder(test, customer.ID, OrderStatus.Cancelled, DateTime.UtcNow, (cancelledProductID, "Chair", 429.00m, 1));
 
-            Assert.True(await test.Queries.HasPurchased(customer.ID, shippedProductID, Token));
-            Assert.False(await test.Queries.HasPurchased(customer.ID, placedProductID, Token));
-            Assert.False(await test.Queries.HasPurchased(customer.ID, cancelledProductID, Token));
-            Assert.False(await test.Queries.HasPurchased(Guid.NewGuid(), shippedProductID, Token));
+            Assert.True(await test.Bus.Call<IOrdersQueryHandler>().HasPurchased(customer.ID, shippedProductID, Token));
+            Assert.False(await test.Bus.Call<IOrdersQueryHandler>().HasPurchased(customer.ID, placedProductID, Token));
+            Assert.False(await test.Bus.Call<IOrdersQueryHandler>().HasPurchased(customer.ID, cancelledProductID, Token));
+            Assert.False(await test.Bus.Call<IOrdersQueryHandler>().HasPurchased(Guid.NewGuid(), shippedProductID, Token));
         }
     }
 }

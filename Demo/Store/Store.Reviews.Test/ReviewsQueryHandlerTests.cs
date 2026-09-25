@@ -1,3 +1,4 @@
+using Store.Reviews.Domain;
 using Store.Reviews.Service.Data;
 using Xunit;
 using Zerra.Repository;
@@ -31,8 +32,8 @@ namespace Store.Reviews.Test
         {
             var test = new ReviewsTestBus();
 
-            Assert.Equal("Test data store", await test.Queries.GetDataStoreName(Token));
-            Assert.Equal("Test messaging", await test.Queries.GetMessagingName(Token));
+            Assert.Equal("Test data store", await test.Bus.Call<IReviewsQueryHandler>().GetDataStoreName(Token));
+            Assert.Equal("Test messaging", await test.Bus.Call<IReviewsQueryHandler>().GetMessagingName(Token));
         }
 
         [Fact]
@@ -45,7 +46,7 @@ namespace Store.Reviews.Test
             var newer = await AddReview(test, productID, 5, now);
             _ = await AddReview(test, Guid.NewGuid(), 4, now);
 
-            var reviews = await test.Queries.GetReviewsForProduct(productID, Token);
+            var reviews = await test.Bus.Call<IReviewsQueryHandler>().GetReviewsForProduct(productID, Token);
 
             Assert.Equal([newer.ID, older.ID], reviews.Select(x => x.ID).ToArray());
             Assert.Equal(5, reviews[0].Rating);
@@ -63,7 +64,7 @@ namespace Store.Reviews.Test
             var older = await AddReview(test, productID, 2, now.AddSeconds(1));
             var newer = await AddReview(test, productID, 5, now.AddSeconds(2));
 
-            var reviews = await test.Queries.GetRecentReviews(2, Token);
+            var reviews = await test.Bus.Call<IReviewsQueryHandler>().GetRecentReviews(2, Token);
 
             Assert.Equal([newer.ID, older.ID], reviews.Select(x => x.ID).ToArray());
         }
@@ -78,7 +79,7 @@ namespace Store.Reviews.Test
             for (var i = 0; i < 101; i++)
                 _ = await AddReview(test, Guid.NewGuid(), 3, now.AddSeconds(-i));
 
-            var reviews = await test.Queries.GetRecentReviews(count, Token);
+            var reviews = await test.Bus.Call<IReviewsQueryHandler>().GetRecentReviews(count, Token);
 
             Assert.Equal(expected, reviews.Length);
         }
@@ -95,7 +96,7 @@ namespace Store.Reviews.Test
             _ = await AddReview(test, lampID, 4, now);
             _ = await AddReview(test, mouseID, 2, now);
 
-            var ratings = await test.Queries.GetProductRatings(Token);
+            var ratings = await test.Bus.Call<IReviewsQueryHandler>().GetProductRatings(Token);
 
             Assert.Equal(2, ratings.Length);
             var lamp = Assert.Single(ratings, x => x.ProductID == lampID);

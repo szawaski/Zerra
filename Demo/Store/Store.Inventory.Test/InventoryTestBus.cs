@@ -11,13 +11,12 @@ namespace Store.Inventory.Test
 {
     /// <summary>
     /// A bus with the Inventory handlers on the service's own store providers, in-memory. Inventory calls no other service.
+    /// Tests send their commands, events, and queries through <see cref="Bus"/>, the way the gateway and the other services reach the handlers.
     /// </summary>
     public sealed class InventoryTestBus
     {
+        public IBus Bus { get; }
         public IRepo Repo { get; }
-
-        public InventoryQueryHandler Queries { get; } = new();
-        public InventoryCommandHandler Commands { get; } = new();
 
         public InventoryTestBus()
         {
@@ -36,11 +35,13 @@ namespace Store.Inventory.Test
             busServices.AddService<IDataStoreInfo>(new DataStoreInfo("Test data store"));
             busServices.AddService<IMessagingInfo>(new MessagingInfo("Test messaging"));
 
-            var bus = Bus.New("Inventory", busServices: busServices);
-            bus.AddHandler<IInventoryQueryHandler>(Queries);
-            bus.AddHandler<IInventoryCommandHandler>(Commands);
-            bus.AddHandler<IStockReservationHandler>(Commands);
-            bus.AddHandler<IOrdersEventHandler>(Commands);
+            var bus = Zerra.CQRS.Bus.New("Inventory", busServices: busServices);
+            Bus = bus;
+            var commands = new InventoryCommandHandler();
+            bus.AddHandler<IInventoryQueryHandler>(new InventoryQueryHandler());
+            bus.AddHandler<IInventoryCommandHandler>(commands);
+            bus.AddHandler<IStockReservationHandler>(commands);
+            bus.AddHandler<IOrdersEventHandler>(commands);
         }
 
         public async Task<StockItemDataModel?> GetStockItem(Guid productID)

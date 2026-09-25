@@ -15,7 +15,7 @@ namespace Store.Inventory.Test
         private static async Task<Guid> Restocked(InventoryTestBus test, int quantity)
         {
             var productID = Guid.NewGuid();
-            await test.Commands.Handle(new RestockProductCommand() { ProductID = productID, Quantity = quantity }, Token);
+            await test.Bus.DispatchAwaitAsync(new RestockProductCommand() { ProductID = productID, Quantity = quantity }, Token);
             return productID;
         }
 
@@ -48,7 +48,7 @@ namespace Store.Inventory.Test
             var test = new InventoryTestBus();
             var productID = await Restocked(test, 10);
 
-            await test.Commands.Handle(new RestockProductCommand() { ProductID = productID, Quantity = 5 }, Token);
+            await test.Bus.DispatchAwaitAsync(new RestockProductCommand() { ProductID = productID, Quantity = 5 }, Token);
 
             Assert.Equal(15, (await test.GetStockItem(productID))!.OnHand);
             Assert.Equal(2, (await test.GetMovements(productID)).Length);
@@ -63,7 +63,7 @@ namespace Store.Inventory.Test
             var test = new InventoryTestBus();
             var productID = Guid.NewGuid();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(new RestockProductCommand() { ProductID = productID, Quantity = quantity }, Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new RestockProductCommand() { ProductID = productID, Quantity = quantity }, Token));
             Assert.Null(await test.GetStockItem(productID));
         }
 
@@ -75,7 +75,7 @@ namespace Store.Inventory.Test
             var mouse = await Restocked(test, 5);
             var orderID = Guid.NewGuid();
 
-            await test.Commands.Handle(Reserve(orderID, (lamp, 3), (mouse, 5)), Token);
+            await test.Bus.DispatchAwaitAsync(Reserve(orderID, (lamp, 3), (mouse, 5)), Token);
 
             Assert.Equal(3, (await test.GetStockItem(lamp))!.Reserved);
             Assert.Equal(5, (await test.GetStockItem(mouse))!.Reserved);
@@ -92,7 +92,7 @@ namespace Store.Inventory.Test
             var lamp = await Restocked(test, 10);
             var orderID = Guid.NewGuid();
 
-            await test.Commands.Handle(Reserve(orderID, (lamp, 2), (lamp, 3)), Token);
+            await test.Bus.DispatchAwaitAsync(Reserve(orderID, (lamp, 2), (lamp, 3)), Token);
 
             Assert.Equal(5, (await test.GetStockItem(lamp))!.Reserved);
             var reservation = Assert.Single(await test.Repo.ManyAsync<StockReservationDataModel>(x => x.OrderID == orderID));
@@ -107,7 +107,7 @@ namespace Store.Inventory.Test
             var mouse = await Restocked(test, 2);
             var orderID = Guid.NewGuid();
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(Reserve(orderID, (lamp, 3), (mouse, 5)), Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Reserve(orderID, (lamp, 3), (mouse, 5)), Token));
             Assert.Contains("Only 2", ex.Message);
 
             Assert.Equal(0, (await test.GetStockItem(lamp))!.Reserved);
@@ -120,9 +120,9 @@ namespace Store.Inventory.Test
         {
             var test = new InventoryTestBus();
             var lamp = await Restocked(test, 1);
-            await test.Commands.Handle(Reserve(Guid.NewGuid(), (lamp, 1)), Token);
+            await test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid(), (lamp, 1)), Token);
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(Reserve(Guid.NewGuid(), (lamp, 1)), Token));
+            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid(), (lamp, 1)), Token));
             Assert.Contains("out of stock", ex.Message);
         }
 
@@ -131,7 +131,7 @@ namespace Store.Inventory.Test
         {
             var test = new InventoryTestBus();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(Reserve(Guid.NewGuid(), (Guid.NewGuid(), 1)), Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid(), (Guid.NewGuid(), 1)), Token));
         }
 
         [Fact]
@@ -139,7 +139,7 @@ namespace Store.Inventory.Test
         {
             var test = new InventoryTestBus();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(Reserve(Guid.NewGuid()), Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid()), Token));
         }
 
         [Fact]
@@ -148,7 +148,7 @@ namespace Store.Inventory.Test
             var test = new InventoryTestBus();
             var lamp = await Restocked(test, 10);
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Commands.Handle(Reserve(Guid.NewGuid(), (lamp, 0)), Token));
+            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid(), (lamp, 0)), Token));
             Assert.Equal(0, (await test.GetStockItem(lamp))!.Reserved);
         }
 
@@ -159,8 +159,8 @@ namespace Store.Inventory.Test
             var lamp = await Restocked(test, 10);
             var command = Reserve(Guid.NewGuid(), (lamp, 3));
 
-            await test.Commands.Handle(command, Token);
-            await test.Commands.Handle(command, Token);
+            await test.Bus.DispatchAwaitAsync(command, Token);
+            await test.Bus.DispatchAwaitAsync(command, Token);
 
             Assert.Equal(3, (await test.GetStockItem(lamp))!.Reserved);
         }
@@ -171,9 +171,9 @@ namespace Store.Inventory.Test
             var test = new InventoryTestBus();
             var lamp = await Restocked(test, 10);
             var reserve = Reserve(Guid.NewGuid(), (lamp, 3));
-            await test.Commands.Handle(reserve, Token);
+            await test.Bus.DispatchAwaitAsync(reserve, Token);
 
-            await test.Commands.Handle(new ReleaseReservedStockCommand() { OrderID = reserve.OrderID, OrderNumber = reserve.OrderNumber }, Token);
+            await test.Bus.DispatchAwaitAsync(new ReleaseReservedStockCommand() { OrderID = reserve.OrderID, OrderNumber = reserve.OrderNumber }, Token);
 
             var item = (await test.GetStockItem(lamp))!;
             Assert.Equal(0, item.Reserved);
@@ -188,7 +188,7 @@ namespace Store.Inventory.Test
             var test = new InventoryTestBus();
             var lamp = await Restocked(test, 10);
 
-            await test.Commands.Handle(new ReleaseReservedStockCommand() { OrderID = Guid.NewGuid(), OrderNumber = "SO-NONE" }, Token);
+            await test.Bus.DispatchAwaitAsync(new ReleaseReservedStockCommand() { OrderID = Guid.NewGuid(), OrderNumber = "SO-NONE" }, Token);
 
             Assert.Single(await test.GetMovements(lamp));
         }
@@ -199,9 +199,9 @@ namespace Store.Inventory.Test
             var test = new InventoryTestBus();
             var lamp = await Restocked(test, 10);
             var reserve = Reserve(Guid.NewGuid(), (lamp, 3));
-            await test.Commands.Handle(reserve, Token);
+            await test.Bus.DispatchAwaitAsync(reserve, Token);
 
-            await test.Commands.Handle(new OrderShippedEvent() { OrderID = reserve.OrderID, OrderNumber = reserve.OrderNumber, ShippedOn = DateTime.UtcNow });
+            await test.Bus.DispatchAsync(new OrderShippedEvent() { OrderID = reserve.OrderID, OrderNumber = reserve.OrderNumber, ShippedOn = DateTime.UtcNow });
 
             var item = (await test.GetStockItem(lamp))!;
             Assert.Equal(0, item.Reserved);
@@ -215,11 +215,11 @@ namespace Store.Inventory.Test
             var test = new InventoryTestBus();
             var lamp = await Restocked(test, 10);
             var reserve = Reserve(Guid.NewGuid(), (lamp, 3));
-            await test.Commands.Handle(reserve, Token);
+            await test.Bus.DispatchAwaitAsync(reserve, Token);
             var shipped = new OrderShippedEvent() { OrderID = reserve.OrderID, OrderNumber = reserve.OrderNumber, ShippedOn = DateTime.UtcNow };
 
-            await test.Commands.Handle(shipped);
-            await test.Commands.Handle(shipped);
+            await test.Bus.DispatchAsync(shipped);
+            await test.Bus.DispatchAsync(shipped);
 
             Assert.Equal(7, (await test.GetStockItem(lamp))!.OnHand);
         }

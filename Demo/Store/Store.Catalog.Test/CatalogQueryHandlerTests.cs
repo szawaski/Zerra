@@ -1,3 +1,4 @@
+using Store.Catalog.Domain;
 using Store.Catalog.Service.Data;
 using Xunit;
 
@@ -12,8 +13,8 @@ namespace Store.Catalog.Test
         {
             var test = new CatalogTestBus();
 
-            Assert.Equal("Test data store", await test.Queries.GetDataStoreName(Token));
-            Assert.Equal("Test messaging", await test.Queries.GetMessagingName(Token));
+            Assert.Equal("Test data store", await test.Bus.Call<ICatalogQueryHandler>().GetDataStoreName(Token));
+            Assert.Equal("Test messaging", await test.Bus.Call<ICatalogQueryHandler>().GetMessagingName(Token));
         }
 
         [Fact]
@@ -23,7 +24,7 @@ namespace Store.Catalog.Test
             var seating = await test.AddCategory("Seating");
             var lighting = await test.AddCategory("Lighting");
 
-            var categories = await test.Queries.GetCategories(Token);
+            var categories = await test.Bus.Call<ICatalogQueryHandler>().GetCategories(Token);
 
             Assert.Equal([lighting.ID, seating.ID], categories.Select(x => x.ID).ToArray());
             Assert.Equal("Lighting", categories[0].Name);
@@ -37,7 +38,7 @@ namespace Store.Catalog.Test
             var lamp = await test.AddProduct(category.ID, "Desk Lamp", 59.00m);
             var bulb = await test.AddProduct(category.ID, "Bulb", 5.00m, ProductStatus.Discontinued);
 
-            var products = await test.Queries.GetProducts(Token);
+            var products = await test.Bus.Call<ICatalogQueryHandler>().GetProducts(Token);
 
             Assert.Equal([bulb.ID, lamp.ID], products.Select(x => x.ID).ToArray());
             Assert.All(products, x => Assert.Equal("Lighting", x.CategoryName));
@@ -57,7 +58,7 @@ namespace Store.Catalog.Test
             var bulb = await test.AddProduct(lighting.ID, "Bulb", 5.00m);
             _ = await test.AddProduct(seating.ID, "Chair", 429.00m);
 
-            var products = await test.Queries.GetProductsByCategory(lighting.ID, Token);
+            var products = await test.Bus.Call<ICatalogQueryHandler>().GetProductsByCategory(lighting.ID, Token);
 
             Assert.Equal([bulb.ID, lamp.ID], products.Select(x => x.ID).ToArray());
         }
@@ -71,7 +72,7 @@ namespace Store.Catalog.Test
             var bulb = await test.AddProduct(category.ID, "Bulb", 5.00m);
             _ = await test.AddProduct(category.ID, "Floor Lamp", 89.00m);
 
-            var products = await test.Queries.GetProductsByIDs([lamp.ID, bulb.ID, Guid.NewGuid()], Token);
+            var products = await test.Bus.Call<ICatalogQueryHandler>().GetProductsByIDs([lamp.ID, bulb.ID, Guid.NewGuid()], Token);
 
             Assert.Equal(2, products.Length);
             Assert.Contains(products, x => x.ID == lamp.ID && x.Name == "Desk Lamp" && x.CategoryName == "Lighting");
@@ -83,7 +84,7 @@ namespace Store.Catalog.Test
         {
             var test = new CatalogTestBus();
 
-            Assert.Empty(await test.Queries.GetProductsByIDs([], Token));
+            Assert.Empty(await test.Bus.Call<ICatalogQueryHandler>().GetProductsByIDs([], Token));
         }
     }
 }

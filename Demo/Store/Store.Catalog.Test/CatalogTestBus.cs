@@ -1,7 +1,5 @@
 using Store.Carts.Domain;
-using Store.Carts.Domain.Commands;
 using Store.Catalog.Domain;
-using Store.Catalog.Domain.Events;
 using Store.Catalog.Service.Data;
 using Store.Catalog.Service.Handlers;
 using Store.Common.Data;
@@ -13,15 +11,15 @@ namespace Store.Catalog.Test
 {
     /// <summary>
     /// A bus with the Catalog handlers on the service's own store providers, in-memory, and fakes of the services the Catalog sends messages to.
+    /// Tests send their commands, events, and queries through <see cref="Bus"/>, the way the gateway and the other services reach the handlers.
     /// </summary>
     public sealed class CatalogTestBus
     {
-        public IRepo Repo { get; }
+        private readonly IRepo repo;
+
+        public IBus Bus { get; }
         public FakeCatalogEventHandler CatalogEvents { get; } = new();
         public FakeCartRepricingHandler CartRepricing { get; } = new();
-
-        public CatalogQueryHandler Queries { get; } = new();
-        public CatalogCommandHandler Commands { get; } = new();
 
         public CatalogTestBus()
         {
@@ -29,19 +27,20 @@ namespace Store.Catalog.Test
             Environment.SetEnvironmentVariable("STORE_IN_MEMORY", "true");
             //a context of its own is an in-memory store of its own, so no other test sees this one's rows
             var context = new CatalogDataContext();
-            var repo = Zerra.Repository.Repo.New();
+            var repo = Repo.New();
             repo.AddProvider(new CatalogStoreProvider<CategoryDataModel>(context));
             repo.AddProvider(new CatalogStoreProvider<ProductDataModel>(context));
-            Repo = repo;
+            this.repo = repo;
 
             var busServices = new BusServices();
             busServices.AddRepo(repo);
             busServices.AddService<IDataStoreInfo>(new DataStoreInfo("Test data store"));
             busServices.AddService<IMessagingInfo>(new MessagingInfo("Test messaging"));
 
-            var bus = Bus.New("Catalog", busServices: busServices);
-            bus.AddHandler<ICatalogQueryHandler>(Queries);
-            bus.AddHandler<ICatalogCommandHandler>(Commands);
+            var bus = Zerra.CQRS.Bus.New("Catalog", busServices: busServices);
+            Bus = bus;
+            bus.AddHandler<ICatalogQueryHandler>(new CatalogQueryHandler());
+            bus.AddHandler<ICatalogCommandHandler>(new CatalogCommandHandler());
 
             //the subscribers, answered in process
             bus.AddHandler<ICatalogEventHandler>(CatalogEvents);
@@ -51,7 +50,7 @@ namespace Store.Catalog.Test
         public async Task<CategoryDataModel> AddCategory(string name)
         {
             var category = new CategoryDataModel() { ID = Guid.NewGuid(), Name = name };
-            await Repo.CreateAsync(category);
+            await repo.CreateAsync(category);
             return category;
         }
 
@@ -66,40 +65,11 @@ namespace Store.Catalog.Test
                 Price = price,
                 Status = status.ToString()
             };
-            await Repo.CreateAsync(product);
+            await repo.CreateAsync(product);
             return product;
         }
 
         /// <summary>A new valid SKU, SKUs are unique across the catalog.</summary>
         public static string NewSku() => $"T-{Guid.NewGuid():N}"[..20].ToUpperInvariant();
-    }
-
-    public sealed class FakeCatalogEventHandler : BaseHandler, ICatalogEventHandler
-    {
-        public List<ProductPriceChangedEvent> PriceChanges { get; } = new();
-        public List<ProductDiscontinuedEvent> Discontinued { get; } = new();
-
-        public Task Handle(ProductPriceChangedEvent @event)
-        {
-            PriceChanges.Add(@event);
-            return Task.CompletedTask;
-        }
-
-        public Task Handle(ProductDiscontinuedEvent @event)
-        {
-            Discontinued.Add(@event);
-            return Task.CompletedTask;
-        }
-    }
-
-    public sealed class FakeCartRepricingHandler : BaseHandler, ICartRepricingHandler
-    {
-        public List<RepriceCartItemsCommand> Commands { get; } = new();
-
-        public Task Handle(RepriceCartItemsCommand command, CancellationToken cancellationToken)
-        {
-            Commands.Add(command);
-            return Task.CompletedTask;
-        }
     }
 }
