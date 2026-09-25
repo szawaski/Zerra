@@ -73,11 +73,6 @@ namespace Zerra.CQRS.RabbitMQ
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
-
                 try
                 {
                     if (connection is null || connection!.IsOpen == false)
@@ -115,28 +110,17 @@ namespace Zerra.CQRS.RabbitMQ
 
                     var properties = channel.CreateBasicProperties();
 
-                    EventingBasicConsumer? consumer = null;
-                    string? consumerTag = null;
-                    string? correlationId = null;
+                    Acknowledgement? acknowledgement = null;
+                    using var waiter = requireAcknowledgement ? new SemaphoreSlim(0, 1) : null;
                     if (requireAcknowledgement)
                     {
                         var replyQueue = channel.QueueDeclare(String.Empty, false, true, true);
-                        consumer = new EventingBasicConsumer(channel);
-                        consumerTag = channel.BasicConsume(replyQueue.QueueName, true, consumer);
+                        var consumer = new EventingBasicConsumer(channel);
+                        var correlationId = Guid.NewGuid().ToString("N");
+                        string? consumerTag = null;
 
-                        correlationId = Guid.NewGuid().ToString("N");
-                        properties.ReplyTo = replyQueue.QueueName;
-                        properties.CorrelationId = correlationId;
-                    }
-
-                    channel.BasicPublish(topic, String.Empty, properties, body);
-
-                    if (requireAcknowledgement)
-                    {
-                        Acknowledgement? acknowledgement = null;
-                        using var waiter = new SemaphoreSlim(0, 1);
-
-                        consumer!.Received += (sender, e) =>
+                        //attached before consuming and publishing, a reply that arrives first would otherwise be missed
+                        consumer.Received += (sender, e) =>
                         {
                             try
                             {
@@ -158,11 +142,21 @@ namespace Zerra.CQRS.RabbitMQ
                             }
                             finally
                             {
-                                _ = waiter.Release();
+                                _ = waiter!.Release();
                             }
                         };
 
-                        await waiter.WaitAsync(cancellationToken);
+                        consumerTag = channel.BasicConsume(replyQueue.QueueName, true, consumer);
+
+                        properties.ReplyTo = replyQueue.QueueName;
+                        properties.CorrelationId = correlationId;
+                    }
+
+                    channel.BasicPublish(topic, String.Empty, properties, body);
+
+                    if (requireAcknowledgement)
+                    {
+                        await waiter!.WaitAsync(cancellationToken);
 
                         Acknowledgement.ThrowIfFailed(acknowledgement);
                     }
@@ -193,11 +187,6 @@ namespace Zerra.CQRS.RabbitMQ
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
-
                 try
                 {
                     if (connection is null || connection!.IsOpen == false)
@@ -237,18 +226,14 @@ namespace Zerra.CQRS.RabbitMQ
 
                     var replyQueue = channel.QueueDeclare(String.Empty, false, true, true);
                     var consumer = new EventingBasicConsumer(channel);
-                    var consumerTag = channel.BasicConsume(replyQueue.QueueName, true, consumer);
-
                     var correlationId = Guid.NewGuid().ToString("N");
-                    properties.ReplyTo = replyQueue.QueueName;
-                    properties.CorrelationId = correlationId;
-
-                    channel.BasicPublish(topic, String.Empty, properties, body);
+                    string? consumerTag = null;
 
                     Acknowledgement? acknowledgement = null;
                     using var waiter = new SemaphoreSlim(0, 1);
 
-                    consumer!.Received += (sender, e) =>
+                    //attached before consuming and publishing, a reply that arrives first would otherwise be missed
+                    consumer.Received += (sender, e) =>
                     {
                         try
                         {
@@ -273,6 +258,13 @@ namespace Zerra.CQRS.RabbitMQ
                             _ = waiter.Release();
                         }
                     };
+
+                    consumerTag = channel.BasicConsume(replyQueue.QueueName, true, consumer);
+
+                    properties.ReplyTo = replyQueue.QueueName;
+                    properties.CorrelationId = correlationId;
+
+                    channel.BasicPublish(topic, String.Empty, properties, body);
 
                     await waiter.WaitAsync(cancellationToken);
 
@@ -306,11 +298,6 @@ namespace Zerra.CQRS.RabbitMQ
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(RabbitMQCommon.TopicMaxLength);
-
                 try
                 {
                     if (connection is null || connection.IsOpen == false)
@@ -375,6 +362,7 @@ namespace Zerra.CQRS.RabbitMQ
         {
             if (topicsByCommandType.ContainsKey(type))
                 return;
+            topic = BuildTopic(topic);
             topicsByCommandType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
@@ -387,12 +375,21 @@ namespace Zerra.CQRS.RabbitMQ
         {
             if (topicsByEventType.ContainsKey(type))
                 return;
+            topic = BuildTopic(topic);
             topicsByEventType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
+        }
+
+        private string BuildTopic(string topic)
+        {
+            if (!String.IsNullOrWhiteSpace(environment))
+                return StringExtensions.Join(RabbitMQCommon.TopicMaxLength, "_", environment, topic);
+            else
+                return topic.Truncate(RabbitMQCommon.TopicMaxLength);
         }
     }
 }

@@ -30,6 +30,7 @@ namespace Zerra.CQRS.Kafka
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync;
             private readonly CancellationTokenSource canceller;
+            private IProducer<string, byte[]>? ackProducer;
 
             public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, SymmetricConfig? symmetricConfig, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
@@ -55,6 +56,20 @@ namespace Zerra.CQRS.Kafka
                 if (IsOpen)
                     return;
                 IsOpen = true;
+
+                //one producer sends every acknowledgement, it connects on first use
+                var producerConfig = new ProducerConfig();
+                producerConfig.BootstrapServers = host;
+                producerConfig.ClientId = clientID;
+                if (userName is not null && password is not null)
+                {
+                    producerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
+                    producerConfig.SaslMechanism = SaslMechanism.Plain;
+                    producerConfig.SaslUsername = userName;
+                    producerConfig.SaslPassword = password;
+                }
+                ackProducer = new ProducerBuilder<string, byte[]>(producerConfig).Build();
+
                 _ = Task.Run(() => ListeningThread(host, userName, password));
             }
 
@@ -72,6 +87,8 @@ namespace Zerra.CQRS.Kafka
                     consumerConfig.BootstrapServers = host;
                     consumerConfig.GroupId = topic;
                     consumerConfig.EnableAutoCommit = false;
+                    //commands in the topic are meant for this service, so a new group starts from the beginning instead of skipping commands sent before it first joined
+                    consumerConfig.AutoOffsetReset = AutoOffsetReset.Earliest;
                     if (userName is not null && password is not null)
                     {
                         consumerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
@@ -95,7 +112,7 @@ namespace Zerra.CQRS.Kafka
                                 var consumerResult = consumer.Consume(canceller.Token);
                                 consumer.Commit(consumerResult);
 
-                                _ = Task.Run(() => HandleMessage(throttle, host, consumerResult));
+                                _ = Task.Run(() => HandleMessage(throttle, consumerResult));
 
                                 if (canceller.IsCancellationRequested)
                                     break;
@@ -103,15 +120,17 @@ namespace Zerra.CQRS.Kafka
                         }
                         finally
                         {
-                            consumer.Unsubscribe();
+                            //Close leaves the group right away, Unsubscribe and Dispose leave its member until the session times out
+                            consumer.Close();
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(topic, ex);
+                    //closing cancels the consume, that isn't an error
                     if (!canceller.IsCancellationRequested)
                     {
+                        _ = Log.ErrorAsync(topic, ex);
                         await Task.Delay(KafkaCommon.RetryDelay);
                         goto retry;
                     }
@@ -122,7 +141,7 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
-            private async Task HandleMessage(SemaphoreSlim throttle, string host, ConsumeResult<string, byte[]> consumerResult)
+            private async Task HandleMessage(SemaphoreSlim throttle, ConsumeResult<string, byte[]> consumerResult)
             {
                 object? result = null;
                 Exception? error = null;
@@ -190,17 +209,11 @@ namespace Zerra.CQRS.Kafka
                     if (symmetricConfig is not null)
                         body = SymmetricEncryptor.Encrypt(symmetricConfig, body);
 
-                    var producerConfig = new ProducerConfig();
-                    producerConfig.BootstrapServers = host;
-                    producerConfig.ClientId = clientID;
-                    using (var producer = new ProducerBuilder<string, byte[]>(producerConfig).Build())
+                    _ = await ackProducer!.ProduceAsync(ackTopic, new Message<string, byte[]>()
                     {
-                        _ = await producer.ProduceAsync(ackTopic, new Message<string, byte[]>()
-                        {
-                            Key = ackKey!,
-                            Value = body
-                        });
-                    }
+                        Key = ackKey!,
+                        Value = body
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -216,6 +229,7 @@ namespace Zerra.CQRS.Kafka
             {
                 canceller.Cancel();
                 canceller.Dispose();
+                ackProducer?.Dispose();
             }
         }
     }

@@ -79,7 +79,10 @@ namespace Zerra.CQRS.RabbitMQ
                     this.channel.BasicQos(0, (ushort)maxConcurrent, false);
                     this.channel.ExchangeDeclare(this.topic, ExchangeType.Direct);
 
-                    var queue = this.channel.QueueDeclare(String.Empty, false, true, true);
+                    //named for the topic so every replica consumes the same queue and each command is handled once.
+                    //durable because a broker refuses a transient queue that isn't exclusive, it only makes the queue survive a restart and
+                    //the messages are still transient; auto delete still takes the queue with the last replica to disconnect
+                    var queue = this.channel.QueueDeclare(this.topic, true, false, true);
                     this.channel.QueueBind(queue.QueueName, this.topic, String.Empty);
 
                     var consumer = new AsyncEventingBasicConsumer(this.channel);
@@ -169,7 +172,9 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.ConsumerCancelled += (sender, e) =>
                     {
-                        _ = Task.Run(() => ListeningThread(connection));
+                        //disposing closes the channel which also cancels the consumer, that shouldn't start listening again
+                        if (!canceller.IsCancellationRequested)
+                            _ = Task.Run(() => ListeningThread(connection));
                         return Task.CompletedTask;
                     };
 
@@ -177,10 +182,10 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(topic, ex);
-
                     if (!canceller.IsCancellationRequested)
                     {
+                        _ = Log.ErrorAsync(topic, ex);
+
                         if (channel is not null)
                         {
                             channel.Close();

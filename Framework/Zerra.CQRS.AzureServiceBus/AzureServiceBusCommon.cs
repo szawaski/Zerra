@@ -22,6 +22,37 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public const int RetryDelay = 5000;
 
+        private const int emulatorAdministrationPort = 5300;
+
+        //the Service Bus emulator only serves the administration API on its management port, while the connection string's endpoint is its AMQP port,
+        //so for the emulator the administration client gets the same connection string pointed at the management port
+        public static ServiceBusAdministrationClient CreateAdministrationClient(string host, ServiceBusAdministrationClientOptions? options = null)
+        {
+            var parts = host.Split(';', StringSplitOptions.RemoveEmptyEntries);
+
+            var isEmulator = false;
+            var endpointIndex = -1;
+            for (var i = 0; i < parts.Length; i++)
+            {
+                var separator = parts[i].IndexOf('=');
+                if (separator < 0)
+                    continue;
+                var key = parts[i].AsSpan(0, separator).Trim();
+                if (key.Equals("UseDevelopmentEmulator", StringComparison.OrdinalIgnoreCase))
+                    isEmulator = bool.TryParse(parts[i].AsSpan(separator + 1).Trim(), out var value) && value;
+                else if (key.Equals("Endpoint", StringComparison.OrdinalIgnoreCase))
+                    endpointIndex = i;
+            }
+
+            if (!isEmulator || endpointIndex < 0)
+                return new ServiceBusAdministrationClient(host, options ?? new());
+
+            var endpointPart = parts[endpointIndex];
+            var endpoint = new UriBuilder(endpointPart.Substring(endpointPart.IndexOf('=') + 1).Trim()) { Port = emulatorAdministrationPort };
+            parts[endpointIndex] = $"Endpoint={endpoint.Uri}";
+            return new ServiceBusAdministrationClient(String.Join(";", parts), options ?? new());
+        }
+
         public static byte[] Serialize<T>(T obj)
         {
             return ByteSerializer.Serialize(obj);
@@ -38,7 +69,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public static async Task EnsureQueue(string host, string queue, bool deleteWhenIdle)
         {
-            var client = new ServiceBusAdministrationClient(host);
+            var client = CreateAdministrationClient(host);
 
             await locker.WaitAsync();
             try
@@ -80,7 +111,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public static async Task DeleteQueue(string host, string queue)
         {
-            var client = new ServiceBusAdministrationClient(host);
+            var client = CreateAdministrationClient(host);
 
             await locker.WaitAsync();
             try
@@ -96,7 +127,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public static async Task EnsureTopic(string host, string topic, bool deleteWhenIdle)
         {
-            var client = new ServiceBusAdministrationClient(host);
+            var client = CreateAdministrationClient(host);
 
             await locker.WaitAsync();
             try
@@ -138,7 +169,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public static async Task DeleteTopic(string host, string topic)
         {
-            var client = new ServiceBusAdministrationClient(host);
+            var client = CreateAdministrationClient(host);
 
             await locker.WaitAsync();
             try
@@ -154,7 +185,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public static async Task EnsureSubscription(string host, string topic, string subscription, bool deleteWhenIdle)
         {
-            var client = new ServiceBusAdministrationClient(host);
+            var client = CreateAdministrationClient(host);
 
             await locker.WaitAsync();
             try
@@ -176,7 +207,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         public static async Task DeleteSubscription(string host, string topic, string subscription)
         {
-            var client = new ServiceBusAdministrationClient(host);
+            var client = CreateAdministrationClient(host);
 
             await locker.WaitAsync();
             try

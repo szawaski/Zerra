@@ -15,7 +15,7 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
-    public sealed class AzureServiceBusProducer : ICommandProducer, IEventProducer, IAsyncDisposable
+    public sealed class AzureServiceBusProducer : ICommandProducer, IEventProducer, IDisposable, IAsyncDisposable
     {
         private bool listenerStarted = false;
         private readonly SemaphoreSlim listenerStartedLock = new(1, 1);
@@ -69,11 +69,6 @@ namespace Zerra.CQRS.AzureServiceBus
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    queue = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, queue);
-                else
-                    queue = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
-
                 if (requireAcknowledgement)
                 {
                     if (!listenerStarted)
@@ -173,11 +168,6 @@ namespace Zerra.CQRS.AzureServiceBus
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    queue = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, queue);
-                else
-                    queue = queue.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
-
                 if (!listenerStarted)
                 {
                     await listenerStartedLock.WaitAsync();
@@ -265,11 +255,6 @@ namespace Zerra.CQRS.AzureServiceBus
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
-
                 string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
@@ -301,50 +286,55 @@ namespace Zerra.CQRS.AzureServiceBus
 
         private async Task AckListeningThread()
         {
-        retry:
-
+            //the retry stays inside the outer try, a goto out of it would run the finally and dispose the canceller on a transient error
             try
             {
-                await using (var receiver = client.CreateReceiver(ackQueue))
+            retry:
+
+                try
                 {
-                    for (; ; )
+                    await using (var receiver = client.CreateReceiver(ackQueue))
                     {
-                        var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
-                        if (serviceBusMessage is null)
-                            continue;
-                        await receiver.CompleteMessageAsync(serviceBusMessage);
-
-                        if (!ackCallbacks.TryRemove(serviceBusMessage.SessionId, out var callback))
-                            continue;
-
-                        Acknowledgement? acknowledgement = null;
-                        try
+                        for (; ; )
                         {
-                            var response = serviceBusMessage.Body.ToStream();
-                            if (symmetricConfig is not null)
-                                response = SymmetricEncryptor.Decrypt(symmetricConfig, response, false);
-                            acknowledgement = await AzureServiceBusCommon.DeserializeAsync<Acknowledgement>(response);
-                            acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
-                        }
-                        catch (Exception ex)
-                        {
-                            acknowledgement = new Acknowledgement(ex.Message);
-                        }
+                            var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
+                            if (serviceBusMessage is null)
+                                continue;
+                            await receiver.CompleteMessageAsync(serviceBusMessage);
 
-                        callback(acknowledgement);
+                            if (!ackCallbacks.TryRemove(serviceBusMessage.SessionId, out var callback))
+                                continue;
 
-                        if (canceller.IsCancellationRequested)
-                            break;
+                            Acknowledgement? acknowledgement = null;
+                            try
+                            {
+                                var response = serviceBusMessage.Body.ToStream();
+                                if (symmetricConfig is not null)
+                                    response = SymmetricEncryptor.Decrypt(symmetricConfig, response, false);
+                                acknowledgement = await AzureServiceBusCommon.DeserializeAsync<Acknowledgement>(response);
+                                acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
+                            }
+                            catch (Exception ex)
+                            {
+                                acknowledgement = new Acknowledgement(ex.Message);
+                            }
+
+                            callback(acknowledgement);
+
+                            if (canceller.IsCancellationRequested)
+                                break;
+                        }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                _ = Log.ErrorAsync(ex);
-                if (!canceller.IsCancellationRequested)
+                catch (Exception ex)
                 {
-                    await Task.Delay(AzureServiceBusCommon.RetryDelay);
-                    goto retry;
+                    //disposing cancels the receive, that isn't an error
+                    if (!canceller.IsCancellationRequested)
+                    {
+                        _ = Log.ErrorAsync(ex);
+                        await Task.Delay(AzureServiceBusCommon.RetryDelay);
+                        goto retry;
+                    }
                 }
             }
             finally
@@ -353,7 +343,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
-                    await AzureServiceBusCommon.DeleteTopic(host, ackQueue);
+                    await AzureServiceBusCommon.DeleteQueue(host, ackQueue);
                 }
                 catch (Exception ex)
                 {
@@ -368,12 +358,22 @@ namespace Zerra.CQRS.AzureServiceBus
             canceller.Cancel();
             await client.DisposeAsync();
             listenerStartedLock.Dispose();
+            canceller.Dispose();
+        }
+
+        public void Dispose()
+        {
+            canceller.Cancel();
+            _ = client.DisposeAsync().AsTask();
+            listenerStartedLock.Dispose();
+            canceller.Dispose();
         }
 
         void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
             if (queueByCommandType.ContainsKey(type))
                 return;
+            topic = BuildEntityName(topic);
             queueByCommandType.TryAdd(type, topic);
             if (throttleByQueueOrTopic.ContainsKey(topic))
                 return;
@@ -386,12 +386,21 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             if (topicByEventType.ContainsKey(type))
                 return;
+            topic = BuildEntityName(topic);
             topicByEventType.TryAdd(type, topic);
             if (throttleByQueueOrTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByQueueOrTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
+        }
+
+        private string BuildEntityName(string topic)
+        {
+            if (!String.IsNullOrWhiteSpace(environment))
+                return StringExtensions.Join(AzureServiceBusCommon.EntityNameMaxLength, "_", environment, topic);
+            else
+                return topic.Truncate(AzureServiceBusCommon.EntityNameMaxLength);
         }
     }
 }

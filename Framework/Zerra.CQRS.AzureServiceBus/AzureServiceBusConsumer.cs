@@ -12,7 +12,7 @@ using Zerra.Logging;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
-    public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IAsyncDisposable
+    public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IDisposable, IAsyncDisposable
     {
         private readonly string host;
         private readonly SymmetricConfig? symmetricConfig;
@@ -134,6 +134,12 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             this.Close();
             await client.DisposeAsync();
+        }
+
+        public void Dispose()
+        {
+            this.Close();
+            _ = client.DisposeAsync().AsTask();
         }
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)

@@ -45,8 +45,9 @@ namespace Zerra.CQRS.Kafka
             this.userName = userName;
             this.password = password;
 
-            var clientID = StringExtensions.Join(KafkaCommon.TopicMaxLength - 4, "_", environment ?? "Unknown_Environment", Environment.MachineName, Config.EntryAssemblyName ?? "Unknown_Assembly");
-            this.ackTopic = $"ACK-{clientID}";
+            var clientID = StringExtensions.Join(KafkaCommon.TopicMaxLength - 4 - 33, "_", environment ?? "Unknown_Environment", Environment.MachineName, Config.EntryAssemblyName ?? "Unknown_Assembly");
+            //unique per producer, instances of the same app on the same machine would otherwise share a group and only one would receive the acknowledgements
+            this.ackTopic = $"ACK-{clientID}_{Guid.NewGuid():N}";
             this.topicsByCommandType = new();
             this.topicsByEventType = new();
             this.throttleByTopic = new();
@@ -88,11 +89,6 @@ namespace Zerra.CQRS.Kafka
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(KafkaCommon.TopicMaxLength);
-
                 if (requireAcknowledgement)
                 {
                     if (!listenerStarted)
@@ -193,11 +189,6 @@ namespace Zerra.CQRS.Kafka
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(KafkaCommon.TopicMaxLength);
-
                 if (!listenerStarted)
                 {
                     try
@@ -282,15 +273,10 @@ namespace Zerra.CQRS.Kafka
             if (!throttleByTopic.TryGetValue(topic, out var throttle))
                 throw new Exception($"{eventType.GetNiceName()} is not registered with {nameof(KafkaProducer)}");
 
+            await throttle.WaitAsync(cancellationToken);
+
             try
             {
-                await listenerStartedLock.WaitAsync(cancellationToken);
-
-                if (!String.IsNullOrWhiteSpace(environment))
-                    topic = StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
-                else
-                    topic = topic.Truncate(KafkaCommon.TopicMaxLength);
-
                 string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
@@ -324,57 +310,71 @@ namespace Zerra.CQRS.Kafka
             consumerConfig.BootstrapServers = host;
             consumerConfig.GroupId = ackTopic;
             consumerConfig.EnableAutoCommit = false;
+            //the topic is new and only this producer's, so reading from the start catches acknowledgements sent before the subscription was assigned
+            consumerConfig.AutoOffsetReset = AutoOffsetReset.Earliest;
+            if (userName is not null && password is not null)
+            {
+                consumerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
+                consumerConfig.SaslMechanism = SaslMechanism.Plain;
+                consumerConfig.SaslUsername = userName;
+                consumerConfig.SaslPassword = password;
+            }
 
-        retry:
-
+            //the retry stays inside the outer try, a goto out of it would run the finally and dispose the canceller on a transient error
             try
             {
-                using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
+            retry:
+
+                try
                 {
-                    consumer.Subscribe(ackTopic);
-                    try
+                    using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
                     {
-                        for (; ; )
+                        consumer.Subscribe(ackTopic);
+                        try
                         {
-                            var consumerResult = consumer.Consume(canceller.Token);
-                            consumer.Commit(consumerResult);
-
-                            if (!ackCallbacks.TryRemove(consumerResult.Message.Key, out var callback))
-                                continue;
-
-                            Acknowledgement? acknowledgement = null;
-                            try
+                            for (; ; )
                             {
-                                var response = consumerResult.Message.Value;
-                                if (symmetricConfig is not null)
-                                    response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
-                                acknowledgement = KafkaCommon.Deserialize<Acknowledgement>(response);
-                                acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
-                            }
-                            catch (Exception ex)
-                            {
-                                acknowledgement = new Acknowledgement(ex.Message);
-                            }
+                                var consumerResult = consumer.Consume(canceller.Token);
+                                consumer.Commit(consumerResult);
 
-                            callback(acknowledgement);
+                                if (!ackCallbacks.TryRemove(consumerResult.Message.Key, out var callback))
+                                    continue;
 
-                            if (canceller.IsCancellationRequested)
-                                break;
+                                Acknowledgement? acknowledgement = null;
+                                try
+                                {
+                                    var response = consumerResult.Message.Value;
+                                    if (symmetricConfig is not null)
+                                        response = SymmetricEncryptor.Decrypt(symmetricConfig, response);
+                                    acknowledgement = KafkaCommon.Deserialize<Acknowledgement>(response);
+                                    acknowledgement ??= new Acknowledgement("Invalid Acknowledgement");
+                                }
+                                catch (Exception ex)
+                                {
+                                    acknowledgement = new Acknowledgement(ex.Message);
+                                }
+
+                                callback(acknowledgement);
+
+                                if (canceller.IsCancellationRequested)
+                                    break;
+                            }
+                        }
+                        finally
+                        {
+                            //Close leaves the group right away, Unsubscribe and Dispose leave its member until the session times out
+                            consumer.Close();
                         }
                     }
-                    finally
-                    {
-                        consumer.Unsubscribe();
-                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                if (!canceller.IsCancellationRequested)
+                catch (Exception ex)
                 {
-                    _ = Log.ErrorAsync(ex);
-                    await Task.Delay(KafkaCommon.RetryDelay);
-                    goto retry;
+                    if (!canceller.IsCancellationRequested)
+                    {
+                        _ = Log.ErrorAsync(ex);
+                        await Task.Delay(KafkaCommon.RetryDelay);
+                        goto retry;
+                    }
                 }
             }
             finally
@@ -384,6 +384,8 @@ namespace Zerra.CQRS.Kafka
                 try
                 {
                     await KafkaCommon.DeleteTopic(host, userName, password, ackTopic);
+                    //the acknowledgement consumer's group is named after the topic and goes with it
+                    await KafkaCommon.DeleteConsumerGroup(host, userName, password, ackTopic);
                 }
                 catch (Exception ex)
                 {
@@ -405,6 +407,7 @@ namespace Zerra.CQRS.Kafka
         {
             if (topicsByCommandType.ContainsKey(type))
                 return;
+            topic = BuildTopic(topic);
             topicsByCommandType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
@@ -417,12 +420,21 @@ namespace Zerra.CQRS.Kafka
         {
             if (topicsByEventType.ContainsKey(type))
                 return;
+            topic = BuildTopic(topic);
             topicsByEventType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
+        }
+
+        private string BuildTopic(string topic)
+        {
+            if (!String.IsNullOrWhiteSpace(environment))
+                return StringExtensions.Join(KafkaCommon.TopicMaxLength, "_", environment, topic);
+            else
+                return topic.Truncate(KafkaCommon.TopicMaxLength);
         }
     }
 }
