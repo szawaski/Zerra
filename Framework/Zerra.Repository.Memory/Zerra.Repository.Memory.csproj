@@ -22,8 +22,8 @@
         <Copyright>KaKush LLC</Copyright>
         <Product>Zerra Repository Framework - Repository Memory</Product>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <PackageTags></PackageTags>
-        <Description></Description>
+        <PackageTags>Zerra;Repository;InMemory;Testing</PackageTags>
+        <Description>In-memory provider for Zerra.Repository, for tests and prototyping.</Description>
     </PropertyGroup>
 
     <ItemGroup>

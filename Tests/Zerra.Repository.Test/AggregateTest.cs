@@ -29,11 +29,15 @@ namespace Zerra.Repository.Test
             Assert.Null(aggregate.LastEventDate);
             Assert.Null(aggregate.LastEventName);
 
-            //an append applies the event to this instance before it is stored
+            //an append stores the event, then applies it to this instance
             await aggregate.Append(new TestAggregateCreated() { Name = "First", Amount = 10 });
             Assert.Equal("First", aggregate.Name);
             Assert.Equal(10, aggregate.Amount);
             Assert.Equal(1, aggregate.AppliedCount);
+            Assert.True(aggregate.IsCreated);
+            Assert.Equal(0UL, aggregate.LastEventNumber);
+            Assert.Equal(nameof(TestAggregateCreated), aggregate.LastEventName);
+            Assert.NotNull(aggregate.LastEventDate);
 
             await aggregate.Append(new TestAggregateAmountAdded() { Amount = 5 });
             Assert.Equal(15, aggregate.Amount);
@@ -41,6 +45,11 @@ namespace Zerra.Repository.Test
 
             await aggregate.Append(new TestAggregateRenamed() { Name = "Second" });
             Assert.Equal("Second", aggregate.Name);
+            Assert.Equal(3, aggregate.AppliedCount);
+            Assert.Equal(2UL, aggregate.LastEventNumber);
+
+            //the appends advanced this instance past its own events, so a rebuild has nothing new to apply
+            Assert.False(await aggregate.Rebuild());
             Assert.Equal(3, aggregate.AppliedCount);
 
             //a fresh instance has no state until it is rebuilt
@@ -103,9 +112,16 @@ namespace Zerra.Repository.Test
             Assert.True(aggregate.IsDeleted);
             Assert.Equal("Done", aggregate.RemovedReason);
             Assert.Equal(4, aggregate.AppliedCount);
+            Assert.Equal(3UL, aggregate.LastEventNumber);
+            Assert.Equal(nameof(TestAggregateRemoved), aggregate.LastEventName);
 
             //the stream is closed, nothing more can be appended
             _ = await Assert.ThrowsAnyAsync<Exception>(() => aggregate.Append(new TestAggregateAmountAdded() { Amount = 1 }));
+
+            //a fresh instance that has replayed the deletion cannot append either
+            var replayedDeleted = new TestAggregate(id, eventStore);
+            Assert.True(await replayedDeleted.Rebuild());
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => replayedDeleted.Append(new TestAggregateAmountAdded() { Amount = 1 }));
 
             //the terminating event carries no data, a rebuild sees the deletion but has nothing to apply from it
             var rebuiltDeleted = new TestAggregate(id, eventStore);
@@ -166,27 +182,48 @@ namespace Zerra.Repository.Test
             var duplicate = new TestAggregate(id, eventStore);
             _ = await Assert.ThrowsAnyAsync<Exception>(() => duplicate.Append(new TestAggregateCreated() { Name = "Duplicate", Amount = 1 }, true));
 
+            //a rejected append is not applied
+            Assert.Null(duplicate.Name);
+            Assert.Equal(0, duplicate.AppliedCount);
+            Assert.False(duplicate.IsCreated);
+            Assert.Null(duplicate.LastEventNumber);
+
             //an instance that has replayed the stream knows the event number it is appending after
             var current = new TestAggregate(id, eventStore);
             Assert.True(await current.Rebuild());
             await current.Append(new TestAggregateAmountAdded() { Amount = 5 }, true);
             Assert.Equal(15, current.Amount);
+            Assert.Equal(1UL, current.LastEventNumber);
+
+            //the append advanced the instance, so it can append again without a rebuild
+            await current.Append(new TestAggregateAmountAdded() { Amount = 1 }, true);
+            Assert.Equal(2UL, current.LastEventNumber);
 
             //a stale instance is still on the event before it, so its append is rejected
             var stale = new TestAggregate(id, eventStore);
             Assert.True(await stale.Rebuild(0));
             Assert.Equal(0UL, stale.LastEventNumber);
             _ = await Assert.ThrowsAnyAsync<Exception>(() => stale.Append(new TestAggregateAmountAdded() { Amount = 100 }, true));
+            Assert.Equal(10, stale.Amount);
+            Assert.Equal(1, stale.AppliedCount);
+            Assert.Equal(0UL, stale.LastEventNumber);
 
             //catching up lets it append again
             Assert.True(await stale.Rebuild());
-            Assert.Equal(1UL, stale.LastEventNumber);
+            Assert.Equal(2UL, stale.LastEventNumber);
             await stale.Append(new TestAggregateAmountAdded() { Amount = 100 }, true);
+            Assert.Equal(116, stale.Amount);
+            Assert.Equal(4, stale.AppliedCount);
 
             var final = new TestAggregate(id, eventStore);
             Assert.True(await final.Rebuild());
-            Assert.Equal(115, final.Amount);
-            Assert.Equal(2UL, final.LastEventNumber);
+            Assert.Equal(116, final.Amount);
+            Assert.Equal(3UL, final.LastEventNumber);
+
+            //an event the aggregate has no apply method for is rejected before it is stored
+            var noMethod = new TestOtherAggregate(Guid.NewGuid(), eventStore);
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => noMethod.Append(new TestAggregateAmountAdded() { Amount = 1 }));
+            Assert.False(await new TestOtherAggregate(noMethod.ID, eventStore).Rebuild());
         }
 
         private static IEventStoreEngine GetEventStore<T>()

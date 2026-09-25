@@ -1,4 +1,4 @@
-import { Bus, ICommand } from "./Bus";
+import { Bus, type ICommand } from "./Bus";
 
 export class Balance1Model {
     AccountID!: string;

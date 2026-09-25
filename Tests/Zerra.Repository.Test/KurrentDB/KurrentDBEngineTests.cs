@@ -8,14 +8,20 @@ using System.Text;
 using Xunit;
 using Zerra.Repository.KurrentDB;
 
-namespace Zerra.Repository.Test.KurrentDb
+namespace Zerra.Repository.Test.KurrentDB
 {
-    public class KurrentDbEngineTests
+    public class KurrentDBEngineTests
     {
+        [Fact]
+        public async Task TestSequenceAggregate()
+        {
+            await AggregateTest.TestSequenceAsync<KurrentDBTestDataContext>();
+        }
+
         [Fact]
         public async Task TestAggregateConcurrency()
         {
-            await AggregateTest.TestConcurrencyAsync<KurrentDbTestDataContext>();
+            await AggregateTest.TestConcurrencyAsync<KurrentDBTestDataContext>();
         }
 
         [Fact]
@@ -53,7 +59,7 @@ namespace Zerra.Repository.Test.KurrentDb
                 }
             }, TestContext.Current.CancellationToken);
 
-            using var engine = new KurrentDbEngine($"http://127.0.0.1:{port}", true);
+            using var engine = new KurrentDBEngine($"http://127.0.0.1:{port}", true);
             var isValid = await Task.Run(engine.ValidateDataSource);
             stop.Cancel();
             await serverTask;
@@ -71,7 +77,7 @@ namespace Zerra.Repository.Test.KurrentDb
             var port = ((IPEndPoint)listener.LocalEndpoint).Port;
             listener.Stop();
 
-            using var engine = new KurrentDbEngine($"http://127.0.0.1:{port}", true);
+            using var engine = new KurrentDBEngine($"http://127.0.0.1:{port}", true);
             Assert.False(engine.ValidateDataSource());
         }
     }

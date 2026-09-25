@@ -18,8 +18,8 @@
         <Copyright>KaKush LLC</Copyright>
         <Product>Zerra Framework</Product>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <PackageTags>Zerra, T4</PackageTags>
-        <Description>Tools for T4 files to use to generate code and client side libraries for CQRS.</Description>
+        <PackageTags>Zerra;T4;CodeGeneration;JavaScript;TypeScript</PackageTags>
+        <Description>T4 helpers that generate JavaScript and TypeScript clients for Zerra CQRS, and models from an existing SQL Server database.</Description>
     </PropertyGroup>
 
     <ItemGroup>

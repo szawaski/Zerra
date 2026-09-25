@@ -27,7 +27,7 @@ namespace Store.Common
         public static string OrdersMsSqlWindowsAuth => Get("STORE_ORDERS_MSSQL_WINDOWS_AUTH", "Data Source=.;Initial Catalog=ZerraStoreOrders;Integrated Security=True;TrustServerCertificate=True;Connect Timeout=3");
         public static string ReviewsMariaDb => Get("STORE_REVIEWS_MARIADB", "Server=localhost;Port=3307;Uid=root;Pwd=password123;Database=ZerraStoreReviews;Connect Timeout=3");
         //KurrentDB's gRPC and HTTP share the node port, the demo container runs without TLS
-        public static string CartsKurrentDb => Get("STORE_CARTS_KURRENTDB", "http://localhost:2113");
+        public static string CartsKurrentDB => Get("STORE_CARTS_KURRENTDB", "http://localhost:2113");
 
         /// <summary>
         /// Skip the databases and use the in-memory stores, set STORE_IN_MEMORY=true.

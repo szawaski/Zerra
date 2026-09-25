@@ -12,12 +12,12 @@ namespace Store.Carts.Service.Data
     {
         protected override IEnumerable<DataContext> LoadDataContexts() => StoreSettings.InMemoryOnly
             ? [new CartsMemoryContext()]
-            : [new CartsKurrentDbContext(), new CartsMemoryContext()];
+            : [new CartsKurrentDBContext(), new CartsMemoryContext()];
     }
 
-    public sealed class CartsKurrentDbContext : KurrentDbDataContext
+    public sealed class CartsKurrentDBContext : KurrentDBDataContext
     {
-        public override string ConnectionString => StoreSettings.CartsKurrentDb;
+        public override string ConnectionString => StoreSettings.CartsKurrentDB;
         public override bool Insecure => true;
     }
 

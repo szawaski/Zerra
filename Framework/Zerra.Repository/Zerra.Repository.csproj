@@ -21,8 +21,8 @@
         <Copyright>KaKush LLC</Copyright>
         <Product>Zerra Repository Framework</Product>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <PackageTags></PackageTags>
-        <Description></Description>
+        <PackageTags>Zerra;Repository;ORM;LINQ;EventSourcing</PackageTags>
+        <Description>Data store agnostic LINQ repository for Zerra, with event sourcing and aggregate roots.</Description>
     </PropertyGroup>
 
     <ItemGroup>

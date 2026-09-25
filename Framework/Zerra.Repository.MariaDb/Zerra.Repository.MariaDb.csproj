@@ -20,10 +20,10 @@
         <Authors>Steven Zawaski</Authors>
         <Company>KaKush LLC</Company>
         <Copyright>KaKush LLC</Copyright>
-        <Product>Zerra Repository Framework - Repository MySQL</Product>
+        <Product>Zerra Repository Framework - Repository MariaDB</Product>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <PackageTags></PackageTags>
-        <Description></Description>
+        <PackageTags>Zerra;Repository;ORM;MariaDB</PackageTags>
+        <Description>MariaDB provider for Zerra.Repository.</Description>
     </PropertyGroup>
 
     <ItemGroup>

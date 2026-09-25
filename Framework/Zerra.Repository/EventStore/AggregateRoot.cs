@@ -24,7 +24,7 @@ namespace Zerra.Repository
         /// </summary>
         public ulong? LastEventNumber { get; private set; }
         /// <summary>
-        /// Gets the date of the last applied event, or <see langword="null"/> if no events have been applied.
+        /// Gets the date of the last applied event, or <see langword="null"/> if no events have been applied. For an event this instance appended, it is the UTC time of the append.
         /// </summary>
         public DateTime? LastEventDate { get; private set; }
         /// <summary>
@@ -32,7 +32,7 @@ namespace Zerra.Repository
         /// </summary>
         public string? LastEventName { get; private set; }
         /// <summary>
-        /// Gets a value indicating whether the aggregate has been created by replaying at least one event.
+        /// Gets a value indicating whether the aggregate has been created by replaying or appending at least one event.
         /// </summary>
         public bool IsCreated { get; private set; }
         /// <summary>
@@ -57,30 +57,47 @@ namespace Zerra.Repository
         }
 
         /// <summary>
-        /// Applies and persists an event to the aggregate's stream.
+        /// Persists an event to the aggregate's stream, then applies it.
         /// </summary>
         /// <remarks>
+        /// The event is applied only once it is stored, so a rejected append (such as a failed <paramref name="validateEventNumber"/> check) leaves
+        /// this instance unchanged. Apply methods only change state: validate before creating the event, since a stored event is replayed as is.
+        /// <para>
         /// These are the aggregate's own events, not CQRS events: they are its state, <see cref="Rebuild(ulong?, DateTime?)"/> replays them,
         /// and they never go on the bus. They implement <see cref="IAggregateEvent"/>, not <c>IEvent</c>, and belong with the aggregate rather than in a shared contracts
         /// project, since no other domain reads them. To tell another service something happened, dispatch a CQRS event or a command from the
         /// handler that called this.
+        /// </para>
         /// </remarks>
         /// <typeparam name="TEvent">The type of the event.</typeparam>
         /// <param name="event">The event to append.</param>
         /// <param name="validateEventNumber">When <see langword="true"/>, enforces optimistic concurrency by validating the expected event number.</param>
         public async Task Append<TEvent>(TEvent @event, bool validateEventNumber = false) where TEvent : IAggregateEvent
         {
+            if (IsDeleted)
+                throw new InvalidOperationException($"Aggregate {streamName} has been deleted");
+
             var eventType = typeof(TEvent);
             var eventName = eventType.Name;
 
-            await ApplyEvent(@event, eventType);
+            //found before the write so an event without an apply method is never stored
+            var applyMethod = GetApplyMethod(eventType);
 
             var eventBytes = EventStoreCommon.Serialize(@event);
-            _ = await this.eventStore.AppendAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any, eventBytes);
+            var eventNumber = await this.eventStore.AppendAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any, eventBytes);
+
+            //applied only once stored, so a rejected append leaves this instance as it was
+            await (Task)applyMethod.CallerBoxed!(this, [@event])!;
+
+            //a rebuild continues after the applied event and the next validated append expects it
+            this.LastEventNumber = eventNumber;
+            this.LastEventDate = DateTime.UtcNow;
+            this.LastEventName = eventName;
+            this.IsCreated = true;
         }
 
         /// <summary>
-        /// Applies and persists a terminating event to the aggregate's stream, marking it as deleted. Like <see cref="Append"/>, this stays
+        /// Persists a terminating event to the aggregate's stream, then applies it and marks the aggregate deleted. Like <see cref="Append"/>, this stays
         /// out of the bus.
         /// </summary>
         /// <typeparam name="TEvent">The type of the event.</typeparam>
@@ -88,13 +105,22 @@ namespace Zerra.Repository
         /// <param name="validateEventNumber">When <see langword="true"/>, enforces optimistic concurrency by validating the expected event number.</param>
         public async Task Delete<TEvent>(TEvent @event, bool validateEventNumber = false) where TEvent : IAggregateEvent
         {
+            if (IsDeleted)
+                throw new InvalidOperationException($"Aggregate {streamName} has been deleted");
+
             var eventType = typeof(TEvent);
             var eventName = eventType.Name;
 
-            await ApplyEvent(@event, eventType);
+            var applyMethod = GetApplyMethod(eventType);
 
-            _ = await this.eventStore.TerminateAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any);
+            var eventNumber = await this.eventStore.TerminateAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any);
 
+            await (Task)applyMethod.CallerBoxed!(this, [@event])!;
+
+            this.LastEventNumber = eventNumber;
+            this.LastEventDate = DateTime.UtcNow;
+            this.LastEventName = eventName;
+            this.IsCreated = true;
             this.IsDeleted = true;
         }
 
@@ -139,17 +165,17 @@ namespace Zerra.Repository
                 var eventModel = EventStoreCommon.Deserialize<object>(eventData.Data.Span);
                 if (eventModel is null)
                     throw new Exception("Failed to deserialize Model");
-                await ApplyEvent(eventModel, eventModel.GetType());
+                await (Task)GetApplyMethod(eventModel.GetType()).CallerBoxed!(this, [eventModel])!;
             }
             return true;
         }
 
         //cached per aggregate type, different aggregates can accept the same event with their own methods
         private static readonly ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<Type, MethodDetail>> methodCache = new();
-        private Task ApplyEvent(object @event, Type eventType)
+        private MethodDetail GetApplyMethod(Type eventType)
         {
             var methodsByEventType = methodCache.GetOrAdd(aggregateType, static () => new());
-            var methodDetail = methodsByEventType.GetOrAdd(eventType, aggregateType, static (eventType, aggregateType) =>
+            return methodsByEventType.GetOrAdd(eventType, aggregateType, static (eventType, aggregateType) =>
             {
                 var aggregateTypeDetail = TypeAnalyzer.GetTypeDetail(aggregateType);
                 MethodDetail? methodDetail = null;
@@ -166,8 +192,6 @@ namespace Zerra.Repository
                     throw new Exception($"No aggregate event methods found in {aggregateType.Name} to accept {eventType.Name}");
                 return methodDetail;
             });
-
-            return (Task)methodDetail.CallerBoxed!(this, [@event])!;
         }
     }
 }

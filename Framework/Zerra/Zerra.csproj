@@ -20,8 +20,9 @@
         <Copyright>KaKush LLC</Copyright>
         <Product>Zerra Framework</Product>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <PackageTags>Framework, CQRS, Microservice, Commands, Serialization, JSON, Reflection, Map, Copy</PackageTags>
-        <Description>Zerra Framework is a comprehensive .NET framework providing support for CQRS architecture, microservices, ORM capabilities, and high-performance serialization. Includes reflection utilities, and domain-driven design support.</Description>
+        <PackageTags>Zerra;CQRS;Microservices;Commands;Queries;Events;Serialization;JSON;Reflection;Mapper;AOT</PackageTags>
+        <Description>CQRS and microservices framework for .NET with high-performance JSON and byte serialization, mapping, and reflection. Native AOT ready through source generation.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
@@ -51,6 +52,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PackAsAnalyzer="true" />
+        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <!--ship the source generator in the package so it runs in projects that reference Zerra-->
+    <ItemGroup>
+        <None Include="..\Zerra.SourceGeneration\bin\$(Configuration)\netstandard2.0\Zerra.SourceGeneration.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
     </ItemGroup>
 </Project>

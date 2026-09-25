@@ -13,6 +13,7 @@ namespace Zerra.CQRS.Network
         private readonly Task monitorTask;
 
         private bool isCancellationRequested;
+        private bool disposed;
 
         public SocketAbortMonitor(Socket socket, CancellationToken cancellationToken)
         {
@@ -124,12 +125,6 @@ namespace Zerra.CQRS.Network
             return false;
         }
 
-        public bool DisposeAndGetIsCancellationRequested()
-        {
-            Dispose();
-            return isCancellationRequested;
-        }
-
         //awaits the monitor ending instead of blocking a thread
         public async Task<bool> DisposeAndGetIsCancellationRequestedAsync()
         {
@@ -138,13 +133,18 @@ namespace Zerra.CQRS.Network
 
             stream.Dispose();
             cancellationTokenSource.Dispose();
+            disposed = true;
             return isCancellationRequested;
         }
 
+        //releases without waiting for the monitor, the cancel ends its read and it catches anything that follows
         public void Dispose()
         {
+            if (disposed)
+                return;
+            disposed = true;
+
             cancellationTokenSource.Cancel();
-            monitorTask.GetAwaiter().GetResult();
 
             stream.Dispose();
             cancellationTokenSource.Dispose();

@@ -22,8 +22,8 @@
         <Copyright>KaKush LLC</Copyright>
         <Product>Zerra Repository Framework - Repository PostgreSql</Product>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <PackageTags></PackageTags>
-        <Description></Description>
+        <PackageTags>Zerra;Repository;ORM;PostgreSQL</PackageTags>
+        <Description>PostgreSQL provider for Zerra.Repository.</Description>
     </PropertyGroup>
 
     <ItemGroup>

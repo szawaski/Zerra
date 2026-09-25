@@ -11,7 +11,7 @@ namespace Zerra.Repository.KurrentDB
     /// <summary>
     /// KurrentDB implementation of the event store engine that provides event sourcing capabilities.
     /// </summary>
-    public sealed class KurrentDbEngine : IEventStoreEngine, IDisposable
+    public sealed class KurrentDBEngine : IEventStoreEngine, IDisposable
     {
         private const int maxPerQuery = 25;
         private const int saveStateEvery = 100;
@@ -19,11 +19,11 @@ namespace Zerra.Repository.KurrentDB
         private readonly KurrentDBClient client;
         private readonly Uri healthUri;
         /// <summary>
-        /// Initializes a new instance of the <see cref="KurrentDbEngine"/> class.
+        /// Initializes a new instance of the <see cref="KurrentDBEngine"/> class.
         /// </summary>
         /// <param name="connectionString">The connection string for the KurrentDB instance.</param>
         /// <param name="insecure">Whether to use an insecure connection (without TLS/SSL).</param>
-        public KurrentDbEngine(string connectionString, bool insecure)
+        public KurrentDBEngine(string connectionString, bool insecure)
         {
             var address = new Uri(connectionString);
             var settings = new KurrentDBClientSettings
@@ -43,22 +43,22 @@ namespace Zerra.Repository.KurrentDB
         /// <inheritdoc/>
         public ulong Append(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data)
         {
-            throw new NotSupportedException($"{nameof(KurrentDbEngine)} does not support synchronous operations");
+            throw new NotSupportedException($"{nameof(KurrentDBEngine)} does not support synchronous operations");
         }
         /// <inheritdoc/>
         public ulong Terminate(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState)
         {
-            throw new NotSupportedException($"{nameof(KurrentDbEngine)} does not support synchronous operations");
+            throw new NotSupportedException($"{nameof(KurrentDBEngine)} does not support synchronous operations");
         }
         /// <inheritdoc/>
         public EventStoreEventData[] Read(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate)
         {
-            throw new NotSupportedException($"{nameof(KurrentDbEngine)} does not support synchronous operations");
+            throw new NotSupportedException($"{nameof(KurrentDBEngine)} does not support synchronous operations");
         }
         /// <inheritdoc/>
         public EventStoreEventData[] ReadBackwards(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate)
         {
-            throw new NotSupportedException($"{nameof(KurrentDbEngine)} does not support synchronous operations");
+            throw new NotSupportedException($"{nameof(KurrentDBEngine)} does not support synchronous operations");
         }
 
         /// <inheritdoc/>
@@ -89,16 +89,15 @@ namespace Zerra.Repository.KurrentDB
         /// <inheritdoc/>
         public async Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState)
         {
-            var eventData = new EventData(Uuid.FromGuid(eventID), "Delete", null, null);
+            //the marker has no data which flags it deleted, the stream is not tombstoned so its history stays readable for rebuilds
+            var eventData = new EventData(Uuid.FromGuid(eventID), eventName, null, null);
 
             if (expectedEventNumber.HasValue)
             {
                 var revision = (StreamState)expectedEventNumber.Value;
 
                 var writeResult = await client.AppendToStreamAsync(streamName, revision, [eventData]);
-                _ = await client.TombstoneAsync(streamName, revision);
                 return (ulong)writeResult.NextExpectedStreamState.ToInt64();
-
             }
             else
             {
@@ -110,7 +109,6 @@ namespace Zerra.Repository.KurrentDB
                     _ => throw new NotImplementedException(),
                 };
                 var writeResult = await client.AppendToStreamAsync(streamName, state, [eventData]);
-                _ = await client.TombstoneAsync(streamName, state);
                 return (ulong)writeResult.NextExpectedStreamState.ToInt64();
             }
         }
@@ -292,11 +290,11 @@ namespace Zerra.Repository.KurrentDB
                 if (response.IsSuccessStatusCode)
                     return true;
 
-                Log.Warn($"{nameof(KurrentDbEngine)} failed to validate: health check returned {(int)response.StatusCode}");
+                Log.Warn($"{nameof(KurrentDBEngine)} failed to validate: health check returned {(int)response.StatusCode}");
             }
             catch (Exception ex)
             {
-                Log.Warn($"{nameof(KurrentDbEngine)} failed to validate: {ex.Message}");
+                Log.Warn($"{nameof(KurrentDBEngine)} failed to validate: {ex.Message}");
             }
             return false;
         }

@@ -20,8 +20,8 @@
         <Copyright>KaKush LLC</Copyright>
         <Product>Zerra Framework</Product>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <PackageTags>Zerra, Kafka, Message Broker</PackageTags>
-        <Description>Kafka transport provider for the Zerra CQRS framework. Enables command, query, and event routing through Apache Kafka for distributed message-driven architectures.</Description>
+        <PackageTags>Zerra;CQRS;Kafka;Messaging</PackageTags>
+        <Description>Kafka transport for Zerra commands and events.</Description>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">

@@ -4,9 +4,9 @@
 
 using Zerra.Repository.KurrentDB;
 
-namespace Zerra.Repository.Test.KurrentDb
+namespace Zerra.Repository.Test.KurrentDB
 {
-    public class KurrentDbTestDataContext : KurrentDbDataContext
+    public class KurrentDBTestDataContext : KurrentDBDataContext
     {
         public override string ConnectionString => "http://localhost:2113";
         public override bool Insecure => true;

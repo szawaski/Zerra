@@ -21,9 +21,10 @@
         <Company>KaKush LLC</Company>
         <Copyright>KaKush LLC</Copyright>
         <Product>Zerra Repository Framework - Repository KurrentDB</Product>
+        <PackageId>Zerra.Repository.KurrentDB</PackageId>
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
-        <PackageTags></PackageTags>
-        <Description></Description>
+        <PackageTags>Zerra;Repository;KurrentDB;EventStore;EventSourcing</PackageTags>
+        <Description>KurrentDB event store provider for Zerra.Repository.</Description>
     </PropertyGroup>
 
     <ItemGroup>

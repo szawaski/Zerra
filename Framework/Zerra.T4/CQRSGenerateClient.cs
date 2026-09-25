@@ -27,7 +27,7 @@ namespace Zerra.T4
 
             var sb = new StringBuilder();
 
-            _ = sb.Append("import { Bus, ICommand } from \"./Bus\";").Append(Environment.NewLine).Append(Environment.NewLine);
+            _ = sb.Append("import { Bus, type ICommand } from \"./Bus\";").Append(Environment.NewLine).Append(Environment.NewLine);
             foreach (var model in modelsFiltered)
             {
                 _ = sb.Append("export class ").Append(model.Name).Append(" {").Append(Environment.NewLine);

@@ -73,7 +73,7 @@ namespace Zerra.T4.Test
         {
             var output = GeneratorRunner.TypeScript(domainSource);
 
-            Assert.StartsWith("import { Bus, ICommand } from \"./Bus\";", output);
+            Assert.StartsWith("import { Bus, type ICommand } from \"./Bus\";", output);
             Assert.Contains("export class Widget {", output);
             Assert.Contains("    ID!: string;", output);
             Assert.Contains("    Name!: string | null;", output);
