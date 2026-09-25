@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+// Copyright ï¿½ KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -645,6 +645,10 @@ namespace Zerra.Test
                 result = JsonSerializer.Deserialize<char>(charsUpper);
                 Assert.Equal(c, result);
             }
+
+            //unicode escapes followed by more characters
+            var mixedResult = JsonSerializer.Deserialize<string>("\"a\\u0041bcdef\\u0042gh\\n\\u0043\"");
+            Assert.Equal("aAbcdefBgh\nC", mixedResult);
         }
 
         [Fact]
@@ -1797,6 +1801,11 @@ namespace Zerra.Test
                 result = await JsonSerializer.DeserializeAsync<char>(charsUpperStream);
                 Assert.Equal(c, result);
             }
+
+            //unicode escapes followed by more characters
+            using var mixedStream = new MemoryStream(Encoding.UTF8.GetBytes("\"a\\u0041bcdef\\u0042gh\\n\\u0043\""));
+            var mixedResult = await JsonSerializer.DeserializeAsync<string>(mixedStream);
+            Assert.Equal("aAbcdefBgh\nC", mixedResult);
         }
 
         [Fact]

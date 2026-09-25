@@ -685,7 +685,7 @@ namespace Zerra.Serialization.Json.IO
                                         throw CreateException("Invalid escape sequence");
                                     i += 3;
                                     pEscapeBuffer[bufferIndex++] = unicodeChar;
-                                    start = i + 5;
+                                    start = i + 1;
                                     break;
                                 default:
                                     if (b > 128)
@@ -852,7 +852,7 @@ namespace Zerra.Serialization.Json.IO
                                         throw CreateException("Invalid escape sequence");
                                     i += 3;
                                     pEscapeBuffer[bufferIndex++] = unicodeChar;
-                                    start = i + 5;
+                                    start = i + 1;
                                     break;
                                 default:
                                     if (c > 128)
