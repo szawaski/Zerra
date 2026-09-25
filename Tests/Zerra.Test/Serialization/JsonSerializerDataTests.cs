@@ -626,6 +626,13 @@ namespace Zerra.Test.Serialization
                 Assert.Equal(json, utf8Valid); //not encoding surrogates would fail
                 var resultStr = JsonSerializer.Deserialize<string>(json);
                 Assert.Equal(str, resultStr);
+
+                var strPadded = $"aa{c}bb";
+                json = JsonSerializer.Serialize(strPadded);
+                utf8Valid = Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(json));
+                Assert.Equal(json, utf8Valid); //not encoding surrogates would fail
+                var resultStrPadded = JsonSerializer.Deserialize<string>(json);
+                Assert.Equal(strPadded, resultStrPadded);
             }
 
             //deserialize will include all unicode escapes, some serialize differently
@@ -635,12 +642,16 @@ namespace Zerra.Test.Serialization
 
                 var charsLower = $"\"\\u{i:x4}\"";
                 var charsUpper = $"\"\\u{i:X4}\"";
+                var charsPadded = $"\"aa\\u{i:X4}bb\"";
 
                 var result = JsonSerializer.Deserialize<char>(charsLower);
                 Assert.Equal(c, result);
 
                 result = JsonSerializer.Deserialize<char>(charsUpper);
                 Assert.Equal(c, result);
+
+                var resultStr = JsonSerializer.Deserialize<string>(charsPadded);
+                Assert.Equal($"aa{c}bb", resultStr);
             }
         }
 
@@ -1815,6 +1826,16 @@ namespace Zerra.Test.Serialization
                 streamStr.Position = 0;
                 var resultStr = await JsonSerializer.DeserializeAsync<string>(streamStr, null, null, TestContext.Current.CancellationToken);
                 Assert.Equal(str, resultStr);
+
+                var strPadded = $"aa{c}bb";
+                using var streamStrPadded = new MemoryStream();
+                await JsonSerializer.SerializeAsync(streamStrPadded, strPadded, null, null, TestContext.Current.CancellationToken);
+                using var srStrPadded = new StreamReader(streamStrPadded, Encoding.UTF8);
+                streamStrPadded.Position = 0;
+                json = await srStrPadded.ReadToEndAsync(TestContext.Current.CancellationToken);
+                streamStrPadded.Position = 0;
+                var resultStrPadded = await JsonSerializer.DeserializeAsync<string>(streamStrPadded, null, null, TestContext.Current.CancellationToken);
+                Assert.Equal(strPadded, resultStrPadded);
             }
 
             //deserialize will include all unicode escapes, some serialize differently
@@ -1823,12 +1844,16 @@ namespace Zerra.Test.Serialization
                 var c = (char)i;
                 using var charsLowerStream = new MemoryStream(Encoding.UTF8.GetBytes($"\"\\u{i:x4}\""));
                 using var charsUpperStream = new MemoryStream(Encoding.UTF8.GetBytes($"\"\\u{i:X4}\""));
+                using var charsPaddedStream = new MemoryStream(Encoding.UTF8.GetBytes($"\"aa\\u{i:X4}bb\""));
 
                 var result = await JsonSerializer.DeserializeAsync<char>(charsLowerStream, null, null, TestContext.Current.CancellationToken);
                 Assert.Equal(c, result);
 
                 result = await JsonSerializer.DeserializeAsync<char>(charsUpperStream, null, null, TestContext.Current.CancellationToken);
                 Assert.Equal(c, result);
+
+                var resultStr = await JsonSerializer.DeserializeAsync<string>(charsPaddedStream, null, null, TestContext.Current.CancellationToken);
+                Assert.Equal($"aa{c}bb", resultStr);
             }
         }
 

@@ -871,7 +871,12 @@ namespace Zerra.CQRS
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.HandlerOnly))
                 {
-                    result = HandleCommandTaskLogged(handler, null, info.InterfaceType, command, commandType, requireAffirmation, source, cancellationToken);
+                    //without affirmation the caller does not wait for the handler, logged or not
+                    var loggedTask = HandleCommandTaskLogged(handler, null, info.InterfaceType, command, commandType, requireAffirmation, source, cancellationToken);
+                    if (requireAffirmation)
+                        result = loggedTask;
+                    else
+                        result = Task.CompletedTask;
                 }
                 else
                 {
@@ -974,7 +979,9 @@ namespace Zerra.CQRS
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.HandlerOnly))
                 {
-                    result = HandleEventTaskLogged(handler, null, info.InterfaceType, @event, eventType, source, cancellationToken);
+                    //the caller does not wait for a local event handler, logged or not
+                    _ = HandleEventTaskLogged(handler, null, info.InterfaceType, @event, eventType, source, cancellationToken);
+                    return Task.CompletedTask;
                 }
                 else
                 {
@@ -1313,7 +1320,7 @@ namespace Zerra.CQRS
 
             if (queryClients != null && queryClients.ContainsKey(interfaceType))
             {
-                context.Log?.Error($"Cannot add Query Client: type already added as Client {interfaceType.Name}");
+                context.Log?.Error($"Cannot add Query Server: type already added as Client {interfaceType.Name}");
                 return;
             }
             queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);

@@ -109,12 +109,8 @@ namespace Zerra.Reflection.Dynamic
                     {
                         try
                         {
-#if NETSTANDARD2_0
-                            var assemblyFileName = assemblyFilePath.Split(new char[] { System.IO.Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries).Last();
-#else
-                            var assemblyFileName = assemblyFilePath.Split(System.IO.Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Last();
-#endif
-                            var assembly = Assembly.LoadFrom(assemblyFileName);
+                            //the full path, since a bare file name resolves against the current directory rather than the base directory
+                            var assembly = Assembly.LoadFrom(assemblyFilePath);
                             Console.WriteLine($"Discovery Loaded: {assembly.ToString()}");
                         }
                         catch (Exception)

@@ -14,6 +14,8 @@ namespace Zerra.Test
             Thing1 = 1,
             [EnumName("Thing 2")]
             Thing2 = 2,
+            Thing3 = 3,
+            thing3 = 4,
         }
 
         [Fact]
@@ -27,6 +29,12 @@ namespace Zerra.Test
 
             var test2 = EnumName.GetName(TestEnum.Thing2);
             Assert.Equal("Thing 2", test2);
+
+            var test3 = EnumName.GetName(TestEnum.Thing3);
+            Assert.Equal("Thing3", test3);
+
+            var test4 = EnumName.GetName(TestEnum.thing3);
+            Assert.Equal("thing3", test4);
         }
 
         [Fact]
@@ -43,6 +51,12 @@ namespace Zerra.Test
 
             var test2b = EnumName.Parse<TestEnum>("Thing2");
             Assert.Equal(TestEnum.Thing2, test2b);
+
+            var test3 = EnumName.Parse<TestEnum>("Thing3");
+            Assert.Equal(TestEnum.Thing3, test3);
+
+            var test4 = EnumName.Parse<TestEnum>("thing3");
+            Assert.Equal(TestEnum.thing3, test4);
         }
 
         [Flags]

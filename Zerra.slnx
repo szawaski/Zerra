@@ -103,6 +103,7 @@
     <File Path="docs/ServiceInjection.md" />
     <File Path="docs/StreamWrappers.md" />
     <File Path="docs/StringExtensions.md" />
+    <File Path="docs/UpgradeV5ToV6.md" />
     <File Path="docs/ZerraWeb.md" />
     <File Path="README.md" />
   </Folder>

@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 using Zerra.Reflection;
 
@@ -219,6 +220,41 @@ namespace Zerra.Test.Reflection.Types
 
             Assert.NotNull(mi);
             Assert.Equal(nameof(TestReflectionClass.Add), mi.Name);
+        }
+
+        [Fact]
+        public void MethodInfo_GenericMethodDefinition_IsTheDefinition()
+        {
+            var method = TypeAnalyzer.GetTypeDetail(typeof(GenericMethodClass)).GetMethod(nameof(GenericMethodClass.Echo));
+
+            var mi = method.MethodInfo;
+
+            Assert.True(mi.IsGenericMethodDefinition);
+            Assert.Same(mi, method.MethodInfo);
+            Assert.Equal(5, mi.MakeGenericMethod(typeof(int)).Invoke(new GenericMethodClass(), [5]));
+        }
+
+        [Fact]
+        public void MethodInfo_GenericMethodDefinition_Overloads_AreTheDefinitions()
+        {
+            var methods = TypeAnalyzer.GetTypeDetail(typeof(GenericMethodClass)).Methods.Where(x => x.Name == nameof(GenericMethodClass.Over)).ToArray();
+            Assert.Equal(2, methods.Length);
+
+            foreach (var method in methods)
+            {
+                var mi = method.MethodInfo;
+
+                Assert.True(mi.IsGenericMethodDefinition);
+                Assert.Equal(method.Parameters[0].Type, mi.GetParameters()[0].ParameterType);
+                Assert.NotNull(mi.MakeGenericMethod(typeof(int)));
+            }
+        }
+
+        public class GenericMethodClass
+        {
+            public T Echo<T>(T value) => value;
+            public T Over<T>(T value) => value;
+            public T Over<T>(List<T> values) => values[0];
         }
     }
 }

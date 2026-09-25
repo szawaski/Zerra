@@ -769,13 +769,6 @@ namespace Zerra.Serialization.Json.IO
                             position += 3;
                             pEscapeBuffer[bufferIndex++] = unicodeChar;
                             start = position + 1;
-
-                            if (start < length)
-                            {
-                                Buffer.MemoryCopy(&pBuffer[start], &pEscapeBuffer[bufferIndex], (maxSize - bufferIndex) * 2, (length - start) * 2);
-                                bufferIndex += length - start;
-                            }
-
                             break;
                         default:
                             if (c > 128)

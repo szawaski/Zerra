@@ -32,6 +32,24 @@ namespace Zerra.Test.CQRS
         }
 
         [Fact]
+        public async Task Bus_Dispatch_WithBusLogger()
+        {
+            using var waiter = new SemaphoreSlim(0, 1);
+            var results = new List<int>();
+            var busLogger = new TestBusLogger();
+
+            var bus = Bus.New("test-service", null, busLogger, null);
+            bus.AddHandler<ITestCommandHandler>(new TestCommandHandler(results, waiter));
+            bus.AddHandler<ITestEventHandler>(new TestEventHandler(results, waiter));
+
+            //bus logging must not change whether the caller waits for a local handler
+            await BusDispatches(bus, waiter, results);
+
+            Assert.True(busLogger.CommandsEnded > 0);
+            Assert.True(busLogger.EventsEnded > 0);
+        }
+
+        [Fact]
         public async Task BusQueryClientServerTcp()
         {
             var url = "http://localhost:9001";
@@ -419,6 +437,21 @@ namespace Zerra.Test.CQRS
                 results.Add(@event.Thing);
                 _ = waiter.Release();
             }
+        }
+
+        public sealed class TestBusLogger : IBusLogger
+        {
+            private int commandsEnded;
+            private int eventsEnded;
+            public int CommandsEnded => commandsEnded;
+            public int EventsEnded => eventsEnded;
+
+            public void BeginCommand(Type commandType, ICommand command, string service, string source, bool handled) { }
+            public void BeginEvent(Type eventType, IEvent @event, string service, string source, bool handled) { }
+            public void BeginCall(Type interfaceType, string methodName, object[] arguments, string service, string source, bool handled) { }
+            public void EndCommand(Type commandType, ICommand command, string service, string source, bool handled, long milliseconds, Exception? ex) => Interlocked.Increment(ref commandsEnded);
+            public void EndEvent(Type eventType, IEvent @event, string service, string source, bool handled, long milliseconds, Exception? ex) => Interlocked.Increment(ref eventsEnded);
+            public void EndCall(Type interfaceType, string methodName, object[] arguments, object? result, string service, string source, bool handled, long milliseconds, Exception? ex) { }
         }
     }
 }

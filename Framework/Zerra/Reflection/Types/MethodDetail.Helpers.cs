@@ -53,16 +53,19 @@ namespace Zerra.Reflection
                         x.GetParameters().Length == Parameters.Count
                     ).ToArray();
 
+                    var isGenericMethodDefinition = GenericArguments.All(x => x.IsGenericParameter);
+
                     if (methodCandidates.Length == 1)
                     {
-                        return methodCandidates[0].MakeGenericMethod(GenericArguments.ToArray());
+                        methodInfo = isGenericMethodDefinition ? methodCandidates[0] : methodCandidates[0].MakeGenericMethod(GenericArguments.ToArray());
+                        return methodInfo;
                     }
 
                     foreach (var candidate in methodCandidates)
                     {
                         try
                         {
-                            methodInfo = candidate.MakeGenericMethod(GenericArguments.ToArray());
+                            methodInfo = isGenericMethodDefinition ? candidate : candidate.MakeGenericMethod(GenericArguments.ToArray());
                         }
                         catch
                         {
