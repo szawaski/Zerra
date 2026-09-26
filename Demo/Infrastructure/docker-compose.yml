@@ -149,12 +149,13 @@ services:
       start_period: 15s
 
   #The Service Bus emulator needs its own SQL Server, it isn't exposed so it never conflicts with a local SQL Server.
-  #The emulator rebuilds its databases on every start and fails on files left by an unclean shutdown, so neither restarts on its own,
-  #start-infrastructure.ps1 recreates both fresh instead.
+  #The emulator rebuilds its databases on every start and fails on files left by an unclean shutdown, such as Docker being turned off,
+  #so this SQL Server wipes its data on every start the way a new container would, then both restart on their own with Docker.
   servicebus-sql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: zerra-servicebus-sql
-    restart: "no"
+    restart: unless-stopped
+    command: ["/bin/bash", "-c", "rm -rf /var/opt/mssql/* /var/opt/mssql/.system && exec /opt/mssql/bin/sqlservr"]
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "Password123"
@@ -169,7 +170,8 @@ services:
   servicebus:
     image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
     container_name: zerra-servicebus
-    restart: "no"
+    #when Docker starts both at once the emulator exits until its SQL Server is up, the restart policy retries it
+    restart: unless-stopped
     depends_on:
       servicebus-sql:
         condition: service_healthy

@@ -140,7 +140,7 @@ try {
         Invoke-ComposeUp $others
     }
     if ($names -contains 'servicebus') {
-        #the emulator fails on database files left from a previous run, so it and its SQL Server always start from new containers
+        #the emulator fails on database files left from a previous run, so it and its SQL Server start from new containers, which also picks up compose changes
         Invoke-ComposeUp @('--force-recreate', 'servicebus-sql', 'servicebus')
     }
 
