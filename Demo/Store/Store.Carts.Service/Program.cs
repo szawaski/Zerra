@@ -71,6 +71,4 @@ bus.AddCommandProducer<IOrdersCommandHandler>(ordersClient);
 
 log.Info($"Carts service listening on {StoreSettings.CartsServiceUrl}, press Ctrl+C to stop");
 
-using var exit = new CancellationTokenSource();
-Console.CancelKeyPress += (sender, e) => { e.Cancel = true; exit.Cancel(); };
-await bus.WaitForExitAsync(exit.Token);
+await bus.WaitForExitAsync();

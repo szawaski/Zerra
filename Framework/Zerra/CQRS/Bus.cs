@@ -4,6 +4,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Zerra.CQRS.Reflection;
 using Zerra.Logging;
 using Zerra.Serialization;
@@ -36,6 +37,12 @@ namespace Zerra.CQRS
 #endif
         private static bool exited = false;
         private static SemaphoreSlim? processWaiter = null;
+        private static ManualResetEventSlim? processStopped = null;
+#if !NETSTANDARD2_0
+        private static PosixSignalRegistration? sigTermRegistration = null;
+        private static PosixSignalRegistration? sigIntRegistration = null;
+#endif
+        private static readonly TimeSpan processExitStopTimeout = TimeSpan.FromSeconds(30);
 
         private readonly BusContext context;
         private readonly IBusLogger? busLog;
@@ -79,7 +86,7 @@ namespace Zerra.CQRS
         {
             this.context = new BusContext(this, serviceName, log, busServices);
             this.busLog = busLog;
-            this.commandCounter = new CommandCounter(commandToReceiveUntilExit, HandleProcessExit);
+            this.commandCounter = new CommandCounter(commandToReceiveUntilExit, SignalExit);
             this.defaultCallTimeout = defaultCallTimeout;
             this.defaultDispatchTimeout = defaultDispatchTimeout;
             this.defaultDispatchAwaitTimeout = defaultDispatchAwaitTimeout;
@@ -88,17 +95,80 @@ namespace Zerra.CQRS
             this.maxConcurrentEventsPerTopic = maxConcurrentEventsPerTopic ?? Environment.ProcessorCount * 16;
         }
 
-        private void HandleProcessExit() => HandleProcessExit(null, null);
-        private void HandleProcessExit(object? sender, EventArgs? e)
+        private static void SignalExit()
+        {
+            lock (exitLock)
+            {
+                if (exited)
+                    return;
+                exited = true;
+                _ = processWaiter?.Release();
+            }
+        }
+
+        private static void OnProcessExit(object? sender, EventArgs e)
+        {
+            ManualResetEventSlim? stopped;
+            lock (exitLock)
+            {
+                stopped = processStopped;
+            }
+            SignalExit();
+            //the runtime terminates as soon as the ProcessExit handlers return, so hold it here until the services have stopped
+            _ = stopped?.Wait(processExitStopTimeout);
+        }
+
+#if !NETSTANDARD2_0
+        private static void OnPosixSignal(PosixSignalContext context)
+        {
+            //replace the default termination with a graceful stop, the process ends when the caller of WaitForExit returns
+            context.Cancel = true;
+            SignalExit();
+        }
+#endif
+
+        private static SemaphoreSlim? BeginWaitForExit()
+        {
+            lock (exitLock)
+            {
+                if (exited)
+                    return null;
+                processWaiter = new SemaphoreSlim(0, 1);
+                processStopped = new ManualResetEventSlim(false);
+                AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+#if !NETSTANDARD2_0
+                try
+                {
+                    sigTermRegistration = PosixSignalRegistration.Create(PosixSignal.SIGTERM, OnPosixSignal);
+                    sigIntRegistration = PosixSignalRegistration.Create(PosixSignal.SIGINT, OnPosixSignal);
+                }
+                catch (PlatformNotSupportedException) { }
+#endif
+                return processWaiter;
+            }
+        }
+
+        private static void EndWaitForExit()
         {
             lock (exitLock)
             {
                 exited = true;
-                if (processWaiter is not null)
-                {
-                    AppDomain.CurrentDomain.ProcessExit -= HandleProcessExit;
-                    _ = processWaiter.Release();
-                }
+#if !NETSTANDARD2_0
+                //a second signal while stopping gets the default termination
+                sigTermRegistration?.Dispose();
+                sigTermRegistration = null;
+                sigIntRegistration?.Dispose();
+                sigIntRegistration = null;
+#endif
+            }
+        }
+
+        private static void CompleteWaitForExit()
+        {
+            lock (exitLock)
+            {
+                AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
+                processStopped?.Set();
             }
         }
 
@@ -325,36 +395,44 @@ namespace Zerra.CQRS
         /// <inheritdoc />
         public void WaitForExit(CancellationToken cancellationToken = default)
         {
-            lock (exitLock)
-            {
-                if (exited)
-                    return;
-                processWaiter = new SemaphoreSlim(0, 1);
-                AppDomain.CurrentDomain.ProcessExit += HandleProcessExit;
-            }
+            var waiter = BeginWaitForExit();
+            if (waiter is null)
+                return;
             try
             {
-                processWaiter.Wait(cancellationToken);
+                waiter.Wait(cancellationToken);
             }
             catch { }
-            StopServices();
+            EndWaitForExit();
+            try
+            {
+                StopServices();
+            }
+            finally
+            {
+                CompleteWaitForExit();
+            }
         }
         /// <inheritdoc />
         public async Task WaitForExitAsync(CancellationToken cancellationToken = default)
         {
-            lock (exitLock)
-            {
-                if (exited)
-                    return;
-                processWaiter = new SemaphoreSlim(0, 1);
-                AppDomain.CurrentDomain.ProcessExit += HandleProcessExit;
-            }
+            var waiter = BeginWaitForExit();
+            if (waiter is null)
+                return;
             try
             {
-                await processWaiter.WaitAsync(cancellationToken);
+                await waiter.WaitAsync(cancellationToken);
             }
             catch { }
-            await StopServicesAsync();
+            EndWaitForExit();
+            try
+            {
+                await StopServicesAsync();
+            }
+            finally
+            {
+                CompleteWaitForExit();
+            }
         }
 
         /// <inheritdoc />

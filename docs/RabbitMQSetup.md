@@ -301,16 +301,8 @@ bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerReplica);
 Console.WriteLine($"RabbitMQ Server started on {serviceName}");
 Console.WriteLine("Press Ctrl+C to stop...");
 
-// Setup graceful shutdown
-using var cts = new CancellationTokenSource();
-Console.CancelKeyPress += (sender, e) =>
-{
-    e.Cancel = true;
-    cts.Cancel();
-};
-
-// Waits for process exit or cancellation, then stops the bus and disposes its consumers
-await bus.WaitForExitAsync(cts.Token);
+// Waits for Ctrl+C, SIGTERM, or process exit, then stops the bus and disposes its consumers
+await bus.WaitForExitAsync();
 Console.WriteLine("RabbitMQ Server stopped");
 ```
 

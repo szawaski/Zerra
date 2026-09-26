@@ -74,6 +74,4 @@ bus.AddQueryClient<IOrdersQueryHandler>(ordersClient);
 
 log.Info($"Reviews service listening on {StoreSettings.ReviewsServiceUrl}, press Ctrl+C to stop");
 
-using var exit = new CancellationTokenSource();
-Console.CancelKeyPress += (sender, e) => { e.Cancel = true; exit.Cancel(); };
-await bus.WaitForExitAsync(exit.Token);
+await bus.WaitForExitAsync();

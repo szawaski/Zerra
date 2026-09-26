@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -72,10 +72,14 @@ namespace Zerra.CQRS.AzureServiceBus
 
             public async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync)
             {
+                //the throttle is not disposed: handlers still running after the listener stops release it, and a disposed SemaphoreSlim throws ObjectDisposedException on Release
+                //this isn't a leak, SemaphoreSlim.Dispose only frees the wait handle that AvailableWaitHandle creates on first use, which nothing reads,
+                //the rest is managed memory with no finalizer that the GC reclaims once nothing references it
+                //if AvailableWaitHandle is ever used, dispose it once every handler that could release it has finished
+                var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
             retry:
 
-                var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
                 try
                 {
                     await AzureServiceBusCommon.EnsureTopic(host, topic, false);
@@ -87,7 +91,17 @@ namespace Zerra.CQRS.AzureServiceBus
                         {
                             await throttle.WaitAsync(canceller.Token);
 
-                            var serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
+                            ServiceBusReceivedMessage? serviceBusMessage;
+                            try
+                            {
+                                serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
+                            }
+                            catch
+                            {
+                                //the retry keeps this throttle, give back the permit taken for the message that wasn't received
+                                _ = throttle.Release();
+                                throw;
+                            }
                             if (serviceBusMessage is null)
                             {
                                 _ = throttle.Release();
@@ -110,10 +124,6 @@ namespace Zerra.CQRS.AzureServiceBus
                         await Task.Delay(AzureServiceBusCommon.RetryDelay);
                         goto retry;
                     }
-                }
-                finally
-                {
-                    throttle.Dispose();
                 }
 
                 //only reached once the consumer is stopping, a retry keeps the subscription so events sent meanwhile are still received

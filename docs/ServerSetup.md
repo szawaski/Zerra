@@ -131,16 +131,8 @@ bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
 Console.WriteLine($"User Service started on {serverAddress}");
 Console.WriteLine("Press Ctrl+C to stop...");
 
-// Setup cancellation token for graceful shutdown
-using var cts = new CancellationTokenSource();
-Console.CancelKeyPress += (sender, e) =>
-{
-    e.Cancel = true;
-    cts.Cancel();
-};
-
-// Waits for process exit or cancellation, then stops the bus and disposes all producers, consumers, clients, and servers
-await bus.WaitForExitAsync(cts.Token);
+// Waits for Ctrl+C, SIGTERM, or process exit, then stops the bus and disposes all producers, consumers, clients, and servers
+await bus.WaitForExitAsync();
 Console.WriteLine("User Service stopped");
 ```
 
@@ -454,26 +446,21 @@ await bus.WaitForExitAsync(cancellationToken);
 `WaitForExitAsync` returns when the process is exiting or the token is cancelled; it does not throw on cancellation. In both cases it stops the bus and disposes all producers, consumers, clients, and servers before returning.
 
 ```csharp
-using var cts = new CancellationTokenSource();
-
-// Handle Ctrl+C
-Console.CancelKeyPress += (sender, e) =>
-{
-    e.Cancel = true;
-    cts.Cancel();
-};
-
-await bus.WaitForExitAsync(cts.Token);
+await bus.WaitForExitAsync(cancellationToken);
 logger.Info("Shutdown complete");
 ```
 
-### SIGTERM (Docker/Kubernetes)
+### SIGTERM and Ctrl+C (Docker/Kubernetes)
 
-No extra handler is needed: `WaitForExitAsync` already subscribes to `AppDomain.CurrentDomain.ProcessExit`, which is raised on SIGTERM.
+No extra handler is needed. While waiting, `WaitForExitAsync` registers for SIGTERM and SIGINT (Ctrl+C), cancels the default termination, stops the bus, and returns, so `Main` ends normally. A second signal while the bus is stopping terminates the process right away. On Windows, SIGTERM is the system shutdown or log off event.
 
 ```csharp
 await bus.WaitForExitAsync();
 ```
+
+Other process exits, such as `Environment.Exit`, are held in `AppDomain.CurrentDomain.ProcessExit` until the bus has stopped, for up to 30 seconds. On `netstandard2.0` there is no signal registration, so only that `ProcessExit` path applies.
+
+The stop has to finish inside the orchestrator's grace period before it kills the process: 10 seconds for `docker stop`, 30 seconds by default in Kubernetes (`terminationGracePeriodSeconds`).
 
 ## Microservices Architecture
 

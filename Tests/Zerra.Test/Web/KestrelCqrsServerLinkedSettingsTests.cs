@@ -47,16 +47,17 @@ namespace Zerra.Test.Web
         }
 
         [Fact]
-        public void Dispose_DisposesThrottlesAndClearsTypes()
+        public void Dispose_ClearsTypesAndLeavesThrottlesForRunningRequests()
         {
             var settings = new KestrelCqrsServerLinkedSettings(null, null, ContentType.Bytes);
             var throttle = new SemaphoreSlim(1, 1);
             Assert.True(settings.Types.TryAdd(typeof(string), throttle));
+            Assert.True(throttle.Wait(0, TestContext.Current.CancellationToken)); //a request in progress
 
             settings.Dispose();
 
             Assert.Empty(settings.Types);
-            _ = Assert.Throws<ObjectDisposedException>(() => throttle.Wait(0, TestContext.Current.CancellationToken));
+            _ = throttle.Release(); //the request finishing after dispose doesn't throw
         }
     }
 }

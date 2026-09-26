@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -79,9 +79,13 @@ namespace Zerra.CQRS.Kafka
 
             private async Task ListeningThread(string host, string? userName, string? password)
             {
-            retry:
-
+                //the throttle is not disposed: handlers still running after the listener stops release it, and a disposed SemaphoreSlim throws ObjectDisposedException on Release
+                //this isn't a leak, SemaphoreSlim.Dispose only frees the wait handle that AvailableWaitHandle creates on first use, which nothing reads,
+                //the rest is managed memory with no finalizer that the GC reclaims once nothing references it
+                //if AvailableWaitHandle is ever used, dispose it once every handler that could release it has finished
                 var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+
+            retry:
 
                 try
                 {
@@ -113,8 +117,19 @@ namespace Zerra.CQRS.Kafka
                                 if (!commandCounter.BeginReceive())
                                     continue; //don't receive anymore, externally will be shutdown, fill throttle
 
-                                var consumerResult = consumer.Consume(canceller.Token);
-                                consumer.Commit(consumerResult);
+                                ConsumeResult<string, byte[]> consumerResult;
+                                try
+                                {
+                                    consumerResult = consumer.Consume(canceller.Token);
+                                    consumer.Commit(consumerResult);
+                                }
+                                catch
+                                {
+                                    //the retry keeps this throttle, give back the permit taken for the message that wasn't received
+                                    //an uncommitted message is consumed again from the last committed offset after reconnecting
+                                    commandCounter.CancelReceive(throttle);
+                                    throw;
+                                }
 
                                 _ = Task.Run(() => HandleMessage(throttle, consumerResult));
 
@@ -138,10 +153,6 @@ namespace Zerra.CQRS.Kafka
                         await Task.Delay(KafkaCommon.RetryDelay);
                         goto retry;
                     }
-                }
-                finally
-                {
-                    throttle.Dispose();
                 }
             }
 

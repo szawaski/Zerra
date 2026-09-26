@@ -68,6 +68,8 @@ namespace Zerra.CQRS
         /// <summary>
         /// An awaiter to hold the assembly process until it receives a shutdown command.
         /// All the services will be stopped upon shutdown.
+        /// SIGTERM and SIGINT (Ctrl+C) are handled while waiting: the default termination is cancelled, the services stop, and this returns so the process can end normally.
+        /// Other process exits are held until the services have stopped.
         /// </summary>
         /// <param name="cancellationToken">A token to cancel the wait.</param>
         void WaitForExit(CancellationToken cancellationToken = default);
@@ -75,6 +77,8 @@ namespace Zerra.CQRS
         /// <summary>
         /// An awaiter to hold the assembly process until it receives a shutdown command.
         /// All the services will be stopped upon shutdown.
+        /// SIGTERM and SIGINT (Ctrl+C) are handled while waiting: the default termination is cancelled, the services stop, and this returns so the process can end normally.
+        /// Other process exits are held until the services have stopped.
         /// </summary>
         /// <param name="cancellationToken">A token to cancel the wait.</param>
         Task WaitForExitAsync(CancellationToken cancellationToken = default);

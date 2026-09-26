@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -319,10 +319,10 @@ namespace Zerra.CQRS.Network
         /// <inheritdoc />
         public virtual void Dispose()
         {
-            foreach (var throttle in throttleByInterfaceType.Values)
-                throttle.Dispose();
-            foreach (var throttle in throttleByTopic.Values)
-                throttle.Dispose();
+            //the throttles are not disposed: calls still running after Dispose release them, and a disposed SemaphoreSlim throws ObjectDisposedException on Release
+            //this isn't a leak, SemaphoreSlim.Dispose only frees the wait handle that AvailableWaitHandle creates on first use, which nothing reads,
+            //the rest is managed memory with no finalizer that the GC reclaims once nothing references them
+            //if AvailableWaitHandle is ever used, dispose them once every call that could release them has finished
             GC.SuppressFinalize(this);
         }
     }

@@ -68,6 +68,4 @@ else
 
 log.Info($"Catalog service listening on {StoreSettings.CatalogServiceUrl}, press Ctrl+C to stop");
 
-using var exit = new CancellationTokenSource();
-Console.CancelKeyPress += (sender, e) => { e.Cancel = true; exit.Cancel(); };
-await bus.WaitForExitAsync(exit.Token);
+await bus.WaitForExitAsync();
