@@ -60,8 +60,8 @@ namespace Zerra.CQRS.AzureEventHub
 
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
-            if (isOpen)
-                throw new InvalidOperationException("Connection already open");
+            if (handlerAsync is not null)
+                throw new InvalidOperationException("Command consumer already setup");
             this.commandCounter = commandCounter;
             this.handlerAsync = handlerAsync;
             this.handlerAwaitAsync = handlerAwaitAsync;
@@ -69,8 +69,8 @@ namespace Zerra.CQRS.AzureEventHub
         }
         void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
-            if (isOpen)
-                throw new InvalidOperationException("Connection already open");
+            if (eventHandlerAsync is not null)
+                throw new InvalidOperationException("Event consumer already setup");
             this.eventHandlerAsync = handlerAsync;
         }
 

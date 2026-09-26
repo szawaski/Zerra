@@ -1384,8 +1384,8 @@ namespace Zerra.CQRS
             setupLock.Wait();
             try
             {
-                commandConsumer.Setup(commandCounter, RemoteHandleCommandDispatchAsync, RemoteHandleCommandDispatchAwaitAsync, RemoteHandleCommandWithResultDispatchAwaitAsync);
-                _ = commandConsumers.Add(commandConsumer);
+                if (commandConsumers.Add(commandConsumer))
+                    commandConsumer.Setup(commandCounter, RemoteHandleCommandDispatchAsync, RemoteHandleCommandDispatchAwaitAsync, RemoteHandleCommandWithResultDispatchAwaitAsync);
 
                 var commandTypes = GetExposedCommandTypesFromInterface(interfaceType);
                 foreach (var commandType in commandTypes)
@@ -1469,8 +1469,8 @@ namespace Zerra.CQRS
             setupLock.Wait();
             try
             {
-                eventConsumer.Setup(RemoteHandleEventDispatchAsync);
-                _ = eventConsumers.Add(eventConsumer);
+                if (eventConsumers.Add(eventConsumer))
+                    eventConsumer.Setup(RemoteHandleEventDispatchAsync);
 
                 var eventTypes = GetExposedEventTypesFromInterface(interfaceType);
                 foreach (var eventType in eventTypes)
@@ -1544,8 +1544,8 @@ namespace Zerra.CQRS
             setupLock.Wait();
             try
             {
-                queryServer.Setup(commandCounter, RemoteHandleQueryCallAsync);
-                _ = queryServers.Add(queryServer);
+                if (queryServers.Add(queryServer))
+                    queryServer.Setup(commandCounter, RemoteHandleQueryCallAsync);
 
                 if (interfaceType.IsInterface)
                 {

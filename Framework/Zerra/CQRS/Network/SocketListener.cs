@@ -42,9 +42,9 @@ namespace Zerra.CQRS.Network
                 this.canceller = new CancellationTokenSource();
                 this.cancellationToken = canceller.Token;
 
-                _ = Task.Run(AcceptConnections);
-
                 started = true;
+
+                _ = Task.Run(AcceptConnections);
             }
         }
 

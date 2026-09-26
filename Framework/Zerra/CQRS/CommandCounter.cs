@@ -58,6 +58,22 @@ namespace Zerra.CQRS
         }
 
         /// <summary>
+        /// True once every command to receive before the service terminates has been received.
+        /// </summary>
+        public bool ReceiveLimitReached
+        {
+            get
+            {
+                if (!receiveCountBeforeExit.HasValue)
+                    return false;
+                lock (locker)
+                {
+                    return started == receiveCountBeforeExit.Value;
+                }
+            }
+        }
+
+        /// <summary>
         /// Called by a <see cref="ICommandHandler{T}"/> when a command handling count needs cancelled because there was no command recieved.
         /// </summary>
         /// <param name="throttle">A throttler used by the <see cref="ICommandHandler{T}"/> passed here so it can release at the approriate time.</param>

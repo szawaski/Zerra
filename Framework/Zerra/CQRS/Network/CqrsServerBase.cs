@@ -91,6 +91,8 @@ namespace Zerra.CQRS.Network
 
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
+            if (commandHandlerAsync is not null)
+                throw new InvalidOperationException("Command consumer already setup");
             this.commandCounter = commandCounter;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
@@ -108,6 +110,8 @@ namespace Zerra.CQRS.Network
 
         void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
+            if (eventHandlerAsync is not null)
+                throw new InvalidOperationException("Event consumer already setup");
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -150,16 +154,26 @@ namespace Zerra.CQRS.Network
                 var urls = serviceUrl.Split(';', StringSplitOptions.RemoveEmptyEntries);
 #endif
                 var endpoints = IPResolver.GetIPEndPoints(urls);
-                this.listeners = new SocketListener[endpoints.Count];
+                var listeners = new SocketListener[endpoints.Count];
                 for (var i = 0; i < endpoints.Count; i++)
                 {
                     var endpoint = endpoints[i];
                     var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                    socket.NoDelay = true;
-                    socket.Bind(endpoint);
-                    var listener = new SocketListener(socket, Handle);
-                    this.listeners[i] = listener;
+                    try
+                    {
+                        socket.NoDelay = true;
+                        socket.Bind(endpoint);
+                    }
+                    catch
+                    {
+                        socket.Dispose();
+                        for (var j = 0; j < i; j++)
+                            listeners[j].Dispose();
+                        throw;
+                    }
+                    listeners[i] = new SocketListener(socket, Handle);
                 }
+                this.listeners = listeners;
 
                 _ = Log.InfoAsync($"{thisType.GetNiceName()} resolved {serviceUrl} as {String.Join(", ", endpoints.Select(x => x.ToString()))}");
 

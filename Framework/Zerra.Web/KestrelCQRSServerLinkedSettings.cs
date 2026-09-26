@@ -62,8 +62,10 @@ namespace Zerra.Web
 
         public void Dispose()
         {
-            foreach (var throttle in Types.Values)
-                throttle.Dispose();
+            //the throttles are not disposed: requests still running after Dispose release them, and a disposed SemaphoreSlim throws ObjectDisposedException on Release
+            //this isn't a leak, SemaphoreSlim.Dispose only frees the wait handle that AvailableWaitHandle creates on first use, which nothing reads,
+            //the rest is managed memory with no finalizer that the GC reclaims once nothing references them
+            //if AvailableWaitHandle is ever used, dispose them once every request that could release them has finished
             Types.Clear();
         }
     }

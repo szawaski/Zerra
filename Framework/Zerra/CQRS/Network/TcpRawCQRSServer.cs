@@ -62,6 +62,7 @@ namespace Zerra.CQRS.Network
                     Stream? resultStream = null; //the handler's stream, disposed once sent
                     CryptoFlushStream? responseBodyCryptoStream = null;
                     var isCommand = false;
+                    var throttleReleasedByContinuation = false;
 
                     var requestBodyRead = false;
                     var inHandlerContext = false;
@@ -253,10 +254,10 @@ namespace Zerra.CQRS.Network
                             if (typeDetail.Interfaces.Contains(typeof(ICommand)))
                             {
                                 if (commandCounter is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-                                isCommand = true;
 
                                 if (!commandCounter.BeginReceive())
                                     throw new CqrsNetworkException("Cannot receive any more commands");
+                                isCommand = true;
 
                                 var command = (ICommand?)ContentTypeSerializer.Deserialize(requestHeader.ContentType.Value, messageType, data.MessageData);
                                 if (command is null)
@@ -294,7 +295,9 @@ namespace Zerra.CQRS.Network
                                 else
                                 {
                                     if (commandHandlerAsync is null) throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-                                    _ = Task.Run(() => commandHandlerAsync(command, data.Source, false, default));
+                                    var commandHandlerTask = Task.Run(() => commandHandlerAsync(command, data.Source, false, default));
+                                    _ = commandHandlerTask.ContinueWith(x => commandCounter.CompleteReceive(throttle));
+                                    throttleReleasedByContinuation = true;
                                     hasResult = false;
                                 }
                                 inHandlerContext = false;
@@ -308,7 +311,9 @@ namespace Zerra.CQRS.Network
                                 inHandlerContext = true;
                                 if (eventHandlerAsync is null)
                                     throw new InvalidOperationException($"{nameof(TcpRawCqrsServer)} is not setup");
-                                _ = Task.Run(() => eventHandlerAsync(@event, data.Source, false));
+                                var eventHandlerTask = Task.Run(() => eventHandlerAsync(@event, data.Source, false));
+                                _ = eventHandlerTask.ContinueWith(x => throttle.Release());
+                                throttleReleasedByContinuation = true;
                                 hasResult = false;
                                 inHandlerContext = false;
                             }
@@ -445,7 +450,7 @@ namespace Zerra.CQRS.Network
 #endif
                         }
                         ArrayPoolHelper<byte>.Return(bufferOwner);
-                        if (throttlerUsed)
+                        if (throttlerUsed && !throttleReleasedByContinuation)
                         {
                             if (isCommand && commandCounter is not null)
                                 commandCounter.CompleteReceive(throttle);

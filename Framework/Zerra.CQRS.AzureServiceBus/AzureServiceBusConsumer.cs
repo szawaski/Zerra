@@ -14,7 +14,7 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IDisposable, IAsyncDisposable
     {
-        private readonly string host;
+        private readonly AzureServiceBusCommonNamespace commonNamespace;
         private readonly SymmetricConfig? symmetricConfig;
         private readonly string? environment;
 
@@ -41,7 +41,7 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
-            this.host = host;
+            this.commonNamespace = AzureServiceBusCommon.GetNamespace(host);
             this.symmetricConfig = symmetricConfig;
             this.environment = environment;
             this.commandExchanges = new();
@@ -57,8 +57,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
         void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
-            if (isOpen)
-                throw new InvalidOperationException("Connection already open");
+            if (commandHandlerAsync is not null)
+                throw new InvalidOperationException("Command consumer already setup");
             this.commandCounter = commandCounter;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
@@ -66,8 +66,8 @@ namespace Zerra.CQRS.AzureServiceBus
         }
         void IEventConsumer.Setup(HandleRemoteEventDispatch handlerAsync)
         {
-            if (isOpen)
-                throw new InvalidOperationException("Connection already open");
+            if (eventHandlerAsync is not null)
+                throw new InvalidOperationException("Event consumer already setup");
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -100,10 +100,10 @@ namespace Zerra.CQRS.AzureServiceBus
                 return;
 
             foreach (var exchange in commandExchanges.Values.Where(x => !x.IsOpen))
-                exchange.Open(this.host, this.client);
+                exchange.Open(this.commonNamespace, this.client);
 
             foreach (var exchange in eventExchanges.Values.Where(x => !x.IsOpen))
-                exchange.Open(this.host, this.client);
+                exchange.Open(this.commonNamespace, this.client);
         }
 
         void ICommandConsumer.Close()
