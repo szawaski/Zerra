@@ -118,7 +118,7 @@ The service name in those is the one passed to `Bus.New(serviceName, ...)`, so i
 
 Because the subscription is shared, `PerService` outlives any one replica: a replica stopping does not take it with it, and the events keep reaching the replicas still running. A `PerReplica` subscription is deleted with the replica that owned it.
 
-Whether events published while the *whole* service is down are still waiting when it returns is up to the broker. Kafka keeps the group's committed offsets and Azure Service Bus keeps the subscription, so they are. RabbitMQ auto-deletes the queue once its last consumer disconnects, the same as it does for a command queue, so they are not.
+Whether events published while the *whole* service is down are still waiting when it returns is up to the broker. Kafka keeps the group's committed offsets, Azure Service Bus keeps the subscription, and RabbitMQ keeps the queue, the same as it does for a command queue, so they are. RabbitMQ holds them only until the broker restarts.
 
 On Kafka a topic is created with one partition, so `PerService` means one replica receives everything and the rest stand by to take over, the same as a command consumer. The other two brokers spread the events across the replicas.
 

@@ -305,6 +305,7 @@ Also replace:
 - The service name → pass it to `Bus.New` directly. v5 used the entry assembly name, and many solutions keep that string.
 - `Bus.ReceiveCommandsBeforeExit = n` set during startup → `Bus.New(..., commandToReceiveUntilExit: n)`. If that value was decided in a startup callback, decide it before `Bus.New`.
 - **Event consumer mode that matches v5.** v5's broker consumers gave every consumer instance its own event subscription: a new Kafka group id, an exclusive RabbitMQ queue, or an `EVT-{guid}` Azure Service Bus subscription. So `EventConsumerMode.PerReplica` reproduces v5 exactly. Switch a subscriber to `PerService` only after checking its handlers.
+- **RabbitMQ command queues are no longer auto-deleted.** v5 declared them auto-delete, v6 doesn't, so commands sent while no replica is connected wait in the queue. RabbitMQ refuses to declare an existing queue with different settings, so while any v5 replica of a service is still connected, the v6 replicas log the refusal and retry every 5 seconds. They start consuming once the last v5 replica disconnects and the old queue is auto-deleted. Deploy the service all at once, or delete the queue when switching over.
 
 ### Many Services with One Shared Setup Method
 

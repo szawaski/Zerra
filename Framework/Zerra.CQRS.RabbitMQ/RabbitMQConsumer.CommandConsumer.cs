@@ -83,16 +83,15 @@ namespace Zerra.CQRS.RabbitMQ
 
                 try
                 {
-                    if (this.channel is not null)
-                        throw new Exception("Exchange already open");
-
-                    this.channel = connection.CreateModel();
-                    this.channel.BasicQos(0, (ushort)maxConcurrent, false);
+                    if (this.channel is null)
+                    {
+                        this.channel = connection.CreateModel();
+                        this.channel.BasicQos(0, (ushort)maxConcurrent, false);
+                    }
                     this.channel.ExchangeDeclare(this.topic, ExchangeType.Direct);
 
-                    //durable because a broker refuses a transient queue that isn't exclusive, it only makes the queue survive a restart and
-                    //the messages are still transient; auto delete still takes the queue with the last replica to disconnect
-                    var queue = this.channel.QueueDeclare(this.topic, true, false, true);
+                    //not auto-deleted so commands sent while no replica is connected, such as during a reconnect, wait in the queue
+                    var queue = this.channel.QueueDeclare(this.topic, true, false, false);
                     this.channel.QueueBind(queue.QueueName, this.topic, String.Empty);
 
                     var consumer = new AsyncEventingBasicConsumer(this.channel);
@@ -105,7 +104,7 @@ namespace Zerra.CQRS.RabbitMQ
                         }
                         catch (OperationCanceledException)
                         {
-                            return; //closing, left unacknowledged for the broker to redeliver
+                            return;
                         }
 
                         if (!commandCounter.BeginReceive())
@@ -113,12 +112,10 @@ namespace Zerra.CQRS.RabbitMQ
 
                         try
                         {
-                            //delivery tags belong to the channel that delivered, a reconnect may have replaced this.channel while waiting on the throttle
                             consumer.Model.BasicAck(e.DeliveryTag, false);
                         }
                         catch (Exception ex)
                         {
-                            //the channel closed, the broker redelivers the unacknowledged message after reconnecting
                             log?.Error(topic, ex);
                             commandCounter.CancelReceive(throttle);
                             return;
@@ -134,7 +131,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.ConsumerCancelled += (sender, e) =>
                     {
-                        if (!canceller.IsCancellationRequested)
+                        if (!canceller.IsCancellationRequested && consumer.Model.IsOpen)
                             _ = Task.Run(() => ListeningThread(connection));
                         return Task.CompletedTask;
                     };

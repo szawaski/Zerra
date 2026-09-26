@@ -79,19 +79,17 @@ namespace Zerra.CQRS.RabbitMQ
 
                 try
                 {
-                    if (this.channel is not null)
-                        throw new Exception("Exchange already open");
-
-                    this.channel = connection.CreateModel();
-                    this.channel.BasicQos(0, (ushort)maxConcurrent, false);
+                    if (this.channel is null)
+                    {
+                        this.channel = connection.CreateModel();
+                        this.channel.BasicQos(0, (ushort)maxConcurrent, false);
+                    }
                     this.channel.ExchangeDeclare(this.topic, ExchangeType.Fanout);
 
-                    //an exclusive server named queue reaches this replica alone, a queue named for the service is shared by its replicas so they compete.
-                    //the shared one is durable because a broker refuses a transient queue that isn't exclusive, it only makes the queue survive a restart
-                    //and the events are still transient; auto delete still takes the queue with the last replica to disconnect
+                    //a PerService queue isn't auto-deleted so events sent while no replica is connected, such as during a reconnect, wait in the queue
                     var queue = this.queue is null
                         ? this.channel.QueueDeclare(String.Empty, false, true, true)
-                        : this.channel.QueueDeclare(this.queue, true, false, true);
+                        : this.channel.QueueDeclare(this.queue, true, false, false);
                     this.channel.QueueBind(queue.QueueName, this.topic, String.Empty);
 
                     var consumer = new AsyncEventingBasicConsumer(this.channel);
@@ -104,12 +102,11 @@ namespace Zerra.CQRS.RabbitMQ
                         }
                         catch (OperationCanceledException)
                         {
-                            return; //closing, left unacknowledged for the broker to redeliver
+                            return;
                         }
 
                         try
                         {
-                            //delivery tags belong to the channel that delivered, a reconnect may have replaced this.channel while waiting on the throttle
                             consumer.Model.BasicAck(e.DeliveryTag, false);
                         }
                         catch (Exception ex)
@@ -123,6 +120,13 @@ namespace Zerra.CQRS.RabbitMQ
                         var handleTask = Task.Run(() => HandleMessage(body));
                         _ = handling.Add(handleTask);
                         _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                    };
+
+                    consumer.ConsumerCancelled += (sender, e) =>
+                    {
+                        if (!canceller.IsCancellationRequested && consumer.Model.IsOpen)
+                            _ = Task.Run(() => ListeningThread(connection));
+                        return Task.CompletedTask;
                     };
 
                     this.consumerTag = this.channel.BasicConsume(queue.QueueName, false, consumer);

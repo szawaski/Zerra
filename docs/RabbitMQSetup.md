@@ -179,7 +179,7 @@ Design handlers to match. A `PerReplica` event handler has to be correct when ev
 
 The last row is what `bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerService)` declares instead. It is the subscriber's own choice and changes nothing for the publisher or for the other services bound to the same Fanout exchange, which still get their own copy of every event. See [Choosing per replica or per service](Events.md#choosing-per-replica-or-per-service).
 
-Every one of these queues is auto-deleted when its last consumer disconnects, so messages sent while a subscriber is down are not held for it.
+The command queue and the `PerService` queue are not auto-deleted, so messages sent while no replica is connected, including while one reconnects, wait for the next one (messages are transient, so they don't survive a broker restart). A `PerReplica` queue is exclusive to its replica's connection, so events sent while that replica is disconnected are not held for it.
 
 ### Basic Consumer Configuration
 
