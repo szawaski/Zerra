@@ -110,12 +110,9 @@ namespace Zerra.Repository.Test.Kafka
             //command consumers share a group named after the topic, so it outlives them, event consumer groups are deleted by the consumers themselves
             await DeleteConsumerGroup(commandTopic);
 
-            //the producer deletes its acknowledgement topic and group when it's disposed, this catches them if that didn't finish
+            //the producer deletes its acknowledgement topic when it's disposed, this catches it if that didn't finish. The topic is assigned, not subscribed, so there's no group
             if (ackTopic is not null)
-            {
                 await KafkaCommon.DeleteTopic(host, null, null, ackTopic);
-                await DeleteConsumerGroup(ackTopic);
-            }
         }
 
         //consumers leave their group on a background thread after they're closed, and a group can't be deleted while it still has members

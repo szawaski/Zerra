@@ -101,7 +101,7 @@ namespace Zerra.CQRS.Kafka
             this.ackCallbacks = new ConcurrentDictionary<string, Action<Acknowledgement>>();
         }
 
-        //the acknowledgement topic and consumer group name, for tests to clean up
+        //the acknowledgement topic name, for tests to clean up
         internal string AckTopic => ackTopic;
 
         string ICommandProducer.MessageHost => "[Host has Secrets]";
@@ -128,10 +128,9 @@ namespace Zerra.CQRS.Kafka
                 {
                     if (!listenerStarted)
                     {
+                        await listenerStartedLock.WaitAsync(cancellationToken);
                         try
                         {
-                            await listenerStartedLock.WaitAsync(cancellationToken);
-
                             if (!listenerStarted)
                             {
                                 await KafkaCommon.EnsureTopic(host, userName, password, ackTopic);
@@ -226,10 +225,9 @@ namespace Zerra.CQRS.Kafka
             {
                 if (!listenerStarted)
                 {
+                    await listenerStartedLock.WaitAsync(cancellationToken);
                     try
                     {
-                        await listenerStartedLock.WaitAsync(cancellationToken);
-
                         if (!listenerStarted)
                         {
                             await KafkaCommon.EnsureTopic(host, userName, password, ackTopic);
@@ -341,12 +339,13 @@ namespace Zerra.CQRS.Kafka
 
         private async Task AckListeningThread()
         {
+            //The topic is only this producer's and has one partition, so it's assigned directly instead of subscribed. Subscribing joins a new
+            //group, which waits for the broker's group.initial.rebalance.delay.ms, 3 seconds by default, and held up the first acknowledgement.
+            //Confluent requires a group ID, but an assigned consumer that never commits doesn't join or create the group.
             var consumerConfig = new ConsumerConfig();
             consumerConfig.BootstrapServers = host;
             consumerConfig.GroupId = ackTopic;
             consumerConfig.EnableAutoCommit = false;
-            //the topic is new and only this producer's, so reading from the start catches acknowledgements sent before the subscription was assigned
-            consumerConfig.AutoOffsetReset = AutoOffsetReset.Earliest;
             if (userName is not null && password is not null)
             {
                 consumerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
@@ -364,13 +363,13 @@ namespace Zerra.CQRS.Kafka
                 {
                     using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
                     {
-                        consumer.Subscribe(ackTopic);
+                        //the topic is new, so reading from the start catches acknowledgements sent before the assignment
+                        consumer.Assign(new TopicPartitionOffset(ackTopic, 0, Offset.Beginning));
                         try
                         {
                             for (; ; )
                             {
                                 var consumerResult = consumer.Consume(canceller.Token);
-                                consumer.Commit(consumerResult);
 
                                 if (!ackCallbacks.TryRemove(consumerResult.Message.Key, out var callback))
                                     continue;
@@ -397,7 +396,6 @@ namespace Zerra.CQRS.Kafka
                         }
                         finally
                         {
-                            //Close leaves the group right away, Unsubscribe and Dispose leave its member until the session times out
                             consumer.Close();
                         }
                     }
@@ -419,8 +417,6 @@ namespace Zerra.CQRS.Kafka
                 try
                 {
                     await KafkaCommon.DeleteTopic(host, userName, password, ackTopic);
-                    //the acknowledgement consumer's group is named after the topic and goes with it
-                    await KafkaCommon.DeleteConsumerGroup(host, userName, password, ackTopic);
                 }
                 catch (Exception ex)
                 {
@@ -467,6 +463,38 @@ namespace Zerra.CQRS.Kafka
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
+
+            //Started now so the first command sent with DispatchAwait doesn't wait for the acknowledgement topic to be created and assigned.
+            //If this fails the error is logged and the first send that needs an acknowledgement tries again.
+            if (!listenerStarted)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await listenerStartedLock.WaitAsync(canceller.Token);
+                        try
+                        {
+                            if (!listenerStarted)
+                            {
+                                await KafkaCommon.EnsureTopic(host, userName, password, ackTopic);
+                                _ = Task.Run(AckListeningThread);
+                                listenerStarted = true;
+                            }
+                        }
+                        finally
+                        {
+                            _ = listenerStartedLock.Release();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        //disposing the producer before it started isn't an error
+                        if (!canceller.IsCancellationRequested)
+                            log?.Error(ex);
+                    }
+                });
+            }
         }
 
         void IEventProducer.RegisterEventType(int maxConcurrent, string topic, Type type)
