@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -48,6 +48,16 @@ namespace Zerra.CQRS.Network
         /// A counter to limit the number of commands the running service will receive before termination.
         /// </summary>
         protected CommandCounter? commandCounter = null;
+
+        /// <summary>
+        /// The connection and handler tasks still running, each removed once it completes, so disposing can wait for the rest.
+        /// A connection's task ends when it's left idle after closing, a command or event handled after responding is added as its own task.
+        /// </summary>
+        protected readonly ConcurrentHashSet<Task> running = new();
+        /// <summary>
+        /// Removes a completed task from <see cref="running"/>, given as the continuation of each task added with <see cref="running"/> as its state.
+        /// </summary>
+        protected static readonly Action<Task, object?> removeRunning = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
         /// <summary>
         /// A throttle to limit the number of requests processed simultaneously.
         /// </summary>
@@ -162,7 +172,7 @@ namespace Zerra.CQRS.Network
                     var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                     socket.NoDelay = true;
                     socket.Bind(endpoint);
-                    var listener = new SocketListener(socket, Handle);
+                    var listener = new SocketListener(socket, HandleConnection);
                     this.listeners[i] = listener;
                 }
 
@@ -183,20 +193,42 @@ namespace Zerra.CQRS.Network
         /// <returns>A task to await completion of handling the request.</returns>
         protected abstract Task Handle(Socket socket, CancellationToken cancellationToken);
 
+        private Task HandleConnection(Socket socket, CancellationToken cancellationToken)
+        {
+            var task = Handle(socket, cancellationToken);
+            _ = running.Add(task);
+            _ = task.ContinueWith(removeRunning, running, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            return task;
+        }
+
         void IQueryServer.Close()
         {
-            Dispose();
+            Close();
             log?.Info($"{thisType.Name} Query Server Closed On {this.serviceUrl}");
         }
         void ICommandConsumer.Close()
         {
-            Dispose();
+            Close();
             log?.Info($"{thisType.Name} Command Consumer Closed On {this.serviceUrl}");
         }
         void IEventConsumer.Close()
         {
-            Dispose();
+            Close();
             log?.Info($"{thisType.Name} Event Consumer Closed On {this.serviceUrl}");
+        }
+
+        //stops accepting connections and cancels the token the connections wait for their next request with, the requests already begun keep going
+        private void Close()
+        {
+            lock (types)
+            {
+                if (listeners is not null)
+                {
+                    foreach (var listener in listeners)
+                        listener.Dispose();
+                    listeners = null;
+                }
+            }
         }
 
         /// <inheritdoc />
@@ -206,15 +238,68 @@ namespace Zerra.CQRS.Network
             {
                 if (disposed)
                     return;
+                disposed = true;
                 if (listeners is not null)
                 {
                     foreach (var listener in listeners)
                         listener.Dispose();
                     listeners = null;
                 }
-                types.Dispose();
-                disposed = true;
             }
+
+            //waits for the connections and handlers still running, with the listeners closed the idle connections end and nothing new starts
+            for (; ; )
+            {
+                var pending = running.Where(x => !x.IsCompleted).ToArray();
+                if (pending.Length == 0)
+                    break;
+                try
+                {
+                    Task.WaitAll(pending);
+                }
+                catch (AggregateException)
+                {
+                    //disposing only waits, a connection or handler that failed reports that itself
+                }
+            }
+
+            types.Dispose();
+            GC.SuppressFinalize(this);
+        }
+
+        /// <inheritdoc />
+        public async ValueTask DisposeAsync()
+        {
+            lock (types)
+            {
+                if (disposed)
+                    return;
+                disposed = true;
+                if (listeners is not null)
+                {
+                    foreach (var listener in listeners)
+                        listener.Dispose();
+                    listeners = null;
+                }
+            }
+
+            //waits for the connections and handlers still running, with the listeners closed the idle connections end and nothing new starts
+            for (; ; )
+            {
+                var pending = running.Where(x => !x.IsCompleted).ToArray();
+                if (pending.Length == 0)
+                    break;
+                try
+                {
+                    await Task.WhenAll(pending);
+                }
+                catch
+                {
+                    //disposing only waits, a connection or handler that failed reports that itself
+                }
+            }
+
+            types.Dispose();
             GC.SuppressFinalize(this);
         }
     }

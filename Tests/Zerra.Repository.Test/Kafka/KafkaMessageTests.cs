@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -38,6 +38,33 @@ namespace Zerra.Repository.Test.Kafka
                 {
                     ackTopic = producer.AckTopic;
                     await MessageTest.TestSequence(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await Cleanup(commandTopic, eventTopic, ackTopic);
+            }
+        }
+
+        [Theory(Timeout = 300000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestFinishesProcessingOnClose(bool disposeAsync)
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+            var log = new TestLogger();
+            string? ackTopic = null;
+
+            try
+            {
+                using (var consumer = new KafkaConsumer(host, serializer, encryptor, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, encryptor, log, null, null, null))
+                {
+                    ackTopic = producer.AckTopic;
+                    await MessageTest.TestFinishesProcessingOnClose(producer, producer, consumer, consumer, commandTopic, eventTopic, disposeAsync, TestContext.Current.CancellationToken);
                 }
             }
             finally

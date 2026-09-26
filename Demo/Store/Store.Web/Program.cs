@@ -67,7 +67,7 @@ builder.Services.AddSingleton<ISerializer>(new ZerraJsonSerializer());
 builder.Services.AddSingleton(log);
 
 var app = builder.Build();
-app.Lifetime.ApplicationStopping.Register(bus.StopServices);
+app.Lifetime.ApplicationStopped.Register(bus.StopServices); //after Kestrel has finished the requests in progress, which may still use the bus
 
 //The pages are static HTML and JavaScript, the browser does the work and calls the gateway
 app.UseDefaultFiles();

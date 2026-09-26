@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -37,6 +37,31 @@ namespace Zerra.Repository.Test.RabbitMQ
                 using (var producer = new RabbitMQProducer(host, serializer, encryptor, log, null))
                 {
                     await MessageTest.TestSequence(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                DeleteExchanges(commandTopic, eventTopic);
+            }
+        }
+
+        [Theory(Timeout = 300000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestFinishesProcessingOnClose(bool disposeAsync)
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+            var log = new TestLogger();
+
+            try
+            {
+                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, encryptor, log, null))
+                {
+                    await MessageTest.TestFinishesProcessingOnClose(producer, producer, consumer, consumer, commandTopic, eventTopic, disposeAsync, TestContext.Current.CancellationToken);
                 }
             }
             finally

@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -169,12 +169,11 @@ namespace Zerra.CQRS.Kafka
         {
             if (isOpen)
             {
+                //stops the listeners, the messages already received keep going until they finish
                 foreach (var exchange in commandExchanges.Values.Where(x => x.IsOpen))
-                    exchange.Dispose();
+                    exchange.Close();
                 foreach (var exchange in eventExchanges.Values.Where(x => x.IsOpen))
-                    exchange.Dispose();
-                this.commandExchanges.Clear();
-                this.eventExchanges.Clear();
+                    exchange.Close();
                 isOpen = false;
             }
         }
@@ -183,11 +182,34 @@ namespace Zerra.CQRS.Kafka
         /// Releases all resources used by the <see cref="KafkaConsumer"/>.
         /// </summary>
         /// <remarks>
-        /// Closes all open message exchanges and cleans up associated resources.
+        /// Closes all open message exchanges, waits for the messages they are still handling to finish, and cleans up associated resources.
         /// </remarks>
         public void Dispose()
         {
             this.Close();
+            foreach (var exchange in commandExchanges.Values)
+                exchange.Dispose();
+            foreach (var exchange in eventExchanges.Values)
+                exchange.Dispose();
+            this.commandExchanges.Clear();
+            this.eventExchanges.Clear();
+        }
+
+        /// <summary>
+        /// Releases all resources used by the <see cref="KafkaConsumer"/>.
+        /// </summary>
+        /// <remarks>
+        /// Closes all open message exchanges, waits for the messages they are still handling to finish, and cleans up associated resources.
+        /// </remarks>
+        public async ValueTask DisposeAsync()
+        {
+            this.Close();
+            foreach (var exchange in commandExchanges.Values)
+                await exchange.DisposeAsync();
+            foreach (var exchange in eventExchanges.Values)
+                await exchange.DisposeAsync();
+            this.commandExchanges.Clear();
+            this.eventExchanges.Clear();
         }
 
         /// <summary>

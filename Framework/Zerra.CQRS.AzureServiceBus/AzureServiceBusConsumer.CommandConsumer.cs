@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus;
+using Zerra.Collections;
 using System.Security.Claims;
 using Zerra.Encryption;
 using Zerra.Logging;
@@ -14,7 +15,7 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     public sealed partial class AzureServiceBusConsumer
     {
-        private sealed class CommandConsumer : IDisposable
+        private sealed class CommandConsumer : IDisposable, IAsyncDisposable
         {
             public bool IsOpen { get; private set; }
 
@@ -28,6 +29,9 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync;
             private readonly CancellationTokenSource canceller;
+            private readonly ConcurrentHashSet<Task> handling = new();
+            private static readonly Action<Task, object?> removeHandling = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
+            private Task? listening;
 
             public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string queue, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
@@ -58,7 +62,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = Task.Run(() => ListeningThread(host, client));
+                listening = Task.Run(() => ListeningThread(host, client));
             }
 
             private async Task ListeningThread(string host, ServiceBusClient client)
@@ -91,7 +95,6 @@ namespace Zerra.CQRS.AzureServiceBus
                             }
                             catch
                             {
-                                //the retry keeps this throttle, give back the permit taken for the message that wasn't received
                                 commandCounter.CancelReceive(throttle);
                                 throw;
                             }
@@ -101,7 +104,10 @@ namespace Zerra.CQRS.AzureServiceBus
                                 continue;
                             }
 
-                            _ = Task.Run(() => HandleMessage(throttle, client, serviceBusMessage));
+                            var handleTask = Task.Run(() => HandleMessage(throttle, client, serviceBusMessage));
+                            //tracked until it completes so disposing waits for it
+                            _ = handling.Add(handleTask);
+                            _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
                             if (canceller.IsCancellationRequested)
                                 break;
@@ -158,9 +164,9 @@ namespace Zerra.CQRS.AzureServiceBus
 
                     inHandlerContext = true;
                     if (message.HasResult)
-                        result = await handlerWithResultAwaitAsync(command, message.Source, canceller.Token);
+                        result = await handlerWithResultAwaitAsync(command, message.Source, CancellationToken.None); //closing lets it finish instead of cancelling it
                     else if (awaitResponse)
-                        await handlerAwaitAsync(command, message.Source, canceller.Token);
+                        await handlerAwaitAsync(command, message.Source, CancellationToken.None);
                     else
                         await handlerAsync(command, message.Source, default);
                     inHandlerContext = false;
@@ -208,9 +214,76 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
             }
 
+            public void Close()
+            {
+                canceller.Cancel();
+            }
+
             public void Dispose()
             {
                 canceller.Cancel();
+
+                //waits for the listener to stop so nothing new starts, then for the messages it already received, the ones that completed were already removed
+                if (listening is not null)
+                {
+                    try
+                    {
+                        listening.Wait();
+                    }
+                    catch (AggregateException ex)
+                    {
+                        log?.Error(queue, ex.InnerException ?? ex);
+                    }
+                }
+                for (; ; )
+                {
+                    var pending = handling.Where(x => !x.IsCompleted).ToArray();
+                    if (pending.Length == 0)
+                        break;
+                    try
+                    {
+                        Task.WaitAll(pending);
+                    }
+                    catch (AggregateException ex)
+                    {
+                        log?.Error(queue, ex.InnerException ?? ex);
+                    }
+                }
+
+                canceller.Dispose();
+            }
+
+            public async ValueTask DisposeAsync()
+            {
+                canceller.Cancel();
+
+                //waits for the listener to stop so nothing new starts, then for the messages it already received, the ones that completed were already removed
+                if (listening is not null)
+                {
+                    try
+                    {
+                        await listening;
+                    }
+                    catch (Exception ex)
+                    {
+                        log?.Error(queue, ex);
+                    }
+                }
+                for (; ; )
+                {
+                    var pending = handling.Where(x => !x.IsCompleted).ToArray();
+                    if (pending.Length == 0)
+                        break;
+                    try
+                    {
+                        await Task.WhenAll(pending);
+                    }
+                    catch (Exception ex)
+                    {
+                        log?.Error(queue, ex);
+                    }
+                }
+
                 canceller.Dispose();
             }
         }

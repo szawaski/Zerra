@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Confluent.Kafka;
+using Zerra.Collections;
 using System.Security.Claims;
 using System.Text;
 using Zerra.Encryption;
@@ -14,7 +15,7 @@ namespace Zerra.CQRS.Kafka
 {
     public sealed partial class KafkaConsumer
     {
-        private sealed class CommandConsumer : IDisposable
+        private sealed class CommandConsumer : IDisposable, IAsyncDisposable
         {
             public bool IsOpen { get; private set; }
 
@@ -29,6 +30,9 @@ namespace Zerra.CQRS.Kafka
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync;
             private readonly CancellationTokenSource canceller;
+            private readonly ConcurrentHashSet<Task> handling = new();
+            private static readonly Action<Task, object?> removeHandling = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
+            private Task? listening;
             private IProducer<string, byte[]>? ackProducer;
 
             public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
@@ -74,7 +78,7 @@ namespace Zerra.CQRS.Kafka
                 }
                 ackProducer = new ProducerBuilder<string, byte[]>(producerConfig).Build();
 
-                _ = Task.Run(() => ListeningThread(host, userName, password));
+                listening = Task.Run(() => ListeningThread(host, userName, password));
             }
 
             private async Task ListeningThread(string host, string? userName, string? password)
@@ -125,13 +129,13 @@ namespace Zerra.CQRS.Kafka
                                 }
                                 catch
                                 {
-                                    //the retry keeps this throttle, give back the permit taken for the message that wasn't received
-                                    //an uncommitted message is consumed again from the last committed offset after reconnecting
                                     commandCounter.CancelReceive(throttle);
                                     throw;
                                 }
 
-                                _ = Task.Run(() => HandleMessage(throttle, consumerResult));
+                                var handleTask = Task.Run(() => HandleMessage(throttle, consumerResult));
+                                _ = handling.Add(handleTask);
+                                _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
                                 if (canceller.IsCancellationRequested)
                                     break;
@@ -146,7 +150,6 @@ namespace Zerra.CQRS.Kafka
                 }
                 catch (Exception ex)
                 {
-                    //closing cancels the consume, that isn't an error
                     if (!canceller.IsCancellationRequested)
                     {
                         log?.Error(topic, ex);
@@ -187,9 +190,9 @@ namespace Zerra.CQRS.Kafka
 
                         inHandlerContext = true;
                         if (message.HasResult)
-                            result = await handlerWithResultAwaitAsync(command, message.Source, canceller.Token);
+                            result = await handlerWithResultAwaitAsync(command, message.Source, CancellationToken.None); //closing lets it finish instead of cancelling it
                         else if (awaitResponse)
-                            await handlerAwaitAsync(command, message.Source, canceller.Token);
+                            await handlerAwaitAsync(command, message.Source, CancellationToken.None);
                         else
                             await handlerAsync(command, message.Source, default);
                         inHandlerContext = false;
@@ -240,9 +243,77 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
+            public void Close()
+            {
+                canceller.Cancel();
+            }
+
             public void Dispose()
             {
                 canceller.Cancel();
+
+                //waits for the listener to stop so nothing new starts, then for the messages it already received, the ones that completed were already removed
+                if (listening is not null)
+                {
+                    try
+                    {
+                        listening.Wait();
+                    }
+                    catch (AggregateException ex)
+                    {
+                        log?.Error(topic, ex.InnerException ?? ex);
+                    }
+                }
+                for (; ; )
+                {
+                    var pending = handling.Where(x => !x.IsCompleted).ToArray();
+                    if (pending.Length == 0)
+                        break;
+                    try
+                    {
+                        Task.WaitAll(pending);
+                    }
+                    catch (AggregateException ex)
+                    {
+                        log?.Error(topic, ex.InnerException ?? ex);
+                    }
+                }
+
+                canceller.Dispose();
+                ackProducer?.Dispose();
+            }
+
+            public async ValueTask DisposeAsync()
+            {
+                canceller.Cancel();
+
+                //waits for the listener to stop so nothing new starts, then for the messages it already received, the ones that completed were already removed
+                if (listening is not null)
+                {
+                    try
+                    {
+                        await listening;
+                    }
+                    catch (Exception ex)
+                    {
+                        log?.Error(topic, ex);
+                    }
+                }
+                for (; ; )
+                {
+                    var pending = handling.Where(x => !x.IsCompleted).ToArray();
+                    if (pending.Length == 0)
+                        break;
+                    try
+                    {
+                        await Task.WhenAll(pending);
+                    }
+                    catch (Exception ex)
+                    {
+                        log?.Error(topic, ex);
+                    }
+                }
+
                 canceller.Dispose();
                 ackProducer?.Dispose();
             }

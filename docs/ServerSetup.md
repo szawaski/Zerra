@@ -458,9 +458,19 @@ No extra handler is needed. While waiting, `WaitForExitAsync` registers for SIGT
 await bus.WaitForExitAsync();
 ```
 
-Other process exits, such as `Environment.Exit`, are held in `AppDomain.CurrentDomain.ProcessExit` until the bus has stopped, for up to 30 seconds. On `netstandard2.0` there is no signal registration, so only that `ProcessExit` path applies.
+Other process exits, such as `Environment.Exit`, are held in `AppDomain.CurrentDomain.ProcessExit` until the bus has stopped, for up to the shutdown timeout plus 10 seconds. On `netstandard2.0` there is no signal registration, so only that `ProcessExit` path applies.
 
-The stop has to finish inside the orchestrator's grace period before it kills the process: 10 seconds for `docker stop`, 30 seconds by default in Kubernetes (`terminationGracePeriodSeconds`).
+### Finishing Work in Progress
+
+Stopping the bus (`StopServices`, `StopServicesAsync`, or returning from `WaitForExit`) stops receiving new queries, commands, and events, then waits for the ones already received to finish, including fire-and-forget commands and events. Handlers are never cancelled.
+
+`shutdownTimeout` (default 30 seconds) limits how long stopping waits. Set it a few seconds shorter than the orchestrator's grace period: 10 seconds for `docker stop`, 30 seconds by default in Kubernetes.
+
+```csharp
+var bus = Bus.New("UserService", log, shutdownTimeout: TimeSpan.FromSeconds(20));
+```
+
+In ASP.NET Core, register `StopServices` on `ApplicationStopped` so Kestrel's requests finish first.
 
 ## Microservices Architecture
 

@@ -325,5 +325,13 @@ namespace Zerra.CQRS.Network
             //if AvailableWaitHandle is ever used, dispose them once every call that could release them has finished
             GC.SuppressFinalize(this);
         }
+
+        /// <inheritdoc />
+        public virtual ValueTask DisposeAsync()
+        {
+            //nothing to release asynchronously, Dispose is overridden by the clients that hold resources
+            Dispose();
+            return default;
+        }
     }
 }

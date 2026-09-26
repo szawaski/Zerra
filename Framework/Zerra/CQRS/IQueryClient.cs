@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -7,7 +7,7 @@ namespace Zerra.CQRS
     /// <summary>
     /// Defines a query client that can send queries.
     /// </summary>
-    public interface IQueryClient
+    public interface IQueryClient : IDisposable, IAsyncDisposable
     {
         /// <summary>
         /// The service url.

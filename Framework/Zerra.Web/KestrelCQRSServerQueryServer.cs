@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -33,6 +33,16 @@ namespace Zerra.Web
         /// No-op for Kestrel-based server as connections are managed by ASP.NET Core.
         /// </remarks>
         public void Close() { }
+
+        /// <summary>
+        /// No-op, ASP.NET Core waits for the requests in progress when it stops, and the middleware awaits each handler within its request.
+        /// </summary>
+        public void Dispose() { }
+
+        /// <summary>
+        /// No-op, ASP.NET Core waits for the requests in progress when it stops, and the middleware awaits each handler within its request.
+        /// </summary>
+        public ValueTask DisposeAsync() => default;
 
         /// <summary>
         /// Opens the query server connection.

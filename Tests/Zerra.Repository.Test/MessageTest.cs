@@ -307,6 +307,71 @@ namespace Zerra.Repository.Test
             }
         }
 
+        /// <summary>
+        /// Closing a consumer stops it receiving, and disposing it returns once the command and event it was still handling have finished.
+        /// </summary>
+        public static async Task TestFinishesProcessingOnClose(ICommandProducer commandProducer, IEventProducer eventProducer, ICommandConsumer commandConsumer, IEventConsumer eventConsumer, string commandTopic, string eventTopic, bool disposeAsync, CancellationToken cancellationToken)
+        {
+            TypeFinder.Register(typeof(TestCommand));
+            TypeFinder.Register(typeof(TestCommandWithResult));
+            TypeFinder.Register(typeof(TestEvent));
+
+            var receiver = new SlowReceiver();
+
+            commandConsumer.Setup(new CommandCounter(), receiver.HandleCommandAsync, receiver.HandleCommandAsync, receiver.HandleCommandWithResultAwaitAsync);
+            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            eventConsumer.Setup(serviceName, receiver.HandleEventAsync);
+            eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
+
+            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+
+            commandConsumer.Open();
+            eventConsumer.Open();
+            try
+            {
+                await WaitForCommandConsumer(commandProducer, cancellationToken);
+                await RetryUntilReady("Event consumer", cancellationToken, async (attemptCancellationToken) =>
+                {
+                    var probe = new TestEvent() { ID = Guid.NewGuid() };
+                    var finished = receiver.Finished(probe.ID);
+                    await eventProducer.DispatchAsync(probe, source, attemptCancellationToken);
+                    _ = await finished.WaitAsync(attemptCancellationToken);
+                });
+
+                //Value is how long each handler takes, the sender doesn't wait for either of them
+                var command = new TestCommand() { ID = Guid.NewGuid(), Value = 2000 };
+                var @event = new TestEvent() { ID = Guid.NewGuid(), Value = 2000 };
+                var commandFinished = receiver.Finished(command.ID);
+                var eventFinished = receiver.Finished(@event.ID);
+                await commandProducer.DispatchAsync(command, source, cancellationToken);
+                await eventProducer.DispatchAsync(@event, source, cancellationToken);
+                await receiver.Started(command.ID).WaitAsync(messageTimeout, cancellationToken);
+                await receiver.Started(@event.ID).WaitAsync(messageTimeout, cancellationToken);
+
+                commandConsumer.Close();
+                eventConsumer.Close();
+                Assert.False(commandFinished.IsCompleted, "the command was still being handled when the consumer closed");
+
+                //the command and event consumer are the same object for every transport
+                if (disposeAsync)
+                    await commandConsumer.DisposeAsync().AsTask().WaitAsync(messageTimeout, cancellationToken);
+                else
+                    await Task.Run(commandConsumer.Dispose, cancellationToken).WaitAsync(messageTimeout, cancellationToken);
+
+                //both finished before disposing returned, and closing didn't cancel them
+                Assert.True(commandFinished.IsCompleted);
+                Assert.True(eventFinished.IsCompleted);
+                Assert.False(await commandFinished, "the command handler was not cancelled");
+                Assert.False(await eventFinished, "the event handler was not cancelled");
+            }
+            finally
+            {
+                commandConsumer.Close();
+                eventConsumer.Close();
+            }
+        }
+
         private static async Task WaitUntil(Func<bool> condition, TimeSpan timeout, CancellationToken cancellationToken)
         {
             var timer = Stopwatch.StartNew();
@@ -344,6 +409,49 @@ namespace Zerra.Repository.Test
             {
                 ids.Enqueue(Assert.IsType<TestEvent>(@event).ID);
                 return Task.CompletedTask;
+            }
+        }
+
+        //handlers that take as long as the message's Value in milliseconds, recording when each message ID starts and finishes and whether it was cancelled
+        private sealed class SlowReceiver
+        {
+            private readonly ConcurrentDictionary<Guid, TaskCompletionSource<bool>> started = new();
+            private readonly ConcurrentDictionary<Guid, TaskCompletionSource<bool>> finished = new();
+
+            public Task<bool> Started(Guid id) => GetCompletion(started, id).Task;
+            //the result is true if the handler's token was cancelled
+            public Task<bool> Finished(Guid id) => GetCompletion(finished, id).Task;
+
+            private static TaskCompletionSource<bool> GetCompletion(ConcurrentDictionary<Guid, TaskCompletionSource<bool>> completions, Guid id) => completions.GetOrAdd(id, static _ => new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously));
+
+            private async Task Handle(Guid id, int delay, CancellationToken cancellationToken)
+            {
+                _ = GetCompletion(started, id).TrySetResult(true);
+                var cancelled = false;
+                try
+                {
+                    await Task.Delay(delay, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    cancelled = true;
+                }
+                _ = GetCompletion(finished, id).TrySetResult(cancelled);
+            }
+
+            public Task HandleCommandAsync(ICommand command, string source, CancellationToken cancellationToken)
+            {
+                var testCommand = Assert.IsType<TestCommand>(command);
+                return Handle(testCommand.ID, testCommand.Value, cancellationToken);
+            }
+
+            public Task<object?> HandleCommandWithResultAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
+                => throw new NotSupportedException();
+
+            public Task HandleEventAsync(IEvent @event, string source)
+            {
+                var testEvent = Assert.IsType<TestEvent>(@event);
+                return Handle(testEvent.ID, testEvent.Value, CancellationToken.None);
             }
         }
 

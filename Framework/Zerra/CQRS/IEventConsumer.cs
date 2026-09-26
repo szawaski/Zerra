@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -6,8 +6,9 @@ namespace Zerra.CQRS
 {
     /// <summary>
     /// Defines an event consumer that can receive and process events
+    /// After <see cref="Bus"/> calls Close it disposes the implementation, and disposing waits for everything already received to finish before it returns.
     /// </summary>
-    public interface IEventConsumer
+    public interface IEventConsumer : IDisposable, IAsyncDisposable
     {
         /// <summary>
         /// The host information.
@@ -32,7 +33,7 @@ namespace Zerra.CQRS
         /// </summary>
         void Open();
         /// <summary>
-        /// A method called from <see cref="Bus"/> to stop receiving.
+        /// A method called from <see cref="Bus"/> to stop receiving. The events already received keep processing, disposing waits for them to finish.
         /// </summary>
         void Close();
     }

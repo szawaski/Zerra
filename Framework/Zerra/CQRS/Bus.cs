@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -42,7 +42,9 @@ namespace Zerra.CQRS
         private static PosixSignalRegistration? sigTermRegistration = null;
         private static PosixSignalRegistration? sigIntRegistration = null;
 #endif
-        private static readonly TimeSpan processExitStopTimeout = TimeSpan.FromSeconds(30);
+        private static TimeSpan processExitStopTimeout;
+        //the time on top of the shutdown timeout for disposing the producers, consumers, clients, and servers
+        private static readonly TimeSpan processExitDisposeTime = TimeSpan.FromSeconds(10);
 
         private readonly BusContext context;
         private readonly IBusLogger? busLog;
@@ -53,6 +55,7 @@ namespace Zerra.CQRS
         private readonly int maxConcurrentQueries;
         private readonly int maxConcurrentCommandsPerTopic;
         private readonly int maxConcurrentEventsPerTopic;
+        private readonly TimeSpan shutdownTimeout;
 
         /// <summary>
         /// Creates a new bus instance with the specified configuration.
@@ -68,21 +71,22 @@ namespace Zerra.CQRS
         /// <param name="maxConcurrentQueries">Optional maximum concurrent queries; defaults to ProcessorCount * 32.</param>
         /// <param name="maxConcurrentCommandsPerTopic">Optional maximum concurrent commands per topic; defaults to ProcessorCount * 8.</param>
         /// <param name="maxConcurrentEventsPerTopic">Optional maximum concurrent events per topic; defaults to ProcessorCount * 16.</param>
+        /// <param name="shutdownTimeout">Optional limit on how long stopping waits while the servers and consumers are disposed, each waiting for the queries, commands, and events it already received to finish. After it the clients are disposed and stopping returns, nothing is cancelled; defaults to 30 seconds.</param>
         /// <returns>A configured bus setup instance ready for handler and producer/consumer registration.</returns>
         public static IBusSetup New(string serviceName, ILogger? log = null, IBusLogger? busLog = null, BusServices? busServices = null, int? commandToReceiveUntilExit = null,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
-            int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null)
+            int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null, TimeSpan? shutdownTimeout = null)
         {
             var bus = new Bus(serviceName, log, busLog, busServices, commandToReceiveUntilExit,
                 defaultCallTimeout, defaultDispatchTimeout, defaultDispatchAwaitTimeout,
-                maxConcurrentQueries, maxConcurrentCommandsPerTopic, maxConcurrentEventsPerTopic);
+                maxConcurrentQueries, maxConcurrentCommandsPerTopic, maxConcurrentEventsPerTopic, shutdownTimeout);
             Bus.staticBus = bus;
             return bus;
         }
 
         private Bus(string serviceName, ILogger? log, IBusLogger? busLog, BusServices? busServices, int? commandToReceiveUntilExit = null,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
-            int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null)
+            int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null, TimeSpan? shutdownTimeout = null)
         {
             this.context = new BusContext(this, serviceName, log, busServices);
             this.busLog = busLog;
@@ -93,6 +97,7 @@ namespace Zerra.CQRS
             this.maxConcurrentQueries = maxConcurrentQueries ?? Environment.ProcessorCount * 32;
             this.maxConcurrentCommandsPerTopic = maxConcurrentCommandsPerTopic ?? Environment.ProcessorCount * 8;
             this.maxConcurrentEventsPerTopic = maxConcurrentEventsPerTopic ?? Environment.ProcessorCount * 16;
+            this.shutdownTimeout = shutdownTimeout ?? TimeSpan.FromSeconds(30);
         }
 
         private static void SignalExit()
@@ -127,12 +132,13 @@ namespace Zerra.CQRS
         }
 #endif
 
-        private static SemaphoreSlim? BeginWaitForExit()
+        private static SemaphoreSlim? BeginWaitForExit(TimeSpan shutdownTimeout)
         {
             lock (exitLock)
             {
                 if (exited)
                     return null;
+                processExitStopTimeout = shutdownTimeout == Timeout.InfiniteTimeSpan ? Timeout.InfiniteTimeSpan : shutdownTimeout + processExitDisposeTime;
                 processWaiter = new SemaphoreSlim(0, 1);
                 processStopped = new ManualResetEventSlim(false);
                 AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
@@ -180,91 +186,22 @@ namespace Zerra.CQRS
             if (processWaiter is not null)
                 processWaiter.Dispose();
 
-            var disposed = new HashSet<IDisposable>();
+            //the server side stops before the client side, the handlers still running may send and call through the clients
+            CloseServerSide();
 
-            if (commandProducers != null)
+            //disposing each server waits for everything it already received, however long that takes, the shutdown timeout limits the stop as a whole
+            var serverSideDisposing = Task.Run(DisposeServerSide);
+            try
             {
-                foreach (var commandProducer in commandProducers.Values)
-                {
-                    if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                commandProducers.Clear();
+                if (!serverSideDisposing.Wait(shutdownTimeout))
+                    context.Log?.Warn($"{nameof(Bus)} stopped waiting for the servers to finish what they received after {shutdownTimeout}");
+            }
+            catch (AggregateException ex)
+            {
+                context.Log?.Error(ex.InnerException ?? ex);
             }
 
-            if (commandConsumers != null)
-            {
-                foreach (var commandConsumer in commandConsumers)
-                {
-                    commandConsumer.Close();
-                    if (commandConsumer is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                commandConsumers.Clear();
-            }
-
-            if (eventProducers != null)
-            {
-                foreach (var eventProducerList in eventProducers.Values)
-                {
-                    foreach (var eventProducer in eventProducerList)
-                    {
-                        if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
-                        {
-                            disposable.Dispose();
-                            _ = disposed.Add(disposable);
-                        }
-                    }
-                }
-                eventProducers.Clear();
-            }
-
-            if (eventConsumers != null)
-            {
-                foreach (var eventConsumer in eventConsumers)
-                {
-                    eventConsumer.Close();
-                    if (eventConsumer is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                eventConsumers.Clear();
-            }
-
-            if (queryClients != null)
-            {
-                foreach (var client in queryClients.Values)
-                {
-                    if (client is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                queryClients.Clear();
-            }
-
-            if (queryServers != null)
-            {
-                foreach (var server in queryServers)
-                {
-                    server.Close();
-                    if (server is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                queryServers.Clear();
-            }
+            DisposeClientSide();
         }
         /// <inheritdoc />
         public async Task StopServicesAsync()
@@ -274,44 +211,135 @@ namespace Zerra.CQRS
             if (processWaiter is not null)
                 processWaiter.Dispose();
 
-            var asyncDisposed = new HashSet<IAsyncDisposable>();
-            var disposed = new HashSet<IDisposable>();
+            //the server side stops before the client side, the handlers still running may send and call through the clients
+            CloseServerSide();
 
-            if (commandProducers != null)
+            //disposing each server waits for everything it already received, however long that takes, the shutdown timeout limits the stop as a whole
+            var serverSideDisposing = DisposeServerSideAsync();
+            using (var delayCanceller = new CancellationTokenSource())
             {
-                foreach (var commandProducer in commandProducers.Values)
+                if (await Task.WhenAny(serverSideDisposing, Task.Delay(shutdownTimeout, delayCanceller.Token)) == serverSideDisposing)
                 {
-                    if (commandProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    delayCanceller.Cancel();
+                    try
                     {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
+                        await serverSideDisposing;
                     }
-                    else if (commandProducer is IDisposable disposable && !disposed.Contains(disposable))
+                    catch (Exception ex)
                     {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
+                        context.Log?.Error(ex);
                     }
                 }
-                commandProducers.Clear();
+                else
+                {
+                    context.Log?.Warn($"{nameof(Bus)} stopped waiting for the servers to finish what they received after {shutdownTimeout}");
+                }
             }
+
+            await DisposeClientSideAsync();
+        }
+
+        private void CloseServerSide()
+        {
+            if (commandConsumers != null)
+            {
+                foreach (var commandConsumer in commandConsumers)
+                    commandConsumer.Close();
+            }
+            if (eventConsumers != null)
+            {
+                foreach (var eventConsumer in eventConsumers)
+                    eventConsumer.Close();
+            }
+            if (queryServers != null)
+            {
+                foreach (var server in queryServers)
+                    server.Close();
+            }
+        }
+
+        private void DisposeServerSide()
+        {
+            var disposed = new HashSet<object>();
 
             if (commandConsumers != null)
             {
                 foreach (var commandConsumer in commandConsumers)
                 {
-                    commandConsumer.Close();
-                    if (commandConsumer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (commandConsumer is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
+                    if (disposed.Add(commandConsumer))
+                        commandConsumer.Dispose();
                 }
                 commandConsumers.Clear();
+            }
+
+            if (eventConsumers != null)
+            {
+                foreach (var eventConsumer in eventConsumers)
+                {
+                    if (disposed.Add(eventConsumer))
+                        eventConsumer.Dispose();
+                }
+                eventConsumers.Clear();
+            }
+
+            if (queryServers != null)
+            {
+                foreach (var server in queryServers)
+                {
+                    if (disposed.Add(server))
+                        server.Dispose();
+                }
+                queryServers.Clear();
+            }
+        }
+
+        private async Task DisposeServerSideAsync()
+        {
+            var disposed = new HashSet<object>();
+
+            if (commandConsumers != null)
+            {
+                foreach (var commandConsumer in commandConsumers)
+                {
+                    if (disposed.Add(commandConsumer))
+                        await commandConsumer.DisposeAsync();
+                }
+                commandConsumers.Clear();
+            }
+
+            if (eventConsumers != null)
+            {
+                foreach (var eventConsumer in eventConsumers)
+                {
+                    if (disposed.Add(eventConsumer))
+                        await eventConsumer.DisposeAsync();
+                }
+                eventConsumers.Clear();
+            }
+
+            if (queryServers != null)
+            {
+                foreach (var server in queryServers)
+                {
+                    if (disposed.Add(server))
+                        await server.DisposeAsync();
+                }
+                queryServers.Clear();
+            }
+        }
+
+        private void DisposeClientSide()
+        {
+            var disposed = new HashSet<object>();
+
+            if (commandProducers != null)
+            {
+                foreach (var commandProducer in commandProducers.Values)
+                {
+                    if (disposed.Add(commandProducer))
+                        commandProducer.Dispose();
+                }
+                commandProducers.Clear();
             }
 
             if (eventProducers != null)
@@ -320,82 +348,66 @@ namespace Zerra.CQRS
                 {
                     foreach (var eventProducer in eventProducerList)
                     {
-                        if (eventProducer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                        {
-                            await asyncDisposable.DisposeAsync();
-                            _ = asyncDisposed.Add(asyncDisposable);
-                        }
-                        else if (eventProducer is IDisposable disposable && !disposed.Contains(disposable))
-                        {
-                            disposable.Dispose();
-                            _ = disposed.Add(disposable);
-                        }
+                        if (disposed.Add(eventProducer))
+                            eventProducer.Dispose();
                     }
                 }
                 eventProducers.Clear();
-            }
-
-            if (eventConsumers != null)
-            {
-                foreach (var eventConsumer in eventConsumers)
-                {
-                    eventConsumer.Close();
-                    if (eventConsumer is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (eventConsumer is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
-                }
-                eventConsumers.Clear();
             }
 
             if (queryClients != null)
             {
                 foreach (var client in queryClients.Values)
                 {
-                    if (client is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
-                    {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (client is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
-                    }
+                    if (disposed.Add(client))
+                        client.Dispose();
                 }
                 queryClients.Clear();
             }
+        }
 
-            if (queryServers != null)
+        private async Task DisposeClientSideAsync()
+        {
+            var disposed = new HashSet<object>();
+
+            if (commandProducers != null)
             {
-                foreach (var server in queryServers)
+                foreach (var commandProducer in commandProducers.Values)
                 {
-                    server.Close();
-                    if (server is IAsyncDisposable asyncDisposable && !asyncDisposed.Contains(asyncDisposable))
+                    if (disposed.Add(commandProducer))
+                        await commandProducer.DisposeAsync();
+                }
+                commandProducers.Clear();
+            }
+
+            if (eventProducers != null)
+            {
+                foreach (var eventProducerList in eventProducers.Values)
+                {
+                    foreach (var eventProducer in eventProducerList)
                     {
-                        await asyncDisposable.DisposeAsync();
-                        _ = asyncDisposed.Add(asyncDisposable);
-                    }
-                    else if (server is IDisposable disposable && !disposed.Contains(disposable))
-                    {
-                        disposable.Dispose();
-                        _ = disposed.Add(disposable);
+                        if (disposed.Add(eventProducer))
+                            await eventProducer.DisposeAsync();
                     }
                 }
-                queryServers.Clear();
+                eventProducers.Clear();
+            }
+
+            if (queryClients != null)
+            {
+                foreach (var client in queryClients.Values)
+                {
+                    if (disposed.Add(client))
+                        await client.DisposeAsync();
+                }
+                queryClients.Clear();
             }
         }
 
         /// <inheritdoc />
         public void WaitForExit(CancellationToken cancellationToken = default)
         {
-            var waiter = BeginWaitForExit();
+            var waiter = BeginWaitForExit(shutdownTimeout);
             if (waiter is null)
                 return;
             try
@@ -416,7 +428,7 @@ namespace Zerra.CQRS
         /// <inheritdoc />
         public async Task WaitForExitAsync(CancellationToken cancellationToken = default)
         {
-            var waiter = BeginWaitForExit();
+            var waiter = BeginWaitForExit(shutdownTimeout);
             if (waiter is null)
                 return;
             try
@@ -483,7 +495,13 @@ namespace Zerra.CQRS
         }
         /// <inheritdoc />
         public Task RemoteHandleCommandDispatchAsync(ICommand command, string source, CancellationToken cancellationToken)
-            => _DispatchCommandInternalAsync(command, command.GetType(), false, source, cancellationToken);
+        {
+            //the consumer has already let the sender go, so a local handler's task is returned for the consumer to hold its throttle, count the command, and let shutting down wait for it
+            var commandType = command.GetType();
+            var info = BusCommandOrEventInfo.GetByType(commandType, handledTypes);
+            var local = handlers != null && handlers.ContainsKey(info.InterfaceType);
+            return _DispatchCommandInternalAsync(command, commandType, local, source, cancellationToken);
+        }
         /// <inheritdoc />
         public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
             => _DispatchCommandInternalAsync(command, command.GetType(), true, source, cancellationToken);
@@ -499,7 +517,20 @@ namespace Zerra.CQRS
         }
         /// <inheritdoc />
         public Task RemoteHandleEventDispatchAsync(IEvent @event, string source)
-                => _DispatchEventInternalAsync(@event, @event.GetType(), source, CancellationToken.None);
+        {
+            var eventType = @event.GetType();
+            var info = BusCommandOrEventInfo.GetByType(eventType, handledTypes);
+            if (handlers != null && handlers.TryGetValue(info.InterfaceType, out var handler))
+            {
+                //the consumer has already let the sender go, so the local handler's task is returned for the consumer to hold its throttle and let shutting down wait for it
+                var metadata = BusMetadata.GetByType(eventType);
+                if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.HandlerOnly))
+                    return HandleEventTaskLogged(handler, null, info.InterfaceType, @event, eventType, source, CancellationToken.None);
+                var methodName = $"{nameof(IEventHandler<>.Handle)}-{eventType.Name}";
+                return (Task)BusHandlers.Invoke(info.InterfaceType, handler!, methodName, [@event])!;
+            }
+            return _DispatchEventInternalAsync(@event, eventType, source, CancellationToken.None);
+        }
 
         /// <inheritdoc />
         TInterface IBus.Call<TInterface>()

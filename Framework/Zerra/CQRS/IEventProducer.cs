@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -7,7 +7,7 @@ namespace Zerra.CQRS
     /// <summary>
     /// Defines an event producer to send event.
     /// </summary>
-    public interface IEventProducer
+    public interface IEventProducer : IDisposable, IAsyncDisposable
     {
         /// <summary>
         /// The host information.

@@ -63,7 +63,7 @@ else
     bus.AddEventConsumer<IOrdersEventHandler>(new KestrelCqrsServerEventConsumer(kestrelSettings), EventConsumerMode.PerService);
 
 var app = builder.Build();
-app.Lifetime.ApplicationStopping.Register(bus.StopServices);
+app.Lifetime.ApplicationStopped.Register(bus.StopServices); //after Kestrel has finished the requests in progress, which may still use the bus
 app.UseKestrelCqrsServer(serializer, encryptor, log, kestrelSettings);
 
 log.Info($"Shipping service listening on {StoreSettings.ShippingServiceUrl}, press Ctrl+C to stop");

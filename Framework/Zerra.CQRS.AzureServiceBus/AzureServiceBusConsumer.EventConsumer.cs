@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus;
+using Zerra.Collections;
 using System.Security.Claims;
 using Zerra.Encryption;
 using Zerra.Logging;
@@ -13,7 +14,7 @@ namespace Zerra.CQRS.AzureServiceBus
 {
     public sealed partial class AzureServiceBusConsumer
     {
-        private sealed class EventConsumer : IDisposable
+        private sealed class EventConsumer : IDisposable, IAsyncDisposable
         {
             public bool IsOpen { get; private set; }
 
@@ -25,6 +26,9 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly ILogger? log;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
+            private readonly ConcurrentHashSet<Task> handling = new();
+            private static readonly Action<Task, object?> removeHandling = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
+            private Task? listening;
             //PerReplica gets a subscription of its own so this replica receives every event, it's deleted when the consumer stops
             //PerService gets a subscription named for the service so its replicas compete for the events, it's shared so it's never deleted
             private readonly bool deleteSubscriptionOnStop;
@@ -67,7 +71,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = Task.Run(() => ListeningThread(host, client, handlerAsync));
+                listening = Task.Run(() => ListeningThread(host, client, handlerAsync));
             }
 
             public async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync)
@@ -98,7 +102,6 @@ namespace Zerra.CQRS.AzureServiceBus
                             }
                             catch
                             {
-                                //the retry keeps this throttle, give back the permit taken for the message that wasn't received
                                 _ = throttle.Release();
                                 throw;
                             }
@@ -108,7 +111,10 @@ namespace Zerra.CQRS.AzureServiceBus
                                 continue;
                             }
 
-                            _ = Task.Run(() => HandleMessage(throttle, client, serviceBusMessage, handlerAsync));
+                            var handleTask = Task.Run(() => HandleMessage(throttle, client, serviceBusMessage, handlerAsync));
+                            //tracked until it completes so disposing waits for it
+                            _ = handling.Add(handleTask);
+                            _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
                             if (canceller.IsCancellationRequested)
                                 break;
@@ -188,9 +194,76 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
             }
 
+            public void Close()
+            {
+                canceller.Cancel();
+            }
+
             public void Dispose()
             {
                 canceller.Cancel();
+
+                //waits for the listener to stop so nothing new starts, then for the messages it already received, the ones that completed were already removed
+                if (listening is not null)
+                {
+                    try
+                    {
+                        listening.Wait();
+                    }
+                    catch (AggregateException ex)
+                    {
+                        log?.Error(topic, ex.InnerException ?? ex);
+                    }
+                }
+                for (; ; )
+                {
+                    var pending = handling.Where(x => !x.IsCompleted).ToArray();
+                    if (pending.Length == 0)
+                        break;
+                    try
+                    {
+                        Task.WaitAll(pending);
+                    }
+                    catch (AggregateException ex)
+                    {
+                        log?.Error(topic, ex.InnerException ?? ex);
+                    }
+                }
+
+                canceller.Dispose();
+            }
+
+            public async ValueTask DisposeAsync()
+            {
+                canceller.Cancel();
+
+                //waits for the listener to stop so nothing new starts, then for the messages it already received, the ones that completed were already removed
+                if (listening is not null)
+                {
+                    try
+                    {
+                        await listening;
+                    }
+                    catch (Exception ex)
+                    {
+                        log?.Error(topic, ex);
+                    }
+                }
+                for (; ; )
+                {
+                    var pending = handling.Where(x => !x.IsCompleted).ToArray();
+                    if (pending.Length == 0)
+                        break;
+                    try
+                    {
+                        await Task.WhenAll(pending);
+                    }
+                    catch (Exception ex)
+                    {
+                        log?.Error(topic, ex);
+                    }
+                }
+
                 canceller.Dispose();
             }
         }

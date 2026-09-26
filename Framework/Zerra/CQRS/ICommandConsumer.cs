@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -6,8 +6,9 @@ namespace Zerra.CQRS
 {
     /// <summary>
     /// Defines a command consumer that can receive and process commands
+    /// After <see cref="Bus"/> calls Close it disposes the implementation, and disposing waits for everything already received to finish before it returns.
     /// </summary>
-    public interface ICommandConsumer
+    public interface ICommandConsumer : IDisposable, IAsyncDisposable
     {
         /// <summary>
         /// The host information.
@@ -33,7 +34,7 @@ namespace Zerra.CQRS
         /// </summary>
         void Open();
         /// <summary>
-        /// A method called from <see cref="Bus"/> to stop receiving.
+        /// A method called from <see cref="Bus"/> to stop receiving. The commands already received keep processing, disposing waits for them to finish.
         /// </summary>
         void Close();
     }

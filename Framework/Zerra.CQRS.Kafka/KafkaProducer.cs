@@ -444,6 +444,18 @@ namespace Zerra.CQRS.Kafka
             canceller.Dispose();
         }
 
+        /// <summary>
+        /// Releases all resources used by the <see cref="KafkaProducer"/>.
+        /// </summary>
+        /// <remarks>
+        /// The Kafka producer only releases synchronously, so this is the same as <see cref="Dispose"/>.
+        /// </remarks>
+        public ValueTask DisposeAsync()
+        {
+            Dispose();
+            return default;
+        }
+
         void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
             if (topicsByCommandType.ContainsKey(type))

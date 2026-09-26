@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -67,6 +67,7 @@ namespace Zerra.CQRS.Network
                     var throttlerUsed = false;
                     var commandCounterUsedContinuation = false;
                     var monitorIsCancellationRequested = false;
+                    var requestBegun = false;
                     try
                     {
                         //Read Request Header
@@ -79,14 +80,17 @@ namespace Zerra.CQRS.Network
                             if (headerLength == buffer.Length)
                                 throw new CqrsNetworkException($"{nameof(TcpCqrsServer)} Header Too Long");
 
+                            //waiting for the next request ends when closing, once its first bytes arrive nothing about shutting down cancels it
+                            var readToken = requestBegun ? CancellationToken.None : cancellationToken;
 #if NETSTANDARD2_0
-                            var bytesRead = await stream.ReadAsync(bufferOwner, headerLength, buffer.Length - headerLength, cancellationToken);
+                            var bytesRead = await stream.ReadAsync(bufferOwner, headerLength, buffer.Length - headerLength, readToken);
 #else
-                            var bytesRead = await stream.ReadAsync(buffer.Slice(headerLength, buffer.Length - headerLength), cancellationToken);
+                            var bytesRead = await stream.ReadAsync(buffer.Slice(headerLength, buffer.Length - headerLength), readToken);
 #endif
 
                             if (bytesRead == 0)
                                 return; //not an abort if we haven't started receiving, simple socket disconnect
+                            requestBegun = true;
                             headerLength += bytesRead;
 
                             requestHeaderEnd = TcpCommon.TryReadToHeaderEnd(bufferOwner.AsSpan(0, headerLength), ref headerPosition);
@@ -107,7 +111,7 @@ namespace Zerra.CQRS.Network
                         if (encryptor is not null)
                             requestBodyStream = encryptor.Decrypt(requestBodyStream, false);
 
-                        var data = await serializer.DeserializeAsync<CqrsRequestData>(requestBodyStream, cancellationToken);
+                        var data = await serializer.DeserializeAsync<CqrsRequestData>(requestBodyStream, CancellationToken.None);
                         if (data is null)
                             throw new CqrsNetworkException("Empty request body");
 
@@ -131,7 +135,7 @@ namespace Zerra.CQRS.Network
                             Thread.CurrentPrincipal = null;
                         }
 
-                        await throttle.WaitAsync(cancellationToken);
+                        await throttle.WaitAsync(CancellationToken.None);
                         throttlerUsed = true;
 
                         //Process and Respond
@@ -152,7 +156,7 @@ namespace Zerra.CQRS.Network
 
                             inHandlerContext = true;
                             RemoteQueryCallResponse result;
-                            var monitor = new SocketAbortMonitor(socket, cancellationToken);
+                            var monitor = new SocketAbortMonitor(socket, CancellationToken.None);
                             try
                             {
                                 result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, serializer, monitor.Token);
@@ -188,14 +192,14 @@ namespace Zerra.CQRS.Network
                                     responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
 #if NETSTANDARD2_0
-                                    while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, cancellationToken)) > 0)
-                                        await responseBodyCryptoStream.WriteAsync(bufferOwner, 0, bytesRead, cancellationToken);
+                                    while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, CancellationToken.None)) > 0)
+                                        await responseBodyCryptoStream.WriteAsync(bufferOwner, 0, bytesRead, CancellationToken.None);
 #else
-                                    while ((bytesRead = await result.Stream.ReadAsync(buffer, cancellationToken)) > 0)
-                                        await responseBodyCryptoStream.WriteAsync(buffer.Slice(0, bytesRead), cancellationToken);
+                                    while ((bytesRead = await result.Stream.ReadAsync(buffer, CancellationToken.None)) > 0)
+                                        await responseBodyCryptoStream.WriteAsync(buffer.Slice(0, bytesRead), CancellationToken.None);
 #endif
 #if !NETSTANDARD2_0
-                                    await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
+                                    await responseBodyCryptoStream.FlushFinalBlockAsync(CancellationToken.None);
 #else
                                     responseBodyCryptoStream.FlushFinalBlock();
 #endif
@@ -204,13 +208,13 @@ namespace Zerra.CQRS.Network
                                 else
                                 {
 #if NETSTANDARD2_0
-                                    while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, cancellationToken)) > 0)
-                                        await responseBodyStream.WriteAsync(bufferOwner, 0, bytesRead, cancellationToken);
+                                    while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, CancellationToken.None)) > 0)
+                                        await responseBodyStream.WriteAsync(bufferOwner, 0, bytesRead, CancellationToken.None);
 #else
-                                    while ((bytesRead = await result.Stream.ReadAsync(buffer, cancellationToken)) > 0)
-                                        await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead), cancellationToken);
+                                    while ((bytesRead = await result.Stream.ReadAsync(buffer, CancellationToken.None)) > 0)
+                                        await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead), CancellationToken.None);
 #endif
-                                    await responseBodyStream.FlushAsync(cancellationToken);
+                                    await responseBodyStream.FlushAsync(CancellationToken.None);
                                     continue;
                                 }
                             }
@@ -220,9 +224,9 @@ namespace Zerra.CQRS.Network
                                 {
                                     responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
-                                    await serializer.SerializeAsync(responseBodyCryptoStream, result.Model, cancellationToken);
+                                    await serializer.SerializeAsync(responseBodyCryptoStream, result.Model, CancellationToken.None);
 #if !NETSTANDARD2_0
-                                    await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
+                                    await responseBodyCryptoStream.FlushFinalBlockAsync(CancellationToken.None);
 #else
                                     responseBodyCryptoStream.FlushFinalBlock();
 #endif
@@ -230,8 +234,8 @@ namespace Zerra.CQRS.Network
                                 }
                                 else
                                 {
-                                    await serializer.SerializeAsync(responseBodyStream, result.Model, cancellationToken);
-                                    await responseBodyStream.FlushAsync(cancellationToken);
+                                    await serializer.SerializeAsync(responseBodyStream, result.Model, CancellationToken.None);
+                                    await responseBodyStream.FlushAsync(CancellationToken.None);
                                     continue;
                                 }
                             }
@@ -269,7 +273,7 @@ namespace Zerra.CQRS.Network
                                 if (data.MessageResult)
                                 {
                                     if (commandHandlerWithResultAwaitAsync is null) throw new InvalidOperationException($"{nameof(TcpCqrsServer)} is not setup");
-                                    var monitor = new SocketAbortMonitor(socket, cancellationToken);
+                                    var monitor = new SocketAbortMonitor(socket, CancellationToken.None);
                                     try
                                     {
                                         result = await commandHandlerWithResultAwaitAsync(command, data.Source, monitor.Token);
@@ -283,7 +287,7 @@ namespace Zerra.CQRS.Network
                                 else if (data.MessageAwait)
                                 {
                                     if (commandHandlerAwaitAsync is null) throw new InvalidOperationException($"{nameof(TcpCqrsServer)} is not setup");
-                                    var monitor = new SocketAbortMonitor(socket, cancellationToken);
+                                    var monitor = new SocketAbortMonitor(socket, CancellationToken.None);
                                     try
                                     {
                                         await commandHandlerAwaitAsync(command, data.Source, monitor.Token);
@@ -298,6 +302,9 @@ namespace Zerra.CQRS.Network
                                 {
                                     if (commandHandlerAsync is null) throw new InvalidOperationException($"{nameof(TcpCqrsServer)} is not setup");
                                     var commandHandlerTask = Task.Run(() => commandHandlerAsync(command, data.Source, default));
+                                    //tracked until the handler finishes so disposing waits for it
+                                    _ = running.Add(commandHandlerTask);
+                                    _ = commandHandlerTask.ContinueWith(removeRunning, running, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
                                     if (commandCounter != null)
                                         _ = commandHandlerTask.ContinueWith(x => commandCounter.CompleteReceive(throttle));
                                     commandCounterUsedContinuation = true;
@@ -314,7 +321,10 @@ namespace Zerra.CQRS.Network
                                 inHandlerContext = true;
                                 if (eventHandlerAsync is null)
                                     throw new InvalidOperationException($"{nameof(TcpCqrsServer)} is not setup");
-                                _ = Task.Run(() => eventHandlerAsync(@event, data.Source));
+                                var eventHandlerTask = Task.Run(() => eventHandlerAsync(@event, data.Source));
+                                //tracked until the handler finishes so disposing waits for it
+                                _ = running.Add(eventHandlerTask);
+                                _ = eventHandlerTask.ContinueWith(removeRunning, running, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
                                 hasResult = false;
                                 inHandlerContext = false;
                             }
@@ -344,28 +354,28 @@ namespace Zerra.CQRS.Network
                                 {
                                     responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
-                                    await serializer.SerializeAsync(responseBodyCryptoStream, result, cancellationToken);
+                                    await serializer.SerializeAsync(responseBodyCryptoStream, result, CancellationToken.None);
 #if !NETSTANDARD2_0
-                                    await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
+                                    await responseBodyCryptoStream.FlushFinalBlockAsync(CancellationToken.None);
 #else
                                     responseBodyCryptoStream.FlushFinalBlock();
 #endif
                                 }
                                 else
                                 {
-                                    await serializer.SerializeAsync(responseBodyStream, result, cancellationToken);
-                                    await responseBodyStream.FlushAsync(cancellationToken);
+                                    await serializer.SerializeAsync(responseBodyStream, result, CancellationToken.None);
+                                    await responseBodyStream.FlushAsync(CancellationToken.None);
                                 }
                             }
                             else
                             {
                                 //Response Body Empty
 #if NETSTANDARD2_0
-                                await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, cancellationToken);
+                                await stream.WriteAsync(bufferOwner, 0, responseHeaderLength, CancellationToken.None);
 #else
-                                await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), cancellationToken);
+                                await stream.WriteAsync(buffer.Slice(0, responseHeaderLength), CancellationToken.None);
 #endif
-                                await stream.FlushAsync(cancellationToken);
+                                await stream.FlushAsync(CancellationToken.None);
                             }
 
                             continue;
@@ -375,6 +385,9 @@ namespace Zerra.CQRS.Network
                     }
                     catch (Exception ex)
                     {
+                        if (!requestBegun && cancellationToken.IsCancellationRequested)
+                            return; //closing while the connection waited for its next request
+
                         if (inHandlerContext && monitorIsCancellationRequested)
                         {
                             log?.Error(new OperationCanceledException());
@@ -403,17 +416,17 @@ namespace Zerra.CQRS.Network
                             {
                                 responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
 
-                                await ExceptionSerializer.SerializeAsync(serializer, responseBodyCryptoStream, ex, cancellationToken);
+                                await ExceptionSerializer.SerializeAsync(serializer, responseBodyCryptoStream, ex, CancellationToken.None);
 #if !NETSTANDARD2_0
-                                await responseBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
+                                await responseBodyCryptoStream.FlushFinalBlockAsync(CancellationToken.None);
 #else
                                 responseBodyCryptoStream.FlushFinalBlock();
 #endif
                             }
                             else
                             {
-                                await ExceptionSerializer.SerializeAsync(serializer, responseBodyStream, ex, cancellationToken);
-                                await responseBodyStream.FlushAsync(cancellationToken);
+                                await ExceptionSerializer.SerializeAsync(serializer, responseBodyStream, ex, CancellationToken.None);
+                                await responseBodyStream.FlushAsync(CancellationToken.None);
                             }
                         }
                         catch (Exception ex2)

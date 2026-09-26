@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -8,9 +8,9 @@ namespace Zerra.CQRS
 {
     /// <summary>
     /// Defines a query server that can receive, process and return query results.
-    /// The implementation may also inherit <see cref="IDisposable"/> or <see cref="IAsyncDisposable "/> and the <see cref="Bus"/> will call dispose.
+    /// After <see cref="Bus"/> calls Close it disposes the implementation, and disposing waits for everything already received to finish before it returns.
     /// </summary>
-    public interface IQueryServer
+    public interface IQueryServer : IDisposable, IAsyncDisposable
     {
         /// <summary>
         /// The service url.
@@ -33,7 +33,7 @@ namespace Zerra.CQRS
         /// </summary>
         void Open();
         /// <summary>
-        /// A method called from <see cref="Bus"/> to stop hosting.
+        /// A method called from <see cref="Bus"/> to stop receiving. The queries already received keep processing, disposing waits for them to finish.
         /// </summary>
         void Close();
     }

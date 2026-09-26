@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -7,7 +7,7 @@ namespace Zerra.CQRS
     /// <summary>
     /// Defines a command producer to send commands.
     /// </summary>
-    public interface ICommandProducer
+    public interface ICommandProducer : IDisposable, IAsyncDisposable
     {
         /// <summary>
         /// The host information.

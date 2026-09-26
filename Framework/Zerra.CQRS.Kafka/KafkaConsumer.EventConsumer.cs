@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Confluent.Kafka;
+using Zerra.Collections;
 using System.Security.Claims;
 using Zerra.Encryption;
 using Zerra.Logging;
@@ -12,7 +13,7 @@ namespace Zerra.CQRS.Kafka
 {
     public sealed partial class KafkaConsumer
     {
-        private sealed class EventConsumer : IDisposable
+        private sealed class EventConsumer : IDisposable, IAsyncDisposable
         {
             public bool IsOpen { get; private set; }
 
@@ -23,6 +24,9 @@ namespace Zerra.CQRS.Kafka
             private readonly ILogger? log;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
+            private readonly ConcurrentHashSet<Task> handling = new();
+            private static readonly Action<Task, object?> removeHandling = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
+            private Task? listening;
             //PerReplica gets a group of its own so this replica receives every event, it's kept across retries and deleted when the consumer stops
             //PerService gets a group named for the service so its replicas compete for the events, it's shared so it's never deleted
             private readonly string groupId;
@@ -65,7 +69,7 @@ namespace Zerra.CQRS.Kafka
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = Task.Run(() => ListeningThread(host, userName, password, handlerAsync));
+                listening = Task.Run(() => ListeningThread(host, userName, password, handlerAsync));
             }
 
             public async Task ListeningThread(string host, string? userName, string? password, HandleRemoteEventDispatch handlerAsync)
@@ -112,13 +116,13 @@ namespace Zerra.CQRS.Kafka
                                 }
                                 catch
                                 {
-                                    //the retry keeps this throttle, give back the permit taken for the message that wasn't received
-                                    //an uncommitted message is consumed again from the last committed offset after reconnecting
                                     _ = throttle.Release();
                                     throw;
                                 }
 
-                                _ = Task.Run(() => HandleMessage(throttle, host, consumerResult, handlerAsync));
+                                var handleTask = Task.Run(() => HandleMessage(throttle, host, consumerResult, handlerAsync));
+                                _ = handling.Add(handleTask);
+                                _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
                                 if (canceller.IsCancellationRequested)
                                     break;
@@ -133,7 +137,6 @@ namespace Zerra.CQRS.Kafka
                 }
                 catch (Exception ex)
                 {
-                    //closing cancels the consume, that isn't an error
                     if (!canceller.IsCancellationRequested)
                     {
                         log?.Error(topic, ex);
@@ -203,9 +206,76 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
+            public void Close()
+            {
+                canceller.Cancel();
+            }
+
             public void Dispose()
             {
                 canceller.Cancel();
+
+                //waits for the listener to stop so nothing new starts, then for the messages it already received, the ones that completed were already removed
+                if (listening is not null)
+                {
+                    try
+                    {
+                        listening.Wait();
+                    }
+                    catch (AggregateException ex)
+                    {
+                        log?.Error(topic, ex.InnerException ?? ex);
+                    }
+                }
+                for (; ; )
+                {
+                    var pending = handling.Where(x => !x.IsCompleted).ToArray();
+                    if (pending.Length == 0)
+                        break;
+                    try
+                    {
+                        Task.WaitAll(pending);
+                    }
+                    catch (AggregateException ex)
+                    {
+                        log?.Error(topic, ex.InnerException ?? ex);
+                    }
+                }
+
+                canceller.Dispose();
+            }
+
+            public async ValueTask DisposeAsync()
+            {
+                canceller.Cancel();
+
+                //waits for the listener to stop so nothing new starts, then for the messages it already received, the ones that completed were already removed
+                if (listening is not null)
+                {
+                    try
+                    {
+                        await listening;
+                    }
+                    catch (Exception ex)
+                    {
+                        log?.Error(topic, ex);
+                    }
+                }
+                for (; ; )
+                {
+                    var pending = handling.Where(x => !x.IsCompleted).ToArray();
+                    if (pending.Length == 0)
+                        break;
+                    try
+                    {
+                        await Task.WhenAll(pending);
+                    }
+                    catch (Exception ex)
+                    {
+                        log?.Error(topic, ex);
+                    }
+                }
+
                 canceller.Dispose();
             }
         }

@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -143,9 +143,27 @@ namespace Zerra.CQRS.RabbitMQ
         }
         private void Close()
         {
+            //stops the deliveries, the connection stays open so the messages already received can still be acknowledged and replied to
             foreach (var exchange in commandExchanges.Values.Where(x => x.IsOpen))
-                exchange.Dispose();
+                exchange.Close();
             foreach (var exchange in eventExchanges.Values.Where(x => x.IsOpen))
+                exchange.Close();
+        }
+
+        /// <summary>
+        /// Releases all resources used by the <see cref="RabbitMQConsumer"/>.
+        /// </summary>
+        /// <remarks>
+        /// Closes all open message exchanges, waits for the messages they are still handling to finish, and closes the RabbitMQ connection.
+        /// After disposal, the consumer cannot be used.
+        /// </remarks>
+        public void Dispose()
+        {
+            this.Close();
+            //each exchange waits for the messages it is still handling, then closing its channel returns the unacknowledged ones to their queue
+            foreach (var exchange in commandExchanges.Values)
+                exchange.Dispose();
+            foreach (var exchange in eventExchanges.Values)
                 exchange.Dispose();
             this.commandExchanges.Clear();
             this.eventExchanges.Clear();
@@ -156,18 +174,33 @@ namespace Zerra.CQRS.RabbitMQ
                 this.connection.Dispose();
                 this.connection = null;
             }
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
         /// Releases all resources used by the <see cref="RabbitMQConsumer"/>.
         /// </summary>
         /// <remarks>
-        /// Closes all open message exchanges and the RabbitMQ connection.
+        /// Closes all open message exchanges, waits for the messages they are still handling to finish, and closes the RabbitMQ connection.
         /// After disposal, the consumer cannot be used.
         /// </remarks>
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
             this.Close();
+            //each exchange waits for the messages it is still handling, then closing its channel returns the unacknowledged ones to their queue
+            foreach (var exchange in commandExchanges.Values)
+                await exchange.DisposeAsync();
+            foreach (var exchange in eventExchanges.Values)
+                await exchange.DisposeAsync();
+            this.commandExchanges.Clear();
+            this.eventExchanges.Clear();
+
+            if (this.connection is not null)
+            {
+                this.connection.Close();
+                this.connection.Dispose();
+                this.connection = null;
+            }
             GC.SuppressFinalize(this);
         }
 

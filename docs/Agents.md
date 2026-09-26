@@ -119,7 +119,7 @@ bus.AddCommandConsumer<IShippingCommandHandler>(new KestrelCqrsServerCommandCons
 bus.AddEventConsumer<IOrderEventHandler>(new KestrelCqrsServerEventConsumer(settings), EventConsumerMode.PerReplica);
 
 var app = builder.Build();
-app.Lifetime.ApplicationStopping.Register(bus.StopServices);
+app.Lifetime.ApplicationStopped.Register(bus.StopServices); //after Kestrel has finished the requests in progress, which may still use the bus
 app.UseKestrelCqrsServer(serializer, encryptor, log, settings);
 app.Run();
 ```
@@ -252,6 +252,7 @@ Central message router created via `Bus.New()`:
 - `commandToReceiveUntilExit`: Optional count for graceful shutdown
 - `defaultCallTimeout`, `defaultDispatchTimeout`, `defaultDispatchAwaitTimeout`: Optional `TimeSpan` timeouts
 - `maxConcurrentQueries`, `maxConcurrentCommandsPerTopic`, `maxConcurrentEventsPerTopic`: Optional concurrency limits
+- `shutdownTimeout`: Limits how long stopping waits while the servers and consumers finish what they already received (default 30 seconds); nothing is cancelled when it passes
 
 `Bus.New()` returns `IBusSetup` (which extends `IBus`) and also sets the static `Bus` instance.
 
@@ -392,7 +393,7 @@ await bus.StopServicesAsync();  // Explicit shutdown
 await bus.WaitForExitAsync(cancellationToken);  // Wait for exit signal
 ```
 
-Both close consumers/servers, dispose all producers/consumers/clients/servers, and stop processing new messages.
+Both close the servers and consumers so they receive nothing new, dispose them (each waits for the tasks handling what it already received), then dispose the producers and clients. `shutdownTimeout` limits the whole stop without cancelling any handler. See [Finishing Work in Progress](ServerSetup.md#finishing-work-in-progress). In ASP.NET Core, register `bus.StopServices` on `ApplicationStopped` so Kestrel's requests finish first.
 
 ## Integration Points
 

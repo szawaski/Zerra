@@ -1,4 +1,4 @@
-﻿// Copyright © KaKush LLC
+// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -37,6 +37,33 @@ namespace Zerra.Repository.Test.AzureServiceBus
                 await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, log, null))
                 {
                     await MessageTest.TestSequence(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                //commands use a queue per topic and events a topic, the event subscriptions go with the topic
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+                await AzureServiceBusCommon.DeleteTopic(host, eventTopic);
+            }
+        }
+
+        [Theory(Timeout = 300000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestFinishesProcessingOnClose(bool disposeAsync)
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+            var log = new TestLogger();
+
+            try
+            {
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, encryptor, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, log, null))
+                {
+                    await MessageTest.TestFinishesProcessingOnClose(producer, producer, consumer, consumer, commandTopic, eventTopic, disposeAsync, TestContext.Current.CancellationToken);
                 }
             }
             finally
