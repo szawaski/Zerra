@@ -380,6 +380,39 @@ namespace Zerra.CQRS.AzureServiceBus
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByQueueOrTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
+
+            //Started now so the first command sent with DispatchAwait doesn't wait for the acknowledgement queue to be created and received from.
+            //If this fails the error is logged and the first send that needs an acknowledgement tries again.
+            if (!listenerStarted)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await listenerStartedLock.WaitAsync(canceller.Token);
+                        try
+                        {
+                            if (!listenerStarted)
+                            {
+                                await AzureServiceBusCommon.EnsureQueue(host, ackQueue, true);
+
+                                _ = Task.Run(AckListeningThread);
+                                listenerStarted = true;
+                            }
+                        }
+                        finally
+                        {
+                            _ = listenerStartedLock.Release();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        //disposing the producer before it started isn't an error
+                        if (!canceller.IsCancellationRequested)
+                            _ = Log.ErrorAsync(ex);
+                    }
+                });
+            }
         }
 
         void IEventProducer.RegisterEventType(int maxConcurrent, string topic, Type type)

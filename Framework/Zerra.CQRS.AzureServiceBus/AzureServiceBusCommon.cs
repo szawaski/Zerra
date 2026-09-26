@@ -93,12 +93,14 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 else
                 {
+                    //the message size can only be set on Premium, elsewhere it never matches and every start would update the queue
                     var existing = await client.GetQueueAsync(queue);
                     if (existing.Value.AutoDeleteOnIdle != autoDeleteOnIdle ||
-                        existing.Value.MaxMessageSizeInKilobytes != maxMessageSizeForPremium)
+                        (maxMessageSizeInKilobytes.HasValue && existing.Value.MaxMessageSizeInKilobytes != maxMessageSizeInKilobytes))
                     {
                         existing.Value.AutoDeleteOnIdle = autoDeleteOnIdle;
-                        existing.Value.MaxMessageSizeInKilobytes = maxMessageSizeForPremium;
+                        if (maxMessageSizeInKilobytes.HasValue)
+                            existing.Value.MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes;
                         _ = await client.UpdateQueueAsync(existing.Value);
                     }
                 }
@@ -151,12 +153,14 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 else
                 {
+                    //the message size can only be set on Premium, elsewhere it never matches and every start would update the topic
                     var existing = await client.GetTopicAsync(topic);
                     if (existing.Value.AutoDeleteOnIdle != autoDeleteOnIdle ||
-                        existing.Value.MaxMessageSizeInKilobytes != maxMessageSizeForPremium)
+                        (maxMessageSizeInKilobytes.HasValue && existing.Value.MaxMessageSizeInKilobytes != maxMessageSizeInKilobytes))
                     {
                         existing.Value.AutoDeleteOnIdle = autoDeleteOnIdle;
-                        existing.Value.MaxMessageSizeInKilobytes = maxMessageSizeForPremium;
+                        if (maxMessageSizeInKilobytes.HasValue)
+                            existing.Value.MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes;
                         _ = await client.UpdateTopicAsync(existing.Value);
                     }
                 }
