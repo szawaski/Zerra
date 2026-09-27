@@ -22,7 +22,10 @@ Log.SetLog(log); //framework messages too, such as why a database was skipped
 log.Info("Starting Carts service");
 
 //Data store: an event store instead of tables, each cart is a stream of events that the cart aggregate replays
+var databaseSetup = Stopwatch.StartNew();
 var dataStore = DataStoreSetup.PrepareEventStore<CartsDataContext>("KurrentDB", log, out var eventStore);
+databaseSetup.Stop();
+log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 //Carts receives queries and commands from the gateway and a reprice command from Catalog over TCP, and Catalog's product events over
 //RabbitMQ when it's running. Its checkout command to Orders is outbound.
@@ -46,7 +49,10 @@ bus.AddHandler<ICartsCommandHandler>(commandHandler);
 bus.AddHandler<ICartRepricingHandler>(commandHandler);
 bus.AddHandler<ICatalogEventHandler>(new CatalogEventHandler());
 
+var seeding = Stopwatch.StartNew();
 await CartsSeeder.SeedAsync(eventStore, log);
+seeding.Stop();
+log.Info($"Seed data done in {seeding.ElapsedMilliseconds} ms");
 
 var serializer = StoreSettings.CreateServiceSerializer();
 var encryptor = StoreSettings.CreateServiceEncryptor();
@@ -72,6 +78,6 @@ var ordersClient = new TcpCqrsClient(StoreSettings.OrdersServiceUrl, serializer,
 bus.AddQueryClient<IOrdersQueryHandler>(ordersClient);
 bus.AddCommandProducer<IOrdersCommandHandler>(ordersClient);
 
-log.Info($"Carts service listening on {StoreSettings.CartsServiceUrl}, started in {startup.ElapsedMilliseconds} ms, press Ctrl+C to stop");
+log.Info($"Carts service listening on {StoreSettings.CartsServiceUrl}, started in {startup.ElapsedMilliseconds} ms ({startup.ElapsedMilliseconds - databaseSetup.ElapsedMilliseconds - seeding.ElapsedMilliseconds} ms excluding database setup and seed data), press Ctrl+C to stop");
 
 await bus.WaitForExitAsync();

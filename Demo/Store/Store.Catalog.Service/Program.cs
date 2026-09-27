@@ -21,12 +21,18 @@ Log.SetLog(log); //framework messages too, such as why a database was skipped
 log.Info("Starting Catalog service");
 
 //Data store: this service's own database, schema from the data models, then seed data
+var databaseSetup = Stopwatch.StartNew();
 var dataStore = DataStoreSetup.Prepare<CatalogDataContext>("PostgreSQL", [typeof(CategoryDataModel), typeof(ProductDataModel)], log);
+databaseSetup.Stop();
+log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 var repo = Repo.New();
 repo.AddProvider(new CatalogStoreProvider<CategoryDataModel>());
 repo.AddProvider(new CatalogStoreProvider<ProductDataModel>());
+var seeding = Stopwatch.StartNew();
 await CatalogSeeder.SeedAsync(repo, log);
+seeding.Stop();
+log.Info($"Seed data done in {seeding.ElapsedMilliseconds} ms");
 
 //Message brokers: RabbitMQ carries the product events when it's running, checked here first so the choice can be reported like the data store
 var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnection.Test(StoreSettings.RabbitMQHost, log: log);
@@ -69,6 +75,6 @@ else
     bus.AddEventProducer<ICatalogEventHandler>(new TcpCqrsClient(StoreSettings.ReviewsServiceUrl, serializer, encryptor, log));
 }
 
-log.Info($"Catalog service listening on {StoreSettings.CatalogServiceUrl}, started in {startup.ElapsedMilliseconds} ms, press Ctrl+C to stop");
+log.Info($"Catalog service listening on {StoreSettings.CatalogServiceUrl}, started in {startup.ElapsedMilliseconds} ms ({startup.ElapsedMilliseconds - databaseSetup.ElapsedMilliseconds - seeding.ElapsedMilliseconds} ms excluding database setup and seed data), press Ctrl+C to stop");
 
 await bus.WaitForExitAsync();

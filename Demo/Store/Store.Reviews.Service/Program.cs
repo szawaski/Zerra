@@ -23,11 +23,17 @@ Log.SetLog(log); //framework messages too, such as why a database was skipped
 log.Info("Starting Reviews service");
 
 //Data store: this service's own database, schema from the data models, then seed data
+var databaseSetup = Stopwatch.StartNew();
 var dataStore = DataStoreSetup.Prepare<ReviewsDataContext>("MariaDB", [typeof(ReviewDataModel)], log);
+databaseSetup.Stop();
+log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 var repo = Repo.New();
 repo.AddProvider(new ReviewsStoreProvider<ReviewDataModel>());
+var seeding = Stopwatch.StartNew();
 await ReviewsSeeder.SeedAsync(repo, log);
+seeding.Stop();
+log.Info($"Seed data done in {seeding.ElapsedMilliseconds} ms");
 
 //Message brokers: Azure Service Bus is used when it's running, checked here first so the choice can be reported like the data store
 var useServiceBus = !StoreSettings.DirectMessagingOnly && await AzureServiceBusConnection.TestAsync(StoreSettings.AzureServiceBusConnectionString, log: log);
@@ -75,6 +81,6 @@ bus.AddQueryClient<ICatalogQueryHandler>(catalogClient);
 var ordersClient = new TcpCqrsClient(StoreSettings.OrdersServiceUrl, serializer, encryptor, log);
 bus.AddQueryClient<IOrdersQueryHandler>(ordersClient);
 
-log.Info($"Reviews service listening on {StoreSettings.ReviewsServiceUrl}, started in {startup.ElapsedMilliseconds} ms, press Ctrl+C to stop");
+log.Info($"Reviews service listening on {StoreSettings.ReviewsServiceUrl}, started in {startup.ElapsedMilliseconds} ms ({startup.ElapsedMilliseconds - databaseSetup.ElapsedMilliseconds - seeding.ElapsedMilliseconds} ms excluding database setup and seed data), press Ctrl+C to stop");
 
 await bus.WaitForExitAsync();

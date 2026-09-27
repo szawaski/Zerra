@@ -22,13 +22,19 @@ Log.SetLog(log); //framework messages too, such as why a database was skipped
 log.Info("Starting Inventory service");
 
 //Data store: this service's own database, schema from the data models, then seed data
+var databaseSetup = Stopwatch.StartNew();
 var dataStore = DataStoreSetup.Prepare<InventoryDataContext>("MySQL", [typeof(StockItemDataModel), typeof(StockReservationDataModel), typeof(StockMovementDataModel)], log);
+databaseSetup.Stop();
+log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 var repo = Repo.New();
 repo.AddProvider(new InventoryStoreProvider<StockItemDataModel>());
 repo.AddProvider(new InventoryStoreProvider<StockReservationDataModel>());
 repo.AddProvider(new InventoryStoreProvider<StockMovementDataModel>());
+var seeding = Stopwatch.StartNew();
 await InventorySeeder.SeedAsync(repo, log);
+seeding.Stop();
+log.Info($"Seed data done in {seeding.ElapsedMilliseconds} ms");
 
 //Message brokers: each is used when it's running, checked here first so the choice can be reported like the data store
 var useKafka = !StoreSettings.DirectMessagingOnly && await KafkaConnection.TestAsync(StoreSettings.KafkaHost, null, null, log: log);
@@ -74,6 +80,6 @@ if (useRabbitMQ)
 else
     bus.AddEventConsumer<IOrdersEventHandler>(server, EventConsumerMode.PerService);
 
-log.Info($"Inventory service listening on {StoreSettings.InventoryServiceUrl}, started in {startup.ElapsedMilliseconds} ms, press Ctrl+C to stop");
+log.Info($"Inventory service listening on {StoreSettings.InventoryServiceUrl}, started in {startup.ElapsedMilliseconds} ms ({startup.ElapsedMilliseconds - databaseSetup.ElapsedMilliseconds - seeding.ElapsedMilliseconds} ms excluding database setup and seed data), press Ctrl+C to stop");
 
 await bus.WaitForExitAsync();
