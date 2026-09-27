@@ -39,6 +39,7 @@ namespace Zerra.CQRS.Kafka
         private readonly ConcurrentDictionary<Type, string> topicsByCommandType;
         private readonly ConcurrentDictionary<Type, string> topicsByEventType;
         private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByTopic;
+        private readonly ConcurrentDictionary<string, Lazy<Task>> recoveryByTopic;
         private readonly IProducer<string, byte[]> producer;
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, TaskCompletionSource<Acknowledgement>> ackCallbacks;
@@ -81,12 +82,15 @@ namespace Zerra.CQRS.Kafka
             this.topicsByCommandType = new();
             this.topicsByEventType = new();
             this.throttleByTopic = new();
+            this.recoveryByTopic = new();
 
             var producerConfig = new ProducerConfig();
             producerConfig.BootstrapServers = host;
             producerConfig.LingerMs = 0;
             //topics are created by Zerra with its settings, not by the broker with its defaults
             producerConfig.AllowAutoCreateTopics = false;
+            //a send to a missing topic fails after this instead of the 30 second default, then creates it
+            producerConfig.TopicMetadataPropagationMaxMs = 1000;
             producerConfig.ClientId = clientID;
             if (userName is not null && password is not null)
             {
@@ -122,8 +126,6 @@ namespace Zerra.CQRS.Kafka
 
             try
             {
-                await KafkaCommon.EnsureTopic(commonHost, topic);
-
                 if (requireAcknowledgement)
                 {
                     if (!listenerStarted)
@@ -133,7 +135,7 @@ namespace Zerra.CQRS.Kafka
                         {
                             if (!listenerStarted)
                             {
-                                await KafkaCommon.EnsureTopic(commonHost, ackTopic);
+                                await KafkaCommon.CreateTopic(commonHost, ackTopic);
                                 _ = Task.Run(AckListeningThread);
                                 listenerStarted = true;
                             }
@@ -177,7 +179,7 @@ namespace Zerra.CQRS.Kafka
                     {
                         _ = ackCallbacks.TryAdd(ackKey, waiter);
 
-                        var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body }, cancellationToken);
+                        var producerResult = await ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body }, cancellationToken);
                         if (producerResult.Status != PersistenceStatus.Persisted)
                             throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
 
@@ -196,7 +198,7 @@ namespace Zerra.CQRS.Kafka
                 {
                     var key = KafkaCommon.MessageKey;
 
-                    var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = key, Value = body });
+                    var producerResult = await ProduceAsync(topic, new Message<string, byte[]> { Key = key, Value = body }, cancellationToken);
                     if (producerResult.Status != PersistenceStatus.Persisted)
                         throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
                 }
@@ -219,8 +221,6 @@ namespace Zerra.CQRS.Kafka
 
             try
             {
-                await KafkaCommon.EnsureTopic(commonHost, topic);
-
                 if (!listenerStarted)
                 {
                     await listenerStartedLock.WaitAsync(cancellationToken);
@@ -228,7 +228,7 @@ namespace Zerra.CQRS.Kafka
                     {
                         if (!listenerStarted)
                         {
-                            await KafkaCommon.EnsureTopic(commonHost, ackTopic);
+                            await KafkaCommon.CreateTopic(commonHost, ackTopic);
                             _ = Task.Run(AckListeningThread);
                             listenerStarted = true;
                         }
@@ -269,7 +269,7 @@ namespace Zerra.CQRS.Kafka
                 {
                     _ = ackCallbacks.TryAdd(ackKey, waiter);
 
-                    var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body }, cancellationToken);
+                    var producerResult = await ProduceAsync(topic, new Message<string, byte[]> { Headers = headers, Key = key, Value = body }, cancellationToken);
                     if (producerResult.Status != PersistenceStatus.Persisted)
                         throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
 
@@ -304,8 +304,6 @@ namespace Zerra.CQRS.Kafka
 
             try
             {
-                await KafkaCommon.EnsureTopic(commonHost, topic);
-
                 string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
@@ -323,7 +321,7 @@ namespace Zerra.CQRS.Kafka
                 if (encryptor is not null)
                     body = encryptor.Encrypt(body);
 
-                var producerResult = await producer.ProduceAsync(topic, new Message<string, byte[]> { Key = KafkaCommon.MessageKey, Value = body }, cancellationToken);
+                var producerResult = await ProduceAsync(topic, new Message<string, byte[]> { Key = KafkaCommon.MessageKey, Value = body }, cancellationToken);
                 if (producerResult.Status != PersistenceStatus.Persisted)
                     throw new Exception($"{nameof(KafkaProducer)} failed: {producerResult.Status}");
             }
@@ -331,6 +329,44 @@ namespace Zerra.CQRS.Kafka
             {
                 _ = throttle.Release();
             }
+        }
+
+        //topics aren't ensured up front for faster startup, only after a send fails
+        private async Task<DeliveryResult<string, byte[]>> ProduceAsync(string topic, Message<string, byte[]> message, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await producer.ProduceAsync(topic, message, cancellationToken);
+            }
+            catch (ProduceException<string, byte[]> ex) when (ex.Error.Code == ErrorCode.Local_UnknownTopic || ex.Error.Code == ErrorCode.UnknownTopicOrPart)
+            {
+                log?.Warn($"{nameof(KafkaProducer)} failed to send to {topic}, ensuring it and trying again: {ex.Error.Code} {ex.Message}");
+            }
+
+            //sends failing at the same time share one recovery
+            var recovery = recoveryByTopic.GetOrAdd(topic, _ => new Lazy<Task>(() => RecoverAsync(topic)));
+            try
+            {
+                await recovery.Value;
+            }
+            finally
+            {
+                _ = ((ICollection<KeyValuePair<string, Lazy<Task>>>)recoveryByTopic).Remove(new(topic, recovery));
+            }
+
+            return await producer.ProduceAsync(topic, message, cancellationToken);
+        }
+
+        private async Task RecoverAsync(string topic)
+        {
+            //it may still be cached as existing
+            await KafkaCommon.ForgetTopic(commonHost, topic);
+
+            await KafkaCommon.EnsureTopic(commonHost, topic);
+
+            //the producer caches the topic as missing until its own handle refreshes the metadata
+            using (var producerAdmin = new DependentAdminClientBuilder(producer.Handle).Build())
+                _ = producerAdmin.GetMetadata(topic, TimeSpan.FromSeconds(10));
         }
 
         private async Task AckListeningThread()
@@ -459,18 +495,6 @@ namespace Zerra.CQRS.Kafka
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
-            //the topic is created now so a command sent before any consumer has run waits in it, and the first send finds it known
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await KafkaCommon.EnsureTopic(commonHost, topic);
-                }
-                catch (Exception ex)
-                {
-                    log?.Error(ex);
-                }
-            });
 
             //Started now so the first command sent with DispatchAwait doesn't wait for the acknowledgement topic to be created and assigned.
             //If this fails the error is logged and the first send that needs an acknowledgement tries again.
@@ -485,7 +509,7 @@ namespace Zerra.CQRS.Kafka
                         {
                             if (!listenerStarted)
                             {
-                                await KafkaCommon.EnsureTopic(commonHost, ackTopic);
+                                await KafkaCommon.CreateTopic(commonHost, ackTopic);
                                 _ = Task.Run(AckListeningThread);
                                 listenerStarted = true;
                             }
@@ -516,18 +540,6 @@ namespace Zerra.CQRS.Kafka
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
-            //the topic is created now so a command sent before any consumer has run waits in it, and the first send finds it known
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await KafkaCommon.EnsureTopic(commonHost, topic);
-                }
-                catch (Exception ex)
-                {
-                    log?.Error(ex);
-                }
-            });
         }
 
         private string BuildTopic(string topic, string kind)

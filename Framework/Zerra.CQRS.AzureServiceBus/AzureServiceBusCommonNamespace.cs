@@ -28,6 +28,7 @@ namespace Zerra.CQRS.AzureServiceBus
         public readonly SemaphoreSlim Locker = new(1, 1);
         public readonly ServiceBusAdministrationClient Client;
         public bool Premium;
+        private volatile bool premiumLoaded;
         //names are case insensitive, and listed in lower case, Queues is set last so a namespace with Queues is loaded
         public volatile Dictionary<string, EntitySettings>? Queues;
         public volatile Dictionary<string, EntitySettings>? Topics;
@@ -41,7 +42,7 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             if (Queues is not null)
                 return;
-            Premium = (await Client.GetNamespacePropertiesAsync()).Value.MessagingSku == MessagingSku.Premium;
+            _ = await GetPremium();
             var queues = new Dictionary<string, EntitySettings>(StringComparer.OrdinalIgnoreCase);
             await foreach (var queue in Client.GetQueuesAsync())
                 queues[queue.Name] = new EntitySettings(queue.AutoDeleteOnIdle, queue.MaxMessageSizeInKilobytes);
@@ -50,6 +51,17 @@ namespace Zerra.CQRS.AzureServiceBus
                 topics[topic.Name] = new EntitySettings(topic.AutoDeleteOnIdle, topic.MaxMessageSizeInKilobytes);
             Topics = topics;
             Queues = queues;
+        }
+
+        //doesn't need the lock, two callers fetching it at once get the same answer
+        public async ValueTask<bool> GetPremium()
+        {
+            if (!premiumLoaded)
+            {
+                Premium = (await Client.GetNamespacePropertiesAsync()).Value.MessagingSku == MessagingSku.Premium;
+                premiumLoaded = true;
+            }
+            return Premium;
         }
     }
 }

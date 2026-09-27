@@ -176,5 +176,37 @@ namespace Zerra.Repository.Test.AzureServiceBus
                 await AzureServiceBusCommon.DeleteTopic(host, eventTopic);
             }
         }
+
+        [Fact(Timeout = 120000)]
+        public async Task TestReplicasEnsureAtOnce()
+        {
+            var queue = MessageTest.NewTopic("Command");
+            var topic = MessageTest.NewTopic("Event");
+            var updatedQueue = MessageTest.NewTopic("Command");
+
+            try
+            {
+                //a namespace each, as replicas in separate processes have, so none of them know the others created it
+                AzureServiceBusCommonNamespace[] Replicas() => Enumerable.Range(0, 8).Select(_ => new AzureServiceBusCommonNamespace(host)).ToArray();
+
+                var replicas = Replicas();
+                await Task.WhenAll(replicas.Select(x => AzureServiceBusCommon.EnsureQueue(x, queue, false).AsTask()));
+                await Task.WhenAll(replicas.Select(x => AzureServiceBusCommon.EnsureTopic(x, topic, false).AsTask()));
+                await Task.WhenAll(replicas.Select(x => AzureServiceBusCommon.EnsureSubscription(x, topic, "Shared", false).AsTask()));
+
+                //settings that don't match have every replica update them at once
+                _ = await AzureServiceBusCommon.CreateAdministrationClient(host).CreateQueueAsync(new Azure.Messaging.ServiceBus.Administration.CreateQueueOptions(updatedQueue) { AutoDeleteOnIdle = TimeSpan.FromHours(1) }, TestContext.Current.CancellationToken);
+                replicas = Replicas();
+                await Task.WhenAll(replicas.Select(x => AzureServiceBusCommon.EnsureQueue(x, updatedQueue, false).AsTask()));
+                var updated = await AzureServiceBusCommon.CreateAdministrationClient(host).GetQueueAsync(updatedQueue, TestContext.Current.CancellationToken);
+                Assert.Equal(TimeSpan.MaxValue, updated.Value.AutoDeleteOnIdle);
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, queue);
+                await AzureServiceBusCommon.DeleteTopic(host, topic);
+                await AzureServiceBusCommon.DeleteQueue(host, updatedQueue);
+            }
+        }
     }
 }

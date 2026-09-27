@@ -87,6 +87,28 @@ namespace Zerra.CQRS.Kafka
             }
         }
 
+        //for a uniquely named topic that can't exist yet, so the topics aren't listed
+        public static async Task CreateTopic(KafkaCommonHost kafkaHost, string topic)
+        {
+            var topicSpecification = new TopicSpecification()
+            {
+                Name = topic,
+                ReplicationFactor = 1,
+                NumPartitions = 1
+            };
+            try
+            {
+                await kafkaHost.Client.CreateTopicsAsync(new TopicSpecification[] { topicSpecification });
+            }
+            catch (CreateTopicsException ex) when (ex.Results.All(x => x.Error.Code == ErrorCode.TopicAlreadyExists))
+            {
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"{nameof(KafkaCommon)} failed to create topic {topic}", ex);
+            }
+        }
+
         //a topic deleted outside of this process is still in the list, a consumer that fails forgets it so the next EnsureTopic checks the broker again
         public static async Task ForgetTopic(KafkaCommonHost kafkaHost, string topic)
         {

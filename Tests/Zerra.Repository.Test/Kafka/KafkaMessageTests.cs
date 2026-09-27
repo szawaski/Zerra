@@ -260,6 +260,26 @@ namespace Zerra.Repository.Test.Kafka
             }
         }
 
+        [Fact(Timeout = 120000)]
+        public async Task TestReplicasEnsureAtOnce()
+        {
+            var topic = MessageTest.NewTopic("Command");
+
+            //a host each, as replicas in separate processes have, so none of them know the others created it
+            var replicas = Enumerable.Range(0, 8).Select(_ => new KafkaCommonHost(host, null, null)).ToArray();
+            try
+            {
+                await Task.WhenAll(replicas.Select(x => KafkaCommon.EnsureTopic(x, topic).AsTask()));
+                await WaitUntilTopicExists(topic);
+            }
+            finally
+            {
+                foreach (var replica in replicas)
+                    replica.Client.Dispose();
+                await KafkaCommon.DeleteTopic(host, null, null, topic);
+            }
+        }
+
         private static string AckTopic(KafkaProducer producer) => (string)typeof(KafkaProducer).GetField("ackTopic", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producer)!;
 
         private static async Task<bool> ConsumerGroupExists(string group)

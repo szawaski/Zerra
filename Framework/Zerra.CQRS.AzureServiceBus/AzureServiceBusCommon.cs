@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Collections.Concurrent;
+using Azure;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 
@@ -100,7 +101,13 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     if (serviceBusNamespace.Topics!.ContainsKey(queue))
                     {
-                        _ = await serviceBusNamespace.Client.DeleteTopicAsync(queue);
+                        try
+                        {
+                            _ = await serviceBusNamespace.Client.DeleteTopicAsync(queue);
+                        }
+                        catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
+                        {
+                        }
                         serviceBusNamespace.Topics = Without(serviceBusNamespace.Topics, queue);
                         serviceBusNamespace.SubscriptionsByTopic = Without(serviceBusNamespace.SubscriptionsByTopic, queue);
                     }
@@ -110,31 +117,53 @@ namespace Zerra.CQRS.AzureServiceBus
                         AutoDeleteOnIdle = autoDeleteOnIdle,
                         MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes
                     };
-                    QueueProperties created;
                     try
                     {
-                        created = await serviceBusNamespace.Client.CreateQueueAsync(options);
+                        _ = await serviceBusNamespace.Client.CreateQueueAsync(options);
                     }
+                    //another replica created it first with the same settings, it can't be read back until its creation finishes
                     catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
                     {
-                        //another service created it first
-                        created = await serviceBusNamespace.Client.GetQueueAsync(queue);
                     }
-                    serviceBusNamespace.Queues = With(serviceBusNamespace.Queues, queue, new AzureServiceBusCommonNamespace.EntitySettings(created.AutoDeleteOnIdle, created.MaxMessageSizeInKilobytes));
+                    serviceBusNamespace.Queues = With(serviceBusNamespace.Queues, queue, new AzureServiceBusCommonNamespace.EntitySettings(autoDeleteOnIdle, maxMessageSizeInKilobytes));
                 }
                 else if (!Matches(existing, autoDeleteOnIdle, serviceBusNamespace.Premium))
                 {
-                    QueueProperties properties = await serviceBusNamespace.Client.GetQueueAsync(queue);
-                    properties.AutoDeleteOnIdle = autoDeleteOnIdle;
-                    if (maxMessageSizeInKilobytes.HasValue)
-                        properties.MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes;
-                    QueueProperties updated = await serviceBusNamespace.Client.UpdateQueueAsync(properties);
-                    serviceBusNamespace.Queues = With(serviceBusNamespace.Queues, queue, new AzureServiceBusCommonNamespace.EntitySettings(updated.AutoDeleteOnIdle, updated.MaxMessageSizeInKilobytes));
+                    try
+                    {
+                        QueueProperties properties = await serviceBusNamespace.Client.GetQueueAsync(queue);
+                        properties.AutoDeleteOnIdle = autoDeleteOnIdle;
+                        if (maxMessageSizeInKilobytes.HasValue)
+                            properties.MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes;
+                        _ = await serviceBusNamespace.Client.UpdateQueueAsync(properties);
+                    }
+                    //another replica is updating it to the same settings
+                    catch (ServiceBusException ex) when (ex.InnerException is RequestFailedException { Status: 409 })
+                    {
+                    }
+                    serviceBusNamespace.Queues = With(serviceBusNamespace.Queues, queue, new AzureServiceBusCommonNamespace.EntitySettings(autoDeleteOnIdle, maxMessageSizeInKilobytes));
                 }
             }
             finally
             {
                 _ = serviceBusNamespace.Locker.Release();
+            }
+        }
+
+        //for a uniquely named queue that can't exist yet, so the namespace isn't listed
+        public static async Task CreateQueue(AzureServiceBusCommonNamespace serviceBusNamespace, string queue, bool deleteWhenIdle)
+        {
+            var options = new CreateQueueOptions(queue)
+            {
+                AutoDeleteOnIdle = deleteWhenIdle ? DeleteWhenIdleTimeout : TimeSpan.MaxValue,
+                MaxMessageSizeInKilobytes = await serviceBusNamespace.GetPremium() ? maxMessageSizeForPremium : null
+            };
+            try
+            {
+                _ = await serviceBusNamespace.Client.CreateQueueAsync(options);
+            }
+            catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
+            {
             }
         }
 
@@ -175,7 +204,13 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     if (serviceBusNamespace.Queues!.ContainsKey(topic))
                     {
-                        _ = await serviceBusNamespace.Client.DeleteQueueAsync(topic);
+                        try
+                        {
+                            _ = await serviceBusNamespace.Client.DeleteQueueAsync(topic);
+                        }
+                        catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
+                        {
+                        }
                         serviceBusNamespace.Queues = Without(serviceBusNamespace.Queues, topic);
                     }
 
@@ -184,26 +219,31 @@ namespace Zerra.CQRS.AzureServiceBus
                         AutoDeleteOnIdle = autoDeleteOnIdle,
                         MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes
                     };
-                    TopicProperties created;
                     try
                     {
-                        created = await serviceBusNamespace.Client.CreateTopicAsync(options);
+                        _ = await serviceBusNamespace.Client.CreateTopicAsync(options);
                     }
+                    //another replica created it first with the same settings, it can't be read back until its creation finishes
                     catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
                     {
-                        //another service created it first
-                        created = await serviceBusNamespace.Client.GetTopicAsync(topic);
                     }
-                    serviceBusNamespace.Topics = With(serviceBusNamespace.Topics, topic, new AzureServiceBusCommonNamespace.EntitySettings(created.AutoDeleteOnIdle, created.MaxMessageSizeInKilobytes));
+                    serviceBusNamespace.Topics = With(serviceBusNamespace.Topics, topic, new AzureServiceBusCommonNamespace.EntitySettings(autoDeleteOnIdle, maxMessageSizeInKilobytes));
                 }
                 else if (!Matches(existing, autoDeleteOnIdle, serviceBusNamespace.Premium))
                 {
-                    TopicProperties properties = await serviceBusNamespace.Client.GetTopicAsync(topic);
-                    properties.AutoDeleteOnIdle = autoDeleteOnIdle;
-                    if (maxMessageSizeInKilobytes.HasValue)
-                        properties.MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes;
-                    TopicProperties updated = await serviceBusNamespace.Client.UpdateTopicAsync(properties);
-                    serviceBusNamespace.Topics = With(serviceBusNamespace.Topics, topic, new AzureServiceBusCommonNamespace.EntitySettings(updated.AutoDeleteOnIdle, updated.MaxMessageSizeInKilobytes));
+                    try
+                    {
+                        TopicProperties properties = await serviceBusNamespace.Client.GetTopicAsync(topic);
+                        properties.AutoDeleteOnIdle = autoDeleteOnIdle;
+                        if (maxMessageSizeInKilobytes.HasValue)
+                            properties.MaxMessageSizeInKilobytes = maxMessageSizeInKilobytes;
+                        _ = await serviceBusNamespace.Client.UpdateTopicAsync(properties);
+                    }
+                    //another replica is updating it to the same settings
+                    catch (ServiceBusException ex) when (ex.InnerException is RequestFailedException { Status: 409 })
+                    {
+                    }
+                    serviceBusNamespace.Topics = With(serviceBusNamespace.Topics, topic, new AzureServiceBusCommonNamespace.EntitySettings(autoDeleteOnIdle, maxMessageSizeInKilobytes));
                 }
             }
             finally
