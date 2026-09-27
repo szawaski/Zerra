@@ -69,6 +69,31 @@ namespace Zerra.Repository.Test.AzureServiceBus
             }
         }
 
+        [Fact(Timeout = 300000)]
+        public async Task TestConsumesAgainAfterQueueDeleted()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, log, null))
+                {
+                    //deleted with the administration client directly, not AzureServiceBusCommon, so the cached queue list still has it
+                    await MessageTest.TestConsumesAgainAfterTopicDeleted(producer, consumer, commandTopic, async () =>
+                    {
+                        _ = await AzureServiceBusCommon.CreateAdministrationClient(host).DeleteQueueAsync(commandTopic);
+                    }, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+            }
+        }
+
         [Fact(Timeout = 120000)]
         public async Task TestAckListenerStartsOnRegister()
         {

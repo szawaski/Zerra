@@ -171,6 +171,37 @@ namespace Zerra.Repository.Test.Kafka
         }
 
         [Fact(Timeout = 300000)]
+        public async Task TestConsumesAgainAfterTopicDeleted()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            string? ackTopic = null;
+
+            try
+            {
+                using (var consumer = new KafkaConsumer(host, serializer, null, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, null, log, null, null, null))
+                {
+                    ackTopic = AckTopic(producer);
+                    //deleted with the broker's own admin client, not KafkaCommon, so the cached topic list still has it
+                    await MessageTest.TestConsumesAgainAfterTopicDeleted(producer, consumer, commandTopic, async () =>
+                    {
+                        using var admin = new AdminClientBuilder(new AdminClientConfig() { BootstrapServers = host }).Build();
+                        await admin.DeleteTopicsAsync([commandTopic]);
+                    }, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await KafkaCommon.DeleteTopic(host, null, null, commandTopic);
+                await DeleteConsumerGroup(commandTopic);
+                if (ackTopic is not null)
+                    await KafkaCommon.DeleteTopic(host, null, null, ackTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
         public async Task TestAckProducerReplacedAfterManyTopics()
         {
             var commandTopic = MessageTest.NewTopic("Command");

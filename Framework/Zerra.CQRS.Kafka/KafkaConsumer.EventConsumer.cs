@@ -98,7 +98,13 @@ namespace Zerra.CQRS.Kafka
                         consumerConfig.SaslPassword = commonHost.Password;
                     }
 
-                    using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
+                    //librdkafka only reports a deleted topic as an error and keeps waiting, so it ends the consume and the retry creates the topic again
+                    using var topicMissing = CancellationTokenSource.CreateLinkedTokenSource(canceller.Token);
+                    using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).SetErrorHandler((_, error) =>
+                    {
+                        if (error.Code == ErrorCode.UnknownTopicOrPart || error.Code == ErrorCode.Local_UnknownPartition)
+                            topicMissing.Cancel();
+                    }).Build())
                     {
                         consumer.Subscribe(topic);
 
@@ -111,7 +117,7 @@ namespace Zerra.CQRS.Kafka
                                 ConsumeResult<string, byte[]> consumerResult;
                                 try
                                 {
-                                    consumerResult = consumer.Consume(canceller.Token);
+                                    consumerResult = consumer.Consume(topicMissing.Token);
                                     consumer.Commit(consumerResult);
                                 }
                                 catch

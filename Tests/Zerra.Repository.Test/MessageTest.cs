@@ -114,6 +114,36 @@ namespace Zerra.Repository.Test
             }
         }
 
+        /// <summary>
+        /// The command topic is deleted outside of Zerra while a consumer is running. The consumer fails, forgets the topic it had listed as existing,
+        /// and creates it again, after which commands are received again.
+        /// </summary>
+        public static async Task TestConsumesAgainAfterTopicDeleted(ICommandProducer commandProducer, ICommandConsumer commandConsumer, string commandTopic, Func<Task> deleteTopicOutsideZerra, CancellationToken cancellationToken)
+        {
+            TypeFinder.Register(typeof(TestCommand));
+            TypeFinder.Register(typeof(TestCommandWithResult));
+
+            var receiver = new Receiver();
+
+            commandConsumer.Setup(new CommandCounter(), receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
+            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            commandConsumer.Open();
+            try
+            {
+                await WaitForCommandConsumer(commandProducer, cancellationToken);
+
+                await deleteTopicOutsideZerra();
+
+                await RetryUntilReady("Command consumer after its topic was deleted", cancellationToken, (attemptCancellationToken) =>
+                    commandProducer.DispatchAwaitAsync(new TestCommand() { ID = Guid.NewGuid() }, source, attemptCancellationToken));
+            }
+            finally
+            {
+                commandConsumer.Close();
+            }
+        }
+
         private static Task WaitForCommandConsumer(ICommandProducer producer, CancellationToken cancellationToken)
         {
             return RetryUntilReady("Command consumer", cancellationToken, (attemptCancellationToken) =>
