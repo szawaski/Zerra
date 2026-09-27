@@ -70,7 +70,7 @@ public sealed class AddProductCommand : ICommand<AddProductResult>
 public interface IOrderEventHandler : IEventHandler<OrderShippedEvent> { }
 ```
 
-- Put `CancellationToken` last on query methods. Clients don't send it, the server passes its own in its place.
+- Put `CancellationToken` last on query methods. Cancelling the caller's token cancels the call, including the handler's token on the remote service.
 - Command handler methods are `Handle(TCommand command, CancellationToken cancellationToken)`, event handler methods are `Handle(TEvent @event)`.
 - Models are plain classes with public properties. `required` members work with the serializers and the generated clients, but a value missing from a browser's JSON arrives as its default, so handlers still validate their input.
 

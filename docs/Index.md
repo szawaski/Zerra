@@ -2,13 +2,15 @@
 
 Welcome to the Zerra CQRS Framework documentation. This guide provides comprehensive information about building distributed, message-driven applications using Zerra.
 
-> 📖 **Looking for the project overview?** See the [Main Project README](../README.md) for quick start and introduction.
+> 📖 **New to Zerra?** Start with the [Main Project README](../README.md) for an overview, then [Getting Started](GettingStarted.md).
 
 ---
 
 ## Documentation Table of Contents
 
 ### Getting Started
+- [Getting Started](GettingStarted.md) - Build a service and a client, then route between in-process, TCP, HTTP, and message brokers
+- [Store Demo](../Demo/Store/README.md) - A complete multi-service sample application
 - [Agents](Agents.md) - Architectural context for AI agents working with Zerra
 - [Upgrading from Zerra 5 to 6](UpgradeV5ToV6.md) - Step-by-step migration of a Zerra 5 solution, written for AI agents
 
@@ -49,13 +51,15 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - [Repository Generation](RepositoryGeneration.md) - Code First schema generation and Database First T4 reverse engineering
 
 ### Additional Resources
-- [Main Project README](../README.md) - Quick start, installation, and project overview
+- [Main Project README](../README.md) - Project overview and packages
 
 ---
 
 ## Quick Reference
 
 ### Essential First Steps
+[Getting Started](GettingStarted.md) walks through all of these in one guide.
+
 1. **[Add Zerra Package](AOT.md)** - Reference Zerra NuGet package (includes automatic source generation for CQRS types)
 2. **[Configure Serializer](Serializers.md)** - Choose ZerraByteSerializer (binary) or ZerraJsonSerializer (JSON)
 3. **[Set Up Server](ServerSetup.md)** - Register handlers and start consumers
