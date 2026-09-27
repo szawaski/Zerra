@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Confluent.Kafka;
+using System.Collections.Concurrent;
 using Zerra.Collections;
 using System.Security.Claims;
 using System.Text;
@@ -33,7 +34,36 @@ namespace Zerra.CQRS.Kafka
             private readonly ConcurrentHashSet<Task> handling = new();
             private static readonly Action<Task, object?> removeHandling = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
             private Task? listening;
-            private IProducer<string, byte[]>? ackProducer;
+            private ProducerConfig? ackProducerConfig;
+            private AckProducer? ackProducer;
+
+            //librdkafka keeps every topic a producer has sent to for the producer's life, so after this many acknowledgement topics it's replaced
+            private const int maxAckTopicsPerProducer = 1000;
+
+            private sealed class AckProducer
+            {
+                public readonly IProducer<string, byte[]> Producer;
+                public readonly ConcurrentDictionary<string, byte> Topics = new();
+                public int TopicCount;
+                public int Using;
+                public int Retired;
+                private int disposed;
+
+                public AckProducer(IProducer<string, byte[]> producer) => this.Producer = producer;
+
+                //a replaced producer is disposed by whichever reply finishes using it last
+                public void Release()
+                {
+                    if (Interlocked.Decrement(ref Using) == 0 && Volatile.Read(ref Retired) == 1)
+                        Dispose();
+                }
+
+                public void Dispose()
+                {
+                    if (Interlocked.Exchange(ref disposed, 1) == 0)
+                        Producer.Dispose();
+                }
+            }
 
             public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
@@ -59,29 +89,32 @@ namespace Zerra.CQRS.Kafka
                 this.canceller = new CancellationTokenSource();
             }
 
-            public void Open(string host, string? userName, string? password)
+            public void Open(KafkaCommonHost commonHost)
             {
                 if (IsOpen)
                     return;
                 IsOpen = true;
 
-                //one producer sends every acknowledgement, it connects on first use
                 var producerConfig = new ProducerConfig();
-                producerConfig.BootstrapServers = host;
+                producerConfig.BootstrapServers = commonHost.Host;
+                producerConfig.LingerMs = 0;
+                //librdkafka keeps refreshing every topic it has produced to, with auto-create on that brings back the acknowledgement topic of a stopped producer
+                producerConfig.AllowAutoCreateTopics = false;
                 producerConfig.ClientId = clientID;
-                if (userName is not null && password is not null)
+                if (commonHost.UserName is not null && commonHost.Password is not null)
                 {
                     producerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
                     producerConfig.SaslMechanism = SaslMechanism.Plain;
-                    producerConfig.SaslUsername = userName;
-                    producerConfig.SaslPassword = password;
+                    producerConfig.SaslUsername = commonHost.UserName;
+                    producerConfig.SaslPassword = commonHost.Password;
                 }
-                ackProducer = new ProducerBuilder<string, byte[]>(producerConfig).Build();
+                ackProducerConfig = producerConfig;
+                ackProducer = new AckProducer(new ProducerBuilder<string, byte[]>(producerConfig).Build());
 
-                listening = Task.Run(() => ListeningThread(host, userName, password));
+                listening = Task.Run(() => ListeningThread(commonHost));
             }
 
-            private async Task ListeningThread(string host, string? userName, string? password)
+            private async Task ListeningThread(KafkaCommonHost commonHost)
             {
                 //the throttle is not disposed: handlers still running after the listener stops release it, and a disposed SemaphoreSlim throws ObjectDisposedException on Release
                 //this isn't a leak, SemaphoreSlim.Dispose only frees the wait handle that AvailableWaitHandle creates on first use, which nothing reads,
@@ -93,20 +126,20 @@ namespace Zerra.CQRS.Kafka
 
                 try
                 {
-                    await KafkaCommon.EnsureTopic(host, userName, password, topic);
+                    await KafkaCommon.EnsureTopic(commonHost, topic);
 
                     var consumerConfig = new ConsumerConfig();
-                    consumerConfig.BootstrapServers = host;
+                    consumerConfig.BootstrapServers = commonHost.Host;
                     consumerConfig.GroupId = topic;
                     consumerConfig.EnableAutoCommit = false;
                     //commands in the topic are meant for this service, so a new group starts from the beginning instead of skipping commands sent before it first joined
                     consumerConfig.AutoOffsetReset = AutoOffsetReset.Earliest;
-                    if (userName is not null && password is not null)
+                    if (commonHost.UserName is not null && commonHost.Password is not null)
                     {
                         consumerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
                         consumerConfig.SaslMechanism = SaslMechanism.Plain;
-                        consumerConfig.SaslUsername = userName;
-                        consumerConfig.SaslPassword = password;
+                        consumerConfig.SaslUsername = commonHost.UserName;
+                        consumerConfig.SaslPassword = commonHost.Password;
                     }
 
                     using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
@@ -153,6 +186,7 @@ namespace Zerra.CQRS.Kafka
                     if (!canceller.IsCancellationRequested)
                     {
                         log?.Error(topic, ex);
+                        await KafkaCommon.ForgetTopic(commonHost, topic);
                         await Task.Delay(KafkaCommon.RetryDelay);
                         goto retry;
                     }
@@ -227,11 +261,35 @@ namespace Zerra.CQRS.Kafka
                     if (encryptor is not null)
                         body = encryptor.Encrypt(body);
 
-                    _ = await ackProducer!.ProduceAsync(ackTopic, new Message<string, byte[]>()
+                    AckProducer ackProducer;
+                    for (; ; )
                     {
-                        Key = ackKey!,
-                        Value = body
-                    });
+                        ackProducer = Volatile.Read(ref this.ackProducer)!;
+                        _ = Interlocked.Increment(ref ackProducer.Using);
+                        if (ackProducer == Volatile.Read(ref this.ackProducer))
+                            break;
+                        ackProducer.Release();
+                    }
+                    try
+                    {
+                        if (ackProducer.Topics.TryAdd(ackTopic, 0) && Interlocked.Increment(ref ackProducer.TopicCount) == maxAckTopicsPerProducer)
+                        {
+                            Volatile.Write(ref this.ackProducer, new AckProducer(new ProducerBuilder<string, byte[]>(ackProducerConfig!).Build()));
+                            Volatile.Write(ref ackProducer.Retired, 1);
+                            if (Volatile.Read(ref ackProducer.Using) == 0)
+                                ackProducer.Dispose();
+                        }
+
+                        _ = await ackProducer.Producer.ProduceAsync(ackTopic, new Message<string, byte[]>()
+                        {
+                            Key = ackKey!,
+                            Value = body
+                        });
+                    }
+                    finally
+                    {
+                        ackProducer.Release();
+                    }
                 }
                 catch (Exception ex)
                 {

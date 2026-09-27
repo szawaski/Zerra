@@ -19,13 +19,11 @@ namespace Zerra.CQRS.Kafka
     /// </remarks>
     public sealed partial class KafkaConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
-        private readonly string host;
+        private readonly KafkaCommonHost commonHost;
         private readonly Zerra.Serialization.ISerializer serializer;
         private readonly IEncryptor? encryptor;
         private readonly ILogger? log;
         private readonly string? environment;
-        private readonly string? userName;
-        private readonly string? password;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
         private readonly Dictionary<string, EventConsumer> eventExchanges;
@@ -63,13 +61,11 @@ namespace Zerra.CQRS.Kafka
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
-            this.host = host;
+            this.commonHost = KafkaCommon.GetHost(host, userName, password);
             this.serializer = serializer;
             this.encryptor = encryptor;
             this.log = log;
             this.environment = environment;
-            this.userName = userName;
-            this.password = password;
             this.commandExchanges = new();
             this.eventExchanges = new();
             this.commandTypes = new();
@@ -143,10 +139,10 @@ namespace Zerra.CQRS.Kafka
                 return;
 
             foreach (var exchange in commandExchanges.Values.Where(x => !x.IsOpen))
-                exchange.Open(this.host, this.userName, this.password);
+                exchange.Open(this.commonHost);
 
             foreach (var exchange in eventExchanges.Values.Where(x => !x.IsOpen))
-                exchange.Open(this.host, this.userName, this.password);
+                exchange.Open(this.commonHost);
         }
 
         /// <summary>

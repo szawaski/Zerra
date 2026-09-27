@@ -66,15 +66,15 @@ namespace Zerra.CQRS.AzureServiceBus
                 this.canceller = new CancellationTokenSource();
             }
 
-            public void Open(string host, ServiceBusClient client)
+            public void Open(AzureServiceBusCommonNamespace commonNamespace, ServiceBusClient client)
             {
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                listening = Task.Run(() => ListeningThread(host, client, handlerAsync));
+                listening = Task.Run(() => ListeningThread(commonNamespace, client, handlerAsync));
             }
 
-            public async Task ListeningThread(string host, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync)
+            public async Task ListeningThread(AzureServiceBusCommonNamespace commonNamespace, ServiceBusClient client, HandleRemoteEventDispatch handlerAsync)
             {
                 //the throttle is not disposed: handlers still running after the listener stops release it, and a disposed SemaphoreSlim throws ObjectDisposedException on Release
                 //this isn't a leak, SemaphoreSlim.Dispose only frees the wait handle that AvailableWaitHandle creates on first use, which nothing reads,
@@ -86,8 +86,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
-                    await AzureServiceBusCommon.EnsureTopic(host, topic, false);
-                    await AzureServiceBusCommon.EnsureSubscription(host, topic, subscription, deleteSubscriptionOnStop);
+                    await AzureServiceBusCommon.EnsureTopic(commonNamespace, topic, false);
+                    await AzureServiceBusCommon.EnsureSubscription(commonNamespace, topic, subscription, deleteSubscriptionOnStop);
 
                     await using (var receiver = client.CreateReceiver(topic, subscription, receiverOptions))
                     {
@@ -127,6 +127,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     if (!canceller.IsCancellationRequested)
                     {
                         log?.Error(topic, ex);
+                        await AzureServiceBusCommon.Forget(commonNamespace, topic);
                         await Task.Delay(AzureServiceBusCommon.RetryDelay);
                         goto retry;
                     }
@@ -138,7 +139,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     try
                     {
-                        await AzureServiceBusCommon.DeleteSubscription(host, topic, subscription);
+                        await AzureServiceBusCommon.DeleteSubscription(commonNamespace, topic, subscription);
                     }
                     catch (Exception ex)
                     {

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Store.Common;
 using Store.Common.Data;
 using Store.Common.Logging;
@@ -12,6 +13,8 @@ using Zerra.CQRS.Network;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.Logging;
 using Zerra.Repository;
+
+var startup = Stopwatch.StartNew();
 
 Console.Title = "Store - Inventory Service";
 ILogger log = new ConsoleLogger();
@@ -71,6 +74,6 @@ if (useRabbitMQ)
 else
     bus.AddEventConsumer<IOrdersEventHandler>(server, EventConsumerMode.PerService);
 
-log.Info($"Inventory service listening on {StoreSettings.InventoryServiceUrl}, press Ctrl+C to stop");
+log.Info($"Inventory service listening on {StoreSettings.InventoryServiceUrl}, started in {startup.ElapsedMilliseconds} ms, press Ctrl+C to stop");
 
 await bus.WaitForExitAsync();

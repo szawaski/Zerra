@@ -180,6 +180,9 @@ namespace Zerra.Test.CQRS.Network
             var result = await ApiServerHandler.HandleRequestAsync(bus, serializer, data, CancellationToken.None);
 
             Assert.NotNull(result);
+            //written to the response by the server, not serialized to bytes here
+            Assert.Equal("test model", result.Model);
+            Assert.Same(serializer, result.Serializer);
         }
 
         [Fact]
@@ -244,6 +247,66 @@ namespace Zerra.Test.CQRS.Network
             var result = await ApiServerHandler.HandleRequestAsync(bus, serializer, data, CancellationToken.None);
 
             Assert.NotNull(result);
+            Assert.Equal("test result", result.Model);
+            Assert.Same(serializer, result.Serializer);
+        }
+
+        [Fact]
+        public async Task HandleRequestAsync_WithMessageTypeAndNullResult_SerializesNull()
+        {
+            var bus = new MockBus();
+            var serializer = new ZerraJsonSerializer();
+            bus.CommandResult = null;
+
+            var data = new ApiRequestData
+            {
+                MessageType = typeof(TestCommandWithResult).AssemblyQualifiedName,
+                MessageData = JsonSerializer.Serialize(new TestCommandWithResult()),
+                MessageAwait = false,
+                MessageResult = true,
+                Source = "TestSource"
+            };
+
+            var result = await ApiServerHandler.HandleRequestAsync(bus, serializer, data, CancellationToken.None);
+
+            Assert.NotNull(result);
+            Assert.False(result.Void);
+            Assert.Null(result.Model);
+            Assert.Same(serializer, result.Serializer);
+        }
+
+        [Fact]
+        public async Task HandleRequestAsync_WithProviderTypeReturningNull_ReturnsVoid()
+        {
+            var bus = new MockBus();
+            var serializer = new ZerraJsonSerializer();
+            bus.QueryResponse = new RemoteQueryCallResponse((object?)null);
+
+            var data = new ApiRequestData
+            {
+                ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
+                ProviderMethod = "GetData",
+                ProviderArguments = Array.Empty<byte[]>(),
+                Source = "TestSource"
+            };
+
+            var result = await ApiServerHandler.HandleRequestAsync(bus, serializer, data, CancellationToken.None);
+
+            //an empty body, the same as before the model was serialized straight to the response
+            Assert.NotNull(result);
+            Assert.True(result.Void);
+        }
+
+        //a null model is written by SerializeAsync, which has to match what SerializeBytes wrote for it before
+        [Fact]
+        public async Task SerializeAsync_Null_MatchesSerializeBytes()
+        {
+            foreach (var serializer in new ISerializer[] { new ZerraJsonSerializer(), new ZerraByteSerializer() })
+            {
+                using var stream = new MemoryStream();
+                await serializer.SerializeAsync(stream, null, CancellationToken.None);
+                Assert.Equal(serializer.SerializeBytes(null), stream.ToArray());
+            }
         }
 
         [Fact]

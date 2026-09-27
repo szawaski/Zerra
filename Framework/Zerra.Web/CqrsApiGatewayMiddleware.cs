@@ -206,9 +206,9 @@ namespace Zerra.Web
                 if (response.Void)
                     return;
 
-                if (response.Bytes is not null)
+                if (response.Serializer is not null)
                 {
-                    context.Response.ContentType = acceptSerializer.ContentType switch
+                    context.Response.ContentType = response.Serializer.ContentType switch
                     {
                         ContentType.Bytes => "application/octet-stream",
                         ContentType.JsonNameless => "application/jsonnameless; charset=utf-8",
@@ -216,12 +216,8 @@ namespace Zerra.Web
                         _ => throw new NotImplementedException(),
                     };
 
-                    context.Response.ContentLength = response.Bytes.Length;
-#if NETSTANDARD2_0
-                    await context.Response.Body.WriteAsync(response.Bytes, 0, response.Bytes.Length, context.RequestAborted);
-#else
-                    await context.Response.Body.WriteAsync(response.Bytes.AsMemory(0, response.Bytes.Length), context.RequestAborted);
-#endif
+                    //straight to the response instead of into an array first, the length isn't known up front so it's sent chunked
+                    await response.Serializer.SerializeAsync(context.Response.Body, response.Model, context.RequestAborted);
                 }
                 else if (response.Stream is not null)
                 {
@@ -255,6 +251,14 @@ namespace Zerra.Web
             {
                 if (!inHandlerContext)
                     log?.Error(ex);
+
+                //a response serialized straight to the body can fail after it started, the status can't change then, so the connection is
+                //aborted and the client sees a failed request instead of a cut off body that looks like a success
+                if (context.Response.HasStarted)
+                {
+                    context.Abort();
+                    return;
+                }
 
                 ex = ex.GetBaseException();
 

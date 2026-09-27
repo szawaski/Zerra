@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Store.Carts.Domain;
 using Store.Catalog.Domain;
 using Store.Common;
@@ -11,6 +12,8 @@ using Zerra.CQRS.AzureServiceBus;
 using Zerra.CQRS.Network;
 using Zerra.Serialization;
 using Zerra.Web;
+
+var startup = Stopwatch.StartNew();
 
 Console.Title = "Store - Web Gateway";
 var builder = WebApplication.CreateBuilder(args);
@@ -76,4 +79,6 @@ app.UseStaticFiles();
 //Bus.js posts every query and command here. A real site would register an ICqrsAuthorizer and pass allowOrigins.
 app.UseCqrsApiGateway("/CQRS");
 
+//Kestrel starts in Run, so the time is logged once it's listening
+app.Lifetime.ApplicationStarted.Register(() => log.Info($"Web gateway listening on {String.Join(", ", app.Urls)}, started in {startup.ElapsedMilliseconds} ms"));
 app.Run();

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Store.Carts.Domain;
 using Store.Carts.Service.Data;
 using Store.Carts.Service.Handlers;
@@ -12,6 +13,8 @@ using Zerra.CQRS.Network;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.Logging;
 using Zerra.Repository;
+
+var startup = Stopwatch.StartNew();
 
 Console.Title = "Store - Carts Service";
 ILogger log = new ConsoleLogger();
@@ -69,6 +72,6 @@ var ordersClient = new TcpCqrsClient(StoreSettings.OrdersServiceUrl, serializer,
 bus.AddQueryClient<IOrdersQueryHandler>(ordersClient);
 bus.AddCommandProducer<IOrdersCommandHandler>(ordersClient);
 
-log.Info($"Carts service listening on {StoreSettings.CartsServiceUrl}, press Ctrl+C to stop");
+log.Info($"Carts service listening on {StoreSettings.CartsServiceUrl}, started in {startup.ElapsedMilliseconds} ms, press Ctrl+C to stop");
 
 await bus.WaitForExitAsync();

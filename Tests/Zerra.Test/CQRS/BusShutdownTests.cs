@@ -12,7 +12,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public async Task StopServicesAsync_FinishesQueryInProgress_Tcp()
         {
-            var url = "http://localhost:9011";
+            var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
 
@@ -40,7 +40,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public async Task StopServicesAsync_FinishesQueryInProgress_Http()
         {
-            var url = "http://localhost:9012";
+            var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
 
@@ -66,7 +66,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public async Task StopServices_FinishesQueryInProgress_Tcp()
         {
-            var url = "http://localhost:9013";
+            var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
 
@@ -92,7 +92,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public async Task StopServicesAsync_FinishesFireAndForgetCommand_Tcp()
         {
-            var url = "http://localhost:9014";
+            var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
 
@@ -119,7 +119,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public async Task StopServicesAsync_StopsWaitingAfterTheTimeoutWithoutCancelling_Tcp()
         {
-            var url = "http://localhost:9015";
+            var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
 

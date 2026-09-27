@@ -37,6 +37,13 @@ namespace Zerra.CQRS.RabbitMQ
 #endif
 
             private IModel? channel = null;
+            //a channel isn't safe to publish on from more than one thread, a publish is several frames and replies from concurrent handlers would
+            //interleave them, acks are taken on the dispatcher while the handlers reply from their own tasks so they share the lock
+#if NETSTANDARD2_0
+            private readonly object channelLock = new();
+#else
+            private readonly Lock channelLock = new();
+#endif
             private string? consumerTag = null;
             private readonly SemaphoreSlim throttle;
             private readonly ConcurrentHashSet<Task> handling = new();
@@ -112,7 +119,8 @@ namespace Zerra.CQRS.RabbitMQ
 
                         try
                         {
-                            consumer.Model.BasicAck(e.DeliveryTag, false);
+                            lock (channelLock)
+                                consumer.Model.BasicAck(e.DeliveryTag, false);
                         }
                         catch (Exception ex)
                         {
@@ -209,16 +217,18 @@ namespace Zerra.CQRS.RabbitMQ
 
                 try
                 {
-                    var replyProperties = this.channel!.CreateBasicProperties();
-                    replyProperties.CorrelationId = correlationId;
-
                     var acknowledgement = new Acknowledgement(serializer, result, error);
 
                     var acknowledgmentBody = serializer.SerializeBytes(acknowledgement);
                     if (encryptor is not null)
                         acknowledgmentBody = encryptor.Encrypt(acknowledgmentBody);
 
-                    this.channel.BasicPublish(String.Empty, replyTo!, replyProperties, acknowledgmentBody);
+                    lock (channelLock)
+                    {
+                        var replyProperties = this.channel!.CreateBasicProperties();
+                        replyProperties.CorrelationId = correlationId;
+                        this.channel.BasicPublish(String.Empty, replyTo!, replyProperties, acknowledgmentBody);
+                    }
                 }
                 catch (Exception ex)
                 {

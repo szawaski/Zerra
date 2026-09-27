@@ -12,6 +12,7 @@ namespace Zerra.Repository.Test
         public int Value { get; set; }
         public string? Text { get; set; }
         public bool Throw { get; set; }
+        public int DelayMilliseconds { get; set; }
     }
 
     public sealed class TestCommandWithResult : ICommand<int>

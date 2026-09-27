@@ -57,12 +57,18 @@ namespace Zerra.CQRS.Reflection
             public readonly string InterfaceName;
             public readonly IReadOnlyList<Type> CommandTypes;
             public readonly IReadOnlyList<Type> EventTypes;
+            public readonly Dictionary<Type, string> HandleMethodNames;
             public CommandOrEventInfo(Type interfaceType, string interfaceName, IReadOnlyList<Type> commandTypes, IReadOnlyList<Type> eventTypes)
             {
                 this.InterfaceType = interfaceType;
                 this.InterfaceName = interfaceName;
                 this.CommandTypes = commandTypes;
                 this.EventTypes = eventTypes;
+                this.HandleMethodNames = new(commandTypes.Count + eventTypes.Count);
+                foreach (var commandType in commandTypes)
+                    this.HandleMethodNames[commandType] = $"{nameof(ICommandHandler<>.Handle)}-{commandType.Name}";
+                foreach (var eventType in eventTypes)
+                    this.HandleMethodNames[eventType] = $"{nameof(IEventHandler<>.Handle)}-{eventType.Name}";
             }
         }
     }

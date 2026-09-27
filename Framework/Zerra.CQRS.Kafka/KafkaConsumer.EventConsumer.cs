@@ -64,15 +64,15 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
-            public void Open(string host, string? userName, string? password)
+            public void Open(KafkaCommonHost commonHost)
             {
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                listening = Task.Run(() => ListeningThread(host, userName, password, handlerAsync));
+                listening = Task.Run(() => ListeningThread(commonHost, handlerAsync));
             }
 
-            public async Task ListeningThread(string host, string? userName, string? password, HandleRemoteEventDispatch handlerAsync)
+            public async Task ListeningThread(KafkaCommonHost commonHost, HandleRemoteEventDispatch handlerAsync)
             {
                 //the throttle is not disposed: handlers still running after the listener stops release it, and a disposed SemaphoreSlim throws ObjectDisposedException on Release
                 //this isn't a leak, SemaphoreSlim.Dispose only frees the wait handle that AvailableWaitHandle creates on first use, which nothing reads,
@@ -84,18 +84,18 @@ namespace Zerra.CQRS.Kafka
 
                 try
                 {
-                    await KafkaCommon.EnsureTopic(host, userName, password, topic);
+                    await KafkaCommon.EnsureTopic(commonHost, topic);
 
                     var consumerConfig = new ConsumerConfig();
-                    consumerConfig.BootstrapServers = host;
+                    consumerConfig.BootstrapServers = commonHost.Host;
                     consumerConfig.GroupId = groupId;
                     consumerConfig.EnableAutoCommit = false;
-                    if (userName is not null && password is not null)
+                    if (commonHost.UserName is not null && commonHost.Password is not null)
                     {
                         consumerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
                         consumerConfig.SaslMechanism = SaslMechanism.Plain;
-                        consumerConfig.SaslUsername = userName;
-                        consumerConfig.SaslPassword = password;
+                        consumerConfig.SaslUsername = commonHost.UserName;
+                        consumerConfig.SaslPassword = commonHost.Password;
                     }
 
                     using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
@@ -120,7 +120,7 @@ namespace Zerra.CQRS.Kafka
                                     throw;
                                 }
 
-                                var handleTask = Task.Run(() => HandleMessage(throttle, host, consumerResult, handlerAsync));
+                                var handleTask = Task.Run(() => HandleMessage(throttle, consumerResult, handlerAsync));
                                 _ = handling.Add(handleTask);
                                 _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
@@ -140,6 +140,7 @@ namespace Zerra.CQRS.Kafka
                     if (!canceller.IsCancellationRequested)
                     {
                         log?.Error(topic, ex);
+                        await KafkaCommon.ForgetTopic(commonHost, topic);
                         await Task.Delay(KafkaCommon.RetryDelay);
                         goto retry;
                     }
@@ -150,7 +151,7 @@ namespace Zerra.CQRS.Kafka
                 {
                     try
                     {
-                        await KafkaCommon.DeleteConsumerGroup(host, userName, password, groupId);
+                        await KafkaCommon.DeleteConsumerGroup(commonHost, groupId);
                     }
                     catch (Exception ex)
                     {
@@ -159,7 +160,7 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
-            private async Task HandleMessage(SemaphoreSlim throttle, string host, ConsumeResult<string, byte[]> consumerResult, HandleRemoteEventDispatch handlerAsync)
+            private async Task HandleMessage(SemaphoreSlim throttle, ConsumeResult<string, byte[]> consumerResult, HandleRemoteEventDispatch handlerAsync)
             {
                 var inHandlerContext = false;
                 try

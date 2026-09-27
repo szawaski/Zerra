@@ -25,18 +25,19 @@ namespace Zerra.CQRS.AzureServiceBus
         private bool listenerStarted = false;
         private readonly SemaphoreSlim listenerStartedLock = new(1, 1);
 
-        private readonly string host;
         private readonly ISerializer serializer;
         private readonly IEncryptor? encryptor;
         private readonly ILogger? log;
         private readonly string? environment;
         private readonly string ackQueue;
+        private readonly AzureServiceBusCommonNamespace commonNamespace;
         private readonly ConcurrentDictionary<Type, string> queueByCommandType;
         private readonly ConcurrentDictionary<Type, string> topicByEventType;
         private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByQueueOrTopic;
+        private readonly ConcurrentDictionary<string, ServiceBusSender> senderByQueueOrTopic;
         private readonly ServiceBusClient client;
         private readonly CancellationTokenSource canceller;
-        private readonly ConcurrentDictionary<string, Action<Acknowledgement>> ackCallbacks;
+        private readonly ConcurrentDictionary<string, TaskCompletionSource<Acknowledgement>> ackCallbacks;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AzureServiceBusProducer"/> class.
@@ -51,7 +52,7 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
-            this.host = host;
+            this.commonNamespace = AzureServiceBusCommon.GetNamespace(host);
             this.serializer = serializer;
             this.encryptor = encryptor;
             this.log = log;
@@ -62,10 +63,11 @@ namespace Zerra.CQRS.AzureServiceBus
             this.queueByCommandType = new();
             this.topicByEventType = new();
             this.throttleByQueueOrTopic = new();
+            this.senderByQueueOrTopic = new();
             this.client = new ServiceBusClient(host);
 
             this.canceller = new CancellationTokenSource();
-            this.ackCallbacks = new ConcurrentDictionary<string, Action<Acknowledgement>>();
+            this.ackCallbacks = new ConcurrentDictionary<string, TaskCompletionSource<Acknowledgement>>();
         }
 
         string ICommandProducer.MessageHost => "[Host has Secrets]";
@@ -88,6 +90,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
             try
             {
+                await AzureServiceBusCommon.EnsureQueue(commonNamespace, queue, false);
+
                 if (requireAcknowledgement)
                 {
                     if (!listenerStarted)
@@ -97,7 +101,7 @@ namespace Zerra.CQRS.AzureServiceBus
                         {
                             if (!listenerStarted)
                             {
-                                await AzureServiceBusCommon.EnsureQueue(host, ackQueue, true);
+                                await AzureServiceBusCommon.EnsureQueue(commonNamespace, ackQueue, true);
 
                                 _ = Task.Run(AckListeningThread);
                                 listenerStarted = true;
@@ -131,42 +135,32 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     var ackKey = Guid.NewGuid().ToString("N");
 
-                    var waiter = new SemaphoreSlim(0, 1);
+                    var waiter = new TaskCompletionSource<Acknowledgement>(TaskCreationOptions.RunContinuationsAsynchronously);
 
                     try
                     {
-                        Acknowledgement? acknowledgement = null;
-                        _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
-                        {
-                            acknowledgement = ackFromCallback;
-                            _ = waiter.Release();
-                        });
+                        _ = ackCallbacks.TryAdd(ackKey, waiter);
 
                         var serviceBusMessage = new ServiceBusMessage(body);
                         serviceBusMessage.ReplyTo = ackQueue;
                         serviceBusMessage.ReplyToSessionId = ackKey;
-                        await using (var sender = client.CreateSender(queue))
-                        {
-                            await sender.SendMessageAsync(serviceBusMessage, cancellationToken);
-                        }
+                        await senderByQueueOrTopic[queue].SendMessageAsync(serviceBusMessage, cancellationToken);
 
-                        await waiter.WaitAsync(cancellationToken);
+                        Acknowledgement acknowledgement;
+                        using (cancellationToken.Register(static (state) => ((TaskCompletionSource<Acknowledgement>)state!).TrySetCanceled(), waiter))
+                            acknowledgement = await waiter.Task;
 
                         Acknowledgement.ThrowIfFailed(commandType.Name, serializer, acknowledgement);
                     }
                     finally
                     {
                         _ = ackCallbacks.TryRemove(ackKey, out _);
-                        waiter.Dispose();
                     }
                 }
                 else
                 {
                     var serviceBusMessage = new ServiceBusMessage(body);
-                    await using (var sender = client.CreateSender(queue))
-                    {
-                        await sender.SendMessageAsync(serviceBusMessage, cancellationToken);
-                    }
+                    await senderByQueueOrTopic[queue].SendMessageAsync(serviceBusMessage, cancellationToken);
                 }
             }
             finally
@@ -187,6 +181,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
             try
             {
+                await AzureServiceBusCommon.EnsureQueue(commonNamespace, queue, false);
+
                 if (!listenerStarted)
                 {
                     await listenerStartedLock.WaitAsync();
@@ -194,7 +190,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     {
                         if (!listenerStarted)
                         {
-                            await AzureServiceBusCommon.EnsureQueue(host, ackQueue, true);
+                            await AzureServiceBusCommon.EnsureQueue(commonNamespace, ackQueue, true);
 
                             _ = Task.Run(AckListeningThread);
                             listenerStarted = true;
@@ -225,26 +221,20 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 var ackKey = Guid.NewGuid().ToString("N");
 
-                var waiter = new SemaphoreSlim(0, 1);
+                var waiter = new TaskCompletionSource<Acknowledgement>(TaskCreationOptions.RunContinuationsAsynchronously);
 
                 try
                 {
-                    Acknowledgement? acknowledgement = null;
-                    _ = ackCallbacks.TryAdd(ackKey, (ackFromCallback) =>
-                    {
-                        acknowledgement = ackFromCallback;
-                        _ = waiter.Release();
-                    });
+                    _ = ackCallbacks.TryAdd(ackKey, waiter);
 
                     var serviceBusMessage = new ServiceBusMessage(body);
                     serviceBusMessage.ReplyTo = ackQueue;
                     serviceBusMessage.ReplyToSessionId = ackKey;
-                    await using (var sender = client.CreateSender(queue))
-                    {
-                        await sender.SendMessageAsync(serviceBusMessage, cancellationToken);
-                    }
+                    await senderByQueueOrTopic[queue].SendMessageAsync(serviceBusMessage, cancellationToken);
 
-                    await waiter.WaitAsync(cancellationToken);
+                    Acknowledgement acknowledgement;
+                    using (cancellationToken.Register(static (state) => ((TaskCompletionSource<Acknowledgement>)state!).TrySetCanceled(), waiter))
+                        acknowledgement = await waiter.Task;
 
                     var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(commandType.Name, serializer, acknowledgement)!;
 
@@ -253,7 +243,6 @@ namespace Zerra.CQRS.AzureServiceBus
                 finally
                 {
                     _ = ackCallbacks.TryRemove(ackKey, out _);
-                    waiter.Dispose();
                 }
             }
             finally
@@ -274,6 +263,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
             try
             {
+                await AzureServiceBusCommon.EnsureTopic(commonNamespace, topic, false);
+
                 string[][]? claims = null;
                 if (Thread.CurrentPrincipal is ClaimsPrincipal principal)
                     claims = principal.Claims.Select(x => new string[] { x.Type, x.Value }).ToArray();
@@ -292,10 +283,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     body = encryptor.Encrypt(body);
 
                 var serviceBusMessage = new ServiceBusMessage(body);
-                await using (var sender = client.CreateSender(topic))
-                {
-                    await sender.SendMessageAsync(serviceBusMessage, cancellationToken);
-                }
+                await senderByQueueOrTopic[topic].SendMessageAsync(serviceBusMessage, cancellationToken);
             }
             finally
             {
@@ -321,7 +309,7 @@ namespace Zerra.CQRS.AzureServiceBus
                                 continue;
                             await receiver.CompleteMessageAsync(serviceBusMessage);
 
-                            if (!ackCallbacks.TryRemove(serviceBusMessage.SessionId, out var callback))
+                            if (!ackCallbacks.TryRemove(serviceBusMessage.SessionId, out var waiter))
                                 continue;
 
                             Acknowledgement? acknowledgement = null;
@@ -338,7 +326,7 @@ namespace Zerra.CQRS.AzureServiceBus
                                 acknowledgement = new Acknowledgement(serializer, ex.Message);
                             }
 
-                            callback(acknowledgement);
+                            _ = waiter.TrySetResult(acknowledgement);
 
                             if (canceller.IsCancellationRequested)
                                 break;
@@ -362,7 +350,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
-                    await AzureServiceBusCommon.DeleteQueue(host, ackQueue);
+                    await AzureServiceBusCommon.DeleteQueue(commonNamespace, ackQueue);
                 }
                 catch (Exception ex)
                 {
@@ -402,6 +390,19 @@ namespace Zerra.CQRS.AzureServiceBus
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByQueueOrTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
+            _ = senderByQueueOrTopic.TryAdd(topic, client.CreateSender(topic));
+            //the queue is created now so a command sent before any consumer has run waits in it, and the first send finds it known
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await AzureServiceBusCommon.EnsureQueue(commonNamespace, topic, false);
+                }
+                catch (Exception ex)
+                {
+                    log?.Error(ex);
+                }
+            });
 
             //Started now so the first command sent with DispatchAwait doesn't wait for the acknowledgement queue to be created and received from.
             //If this fails the error is logged and the first send that needs an acknowledgement tries again.
@@ -416,7 +417,7 @@ namespace Zerra.CQRS.AzureServiceBus
                         {
                             if (!listenerStarted)
                             {
-                                await AzureServiceBusCommon.EnsureQueue(host, ackQueue, true);
+                                await AzureServiceBusCommon.EnsureQueue(commonNamespace, ackQueue, true);
 
                                 _ = Task.Run(AckListeningThread);
                                 listenerStarted = true;
@@ -448,6 +449,19 @@ namespace Zerra.CQRS.AzureServiceBus
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
             if (!throttleByQueueOrTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
+            _ = senderByQueueOrTopic.TryAdd(topic, client.CreateSender(topic));
+            //the topic is created now so the first send finds it known
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await AzureServiceBusCommon.EnsureTopic(commonNamespace, topic, false);
+                }
+                catch (Exception ex)
+                {
+                    log?.Error(ex);
+                }
+            });
         }
 
         private string BuildEntityName(string topic, string kind)

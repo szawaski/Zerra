@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Store.Carts.Domain;
 using Store.Catalog.Domain;
 using Store.Catalog.Service.Data;
@@ -11,6 +12,8 @@ using Zerra.CQRS.Network;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.Logging;
 using Zerra.Repository;
+
+var startup = Stopwatch.StartNew();
 
 Console.Title = "Store - Catalog Service";
 ILogger log = new ConsoleLogger();
@@ -66,6 +69,6 @@ else
     bus.AddEventProducer<ICatalogEventHandler>(new TcpCqrsClient(StoreSettings.ReviewsServiceUrl, serializer, encryptor, log));
 }
 
-log.Info($"Catalog service listening on {StoreSettings.CatalogServiceUrl}, press Ctrl+C to stop");
+log.Info($"Catalog service listening on {StoreSettings.CatalogServiceUrl}, started in {startup.ElapsedMilliseconds} ms, press Ctrl+C to stop");
 
 await bus.WaitForExitAsync();

@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections.Concurrent;
 using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 
@@ -9,8 +10,6 @@ namespace Zerra.CQRS.Kafka
 {
     internal static class KafkaCommon
     {
-        private static readonly SemaphoreSlim locker = new(1, 1);
-
         public const int TopicMaxLength = 249;
 
         public const int GroupMaxLength = 249;
@@ -22,121 +21,148 @@ namespace Zerra.CQRS.Kafka
         public const string AckTopicHeader = "AckTopic";
         public const string AckKeyHeader = "AckKey";
 
-        public static async Task EnsureTopic(string host, string? userName, string? password, string topic)
-        {
-            var clientConfig = new AdminClientConfig();
-            clientConfig.BootstrapServers = host;
-            if (userName is not null && password is not null)
-            {
-                clientConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
-                clientConfig.SaslMechanism = SaslMechanism.Plain;
-                clientConfig.SaslUsername = userName;
-                clientConfig.SaslPassword = password;
-            }
+        private static readonly ConcurrentDictionary<(string Host, string? UserName), KafkaCommonHost> hosts = new();
 
-            await locker.WaitAsync();
+        public static KafkaCommonHost GetHost(string host, string? userName, string? password)
+        {
+            var key = (host, userName);
+            if (hosts.TryGetValue(key, out var existing))
+                return existing;
+            var created = new KafkaCommonHost(host, userName, password);
+            existing = hosts.GetOrAdd(key, created);
+            if (existing != created)
+                created.Client.Dispose();
+            return existing;
+        }
+
+        //returns before its first await when the topic is known, which completes without a Task
+        public static async ValueTask EnsureTopic(KafkaCommonHost kafkaHost, string topic)
+        {
+            var topics = kafkaHost.Topics;
+            if (topics is not null && topics.Contains(topic))
+                return;
+
+            await kafkaHost.Locker.WaitAsync();
             try
             {
-                using (var client = new AdminClientBuilder(clientConfig).Build())
+                if (kafkaHost.Topics is not null && kafkaHost.Topics.Contains(topic))
+                    return;
+
+                try
                 {
+                    if (kafkaHost.Topics is null)
+                    {
+                        //listing every topic names none, so it can't have the broker auto create one
+                        var metadata = kafkaHost.Client.GetMetadata(TimeSpan.FromSeconds(10));
+                        var listed = new HashSet<string>(metadata.Topics.Where(x => x.Error.Code == ErrorCode.NoError).Select(x => x.Topic));
+                        kafkaHost.Topics = listed;
+                        if (listed.Contains(topic))
+                            return;
+                    }
+
+                    var topicSpecification = new TopicSpecification()
+                    {
+                        Name = topic,
+                        ReplicationFactor = 1,
+                        NumPartitions = 1
+                    };
                     try
                     {
-                        var metadata = client.GetMetadata(topic, TimeSpan.FromSeconds(10));
-                        if (!metadata.Topics.Any(x => x.Topic == topic))
-                        {
-                            var topicSpecification = new TopicSpecification()
-                            {
-                                Name = topic,
-                                ReplicationFactor = 1,
-                                NumPartitions = 1
-                            };
-                            await client.CreateTopicsAsync(new TopicSpecification[] { topicSpecification });
-                        }
+                        await kafkaHost.Client.CreateTopicsAsync(new TopicSpecification[] { topicSpecification });
                     }
-                    catch (Exception ex)
+                    catch (CreateTopicsException ex) when (ex.Results.All(x => x.Error.Code == ErrorCode.TopicAlreadyExists))
                     {
-                        throw new Exception($"{nameof(KafkaCommon)} failed to create topic {topic}", ex);
+                        //another service created it first
                     }
+                    kafkaHost.Topics = new HashSet<string>(kafkaHost.Topics!) { topic };
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"{nameof(KafkaCommon)} failed to create topic {topic}", ex);
                 }
             }
             finally
             {
-                _ = locker.Release();
+                _ = kafkaHost.Locker.Release();
             }
         }
 
-        public static async Task DeleteTopic(string host, string? userName, string? password, string topic)
+        //a topic deleted outside of this process is still in the list, a consumer that fails forgets it so the next EnsureTopic checks the broker again
+        public static async Task ForgetTopic(KafkaCommonHost kafkaHost, string topic)
         {
-            var clientConfig = new AdminClientConfig();
-            clientConfig.BootstrapServers = host;
-            if (userName is not null && password is not null)
-            {
-                clientConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
-                clientConfig.SaslMechanism = SaslMechanism.Plain;
-                clientConfig.SaslUsername = userName;
-                clientConfig.SaslPassword = password;
-            }
-
-
-            await locker.WaitAsync();
+            await kafkaHost.Locker.WaitAsync();
             try
             {
-                using (var client = new AdminClientBuilder(clientConfig).Build())
+                var topics = kafkaHost.Topics;
+                if (topics is not null && topics.Contains(topic))
                 {
-                    //deleted directly rather than checked first, a metadata request for a missing topic can create it again when the broker auto creates topics
-                    try
-                    {
-                        await client.DeleteTopicsAsync(new string[] { topic });
-                    }
-                    catch (DeleteTopicsException ex) when (ex.Results.All(x => x.Error.Code == ErrorCode.UnknownTopicOrPart))
-                    {
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new Exception($"{nameof(KafkaCommon)} failed to delete topic {topic}", ex);
-                    }
+                    var remaining = new HashSet<string>(topics);
+                    _ = remaining.Remove(topic);
+                    kafkaHost.Topics = remaining;
                 }
             }
             finally
             {
-                _ = locker.Release();
+                _ = kafkaHost.Locker.Release();
+            }
+        }
+
+        public static Task DeleteTopic(string host, string? userName, string? password, string topic) => DeleteTopic(GetHost(host, userName, password), topic);
+
+        public static async Task DeleteTopic(KafkaCommonHost kafkaHost, string topic)
+        {
+            await kafkaHost.Locker.WaitAsync();
+            try
+            {
+                //deleted directly rather than checked first, a metadata request for a missing topic can create it again when the broker auto creates topics
+                try
+                {
+                    await kafkaHost.Client.DeleteTopicsAsync(new string[] { topic });
+                }
+                catch (DeleteTopicsException ex) when (ex.Results.All(x => x.Error.Code == ErrorCode.UnknownTopicOrPart))
+                {
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"{nameof(KafkaCommon)} failed to delete topic {topic}", ex);
+                }
+                var topics = kafkaHost.Topics;
+                if (topics is not null && topics.Contains(topic))
+                {
+                    var remaining = new HashSet<string>(topics);
+                    _ = remaining.Remove(topic);
+                    kafkaHost.Topics = remaining;
+                }
+            }
+            finally
+            {
+                _ = kafkaHost.Locker.Release();
             }
         }
 
         //the group's consumers must have left first, a group that doesn't exist is already deleted
-        public static async Task DeleteConsumerGroup(string host, string? userName, string? password, string group)
-        {
-            var clientConfig = new AdminClientConfig();
-            clientConfig.BootstrapServers = host;
-            if (userName is not null && password is not null)
-            {
-                clientConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
-                clientConfig.SaslMechanism = SaslMechanism.Plain;
-                clientConfig.SaslUsername = userName;
-                clientConfig.SaslPassword = password;
-            }
+        public static Task DeleteConsumerGroup(string host, string? userName, string? password, string group) => DeleteConsumerGroup(GetHost(host, userName, password), group);
 
-            await locker.WaitAsync();
+        public static async Task DeleteConsumerGroup(KafkaCommonHost kafkaHost, string group)
+        {
+            await kafkaHost.Locker.WaitAsync();
             try
             {
-                using (var client = new AdminClientBuilder(clientConfig).Build())
+                try
                 {
-                    try
-                    {
-                        await client.DeleteGroupsAsync(new string[] { group });
-                    }
-                    catch (DeleteGroupsException ex) when (ex.Results.All(x => x.Error.Code == ErrorCode.GroupIdNotFound))
-                    {
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new Exception($"{nameof(KafkaCommon)} failed to delete consumer group {group}", ex);
-                    }
+                    await kafkaHost.Client.DeleteGroupsAsync(new string[] { group });
+                }
+                catch (DeleteGroupsException ex) when (ex.Results.All(x => x.Error.Code == ErrorCode.GroupIdNotFound))
+                {
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"{nameof(KafkaCommon)} failed to delete consumer group {group}", ex);
                 }
             }
             finally
             {
-                _ = locker.Release();
+                _ = kafkaHost.Locker.Release();
             }
         }
 

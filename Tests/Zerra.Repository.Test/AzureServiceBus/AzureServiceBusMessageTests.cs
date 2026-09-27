@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Xunit;
+using Zerra.CQRS;
 using Zerra.CQRS.AzureServiceBus;
 using Zerra.Encryption;
 using Zerra.Serialization;
@@ -44,6 +45,57 @@ namespace Zerra.Repository.Test.AzureServiceBus
                 //commands use a queue per topic and events a topic, the event subscriptions go with the topic
                 await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
                 await AzureServiceBusCommon.DeleteTopic(host, eventTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestCommandSentBeforeConsumer()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, log, null))
+                {
+                    await MessageTest.TestCommandSentBeforeConsumer(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+            }
+        }
+
+        [Fact(Timeout = 120000)]
+        public async Task TestAckListenerStartsOnRegister()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            string? ackQueue = null;
+
+            try
+            {
+                await using (var producer = new AzureServiceBusProducer(host, new ZerraByteSerializer(), null, new TestLogger(), null))
+                {
+                    ackQueue = (string)typeof(AzureServiceBusProducer).GetField("ackQueue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producer)!;
+                    ((ICommandProducer)producer).RegisterCommandType(1, commandTopic, typeof(TestCommand));
+
+                    //registering starts the listener, the first command doesn't wait for the queue
+                    var admin = AzureServiceBusCommon.CreateAdministrationClient(host);
+                    for (var attempt = 1; !(await admin.QueueExistsAsync(ackQueue, TestContext.Current.CancellationToken)).Value; attempt++)
+                    {
+                        if (attempt == 60)
+                            throw new TimeoutException($"Queue {ackQueue} was not created");
+                        await Task.Delay(500, TestContext.Current.CancellationToken);
+                    }
+                }
+            }
+            finally
+            {
+                if (ackQueue is not null)
+                    await AzureServiceBusCommon.DeleteQueue(host, ackQueue);
             }
         }
 

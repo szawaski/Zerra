@@ -19,7 +19,7 @@ namespace Zerra.CQRS.AzureServiceBus
     /// </remarks>
     public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IDisposable, IAsyncDisposable
     {
-        private readonly string host;
+        private readonly AzureServiceBusCommonNamespace commonNamespace;
         private readonly ISerializer serializer;
         private readonly IEncryptor? encryptor;
         private readonly ILogger? log;
@@ -58,7 +58,7 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
-            this.host = host;
+            this.commonNamespace = AzureServiceBusCommon.GetNamespace(host);
             this.serializer = serializer;
             this.encryptor = encryptor;
             this.log = log;
@@ -120,10 +120,10 @@ namespace Zerra.CQRS.AzureServiceBus
                 return;
 
             foreach (var exchange in commandExchanges.Values.Where(x => !x.IsOpen))
-                exchange.Open(this.host, this.client);
+                exchange.Open(this.commonNamespace, this.client);
 
             foreach (var exchange in eventExchanges.Values.Where(x => !x.IsOpen))
-                exchange.Open(this.host, this.client);
+                exchange.Open(this.commonNamespace, this.client);
         }
 
         void ICommandConsumer.Close()

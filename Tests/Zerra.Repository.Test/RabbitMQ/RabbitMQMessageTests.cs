@@ -49,6 +49,28 @@ namespace Zerra.Repository.Test.RabbitMQ
             }
         }
 
+        [Fact(Timeout = 300000)]
+        public async Task TestCommandSentBeforeConsumer()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, null, log, null))
+                {
+                    await MessageTest.TestCommandSentBeforeConsumer(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                DeleteExchanges(commandTopic);
+                DeleteQueues(commandTopic);
+            }
+        }
+
         [Theory(Timeout = 300000)]
         [InlineData(false)]
         [InlineData(true)]

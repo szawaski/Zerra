@@ -47,12 +47,13 @@ namespace Zerra.CQRS.Network
                 }
                 else if (response.Model is not null)
                 {
-                    var bytes = responseSerializer.SerializeBytes(response.Model);
-                    return new ApiResponseData(bytes);
+                    //serialized by the server straight to its response, a large result isn't held in one array first
+                    return new ApiResponseData(response.Model, responseSerializer);
                 }
                 else
                 {
-                    return new ApiResponseData(Array.Empty<byte>());
+                    //a null query result is an empty body
+                    return new ApiResponseData();
                 }
             }
             else if (!String.IsNullOrWhiteSpace(data.MessageType))
@@ -60,8 +61,7 @@ namespace Zerra.CQRS.Network
                 if (data.MessageResult)
                 {
                     var result = await DispatchWithResult(bus, data, cancellationToken);
-                    var bytes = responseSerializer.SerializeBytes(result);
-                    return new ApiResponseData(bytes);
+                    return new ApiResponseData(result, responseSerializer);
                 }
                 else
                 {

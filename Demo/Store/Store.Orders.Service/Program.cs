@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Store.Catalog.Domain;
 using Store.Common;
 using Store.Common.Data;
@@ -15,6 +16,8 @@ using Zerra.CQRS.RabbitMQ;
 using Zerra.Logging;
 using Zerra.Repository;
 using Zerra.Web;
+
+var startup = Stopwatch.StartNew();
 
 Console.Title = "Store - Orders Service";
 ILogger log = new ConsoleLogger();
@@ -84,6 +87,6 @@ else
     bus.AddEventProducer<IOrdersEventHandler>(new KestrelCqrsClient(StoreSettings.ShippingServiceUrl, serializer, encryptor, log, null, null));
 }
 
-log.Info($"Orders service listening on {StoreSettings.OrdersServiceUrl}, press Ctrl+C to stop");
+log.Info($"Orders service listening on {StoreSettings.OrdersServiceUrl}, started in {startup.ElapsedMilliseconds} ms, press Ctrl+C to stop");
 
 await bus.WaitForExitAsync();

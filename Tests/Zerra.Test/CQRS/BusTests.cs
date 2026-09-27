@@ -32,6 +32,39 @@ namespace Zerra.Test.CQRS
         }
 
         [Fact]
+        public async Task Bus_Dispatch_WithTimeout_ThrowsHandlerException()
+        {
+            using var waiter = new SemaphoreSlim(0, 1);
+            var results = new List<int>();
+
+            var bus = Bus.New("test-service", null, null, null);
+            bus.AddHandler<ITestCommandHandler>(new TestCommandHandler(results, waiter));
+
+            //a failure that isn't the timeout is thrown as it is, not swallowed or wrapped
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(() => bus.DispatchAwaitAsync(new TestCommand { Thing = 30, Fail = true }, TimeSpan.FromSeconds(10)));
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(() => bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 31, Fail = true }, TimeSpan.FromSeconds(10)));
+
+            //and a result comes back through the timeout
+            Assert.Equal(64, await bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 32 }, TimeSpan.FromSeconds(10)));
+        }
+
+        [Fact]
+        public async Task Bus_Dispatch_WithDefaultTimeout_ThrowsHandlerException()
+        {
+            using var waiter = new SemaphoreSlim(0, 1);
+            var results = new List<int>();
+
+            var bus = Bus.New("test-service", null, null, null, defaultDispatchAwaitTimeout: TimeSpan.FromSeconds(10));
+            bus.AddHandler<ITestCommandHandler>(new TestCommandHandler(results, waiter));
+
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(() => bus.DispatchAwaitAsync(new TestCommand { Thing = 33, Fail = true }));
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(() => bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 34, Fail = true }));
+
+            var timedOut = bus.DispatchAwaitAsync(new TestCommand { Thing = 35, Delay = 200 }, TimeSpan.FromMilliseconds(50));
+            _ = await Assert.ThrowsAsync<TimeoutException>(() => timedOut);
+        }
+
+        [Fact]
         public async Task Bus_Dispatch_WithBusLogger()
         {
             using var waiter = new SemaphoreSlim(0, 1);
@@ -52,7 +85,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public async Task BusQueryClientServerTcp()
         {
-            var url = "http://localhost:9001";
+            var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
 
@@ -72,7 +105,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public async Task BusQueryClientServerHttp()
         {
-            var url = "http://localhost:9002";
+            var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
 
@@ -92,7 +125,7 @@ namespace Zerra.Test.CQRS
         [Fact]
         public async Task BusProducerConsumerTcp()
         {
-            var url = "http://localhost:9003";
+            var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
 
@@ -115,9 +148,53 @@ namespace Zerra.Test.CQRS
         }
 
         [Fact]
+        public async Task BusProducerConsumerTcp_WithBusLogger()
+        {
+            var url = TestNetwork.NewUrl();
+            var serializer = new ZerraByteSerializer();
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
+
+            using var waiter = new SemaphoreSlim(0, 1);
+            var results = new List<int>();
+
+            var busServer = Bus.New("test-server", null, null, null);
+            busServer.AddHandler<ITestCommandHandler>(new TestCommandHandler(results, waiter));
+            busServer.AddHandler<ITestEventHandler>(new TestEventHandler(results, waiter));
+            var server = new TcpCqrsServer(url, serializer, encryptor, null);
+            busServer.AddCommandConsumer<ITestCommandHandler>(server);
+            busServer.AddEventConsumer<ITestEventHandler>(server, EventConsumerMode.PerReplica);
+
+            //the sender logs, and an event with one producer goes straight to it
+            var busLogger = new TestBusLogger();
+            var busClient = Bus.New("test-client", null, busLogger, null);
+            var client = new TcpCqrsClient(url, serializer, encryptor, null);
+            busClient.AddCommandProducer<ITestCommandHandler>(client);
+            busClient.AddEventProducer<ITestEventHandler>(client);
+
+            await BusDispatches(busClient, waiter, results);
+
+            Assert.True(busLogger.CommandsEnded > 0);
+            Assert.True(busLogger.EventsEnded > 0);
+        }
+
+        [Fact]
+        public async Task Bus_Dispatch_WithBusLogger_TimesTheHandler()
+        {
+            using var waiter = new SemaphoreSlim(0, 1);
+            var busLogger = new TestBusLogger();
+
+            var bus = Bus.New("test-service", null, busLogger, null);
+            bus.AddHandler<ITestCommandHandler>(new TestCommandHandler(new List<int>(), waiter));
+
+            await bus.DispatchAwaitAsync(new TestCommand { Thing = 40, Delay = 100 });
+
+            Assert.InRange(busLogger.LastCommandMilliseconds, 90, 10000);
+        }
+
+        [Fact]
         public async Task BusProducerConsumerHttp()
         {
-            var url = "http://localhost:9004";
+            var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
 
@@ -142,8 +219,8 @@ namespace Zerra.Test.CQRS
         [Fact]
         public async Task BusMultipleEventProducersTcp()
         {
-            var url1 = "http://localhost:9005";
-            var url2 = "http://localhost:9006";
+            var url1 = TestNetwork.NewUrl();
+            var url2 = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
 
@@ -375,11 +452,13 @@ namespace Zerra.Test.CQRS
         {
             public int Thing { get; set; }
             public int Delay { get; set; }
+            public bool Fail { get; set; }
         }
         public sealed class TestCommandWithResult : ICommand<int>
         {
             public int Thing { get; set; }
             public int Delay { get; set; }
+            public bool Fail { get; set; }
         }
 
         public interface ITestCommandHandler :
@@ -400,6 +479,8 @@ namespace Zerra.Test.CQRS
             public async Task Handle(TestCommand command, CancellationToken cancellationToken)
             {
                 await Task.Delay(command.Delay, cancellationToken);
+                if (command.Fail)
+                    throw new InvalidOperationException("Test failure");
                 results.Add(command.Thing);
                 _ = waiter.Release();
             }
@@ -407,6 +488,8 @@ namespace Zerra.Test.CQRS
             public async Task<int> Handle(TestCommandWithResult command, CancellationToken cancellationToken)
             {
                 await Task.Delay(command.Delay, cancellationToken);
+                if (command.Fail)
+                    throw new InvalidOperationException("Test failure");
                 results.Add(command.Thing * 2);
                 return command.Thing * 2;
             }
@@ -445,11 +528,16 @@ namespace Zerra.Test.CQRS
             private int eventsEnded;
             public int CommandsEnded => commandsEnded;
             public int EventsEnded => eventsEnded;
+            public long LastCommandMilliseconds { get; private set; }
 
             public void BeginCommand(Type commandType, ICommand command, string service, string source, bool handled) { }
             public void BeginEvent(Type eventType, IEvent @event, string service, string source, bool handled) { }
             public void BeginCall(Type interfaceType, string methodName, object[] arguments, string service, string source, bool handled) { }
-            public void EndCommand(Type commandType, ICommand command, string service, string source, bool handled, long milliseconds, Exception? ex) => Interlocked.Increment(ref commandsEnded);
+            public void EndCommand(Type commandType, ICommand command, string service, string source, bool handled, long milliseconds, Exception? ex)
+            {
+                LastCommandMilliseconds = milliseconds;
+                _ = Interlocked.Increment(ref commandsEnded);
+            }
             public void EndEvent(Type eventType, IEvent @event, string service, string source, bool handled, long milliseconds, Exception? ex) => Interlocked.Increment(ref eventsEnded);
             public void EndCall(Type interfaceType, string methodName, object[] arguments, object? result, string service, string source, bool handled, long milliseconds, Exception? ex) { }
         }

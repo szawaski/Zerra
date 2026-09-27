@@ -35,6 +35,9 @@ namespace Zerra.Test.Web
             Assert.Equal(typeof(ITestQueryHandler), bus.QueryInterfaceType);
             Assert.Equal(nameof(ITestQueryHandler.GetThings), bus.QueryMethodName);
             Assert.Equal(42, serializer.Deserialize<int>(ReadResponse(context)));
+            //serialized straight to the response, so the length isn't known up front
+            Assert.Equal("application/octet-stream", context.Response.ContentType);
+            Assert.Null(context.Response.ContentLength);
         }
 
         [Fact(Timeout = timeout)]

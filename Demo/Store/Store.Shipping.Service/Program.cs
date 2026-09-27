@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Store.Common;
 using Store.Common.Data;
 using Store.Common.Logging;
@@ -11,6 +12,8 @@ using Zerra.CQRS.Network;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.Repository;
 using Zerra.Web;
+
+var startup = Stopwatch.StartNew();
 
 Console.Title = "Store - Shipping Service";
 //Zerra.Logging.ILogger, ASP.NET's implicit usings also bring in Microsoft.Extensions.Logging.ILogger
@@ -66,5 +69,6 @@ var app = builder.Build();
 app.Lifetime.ApplicationStopped.Register(bus.StopServices); //after Kestrel has finished the requests in progress, which may still use the bus
 app.UseKestrelCqrsServer(serializer, encryptor, log, kestrelSettings);
 
-log.Info($"Shipping service listening on {StoreSettings.ShippingServiceUrl}, press Ctrl+C to stop");
+//Kestrel starts in Run, so the time is logged once it's listening
+app.Lifetime.ApplicationStarted.Register(() => log.Info($"Shipping service listening on {StoreSettings.ShippingServiceUrl}, started in {startup.ElapsedMilliseconds} ms, press Ctrl+C to stop"));
 app.Run();

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Store.Catalog.Domain;
 using Store.Common;
 using Store.Common.Data;
@@ -13,6 +14,8 @@ using Zerra.CQRS.Network;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.Logging;
 using Zerra.Repository;
+
+var startup = Stopwatch.StartNew();
 
 Console.Title = "Store - Reviews Service";
 ILogger log = new ConsoleLogger();
@@ -72,6 +75,6 @@ bus.AddQueryClient<ICatalogQueryHandler>(catalogClient);
 var ordersClient = new TcpCqrsClient(StoreSettings.OrdersServiceUrl, serializer, encryptor, log);
 bus.AddQueryClient<IOrdersQueryHandler>(ordersClient);
 
-log.Info($"Reviews service listening on {StoreSettings.ReviewsServiceUrl}, press Ctrl+C to stop");
+log.Info($"Reviews service listening on {StoreSettings.ReviewsServiceUrl}, started in {startup.ElapsedMilliseconds} ms, press Ctrl+C to stop");
 
 await bus.WaitForExitAsync();

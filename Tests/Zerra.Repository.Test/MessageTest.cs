@@ -72,6 +72,7 @@ namespace Zerra.Repository.Test
                 await TestDispatchAwaitAsyncError(commandProducer, receiver, cancellationToken);
                 await TestDispatchAwaitAsyncWithResultError(commandProducer, receiver, cancellationToken);
                 await TestDispatchAwaitAsyncConcurrent(commandProducer, cancellationToken);
+                await TestDispatchAwaitAsyncCanceled(commandProducer, receiver, cancellationToken);
                 await TestClaims(commandProducer, receiver, cancellationToken);
                 await TestEvent(eventProducer, receiver, cancellationToken);
                 await TestEventsConcurrent(eventProducer, receiver, cancellationToken);
@@ -80,6 +81,36 @@ namespace Zerra.Repository.Test
             {
                 commandConsumer.Close();
                 eventConsumer.Close();
+            }
+        }
+
+        /// <summary>
+        /// A command sent before any consumer for it has run: the producer creates where it goes, so it waits there until a consumer starts.
+        /// </summary>
+        public static async Task TestCommandSentBeforeConsumer(ICommandProducer commandProducer, ICommandConsumer commandConsumer, string commandTopic, CancellationToken cancellationToken)
+        {
+            TypeFinder.Register(typeof(TestCommand));
+            TypeFinder.Register(typeof(TestCommandWithResult));
+
+            var receiver = new Receiver();
+
+            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            var command = new TestCommand() { ID = Guid.NewGuid(), Value = 23, Text = "SentBeforeConsumer" };
+            var received = receiver.Expect(command.ID);
+            await commandProducer.DispatchAsync(command, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken);
+
+            commandConsumer.Setup(new CommandCounter(), receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
+            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            commandConsumer.Open();
+            try
+            {
+                var result = await received.WaitAsync(readyTimeout, cancellationToken);
+                Assert.Equal(HandlerType.CommandAsync, result.Handler);
+                Assert.Equal(command.Text, Assert.IsType<TestCommand>(result.Message).Text);
+            }
+            finally
+            {
+                commandConsumer.Close();
             }
         }
 
@@ -198,6 +229,25 @@ namespace Zerra.Repository.Test
 
             for (var i = 0; i < commands.Length; i++)
                 Assert.Equal(commands[i].Value * 2, results[i]);
+        }
+
+        //the caller stops waiting as soon as it cancels, and the acknowledgement that still arrives afterwards doesn't disturb the next command
+        private static async Task TestDispatchAwaitAsyncCanceled(ICommandProducer producer, Receiver receiver, CancellationToken cancellationToken)
+        {
+            var command = new TestCommand() { ID = Guid.NewGuid(), Text = "DispatchAwaitAsyncCanceled", DelayMilliseconds = 3000 };
+            var received = receiver.Expect(command.ID);
+
+            using var canceller = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var dispatch = producer.DispatchAwaitAsync(command, source, canceller.Token);
+            _ = await received.WaitAsync(messageTimeout, cancellationToken);
+
+            var timer = Stopwatch.StartNew();
+            canceller.Cancel();
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => dispatch.WaitAsync(messageTimeout, cancellationToken));
+            Assert.True(timer.Elapsed < TimeSpan.FromMilliseconds(1500), $"Cancelling took {timer.ElapsedMilliseconds}ms, it waited for the acknowledgement");
+
+            await Task.Delay(command.DelayMilliseconds, cancellationToken);
+            await TestDispatchAwaitAsync(producer, receiver, cancellationToken);
         }
 
         private static async Task TestClaims(ICommandProducer producer, Receiver receiver, CancellationToken cancellationToken)
@@ -477,13 +527,14 @@ namespace Zerra.Repository.Test
                 return Task.CompletedTask;
             }
 
-            public Task HandleCommandAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
+            public async Task HandleCommandAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
             {
                 var testCommand = Assert.IsType<TestCommand>(command);
                 Complete(testCommand.ID, command, source, HandlerType.CommandAwaitAsync);
+                if (testCommand.DelayMilliseconds > 0)
+                    await Task.Delay(testCommand.DelayMilliseconds);
                 if (testCommand.Throw)
                     throw new InvalidOperationException(ErrorMessage(testCommand.ID));
-                return Task.CompletedTask;
             }
 
             public Task<object?> HandleCommandWithResultAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)

@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Azure.Messaging.ServiceBus;
+using System.Collections.Concurrent;
 using Zerra.Collections;
 using System.Security.Claims;
 using Zerra.Encryption;
@@ -33,6 +34,25 @@ namespace Zerra.CQRS.AzureServiceBus
             private static readonly Action<Task, object?> removeHandling = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
             private Task? listening;
 
+            //One sender per producer's acknowledgement queue, reused for every reply to it instead of opening a link to the broker per reply.
+            //The broker deletes an acknowledgement queue once it's idle for DeleteWhenIdleTimeout, so a sender idle that long is dropped by the next sweep,
+            //which keeps the senders to the producers still sending instead of every producer ever seen.
+            private readonly ConcurrentDictionary<string, ReplySender> replySenders = new();
+            private static readonly int replySenderIdleMilliseconds = (int)AzureServiceBusCommon.DeleteWhenIdleTimeout.TotalMilliseconds;
+            private int lastReplySenderSweep = Environment.TickCount;
+
+            private sealed class ReplySender
+            {
+                public readonly ServiceBusSender Sender;
+                //Environment.TickCount, its wrap around doesn't matter to differences this short
+                public int LastUsed;
+                public ReplySender(ServiceBusSender sender, int lastUsed)
+                {
+                    this.Sender = sender;
+                    this.LastUsed = lastUsed;
+                }
+            }
+
             public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string queue, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
@@ -57,15 +77,15 @@ namespace Zerra.CQRS.AzureServiceBus
                 this.canceller = new CancellationTokenSource();
             }
 
-            public void Open(string host, ServiceBusClient client)
+            public void Open(AzureServiceBusCommonNamespace commonNamespace, ServiceBusClient client)
             {
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                listening = Task.Run(() => ListeningThread(host, client));
+                listening = Task.Run(() => ListeningThread(commonNamespace, client));
             }
 
-            private async Task ListeningThread(string host, ServiceBusClient client)
+            private async Task ListeningThread(AzureServiceBusCommonNamespace commonNamespace, ServiceBusClient client)
             {
                 //the throttle is not disposed: handlers still running after the listener stops release it, and a disposed SemaphoreSlim throws ObjectDisposedException on Release
                 //this isn't a leak, SemaphoreSlim.Dispose only frees the wait handle that AvailableWaitHandle creates on first use, which nothing reads,
@@ -77,7 +97,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 try
                 {
-                    await AzureServiceBusCommon.EnsureQueue(host, queue, false);
+                    await AzureServiceBusCommon.EnsureQueue(commonNamespace, queue, false);
 
                     await using (var receiver = client.CreateReceiver(queue, receiverOptions))
                     {
@@ -120,6 +140,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     if (!canceller.IsCancellationRequested)
                     {
                         log?.Error(queue, ex);
+                        await AzureServiceBusCommon.Forget(commonNamespace, queue);
                         await Task.Delay(AzureServiceBusCommon.RetryDelay);
                         goto retry;
                     }
@@ -199,9 +220,42 @@ namespace Zerra.CQRS.AzureServiceBus
 
                     var replyServiceBusMessage = new ServiceBusMessage(body);
                     replyServiceBusMessage.SessionId = ackKey;
-                    await using (var sender = client.CreateSender(ackTopic))
+
+                    var now = Environment.TickCount;
+                    if (!replySenders.TryGetValue(ackTopic, out var replySender))
                     {
-                        await sender.SendMessageAsync(replyServiceBusMessage);
+                        var created = new ReplySender(client.CreateSender(ackTopic), now);
+                        replySender = replySenders.GetOrAdd(ackTopic, created);
+                        if (replySender != created)
+                            await created.Sender.DisposeAsync();
+                    }
+                    replySender.LastUsed = now;
+
+                    try
+                    {
+                        await replySender.Sender.SendMessageAsync(replyServiceBusMessage);
+                    }
+                    catch
+                    {
+                        //the link failed or a sweep disposed this sender as it was taken, it's replaced and the reply sent once more on a new one
+                        if (((ICollection<KeyValuePair<string, ReplySender>>)replySenders).Remove(new KeyValuePair<string, ReplySender>(ackTopic, replySender)))
+                            await replySender.Sender.DisposeAsync();
+                        var created = new ReplySender(client.CreateSender(ackTopic), now);
+                        replySender = replySenders.GetOrAdd(ackTopic, created);
+                        if (replySender != created)
+                            await created.Sender.DisposeAsync();
+                        await replySender.Sender.SendMessageAsync(replyServiceBusMessage);
+                    }
+
+                    //at most once per idle timeout, the senders to acknowledgement queues the broker has deleted by now are dropped
+                    if (unchecked(now - lastReplySenderSweep) > replySenderIdleMilliseconds)
+                    {
+                        lastReplySenderSweep = now;
+                        foreach (var pair in replySenders)
+                        {
+                            if (unchecked(now - pair.Value.LastUsed) > replySenderIdleMilliseconds && ((ICollection<KeyValuePair<string, ReplySender>>)replySenders).Remove(pair))
+                                await pair.Value.Sender.DisposeAsync();
+                        }
                     }
                 }
                 catch (Exception ex)
