@@ -41,6 +41,32 @@ namespace Zerra.Test.Web
         }
 
         [Fact(Timeout = timeout)]
+        public async Task Query_Upload_PassesStream()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+
+            //{int32 little endian length}{data} segments, {int32 0}, then the stream bytes
+            var dataBytes = ((MemoryStream)context.Request.Body).ToArray();
+            var body = new MemoryStream();
+            body.Write(BitConverter.GetBytes(dataBytes.Length));
+            body.Write(dataBytes);
+            body.Write(BitConverter.GetBytes(0));
+            body.Write([5, 6, 7, 8]);
+            body.Position = 0;
+            context.Request.Body = body;
+            context.Request.Headers["Upload-Stream"] = "true";
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal(nameof(ITestQueryHandler.GetThings), bus.QueryMethodName);
+            Assert.Equal([5, 6, 7, 8], bus.QueryArgumentStreamBytes);
+            Assert.Equal(42, serializer.Deserialize<int>(ReadResponse(context)));
+        }
+
+        [Fact(Timeout = timeout)]
         public async Task Query_ReturnsStream_DisposesStream()
         {
             //a stream from a remote service holds a pooled connection that is only released on dispose
@@ -420,14 +446,21 @@ namespace Zerra.Test.Web
             public Exception? QueryException { get; set; }
             public Type? QueryInterfaceType { get; private set; }
             public string? QueryMethodName { get; private set; }
+            public byte[]? QueryArgumentStreamBytes { get; private set; }
 
             public ILogger? Log => null;
             public string ServiceName => "Mock";
 
-            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, ISerializer serializer, CancellationToken cancellationToken)
+            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, ISerializer serializer, CancellationToken cancellationToken)
             {
                 QueryInterfaceType = interfaceType;
                 QueryMethodName = methodName;
+                if (argumentStream is not null)
+                {
+                    using var ms = new MemoryStream();
+                    argumentStream.CopyTo(ms);
+                    QueryArgumentStreamBytes = ms.ToArray();
+                }
                 if (QueryException is not null)
                     return Task.FromException<RemoteQueryCallResponse>(QueryException);
                 return Task.FromResult(QueryResponse ?? new RemoteQueryCallResponse(null));

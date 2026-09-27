@@ -10,7 +10,9 @@ namespace Zerra.CQRS.Network
         public const int BufferLength = 1024 * 8; //Limits max header size
 
         //{prefix}|{providerType}|{contentType}~{int-size:body}{int-size:body}{int-size:body}...{0:null}
+        //an upload body is the data in the same segments ended by {0}, then the stream bytes in segments to the body's {0}
         private const string protocolRawPrefix = "RAW";
+        private const string protocolUploadPrefix = "UPL";
         private const string protocolErrorPrefix = "ERR";
         private const string nullProviderType = "*";
         private const char headerSeperator = '|';
@@ -19,6 +21,7 @@ namespace Zerra.CQRS.Network
         private static readonly Encoding encoding = Encoding.UTF8;
 
         private static readonly byte[] protocolRawPrefixBytes = encoding.GetBytes($"{protocolRawPrefix}{headerSeperator}");
+        private static readonly byte[] protocolUploadPrefixBytes = encoding.GetBytes($"{protocolUploadPrefix}{headerSeperator}");
         private static readonly byte[] protocolErrorPrefixBytes = encoding.GetBytes($"{protocolErrorPrefix}{headerSeperator}");
         private static readonly byte[] nullProviderBytes = encoding.GetBytes($"{nullProviderType}{headerSeperator}");
         private static readonly byte[] headerSeperatorBytes = encoding.GetBytes($"{headerSeperator}");
@@ -112,13 +115,14 @@ namespace Zerra.CQRS.Network
                     throw new CqrsNetworkException("Invalid Header");
 
                 var isError = prefix == protocolErrorPrefix;
-                if (!isError && prefix != protocolRawPrefix)
+                var isUpload = prefix == protocolUploadPrefix;
+                if (!isError && !isUpload && prefix != protocolRawPrefix)
                     throw new CqrsNetworkException("Invalid Header");
 
                 if (providerType is nullProviderType)
                     providerType = null;
 
-                return new TcpRequestHeader(buffer.Slice(headerLength), isError, contentType.Value, providerType);
+                return new TcpRequestHeader(buffer.Slice(headerLength), isError, isUpload, contentType.Value, providerType);
 #if !NETSTANDARD2_0
             }
             finally
@@ -129,10 +133,10 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferHeader(Memory<byte> buffer, string providerType, ContentType contentType)
+        public static int BufferHeader(Memory<byte> buffer, string providerType, ContentType contentType, bool isUpload = false)
         {
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
-            headerBuffer.Write(protocolRawPrefixBytes);
+            headerBuffer.Write(isUpload ? protocolUploadPrefixBytes : protocolRawPrefixBytes);
             if (!String.IsNullOrWhiteSpace(providerType))
             {
 #if NETSTANDARD2_0

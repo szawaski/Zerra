@@ -185,17 +185,35 @@ namespace Zerra.CQRS.Network
                         if (encryptor is not null)
                             requestBodyStream = encryptor.Decrypt(requestBodyStream, false);
 
-                        var data = await serializer.DeserializeAsync<CqrsRequestData>(requestBodyStream, CancellationToken.None);
-                        if (data is null)
-                            throw new CqrsNetworkException("Empty request body");
+                        CqrsRequestData? data;
+                        if (requestHeader.IsUpload)
+                        {
+                            //the request data is framed, the rest of the body is the stream left for the handler to read
+                            using (var uploadDataStream = new TcpProtocolBodyStream(requestBodyStream, null, false, true))
+                            {
+                                data = await serializer.DeserializeAsync<CqrsRequestData>(uploadDataStream, CancellationToken.None);
+                                //through the end of the framing in case the serializer stopped short of it
+                                await uploadDataStream.CopyToAsync(Stream.Null, 81920, CancellationToken.None);
+                            }
+                            if (data is null)
+                                throw new CqrsNetworkException("Empty request body");
+                            if (String.IsNullOrWhiteSpace(data.ProviderType))
+                                throw new CqrsNetworkException("Invalid Request"); //only queries take a stream
+                        }
+                        else
+                        {
+                            data = await serializer.DeserializeAsync<CqrsRequestData>(requestBodyStream, CancellationToken.None);
+                            if (data is null)
+                                throw new CqrsNetworkException("Empty request body");
 
 #if NETSTANDARD2_0
-                        requestBodyStream.Dispose();
+                            requestBodyStream.Dispose();
 #else
-                        await requestBodyStream.DisposeAsync();
+                            await requestBodyStream.DisposeAsync();
 #endif
-                        requestBodyStream = null;
-                        requestBodyRead = true;
+                            requestBodyStream = null;
+                            requestBodyRead = true;
+                        }
 
                         //Authorize
                         //------------------------------------------------------------------------------------------------------------
@@ -238,14 +256,37 @@ namespace Zerra.CQRS.Network
 
                             inHandlerContext = true;
                             RemoteQueryCallResponse result;
-                            var monitor = new SocketAbortMonitor(socket, CancellationToken.None);
-                            try
+                            if (requestBodyStream is not null)
                             {
-                                result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, serializer, monitor.Token);
+                                //no abort monitor, it would read the upload from the connection, an abandoned upload ends with the connection instead
+                                try
+                                {
+                                    result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, new LeaveOpenStream(requestBodyStream), data.Source, serializer, CancellationToken.None);
+                                }
+                                finally
+                                {
+                                    //whatever the handler didn't read is read so the connection is ready for the next request
+                                    await requestBodyStream.CopyToAsync(Stream.Null, 81920, CancellationToken.None);
+#if NETSTANDARD2_0
+                                    requestBodyStream.Dispose();
+#else
+                                    await requestBodyStream.DisposeAsync();
+#endif
+                                    requestBodyStream = null;
+                                    requestBodyRead = true;
+                                }
                             }
-                            finally
+                            else
                             {
-                                monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
+                                var monitor = new SocketAbortMonitor(socket, CancellationToken.None);
+                                try
+                                {
+                                    result = await this.providerHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, null, data.Source, serializer, monitor.Token);
+                                }
+                                finally
+                                {
+                                    monitorIsCancellationRequested = await monitor.DisposeAndGetIsCancellationRequestedAsync();
+                                }
                             }
                             inHandlerContext = false;
                             resultStream = result.Stream;

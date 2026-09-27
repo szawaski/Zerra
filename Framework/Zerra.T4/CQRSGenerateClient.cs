@@ -74,7 +74,7 @@ namespace Zerra.T4
                     _ = sb.Append("): Promise<").Append(type).Append(nullable ? " | null" : null).Append("> {").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append(spacing).Append("return Bus.Call(\"").Append(query.Namespace).Append('.').Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
                     AppendArguments(sb, method, clientParameterCount);
-                    _ = sb.Append("], ").Append(type is null || isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(");").Append(Environment.NewLine);
+                    _ = sb.Append("], ").Append(type == "Blob" ? "\"Blob\"" : type is null || isJavaScriptType ? "null" :(hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(");").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append("}").Append(Environment.NewLine);
                 }
                 _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
@@ -160,7 +160,7 @@ namespace Zerra.T4
                     _ = sb.Append("onComplete, onFail) {").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append(spacing).Append("Bus.Call(\"").Append(query.Namespace).Append('.').Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
                     AppendArguments(sb, method, clientParameterCount);
-                    _ = sb.Append("], ").Append(type is null || isJavaScriptType ? "null" : (hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(", onComplete, onFail);").Append(Environment.NewLine);
+                    _ = sb.Append("], ").Append(type == "Blob" ? "\"Blob\"" : type is null || isJavaScriptType ? "null" :(hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(", onComplete, onFail);").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append("},").Append(Environment.NewLine);
                 }
                 _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
@@ -334,7 +334,14 @@ namespace Zerra.T4
             }
 
             string type;
-            if (csharpType.NativeType != null && IsCoreType(csharpType.NativeType))
+            if (csharpType.NativeType == typeof(Stream) || csharpType.Name == nameof(Stream) || csharpType.Name == typeof(Stream).FullName)
+            {
+                type = "Blob";
+                isJavaScriptType = true;
+                if (genericLevel == 0)
+                    nullable = true;
+            }
+            else if (csharpType.NativeType != null && IsCoreType(csharpType.NativeType))
             {
                 type = ConvertCoreTypeToJavaScriptType(csharpType.NativeType);
                 isJavaScriptType = true;

@@ -31,7 +31,7 @@ namespace Zerra.Test.Web
             Type? receivedType = null;
             string? receivedMethod = null;
             int? receivedArgument = null;
-            using var middleware = CreateMiddleware(enc, query: (interfaceType, methodName, arguments, _, _, _) =>
+            using var middleware = CreateMiddleware(enc, query: (interfaceType, methodName, arguments, _, _, _, _) =>
             {
                 receivedType = interfaceType;
                 receivedMethod = methodName;
@@ -53,7 +53,7 @@ namespace Zerra.Test.Web
         public async Task Query_ReturnsStream_DisposesStream()
         {
             var resultStream = new DisposeSignalStream([1, 2, 3]);
-            using var middleware = CreateMiddleware(null, query: (_, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(resultStream)));
+            using var middleware = CreateMiddleware(null, query: (_, _, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(resultStream)));
             var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetStream)), null, TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
@@ -65,7 +65,7 @@ namespace Zerra.Test.Web
         [Fact(Timeout = timeout)]
         public async Task Query_HandlerThrows_RespondsWithError()
         {
-            using var middleware = CreateMiddleware(null, query: (_, _, _, _, _, _) =>
+            using var middleware = CreateMiddleware(null, query: (_, _, _, _, _, _, _) =>
                 Task.FromException<RemoteQueryCallResponse>(new InvalidOperationException("query failed")));
             var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, TestContext.Current.CancellationToken);
 
@@ -81,7 +81,7 @@ namespace Zerra.Test.Web
         public async Task Query_OriginAllowed_InvokesHandler()
         {
             var handlerInvoked = false;
-            using var middleware = CreateMiddleware(null, allowOrigins: ["allowed.example.com"], query: (_, _, _, _, _, _) =>
+            using var middleware = CreateMiddleware(null, allowOrigins: ["allowed.example.com"], query: (_, _, _, _, _, _, _) =>
             {
                 handlerInvoked = true;
                 return Task.FromResult(new RemoteQueryCallResponse(42));
@@ -103,7 +103,7 @@ namespace Zerra.Test.Web
         public async Task Query_OriginNotAllowed_Returns401(string? origin)
         {
             var handlerInvoked = false;
-            using var middleware = CreateMiddleware(null, allowOrigins: ["allowed.example.com"], query: (_, _, _, _, _, _) =>
+            using var middleware = CreateMiddleware(null, allowOrigins: ["allowed.example.com"], query: (_, _, _, _, _, _, _) =>
             {
                 handlerInvoked = true;
                 return Task.FromResult(new RemoteQueryCallResponse(42));
@@ -175,7 +175,7 @@ namespace Zerra.Test.Web
         [InlineData("LocalHost", "localhost")] //what KestrelCqrsClient sends
         public async Task Query_OriginMatchesAllowedOriginOrHost(string allowOrigin, string origin)
         {
-            using var middleware = CreateMiddleware(null, allowOrigins: [allowOrigin], query: (_, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(42)));
+            using var middleware = CreateMiddleware(null, allowOrigins: [allowOrigin], query: (_, _, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(42)));
             var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, TestContext.Current.CancellationToken, origin: origin);
 
             await middleware.Invoke(context);
@@ -226,7 +226,7 @@ namespace Zerra.Test.Web
         {
             var firstStarted = new TaskCompletionSource();
             var releaseFirst = new TaskCompletionSource();
-            var settings = CreateSettings(null, null, async (_, _, _, _, _, _) =>
+            var settings = CreateSettings(null, null, async (_, _, _, _, _, _, _) =>
             {
                 firstStarted.TrySetResult();
                 await releaseFirst.Task;
@@ -279,7 +279,7 @@ namespace Zerra.Test.Web
         public async Task UseKestrelCqrsServer_NullLog_ServesQuery(bool encrypt)
         {
             var enc = encrypt ? encryptor : null;
-            using var settings = CreateSettings(null, null, (_, _, arguments, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(serializer.Deserialize<int>(arguments[0]) * 2)), null, null, null, null);
+            using var settings = CreateSettings(null, null, (_, _, arguments, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(serializer.Deserialize<int>(arguments[0]) * 2)), null, null, null, null);
             var builder = new ApplicationBuilder(new ServiceCollection().BuildServiceProvider());
             _ = builder.UseKestrelCqrsServer(serializer, enc, null, settings);
             var app = builder.Build();
@@ -321,7 +321,7 @@ namespace Zerra.Test.Web
             var settings = new KestrelCqrsServerLinkedSettings(route, null, serializer.ContentType) { AllowOrigins = allowOrigins };
 
             IQueryServer queryServer = new KestrelCqrsServerQueryServer(settings);
-            queryServer.Setup(new CommandCounter(), query ?? ((_, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(null))));
+            queryServer.Setup(new CommandCounter(), query ?? ((_, _, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(null))));
             queryServer.RegisterInterfaceType(10, typeof(ITestQueryHandler));
 
             ICommandConsumer commandConsumer = new KestrelCqrsServerCommandConsumer(settings);

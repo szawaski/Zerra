@@ -33,7 +33,7 @@ namespace Zerra.Test.CQRS
             public void AddEventConsumer<TInterface>(IEventConsumer eventConsumer, EventConsumerMode eventConsumerMode) => throw new NotImplementedException();
             public void AddQueryClient<TInterface>(IQueryClient queryClient) => throw new NotImplementedException();
             public void AddQueryServer<TInterface>(IQueryServer queryServer) => throw new NotImplementedException();
-            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, ISerializer serializer, CancellationToken cancellationToken) => throw new NotImplementedException();
+            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, ISerializer serializer, CancellationToken cancellationToken) => throw new NotImplementedException();
             public Task RemoteHandleCommandDispatchAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();
             public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();
             public Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();

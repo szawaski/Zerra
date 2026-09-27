@@ -64,18 +64,31 @@ namespace Zerra.CQRS.Network
                 //a trailing CancellationToken isn't sent, the server passes its own in its place
                 var serializeCount = argumentTypes.Count > 0 && argumentTypes[argumentTypes.Count - 1] == typeof(CancellationToken) ? argumentTypes.Count - 1 : argumentTypes.Count;
                 data.ProviderArguments = new byte[argumentTypes.Count][];
+                var argumentStreamIndex = -1;
                 for (var i = 0; i < serializeCount; i++)
+                {
+                    if (argumentTypes[i] == typeof(Stream))
+                    {
+                        if (argumentStreamIndex >= 0)
+                            throw new ArgumentException($"{interfaceType.Name}.{methodName} can only have one Stream argument");
+                        argumentStreamIndex = i;
+                        continue;
+                    }
                     data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
+                }
+
+                var argumentStream = argumentStreamIndex >= 0 ? (Stream?)arguments[argumentStreamIndex] : null;
 
                 var buffer = bufferOwner.AsMemory();
 
-                var requireNewConnection = false;
+                //the stream can't be read twice to retry on another connection
+                var requireNewConnection = argumentStream is not null;
                 var responseStarted = false; //once the server responds it has the request, retrying on a new connection could run it twice
             newconnection:
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = TcpCommon.BufferHeader(buffer, data.ProviderType, serializer.ContentType);
+                    var requestHeaderLength = TcpCommon.BufferHeader(buffer, data.ProviderType, serializer.ContentType, argumentStream is not null);
 
 #if NETSTANDARD2_0
                     stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, CancellationToken.None);
@@ -88,14 +101,40 @@ namespace Zerra.CQRS.Network
                     if (encryptor is not null)
                     {
                         requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
-                        serializer.Serialize(requestBodyCryptoStream, data);
+                        if (argumentStream is null)
+                        {
+                            serializer.Serialize(requestBodyCryptoStream, data);
+                        }
+                        else
+                        {
+                            //the request data is framed so the server knows where it ends and the stream begins
+                            using (var uploadDataStream = new TcpProtocolBodyStream(requestBodyCryptoStream, null, true, true, default, false))
+                            {
+                                serializer.Serialize(uploadDataStream, data);
+                                uploadDataStream.Flush();
+                            }
+                            argumentStream.CopyTo(requestBodyCryptoStream);
+                        }
                         requestBodyCryptoStream.FlushFinalBlock();
                         requestBodyCryptoStream.Dispose();
                         requestBodyCryptoStream = null;
                     }
                     else
                     {
-                        serializer.Serialize(requestBodyStream, data);
+                        if (argumentStream is null)
+                        {
+                            serializer.Serialize(requestBodyStream, data);
+                        }
+                        else
+                        {
+                            //the request data is framed so the server knows where it ends and the stream begins
+                            using (var uploadDataStream = new TcpProtocolBodyStream(requestBodyStream, null, true, true, default, false))
+                            {
+                                serializer.Serialize(uploadDataStream, data);
+                                uploadDataStream.Flush();
+                            }
+                            argumentStream.CopyTo(requestBodyStream);
+                        }
                         requestBodyStream.Flush();
                         requestBodyStream.Dispose();
                     }
@@ -252,18 +291,31 @@ namespace Zerra.CQRS.Network
                 //a trailing CancellationToken isn't sent, the server passes its own in its place
                 var serializeCount = argumentTypes.Count > 0 && argumentTypes[argumentTypes.Count - 1] == typeof(CancellationToken) ? argumentTypes.Count - 1 : argumentTypes.Count;
                 data.ProviderArguments = new byte[argumentTypes.Count][];
+                var argumentStreamIndex = -1;
                 for (var i = 0; i < serializeCount; i++)
+                {
+                    if (argumentTypes[i] == typeof(Stream))
+                    {
+                        if (argumentStreamIndex >= 0)
+                            throw new ArgumentException($"{interfaceType.Name}.{methodName} can only have one Stream argument");
+                        argumentStreamIndex = i;
+                        continue;
+                    }
                     data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
+                }
+
+                var argumentStream = argumentStreamIndex >= 0 ? (Stream?)arguments[argumentStreamIndex] : null;
 
                 var buffer = bufferOwner.AsMemory();
 
-                var requireNewConnection = false;
+                //the stream can't be read twice to retry on another connection
+                var requireNewConnection = argumentStream is not null;
                 var responseStarted = false; //once the server responds it has the request, retrying on a new connection could run it twice
             newconnection:
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = TcpCommon.BufferHeader(buffer, data.ProviderType, serializer.ContentType);
+                    var requestHeaderLength = TcpCommon.BufferHeader(buffer, data.ProviderType, serializer.ContentType, argumentStream is not null);
 
 #if NETSTANDARD2_0
                     stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
@@ -276,7 +328,24 @@ namespace Zerra.CQRS.Network
                     if (encryptor is not null)
                     {
                         requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
-                        await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
+                        if (argumentStream is null)
+                        {
+                            await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
+                        }
+                        else
+                        {
+                            //the request data is framed so the server knows where it ends and the stream begins
+                            using (var uploadDataStream = new TcpProtocolBodyStream(requestBodyCryptoStream, null, true, true, default, false))
+                            {
+                                await serializer.SerializeAsync(uploadDataStream, data, cancellationToken);
+                                await uploadDataStream.FlushAsync(cancellationToken);
+                            }
+#if NETSTANDARD2_0
+                            await argumentStream.CopyToAsync(requestBodyCryptoStream, 81920, cancellationToken);
+#else
+                            await argumentStream.CopyToAsync(requestBodyCryptoStream, cancellationToken);
+#endif
+                        }
 #if !NETSTANDARD2_0
                         await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
@@ -291,7 +360,24 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        await serializer.SerializeAsync(requestBodyStream, data, cancellationToken);
+                        if (argumentStream is null)
+                        {
+                            await serializer.SerializeAsync(requestBodyStream, data, cancellationToken);
+                        }
+                        else
+                        {
+                            //the request data is framed so the server knows where it ends and the stream begins
+                            using (var uploadDataStream = new TcpProtocolBodyStream(requestBodyStream, null, true, true, default, false))
+                            {
+                                await serializer.SerializeAsync(uploadDataStream, data, cancellationToken);
+                                await uploadDataStream.FlushAsync(cancellationToken);
+                            }
+#if NETSTANDARD2_0
+                            await argumentStream.CopyToAsync(requestBodyStream, 81920, cancellationToken);
+#else
+                            await argumentStream.CopyToAsync(requestBodyStream, cancellationToken);
+#endif
+                        }
                         await requestBodyStream.FlushAsync(cancellationToken);
 #if NETSTANDARD2_0
                         requestBodyStream.Dispose();
@@ -405,7 +491,8 @@ namespace Zerra.CQRS.Network
                         if (stream is not null)
                         {
                             //only while the server has the whole request and hasn't responded, mid request the abort byte reads as request data and mid response the server is done with it
-                            var abortAcknowledged = requestBodyStream is null && !responseStarted && await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
+                            //the server doesn't watch for it with an upload since the handler reads the connection
+                            var abortAcknowledged = requestBodyStream is null && argumentStream is null && !responseStarted && await SocketAbortMonitor.SendAndAcknowledgeAbortAsync(stream);
                             if (abortAcknowledged)
                                 stream?.Dispose();
                             else

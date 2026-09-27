@@ -21,6 +21,9 @@ namespace Zerra.CQRS.Network
         public const string ContentLengthHeader = "Content-Length";
         public const string ContentTypeHeader = "Content-Type";
         public const string ProviderTypeHeader = "Provider-Type";
+        //the body is the data in {int32 little endian length}{bytes} segments ended by {int32 0}, then the stream bytes to the end of the body
+        public const string UploadStreamHeader = "Upload-Stream";
+        public const string UploadStreamValue = "true";
         public const string TransferEncodingHeader = "Transfer-Encoding";
         public const string OriginHeader = "Origin";
         public const string VaryHeader = "Vary";
@@ -56,6 +59,7 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] serverErrorHeaderBytes = encoding.GetBytes(serverErrorResponse);
         private static readonly byte[] transferEncodingChunckedBytes = encoding.GetBytes("Transfer-Encoding: chunked");
         private static readonly byte[] providerTypeHeaderBytes = encoding.GetBytes($"{ProviderTypeHeader}{headerSplit}");
+        private static readonly byte[] uploadStreamHeaderBytes = encoding.GetBytes($"{UploadStreamHeader}{headerSplit}{UploadStreamValue}");
         private static readonly byte[] contentLengthZeroBytes = encoding.GetBytes($"{ContentLengthHeader}{headerSplit}0");
 
         private static readonly byte[] contentTypeBytesHeaderBytes = encoding.GetBytes($"{ContentTypeHeader}{headerSplit}{ContentTypeBytes}");
@@ -234,6 +238,10 @@ namespace Zerra.CQRS.Network
                                 {
                                     headerInfo.ProviderType ??= valueString ?? value.ToString();
                                 }
+                                else if (key.Equals(UploadStreamHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
+                                {
+                                    headerInfo.IsUpload = value.Equals(UploadStreamValue.AsSpan(), StringComparison.OrdinalIgnoreCase);
+                                }
                                 else if (key.Equals(OriginHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
                                 {
                                     headerInfo.Origin ??= valueString ?? value.ToString();
@@ -405,7 +413,7 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferPostRequestHeader(Memory<byte> buffer, Uri serviceUrl, string? providerType, ContentType? contentType, Dictionary<string, List<string?>>? authHeaders)
+        public static int BufferPostRequestHeader(Memory<byte> buffer, Uri serviceUrl, string? providerType, ContentType? contentType, Dictionary<string, List<string?>>? authHeaders, bool isUpload = false)
         {
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
 
@@ -417,6 +425,12 @@ namespace Zerra.CQRS.Network
 #endif
             headerBuffer.Write(requestEndingBytes);
             headerBuffer.Write(newLineBytes);
+
+            if (isUpload)
+            {
+                headerBuffer.Write(uploadStreamHeaderBytes);
+                headerBuffer.Write(newLineBytes);
+            }
 
             if (!String.IsNullOrWhiteSpace(providerType))
             {

@@ -73,6 +73,32 @@ namespace Zerra.Test.Web
             Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
         }
 
+        //larger than Kestrel's default 30 MB request body limit
+        [Theory(Timeout = timeout * 3)]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public async Task Query_Upload_ReadsStream(bool encrypt, bool kestrelClient)
+        {
+            var enc = encrypt ? encryptor : null;
+            await using var server = await TestServer.StartAsync(enc);
+            using var client = kestrelClient ? (CqrsClientBase)new KestrelCqrsClient(server.Url, serializer, enc, null, null, null) : CreateClient(server.Url, enc);
+            if (kestrelClient)
+                ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+
+            var bytes = new byte[31 * 1024 * 1024];
+            new Random(5).NextBytes(bytes);
+            var expected = bytes.Sum(x => (long)x) + 3;
+
+            var asyncResult = await ((IQueryClient)client).CallTaskGeneric<long>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(bytes)], source, TestContext.Current.CancellationToken);
+            var syncResult = await Task.Run(() => ((IQueryClient)client).Call<long>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(bytes)], source), TestContext.Current.CancellationToken);
+
+            Assert.Equal(expected, asyncResult);
+            Assert.Equal(expected, syncResult);
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+        }
+
         //the middleware answers a disallowed origin with an empty 401
         [Fact(Timeout = timeout)]
         public async Task Query_OriginNotAllowed_ThrowsWithStatus()
@@ -166,9 +192,10 @@ namespace Zerra.Test.Web
                 var server = new TestServer(app, settings, app.Urls.First());
 
                 IQueryServer queryServer = new KestrelCqrsServerQueryServer(settings);
-                queryServer.Setup(new CommandCounter(), (_, methodName, arguments, _, _, _) => methodName switch
+                queryServer.Setup(new CommandCounter(), (_, methodName, arguments, argumentStream, _, _, _) => methodName switch
                 {
                     nameof(ITestQueryHandler.GetThings) => Task.FromResult(new RemoteQueryCallResponse(serializer.Deserialize<int>(arguments[0]) * 2)),
+                    nameof(ITestQueryHandler.Upload) => UploadAsync(serializer.Deserialize<int>(arguments[0]), argumentStream!),
                     nameof(ITestQueryHandler.GetLarge) => Task.FromResult(new RemoteQueryCallResponse(new string('x', serializer.Deserialize<int>(arguments[0])))),
                     nameof(ITestQueryHandler.Fail) => Task.FromException<RemoteQueryCallResponse>(new InvalidOperationException("query failed")),
                     _ => throw new NotSupportedException(methodName)
@@ -190,6 +217,13 @@ namespace Zerra.Test.Web
                 return server;
             }
 
+            private static async Task<RemoteQueryCallResponse> UploadAsync(int value, Stream stream)
+            {
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                return new RemoteQueryCallResponse(ms.ToArray().Sum(x => (long)x) + value);
+            }
+
             public async ValueTask DisposeAsync()
             {
                 await app.StopAsync();
@@ -201,6 +235,7 @@ namespace Zerra.Test.Web
         public interface ITestQueryHandler : IQueryHandler
         {
             int GetThings(int value);
+            long Upload(int value, Stream stream);
             string GetLarge(int length);
             int Fail();
         }

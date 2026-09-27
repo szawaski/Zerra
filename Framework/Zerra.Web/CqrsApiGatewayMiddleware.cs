@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using System.Security;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
@@ -189,12 +190,34 @@ namespace Zerra.Web
                     authorizer.Authorize(headers);
                 }
 
-                var data = await serializer.DeserializeAsync<ApiRequestData>(context.Request.Body, context.RequestAborted);
-                if (data is null)
-                    throw new Exception("Invalid Request");
+                ApiRequestData? data;
+                Stream? argumentStream = null;
+                if (String.Equals(context.Request.Headers[HttpCommon.UploadStreamHeader], HttpCommon.UploadStreamValue, StringComparison.OrdinalIgnoreCase))
+                {
+                    //the request data is framed, the rest of the body is the stream for the query, its length is up to the uploader
+                    var maxRequestBodySizeFeature = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
+                    if (maxRequestBodySizeFeature is not null && !maxRequestBodySizeFeature.IsReadOnly)
+                        maxRequestBodySizeFeature.MaxRequestBodySize = null;
+
+                    using (var uploadDataStream = new TcpProtocolBodyStream(context.Request.Body, null, false, true))
+                    {
+                        data = await serializer.DeserializeAsync<ApiRequestData>(uploadDataStream, context.RequestAborted);
+                        //through the end of the framing in case the serializer stopped short of it
+                        await uploadDataStream.CopyToAsync(Stream.Null, 81920, context.RequestAborted);
+                    }
+                    if (data is null || String.IsNullOrWhiteSpace(data.ProviderType))
+                        throw new Exception("Invalid Request"); //only queries take a stream
+                    argumentStream = new LeaveOpenStream(context.Request.Body);
+                }
+                else
+                {
+                    data = await serializer.DeserializeAsync<ApiRequestData>(context.Request.Body, context.RequestAborted);
+                    if (data is null)
+                        throw new Exception("Invalid Request");
+                }
 
                 inHandlerContext = true;
-                var response = await ApiServerHandler.HandleRequestAsync(bus, serializer, acceptSerializer, data, context.RequestAborted);
+                var response = await ApiServerHandler.HandleRequestAsync(bus, serializer, acceptSerializer, data, argumentStream, context.RequestAborted);
                 inHandlerContext = false;
 
                 if (response is null)

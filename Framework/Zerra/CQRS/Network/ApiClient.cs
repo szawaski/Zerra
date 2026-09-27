@@ -62,10 +62,22 @@ namespace Zerra.CQRS.Network
             //a trailing CancellationToken isn't sent, the server passes its own in its place
             var serializeCount = argumentTypes.Count > 0 && argumentTypes[argumentTypes.Count - 1] == typeof(CancellationToken) ? argumentTypes.Count - 1 : argumentTypes.Count;
             data.ProviderArguments = new byte[argumentTypes.Count][];
+            Stream? argumentStream = null;
+            var hasArgumentStream = false;
             for (var i = 0; i < serializeCount; i++)
+            {
+                if (argumentTypes[i] == typeof(Stream))
+                {
+                    if (hasArgumentStream)
+                        throw new ArgumentException($"{interfaceType.Name}.{methodName} can only have one Stream argument");
+                    hasArgumentStream = true;
+                    argumentStream = (Stream?)arguments[i];
+                    continue;
+                }
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
+            }
 
-            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, data, true);
+            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, data, argumentStream, true);
             return model;
         }
 
@@ -85,10 +97,22 @@ namespace Zerra.CQRS.Network
             //a trailing CancellationToken isn't sent, the server passes its own in its place
             var serializeCount = argumentTypes.Count > 0 && argumentTypes[argumentTypes.Count - 1] == typeof(CancellationToken) ? argumentTypes.Count - 1 : argumentTypes.Count;
             data.ProviderArguments = new byte[argumentTypes.Count][];
+            Stream? argumentStream = null;
+            var hasArgumentStream = false;
             for (var i = 0; i < serializeCount; i++)
+            {
+                if (argumentTypes[i] == typeof(Stream))
+                {
+                    if (hasArgumentStream)
+                        throw new ArgumentException($"{interfaceType.Name}.{methodName} can only have one Stream argument");
+                    hasArgumentStream = true;
+                    argumentStream = (Stream?)arguments[i];
+                    continue;
+                }
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
+            }
 
-            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, data, true, cancellationToken);
+            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, data, argumentStream, true, cancellationToken);
             return model;
         }
 
@@ -107,7 +131,7 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, commandTypeName, data, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, commandTypeName, data, null, false, cancellationToken);
         }
         /// <inheritdoc />
         protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
@@ -125,7 +149,7 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<TResult>(throttle, isStream, routeUri, commandTypeName, data, true, cancellationToken)!;
+            return RequestAsync<TResult>(throttle, isStream, routeUri, commandTypeName, data, null, true, cancellationToken)!;
         }
 
         /// <inheritdoc />
@@ -143,10 +167,10 @@ namespace Zerra.CQRS.Network
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, commandTypeName, data, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, commandTypeName, data, null, false, cancellationToken);
         }
 
-        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string providerType, ApiRequestData data, bool getResponseData, CancellationToken cancellationToken)
+        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string providerType, ApiRequestData data, Stream? argumentStream, bool getResponseData, CancellationToken cancellationToken)
         {
             await throttle.WaitAsync(cancellationToken);
 
@@ -158,8 +182,26 @@ namespace Zerra.CQRS.Network
 
                 request.Content = new WriteStreamContent(async (postStream) =>
                 {
-                    await serializer.SerializeAsync(postStream, data, cancellationToken);
+                    if (argumentStream is null)
+                    {
+                        await serializer.SerializeAsync(postStream, data, cancellationToken);
+                    }
+                    else
+                    {
+                        using (var uploadDataStream = new TcpProtocolBodyStream(postStream, null, true, true, default, false))
+                        {
+                            await serializer.SerializeAsync(uploadDataStream, data, cancellationToken);
+                            await uploadDataStream.FlushAsync(cancellationToken);
+                        }
+#if NETSTANDARD2_0
+                        await argumentStream.CopyToAsync(postStream, 81920, cancellationToken);
+#else
+                        await argumentStream.CopyToAsync(postStream, cancellationToken);
+#endif
+                    }
                 });
+                if (argumentStream is not null)
+                    request.Headers.Add(HttpCommon.UploadStreamHeader, HttpCommon.UploadStreamValue);
                 request.Content.Headers.ContentType = serializer.ContentType switch
                 {
                     ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
@@ -239,7 +281,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string providerType, ApiRequestData data, bool getResponseData)
+        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string providerType, ApiRequestData data, Stream? argumentStream, bool getResponseData)
         {
 #if NETSTANDARD2_0
             //HttpClient has no synchronous send in netstandard2.0
@@ -255,8 +297,22 @@ namespace Zerra.CQRS.Network
 
                 request.Content = new WriteStreamContent((postStream) =>
                 {
-                    serializer.Serialize(postStream, data);
+                    if (argumentStream is null)
+                    {
+                        serializer.Serialize(postStream, data);
+                    }
+                    else
+                    {
+                        using (var uploadDataStream = new TcpProtocolBodyStream(postStream, null, true, true, default, false))
+                        {
+                            serializer.Serialize(uploadDataStream, data);
+                            uploadDataStream.Flush();
+                        }
+                        argumentStream.CopyTo(postStream);
+                    }
                 });
+                if (argumentStream is not null)
+                    request.Headers.Add(HttpCommon.UploadStreamHeader, HttpCommon.UploadStreamValue);
                 request.Content.Headers.ContentType = serializer.ContentType switch
                 {
                     ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),

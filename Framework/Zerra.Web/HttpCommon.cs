@@ -10,6 +10,9 @@ namespace Zerra.Web
 
         public const string ContentTypeHeader = "Content-Type";
         public const string ProviderTypeHeader = "Provider-Type";
+        //the body is the data in {int32 little endian length}{bytes} segments ended by {int32 0}, then the stream bytes to the end of the body
+        public const string UploadStreamHeader = "Upload-Stream";
+        public const string UploadStreamValue = "true";
 
         public const string ContentTypeBytes = "application/octet-stream";
         public const string ContentTypeJson = "application/json; charset=utf-8";

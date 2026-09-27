@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zerra Store - Catalog Export and Import</title>
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="inner">
+            <a class="brand" href="index.html">Zerra <span>Store</span></a>
+            <nav class="site-nav">
+                <a href="index.html">Overview</a>
+                <a href="catalog.html" class="active">Catalog</a>
+                <a href="inventory.html">Inventory</a>
+                <a href="carts.html">Carts</a>
+                <a href="orders.html">Orders</a>
+                <a href="shipping.html">Shipping</a>
+                <a href="reviews.html">Reviews</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <p class="subtle" style="margin: 0 0 6px"><a href="catalog.html">← Catalog</a></p>
+        <h1 class="page-title">Export and import</h1>
+        <p class="page-lead">
+            Queries with streams. Download the products as CSV, edit it, and preview it as an import to see what would change.
+            Neither side holds the file in memory: the Catalog service writes the CSV as the browser reads it, and reads the uploaded file as it arrives.
+            A query changes nothing, importing would be commands.
+        </p>
+
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))">
+            <section class="card">
+                <div class="card-header"><h2>Download</h2></div>
+                <button type="button" id="export-csv">Download products.csv</button>
+                <p class="card-note"><code>ExportProductsCsv</code> returns a <code>Stream</code>, streamed from the Catalog service through the gateway.</p>
+            </section>
+
+            <section class="card">
+                <div class="card-header"><h2>Preview an import</h2></div>
+                <div class="field">
+                    <label for="import-file">CSV file</label>
+                    <input type="file" id="import-file" accept=".csv,text/csv" />
+                </div>
+                <div class="field">
+                    <label for="max-price-change">Max price change %</label>
+                    <input type="number" id="max-price-change" min="0" step="1" value="50" />
+                </div>
+                <button type="button" id="preview-import" disabled>Preview import</button>
+                <p class="card-note">
+                    <code>PreviewProductImport(fileName, csv, maxPriceChangePercent)</code> takes a <code>Stream</code> between two other arguments.
+                    Those go first, the file follows in the same request.
+                </p>
+            </section>
+        </div>
+
+        <section class="card" style="margin-top: 20px">
+            <div class="card-header"><h2>Preview</h2></div>
+            <div id="import-summary" class="subtle">Choose a file and preview it.</div>
+            <div class="table-wrap">
+                <table id="import-table" hidden>
+                    <thead>
+                        <tr>
+                            <th class="num">Line</th>
+                            <th>SKU</th>
+                            <th>Product</th>
+                            <th class="num">Current</th>
+                            <th class="num">Price</th>
+                            <th>Change</th>
+                        </tr>
+                    </thead>
+                    <tbody id="import-rows"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="lib/jquery/jquery.min.js"></script>
+    <script src="js/Bus.js"></script>
+    <script src="js/BusRoutes.js"></script>
+    <script src="js/JavaScriptModels.js"></script>
+    <script src="js/site.js"></script>
+    <script src="js/catalog-import.js"></script>
+</body>
+</html>

@@ -55,7 +55,7 @@ namespace Zerra.Test.CQRS.Network
             public void AddQueryClient<TInterface>(IQueryClient queryClient) => throw new NotImplementedException();
             public void AddQueryServer<TInterface>(IQueryServer queryServer) => throw new NotImplementedException();
 
-            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, ISerializer serializer, CancellationToken cancellationToken)
+            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, ISerializer serializer, CancellationToken cancellationToken)
             {
                 return Task.FromResult(QueryResponse ?? new RemoteQueryCallResponse(null));
             }

@@ -136,6 +136,30 @@ main {
     letter-spacing: -0.02em;
 }
 
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+a.button {
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    padding: 7px 14px;
+    background: var(--surface);
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+a.button:hover {
+    background: var(--surface-muted);
+}
+
 .page-lead {
     margin: 0 0 24px;
     color: var(--text-muted);

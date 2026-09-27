@@ -114,6 +114,8 @@ Content-Type: application/json
 
 **Response:** the serialized query result or command result, an empty `200` for commands without a result, or a raw stream for queries that return `Stream`.
 
+**Upload request** (a query with a `Stream` parameter): send the header `Upload-Stream: true`, and a body of the request JSON's length as a 4-byte little-endian integer, then the request JSON with `null` in the stream argument's place, then a 4-byte `0` marking the end of the request, then the stream's bytes until the body ends. (The request may be split into several length-prefixed pieces before the `0`, which is how the .NET clients write it without buffering.) The gateway lifts Kestrel's request size limit for these requests and passes the rest of the body to the query as it arrives. `Bus.js` and `Bus.ts` do this for you when an argument is a `Blob` or `File`.
+
 ### 2. Custom Authorization
 
 Implement `ICqrsAuthorizer` to add custom authentication/authorization:
@@ -529,6 +531,22 @@ const BusFail = function (message, url) {
 ```
 
 The `onFail` callback on each call receives a single error message string.
+
+Queries with streams work from the browser too. A `Stream` parameter takes a `Blob` or `File`, which is uploaded after the other arguments, and a `Stream` result arrives as a `Blob` (the generated function passes `"Blob"` as the model type):
+
+```javascript
+//Task<ImportPreviewModel> PreviewImport(Stream csv, CancellationToken cancellationToken)
+IImportQueries.PreviewImport(fileInput.files[0], function (preview) { ... });
+
+//Task<Stream> ExportCsv(CancellationToken cancellationToken)
+IImportQueries.ExportCsv(function (blob) {
+    const url = URL.createObjectURL(blob);
+    $("<a>").attr({ href: url, download: "export.csv" })[0].click();
+    URL.revokeObjectURL(url);
+});
+```
+
+`Demo/Store`'s Export and import page (`catalog-import.html`) does both.
 
 #### Using the TypeScript Bus
 

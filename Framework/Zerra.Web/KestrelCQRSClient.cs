@@ -79,10 +79,22 @@ namespace Zerra.Web
             //a trailing CancellationToken isn't sent, the server passes its own in its place
             var serializeCount = argumentTypes.Count > 0 && argumentTypes[argumentTypes.Count - 1] == typeof(CancellationToken) ? argumentTypes.Count - 1 : argumentTypes.Count;
             data.ProviderArguments = new byte[argumentTypes.Count][];
+            Stream? argumentStream = null;
+            var hasArgumentStream = false;
             for (var i = 0; i < serializeCount; i++)
+            {
+                if (argumentTypes[i] == typeof(Stream))
+                {
+                    if (hasArgumentStream)
+                        throw new ArgumentException($"{interfaceType.Name}.{methodName} can only have one Stream argument");
+                    hasArgumentStream = true;
+                    argumentStream = (Stream?)arguments[i];
+                    continue;
+                }
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
+            }
 
-            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, providerName, data, true);
+            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, providerName, data, argumentStream, true);
             return model;
         }
 
@@ -107,10 +119,22 @@ namespace Zerra.Web
             //a trailing CancellationToken isn't sent, the server passes its own in its place
             var serializeCount = argumentTypes.Count > 0 && argumentTypes[argumentTypes.Count - 1] == typeof(CancellationToken) ? argumentTypes.Count - 1 : argumentTypes.Count;
             data.ProviderArguments = new byte[argumentTypes.Count][];
+            Stream? argumentStream = null;
+            var hasArgumentStream = false;
             for (var i = 0; i < serializeCount; i++)
+            {
+                if (argumentTypes[i] == typeof(Stream))
+                {
+                    if (hasArgumentStream)
+                        throw new ArgumentException($"{interfaceType.Name}.{methodName} can only have one Stream argument");
+                    hasArgumentStream = true;
+                    argumentStream = (Stream?)arguments[i];
+                    continue;
+                }
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
+            }
 
-            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, providerName, data, true, cancellationToken);
+            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, providerName, data, argumentStream, true, cancellationToken);
             return model;
         }
 
@@ -135,7 +159,7 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, messageType, commandType.Name, data, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, messageType, commandType.Name, data, null, false, cancellationToken);
         }
         /// <inheritdoc />
         protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
@@ -158,7 +182,7 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<TResult>(throttle, isStream, routeUri, messageType, commandType.Name, data, true, cancellationToken)!;
+            return RequestAsync<TResult>(throttle, isStream, routeUri, messageType, commandType.Name, data, null, true, cancellationToken)!;
         }
         /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
@@ -181,10 +205,10 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, messageType, eventType.Name, data, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, messageType, eventType.Name, data, null, false, cancellationToken);
         }
 
-        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, string sourceName, CqrsRequestData data, bool getResponseData, CancellationToken cancellationToken)
+        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, string sourceName, CqrsRequestData data, Stream? argumentStream, bool getResponseData, CancellationToken cancellationToken)
         {
             await throttle.WaitAsync(cancellationToken);
 
@@ -199,7 +223,23 @@ namespace Zerra.Web
                     if (encryptor is not null)
                     {
                         var cryptoStream = encryptor.Encrypt(new LeaveOpenStream(postStream), true);
-                        await serializer.SerializeAsync(cryptoStream, data, cancellationToken);
+                        if (argumentStream is null)
+                        {
+                            await serializer.SerializeAsync(cryptoStream, data, cancellationToken);
+                        }
+                        else
+                        {
+                            using (var uploadDataStream = new TcpProtocolBodyStream(cryptoStream, null, true, true, default, false))
+                            {
+                                await serializer.SerializeAsync(uploadDataStream, data, cancellationToken);
+                                await uploadDataStream.FlushAsync(cancellationToken);
+                            }
+#if NETSTANDARD2_0
+                            await argumentStream.CopyToAsync(cryptoStream, 81920, cancellationToken);
+#else
+                            await argumentStream.CopyToAsync(cryptoStream, cancellationToken);
+#endif
+                        }
 #if NETSTANDARD2_0
                         cryptoStream.FlushFinalBlock();
 #else
@@ -213,9 +253,27 @@ namespace Zerra.Web
                     }
                     else
                     {
-                        await serializer.SerializeAsync(postStream, data, cancellationToken);
+                        if (argumentStream is null)
+                        {
+                            await serializer.SerializeAsync(postStream, data, cancellationToken);
+                        }
+                        else
+                        {
+                            using (var uploadDataStream = new TcpProtocolBodyStream(postStream, null, true, true, default, false))
+                            {
+                                await serializer.SerializeAsync(uploadDataStream, data, cancellationToken);
+                                await uploadDataStream.FlushAsync(cancellationToken);
+                            }
+#if NETSTANDARD2_0
+                            await argumentStream.CopyToAsync(postStream, 81920, cancellationToken);
+#else
+                            await argumentStream.CopyToAsync(postStream, cancellationToken);
+#endif
+                        }
                     }
                 });
+                if (argumentStream is not null)
+                    request.Headers.Add(HttpCommon.UploadStreamHeader, HttpCommon.UploadStreamValue);
                 request.Content.Headers.ContentType = serializer.ContentType switch
                 {
                     ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
@@ -308,7 +366,7 @@ namespace Zerra.Web
             }
         }
 
-        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, string sourceName, CqrsRequestData data, bool getResponseData)
+        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, string sourceName, CqrsRequestData data, Stream? argumentStream, bool getResponseData)
         {
 #if NETSTANDARD2_0
             //HttpClient has no synchronous send in netstandard2.0
@@ -327,15 +385,41 @@ namespace Zerra.Web
                     if (encryptor is not null)
                     {
                         var cryptoStream = encryptor.Encrypt(new LeaveOpenStream(postStream), true);
-                        serializer.Serialize(cryptoStream, data);
+                        if (argumentStream is null)
+                        {
+                            serializer.Serialize(cryptoStream, data);
+                        }
+                        else
+                        {
+                            using (var uploadDataStream = new TcpProtocolBodyStream(cryptoStream, null, true, true, default, false))
+                            {
+                                serializer.Serialize(uploadDataStream, data);
+                                uploadDataStream.Flush();
+                            }
+                            argumentStream.CopyTo(cryptoStream);
+                        }
                         cryptoStream.FlushFinalBlock();
                         cryptoStream.Dispose();
                     }
                     else
                     {
-                        serializer.Serialize(postStream, data);
+                        if (argumentStream is null)
+                        {
+                            serializer.Serialize(postStream, data);
+                        }
+                        else
+                        {
+                            using (var uploadDataStream = new TcpProtocolBodyStream(postStream, null, true, true, default, false))
+                            {
+                                serializer.Serialize(uploadDataStream, data);
+                                uploadDataStream.Flush();
+                            }
+                            argumentStream.CopyTo(postStream);
+                        }
                     }
                 });
+                if (argumentStream is not null)
+                    request.Headers.Add(HttpCommon.UploadStreamHeader, HttpCommon.UploadStreamValue);
                 request.Content.Headers.ContentType = serializer.ContentType switch
                 {
                     ContentType.Bytes => MediaTypeHeaderValue.Parse(HttpCommon.ContentTypeBytes),
@@ -425,8 +509,5 @@ namespace Zerra.Web
             client.Dispose();
             handler.Dispose();
         }
-
-        //the request stream belongs to HttpClient, the encryption stream closes what it wraps when disposed
-        private sealed class LeaveOpenStream(Stream stream) : StreamWrapper(stream, true) { }
     }
 }

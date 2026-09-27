@@ -171,17 +171,37 @@ export class Bus {
                 Source: "TypeScript"
             };
 
+            let upload: Blob | null = null;
             if (postData.ProviderArguments !== undefined) {
                 for (let i = 0; i < postData.ProviderArguments.length; i++) {
+                    if (postData.ProviderArguments[i] instanceof Blob) {
+                        if (upload !== null)
+                            throw "Only one Blob argument can be uploaded";
+                        upload = postData.ProviderArguments[i];
+                        postData.ProviderArguments[i] = null;
+                        continue;
+                    }
                     postData.ProviderArguments[i] = Bus._toBase64(Bus._serializeJson(postData.ProviderArguments[i]));
                 }
             }
 
-            const hasJsonNameless = modelType !== null;
+            //an upload body is {int32 little endian json length}{json}{int32 0}{blob}
+            const postJson = JSON.stringify(postData);
+            let body: BodyInit = postJson;
+            if (upload !== null) {
+                const json = new TextEncoder().encode(postJson);
+                const length = new Uint8Array(4);
+                new DataView(length.buffer).setInt32(0, json.length, true);
+                body = new Blob([length, json, new Uint8Array(4), upload]);
+            }
+
+            const hasJsonNameless = modelType !== null && modelType !== "Blob";
             const accept = hasJsonNameless ? "application/jsonnameless; charset=utf-8" : "application/json; charset=utf-8";
 
             const headers: HeadersInit = {};
             headers["Provider-Type"] = provider;
+            if (upload !== null)
+                headers["Upload-Stream"] = "true";
             headers["Content-Type"] = "application/json; charset=utf-8";
             headers["Accept"] = accept;
             for (const property in Bus._customHeaders) {
@@ -198,7 +218,7 @@ export class Bus {
 
                 fetch(route, {
                     method: "POST",
-                    body: JSON.stringify(postData),
+                    body: body,
                     headers: headers
                 }).then(res => {
 

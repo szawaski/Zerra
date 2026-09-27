@@ -123,6 +123,44 @@ namespace Zerra.Test.CQRS
         }
 
         [Fact]
+        public async Task BusQueryClientServerTcpUnencrypted()
+        {
+            var url = TestNetwork.NewUrl();
+            var serializer = new ZerraByteSerializer();
+
+            var busServer = Bus.New("test-server", null, null, null);
+            busServer.AddHandler<ITestQueryHandler>(new TestQueryHandler());
+            busServer.AddQueryServer<ITestQueryHandler>(new TcpCqrsServer(url, serializer, null, null));
+
+            var busClient = Bus.New("test-client", null, null, null);
+            busClient.AddQueryClient<ITestQueryHandler>(new TcpCqrsClient(url, serializer, null, null));
+
+            await BusCalls(busClient, "test-server");
+
+            await busClient.StopServicesAsync();
+            await busServer.StopServicesAsync();
+        }
+
+        [Fact]
+        public async Task BusQueryClientServerHttpUnencrypted()
+        {
+            var url = TestNetwork.NewUrl();
+            var serializer = new ZerraByteSerializer();
+
+            var busServer = Bus.New("test-server", null, null, null);
+            busServer.AddHandler<ITestQueryHandler>(new TestQueryHandler());
+            busServer.AddQueryServer<ITestQueryHandler>(new HttpCqrsServer(url, serializer, null, null, null));
+
+            var busClient = Bus.New("test-client", null, null, null);
+            busClient.AddQueryClient<ITestQueryHandler>(new HttpCqrsClient(url, serializer, null, null, null));
+
+            await BusCalls(busClient, "test-server");
+
+            await busClient.StopServicesAsync();
+            await busServer.StopServicesAsync();
+        }
+
+        [Fact]
         public async Task BusProducerConsumerTcp()
         {
             var url = TestNetwork.NewUrl();
@@ -290,6 +328,39 @@ namespace Zerra.Test.CQRS
             await streamAsync.DisposeAsync();
             Assert.True(streamAsyncBytes.SequenceEqual(new byte[] { 1, 2, 3, 4, 5 }));
 
+            var uploadBytes = new byte[1024 * 1024 + 7];
+            new Random(5).NextBytes(uploadBytes);
+
+            var uploadCount = bus.Call<ITestQueryHandler>().Upload(3, new MemoryStream(uploadBytes));
+            Assert.Equal(uploadBytes.Length + 3, uploadCount);
+
+            var uploadSum = await bus.Call<ITestQueryHandler>().UploadAsync(new MemoryStream(uploadBytes), 3, default);
+            Assert.Equal(uploadBytes.Sum(x => (long)x) + 3, uploadSum);
+
+            //the request data spans several segments before the stream
+            var largeArgument = new string('x', 40_000);
+            var uploadLarge = await bus.Call<ITestQueryHandler>().UploadWithArgumentAsync(largeArgument, new MemoryStream(uploadBytes));
+            Assert.Equal(largeArgument.Length + uploadBytes.Length, uploadLarge);
+
+            var uploadNull = await bus.Call<ITestQueryHandler>().UploadAsync(null, 3, default);
+            Assert.Equal(-1, uploadNull);
+
+            //the handler reads part of the stream, the next call on the connection still works
+            for (var i = 0; i < 3; i++)
+            {
+                var firstByte = await bus.Call<ITestQueryHandler>().UploadReadFirstAsync(new MemoryStream(uploadBytes));
+                Assert.Equal(uploadBytes[0], firstByte);
+            }
+
+            using (var uploadEcho = await bus.Call<ITestQueryHandler>().UploadEchoAsync(new MemoryStream(uploadBytes)))
+            {
+                var uploadEchoBytes = await uploadEcho.ToArrayAsync();
+                Assert.True(uploadEchoBytes.SequenceEqual(uploadBytes));
+            }
+
+            _ = await Assert.ThrowsAnyAsync<Exception>(async () => await bus.Call<ITestQueryHandler>().UploadThrowsAsync(new MemoryStream(uploadBytes)));
+            Assert.Equal(42, await bus.Call<ITestQueryHandler>().GetThingsAsync());
+
             using (var cancellationTokenSource = new CancellationTokenSource())
             {
                 var task = bus.Call<ITestQueryHandler>().GetThingsWithCancellationAsync(21, cancellationTokenSource.Token);
@@ -395,6 +466,12 @@ namespace Zerra.Test.CQRS
             public Task<int> GetThingsWithCancellationAsync(int param, CancellationToken cancellationToken);
             public Stream GetStream();
             public Task<Stream> GetStreamAsync();
+            public int Upload(int param, Stream stream);
+            public Task<long> UploadAsync(Stream? stream, int param, CancellationToken cancellationToken);
+            public Task<int> UploadWithArgumentAsync(string argument, Stream stream);
+            public Task<int> UploadReadFirstAsync(Stream stream);
+            public Task<Stream> UploadEchoAsync(Stream stream);
+            public Task<int> UploadThrowsAsync(Stream stream);
         }
         public sealed class TestQueryHandler : BaseHandler, ITestQueryHandler
         {
@@ -445,6 +522,56 @@ namespace Zerra.Test.CQRS
             {
                 var ms = new MemoryStream([1, 2, 3, 4, 5]);
                 return Task.FromResult<Stream>(ms);
+            }
+
+            public int Upload(int param, Stream stream)
+            {
+                using var ms = new MemoryStream();
+                stream.CopyTo(ms);
+                return (int)ms.Length + param;
+            }
+
+            public async Task<long> UploadAsync(Stream? stream, int param, CancellationToken cancellationToken)
+            {
+                if (stream is null)
+                    return -1;
+                var buffer = new byte[4096];
+                long sum = param;
+                int read;
+                while ((read = await stream.ReadAsync(buffer, cancellationToken)) > 0)
+                {
+                    for (var i = 0; i < read; i++)
+                        sum += buffer[i];
+                }
+                return sum;
+            }
+
+            public async Task<int> UploadWithArgumentAsync(string argument, Stream stream)
+            {
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                return argument.Length + (int)ms.Length;
+            }
+
+            public Task<int> UploadReadFirstAsync(Stream stream)
+            {
+                //disposing it like a StreamReader would leaves the rest for the server to read
+                using (stream)
+                    return Task.FromResult(stream.ReadByte());
+            }
+
+            public async Task<Stream> UploadEchoAsync(Stream stream)
+            {
+                var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                ms.Position = 0;
+                return ms;
+            }
+
+            public Task<int> UploadThrowsAsync(Stream stream)
+            {
+                _ = stream.ReadByte();
+                throw new InvalidOperationException("Upload failed");
             }
         }
 

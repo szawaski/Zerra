@@ -16,6 +16,7 @@ namespace Zerra.CQRS.Network
 
         private readonly ReadOnlyMemory<byte> readStartBuffer;
         private readonly bool writeMode;
+        private readonly bool flushStream;
         private int readStartBufferPosition;
         private long position;
         private int segmentPosition;
@@ -31,10 +32,11 @@ namespace Zerra.CQRS.Network
         private int writeSegmentStart;
         private int writeBufferPosition;
 
-        public TcpProtocolBodyStream(Stream stream, ReadOnlyMemory<byte> readStartBufferPosition, bool writeMode, bool leaveOpen, ReadOnlyMemory<byte> writePrefix = default) : base(stream, leaveOpen)
+        public TcpProtocolBodyStream(Stream stream, ReadOnlyMemory<byte> readStartBufferPosition, bool writeMode, bool leaveOpen, ReadOnlyMemory<byte> writePrefix = default, bool flushStream = true) : base(stream, leaveOpen)
         {
             this.readStartBuffer = readStartBufferPosition;
             this.writeMode = writeMode;
+            this.flushStream = flushStream;
             this.readStartBufferPosition = 0;
             this.position = 0;
             this.segmentPosition = 0;
@@ -340,7 +342,8 @@ namespace Zerra.CQRS.Network
 #else
                 stream.Write(writeBufferSource.AsSpan(0, writeBufferPosition));
 #endif
-                stream.Flush();
+                if (flushStream)
+                    stream.Flush();
             }
         }
 
@@ -369,7 +372,8 @@ namespace Zerra.CQRS.Network
 #else
                 await stream.WriteAsync(writeBufferSource.AsMemory(0, writeBufferPosition), cancellationToken);
 #endif
-                await stream.FlushAsync(cancellationToken);
+                if (flushStream)
+                    await stream.FlushAsync(cancellationToken);
             }
         }
     }

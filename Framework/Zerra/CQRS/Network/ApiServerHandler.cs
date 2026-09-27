@@ -23,7 +23,7 @@ namespace Zerra.CQRS.Network
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The response from the API request, or null if the request could not be routed.</returns>
         public static Task<ApiResponseData?> HandleRequestAsync(IBus bus, ISerializer serializer, ApiRequestData data, CancellationToken cancellationToken)
-            => HandleRequestAsync(bus, serializer, serializer, data, cancellationToken);
+            => HandleRequestAsync(bus, serializer, serializer, data, null, cancellationToken);
 
         /// <summary>
         /// Handles an external API request by routing it to either a remote query call or a command dispatch,
@@ -33,13 +33,14 @@ namespace Zerra.CQRS.Network
         /// <param name="serializer">The serializer used to deserialize the request's query arguments.</param>
         /// <param name="responseSerializer">The serializer used to serialize the response, such as a nameless JSON serializer when the client accepts it.</param>
         /// <param name="data">The API request data containing the provider type, method, message type, or other routing information.</param>
+        /// <param name="argumentStream">The uploaded stream for the query method's <see cref="Stream"/> parameter, null if there isn't one.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The response from the API request, or null if the request could not be routed.</returns>
-        public static async Task<ApiResponseData?> HandleRequestAsync(IBus bus, ISerializer serializer, ISerializer responseSerializer, ApiRequestData data, CancellationToken cancellationToken)
+        public static async Task<ApiResponseData?> HandleRequestAsync(IBus bus, ISerializer serializer, ISerializer responseSerializer, ApiRequestData data, Stream? argumentStream, CancellationToken cancellationToken)
         {
             if (!String.IsNullOrWhiteSpace(data.ProviderType))
             {
-                var response = await Call(bus, serializer, data, cancellationToken);
+                var response = await Call(bus, serializer, data, argumentStream, cancellationToken);
 
                 if (response.Stream is not null)
                 {
@@ -73,7 +74,7 @@ namespace Zerra.CQRS.Network
             return null;
         }
 
-        private static Task<RemoteQueryCallResponse> Call(IBus bus, ISerializer serializer, ApiRequestData data, CancellationToken cancellationToken)
+        private static Task<RemoteQueryCallResponse> Call(IBus bus, ISerializer serializer, ApiRequestData data, Stream? argumentStream, CancellationToken cancellationToken)
         {
             if (String.IsNullOrWhiteSpace(data.ProviderType)) throw new ArgumentNullException(nameof(ApiRequestData.ProviderType));
             if (String.IsNullOrWhiteSpace(data.ProviderMethod)) throw new ArgumentNullException(nameof(ApiRequestData.ProviderMethod));
@@ -84,7 +85,7 @@ namespace Zerra.CQRS.Network
             if (!providerType.IsInterface)
                 throw new ArgumentException($"Provider {data.ProviderType} is not an interface type");
 
-            return bus.RemoteHandleQueryCallAsync(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, serializer, cancellationToken);
+            return bus.RemoteHandleQueryCallAsync(providerType, data.ProviderMethod, data.ProviderArguments, argumentStream, data.Source, serializer, cancellationToken);
         }
 
         private static Task Dispatch(IBus bus, ApiRequestData data, CancellationToken cancellationToken)

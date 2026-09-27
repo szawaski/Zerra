@@ -16,5 +16,7 @@ namespace Store.Orders.Test
         public Task<CategoryModel[]> GetCategories(CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<ProductModel[]> GetProducts(CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<ProductModel[]> GetProductsByCategory(Guid categoryID, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<Stream> ExportProductsCsv(CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<ProductImportPreviewModel> PreviewProductImport(string fileName, Stream csv, decimal maxPriceChangePercent, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

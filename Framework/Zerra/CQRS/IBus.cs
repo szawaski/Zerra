@@ -104,11 +104,12 @@ namespace Zerra.CQRS
         /// <param name="interfaceType">The interface type for the query.</param>
         /// <param name="methodName">The method name of the query.</param>
         /// <param name="arguments">The serialized arguments for the query method.</param>
+        /// <param name="argumentStream">The uploaded stream for the method's <see cref="Stream"/> parameter, null if there isn't one.</param>
         /// <param name="source">The source of the remote call.</param>
         /// <param name="serializer">The serializer to use for deserializing arguments and serializing results.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
         /// <returns>A task that returns the query call response.</returns>
-        Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, ISerializer serializer, CancellationToken cancellationToken);
+        Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, ISerializer serializer, CancellationToken cancellationToken);
         /// <summary>
         /// Handle a remote command dispatch without awaiting completion.
         /// </summary>

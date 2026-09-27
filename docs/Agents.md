@@ -486,6 +486,7 @@ When working with Zerra code:
 - Return `Task<T>` for async, or sync if needed
 - Query calls are type-safe and routed via proxy generation
 - **Special case**: If return type is `Stream`, the response will be live-streamed from the remote service
+- **Special case**: A query can take one `Stream` argument, streamed to the remote service after the other arguments in the same request; the handler must finish reading it before its task completes (see [Queries](Queries.md#upload-a-stream))
 
 ## Working on the Framework Itself
 

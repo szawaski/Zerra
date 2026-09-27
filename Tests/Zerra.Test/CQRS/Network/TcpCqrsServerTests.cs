@@ -39,7 +39,7 @@ namespace Zerra.Test.CQRS.Network
             string? receivedMethod = null;
             int? receivedArgument = null;
             string? receivedSource = null;
-            using var server = StartQueryServer(out var port, enc, (interfaceType, methodName, arguments, requestSource, _, _) =>
+            using var server = StartQueryServer(out var port, enc, (interfaceType, methodName, arguments, _, requestSource, _, _) =>
             {
                 receivedType = interfaceType;
                 receivedMethod = methodName;
@@ -69,7 +69,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task Query_ReturnsStream(bool encrypt)
         {
             var enc = encrypt ? encryptor : null;
-            using var server = StartQueryServer(out var port, enc, (_, _, _, _, _, _) =>
+            using var server = StartQueryServer(out var port, enc, (_, _, _, _, _, _, _) =>
                 Task.FromResult(new RemoteQueryCallResponse(new MemoryStream([1, 2, 3, 4, 5]))));
 
             await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
@@ -85,7 +85,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task Query_ReturnsStream_DisposesStream()
         {
             var resultStream = new DisposeSignalStream([1, 2, 3]);
-            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
+            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _, _) =>
                 Task.FromResult(new RemoteQueryCallResponse(resultStream)));
 
             await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
@@ -103,7 +103,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task Query_HandlerThrows_RespondsWithError(bool encrypt)
         {
             var enc = encrypt ? encryptor : null;
-            using var server = StartQueryServer(out var port, enc, (_, _, _, _, _, _) =>
+            using var server = StartQueryServer(out var port, enc, (_, _, _, _, _, _, _) =>
                 Task.FromException<RemoteQueryCallResponse>(new InvalidOperationException("query failed")));
 
             await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
@@ -121,7 +121,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task Query_WithClaims_SetsThreadPrincipalForHandler()
         {
             IPrincipal? principal = null;
-            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
+            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _, _) =>
             {
                 principal = Thread.CurrentPrincipal;
                 return Task.FromResult(new RemoteQueryCallResponse(1));
@@ -144,7 +144,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task Query_UnregisteredInterface_DoesNotInvokeHandler()
         {
             var handlerInvoked = false;
-            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
+            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _, _) =>
             {
                 handlerInvoked = true;
                 return Task.FromResult(new RemoteQueryCallResponse(1));
@@ -174,7 +174,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task Query_ContentTypeMismatch_DoesNotInvokeHandler()
         {
             var handlerInvoked = false;
-            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _) =>
+            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _, _) =>
             {
                 handlerInvoked = true;
                 return Task.FromResult(new RemoteQueryCallResponse(1));
@@ -195,7 +195,7 @@ namespace Zerra.Test.CQRS.Network
         [Fact(Timeout = timeout)]
         public async Task Query_MultipleRequestsOnSameConnection()
         {
-            using var server = StartQueryServer(out var port, null, (_, _, arguments, _, _, _) =>
+            using var server = StartQueryServer(out var port, null, (_, _, arguments, _, _, _, _) =>
                 Task.FromResult(new RemoteQueryCallResponse(serializer.Deserialize<int>(arguments[0]) * 2)));
 
             await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);

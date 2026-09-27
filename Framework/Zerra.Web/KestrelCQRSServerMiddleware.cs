@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
 using System.Security.Claims;
 using Zerra.Buffers;
@@ -187,6 +188,7 @@ namespace Zerra.Web
             var isCommand = false;
             var inHandlerContext = false;
             SemaphoreSlim? throttle = null;
+            Stream? uploadBody = null;
             try
             {
                 Stream body = context.Request.Body;
@@ -196,14 +198,35 @@ namespace Zerra.Web
                     if (encryptor is not null)
                         body = encryptor.Decrypt(body, false);
 
-                    data = await serializer.DeserializeAsync<CqrsRequestData>(body, context.RequestAborted);
+                    if (String.Equals(context.Request.Headers[HttpCommon.UploadStreamHeader], HttpCommon.UploadStreamValue, StringComparison.OrdinalIgnoreCase))
+                    {
+                        //the request data is framed, the rest of the body is the stream for the handler, its length is up to the uploader
+                        var maxRequestBodySizeFeature = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
+                        if (maxRequestBodySizeFeature is not null && !maxRequestBodySizeFeature.IsReadOnly)
+                            maxRequestBodySizeFeature.MaxRequestBodySize = null;
+
+                        using (var uploadDataStream = new TcpProtocolBodyStream(body, null, false, true))
+                        {
+                            data = await serializer.DeserializeAsync<CqrsRequestData>(uploadDataStream, context.RequestAborted);
+                            //through the end of the framing in case the serializer stopped short of it
+                            await uploadDataStream.CopyToAsync(Stream.Null, 81920, context.RequestAborted);
+                        }
+                        if (data is null || String.IsNullOrWhiteSpace(data.ProviderType))
+                            throw new Exception("Invalid Request"); //only queries take a stream
+                        uploadBody = body;
+                    }
+                    else
+                    {
+                        data = await serializer.DeserializeAsync<CqrsRequestData>(body, context.RequestAborted);
+                    }
 
                     if (data is null)
                         throw new Exception("Invalid Request");
                 }
                 finally
                 {
-                    body.Dispose();
+                    if (uploadBody is null)
+                        body.Dispose();
                 }
 
                 //Authorize
@@ -245,7 +268,7 @@ namespace Zerra.Web
                     throttle = providerThrottle; //only released once taken, a request canceled while waiting has nothing to release
 
                     inHandlerContext = true;
-                    var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, data.Source, serializer, context.RequestAborted);
+                    var result = await settings.ProviderHandlerAsync.Invoke(providerType, data.ProviderMethod, data.ProviderArguments, uploadBody is null ? null : new LeaveOpenStream(uploadBody), data.Source, serializer, context.RequestAborted);
                     inHandlerContext = false;
 
                     //Response Header
@@ -544,6 +567,7 @@ namespace Zerra.Web
             }
             finally
             {
+                uploadBody?.Dispose();
                 if (throttle is not null)
                 {
                     if (isCommand && settings.CommandCounter is not null)

@@ -186,15 +186,24 @@ const Bus = {
             Source: "JavaScript"
         };
 
+        let upload = null;
         if (postData.ProviderArguments !== undefined) {
             if (!Array.isArray(postData.ProviderArguments))
                 throw "Arguments must be an array";
             for (let i = 0; i < postData.ProviderArguments.length; i++) {
+                if (postData.ProviderArguments[i] instanceof Blob) {
+                    if (upload !== null)
+                        throw "Only one Blob argument can be uploaded";
+                    upload = postData.ProviderArguments[i];
+                    postData.ProviderArguments[i] = null;
+                    continue;
+                }
                 postData.ProviderArguments[i] = Bus._toBase64(Bus._serializeJson(postData.ProviderArguments[i]));
             }
         }
 
-        const jsonNameless = modelType !== null && modelType !== undefined;
+        const isBlob = modelType === "Blob";
+        const jsonNameless = modelType !== null && modelType !== undefined && !isBlob;
         const accept = jsonNameless ? "application/jsonnameless; charset=utf-8" : "application/json; charset=utf-8";
 
         const headers = {};
@@ -207,6 +216,46 @@ const Bus = {
                 else
                     headers[property] = value.toString();
             }
+        }
+
+        if (upload !== null || isBlob) {
+            //jQuery can't send or receive a stream, an upload body is {int32 little endian json length}{json}{int32 0}{blob}
+            let body = JSON.stringify(postData);
+            if (upload !== null) {
+                const json = new TextEncoder().encode(body);
+                const length = new Uint8Array(4);
+                new DataView(length.buffer).setInt32(0, json.length, true);
+                body = new Blob([length, json, new Uint8Array(4), upload]);
+                headers["Upload-Stream"] = "true";
+            }
+            headers["Content-Type"] = "application/json; charset=utf-8";
+            headers["Accept"] = accept;
+
+            fetch(route, { method: "POST", body: body, headers: headers, mode: isCors ? "cors" : "same-origin" })
+                .then(function (res) {
+                    if (res.status !== 200) {
+                        return res.text().then(function (text) {
+                            Bus._onFail({ status: res.status, responseText: text }, route, onFail);
+                        });
+                    }
+                    if (isBlob)
+                        return res.blob().then(onComplete);
+                    return res.text().then(function (text) {
+                        let deserialized = text === "" ? null : JSON.parse(text);
+                        if (modelType !== null && modelType !== undefined) {
+                            const responseContentType = res.headers.get("content-type");
+                            if (responseContentType !== null && responseContentType.includes("application/jsonnameless"))
+                                deserialized = Bus._deserializeJsonNameless(deserialized, modelType, hasMany);
+                            else
+                                deserialized = Bus._deserializeJson(deserialized, modelType, hasMany);
+                        }
+                        onComplete(deserialized);
+                    });
+                })
+                .catch(function (error) {
+                    Bus._onFail({ status: 0, responseText: error.toString() }, route, onFail);
+                });
+            return;
         }
 
         $.ajax({

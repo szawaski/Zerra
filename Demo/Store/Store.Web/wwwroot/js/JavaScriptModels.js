@@ -45,6 +45,27 @@ const ProductModelType =
     IsActive: "boolean",
 }
 
+const ProductImportPreviewModelType =
+{
+    FileName: "string",
+    NewCount: "number",
+    PriceChangeCount: "number",
+    UnchangedCount: "number",
+    ErrorCount: "number",
+    Rows: "ProductImportRowModel[]",
+}
+
+const ProductImportRowModelType =
+{
+    Line: "number",
+    Sku: "string",
+    Name: "string",
+    Price: "number",
+    CurrentPrice: "number",
+    Change: "string",
+    Error: "string",
+}
+
 const StockLevelModelType =
 {
     ProductID: "string",
@@ -166,6 +187,8 @@ const ModelTypeDictionary =
     CartHistoryModel: CartHistoryModelType,
     CategoryModel: CategoryModelType,
     ProductModel: ProductModelType,
+    ProductImportPreviewModel: ProductImportPreviewModelType,
+    ProductImportRowModel: ProductImportRowModelType,
     StockLevelModel: StockLevelModelType,
     StockMovementModel: StockMovementModelType,
     CustomerModel: CustomerModelType,
@@ -215,6 +238,12 @@ const ICatalogQueryHandler = {
     },
     GetProductsByIDs: function(productIDs, onComplete, onFail) {
         Bus.Call("Store.Catalog.Domain.ICatalogQueryHandler", "GetProductsByIDs", [productIDs, null], ProductModelType, true, onComplete, onFail);
+    },
+    ExportProductsCsv: function(onComplete, onFail) {
+        Bus.Call("Store.Catalog.Domain.ICatalogQueryHandler", "ExportProductsCsv", [null], "Blob", false, onComplete, onFail);
+    },
+    PreviewProductImport: function(fileName, csv, maxPriceChangePercent, onComplete, onFail) {
+        Bus.Call("Store.Catalog.Domain.ICatalogQueryHandler", "PreviewProductImport", [fileName, csv, maxPriceChangePercent, null], ProductImportPreviewModelType, false, onComplete, onFail);
     },
 }
 

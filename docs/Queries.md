@@ -13,6 +13,7 @@ Queries in Zerra:
 - Support both local and remote invocation
 - Automatically propagate `CancellationToken` to remote services
 - Can return any serializable type, including `Stream` for large payloads
+- Can take one `Stream` argument, uploaded to the remote service as it's read
 - Can be synchronous or asynchronous (async recommended)
 
 ## Defining Query Interfaces
@@ -262,6 +263,42 @@ while (!reader.EndOfStream)
         Console.WriteLine(line);
 }
 ```
+
+### Upload a Stream
+
+A query can also take a `Stream` argument, at most one. Over TCP, HTTP, Kestrel, and the API gateway the other arguments are sent first, then the stream's bytes follow in the same request body until the caller's stream ends, so neither side holds the whole upload in memory.
+
+```csharp
+public interface IFileQueries : IQueryHandler
+{
+    Task<ImportPreviewModel> PreviewImport(string fileName, Stream content, CancellationToken cancellationToken);
+}
+
+public class FileQueryHandler : BaseHandler, IFileQueries
+{
+    public async Task<ImportPreviewModel> PreviewImport(string fileName, Stream content, CancellationToken cancellationToken)
+    {
+        //reads the upload as it arrives
+        using var reader = new StreamReader(content);
+        var preview = new ImportPreviewModel();
+        string? line;
+        while ((line = await reader.ReadLineAsync(cancellationToken)) is not null)
+            preview.Add(line);
+        return preview;
+    }
+}
+
+//Client side, the caller owns and disposes its stream
+await using var file = File.OpenRead("import.csv");
+var preview = await bus.Call<IFileQueries>().PreviewImport("import.csv", file, cancellationToken);
+```
+
+- The stream is only valid until the handler's task completes. Whatever the handler doesn't read is read and discarded by the server so the connection can be reused, and disposing it (as `StreamReader` does) is fine.
+- A `null` stream is passed to the handler as `null` and sends no upload.
+- An upload can't be retried on another connection once the stream has been read, so the TCP and HTTP clients open a new connection for each upload instead of reusing a pooled one.
+- The TCP and HTTP servers don't watch for the caller cancelling while it uploads, since the handler is reading the same connection. A caller that gives up closes the connection, which ends the handler's reads with an error. Kestrel and the gateway pass `RequestAborted` as usual.
+- A query can take a `Stream` and return one.
+- Uploading is a read like any other query argument. A handler that changes state with it belongs in a command, which takes no stream, so store the upload somewhere first and send the command with where it is.
 
 ### Stream Best Practices
 

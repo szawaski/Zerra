@@ -448,7 +448,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public async Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, string source, ISerializer serializer, CancellationToken cancellationToken)
+        public async Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, ISerializer serializer, CancellationToken cancellationToken)
         {
             var info = BusHandlers.GetMethod(interfaceType, methodName);
 
@@ -466,6 +466,10 @@ namespace Zerra.CQRS
                     if (i == args.Length - 1 && info.ParameterTypes[i] == cancellationTokenType)
                     {
                         args[i++] = cancellationToken;
+                    }
+                    else if (info.ParameterTypes[i] == streamType)
+                    {
+                        args[i++] = argumentStream;
                     }
                     else
                     {
