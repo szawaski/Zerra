@@ -1,6 +1,10 @@
+[← Back to Documentation](Index.md)
+
 # Zerra CQRS Framework - AI Agent Context
 
 This document provides architectural context for AI agents working with the Zerra framework.
+
+Before writing any handler, read [Command or Event?](#command-or-event-read-this-first). Upgrading a solution from Zerra 5? Follow [UpgradeV5ToV6.md](UpgradeV5ToV6.md).
 
 ## Overview
 

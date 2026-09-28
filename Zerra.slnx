@@ -94,6 +94,7 @@
     <Project Path="Tests/Zerra.Test/Zerra.Test.csproj" />
   </Folder>
   <Folder Name="/Docs/">
+    <File Path="CLAUDE.md" />
     <File Path="docs/Agents.md" />
     <File Path="docs/AOT.md" />
     <File Path="docs/AzureServiceBusSetup.md" />

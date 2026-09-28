@@ -1,4 +1,6 @@
-# Upgrading from Zerra 5 to Zerra 6
+[← Back to Documentation](Index.md)
+
+# Upgrading from Zerra 5 to Zerra 6  - AI Agent Instruction
 
 This guide is written for an AI agent (or a developer) moving a solution from Zerra 5.x (`release/5.4.0`) to Zerra 6. The goal is a solution that builds and runs on v6. Native AOT is **not** part of this upgrade; leave it for later (see [AOT](AOT.md)).
 
