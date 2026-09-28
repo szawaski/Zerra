@@ -2,398 +2,75 @@
 
 # Encryptors
 
-Zerra provides built-in encryption capabilities to secure messages transmitted between services. The `ZerraEncryptor` class implements symmetric encryption using various algorithms to protect sensitive data in transit.
-
-## Overview
-
-Encryption in Zerra:
-- Transparent to application code - encryption/decryption happens automatically
-- Symmetric encryption using shared keys
-- Support for multiple algorithms (AES, DES, TripleDES, RC2)
-- Optional prefix or shift modes that make identical messages encrypt differently each time
-- Configured once and applied to all messages
-
-## ZerraEncryptor
-
-The `ZerraEncryptor` class provides symmetric encryption for message payloads using .NET's cryptographic providers.
-
-### Features
-
-- **Transparent Encryption**: Automatically encrypts/decrypts all messages
-- **Multiple Algorithms**: AES, DES, TripleDES, RC2 support
-- **Secure**: Uses industry-standard cryptographic algorithms
-- **Simple Configuration**: Single setup for all message types
-
-## Usage
-
-### Basic Setup
+An `IEncryptor` encrypts every message a server, client, producer, or consumer sends, and decrypts what it receives. `ZerraEncryptor` is the built-in implementation, using a shared key with a symmetric algorithm. Pass `null` instead of an encryptor to send messages unencrypted.
 
 ```csharp
 using Zerra.Encryption;
 
-// Create encryptor with password and algorithm
-IEncryptor encryptor = new ZerraEncryptor(
-    key: "mySecurePassword123!",
-    algorithm: SymmetricAlgorithmType.AESwithPrefix
-);
+IEncryptor encryptor = new ZerraEncryptor(configuration["Encryption:Key"], SymmetricAlgorithmType.AESwithPrefix);
 
-// Encryptors are passed to network components and message broker producers/consumers, not to Bus.New
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
-
-var httpServer = new HttpCqrsServer("localhost:8080", serializer, encryptor, null, null, log);
-var httpClient = new HttpCqrsClient("localhost:8080", serializer, encryptor, null, log);
 ```
 
-### Constructor Parameters
+Like serializers, encryptors are passed to each server, client, producer, and consumer, not to `Bus.New`.
+
+## Configuration
 
 ```csharp
 public ZerraEncryptor(
-    string key,                                         // Password the symmetric key is derived from
-    SymmetricAlgorithmType algorithm,                   // Algorithm and mode (see below)
+    string key,                                           // password the symmetric key is derived from
+    SymmetricAlgorithmType algorithm,
     SymmetricKeySize keySize = SymmetricKeySize.Bits_256,
     SymmetricBlockSize blockSize = SymmetricBlockSize.Bits_128,
-    HashAlgorithmName? hashAlgorithm = null,            // Hash used for key derivation
-    int deriveKeyIterations = 1000)                     // Key derivation iterations
+    HashAlgorithmName? hashAlgorithm = null,              // hash used to derive the key
+    int deriveKeyIterations = 1000)
 ```
 
-All of these values must match on both sides.
+**Every value must match on both ends:** the key, the algorithm and its mode, and any key size, block size, hash, or iteration count you override. Anything else fails to decrypt.
 
-### Without Encryption
+Keep the key out of source control. Read it from configuration or a secret store such as Azure Key Vault, and use a different key per environment.
 
-If encryption is not needed, pass `null` for the encryptor parameter:
+On .NET Standard 2.0, key derivation supports only `HashAlgorithmName.SHA1`; any other algorithm throws `PlatformNotSupportedException`.
 
-```csharp
-// No encryption
-var server = new TcpCqrsServer("localhost:9001", serializer, null, log);
-var client = new TcpCqrsClient("localhost:9001", serializer, null, log);
-```
+## Algorithms
 
-## Supported Algorithms
+`SymmetricAlgorithmType` combines an algorithm with a mode:
 
-Zerra supports several symmetric encryption algorithms through the `SymmetricAlgorithmType` enum:
+| Algorithm | Plain | Prefix | Shift | Use |
+|---|---|---|---|---|
+| AES | `AES` | `AESwithPrefix` | `AESwithShift` | **recommended** |
+| TripleDES | `TripleDES` | `TripleDESwithPrefix` | `TripleDESwithShift` | legacy only |
+| DES | `DES` | `DESwithPrefix` | `DESwithShift` | avoid, weak |
+| RC2 | `RC2` | `RC2withPrefix` | `RC2withShift` | legacy only |
 
-### AES (Advanced Encryption Standard) - Recommended
+- **Plain** is deterministic: the same message always encrypts to the same bytes, so an observer can tell when a message repeats.
+- **Prefix** adds a random prefix that, with CBC chaining, makes every encryption of the same message different. Use `AESwithPrefix` unless you have a reason not to.
+- **Shift** reaches the same result by inserting a random block that shifts the others.
 
-```csharp
-// AES without prefix
-IEncryptor encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.AES);
+The modes aren't interchangeable, so both ends must use the same one.
 
-// AES with prefix (recommended for enhanced security)
-IEncryptor encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.AESwithPrefix);
-```
+Message encryption doesn't replace TLS on connections that cross untrusted networks.
 
-**Characteristics:**
-- ✅ Industry standard
-- ✅ Excellent security
-- ✅ Good performance
-- ✅ Recommended for production use
+## Custom Encryptors
 
-### DES (Data Encryption Standard)
-
-```csharp
-// DES without prefix
-IEncryptor encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.DES);
-
-// DES with prefix
-IEncryptor encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.DESwithPrefix);
-```
-
-**Characteristics:**
-- ⚠️ Weaker than AES
-- ⚠️ Use only for legacy compatibility
-- ✅ Faster than TripleDES
-
-### TripleDES (3DES)
-
-```csharp
-// TripleDES without prefix
-IEncryptor encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.TripleDES);
-
-// TripleDES with prefix
-IEncryptor encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.TripleDESwithPrefix);
-```
-
-**Characteristics:**
-- ⚠️ Slower than AES
-- ⚠️ Being phased out
-- ✅ Stronger than DES
-
-### RC2
-
-```csharp
-// RC2 without prefix
-IEncryptor encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.RC2);
-
-// RC2 with prefix
-IEncryptor encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.RC2withPrefix);
-```
-
-**Characteristics:**
-- ⚠️ Less common
-- ⚠️ Use only for specific compatibility needs
-
-## Prefix Mode
-
-The "withPrefix" variants add a random prefix to encrypted data, which combined with CBC (Cipher Block Chaining) mode ensures that encrypting the same plaintext multiple times produces different ciphertext each time. This provides several important benefits:
-
-### How It Works
-
-```csharp
-// With prefix mode
-IEncryptor encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.AESwithPrefix);
-
-// Encrypting the same data twice produces different results
-var data = Encoding.UTF8.GetBytes("Hello World");
-var encrypted1 = encryptor.Encrypt(data);  // e.g., [random prefix 1][encrypted bytes 1]
-var encrypted2 = encryptor.Encrypt(data);  // e.g., [random prefix 2][encrypted bytes 2]
-
-// encrypted1 != encrypted2 (different ciphertext for same plaintext)
-// But both decrypt back to "Hello World"
-```
-
-### Shift Mode
-
-The "withShift" variants (`AESwithShift`, `DESwithShift`, `TripleDESwithShift`, `RC2withShift`) reach the same goal differently. They insert a random block that shifts all other blocks, so identical plaintext still encrypts to different ciphertext each time. Choose one mode and use it on both sides; prefix, shift, and plain variants are not interchangeable.
-
-### Security Benefit
-
-Prefix Mode provides critical security enhancement: the random prefix combined with CBC (Cipher Block Chaining) mode ensures that encrypting the same plaintext multiple times produces different ciphertext each time. This prevents pattern analysis and makes it impossible for attackers to identify when the same data is being transmitted repeatedly.
-
-### With vs Without Prefix
-
-```csharp
-// ✅ With prefix - recommended for production
-IEncryptor withPrefix = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.AESwithPrefix);
-// Same plaintext → Different ciphertext each time
-// More secure against pattern analysis
-// Slightly larger payload (prefix overhead)
-
-// Without prefix - deterministic encryption
-IEncryptor withoutPrefix = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.AES);
-// Same plaintext → Same ciphertext every time
-// Vulnerable to pattern analysis
-// Slightly smaller payload
-```
-
-### Security Example
-
-```csharp
-// Without prefix mode (less secure)
-var encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.AES);
-var command1 = new CreateUserCommand { Email = "user@example.com" };
-var command2 = new CreateUserCommand { Email = "user@example.com" };
-// If serialized identically, encrypted payloads will be identical
-// Attacker can see repeated patterns
-
-// With prefix mode (more secure)
-var encryptor = new ZerraEncryptor("myPassword", SymmetricAlgorithmType.AESwithPrefix);
-var command1 = new CreateUserCommand { Email = "user@example.com" };
-var command2 = new CreateUserCommand { Email = "user@example.com" };
-// Encrypted payloads will be different due to random prefix + CBC
-// Attacker cannot detect repeated patterns
-```
-
-## Algorithm Comparison
-
-| Algorithm | Security | Performance | Key Size | Recommendation |
-|-----------|----------|-------------|----------|----------------|
-| AES | ⭐⭐⭐⭐⭐ | ⚡⚡⚡⚡⚡ | 128-256 bit | ✅ Use for production |
-| TripleDES | ⭐⭐⭐ | ⚡⚡ | 168 bit | ⚠️ Legacy only |
-| DES | ⭐ | ⚡⚡⚡⚡ | 56 bit | ❌ Avoid |
-| RC2 | ⭐⭐ | ⚡⚡⚡ | 40-128 bit | ⚠️ Special cases |
-
-## Password Requirements
-
-The encryption password/key is critical for security. Follow these guidelines:
-
-### ✅ Good Passwords
-
-```csharp
-// Strong password with complexity
-IEncryptor encryptor = new ZerraEncryptor("P@ssw0rd!Secur3#2024", SymmetricAlgorithmType.AESwithPrefix);
-
-// Use environment variables in production
-var password = Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
-IEncryptor encryptor = new ZerraEncryptor(password, SymmetricAlgorithmType.AESwithPrefix);
-
-// Use configuration management
-var password = configuration["Encryption:Key"];
-IEncryptor encryptor = new ZerraEncryptor(password, SymmetricAlgorithmType.AESwithPrefix);
-```
-
-### ❌ Bad Passwords
-
-```csharp
-// Too simple
-IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
-
-// Hardcoded in production code
-IEncryptor encryptor = new ZerraEncryptor("password123", SymmetricAlgorithmType.AESwithPrefix);
-
-// Too short
-IEncryptor encryptor = new ZerraEncryptor("abc", SymmetricAlgorithmType.AESwithPrefix);
-```
-
-## Encryptor Compatibility
-
-⚠️ **Critical**: Both client and server must use:
-1. The same encryption password
-2. The same algorithm
-3. The same mode (plain, prefix, or shift)
-4. The same key size, block size, hash algorithm, and key derivation iterations (if overridden)
-
-```csharp
-// ❌ Will NOT work - different passwords
-// Server
-var serverEncryptor = new ZerraEncryptor("serverPassword", SymmetricAlgorithmType.AESwithPrefix);
-
-// Client
-var clientEncryptor = new ZerraEncryptor("clientPassword", SymmetricAlgorithmType.AESwithPrefix);
-
-// ❌ Will NOT work - different algorithms
-// Server
-var serverEncryptor = new ZerraEncryptor("password", SymmetricAlgorithmType.AES);
-
-// Client
-var clientEncryptor = new ZerraEncryptor("password", SymmetricAlgorithmType.DES);
-
-// ✅ Correct - matching configuration
-// Server
-var serverEncryptor = new ZerraEncryptor("sharedPassword", SymmetricAlgorithmType.AESwithPrefix);
-
-// Client  
-var clientEncryptor = new ZerraEncryptor("sharedPassword", SymmetricAlgorithmType.AESwithPrefix);
-```
-
-## Best Practices
-
-### 1. Use AES with Prefix
-
-```csharp
-IEncryptor encryptor = new ZerraEncryptor(
-    key: GetSecurePassword(),
-    algorithm: SymmetricAlgorithmType.AESwithPrefix
-);
-```
-
-### 2. Store Keys Securely
-
-```csharp
-// Use Azure Key Vault, AWS Secrets Manager, or similar
-var keyVaultClient = new SecretClient(vaultUri, credential);
-var secret = await keyVaultClient.GetSecretAsync("EncryptionKey");
-IEncryptor encryptor = new ZerraEncryptor(secret.Value.Value, SymmetricAlgorithmType.AESwithPrefix);
-```
-
-### 3. Rotate Keys Periodically
-
-```csharp
-// Support multiple keys during rotation
-var currentKey = GetCurrentEncryptionKey();
-var encryptor = new ZerraEncryptor(currentKey, SymmetricAlgorithmType.AESwithPrefix);
-```
-
-### 4. Use Environment-Specific Keys
-
-```csharp
-// Different keys for dev, staging, production
-var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-var key = configuration[$"Encryption:{environment}:Key"];
-IEncryptor encryptor = new ZerraEncryptor(key, SymmetricAlgorithmType.AESwithPrefix);
-```
-
-### 5. Never Commit Keys to Source Control
-
-```csharp
-// ❌ Don't do this
-IEncryptor encryptor = new ZerraEncryptor("hardcodedKey", SymmetricAlgorithmType.AESwithPrefix);
-
-// ✅ Do this
-IEncryptor encryptor = new ZerraEncryptor(
-    configuration["Encryption:Key"],
-    SymmetricAlgorithmType.AESwithPrefix
-);
-```
-
-## Custom Encryption
-
-To implement custom encryption, create a class implementing `IEncryptor`:
+Implement `IEncryptor`:
 
 ```csharp
 public interface IEncryptor
 {
     byte[] Encrypt(byte[] bytes);
     byte[] Decrypt(byte[] bytes);
-    Span<byte> Encrypt(ReadOnlySpan<byte> bytes);
+    Span<byte> Encrypt(ReadOnlySpan<byte> bytes);             // not on .NET Standard 2.0
     Span<byte> Decrypt(ReadOnlySpan<byte> bytes);
-    CryptoFlushStream Encrypt(Stream stream, bool write);   // used for streamed payloads
+    CryptoFlushStream Encrypt(Stream stream, bool write);     // for streamed payloads
     CryptoFlushStream Decrypt(Stream stream, bool write);
 }
-
-public class CustomEncryptor : IEncryptor
-{
-    public byte[] Encrypt(byte[] bytes)
-    {
-        // Your custom encryption logic
-    }
-
-    public byte[] Decrypt(byte[] bytes)
-    {
-        // Your custom decryption logic
-    }
-
-    // ...plus the Span and Stream overloads
-}
 ```
 
-Stream encryption returns a `CryptoFlushStream` (namespace `Zerra.Encryption`), which wraps a stream and exposes `FlushFinalBlock`/`FlushFinalBlockAsync`.
-
-## Common Scenarios
-
-### Production Environment
-
-```csharp
-// Load from secure configuration
-var encryptionKey = configuration["Encryption:Key"];
-if (string.IsNullOrEmpty(encryptionKey))
-    throw new InvalidOperationException("Encryption key not configured");
-
-IEncryptor encryptor = new ZerraEncryptor(
-    encryptionKey,
-    SymmetricAlgorithmType.AESwithPrefix
-);
-```
-
-### Development Environment
-
-```csharp
-// Use simple key for development (never in production!)
-#if DEBUG
-    IEncryptor encryptor = new ZerraEncryptor("devKey123", SymmetricAlgorithmType.AESwithPrefix);
-#else
-    IEncryptor encryptor = new ZerraEncryptor(configuration["Encryption:Key"], SymmetricAlgorithmType.AESwithPrefix);
-#endif
-```
-
-### No Encryption (Development Only)
-
-```csharp
-// Disable encryption for local debugging
-IEncryptor? encryptor = null;
-var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
-```
-
-## Security Considerations
-
-1. **Key Management**: Use secure key storage (Azure Key Vault, AWS KMS, etc.)
-2. **Transport Security**: Consider TLS/SSL in addition to message encryption
-3. **Algorithm Selection**: Always use AES unless you have specific requirements
-4. **Password Complexity**: Use strong, random passwords of appropriate length
-5. **Avoid Hardcoding**: Never hardcode encryption keys in source code
+`CryptoFlushStream` (in `Zerra.Encryption`) wraps a stream and adds `FlushFinalBlock` and `FlushFinalBlockAsync`.
 
 ## See Also
 
-- [Serializers](Serializers.md) - Message serialization configuration
-- [Server Setup](ServerSetup.md) - Server-side encryption setup
-- [Client Setup](ClientSetup.md) - Client-side encryption setup
+- [Serializers](Serializers.md) - What gets encrypted
+- [Security](Security.md) - Authorization and claims

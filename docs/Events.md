@@ -2,19 +2,7 @@
 
 # Events
 
-Events represent state changes that have occurred in your application. Zerra implements a publish-subscribe pattern where events are dispatched to zero or more subscribers for eventual consistency and reactive behavior.
-
-## Overview
-
-Events in Zerra:
-- Represent state changes that have already occurred
-- Follow publish-subscribe pattern (one-to-many)
-- Multiple handlers can respond to the same event
-- Delivered to every subscriber. Each subscriber chooses, when it registers its consumer, whether **every replica** gets a copy (`PerReplica`) or **one replica** handles each event (`PerService`). There is no default. See [Events Are Fanned Out to Every Replica](#events-are-fanned-out-to-every-replica)
-- Dispatched asynchronously to local or remote handlers
-- Support distributed event-driven architecture
-- Used for eventual consistency and reactive workflows
-- Can be consumed from message brokers for scalable processing
+An event reports a state change that already happened. It is published to zero or more subscribers, locally or through a broker, and each subscriber chooses whether **every replica** gets a copy (`PerReplica`) or **one replica** handles each event (`PerService`). There is no default.
 
 ## Events Are Fanned Out to Every Replica
 
@@ -176,144 +164,55 @@ When something outside the service does need to know, the handler that appended 
 
 ## Defining Events
 
-### Basic Event
+An event implements `IEvent` and is named in the past tense, because it reports something that already happened: `UserCreatedEvent`, not `CreateUserEvent`. Include the data subscribers need, so they don't have to query back, and make the properties `init`-only:
 
 ```csharp
 using Zerra.CQRS;
 
 public class UserCreatedEvent : IEvent
 {
-    public required int UserId { get; set; }
-    public required string Email { get; set; }
-    public required DateTime CreatedAt { get; set; }
+    public required int UserId { get; init; }
+    public required string Email { get; init; }
+    public required DateTime CreatedAt { get; init; }
 }
 
-public class UserUpdatedEvent : IEvent
-{
-    public required int UserId { get; set; }
-    public required string Email { get; set; }
-    public required DateTime UpdatedAt { get; set; }
-}
-
-public class UserDeletedEvent : IEvent
-{
-    public required int UserId { get; set; }
-    public required DateTime DeletedAt { get; set; }
-}
-```
-
-### Domain Event
-
-```csharp
 public class OrderPlacedEvent : IEvent
 {
-    public required int OrderId { get; set; }
-    public required int CustomerId { get; set; }
-    public required decimal TotalAmount { get; set; }
-    public required List<OrderItem> Items { get; set; }
-    public required DateTime PlacedAt { get; set; }
-}
-
-public class OrderItem
-{
-    public int ProductId { get; set; }
-    public int Quantity { get; set; }
-    public decimal UnitPrice { get; set; }
-}
-
-public class PaymentProcessedEvent : IEvent
-{
-    public required int PaymentId { get; set; }
-    public required int OrderId { get; set; }
-    public required decimal Amount { get; set; }
-    public required string PaymentMethod { get; set; }
-    public required DateTime ProcessedAt { get; set; }
+    public required int OrderId { get; init; }
+    public required int CustomerId { get; init; }
+    public required decimal TotalAmount { get; init; }
+    public required List<OrderItem> Items { get; init; }
 }
 ```
 
-### Integration Event
+## Event Handlers
+
+A handler interface lists the events a subscriber handles. The consumer mode is chosen per registered interface, so a service splits its handlers by how many replicas should do the work:
 
 ```csharp
-public class EmailSentEvent : IEvent
-{
-    public required string To { get; set; }
-    public required string Subject { get; set; }
-    public required bool Success { get; set; }
-    public required DateTime SentAt { get; set; }
-    public string? ErrorMessage { get; set; }
-}
-
-public class InventoryUpdatedEvent : IEvent
-{
-    public required int ProductId { get; set; }
-    public required int OldQuantity { get; set; }
-    public required int NewQuantity { get; set; }
-    public required DateTime UpdatedAt { get; set; }
-}
-```
-
-## Event Naming Convention
-
-Events should be named in past tense to indicate something has already happened:
-
-```csharp
-// ✅ Good - past tense
-UserCreatedEvent
-OrderPlacedEvent
-PaymentProcessedEvent
-EmailSentEvent
-InventoryUpdatedEvent
-
-// ❌ Poor - present/imperative tense
-CreateUserEvent
-PlaceOrderEvent
-ProcessPaymentEvent
-SendEmailEvent
-UpdateInventoryEvent
-```
-
-## Defining Event Handlers
-
-### Handler Interface
-
-Event handlers implement `IEventHandler<T>`:
-
-```csharp
-using Zerra.CQRS;
-
-public interface IUserEventHandler :
-    IEventHandler<UserCreatedEvent>,
+public interface IUserEventHandler :        // every replica
     IEventHandler<UserUpdatedEvent>,
     IEventHandler<UserDeletedEvent>
 {
 }
 
-public interface IEmailEventHandler :
+public interface IEmailEventHandler :       // one replica
     IEventHandler<UserCreatedEvent>,
     IEventHandler<OrderPlacedEvent>
 {
 }
 ```
 
-### Handler Implementation
+Handlers derive from `BaseHandler`, which gives them `Bus`, `Log`, and `Context` as in [Commands](Commands.md#handlers). Unlike a command handler, `Handle` takes only the event, with no `CancellationToken`.
 
-Handlers inherit from `BaseHandler` to access bus context. Unlike command handlers, `IEventHandler<T>.Handle` takes only the event (`Task Handle(T @event)`) with no `CancellationToken`.
-
-A service splits its event handlers by how many replicas should do the work, since the mode is chosen per registered interface. `UserEventHandler` keeps each replica's own cache current, so every replica needs the event:
+`UserEventHandler` keeps each replica's own cache current, so every replica needs the event:
 
 ```csharp
 public class UserEventHandler : BaseHandler, IUserEventHandler
 {
-    public Task Handle(UserCreatedEvent @event)
-    {
-        Log?.Info($"User created event received: {@event.UserId}");
-        return Task.CompletedTask;
-    }
-
     public Task Handle(UserUpdatedEvent @event)
     {
-        // this replica's in-memory cache
-        Context.GetService<UserCache>().Remove(@event.UserId);
+        Context.GetService<UserCache>().Remove(@event.UserId); // this replica's in-memory cache
         return Task.CompletedTask;
     }
 
@@ -328,379 +227,84 @@ bus.AddHandler<IUserEventHandler>(new UserEventHandler());
 bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerReplica);
 ```
 
-Sending mail must happen once, so it goes in its own handler whose replicas compete for each event:
+`EmailEventHandler` sends mail, which must happen once, so its replicas compete for each event:
 
 ```csharp
+public class EmailEventHandler : BaseHandler, IEmailEventHandler
+{
+    public async Task Handle(UserCreatedEvent @event)
+        => await Context.GetService<IEmailService>().SendWelcomeEmailAsync(@event.Email);
+
+    public async Task Handle(OrderPlacedEvent @event)
+        => await Context.GetService<IEmailService>().SendOrderConfirmationAsync(@event.OrderId);
+}
+
 bus.AddHandler<IEmailEventHandler>(new EmailEventHandler());
 bus.AddEventConsumer<IEmailEventHandler>(consumer, EventConsumerMode.PerService);
 ```
 
-### Multiple Handlers for Same Event
-
-Multiple services can handle the same event, and each chooses its own mode. The email and analytics handlers below both register `PerService`, so the email is sent once and the event is tracked once:
-
-```csharp
-// Email Service Handler
-public class EmailEventHandler : BaseHandler, IEmailEventHandler
-{
-    public async Task Handle(UserCreatedEvent @event)
-    {
-        Log?.Info($"Sending welcome email to {@event.Email}");
-
-        var emailService = Context.GetService<IEmailService>();
-        await emailService.SendWelcomeEmailAsync(@event.Email);
-    }
-
-    public async Task Handle(OrderPlacedEvent @event)
-    {
-        Log?.Info($"Sending order confirmation for order {@event.OrderId}");
-
-        var emailService = Context.GetService<IEmailService>();
-        await emailService.SendOrderConfirmationAsync(@event.OrderId);
-    }
-}
-
-// Analytics Service Handler
-public class AnalyticsEventHandler : BaseHandler, IAnalyticsEventHandler
-{
-    public async Task Handle(UserCreatedEvent @event)
-    {
-        Log?.Info($"Tracking user creation: {@event.UserId}");
-
-        var analytics = Context.GetService<IAnalyticsService>();
-        await analytics.TrackEventAsync("UserCreated", new 
-        { 
-            UserId = @event.UserId,
-            CreatedAt = @event.CreatedAt
-        });
-    }
-
-    public async Task Handle(OrderPlacedEvent @event)
-    {
-        Log?.Info($"Tracking order placement: {@event.OrderId}");
-
-        var analytics = Context.GetService<IAnalyticsService>();
-        await analytics.TrackEventAsync("OrderPlaced", new 
-        { 
-            OrderId = @event.OrderId,
-            CustomerId = @event.CustomerId,
-            Amount = @event.TotalAmount
-        });
-    }
-}
-
-// Email service
-bus.AddEventConsumer<IEmailEventHandler>(emailConsumer, EventConsumerMode.PerService);
-
-// Analytics service
-bus.AddEventConsumer<IAnalyticsEventHandler>(analyticsConsumer, EventConsumerMode.PerService);
-```
-
-### Accessing BusContext
-
-Event handlers have full access to bus context. The handler below reserves inventory and dispatches a payment command, work that must happen once, so its consumer is registered `PerService`:
-
-```csharp
-bus.AddEventConsumer<IOrderEventHandler>(consumer, EventConsumerMode.PerService);
-```
-
-```csharp
-public class OrderEventHandler : BaseHandler, IOrderEventHandler
-{
-    public async Task Handle(OrderPlacedEvent @event)
-    {
-        // Access the bus for dispatching other messages
-        IBus bus = this.Bus;  // or Context.Bus
-
-        // Access logger
-        ILogger? logger = this.Log;  // or Context.Log
-
-        // Get service name
-        string serviceName = Context.ServiceName;
-
-        // Retrieve injected services
-        var inventoryService = Context.GetService<IInventoryService>();
-        var paymentService = Context.GetService<IPaymentService>();
-
-        // Process order
-        await inventoryService.ReserveItemsAsync(@event.Items);
-
-        // Dispatch command to process payment
-        await Bus.DispatchAsync(new ProcessPaymentCommand 
-        { 
-            OrderId = @event.OrderId,
-            Amount = @event.TotalAmount
-        });
-
-        // Dispatch event to notify shipping
-        await Bus.DispatchAsync(new OrderReadyForShippingEvent 
-        { 
-            OrderId = @event.OrderId 
-        });
-    }
-}
-```
+Any number of services can subscribe to the same event. Each gets its own copy and chooses its own mode.
 
 ## Dispatching Events
 
-### Simple Event Dispatch
+Dispatch an event after the change it reports has been saved, usually from the command handler that made it:
 
 ```csharp
-// Dispatch event to all registered handlers/producers
-await bus.DispatchAsync(new UserCreatedEvent 
-{ 
-    UserId = 123,
-    Email = "user@example.com",
-    CreatedAt = DateTime.UtcNow
-});
-
-// Execution continues immediately
-// Event handlers process asynchronously
-Console.WriteLine("Event dispatched");
-```
-
-### From Command Handler
-
-```csharp
-public class UserCommandHandler : BaseHandler, IUserCommandHandler
+public async Task Handle(CreateUserCommand command, CancellationToken cancellationToken)
 {
-    public async Task Handle(CreateUserCommand command, CancellationToken cancellationToken)
-    {
-        var repository = Context.GetService<IUserRepository>();
+    var user = new User { Email = command.Email, Name = command.Name };
+    await Context.GetService<IUserRepository>().CreateAsync(user, cancellationToken);
 
-        // Create user
-        var user = new User 
-        { 
-            Email = command.Email, 
-            Name = command.Name 
-        };
-        await repository.CreateAsync(user, cancellationToken);
-
-        // Dispatch event to notify other services
-        await Bus.DispatchAsync(new UserCreatedEvent 
-        { 
-            UserId = user.Id,
-            Email = user.Email,
-            CreatedAt = DateTime.UtcNow
-        });
-
-        Log?.Info($"User created and event dispatched: {user.Id}");
-    }
+    await Bus.DispatchAsync(new UserCreatedEvent { UserId = user.Id, Email = user.Email, CreatedAt = DateTime.UtcNow });
 }
 ```
 
-### Event Chains
+`DispatchAsync` sends the event to every local handler and every producer registered for it. An event has no result, so there is no `DispatchAwaitAsync` for events.
 
-Events can trigger other events:
+A `PerService` event handler can itself dispatch commands and further events, which is how a choreographed workflow is built: `OrderPlacedEvent` reserves inventory and dispatches `InventoryReservedEvent`, whose handler takes the payment, and so on. Each such step changes state, so each of those handlers is registered `PerService`. See [Saga Coordination](#saga-coordination-with-events) below.
 
-Each step below changes state, so `IOrderEventHandler` is registered `PerService`, as above. Under `PerReplica`, a three-replica service would reserve inventory three times and process three payments.
+## Local and Remote Handling
 
-```csharp
-public class OrderEventHandler : BaseHandler, IOrderEventHandler
-{
-    public async Task Handle(OrderPlacedEvent @event)
-    {
-        // Reserve inventory
-        var inventoryService = Context.GetService<IInventoryService>();
-        await inventoryService.ReserveItemsAsync(@event.Items);
-
-        // Dispatch inventory reserved event
-        await Bus.DispatchAsync(new InventoryReservedEvent 
-        { 
-            OrderId = @event.OrderId,
-            ReservedAt = DateTime.UtcNow
-        });
-    }
-
-    public async Task Handle(InventoryReservedEvent @event)
-    {
-        // Process payment
-        var paymentService = Context.GetService<IPaymentService>();
-        var paymentResult = await paymentService.ProcessPaymentAsync(@event.OrderId);
-
-        // Dispatch payment processed event
-        await Bus.DispatchAsync(new PaymentProcessedEvent 
-        { 
-            PaymentId = paymentResult.PaymentId,
-            OrderId = @event.OrderId,
-            Amount = paymentResult.Amount,
-            PaymentMethod = paymentResult.Method,
-            ProcessedAt = DateTime.UtcNow
-        });
-    }
-
-    public async Task Handle(PaymentProcessedEvent @event)
-    {
-        // Notify shipping
-        await Bus.DispatchAsync(new OrderReadyForShippingEvent 
-        { 
-            OrderId = @event.OrderId 
-        });
-    }
-}
-```
-
-## Local vs Remote Event Processing
-
-### Local Event Handling
+Where an event is handled depends only on registration:
 
 ```csharp
-// Register handler locally
+// Local: handled in this process
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
 
-// Dispatch - executes locally
-await bus.DispatchAsync(new UserCreatedEvent 
-{ 
-    UserId = 123,
-    Email = "user@example.com",
-    CreatedAt = DateTime.UtcNow
-});
-```
+// Publisher: send to a broker (RabbitMQ and Azure Service Bus follow the same pattern)
+bus.AddEventProducer<IUserEventHandler>(new KafkaProducer("localhost:9092", serializer, encryptor, log, environment: null, userName: null, password: null));
 
-### Remote Event Handling via Message Brokers
-
-#### Kafka
-
-```csharp
-using Zerra.CQRS.Kafka;
-
-// Publisher side
-var kafkaProducer = new KafkaProducer("localhost:9092", serializer, encryptor, logger, environment: null, userName: null, password: null);
-bus.AddEventProducer<IUserEventHandler>(kafkaProducer);
-
-// Consumer side
-var kafkaConsumer = new KafkaConsumer("localhost:9092", serializer, encryptor, logger, environment: null, userName: null, password: null);
+// Subscriber: receive from the broker
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
-bus.AddEventConsumer<IUserEventHandler>(kafkaConsumer, EventConsumerMode.PerReplica);
-
-// Dispatch - publishes to Kafka topic
-await bus.DispatchAsync(new UserCreatedEvent 
-{ 
-    UserId = 123,
-    Email = "user@example.com",
-    CreatedAt = DateTime.UtcNow
-});
+bus.AddEventConsumer<IUserEventHandler>(new KafkaConsumer("localhost:9092", serializer, encryptor, log, environment: null, userName: null, password: null), EventConsumerMode.PerReplica);
 ```
 
-#### RabbitMQ
+A publisher can register a local handler and a producer for the same interface. The event is then handled locally **and** published.
+
+Over direct TCP or HTTP there is no broker, so the publisher registers one producer per subscribing service, and the bus sends each event to all of them. See [Two Services Subscribing to the Same Event](Agents.md#two-services-subscribing-to-the-same-event).
+
+## Errors
+
+An exception thrown by an event handler is reported to the `IBusLogger` (`EndEvent` receives it). The publisher is not told, since events have no reply. Don't count on the broker to redeliver the event: a handler whose work needs a retry must catch and handle the failure itself.
 
 ```csharp
-using Zerra.CQRS.RabbitMQ;
-
-// Publisher side
-var rabbitProducer = new RabbitMQProducer("localhost", serializer, encryptor, logger, environment: null);
-bus.AddEventProducer<IUserEventHandler>(rabbitProducer);
-
-// Consumer side
-var rabbitConsumer = new RabbitMQConsumer("localhost", serializer, encryptor, logger, environment: null);
-bus.AddHandler<IUserEventHandler>(new UserEventHandler());
-bus.AddEventConsumer<IUserEventHandler>(rabbitConsumer, EventConsumerMode.PerReplica);
-```
-
-#### Azure Service Bus
-
-```csharp
-using Zerra.CQRS.AzureServiceBus;
-
-// Publisher side
-var asbProducer = new AzureServiceBusProducer(asbConnectionString, serializer, encryptor, logger, environment: null);
-bus.AddEventProducer<IUserEventHandler>(asbProducer);
-
-// Consumer side
-var asbConsumer = new AzureServiceBusConsumer(asbConnectionString, serializer, encryptor, logger, environment: null);
-bus.AddHandler<IUserEventHandler>(new UserEventHandler());
-bus.AddEventConsumer<IUserEventHandler>(asbConsumer, EventConsumerMode.PerReplica);
-```
-
-### Hybrid - Local and Remote
-
-Events can be handled both locally and remotely:
-
-```csharp
-// Register local handler
-bus.AddHandler<IUserEventHandler>(new LocalUserEventHandler());
-
-// Register remote producer
-var kafkaProducer = new KafkaProducer("localhost:9092", serializer, encryptor, logger, environment: null, userName: null, password: null);
-bus.AddEventProducer<IUserEventHandler>(kafkaProducer);
-
-// Dispatch - executes locally AND publishes to Kafka
-await bus.DispatchAsync(new UserCreatedEvent 
-{ 
-    UserId = 123,
-    Email = "user@example.com",
-    CreatedAt = DateTime.UtcNow
-});
-```
-
-## Error Handling
-
-### Handler Error Handling
-
-```csharp
-public class EmailEventHandler : BaseHandler, IEmailEventHandler
-{
-    public async Task Handle(UserCreatedEvent @event)
-    {
-        try
-        {
-            Log?.Info($"Processing UserCreatedEvent for user {@event.UserId}");
-
-            var emailService = Context.GetService<IEmailService>();
-            await emailService.SendWelcomeEmailAsync(@event.Email);
-
-            Log?.Info($"Successfully processed UserCreatedEvent for user {@event.UserId}");
-        }
-        catch (Exception ex)
-        {
-            Log?.Error($"Failed to process UserCreatedEvent for user {@event.UserId}", ex);
-
-            // Option 1: Swallow error (event processing continues)
-            // return;
-
-            // Option 2: Rethrow (may trigger retry mechanism if configured)
-            throw;
-        }
-    }
-}
-```
-
-### Idempotent Event Handling
-
-Design handlers to be idempotent since events may be delivered multiple times. Note that idempotency handles redelivery to the *same* replica; it does not stop several replicas from doing the work concurrently, which is a separate question answered by [choosing a command](#events-are-fanned-out-to-every-replica):
-
-```csharp
-// EmailEventHandler, registered PerService
 public async Task Handle(UserCreatedEvent @event)
 {
-    var cache = Context.GetService<ICacheService>();
-    var processedKey = $"event:UserCreated:{@event.UserId}";
-
-    // Check if already processed
-    if (await cache.ExistsAsync(processedKey))
-    {
-        Log?.Debug($"Event already processed: UserCreatedEvent for user {@event.UserId}");
-        return;
-    }
-
     try
     {
-        // Process event
-        var emailService = Context.GetService<IEmailService>();
-        await emailService.SendWelcomeEmailAsync(@event.Email);
-
-        // Mark as processed
-        await cache.SetAsync(processedKey, true, TimeSpan.FromDays(7));
-
-        Log?.Info($"Successfully processed UserCreatedEvent for user {@event.UserId}");
+        await Context.GetService<IEmailService>().SendWelcomeEmailAsync(@event.Email);
     }
     catch (Exception ex)
     {
-        Log?.Error($"Failed to process UserCreatedEvent for user {@event.UserId}", ex);
-        throw;
+        Log?.Error($"Welcome email to {@event.Email} failed", ex);
+        // queue it for a retry, or dispatch a command that will
     }
 }
 ```
+
+## Idempotency
+
+A handler can receive the same event twice, for example after a consumer restarts. Where doing the work twice would be wrong, record what has been done and check it first. This guards against redelivery to one replica. It does not stop several replicas doing the work at once, which is what the consumer mode is for.
 
 ## Event Sourcing
 
@@ -708,99 +312,11 @@ To keep an aggregate's history as its source of truth, derive it from `Aggregate
 
 When other services need to know about a change, the command handler that appended the aggregate event also dispatches a CQRS event or command.
 
-## Best Practices
-
-### 1. Make Events Immutable
-
-```csharp
-// ✅ Good - required properties, init-only
-public class UserCreatedEvent : IEvent
-{
-    public required int UserId { get; init; }
-    public required string Email { get; init; }
-    public required DateTime CreatedAt { get; init; }
-}
-
-// ❌ Poor - mutable
-public class UserCreatedEvent : IEvent
-{
-    public int UserId { get; set; }
-    public string Email { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
-```
-
-### 2. Include All Relevant Data
-
-```csharp
-// ✅ Good - includes context
-public class OrderPlacedEvent : IEvent
-{
-    public required int OrderId { get; init; }
-    public required int CustomerId { get; init; }
-    public required decimal TotalAmount { get; init; }
-    public required List<OrderItem> Items { get; init; }
-    public required DateTime PlacedAt { get; init; }
-}
-
-// ❌ Poor - missing context
-public class OrderPlacedEvent : IEvent
-{
-    public required int OrderId { get; init; }
-}
-```
-
-### 3. Design Idempotent Handlers
-
-```csharp
-// ✅ Good - idempotent
-public async Task Handle(UserCreatedEvent @event)
-{
-    // Check if already processed
-    if (await IsAlreadyProcessedAsync(@event.UserId))
-        return;
-
-    // Process event
-    await ProcessEventAsync(@event);
-
-    // Mark as processed
-    await MarkAsProcessedAsync(@event.UserId);
-}
-```
-
-### 4. Handle Errors Gracefully
-
-```csharp
-// ✅ Good - handles errors, continues processing (a PerService handler, since it sends mail)
-public async Task Handle(UserCreatedEvent @event)
-{
-    try
-    {
-        await SendWelcomeEmailAsync(@event.Email);
-    }
-    catch (Exception ex)
-    {
-        Log?.Error($"Failed to send welcome email to {@event.Email}", ex);
-        // Continue - don't let email failure break event processing
-    }
-
-    try
-    {
-        await UpdateAnalyticsAsync(@event);
-    }
-    catch (Exception ex)
-    {
-        Log?.Error("Failed to update analytics", ex);
-        // Continue
-    }
-}
-```
-
 ## Common Patterns
 
 ### Saga Coordination with Events
 
-> A saga step must run once. Under `PerReplica` every replica of the service below receives each event and dispatches its own copy of the next command, so the saga advances once per replica. Register the coordinator's consumer [`PerService`](#choosing-per-replica-or-per-service) so its replicas compete, drive the steps with commands, or give the coordinator its own single-instance deployment.
+A coordinator reacts to each step's outcome by dispatching the next command. A saga step must run once, so register the coordinator's consumer `PerService`:
 
 ```csharp
 public class OrderSagaEventHandler : BaseHandler,
@@ -810,110 +326,50 @@ public class OrderSagaEventHandler : BaseHandler,
     IEventHandler<PaymentProcessedEvent>,
     IEventHandler<PaymentFailedEvent>
 {
-    public async Task Handle(OrderPlacedEvent @event)
-    {
-        // Start saga - reserve inventory
-        await Bus.DispatchAsync(new ReserveInventoryCommand 
-        { 
-            OrderId = @event.OrderId,
-            Items = @event.Items
-        });
-    }
+    public Task Handle(OrderPlacedEvent @event)
+        => Bus.DispatchAsync(new ReserveInventoryCommand { OrderId = @event.OrderId, Items = @event.Items });
 
-    public async Task Handle(InventoryReservedEvent @event)
-    {
-        // Continue saga - process payment
-        await Bus.DispatchAsync(new ProcessPaymentCommand 
-        { 
-            OrderId = @event.OrderId
-        });
-    }
+    public Task Handle(InventoryReservedEvent @event)
+        => Bus.DispatchAsync(new ProcessPaymentCommand { OrderId = @event.OrderId });
 
-    public async Task Handle(InventoryReservationFailedEvent @event)
-    {
-        // Saga failed - cancel order
-        await Bus.DispatchAsync(new CancelOrderCommand 
-        { 
-            OrderId = @event.OrderId,
-            Reason = "Insufficient inventory"
-        });
-    }
+    public Task Handle(InventoryReservationFailedEvent @event)
+        => Bus.DispatchAsync(new CancelOrderCommand { OrderId = @event.OrderId, Reason = "Insufficient inventory" });
 
-    public async Task Handle(PaymentProcessedEvent @event)
-    {
-        // Saga success - ship order
-        await Bus.DispatchAsync(new ShipOrderCommand 
-        { 
-            OrderId = @event.OrderId
-        });
-    }
+    public Task Handle(PaymentProcessedEvent @event)
+        => Bus.DispatchAsync(new ShipOrderCommand { OrderId = @event.OrderId });
 
     public async Task Handle(PaymentFailedEvent @event)
     {
-        // Saga failed - release inventory and cancel order
-        await Bus.DispatchAsync(new ReleaseInventoryCommand 
-        { 
-            OrderId = @event.OrderId
-        });
-
-        await Bus.DispatchAsync(new CancelOrderCommand 
-        { 
-            OrderId = @event.OrderId,
-            Reason = "Payment failed"
-        });
+        await Bus.DispatchAsync(new ReleaseInventoryCommand { OrderId = @event.OrderId });
+        await Bus.DispatchAsync(new CancelOrderCommand { OrderId = @event.OrderId, Reason = "Payment failed" });
     }
 }
 ```
 
-### CQRS Read Model Projection
+### Read Model Projection
 
-> A projection into a **shared** store, as below, must be written once: drive it with a command, run exactly one projector instance, or register the consumer with [`EventConsumerMode.PerService`](#choosing-per-replica-or-per-service) so the replicas compete for the events. Projecting into a read model each replica keeps in its **own memory** is the case events are made for.
+A projection keeps a query-optimized copy of data up to date from events. Where the copy lives decides the mode:
+
+- **In each replica's memory:** register `PerReplica`, since every replica has its own copy to update.
+- **In a shared store:** register `PerService`, so each event is written once.
 
 ```csharp
 public class UserReadModelProjection : BaseHandler,
     IEventHandler<UserCreatedEvent>,
-    IEventHandler<UserUpdatedEvent>,
     IEventHandler<UserDeletedEvent>
 {
-    public async Task Handle(UserCreatedEvent @event)
-    {
-        var readModelRepo = Context.GetService<IUserReadModelRepository>();
+    public Task Handle(UserCreatedEvent @event)
+        => Context.GetService<IUserReadModelRepository>().CreateAsync(new UserReadModel { UserId = @event.UserId, Email = @event.Email, IsActive = true });
 
-        var readModel = new UserReadModel
-        {
-            UserId = @event.UserId,
-            Email = @event.Email,
-            CreatedAt = @event.CreatedAt,
-            IsActive = true
-        };
-
-        await readModelRepo.CreateAsync(readModel);
-    }
-
-    public async Task Handle(UserUpdatedEvent @event)
-    {
-        var readModelRepo = Context.GetService<IUserReadModelRepository>();
-        var readModel = await readModelRepo.GetByIdAsync(@event.UserId);
-
-        readModel.Email = @event.Email;
-        readModel.UpdatedAt = @event.UpdatedAt;
-
-        await readModelRepo.UpdateAsync(readModel);
-    }
-
-    public async Task Handle(UserDeletedEvent @event)
-    {
-        var readModelRepo = Context.GetService<IUserReadModelRepository>();
-        await readModelRepo.DeleteAsync(@event.UserId);
-    }
+    public Task Handle(UserDeletedEvent @event)
+        => Context.GetService<IUserReadModelRepository>().DeleteAsync(@event.UserId);
 }
 ```
 
 ## See Also
 
-- [Commands](Commands.md) - Execute state-changing operations
-- [Queries](Queries.md) - Execute read operations
-- [Service Injection](ServiceInjection.md) - Access services in handlers
-- [Server Setup](ServerSetup.md) - Configure event consumers
-- [Client Setup](ClientSetup.md) - Configure event producers
-- [Logging](Logging.md) - Implement logging in handlers
+- [Commands](Commands.md) - State-changing operations, handled once
+- [Queries](Queries.md) - Read operations
+- [Server Setup](ServerSetup.md) - Event consumers
+- [Client Setup](ClientSetup.md) - Event producers
+- [Kafka](KafkaSetup.md), [RabbitMQ](RabbitMQSetup.md), [Azure Service Bus](AzureServiceBusSetup.md) - How each broker implements the modes

@@ -2,147 +2,58 @@
 
 # EnumName
 
-Zerra provides `EnumName`, an attribute and static utility class for controlling the string representation of enum values, along with `EnumNameExtensions` for convenient extension method access.
-
-## Overview
-
-- **Custom string names** - Decorate enum fields with `[EnumName("text")]` to define their string representation
-- **Flags enum support** - Correctly handles `[Flags]` enums by combining names with `|`
-- **Parse and TryParse** - Convert strings back to enum values using the same name mappings
-- **Extension methods** - `.EnumName()` and `.ToEnum<T>()` for fluent usage
-- **Nullable support** - Null-safe overloads for nullable enum types
-- **AOT compatible** - The Zerra source generator (automatically included with the Zerra package) prebuilds enum name mappings at compile time, making `EnumName` fully compatible with Native AOT and pre-compiled reflection. See [AOT](AOT.md) for details.
-
-## Defining Names
-
-Apply the `[EnumName]` attribute to enum fields to specify their string representation. Fields without the attribute use their exact member name as the string.
+`[EnumName("text")]` gives an enum value a custom string name, and `EnumName` converts between values and names in both directions. `EnumName` is in the global namespace, so it needs no `using`. The source generator prebuilds the name mappings, so it works under Native AOT.
 
 ```csharp
 public enum Status
 {
-    [EnumName("active")]
-    Active,
-
-    [EnumName("inactive")]
-    Inactive,
-
-    [EnumName("pending-review")]
-    PendingReview
+    [EnumName("active")] Active,
+    [EnumName("pending-review")] PendingReview,
+    Archived                                    // no attribute: the name is "Archived"
 }
 ```
 
-```csharp
-public enum Status
-{
-    // No attribute — string name is "Active"
-    Active,
-
-    [EnumName("inactive")]
-    Inactive
-}
-```
-
-## Getting the Name
-
-### Static Method
+## Value to Name
 
 ```csharp
-string name = EnumName.GetName(Status.Active);
-// Result: "active"
+string name = EnumName.GetName(Status.PendingReview);   // "pending-review"
+string name2 = Status.Active.EnumName();                // "active"
 
-string name = EnumName.GetName(Status.PendingReview);
-// Result: "pending-review"
+Status? missing = null;
+string? name3 = missing.EnumName();                     // null
 ```
 
-### Extension Method
+## Name to Value
 
 ```csharp
-string name = Status.Active.EnumName();
-// Result: "active"
+Status status = EnumName.Parse<Status>("pending-review");   // throws InvalidOperationException if no value matches
 
-Status? nullable = Status.Inactive;
-string? name = nullable.EnumName();
-// Result: "inactive"
+if (EnumName.TryParse<Status>("active", out var parsed)) { }
 
-Status? nullValue = null;
-string? name = nullValue.EnumName();
-// Result: null
+Status fromString = "active".ToEnum<Status>();
+Status? orNull = "unknown".ToEnumNullable<Status>();         // null when missing or unmatched
 ```
 
-## Parsing
+## Flags
 
-### Parse (throws on failure)
-
-```csharp
-Status status = EnumName.Parse<Status>("active");
-// Result: Status.Active
-
-Status status = EnumName.Parse<Status>("pending-review");
-// Result: Status.PendingReview
-
-// Throws InvalidOperationException if the string does not match any value
-Status status = EnumName.Parse<Status>("unknown");
-```
-
-### TryParse (returns bool)
-
-```csharp
-if (EnumName.TryParse<Status>("active", out var status))
-{
-    // status == Status.Active
-}
-```
-
-### Extension Method
-
-```csharp
-Status status = "active".ToEnum<Status>();
-// Result: Status.Active
-
-// Nullable — returns null if string is null or not matched
-Status? status = "active".ToEnumNullable<Status>();
-// Result: Status.Active
-
-Status? status = "unknown".ToEnumNullable<Status>();
-// Result: null
-```
-
-## Flags Enums
-
-`[Flags]` enums are supported. Combined flag values are represented by joining individual names with `|`.
+Combined `[Flags]` values join their names with `|`:
 
 ```csharp
 [Flags]
 public enum Permissions
 {
-    [EnumName("read")]
-    Read = 1,
-
-    [EnumName("write")]
-    Write = 2,
-
-    [EnumName("execute")]
-    Execute = 4
+    [EnumName("read")] Read = 1,
+    [EnumName("write")] Write = 2,
+    [EnumName("execute")] Execute = 4
 }
+
+string names = (Permissions.Read | Permissions.Write).EnumName();   // "read|write"
+Permissions both = EnumName.Parse<Permissions>("read|write");
 ```
 
-```csharp
-var perm = Permissions.Read | Permissions.Write;
-
-string name = perm.EnumName();
-// Result: "read|write"
-
-Permissions parsed = EnumName.Parse<Permissions>("read|write");
-// Result: Permissions.Read | Permissions.Write
-```
-
-## Non-Generic Overloads
-
-`GetName` and `Parse` also have non-generic overloads that accept a `Type` and `object`:
+## By Runtime Type
 
 ```csharp
-Type type = typeof(Status);
-string name = EnumName.GetName(type, Status.Active);
-
-object value = EnumName.Parse("active", type);
+string name = EnumName.GetName(typeof(Status), Status.Active);
+object value = EnumName.Parse("active", typeof(Status));
 ```

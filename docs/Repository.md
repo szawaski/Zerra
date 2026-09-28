@@ -2,257 +2,234 @@
 
 # Repository
 
-> ⚠️ **Experimental:** The Repository feature is still experimental and subject to change.
+> ⚠️ **Experimental:** the Repository is still experimental and may change.
 
-The Zerra Repository is a LINQ-based data access interface that is **data store agnostic**.
+`Zerra.Repository` is LINQ data access that doesn't depend on the data store. Handlers read and write data models through one `IRepo` interface, and each model type can live in a different store: SQL Server, PostgreSQL, MySQL, MariaDB, or in memory. It also supports event-sourced aggregates on KurrentDB. It is AOT compatible.
 
-## Overview
+## Compared with Entity Framework
 
-- LINQ expression-based filtering, ordering, and pagination
-- Consistent API across all supported data stores
-- Pluggable provider model via `DataContext` and provider classes — **each entity type can be backed by a different data source**
-- Integrated with the Zerra bus via `BaseHandlerWithRepo`
-- Supports eager loading with `Graph<TModel>`
-- AOT compatible
-
-## How It Differs from Entity Framework
-
-Zerra Repository is not a replacement for Entity Framework — it is a lighter alternative designed specifically for the Zerra bus architecture. The table below highlights the key differences:
+It is a lighter alternative designed for Zerra services, not a replacement for Entity Framework.
 
 | | Zerra Repository | Entity Framework |
 |---|---|---|
-| **AOT / Native AOT** | ✅ Fully compatible | ⚠️ Limited support |
-| **Per-entity data source** | ✅ Each model can use a different store | ❌ All models share one `DbContext` |
-| **Data store switching** | ✅ Swap via `DataContextSelector` | ❌ Requires significant refactoring |
-| **Bus integration** | ✅ First-class via `BaseHandlerWithRepo` | ❌ Manual wiring required |
-| **Dependency footprint** | ✅ Lightweight | ❌ Large dependency surface |
-| **Change tracking** | ✅ None — operations are explicit | ⚠️ Automatic but adds overhead |
-| **Eager loading control** | ✅ `Graph<T>` — precise per-call | ⚠️ `.Include()` chains — easy to over/under-fetch |
-| **LINQ filtering** | ✅ Expression-based, consistent across all stores | ✅ Expression-based |
-| **Query complexity** | ⚠️ Simple CRUD and filtered reads | ✅ Joins, groupings, projections |
-| **Migration tooling** | ⚠️ Code First generation, no migration history | ✅ Rich migration tooling |
-| **Ecosystem maturity** | ⚠️ Experimental | ✅ Mature, large community |
+| **Native AOT** | ✅ Fully compatible | ⚠️ Limited support |
+| **Data source per model** | ✅ Each model can use a different store | ❌ All models share one `DbContext` |
+| **Switching stores** | ✅ Swap via `DataContextSelector` | ❌ Significant refactoring |
+| **Bus integration** | ✅ `BaseHandlerWithRepo` | ❌ Manual wiring |
+| **Change tracking** | ✅ None; every operation is explicit | ⚠️ Automatic, with overhead |
+| **Loading related data** | ✅ A `Graph<T>` per call | ⚠️ `.Include()` chains |
+| **Query complexity** | ⚠️ CRUD and filtered reads | ✅ Joins, groupings, projections |
+| **Migrations** | ⚠️ Code First generation, no migration history | ✅ Rich migration tooling |
+| **Maturity** | ⚠️ Experimental | ✅ Mature, large community |
 
-## Performance vs. Entity Framework
-
-Benchmarks were run against Microsoft SQL Server using [BenchmarkDotNet](https://benchmarkdotnet.org/) with `AsNoTracking()` on the EF side. All Zerra results use the default `IRepo` API. Results are approximate and will vary by environment.
+Against SQL Server, with `AsNoTracking()` on the EF side, BenchmarkDotNet measured Zerra approximately:
 
 | Scenario | Speed | Memory |
 |---|---|---|
-| **Query many (all rows)** | Zerra is moderately faster (~20–25%) | Zerra allocates significantly less (~40% less) |
-| **Query many with a where clause** | Zerra is substantially faster (~3–4×) | Zerra allocates dramatically less (~75% less) |
-| **Query first with a where clause** | Zerra is substantially faster (~3–4×) | Zerra allocates dramatically less (~75% less) |
-| **Query many with one-to-one include** | Zerra is moderately faster (~30–35%) | Zerra allocates significantly less (~60% less) |
-| **Query many with one-to-many include** | Zerra is dramatically faster (~15–16×) | Zerra allocates dramatically less (~95% less) |
-| **Update** | Zerra is moderately faster (~40%) | Zerra allocates dramatically less (~80% less) |
+| Query many (all rows) | ~20–25% faster | ~40% less |
+| Query many with a where clause | ~3–4× faster | ~75% less |
+| Query first with a where clause | ~3–4× faster | ~75% less |
+| Query many with a one-to-one include | ~30–35% faster | ~60% less |
+| Query many with a one-to-many include | ~15–16× faster | ~95% less |
+| Update | ~40% faster | ~80% less |
 
-The one-to-many include result is particularly notable: EF performs a separate query per parent row (N+1 style) unless carefully tuned, while Zerra batches the related rows in a single additional query, dramatically reducing both round-trips and allocations at scale.
+For one-to-many includes, Zerra loads the related rows of every parent in one additional query. Results vary by environment. The benchmarks are in [`EFBenchmark.cs`](../Benchmarks/Zerra.Repository.Benchmark/Benchmarks/EFBenchmark.cs).
 
-> Benchmarks are in [`EFBenchmark.cs`](../Benchmarks/Zerra.Repository.Benchmark/Benchmarks/EFBenchmark.cs).
+## Packages
 
-## NuGet Packages
-
-| Package | Data Store |
+| Package | Store |
 |---|---|
-| `Zerra.Repository` | Core interfaces and base classes |
-| `Zerra.Repository.MsSql` | Microsoft SQL Server |
-| `Zerra.Repository.MySql` | MySQL |
+| `Zerra.Repository` | core interfaces and base classes |
+| `Zerra.Repository.MsSql` | SQL Server |
 | `Zerra.Repository.PostgreSql` | PostgreSQL |
+| `Zerra.Repository.MySql` | MySQL |
 | `Zerra.Repository.MariaDb` | MariaDB |
+| `Zerra.Repository.Memory` | in memory, for tests and fallbacks |
+| `Zerra.Repository.KurrentDB` | KurrentDB event store, for aggregates |
+
+The repository packages target .NET 10 only.
+
+## Data Models
+
+```csharp
+[Entity("SalesOrder")]                          // table name
+public sealed class OrderDataModel
+{
+    [Identity(false)]                           // primary key; false: assigned by code, not the database
+    public Guid ID { get; set; }
+
+    [StoreProperties(true, 32)]                 // not null, max length 32
+    public string? OrderNumber { get; set; }
+
+    public Guid CustomerID { get; set; }
+
+    [Relation(nameof(CustomerID))]              // many-to-one: this model's foreign key
+    public CustomerDataModel? Customer { get; set; }
+
+    [Relation(nameof(OrderLineDataModel.OrderID))]   // one-to-many: the related model's foreign key
+    public OrderLineDataModel[]? Lines { get; set; }
+}
+```
+
+- Data models need a parameterless constructor. `[Entity]` also has the source generator produce their type details.
+- One-to-many properties can be arrays, `List<T>`, or interfaces such as `IReadOnlyList<T>`.
+- Without a precision, PostgreSQL, MySQL, and MariaDB store date and time columns to the microsecond, and SQL Server stores `DateTime` as `datetime` (about 3 ms). Set `[StoreProperties(notNull, precision)]` to choose.
 
 ## Setup
 
-### 1. Define a Data Context
+### 1. Data Contexts
 
-Create a class inheriting from the appropriate data store's `DataContext` base class. Each supported data store provides its own base (e.g., `MsSqlDataContext`, `MySqlDataContext`, `PostgreSqlDataContext`, `MariaDbDataContext`, `MemoryDataContext`):
+A data context says where a store is. Each store has a base class: `MsSqlDataContext`, `PostgreSqlDataContext`, `MySqlDataContext`, `MariaDbDataContext`, and `MemoryDataContext`.
 
 ```csharp
-// SQL Server example
-public sealed class MyMsSqlContext : MsSqlDataContext
+public sealed class OrdersSqlContext : MsSqlDataContext
 {
-    public override string GetConnectionString() =>
-        "Data Source=.;Initial Catalog=MyDatabase;Integrated Security=True;TrustServerCertificate=True";
+    public override string GetConnectionString() => configuration["ConnectionStrings:Orders"];
 }
 
-// In-memory example (useful for testing)
-public sealed class MyMemoryContext : MemoryDataContext { }
+public sealed class OrdersMemoryContext : MemoryDataContext { }
 ```
 
-A `DataContextSelector` can also be used to automatically select from multiple contexts at runtime (e.g., switching between environments). It uses the first context whose data source validates, and each context type is validated once per process:
+A `DataContextSelector` uses the first of several contexts whose store is reachable, checking each context type once per process. List the real database first and memory last as a fallback:
 
 ```csharp
-public class MyDbContext : DataContextSelector
+public sealed class OrdersDataContext : DataContextSelector
 {
-    //SQL Server when it's reachable, otherwise in memory
-    protected override IEnumerable<DataContext> LoadDataContexts() =>
-    [
-        new MyMsSqlContext(),
-        new MyMemoryContext()
-    ];
+    protected override IEnumerable<DataContext> LoadDataContexts() => [new OrdersSqlContext(), new OrdersMemoryContext()];
 }
 ```
 
-### 2. Create a Provider
+### 2. A Provider
 
-Create a typed provider that links your models to the context:
+A provider connects model types to a context:
 
 ```csharp
-public sealed class MySqlProvider<TModel> : TransactStoreProvider<MyDbContext, TModel>
+public sealed class OrdersStoreProvider<TModel> : TransactStoreProvider<OrdersDataContext, TModel>
     where TModel : class, new()
 {
+    public OrdersStoreProvider() { }
+    public OrdersStoreProvider(OrdersDataContext context) : base(context) { }
+
     protected override bool EventLinking => false;
-    protected override bool QueryLinking => true;
-    protected override bool PersistLinking => true;
+    protected override bool QueryLinking => true;    // load relations named in a graph
+    protected override bool PersistLinking => true;  // save related models with their parent
 }
 ```
 
-Created without arguments, every provider on a context type shares one instance of the context. A provider can also be given a context instance, which matters for the in-memory store: each `MemoryDataContext` instance is its own store, so a test can start from an empty one. Providers for models related to each other must be given the same instance:
+Created without arguments, every provider on a context type shares one context instance. Pass an instance to give a group of providers their own. Each `MemoryDataContext` instance is its own store, so a test can start from an empty one. Providers for related models must share an instance.
 
-```csharp
-public sealed class MySqlProvider<TModel> : TransactStoreProvider<MyDbContext, TModel>
-    where TModel : class, new()
-{
-    public MySqlProvider() { }
-    public MySqlProvider(MyDbContext context) : base(context) { }
-}
-
-//in a test, a store of its own
-var context = new MyDbContext();
-repo.AddProvider(new MySqlProvider<PetDataModel>(context));
-repo.AddProvider(new MySqlProvider<PetTypeDataModel>(context));
-```
-
-### 3. Register the Repo in Program.cs
-
-Build the repo, add your providers, and register it with `BusServices`. Each entity type gets its own provider — and different providers can point to entirely different data sources:
-
-```csharp
-// Providers for different entity types can use different data contexts (and therefore different data stores)
-public sealed class SqlProvider<TModel> : TransactStoreProvider<MyMsSqlContext, TModel>
-    where TModel : class, new()
-{
-    protected override bool EventLinking => false;
-    protected override bool QueryLinking => true;
-    protected override bool PersistLinking => true;
-}
-
-public sealed class MemoryProvider<TModel> : TransactStoreProvider<MyMemoryContext, TModel>
-    where TModel : class, new()
-{
-    protected override bool EventLinking => false;
-    protected override bool QueryLinking => true;
-    protected override bool PersistLinking => true;
-}
-```
+### 3. Register the Repo
 
 ```csharp
 var repo = Repo.New();
-repo.AddProvider(new SqlProvider<PetDataModel>());       // stored in SQL Server
-repo.AddProvider(new MemoryProvider<PetTypeDataModel>()); // stored in memory
+repo.AddProvider(new OrdersStoreProvider<OrderDataModel>());
+repo.AddProvider(new OrdersStoreProvider<OrderLineDataModel>());
+repo.AddProvider(new CatalogStoreProvider<ProductDataModel>());   // a different store, same IRepo
 
 var busServices = new BusServices();
 busServices.AddRepo(repo);
 ```
 
-All entity types are accessed through the same `IRepo` interface regardless of where each one is stored.
+Create the schema at startup with Code First generation, then seed only when the store is empty. See [Repository Generation](RepositoryGeneration.md).
 
-## Using `IRepo` in Handlers
+## Using IRepo in Handlers
 
-Handlers that need data access should extend `BaseHandlerWithRepo` instead of the standard `BaseHandler`. This base class automatically resolves and exposes an `IRepo Repo` property.
+Handlers deriving from `BaseHandlerWithRepo` get the repo as their `Repo` property:
 
 ```csharp
-public sealed class PetsCommandHandler : BaseHandlerWithRepo, IPetsCommandHandler
+public sealed class OrdersQueryHandler : BaseHandlerWithRepo, IOrdersQueryHandler
 {
-    public async Task<int> Handle(AddPetTypeCommand command, CancellationToken cancellationToken)
+    public async Task<OrderModel[]> GetOrders(Guid customerID, CancellationToken cancellationToken)
     {
-        var model = new PetTypeDataModel() { Name = command.Name };
-        await Repo.CreateAsync(model);
-
-        var created = await Repo.SingleAsync<PetTypeDataModel>(x => x.Name == command.Name);
-        if (created == null)
-            throw new InvalidOperationException("Failed to retrieve after creation.");
-        return created.Id;
+        var orders = await Repo.ManyAsync<OrderDataModel>(
+            x => x.CustomerID == customerID,
+            QueryOrder<OrderDataModel>.Create(x => x.PlacedOn, true),   // true: descending
+            new Graph<OrderDataModel>(true, x => x.Lines));
+        return orders.Select(ToModel).ToArray();
     }
 }
 ```
 
-```csharp
-public sealed class PetsQueryHandler : BaseHandlerWithRepo, IPetsQueryHandler
-{
-    public async Task<PetSimpleModel[]> GetPetsFromRepo()
-    {
-        var items = await Repo.ManyAsync<PetDataModel>(
-            x => x.Id > 0,
-            QueryOrder<PetDataModel>.Create(x => x.Name));
+### Queries
 
-        return items.Select(item => new PetSimpleModel
-        {
-            ID = item.Id,
-            Name = item.Name,
-            Type = item.PetType?.Name
-        }).ToArray();
+| Method | Returns |
+|---|---|
+| `Single<T>(where, graph?)` | the one matching model, or `null` |
+| `First<T>(where?, order?, graph?)` | the first matching model, or `null` |
+| `Many<T>(where?, order?, skip?, take?, graph?)` | the matching models |
+| `Any<T>(where?)` | whether any match |
+| `Count<T>(where?)` | how many match |
+
+### Changes
+
+| Method | Does |
+|---|---|
+| `Create<T>(model)` | inserts |
+| `Update<T>(model, graph?)` | updates, only the graph's columns when one is given |
+| `Delete<T>(model)` | deletes |
+| `DeleteByID<T>(id)` | deletes by key |
+
+Every method has an `Async` version. Use the async ones in handlers. Pass collections to `Create`, `Update`, and `Delete` as arrays or with an explicit type argument, since a `List<T>` binds to the single-model overload.
+
+### LINQ Support
+
+`where` expressions support:
+
+- **Operators:** comparisons, arithmetic, `&&`, `||`, `!`, bool members, `??`, integer bitwise operators, `array.Contains(x.Prop)`, and `HasValue`/`Value` on nullables.
+- **Strings:** `Contains`, `StartsWith`, `EndsWith` (wildcards in the text are matched literally, and a `StringComparison` ignoring case is honored), `Equals`, `string.IsNullOrEmpty`/`IsNullOrWhiteSpace`, `Length`, `ToUpper`/`ToLower`, `Trim`/`TrimStart`/`TrimEnd`, `Substring`, `IndexOf`, `Replace`, `string.Concat`, and `+`.
+- **Math:** `Math.Abs`/`Ceiling`/`Floor`/`Round`/`Pow`/`Sqrt`. SQL rounds midpoints away from zero.
+- **Dates and times:** parts such as `.Year`, `.Date`, and `.DayOfWeek` on `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, and `TimeSpan`, including `TotalHours` and the other totals.
+- **Related collections:** `Any`, `All`, `Count`/`LongCount`, and `Sum`/`Min`/`Max`/`Average` with a selector.
+
+Anything that doesn't use the model, such as `DateTime.Now.Date`, is evaluated before the query. Case sensitivity of `==`, `Contains`, `StartsWith`, and `EndsWith` follows the database collation, and `Trim`/`IsNullOrWhiteSpace` only trim spaces.
+
+### Relations and Partial Updates
+
+Relations load only when a [Graph](Graph.md) names them. Pass `true` first to include the model's own columns too:
+
+```csharp
+var orders = await Repo.ManyAsync<OrderDataModel>(new Graph<OrderDataModel>(true, x => x.Customer, x => x.Lines));
+
+await Repo.UpdateAsync(order, new Graph<OrderDataModel>(x => x.Status));   // writes only Status
+```
+
+With `PersistLinking => false`, related models aren't saved with their parent: create the order, then its lines.
+
+## Event-Sourced Aggregates
+
+An `AggregateRoot` keeps its state as a stream of events in an event store instead of a table. Each event implements `IAggregateEvent` and is applied by a public `On` method taking it. `Append` stores an event and then applies it, and `Rebuild` replays the stream.
+
+```csharp
+public sealed class CartAggregate : AggregateRoot
+{
+    private readonly List<CartItem> items = new();
+    public IReadOnlyList<CartItem> Items => items;
+
+    public CartAggregate(Guid customerID, IEventStoreEngine eventStore) : base(customerID, eventStore) { }
+
+    public Task On(CartItemAddedEvent @event)
+    {
+        items.Add(new CartItem { ProductID = @event.ProductID, Quantity = @event.Quantity });
+        return Task.CompletedTask;
     }
 }
+
+// in a command handler
+var cart = new CartAggregate(command.CustomerID, Context.GetService<IEventStoreEngine>());
+await cart.Rebuild();                             // false if the stream has no events
+if (cart.Items.Count >= 50)
+    throw new InvalidOperationException("The cart is full");   // validate before appending: stored events are replayed as they are
+await cart.Append(new CartItemAddedEvent { ProductID = command.ProductID, Quantity = command.Quantity }, validateEventNumber: true);
 ```
 
-## IRepo API Reference
+- `validateEventNumber: true` rejects the append if another command changed the stream since this instance rebuilt it.
+- `Rebuild(maxEventNumber, maxEventDate)` rebuilds the state as of an earlier point, and `RebuildOneEvent()` steps forward one event at a time.
+- `Delete` appends a terminating event. `IsCreated`, `IsDeleted`, `LastEventNumber`, `LastEventDate`, and `LastEventName` describe the stream.
 
-### Query Methods
+Aggregate events are the aggregate's state, not bus messages: they never implement `IEvent` and live with the aggregate in the service project. See [Aggregate Events Are Not CQRS Events](Events.md#aggregate-events-are-not-cqrs-events). `Demo/Store/Store.Carts.Service` is a complete example on KurrentDB, with an in-memory fallback.
 
-| Method | Description |
-|---|---|
-| `Single<T>(where, graph?)` | Returns a single matching model, or `null`. Throws if multiple match. |
-| `First<T>(where?, order?, graph?)` | Returns the first matching model, or `null`. |
-| `Many<T>(where?, order?, skip?, take?, graph?)` | Returns a collection of matching models. |
-| `Any<T>(where?)` | Returns `true` if any matching model exists. |
-| `Count<T>(where?)` | Returns the count of matching models. |
+## See Also
 
-All query methods have `Async` variants (e.g., `SingleAsync`, `ManyAsync`, `AnyAsync`, `CountAsync`).
-
-### Persist Methods
-
-| Method | Description |
-|---|---|
-| `Create<T>(model)` | Inserts a model into the data store. |
-| `Update<T>(model)` | Updates an existing model. |
-| `Delete<T>(model)` | Deletes a model from the data store. |
-| `DeleteByID<T>(id)` | Deletes a model by its identity key. |
-
-All persist methods have `Async` variants and optional `eventName`, `source`, and `Graph` overloads.
-
-### Filtering with LINQ Expressions
-
-```csharp
-// Single record
-var pet = await Repo.SingleAsync<PetDataModel>(x => x.Name == "Fido");
-
-// Many with filter and ordering
-var pets = await Repo.ManyAsync<PetDataModel>(
-    x => x.PetTypeId == typeId,
-    QueryOrder<PetDataModel>.Create(x => x.Name));
-
-// With pagination
-var page = await Repo.ManyAsync<PetDataModel>(order: null, skip: 0, take: 20);
-
-// Check existence
-bool exists = await Repo.AnyAsync<PetDataModel>(x => x.Name == "Fido");
-
-// Count
-int total = await Repo.CountAsync<PetDataModel>(x => x.PetTypeId == typeId);
-```
-
-### Eager Loading with Graph
-
-Use `Graph<TModel>` to control which related properties are loaded:
-
-```csharp
-var graph = new Graph<PetDataModel>(x => x.PetType);
-var pets = await Repo.ManyAsync<PetDataModel>(graph: graph);
-```
-
-See [Graph](Graph.md) for full documentation on graph-based property control.
-
-## Schema Generation
-
-Use Code First generation or the T4 reverse-engineer tool to create and maintain your data store schema.
-See [Repository Generation](RepositoryGeneration.md) for full details.
+- [Repository Generation](RepositoryGeneration.md) - Creating the schema
+- [Graph](Graph.md) - Selecting relations and columns
+- [Service Injection](ServiceInjection.md) - `AddRepo` and `BaseHandlerWithRepo`

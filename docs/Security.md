@@ -187,12 +187,12 @@ var app = builder.Build();
 // Order matters — authentication and authorization run before the gateway
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCqrsApiGateway(route: "/api/cqrs");
+app.UseCqrsApiGateway("/CQRS");
 ```
 
 ### Implementing `ICqrsAuthorizer` for JWT Bearer (manual validation)
 
-The most common pattern is to validate the `Authorization` header, build a `ClaimsPrincipal` from the token, and assign it to `Thread.CurrentPrincipal`. Zerra then picks up those claims automatically when it sends the message.
+Without ASP.NET authentication, the authorizer validates the `Authorization` header itself, builds a `ClaimsPrincipal` from the token, and assigns it to `Thread.CurrentPrincipal`. Zerra then picks up those claims when it sends the message. The same class supplies the header on the calling side through `GetAuthorizationHeaders`, for `ApiClient` or `HttpCqrsClient`.
 
 ```csharp
 using System.IdentityModel.Tokens.Jwt;
@@ -258,24 +258,13 @@ public class JwtCqrsAuthorizer : ICqrsAuthorizer
 }
 ```
 
-Register the authorizer and wire up the gateway:
+Register it with its validation parameters, and no ASP.NET authentication middleware is needed:
 
 ```csharp
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options => { /* configure issuer, audience, signing key … */ });
-
-// Provide the same validation parameters used by AddJwtBearer
-builder.Services.AddSingleton<ICqrsAuthorizer>(sp =>
-{
-    var parameters = new TokenValidationParameters { /* … */ };
-    return new JwtCqrsAuthorizer(parameters);
-});
+builder.Services.AddSingleton<ICqrsAuthorizer>(new JwtCqrsAuthorizer(new TokenValidationParameters { /* issuer, audience, signing key */ }));
 
 var app = builder.Build();
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseCqrsApiGateway(route: "/api/cqrs");
+app.UseCqrsApiGateway("/CQRS");
 ```
 
 The gateway middleware will:

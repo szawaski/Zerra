@@ -2,448 +2,121 @@
 
 # Client Setup
 
-This guide covers configuring a client-side application using Zerra CQRS framework in `Program.cs` or your application entry point.
+A caller, whether another service, a web app, or a console app, creates a bus and registers where each interface it uses lives. It then calls queries and dispatches commands and events without knowing where they are handled.
 
-## Overview
-
-A client application in Zerra:
-- Creates a bus instance for message routing
-- Configures serialization and encryption
-- Registers command producers for remote command dispatching
-- Registers query clients for remote query calling
-- Optionally registers event producers for remote event publishing
-- Typically does not register handlers (unless running hybrid mode)
-
-## Basic Client Setup
-
-### Minimal Configuration
+## Program.cs
 
 ```csharp
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
-using Zerra.Serialization;
 using Zerra.Encryption;
 using Zerra.Logging;
+using Zerra.Serialization;
 
-// Configure components
-ISerializer serializer = new ZerraByteSerializer();
-IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
-ILogger logger = new ConsoleLogger();          // your ILogger implementation (see Logging.md)
-IBusLogger busLogger = new ConsoleBusLogger(); // your IBusLogger implementation (optional)
-var busServices = new BusServices();
+ILogger log = new ConsoleLogger();          // your ILogger implementation, see Logging.md
+IBusLogger busLog = new ConsoleBusLogger(); // optional
 
-// Create the bus
-var bus = Bus.New(
-    serviceName: "ClientApp",
-    log: logger,
-    busLog: busLogger,
-    busServices: busServices
-);
+var bus = Bus.New("ClientApp", log, busLog);
 
-// Create TCP client
-var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, logger);
+var serializer = new ZerraByteSerializer();                                               // must match the server
+var encryptor = new ZerraEncryptor(encryptionKey, SymmetricAlgorithmType.AESwithPrefix);  // must match the server
+var users = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
+bus.AddQueryClient<IUserQueryHandler>(users);
+bus.AddCommandProducer<IUserCommandHandler>(users);
+bus.AddEventProducer<IUserEventHandler>(users);
 
-// Register command producer
-bus.AddCommandProducer<IUserCommandHandler>(client);
-
-// Register query client
-bus.AddQueryClient<IUserQueryHandler>(client);
-
-// Now dispatch commands and call queries
 await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com" });
-var users = await bus.Call<IUserQueryHandler>().GetActiveUsers(cancellationToken);
+var active = await bus.Call<IUserQueryHandler>().GetActiveUsers(cancellationToken);
+
+await bus.StopServicesAsync(); // on exit: disposes the clients and producers
 ```
 
-## Complete Program.cs Example
+In ASP.NET Core, register the bus as a singleton `IBus` and inject it where needed. Register `bus.StopServices` on `ApplicationStopped`.
 
-### Console Application
+## Clients and Producers
+
+| Client | Package | Reaches |
+|---|---|---|
+| `TcpCqrsClient(url, serializer, encryptor, log)` | `Zerra` | a `TcpCqrsServer` |
+| `HttpCqrsClient(url, serializer, encryptor, authorizer, log)` | `Zerra` | an `HttpCqrsServer` |
+| `KestrelCqrsClient(url, serializer, encryptor, log, authorizer, route)` | `Zerra.Web` | a service hosted in ASP.NET Core |
+| `ApiClient` | `Zerra` | the CQRS API gateway, see [ApiClient](ApiClient.md) |
+| `KafkaProducer`, `RabbitMQProducer`, `AzureServiceBusProducer` | `Zerra.CQRS.*` | a broker; commands and events only |
+
+Each client is a query client, a command producer, and an event producer. The optional `authorizer` supplies request headers, see [Security](Security.md).
+
+Register one client per backend service. A caller can mix transports freely:
 
 ```csharp
-using Zerra.CQRS;
-using Zerra.CQRS.Network;
-using Zerra.Serialization;
-using Zerra.Encryption;
-using Zerra.Logging;
-using MyApp.Domain.Commands;
-using MyApp.Domain.Queries;
-using System.Threading;
+var users = new TcpCqrsClient("user-service:9001", serializer, encryptor, log);
+bus.AddQueryClient<IUserQueryHandler>(users);
+bus.AddCommandProducer<IUserCommandHandler>(users);
 
-// Setup configuration (use your configuration system)
-var serverAddress = "localhost:9001";
-var encryptionKey = Environment.GetEnvironmentVariable("ENCRYPTION_KEY") ?? "devKey123";
-var serviceName = "MyClientApp";
+var shipping = new KestrelCqrsClient("http://shipping-service:9105", serializer, encryptor, log, authorizer: null, route: null);
+bus.AddQueryClient<IShippingQueryHandler>(shipping);
 
-// Create serializer
-ISerializer serializer = new ZerraByteSerializer();
-
-// Create encryptor
-IEncryptor encryptor = new ZerraEncryptor(encryptionKey, SymmetricAlgorithmType.AESwithPrefix);
-
-// Create loggers
-ILogger logger = new ConsoleLogger();
-IBusLogger busLogger = new ConsoleBusLogger();
-
-// Create bus services (typically empty for pure clients)
-var busServices = new BusServices();
-
-// Create the bus
-var bus = Bus.New(
-    serviceName: serviceName,
-    log: logger,
-    busLog: busLogger,
-    busServices: busServices
-);
-
-// Create and configure network client
-var client = new TcpCqrsClient(serverAddress, serializer, encryptor, logger);
-bus.AddCommandProducer<IUserCommandHandler>(client);
-bus.AddQueryClient<IUserQueryHandler>(client);
-
-// Application logic
-try
-{
-    Console.WriteLine("Client started. Calling remote services...");
-
-    // Dispatch command
-    await bus.DispatchAwaitAsync(new CreateUserCommand 
-    { 
-        Email = "newuser@example.com" 
-    });
-    Console.WriteLine("User created successfully");
-
-    // Call query
-    var users = await bus.Call<IUserQueryHandler>().GetActiveUsers(CancellationToken.None);
-    Console.WriteLine($"Found {users.Count} active users");
-
-    Console.WriteLine("Press any key to exit...");
-    Console.ReadKey();
-}
-catch (Exception ex)
-{
-    logger.Error("Application error", ex);
-}
-finally
-{
-    // Stops the bus and disposes its producers and clients
-    await bus.StopServicesAsync();
-}
+var kafka = new KafkaProducer("localhost:9092", serializer, encryptor, log, environment: "dev", userName: null, password: null);
+bus.AddCommandProducer<IOrderCommandHandler>(kafka);
 ```
 
-### ASP.NET Core Web Application
+To send an event to several services over direct connections, register an event producer for each. The bus sends every event to all of them. A broker producer only needs registering once, since the broker delivers to every subscriber.
+
+## Local and Remote Together
+
+A service can handle some interfaces itself and call others remotely. The calling code looks the same either way:
 
 ```csharp
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Zerra.CQRS;
-using Zerra.CQRS.Network;
-using Zerra.Serialization;
-using Zerra.Encryption;
-using Zerra.Logging;
-using MyApp.Domain.Commands;
-using MyApp.Domain.Queries;
+bus.AddHandler<IOrderQueryHandler>(new OrderQueryHandler());      // local
+bus.AddQueryClient<ICatalogQueryHandler>(catalogClient);          // remote
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Configure Zerra Bus as singleton
-builder.Services.AddSingleton<IBus>(serviceProvider =>
-{
-    // Get configuration
-    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-    var serverAddress = configuration["Zerra:ServerAddress"] ?? "localhost:9001";
-    var encryptionKey = configuration["Zerra:EncryptionKey"];
-    var serviceName = configuration["Zerra:ServiceName"] ?? "WebClient";
-
-    // Create components
-    ISerializer serializer = new ZerraByteSerializer();
-    IEncryptor encryptor = new ZerraEncryptor(encryptionKey, SymmetricAlgorithmType.AESwithPrefix);
-    // Your Zerra.Logging.ILogger adapter over Microsoft.Extensions.Logging (fully qualified to avoid ambiguity)
-    Zerra.Logging.ILogger logger = new AspNetCoreLogger(serviceProvider.GetRequiredService<ILogger<Program>>());
-    IBusLogger busLogger = new AspNetCoreBusLogger();
-    var busServices = new BusServices();
-
-    // Create bus
-    var bus = Bus.New(
-        serviceName: serviceName,
-        log: logger,
-        busLog: busLogger,
-        busServices: busServices
-    );
-
-    // Configure network client
-    var client = new TcpCqrsClient(serverAddress, serializer, encryptor, logger);
-    bus.AddCommandProducer<IUserCommandHandler>(client);
-    bus.AddQueryClient<IUserQueryHandler>(client);
-
-    return bus;
-});
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
-
-app.Run();
+var orders = await bus.Call<IOrderQueryHandler>().GetOrders(cancellationToken);
+var products = await bus.Call<ICatalogQueryHandler>().GetProducts(cancellationToken);
 ```
 
-### Controller Example
-
-```csharp
-using Microsoft.AspNetCore.Mvc;
-using Zerra.CQRS;
-using MyApp.Domain.Commands;
-using MyApp.Domain.Queries;
-
-[ApiController]
-[Route("api/[controller]")]
-public class UsersController : ControllerBase
-{
-    private readonly IBus bus;
-
-    public UsersController(IBus bus)
-    {
-        this.bus = bus;
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
-    {
-        await bus.DispatchAwaitAsync(new CreateUserCommand 
-        { 
-            Email = request.Email 
-        });
-
-        return Ok();
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> GetUsers(CancellationToken cancellationToken)
-    {
-        var users = await bus.Call<IUserQueryHandler>().GetActiveUsers(cancellationToken);
-        return Ok(users);
-    }
-
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetUser(int id, CancellationToken cancellationToken)
-    {
-        var user = await bus.Call<IUserQueryHandler>().GetUserById(id, cancellationToken);
-        if (user == null)
-            return NotFound();
-
-        return Ok(user);
-    }
-}
-```
-
-## Network Transport Options
-
-### TCP CQRS Client
-
-High-performance binary protocol over TCP:
-
-```csharp
-var client = new TcpCqrsClient(
-    serviceUrl: "localhost:9001",
-    serializer: serializer,
-    encryptor: encryptor,
-    log: logger
-);
-
-bus.AddCommandProducer<IUserCommandHandler>(client);
-bus.AddQueryClient<IUserQueryHandler>(client);
-```
-
-### HTTP CQRS Client
-
-HTTP-based protocol for firewall-friendly communication:
-
-```csharp
-var client = new HttpCqrsClient(
-    serviceUrl: "http://localhost:8080",
-    serializer: serializer,
-    encryptor: encryptor,
-    authorizer: null,   // optional ICqrsAuthorizer that supplies request headers
-    log: logger
-);
-
-bus.AddCommandProducer<IUserCommandHandler>(client);
-bus.AddQueryClient<IUserQueryHandler>(client);
-```
-
-### Multiple Servers
-
-Connect to multiple backend services:
-
-```csharp
-// User service
-var userClient = new TcpCqrsClient("localhost:9001", serializer, encryptor, logger);
-bus.AddCommandProducer<IUserCommandHandler>(userClient);
-bus.AddQueryClient<IUserQueryHandler>(userClient);
-
-// Order service
-var orderClient = new TcpCqrsClient("localhost:9002", serializer, encryptor, logger);
-bus.AddCommandProducer<IOrderCommandHandler>(orderClient);
-bus.AddQueryClient<IOrderQueryHandler>(orderClient);
-
-// Product service
-var productClient = new HttpCqrsClient("http://productservice:8080", serializer, encryptor, null, logger);
-bus.AddQueryClient<IProductQueryHandler>(productClient);
-```
-
-## Configuration Options
-
-### appsettings.json
-
-```json
-{
-  "Zerra": {
-    "ServiceName": "MyClientApp",
-    "ServerAddress": "localhost:9001",
-    "EncryptionKey": "your-secure-key-here",
-    "UseEncryption": true,
-    "UseBinarySerializer": true,
-    "DefaultTimeout": 30000,
-    "LogLevel": "Information"
-  }
-}
-```
-
-### Loading Configuration
-
-```csharp
-// Read from configuration
-var configuration = builder.Configuration;
-var zerraConfig = configuration.GetSection("Zerra");
-
-var serviceName = zerraConfig["ServiceName"];
-var serverAddress = zerraConfig["ServerAddress"];
-var encryptionKey = zerraConfig["EncryptionKey"];
-var useEncryption = zerraConfig.GetValue<bool>("UseEncryption");
-var useBinarySerializer = zerraConfig.GetValue<bool>("UseBinarySerializer");
-var defaultTimeout = TimeSpan.FromMilliseconds(zerraConfig.GetValue<int>("DefaultTimeout"));
-
-// Create components based on configuration
-ISerializer serializer = useBinarySerializer 
-    ? new ZerraByteSerializer() 
-    : new ZerraJsonSerializer();
-
-IEncryptor? encryptor = useEncryption 
-    ? new ZerraEncryptor(encryptionKey, SymmetricAlgorithmType.AESwithPrefix)
-    : null;
-
-var bus = Bus.New(
-    serviceName: serviceName,
-    log: logger,
-    busLog: busLogger,
-    busServices: busServices,
-    defaultCallTimeout: defaultTimeout
-);
-```
-
-## Hybrid Client-Server Setup
-
-A hybrid application acts as both client and server:
-
-```csharp
-// Create bus
-var bus = Bus.New("HybridApp", logger, busLogger, busServices);
-
-// Register local handlers
-bus.AddHandler<ILocalCommandHandler>(new LocalCommandHandler());
-bus.AddHandler<ILocalQueryHandler>(new LocalQueryHandler());
-
-// Register remote producers/clients
-var remoteClient = new TcpCqrsClient("remoteserver:9001", serializer, encryptor, logger);
-bus.AddCommandProducer<IRemoteCommandHandler>(remoteClient);
-bus.AddQueryClient<IRemoteQueryHandler>(remoteClient);
-
-// Now you can:
-// - Handle local commands/queries with local handlers
-await bus.DispatchAwaitAsync(new LocalCommand());
-var localData = await bus.Call<ILocalQueryHandler>().GetLocalData();
-
-// - Dispatch remote commands/queries to remote server
-await bus.DispatchAwaitAsync(new RemoteCommand());
-var remoteData = await bus.Call<IRemoteQueryHandler>().GetRemoteData();
-```
-
-## Timeout Configuration
-
-Configure timeouts for remote calls:
+## Bus Options
 
 ```csharp
 var bus = Bus.New(
     serviceName: "ClientApp",
-    log: logger,
-    busLog: busLogger,
+    log: log,
+    busLog: busLog,
     busServices: busServices,
-    defaultCallTimeout: TimeSpan.FromSeconds(30),          // queries
-    defaultDispatchTimeout: TimeSpan.FromSeconds(5),       // fire-and-forget commands and events
-    defaultDispatchAwaitTimeout: TimeSpan.FromSeconds(60)  // commands awaiting completion
+    defaultCallTimeout: TimeSpan.FromSeconds(30),
+    defaultDispatchTimeout: TimeSpan.FromSeconds(5),
+    defaultDispatchAwaitTimeout: TimeSpan.FromSeconds(60),
+    maxConcurrentQueries: Environment.ProcessorCount * 32,
+    maxConcurrentCommandsPerTopic: Environment.ProcessorCount * 8,
+    maxConcurrentEventsPerTopic: Environment.ProcessorCount * 16,
+    shutdownTimeout: TimeSpan.FromSeconds(30),
+    commandToReceiveUntilExit: null
 );
 ```
 
-## Error Handling
+The concurrency limits and `shutdownTimeout` shown are the defaults. `shutdownTimeout` and `commandToReceiveUntilExit` are described in [Server Setup](ServerSetup.md#shutdown).
 
-### Connection Failures
+### Timeout Configuration
 
-```csharp
-try
-{
-    var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, logger);
-    bus.AddCommandProducer<IUserCommandHandler>(client);
+| Option | Applies to | Default |
+|---|---|---|
+| `defaultCallTimeout` | queries | none |
+| `defaultDispatchTimeout` | `DispatchAsync` of commands and events | none |
+| `defaultDispatchAwaitTimeout` | `DispatchAwaitAsync` | none |
 
-    await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "test@example.com" });
-}
-catch (TimeoutException ex)
-{
-    logger.Error("Server did not respond in time", ex);
-}
-catch (Exception ex)
-{
-    logger.Error("Failed to connect to server", ex);
-}
-```
+A dispatch can override them with its own `TimeSpan` or `CancellationToken`. A timeout throws `TimeoutException`.
 
-### Query Failures
+## Errors
 
-```csharp
-try
-{
-    var users = await bus.Call<IUserQueryHandler>().GetActiveUsers(cancellationToken);
-}
-catch (TimeoutException ex)
-{
-    logger.Error("Query timed out", ex);
-    // Return cached data or default
-}
-catch (Exception ex)
-{
-    logger.Error("Query failed", ex);
-    // Handle error
-}
-```
+| Exception | Meaning |
+|---|---|
+| `RemoteServiceException` | the remote handler threw; see `ErrorType` and `Message` |
+| `TimeoutException` | no response in time; an awaited command may or may not have run |
+| `OperationCanceledException` | the caller's token was cancelled |
+| `IOException` or other | the connection failed |
+
+See [Commands](Commands.md#errors) and [Queries](Queries.md#errors).
 
 ## See Also
 
-- [Server Setup](ServerSetup.md) - Configure server-side applications
-- [Serializers](Serializers.md) - Choose and configure serializers
-- [Encryptors](Encryptors.md) - Configure encryption
-- [Logging](Logging.md) - Implement logging
-- [Service Injection](ServiceInjection.md) - Manage dependencies
-- [Queries](Queries.md) - Call remote queries
-- [Commands](Commands.md) - Dispatch remote commands
-- [Events](Events.md) - Publish remote events
+- [Server Setup](ServerSetup.md) - The other end
+- [Serializers](Serializers.md) and [Encryptors](Encryptors.md) - What goes over the wire
+- [Logging](Logging.md) - `ILogger` and `IBusLogger`

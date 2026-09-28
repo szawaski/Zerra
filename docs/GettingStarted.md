@@ -291,52 +291,10 @@ app.UseCqrsApiGateway("/CQRS");
 
 ## Configuration
 
-### Bus Options
-
-```csharp
-var bus = Bus.New(
-    serviceName: "UserService",
-    log: log,
-    busLog: busLog,
-    busServices: busServices,
-    commandToReceiveUntilExit: 100,                        // optional: exit after N commands
-    defaultCallTimeout: TimeSpan.FromSeconds(30),          // queries
-    defaultDispatchTimeout: TimeSpan.FromSeconds(5),       // DispatchAsync
-    defaultDispatchAwaitTimeout: TimeSpan.FromSeconds(10), // DispatchAwaitAsync
-    maxConcurrentQueries: Environment.ProcessorCount * 32,
-    maxConcurrentCommandsPerTopic: Environment.ProcessorCount * 8,
-    maxConcurrentEventsPerTopic: Environment.ProcessorCount * 16,
-    shutdownTimeout: TimeSpan.FromSeconds(30)              // how long stopping waits for work in progress
-);
-```
-
-### Dependencies
-
-Register services by interface in `BusServices`, then get them in any handler with `Context.GetService<T>()`, or `Context.TryGetService<T>(out var service)` for optional ones. See [Service Injection](ServiceInjection.md).
-
-```csharp
-var busServices = new BusServices();
-busServices.AddService<IUserRepository>(userRepository);
-busServices.AddService<IEmailService>(emailService);
-```
-
-### Logging
-
-`ILogger` receives framework and handler messages. `IBusLogger` receives the start and end of every command, event, and query, with the service that handled it, the service that sent it, the duration, and any exception. See [Logging](Logging.md).
-
-```csharp
-public class MyBusLogger : IBusLogger
-{
-    public void BeginCommand(Type commandType, ICommand command, string service, string source, bool handled) { }
-    public void EndCommand(Type commandType, ICommand command, string service, string source, bool handled, long milliseconds, Exception? ex) { }
-    // the same for events and queries
-}
-```
-
-### Serialization and Encryption
-
-`ZerraByteSerializer` is compact binary for service-to-service traffic. `ZerraJsonSerializer` is JSON for browsers and anything human-readable. `ZerraEncryptor` encrypts messages with a shared key. See [Serializers](Serializers.md) and [Encryptors](Encryptors.md).
-
+- **Timeouts, concurrency limits, and shutdown:** the [Bus options](ClientSetup.md#bus-options).
+- **Services for handlers:** register them by interface in `BusServices` and get them with `Context.GetService<T>()`. See [Service Injection](ServiceInjection.md).
+- **Logging:** `ILogger` for messages, and `IBusLogger` for the start and end of every command, event, and query. See [Logging](Logging.md).
+- **Serialization and encryption:** `ZerraByteSerializer` between services, `ZerraJsonSerializer` for browsers, and `ZerraEncryptor` with a shared key. See [Serializers](Serializers.md) and [Encryptors](Encryptors.md).
 ## Lifecycle
 
 Servers, consumers, clients, and producers start when they are added to the bus.

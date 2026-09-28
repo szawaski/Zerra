@@ -1,212 +1,81 @@
 [← Back to Documentation](Index.md)
 
-# IO Stream Wrappers
+# Stream Wrappers
 
-Zerra provides flexible stream wrapper classes that enable interception, transformation, and monitoring of stream operations without modifying the underlying stream.
-
-## Overview
-
-The IO stream wrappers provide:
-- **Transparent wrapping** - Wrap any stream without changing its behavior
-- **Interception points** - Override methods to intercept read/write operations
-- **Transformation support** - Transform bytes as they flow through the stream
-- **Leave-open semantics** - Control whether wrapped stream is closed
-- **Full stream API** - Support for sync, async, and span-based operations
+`Zerra.IO` has two base classes for streams that sit on top of another stream: `StreamWrapper`, to observe or adjust individual operations, and `StreamTransform`, to change the bytes as they pass through. Both take a `leaveOpen` flag: with `false`, disposing the wrapper disposes the wrapped stream too.
 
 ## StreamWrapper
 
-`StreamWrapper` is a base class for creating custom stream wrappers where each method can be overridden to intercept operations.
-
-### Basic Usage
+Every member forwards to the wrapped stream and can be overridden. Override only what you need, and call `base` for the rest of the behavior:
 
 ```csharp
 using Zerra.IO;
 
-public class LoggingStreamWrapper : StreamWrapper
+public class ProgressStream : StreamWrapper
 {
-    public LoggingStreamWrapper(Stream stream, bool leaveOpen = false)
+    private readonly long totalSize;
+    private readonly IProgress<double> progress;
+    private long processed;
+
+    public ProgressStream(Stream stream, long totalSize, IProgress<double> progress, bool leaveOpen = false)
         : base(stream, leaveOpen)
     {
+        this.totalSize = totalSize;
+        this.progress = progress;
     }
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-        Console.WriteLine($"Reading up to {count} bytes");
-        int bytesRead = base.Read(buffer, offset, count);
-        Console.WriteLine($"Read {bytesRead} bytes");
-        return bytesRead;
+        var read = base.Read(buffer, offset, count);
+        progress.Report((processed += read) * 100.0 / totalSize);
+        return read;
     }
 
-    public override void Write(byte[] buffer, int offset, int count)
-    {
-        Console.WriteLine($"Writing {count} bytes");
-        base.Write(buffer, offset, count);
-    }
-}
-
-// Usage
-using var fileStream = File.OpenRead("data.bin");
-using var logger = new LoggingStreamWrapper(fileStream, leaveOpen: false);
-
-byte[] buffer = new byte[1024];
-logger.Read(buffer, 0, buffer.Length); // Logs read operation
-```
-
-### Leave Open Behavior
-
-```csharp
-var baseStream = new MemoryStream();
-
-// Wrapper closes the base stream when disposed
-using (var wrapper = new StreamWrapper(baseStream, leaveOpen: false))
-{
-    // Use wrapper
-}
-// baseStream is now closed
-
-var baseStream2 = new MemoryStream();
-
-// Wrapper leaves base stream open when disposed
-using (var wrapper = new StreamWrapper(baseStream2, leaveOpen: true))
-{
-    // Use wrapper
-}
-// baseStream2 is still open and usable
-baseStream2.Dispose(); // Must dispose manually
-```
-
-### Override Points
-
-```csharp
-public class CustomStreamWrapper : StreamWrapper
-{
-    public CustomStreamWrapper(Stream stream, bool leaveOpen)
-        : base(stream, leaveOpen)
-    {
-    }
-
-    // Synchronous read
-    public override int Read(byte[] buffer, int offset, int count)
-    {
-        // Pre-read logic
-        int result = base.Read(buffer, offset, count);
-        // Post-read logic
-        return result;
-    }
-
-    // Asynchronous read
     public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {
-        // Pre-read logic
-        int result = await base.ReadAsync(buffer, offset, count, cancellationToken);
-        // Post-read logic
-        return result;
-    }
-
-    // Synchronous write
-    public override void Write(byte[] buffer, int offset, int count)
-    {
-        // Pre-write logic
-        base.Write(buffer, offset, count);
-        // Post-write logic
-    }
-
-    // Asynchronous write
-    public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-    {
-        // Pre-write logic
-        await base.WriteAsync(buffer, offset, count, cancellationToken);
-        // Post-write logic
-    }
-
-    // Seek operation
-    public override long Seek(long offset, SeekOrigin origin)
-    {
-        // Custom seek logic
-        return base.Seek(offset, origin);
-    }
-
-    // Flush operation
-    public override void Flush()
-    {
-        // Pre-flush logic
-        base.Flush();
-        // Post-flush logic
+        var read = await base.ReadAsync(buffer, offset, count, cancellationToken);
+        progress.Report((processed += read) * 100.0 / totalSize);
+        return read;
     }
 }
+
+using var file = File.OpenRead("largefile.dat");
+using var tracked = new ProgressStream(file, file.Length, new Progress<double>(p => Console.WriteLine($"{p:F1}%")));
 ```
+
+Callers may use any `Read` or `Write` overload: array, span, async, or single byte. A `StreamWrapper` has to override each one it wants to intercept, including the span and `Memory` overloads, which are the fastest on modern runtimes.
 
 ## StreamTransform
 
-`StreamTransform` is a specialized wrapper for transforming bytes as they're read from or written to the stream. All of the public `Read`/`Write` overloads (array, span, async, and single byte) are sealed and funnel into four span/memory-based methods, so you implement each transformation once. It also requires implementing `Length`, `Position`, `Seek`, and `SetLength`, since the transformation may affect these values.
-
-### Abstract Members
-
-Classes deriving from `StreamTransform` must implement (signatures only; see the full example below):
-
-```csharp
-public class MyTransform : StreamTransform
-{
-    public MyTransform(Stream stream, bool leaveOpen)
-        : base(stream, leaveOpen)
-    {
-    }
-
-    public override long Length { get; }
-    public override long Position { get; set; }
-    public override long Seek(long offset, SeekOrigin origin);
-    public override void SetLength(long value);
-
-    // Transformation methods - every Read/Write overload routes through these
-    protected override int InternalRead(Span<byte> buffer);
-    protected override ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken);
-    protected override void InternalWrite(ReadOnlySpan<byte> buffer);
-    protected override ValueTask InternalWriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken);
-}
-```
-
-The wrapped stream is available as the protected `stream` field.
-
-### Example: XOR Encryption Transform
+`StreamTransform` routes every `Read` and `Write` overload through four span and memory methods, so a transformation is written once. Because a transformation can change sizes and offsets, it also implements `Length`, `Position`, `Seek`, and `SetLength`. The wrapped stream is the protected `stream` field.
 
 ```csharp
 public class XorStreamTransform : StreamTransform
 {
     private readonly byte key;
 
-    public XorStreamTransform(Stream stream, byte key, bool leaveOpen = false)
-        : base(stream, leaveOpen)
-    {
-        this.key = key;
-    }
+    public XorStreamTransform(Stream stream, byte key, bool leaveOpen = false) : base(stream, leaveOpen) => this.key = key;
 
     public override long Length => stream.Length;
-
-    public override long Position
-    {
-        get => stream.Position;
-        set => stream.Position = value;
-    }
-
+    public override long Position { get => stream.Position; set => stream.Position = value; }
     public override long Seek(long offset, SeekOrigin origin) => stream.Seek(offset, origin);
-
     public override void SetLength(long value) => stream.SetLength(value);
 
     protected override int InternalRead(Span<byte> buffer)
     {
-        var bytesRead = stream.Read(buffer);
-        for (var i = 0; i < bytesRead; i++)
+        var read = stream.Read(buffer);
+        for (var i = 0; i < read; i++)
             buffer[i] ^= key;
-        return bytesRead;
+        return read;
     }
 
     protected override async ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
     {
-        var bytesRead = await stream.ReadAsync(buffer, cancellationToken);
+        var read = await stream.ReadAsync(buffer, cancellationToken);
         var span = buffer.Span;
-        for (var i = 0; i < bytesRead; i++)
+        for (var i = 0; i < read; i++)
             span[i] ^= key;
-        return bytesRead;
+        return read;
     }
 
     protected override void InternalWrite(ReadOnlySpan<byte> buffer)
@@ -226,266 +95,24 @@ public class XorStreamTransform : StreamTransform
         return stream.WriteAsync(transformed, cancellationToken);
     }
 }
-
-// Usage
-using var fileStream = File.Open("encrypted.dat", FileMode.OpenOrCreate);
-using var xorStream = new XorStreamTransform(fileStream, key: 0x42);
-
-// Write encrypted data
-byte[] data = Encoding.UTF8.GetBytes("Secret Message");
-xorStream.Write(data, 0, data.Length);
 ```
 
-## StreamExtensions
+A transform that can't seek, such as compression, throws `NotSupportedException` from `Seek`, `SetLength`, and the `Position` setter, and tracks `Position` itself. Override `Dispose(bool)` to dispose anything the transform created.
 
-Utility extension methods for streams:
+## StreamExtensions
 
 ```csharp
 using Zerra.IO;
 
-// Read entire stream into byte array
-byte[] data = stream.ToArray();
-byte[] dataAsync = await stream.ToArrayAsync(cancellationToken);
+byte[] data = stream.ToArray();                                  // read to the end
+byte[] data2 = await stream.ToArrayAsync(cancellationToken);
 
-// Read until the span/memory is full (or the stream ends); returns the number of bytes read
+// read until the buffer is full or the stream ends; returns the bytes read
 int read = stream.ReadToSpan(buffer.AsSpan());
-int readAsync = await stream.ReadToMemoryAsync(buffer.AsMemory(), cancellationToken);
+int read2 = await stream.ReadToMemoryAsync(buffer.AsMemory(), cancellationToken);
 ```
-
-## Common Use Cases
-
-### Logging Wrapper
-
-```csharp
-public class LoggingStream : StreamWrapper
-{
-    private readonly Microsoft.Extensions.Logging.ILogger logger;
-    private long totalBytesRead;
-    private long totalBytesWritten;
-
-    public LoggingStream(Stream stream, Microsoft.Extensions.Logging.ILogger logger, bool leaveOpen = false)
-        : base(stream, leaveOpen)
-    {
-        this.logger = logger;
-    }
-
-    public override int Read(byte[] buffer, int offset, int count)
-    {
-        var sw = Stopwatch.StartNew();
-        int bytesRead = base.Read(buffer, offset, count);
-        sw.Stop();
-
-        totalBytesRead += bytesRead;
-        logger.LogDebug($"Read {bytesRead} bytes in {sw.ElapsedMilliseconds}ms (total: {totalBytesRead})");
-
-        return bytesRead;
-    }
-
-    public override void Write(byte[] buffer, int offset, int count)
-    {
-        var sw = Stopwatch.StartNew();
-        base.Write(buffer, offset, count);
-        sw.Stop();
-
-        totalBytesWritten += count;
-        logger.LogDebug($"Wrote {count} bytes in {sw.ElapsedMilliseconds}ms (total: {totalBytesWritten})");
-    }
-}
-```
-
-### Rate Limiting Wrapper
-
-```csharp
-public class ThrottledStream : StreamWrapper
-{
-    private readonly int bytesPerSecond;
-    private readonly Stopwatch stopwatch = new();
-    private long totalBytes;
-
-    public ThrottledStream(Stream stream, int bytesPerSecond, bool leaveOpen = false)
-        : base(stream, leaveOpen)
-    {
-        this.bytesPerSecond = bytesPerSecond;
-        stopwatch.Start();
-    }
-
-    public override int Read(byte[] buffer, int offset, int count)
-    {
-        ThrottleIfNeeded(count);
-        int bytesRead = base.Read(buffer, offset, count);
-        totalBytes += bytesRead;
-        return bytesRead;
-    }
-
-    public override void Write(byte[] buffer, int offset, int count)
-    {
-        ThrottleIfNeeded(count);
-        base.Write(buffer, offset, count);
-        totalBytes += count;
-    }
-
-    private void ThrottleIfNeeded(int bytes)
-    {
-        double elapsedSeconds = stopwatch.Elapsed.TotalSeconds;
-        double expectedSeconds = totalBytes / (double)bytesPerSecond;
-        double waitSeconds = expectedSeconds - elapsedSeconds;
-
-        if (waitSeconds > 0)
-        {
-            Thread.Sleep(TimeSpan.FromSeconds(waitSeconds));
-        }
-    }
-}
-```
-
-### Progress Reporting Wrapper
-
-```csharp
-public class ProgressStream : StreamWrapper
-{
-    private readonly long totalSize;
-    private readonly IProgress<double> progress;
-    private long bytesProcessed;
-
-    public ProgressStream(Stream stream, long totalSize, IProgress<double> progress, bool leaveOpen = false)
-        : base(stream, leaveOpen)
-    {
-        this.totalSize = totalSize;
-        this.progress = progress;
-    }
-
-    public override int Read(byte[] buffer, int offset, int count)
-    {
-        int bytesRead = base.Read(buffer, offset, count);
-        UpdateProgress(bytesRead);
-        return bytesRead;
-    }
-
-    public override void Write(byte[] buffer, int offset, int count)
-    {
-        base.Write(buffer, offset, count);
-        UpdateProgress(count);
-    }
-
-    private void UpdateProgress(int bytes)
-    {
-        bytesProcessed += bytes;
-        double percentage = (double)bytesProcessed / totalSize * 100.0;
-        progress?.Report(percentage);
-    }
-}
-
-// Usage
-var progress = new Progress<double>(percent => 
-{
-    Console.WriteLine($"Progress: {percent:F2}%");
-});
-
-using var fileStream = File.OpenRead("largefile.dat");
-using var progressStream = new ProgressStream(fileStream, fileStream.Length, progress);
-
-// Read operations report progress
-byte[] buffer = new byte[8192];
-while (progressStream.Read(buffer, 0, buffer.Length) > 0)
-{
-    // Process data
-}
-```
-
-### Compression Wrapper
-
-```csharp
-public class CompressionStream : StreamTransform
-{
-    private readonly GZipStream gzipStream;
-    private long position;
-
-    public CompressionStream(Stream stream, CompressionMode mode, bool leaveOpen = false)
-        : base(stream, leaveOpen)
-    {
-        gzipStream = new GZipStream(stream, mode, leaveOpen: true);
-    }
-
-    public override long Length => stream.Length;
-    public override long Position
-    {
-        get => position;
-        set => throw new NotSupportedException("Compression streams don't support seeking");
-    }
-
-    public override long Seek(long offset, SeekOrigin origin)
-    {
-        throw new NotSupportedException("Compression streams don't support seeking");
-    }
-
-    public override void SetLength(long value)
-    {
-        throw new NotSupportedException("Compression streams don't support SetLength");
-    }
-
-    protected override int InternalRead(Span<byte> buffer)
-    {
-        var bytesRead = gzipStream.Read(buffer);
-        position += bytesRead;
-        return bytesRead;
-    }
-
-    protected override async ValueTask<int> InternalReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
-    {
-        var bytesRead = await gzipStream.ReadAsync(buffer, cancellationToken);
-        position += bytesRead;
-        return bytesRead;
-    }
-
-    protected override void InternalWrite(ReadOnlySpan<byte> buffer)
-    {
-        gzipStream.Write(buffer);
-        position += buffer.Length;
-    }
-
-    protected override async ValueTask InternalWriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
-    {
-        await gzipStream.WriteAsync(buffer, cancellationToken);
-        position += buffer.Length;
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            gzipStream.Dispose();
-        }
-        base.Dispose(disposing);
-    }
-}
-```
-
-## Best Practices
-
-1. **Always call base methods** - Unless you're completely replacing functionality
-2. **Handle disposal correctly** - Respect `leaveOpen` parameter
-3. **Maintain position tracking** - Keep position accurate when transforming
-4. **Support async** - Override async methods for better performance
-5. **Document behavior** - Clearly document what your wrapper does
-6. **Buffer management** - Be careful with buffer ownership and pooling
-7. **Exception safety** - Ensure cleanup happens even on errors
-
-## Performance Considerations
-
-- **Minimal overhead** - Wrappers add minimal overhead when not overriding methods
-- **Async efficiency** - Override async methods to avoid sync-over-async
-- **Buffer pooling** - Consider using ArrayPool for temporary buffers
-- **Single code path** - StreamTransform routes every Read/Write overload through the `Internal*` span/memory methods
-- **Virtual calls** - Override costs one virtual call per operation
-
-## Limitations
-
-- **Seeking** - Some wrappers (compression, transformation) may not support seeking
-- **Length** - Transformed streams may have different length than base stream
-- **Position** - Position may not correspond 1:1 with base stream
-- **Span support** - For `StreamWrapper`, override the span/memory-based methods for best performance on modern runtimes (`StreamTransform` already requires them)
 
 ## See Also
 
-- [Serializers](Serializers.md) - Serializers can work with wrapped streams
-- [Encryptors](Encryptors.md) - Can be combined with stream wrappers
+- [Encryptors](Encryptors.md) - Encrypting streams
+- [Queries](Queries.md#streams) - Streaming query results and uploads

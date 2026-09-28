@@ -2,70 +2,32 @@
 
 # Front End Scripts
 
-The **Front End Scripts** folder holds JavaScript and TypeScript clients for browsers. They call the CQRS API gateway hosted by [Zerra.Web](ZerraWeb.md), using models generated from your .NET contracts.
+The **Front End Scripts** folder holds JavaScript and TypeScript clients for browsers. They call the CQRS API gateway hosted by [Zerra.Web](ZerraWeb.md), using models generated from your .NET contracts. `Demo/Store/Store.Web/wwwroot/js/` is a working site that uses them.
 
-## Included Files
+## Files
 
-**JavaScript:**
-- [`Bus.js`](../Front%20End%20Scripts/JavaScript/Bus.js) - CQRS client with JSON and Nameless JSON deserialization
-- [`BusRoutes.js`](../Front%20End%20Scripts/JavaScript/BusRoutes.js) - Route configuration
-- [`JavaScriptModels.tt`](../Front%20End%20Scripts/JavaScript/JavaScriptModels.tt) - T4 template to generate client-side models from .NET types
+| File | Purpose |
+|---|---|
+| [`JavaScript/Bus.js`](../Front%20End%20Scripts/JavaScript/Bus.js) | Client for the gateway, callback based. Requires jQuery |
+| [`JavaScript/BusRoutes.js`](../Front%20End%20Scripts/JavaScript/BusRoutes.js) | Gateway routes and the global error handler |
+| [`JavaScript/JavaScriptModels.tt`](../Front%20End%20Scripts/JavaScript/JavaScriptModels.tt) | T4 template generating JavaScript models and query functions |
+| [`TypeScript/Bus.ts`](../Front%20End%20Scripts/TypeScript/Bus.ts) | Client for the gateway, promise based, using `fetch` |
+| [`TypeScript/BusConfig.ts`](../Front%20End%20Scripts/TypeScript/BusConfig.ts) | Gateway routes and the global error handler |
+| [`TypeScript/TypeScriptModels.tt`](../Front%20End%20Scripts/TypeScript/TypeScriptModels.tt) | T4 template generating TypeScript types and query classes |
+| [`Binaries/Zerra.T4.dll`](../Front%20End%20Scripts/Binaries/Zerra.T4.dll) | The generator the templates call, built from `Framework/Zerra.T4` |
 
-**TypeScript:**
-- [`Bus.ts`](../Front%20End%20Scripts/TypeScript/Bus.ts) - Typed CQRS client with full IntelliSense support
-- [`BusConfig.ts`](../Front%20End%20Scripts/TypeScript/BusConfig.ts) - Type-safe route configuration
-- [`TypeScriptModels.tt`](../Front%20End%20Scripts/TypeScript/TypeScriptModels.tt) - T4 template to generate TypeScript interfaces
+## Generating Models
 
-**Binaries (Required for T4):**
-- [`Zerra.T4.dll`](../Front%20End%20Scripts/Binaries/Zerra.T4.dll) - Pre-built T4 code generation library
-- [`Zerra.T4.pdb`](../Front%20End%20Scripts/Binaries/Zerra.T4.pdb) - Debug symbols (optional)
-- [`Zerra.T4.xml`](../Front%20End%20Scripts/Binaries/Zerra.T4.xml) - XML documentation (optional)
+The templates call `Zerra.T4.CQRSClientDomain.GenerateJavaScript(folder)` or `GenerateTypeScript(folder)`, which read the C# sources under `folder` and write a class per command, a function or static class per query interface, and a model type per model the contracts use.
 
-> **Note**: The `Zerra.T4.dll` is automatically built from the `Zerra.T4` project and copied to this folder. These binaries are always up-to-date with the latest framework build. Copy the entire `Binaries` folder to your solution to use the T4 templates.
+1. Copy `Bus.js` or `Bus.ts`, its routes file, the template, and the `Binaries` folder into your solution.
+2. Point the template's `assembly` directive at `Zerra.T4.dll`, for example `<#@ assembly name="..\Binaries\Zerra.T4.dll" #>`.
+3. Set the folder it scans. The shipped template scans the whole solution folder. Narrow it to your own `*.Domain` projects so unrelated types aren't picked up, as `Demo/Store/Store.Web/wwwroot/js/JavaScriptModels.tt` does.
+4. Save the template in Visual Studio to run it, and run it again after changing a contract.
 
-## Auto-Generate Client Models with T4
-
-The T4 templates automatically generate JavaScript/TypeScript models from your .NET CQRS types.
-
-**Step 1: Copy Files to Your Solution**
-
-Copy the Front End Scripts files to your solution:
-```
-YourSolution/
-├── Scripts/
-│   ├── Binaries/
-│   │   ├── Zerra.T4.dll
-│   │   ├── Zerra.T4.pdb
-│   │   └── Zerra.T4.xml
-│   └── TypeScriptModels.tt (or JavaScriptModels.tt)
-└── YourWebProject/
-    └── src/services/ (output location)
-```
-
-**Step 2: Update T4 Template Assembly Path**
-
-Edit the `.tt` file to reference the correct path to `Zerra.T4.dll`:
-
-```csharp
-<#@ assembly name="Scripts\Binaries\Zerra.T4.dll" #>
-```
-
-Or use an absolute path if needed:
-```csharp
-<#@ assembly name="C:\MyProject\Scripts\Binaries\Zerra.T4.dll" #>
-```
-
-**Shipped template reference (expects `Zerra.T4.dll` to be resolvable next to the template):**
-```csharp
-<#@ assembly name="Zerra.T4.dll" #>
-```
-
-**Step 3: Configure Project Build**
-
-Add to your web project `.csproj` (see [`Help-ProjectBuildT4.txt`](../Front%20End%20Scripts/JavaScript/Help-ProjectBuildT4.txt)):
+To run the template on every build instead, add the text templating targets to the web project (see [`Help-ProjectBuildT4.txt`](../Front%20End%20Scripts/JavaScript/Help-ProjectBuildT4.txt)):
 
 ```xml
-<!--Section to Build T4 into the UI project-->
 <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v17.0\TextTemplating\Microsoft.TextTemplating.targets" />
 <PropertyGroup>
     <TransformOnBuild>true</TransformOnBuild>
@@ -81,97 +43,59 @@ Add to your web project `.csproj` (see [`Help-ProjectBuildT4.txt`](../Front%20En
 </ItemGroup>
 ```
 
-**Step 4: Build Your Solution**
+Generated query functions leave out the trailing `CancellationToken`.
 
-The T4 template will automatically run during build and generate the TypeScript/JavaScript models based on your CQRS types (queries, commands, events, and DTOs).
-
-## Using the JavaScript Bus
+## JavaScript
 
 ```html
-<!-- Include jQuery (required dependency) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<!-- Include generated models and Bus -->
 <script src="JavaScriptModels.js"></script>
 <script src="Bus.js"></script>
 <script src="BusRoutes.js"></script>
 
 <script>
-// Configure routes
-BusRoutes["Gateway"] = "https://myapp.azurewebsites.net/api/cqrs";
+BusRoutes["Gateway"] = "/CQRS";                            // required; a route keyed by an interface name overrides it for that interface
+Bus.setHeader("X-API-Key", "my-secret-key");               // sent with every request
 
-// Set custom headers (e.g., API key)
-Bus.setHeader("X-API-Key", "my-secret-key");
+// query
+IUserQueryHandler.GetUser("12345", function (user) { ... }, function (errorText) { ... });
 
-// Example 1: Simple query call
-IUserQueryHandler.GetUser("12345", function(user) {
-    console.log("User:", user);
-    document.getElementById("userName").innerText = user.Name;
-}, function(errorText) {
-    console.error("Error:", errorText);
-});
+// command, waiting for the handler and its result
+Bus.DispatchAwait(new CreateUserCommand({ Email: "user@example.com", Name: "John Doe" }),
+    function (result) { ... }, function (errorText) { ... });
 
-// Example 2: Query returning a list
-IUserQueryHandler.GetAllUsers(function(users) {
-    console.log("Found " + users.length + " users");
-    users.forEach(function(user) {
-        console.log(user.Name + " - " + user.Email);
-    });
-}, function(errorText) {
-    console.error("Error loading users:", errorText);
-});
-
-// Example 3: Dispatch a command and wait for its result (DispatchAwait)
-const createCommand = new CreateUserCommand({
-    Email: "user@example.com",
-    Name: "John Doe"
-});
-
-Bus.DispatchAwait(createCommand, function(result) {
-    console.log("User created with ID:", result.UserId);
-}, function(errorText) {
-    console.error("Failed to create user:", errorText);
-});
-
-// Example 4: Dispatch a command without waiting for it to complete (fire and forget)
-const updateCommand = new UpdateUserCommand({
-    UserId: "12345",
-    Name: "Jane Doe"
-});
-
-Bus.Dispatch(updateCommand);
-
-// Example 5: Using Bus.Call directly for more control
-Bus.Call(
-    "IUserQueryHandler",
-    "SearchUsers",
-    ["john", 10, 0],  // searchTerm, pageSize, offset
-    UserModelType,
-    true,  // hasMany = true for arrays
-    function(users) {
-        console.log("Search results:", users);
-    },
-    function(errorText) {
-        console.error("Search failed:", errorText);
-    }
-);
-
+// command, fire and forget
+Bus.Dispatch(new UpdateUserCommand({ UserId: "12345", Name: "Jane Doe" }));
 </script>
 ```
 
-For a global error handler, edit the `BusFail` function declared in `BusRoutes.js` (it is a `const`, so it cannot be reassigned from page script):
+`onFail` receives the error message as a string. For a global handler, edit the `BusFail` function in `BusRoutes.js`; it is a `const`, so page script can't reassign it.
 
-```javascript
-// BusRoutes.js
-const BusFail = function (message, url) {
-    console.error("CQRS Error at " + url + ": " + message);
-    alert("An error occurred. Please try again.");
-};
+To call a query without a generated function, use `Bus.Call(provider, method, args, modelType, hasMany, onComplete, onFail)`, where `modelType` is the generated model type and `hasMany` is `true` for arrays.
+
+## TypeScript
+
+`Bus.ts` returns promises: `Bus.Call(provider, method, args, modelType, hasMany)`, `Bus.DispatchAsync(command)`, `Bus.DispatchAwaitAsync(command)`, and `Bus.SetHeader(header, value)`. The generated query classes wrap `Bus.Call`.
+
+```typescript
+import { Bus } from "./Bus";
+import { SetBusRoute, SetBusFailCallback } from "./BusConfig";
+import { IUserQueryHandler, CreateUserCommand } from "./TypeScriptModels";
+
+SetBusRoute("Gateway", "https://myapp.example.com/CQRS");  // defaults to /CQRS
+Bus.SetHeader("X-API-Key", "my-secret-key");
+SetBusFailCallback((message: string) => console.error(message));
+
+const user = await IUserQueryHandler.GetUser("12345");
+const result = await Bus.DispatchAwaitAsync(new CreateUserCommand({ Email: "user@example.com", Name: "John Doe" }));
+await Bus.DispatchAsync(new CreateUserCommand({ Email: "other@example.com", Name: "Jane Doe" }));
 ```
 
-The `onFail` callback on each call receives a single error message string.
+A failed call rejects its promise with the error message.
 
-Queries with streams work from the browser too. A `Stream` parameter takes a `Blob` or `File`, which is uploaded after the other arguments, and a `Stream` result arrives as a `Blob` (the generated function passes `"Blob"` as the model type):
+## Streams
+
+A query with a `Stream` parameter takes a `Blob` or `File`, uploaded after the other arguments in the same request. A query returning `Stream` resolves to a `Blob`:
 
 ```javascript
 //Task<ImportPreviewModel> PreviewImport(Stream csv, CancellationToken cancellationToken)
@@ -187,482 +111,13 @@ IImportQueryHandler.ExportCsv(function (blob) {
 
 `Demo/Store`'s Export and import page (`catalog-import.html`) does both.
 
-## Using the TypeScript Bus
+## Dates and Nameless JSON
 
-`Bus.ts` exposes `Bus.Call(provider, method, args, modelType, hasMany)`, `Bus.DispatchAsync(command)` (fire and forget), `Bus.DispatchAwaitAsync(command)` (wait, and return the result for commands with results), and `Bus.SetHeader(header, value)`. All return promises. `TypeScriptModels.tt` generates a typed static class per query interface and a class per command, so you rarely call `Bus.Call` directly.
+Dates are sent as ISO 8601 strings and turned back into `Date` objects using the generated model types, including in nested objects and arrays.
 
-```typescript
-import { Bus } from "./Bus";
-import { SetBusRoute, SetBusFailCallback } from "./BusConfig";
-import { IUserQueryHandler, CreateUserCommand, UpdateUserSettingsCommand } from "./TypeScriptModels";
-
-// Configure routes
-SetBusRoute("Gateway", "https://myapp.azurewebsites.net/api/cqrs");
-
-// Set custom headers (e.g., API key)
-Bus.SetHeader("X-API-Key", "my-secret-key");
-
-// Set global error handler
-SetBusFailCallback((message: string) => {
-    console.error("Bus error:", message);
-    alert(`An error occurred: ${message}`);
-});
-
-// Example 1: Simple query with parameters (generated, typed proxy)
-try {
-    const user = await IUserQueryHandler.GetUser("12345");
-    console.log(`User: ${user.Name} (${user.Email})`); // Full IntelliSense support
-} catch (error) {
-    console.error("Failed to load user:", error);
-}
-
-// Example 2: Query returning array
-try {
-    const users = await IUserQueryHandler.GetAllUsers();
-    console.log(`Loaded ${users.length} users`);
-    users.forEach(u => console.log(`${u.Name} - ${u.Email}`));
-} catch (error) {
-    console.error("Failed to load users:", error);
-}
-
-// Example 3: Dispatch command and wait for its result
-const createCommand = new CreateUserCommand({
-    Email: "user@example.com",
-    Name: "John Doe"
-});
-
-try {
-    const result = await Bus.DispatchAwaitAsync(createCommand);
-    console.log(`User created with ID: ${result.UserId}`);
-} catch (error) {
-    console.error("Failed to create user:", error);
-}
-
-// Example 4: Fire-and-forget command with nested objects
-const updateCommand = new UpdateUserSettingsCommand({
-    UserId: "12345",
-    Settings: {
-        FirstName: "Jane",
-        LastName: "Doe",
-        TimeZone: "America/New_York",
-        EmailNotifications: true,
-        Theme: "dark"
-    }
-});
-
-try {
-    await Bus.DispatchAsync(updateCommand);
-    console.log("Settings update sent");
-} catch (error) {
-    console.error("Failed to send settings update:", error);
-}
-```
-
-**TypeScript Settings Page Example:**
-
-```typescript
-// settings.ts - Type-safe settings page
-
-import { Bus } from "./Bus";
-import { 
-    UserSettings,
-    IUserQueryHandler,
-    UpdateUserSettingsCommand
-} from "./TypeScriptModels";
-
-class SettingsPage {
-    private currentUserId: string;
-    private originalSettings: UserSettings | null = null;
-
-    constructor(userId: string) {
-        this.currentUserId = userId;
-    }
-
-    async loadSettings(): Promise<void> {
-        try {
-            this.showLoading(true);
-
-            this.originalSettings = await IUserQueryHandler.GetSettings(this.currentUserId);
-
-            this.populateForm(this.originalSettings);
-            this.showForm(true);
-        } catch (error) {
-            console.error("Failed to load settings:", error);
-            this.showError("Failed to load settings. Please refresh the page.");
-        } finally {
-            this.showLoading(false);
-        }
-    }
-
-    async saveSettings(): Promise<void> {
-        const settings = this.getFormData();
-
-        if (!this.validateForm(settings)) {
-            return;
-        }
-
-        try {
-            this.setSaveButtonState(true, "Saving...");
-
-            const command = new UpdateUserSettingsCommand({
-                UserId: this.currentUserId,
-                FirstName: settings.FirstName,
-                LastName: settings.LastName,
-                Email: settings.Email,
-                TimeZone: settings.TimeZone,
-                EmailNotifications: settings.EmailNotifications,
-                Theme: settings.Theme
-            });
-
-            const result = await Bus.DispatchAwaitAsync(command);
-
-            if (result.Success) {
-                this.showSuccess("Settings saved successfully!");
-                await this.loadSettings(); // Reload fresh data
-            } else {
-                alert(`Error: ${result.ErrorMessage}`);
-            }
-        } catch (error) {
-            console.error("Failed to save settings:", error);
-            alert("Failed to save settings. Please try again.");
-        } finally {
-            this.setSaveButtonState(false, "Save Changes");
-        }
-    }
-
-    resetForm(): void {
-        if (this.originalSettings && confirm("Discard all changes?")) {
-            this.populateForm(this.originalSettings);
-        }
-    }
-
-    private getFormData(): UserSettings {
-        return {
-            UserId: this.currentUserId,
-            FirstName: (document.getElementById("txtFirstName") as HTMLInputElement).value.trim(),
-            LastName: (document.getElementById("txtLastName") as HTMLInputElement).value.trim(),
-            Email: (document.getElementById("txtEmail") as HTMLInputElement).value.trim(),
-            TimeZone: (document.getElementById("ddlTimeZone") as HTMLSelectElement).value,
-            EmailNotifications: (document.getElementById("chkEmailNotifications") as HTMLInputElement).checked,
-            Theme: (document.getElementById("ddlTheme") as HTMLSelectElement).value
-        };
-    }
-
-    private validateForm(settings: UserSettings): boolean {
-        if (!settings.FirstName || !settings.LastName) {
-            alert("First name and last name are required.");
-            return false;
-        }
-
-        if (!settings.Email || !settings.Email.includes("@")) {
-            alert("Please enter a valid email address.");
-            return false;
-        }
-
-        return true;
-    }
-
-    private populateForm(settings: UserSettings): void {
-        (document.getElementById("txtFirstName") as HTMLInputElement).value = settings.FirstName;
-        (document.getElementById("txtLastName") as HTMLInputElement).value = settings.LastName;
-        (document.getElementById("txtEmail") as HTMLInputElement).value = settings.Email;
-        (document.getElementById("ddlTimeZone") as HTMLSelectElement).value = settings.TimeZone;
-        (document.getElementById("chkEmailNotifications") as HTMLInputElement).checked = settings.EmailNotifications;
-        (document.getElementById("ddlTheme") as HTMLSelectElement).value = settings.Theme;
-    }
-
-    private showLoading(show: boolean): void {
-        document.getElementById("loading")!.style.display = show ? "block" : "none";
-    }
-
-    private showForm(show: boolean): void {
-        document.getElementById("settingsForm")!.style.display = show ? "block" : "none";
-    }
-
-    private showError(message: string): void {
-        const errorDiv = document.getElementById("error")!;
-        errorDiv.textContent = message;
-        errorDiv.style.display = "block";
-    }
-
-    private showSuccess(message: string): void {
-        const successDiv = document.getElementById("successMessage")!;
-        successDiv.textContent = message;
-        successDiv.style.display = "block";
-
-        setTimeout(() => {
-            successDiv.style.display = "none";
-        }, 3000);
-    }
-
-    private setSaveButtonState(disabled: boolean, text: string): void {
-        const btn = document.getElementById("btnSave") as HTMLButtonElement;
-        btn.disabled = disabled;
-        btn.textContent = text;
-    }
-}
-
-// Initialize page
-const settingsPage = new SettingsPage("12345"); // From auth/session
-document.addEventListener("DOMContentLoaded", () => {
-    settingsPage.loadSettings();
-
-    document.getElementById("btnSave")!.addEventListener("click", () => settingsPage.saveSettings());
-    document.getElementById("btnReset")!.addEventListener("click", () => settingsPage.resetForm());
-});
-```
-
-## Nameless JSON Support
-
-The Bus utilities request Nameless JSON with an `Accept: application/jsonnameless` header whenever a model type is known, and decode the response based on its `Content-Type`. They handle either response format.
-
-**Server Configuration:**
-
-Keep the standard JSON serializer. The front end scripts always send `Content-Type: application/json`, and the gateway rejects requests whose content type does not match the registered serializer, so do not register a `Nameless = true` serializer for browser clients.
-
-```csharp
-builder.Services.AddSingleton<ISerializer>(new ZerraJsonSerializer());
-app.UseCqrsApiGateway();
-```
-
-When the request's `Accept` header is `application/jsonnameless`, the gateway deserializes the request with the registered JSON serializer and writes the response as nameless JSON (`Content-Type: application/jsonnameless`). Error responses are always standard JSON so browser code can read the exception.
-
-**Client Code:**
-```javascript
-// The generated JavaScriptModels.js includes type definitions like:
-const UserModelType = {
-    UserId: "string",
-    Name: "string",
-    Email: "string",
-    CreatedDate: "Date"
-};
-
-// Bus automatically detects "application/jsonnameless" content type
-// and deserializes compact arrays back to objects using the model type
-IUserQueryHandler.GetAllUsers(function(users) {
-    // Server sends compact JSON: [["123","John","john@example.com","2024-01-15"],["456","Jane","jane@example.com","2024-01-16"]]
-    // Bus deserializes to: [{ UserId: "123", Name: "John", Email: "john@example.com", CreatedDate: Date }, ...]
-
-    users.forEach(function(user) {
-        console.log(user.Name + " (" + user.Email + ")");
-        console.log("Created:", user.CreatedDate.toLocaleDateString());
-    });
-}, function(errorText) {
-    console.error("Error:", errorText);
-});
-
-// For custom queries with Bus.Call, specify the model type:
-Bus.Call(
-    "MyApp.Queries.IUserQueryHandler",
-    "SearchUsers",
-    ["john"],
-    UserModelType,  // Required for nameless deserialization
-    true,           // hasMany = true for arrays
-    function(users) {
-        console.log("Found users:", users);
-    },
-    function(errorText) {
-        console.error("Search failed:", errorText);
-    }
-);
-```
-
-## Real-World Example: User Settings Page
-
-Here's a complete example showing how to build a settings page with data loading, validation, and command dispatching:
-
-```javascript
-// settings.js - Complete user settings page example
-
-// Model generated by JavaScriptModels.tt
-const UserSettingsModelType = {
-    UserId: "string",
-    Email: "string",
-    FirstName: "string",
-    LastName: "string",
-    TimeZone: "string",
-    EmailNotifications: "boolean",
-    Theme: "string"
-};
-
-// Initialize page
-var currentUserId = "12345"; // From session or auth
-var originalSettings = null;
-
-function loadSettings() {
-    // Show loading indicator
-    $("#loading").show();
-    $("#settingsForm").hide();
-
-    // Load user settings from query
-    IUserQueryHandler.GetSettings(currentUserId, function(settings) {
-        originalSettings = settings;
-
-        // Populate form fields
-        $("#txtFirstName").val(settings.FirstName);
-        $("#txtLastName").val(settings.LastName);
-        $("#txtEmail").val(settings.Email);
-        $("#ddlTimeZone").val(settings.TimeZone);
-        $("#chkEmailNotifications").prop("checked", settings.EmailNotifications);
-        $("#ddlTheme").val(settings.Theme);
-
-        // Hide loading, show form
-        $("#loading").hide();
-        $("#settingsForm").show();
-    }, function(errorText) {
-        console.error("Failed to load settings:", errorText);
-        $("#loading").hide();
-        $("#error").text("Failed to load settings. Please refresh the page.").show();
-    });
-}
-
-function saveSettings() {
-    // Validate form
-    var firstName = $("#txtFirstName").val().trim();
-    var lastName = $("#txtLastName").val().trim();
-    var email = $("#txtEmail").val().trim();
-
-    if (!firstName || !lastName) {
-        alert("First name and last name are required.");
-        return;
-    }
-
-    if (!email || !email.includes("@")) {
-        alert("Please enter a valid email address.");
-        return;
-    }
-
-    // Build command
-    var updateCommand = new UpdateUserSettingsCommand({
-        UserId: currentUserId,
-        FirstName: firstName,
-        LastName: lastName,
-        Email: email,
-        TimeZone: $("#ddlTimeZone").val(),
-        EmailNotifications: $("#chkEmailNotifications").is(":checked"),
-        Theme: $("#ddlTheme").val()
-    });
-
-    // Show saving indicator
-    $("#btnSave").prop("disabled", true).text("Saving...");
-
-    // Dispatch command
-    Bus.Dispatch(updateCommand, function(result) {
-        $("#btnSave").prop("disabled", false).text("Save Changes");
-
-        if (result.Success) {
-            $("#successMessage").text("Settings saved successfully!").show();
-            setTimeout(function() {
-                $("#successMessage").fadeOut();
-            }, 3000);
-
-            // Reload to get fresh data
-            loadSettings();
-        } else {
-            alert("Error: " + result.ErrorMessage);
-        }
-    }, function(errorText) {
-        $("#btnSave").prop("disabled", false).text("Save Changes");
-        console.error("Failed to save settings:", errorText);
-        alert("Failed to save settings. Please try again.");
-    });
-}
-
-function resetForm() {
-    if (originalSettings && confirm("Discard all changes?")) {
-        $("#txtFirstName").val(originalSettings.FirstName);
-        $("#txtLastName").val(originalSettings.LastName);
-        $("#txtEmail").val(originalSettings.Email);
-        $("#ddlTimeZone").val(originalSettings.TimeZone);
-        $("#chkEmailNotifications").prop("checked", originalSettings.EmailNotifications);
-        $("#ddlTheme").val(originalSettings.Theme);
-    }
-}
-
-// Load data when page loads
-$(document).ready(function() {
-    loadSettings();
-
-    // Wire up button handlers
-    $("#btnSave").click(saveSettings);
-    $("#btnReset").click(resetForm);
-});
-```
-
-**Corresponding HTML:**
-```html
-<div id="loading" style="display:none;">
-    <p>Loading settings...</p>
-</div>
-
-<div id="error" style="display:none; color:red;"></div>
-
-<form id="settingsForm" style="display:none;">
-    <div class="form-group">
-        <label for="txtFirstName">First Name:</label>
-        <input type="text" id="txtFirstName" class="form-control" />
-    </div>
-
-    <div class="form-group">
-        <label for="txtLastName">Last Name:</label>
-        <input type="text" id="txtLastName" class="form-control" />
-    </div>
-
-    <div class="form-group">
-        <label for="txtEmail">Email:</label>
-        <input type="email" id="txtEmail" class="form-control" />
-    </div>
-
-    <div class="form-group">
-        <label for="ddlTimeZone">Time Zone:</label>
-        <select id="ddlTimeZone" class="form-control">
-            <option value="UTC">UTC</option>
-            <option value="America/New_York">Eastern Time</option>
-            <option value="America/Chicago">Central Time</option>
-            <option value="America/Denver">Mountain Time</option>
-            <option value="America/Los_Angeles">Pacific Time</option>
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label>
-            <input type="checkbox" id="chkEmailNotifications" />
-            Enable email notifications
-        </label>
-    </div>
-
-    <div class="form-group">
-        <label for="ddlTheme">Theme:</label>
-        <select id="ddlTheme" class="form-control">
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="auto">Auto</option>
-        </select>
-    </div>
-
-    <div id="successMessage" style="display:none; color:green;"></div>
-
-    <button type="button" id="btnSave" class="btn btn-primary">Save Changes</button>
-    <button type="button" id="btnReset" class="btn btn-secondary">Reset</button>
-</form>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="JavaScriptModels.js"></script>
-<script src="Bus.js"></script>
-<script src="BusRoutes.js"></script>
-<script src="settings.js"></script>
-```
-
-The Bus utilities handle:
-- ✅ Date serialization/deserialization (ISO 8601 with timezone)
-- ✅ Nested object deserialization
-- ✅ Array property deserialization
-- ✅ Automatic Nameless JSON detection and decoding
-- ✅ Custom header support (authentication, API keys)
-- ✅ Global error handling
+When a call has a model type, the scripts ask for nameless JSON (`Accept: application/jsonnameless`), a compact form that sends values without property names, and rebuild the objects from the model type. The requests themselves are always standard JSON (`Content-Type: application/json`), so register the standard `ZerraJsonSerializer` with the gateway, not one with `Nameless = true`. Error responses are always standard JSON. See [Content Type Support](ZerraWeb.md#content-type-support).
 
 ## See Also
 
 - [Zerra.Web](ZerraWeb.md) - The CQRS API gateway the scripts call
 - [JsonSerializer](JsonSerializer.md) - JSON and nameless JSON
-- `Demo/Store/Store.Web/wwwroot/js/` - A working site using `Bus.js` and generated models

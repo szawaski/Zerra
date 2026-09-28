@@ -2,431 +2,82 @@
 
 # ByteSerializer
 
-`ByteSerializer` is Zerra's high-performance binary serialization engine, optimized for speed, compact size, and AOT (Ahead-of-Time) compilation compatibility.
+`ByteSerializer` (in `Zerra.Serialization.Bytes`) is Zerra's binary serializer: the fastest and most compact option, for traffic where both sides are .NET. Member names aren't written, integers are variable-length, and type details come from the [source generator](AOT.md), so it works under Native AOT.
 
-> **Note**: When using the Zerra CQRS Bus, use the `ZerraByteSerializer` wrapper class which delegates to `ByteSerializer`.
+To use it with the bus, a server, or a client, pass `ZerraByteSerializer`, the `ISerializer` wrapper around it. See [Serializers](Serializers.md).
 
-## Overview
-
-`ByteSerializer` provides:
-- **Ultra-fast serialization** - Optimized for minimal allocations and maximum throughput
-- **Compact binary format** - Smallest possible message size
-- **AOT compatible** - Works with Native AOT compilation via source generation
-- **Type-safe** - Strong typing with full generic support
-- **Stream support** - Direct serialization to/from streams for large objects
-- **Zero reflection overhead** - Uses source-generated code for type operations
-
-## Key Features
-
-### 1. High Performance
-
-`ByteSerializer` is designed for maximum performance:
+## Serializing
 
 ```csharp
 using Zerra.Serialization.Bytes;
 
-// Direct usage
-var command = new CreateUserCommand { Email = "user@example.com", Name = "John Doe" };
 byte[] bytes = ByteSerializer.Serialize(command);
-
-// Deserialize
-var deserialized = ByteSerializer.Deserialize<CreateUserCommand>(bytes);
-```
-
-**Performance characteristics:**
-- ⚡ 10-100x faster than JSON serialization
-- 💾 50-80% smaller payload size than JSON
-- 🚀 Zero allocations for primitive types
-- 📦 Minimal garbage collection pressure
-
-### 2. Compact Binary Format
-
-The binary format is optimized for size:
-
-```csharp
-public class User
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public string Email { get; set; }
-}
-
-var user = new User { Id = 123, Name = "John", Email = "john@example.com" };
-
-// ByteSerializer: ~45 bytes (binary)
-var binaryBytes = ByteSerializer.Serialize(user);
-
-// JsonSerializer: ~65 bytes (text)
-var jsonBytes = JsonSerializer.Serialize(user);
-```
-
-**Size advantages:**
-- No property name overhead (names not included in payload)
-- Efficient numeric encoding (variable-length integers)
-- Optimized string encoding
-- No whitespace or formatting characters
-
-### 3. AOT Compilation Support
-
-Works seamlessly with Native AOT compilation:
-
-```csharp
-// Requires Zerra.SourceGeneration reference
-// See AOT.md for setup instructions
-
-// All type operations are source-generated at compile time
-// No runtime reflection required
-var bytes = ByteSerializer.Serialize(command);
-```
-
-**AOT benefits:**
-- ✅ Fast startup (no runtime type discovery)
-- ✅ Small deployment size (no unused code)
-- ✅ Predictable performance (no JIT compilation)
-- ✅ Compatible with IL trimming
-
-### 4. Type Safety
-
-Full generic support with compile-time type checking:
-
-```csharp
-using Zerra.Serialization.Bytes;
-
-// Generic serialization - type-safe
-byte[] bytes = ByteSerializer.Serialize<CreateUserCommand>(command);
-
-// Generic deserialization - type-safe
-CreateUserCommand result = serializer.Deserialize<CreateUserCommand>(bytes);
-
-// Generic deserialization - type-safe
 var result = ByteSerializer.Deserialize<CreateUserCommand>(bytes);
 
-// Non-generic variants also available
+// by runtime type
 byte[] bytes2 = ByteSerializer.Serialize(command, typeof(CreateUserCommand));
-object result2 = ByteSerializer.Deserialize(bytes2, typeof(CreateUserCommand));
-```
+object? result2 = ByteSerializer.Deserialize(bytes2, typeof(CreateUserCommand));
 
-### 5. Stream Support
-
-Direct stream serialization for large objects without memory buffering:
-
-```csharp
-using Zerra.Serialization.Bytes;
-
-// Serialize directly to stream
-using var fileStream = File.Create("command.bin");
+// streams, without buffering the whole payload
 ByteSerializer.Serialize(fileStream, command);
-
-// Deserialize directly from stream
-using var readStream = File.OpenRead("command.bin");
-var result = ByteSerializer.Deserialize<CreateUserCommand>(readStream);
+var fromFile = ByteSerializer.Deserialize<CreateUserCommand>(readStream);
+await ByteSerializer.SerializeAsync(stream, command, cancellationToken: cancellationToken);
 ```
-
-**Stream advantages:**
-- 💾 No memory buffering of large objects
-- ⚡ Direct I/O operations
-- 🔄 Suitable for large file processing
-- 📊 Efficient for log files and data exports
 
 ## Supported Types
 
-`ByteSerializer` supports a wide range of .NET types:
+- Numbers, `bool`, `char`, `string`, `Guid`, `byte[]`, enums, and their nullable forms
+- `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly`, and `TimeOnly`
+- Arrays, lists, sets, dictionaries, and their interfaces such as `IReadOnlyList<T>`, `IReadOnlySet<T>`, and `IEnumerable<T>`
+- Classes, structs, and records, including nested objects
 
-### Primitive Types
+A type is created with its parameterless constructor if it has one. Otherwise the constructor whose parameter names match its member names is used, which is how positional records work. A read-only member that isn't a constructor parameter isn't deserialized.
 
-```csharp
-// All .NET primitives
-bool, byte, sbyte, char, short, ushort, int, uint, long, ulong, float, double, decimal
-
-// Date and time
-DateTime, DateTimeOffset, TimeSpan, DateOnly, TimeOnly
-
-// Special types
-Guid, string, byte[]
-```
-
-### Collections
+## Options
 
 ```csharp
-// Arrays
-int[], string[], User[]
-
-// Lists
-List<T>, IList<T>, IReadOnlyList<T>
-
-// Sets
-HashSet<T>, ISet<T>, IReadOnlySet<T>
-
-// Dictionaries
-Dictionary<TKey, TValue>, IDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>
-
-// Enumerables
-IEnumerable<T>, ICollection<T>
-```
-
-### Complex Types
-
-```csharp
-// Classes
-public class User
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public Address Address { get; set; }
-}
-
-// Nested objects
-public class Address
-{
-    public string Street { get; set; }
-    public string City { get; set; }
-}
-
-// Nullable types
-int?, DateTime?, User?
-```
-
-### Records
-
-```csharp
-// C# records
-public record CreateUserCommand(string Email, string Name);
-
-var command = new CreateUserCommand("user@example.com", "John");
-var bytes = ByteSerializer.Serialize(command);
-```
-
-## Usage Examples
-
-### Basic Serialization
-
-```csharp
-using Zerra.Serialization.Bytes;
-
-// Serialize command
-var command = new CreateUserCommand 
-{ 
-    Email = "user@example.com", 
-    Name = "John Doe" 
-};
-
-byte[] bytes = ByteSerializer.Serialize(command);
-Log?.Info($"Serialized {bytes.Length} bytes");
-
-// Deserialize command
-var result = ByteSerializer.Deserialize<CreateUserCommand>(bytes);
-Log?.Info($"Deserialized: {result.Email}");
-```
-
-### Using with CQRS Bus
-
-```csharp
-using Zerra.Serialization;
-
-// Wrap ByteSerializer for Bus usage
-var serializer = new ZerraByteSerializer();
-var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, logger);
-bus.AddCommandConsumer<IUserCommandHandler>(server);
-
-// Client side
-var clientSerializer = new ZerraByteSerializer();
-var client = new TcpCqrsClient("localhost:9001", clientSerializer, encryptor, logger);
-bus.AddCommandProducer<IUserCommandHandler>(client);
-```
-
-### File Serialization
-
-```csharp
-using Zerra.Serialization.Bytes;
-
-// Write to file
-using (var stream = File.Create("users.bin"))
-{
-    foreach (var user in users)
-    {
-        ByteSerializer.Serialize(stream, user);
-    }
-}
-
-// Read from file
-var loadedUsers = new List<User>();
-using (var stream = File.OpenRead("users.bin"))
-{
-    while (stream.Position < stream.Length)
-    {
-        var user = ByteSerializer.Deserialize<User>(stream);
-        loadedUsers.Add(user);
-    }
-}
-```
-
-## Configuration Options
-
-`ByteSerializer` and `ZerraByteSerializer` accept optional `ByteSerializerOptions` (namespace `Zerra.Serialization.Bytes`):
-
-```csharp
-using Zerra.Serialization;
-using Zerra.Serialization.Bytes;
-
 var options = new ByteSerializerOptions
 {
     IndexType = ByteSerializerIndexType.Byte, // Byte (default, up to 254 members), UInt16 (up to 65,534), or MemberNames
-    UseTypes = false,                         // Embed type information (needed for boxed/interface-typed members)
-    IgnoreIndexAttribute = false              // Ignore [SerializerIndex] attributes
+    UseTypes = false,                         // write type information, needed for members typed as object or an interface
+    IgnoreIndexAttribute = false              // ignore [SerializerIndex]
 };
 
-var bytes = ByteSerializer.Serialize(command, options);
-ISerializer serializer = new ZerraByteSerializer(options);
+byte[] bytes = ByteSerializer.Serialize(command, options);
+var serializer = new ZerraByteSerializer(options);
 ```
 
 The same options must be used to serialize and deserialize.
 
-### Versioning Members
+## Versioning
 
-By default, members are identified by their declaration order, so adding, removing, or reordering members breaks compatibility with previously serialized data. Two options make types version-tolerant:
+By default members are identified by their declaration order, so adding, removing, or reordering members breaks compatibility with data serialized before the change. Two ways to make a type version-tolerant:
 
-- **`[SerializerIndex]`**: assign a stable, unique index to each member. Once any member of a type uses the attribute, only attributed members are serialized.
-- **`ByteSerializerIndexType.MemberNames`**: identify members by name. It's the most flexible option, but also the slowest and largest.
+- **`[SerializerIndex]`**: give each member a stable, unique index. Once any member of a type uses it, only attributed members are serialized.
+- **`ByteSerializerIndexType.MemberNames`**: identify members by name. It is the most flexible, but also the slowest and largest.
 
 ```csharp
-using Zerra.Serialization.Bytes;
-
 public class CreateUserCommand : ICommand
 {
     [SerializerIndex(1)] public required string Email { get; set; }
     [SerializerIndex(2)] public required string Name { get; set; }
-    // Added later without breaking existing data:
-    [SerializerIndex(3)] public string? PhoneNumber { get; set; }
+    [SerializerIndex(3)] public string? PhoneNumber { get; set; }   // added later without breaking existing data
 }
 ```
 
-### Custom Converters
+When services deploy independently, the sender and receiver can briefly run different versions of a contract, so give contracts that change `[SerializerIndex]` values.
 
-Register a custom `ByteConverter<T>` (namespace `Zerra.Serialization.Bytes.Converters`) with `ByteSerializer.AddConverter(typeof(T), () => new MyConverter())` before first use.
+## Custom Converters
 
-## Best Practices
-
-### 1. Use for High-Performance Scenarios
-
-```csharp
-using Zerra.Serialization;
-
-// Ideal for high-performance production systems
-var serializer = new ZerraByteSerializer();
-var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, logger);
-```
-
-### 2. Match Serializers on Client and Server
-
-```csharp
-// ✅ Both client and server must use same serializer
-// Server
-var serverSerializer = new ZerraByteSerializer();
-
-// Client
-var clientSerializer = new ZerraByteSerializer();
-```
-
-### 3. Use Source Generation for AOT
-
-The source generator is included in the `Zerra` NuGet package; reference the package in every project that defines serialized types (see [AOT](AOT.md)). With the generator, serialization uses generated metadata instead of runtime reflection:
-
-```csharp
-var bytes = ByteSerializer.Serialize(command);
-```
-
-### 4. Leverage Stream Support for Large Objects
-
-```csharp
-using Zerra.Serialization.Bytes;
-
-// ✅ Stream large objects to avoid memory buffering
-using var stream = File.OpenRead("large-data.bin");
-var result = ByteSerializer.Deserialize<LargeDataSet>(stream);
-```
-
-### 5. Design Serializable Types
-
-```csharp
-// ✅ Good - simple properties
-public class UserCommand : ICommand
-{
-    public required string Email { get; set; }
-    public required string Name { get; set; }
-}
-
-// ⚠️ Works, but only via constructor parameter names - the parameter must match a member name
-public class ComplexCommand : ICommand
-{
-    private string _email;
-    public string Email => _email;
-
-    public ComplexCommand(string email)
-    {
-        _email = email;
-    }
-}
-```
-
-Types are created with a parameterless constructor when one exists; otherwise the constructor whose parameter names match the serialized member names is used (this is how positional records work). Read-only members that are not constructor parameters are not deserialized.
-
-## Limitations
-
-1. **Binary Format Only**: Not human-readable; use [JsonSerializer](JsonSerializer.md) for debugging
-2. **.NET Specific**: Both client and server must be .NET applications
-3. **Type Compatibility**: Sender and receiver must have matching type definitions
-4. **Order-Based by Default**: Adding/removing/reordering members breaks compatibility unless you use `[SerializerIndex]` or `ByteSerializerIndexType.MemberNames` (see [Versioning Members](#versioning-members))
-
-## When to Use ByteSerializer
-
-Choose `ByteSerializer` (via `ZerraByteSerializer` wrapper for Bus) when:
-
-- ✅ **Performance is critical** - High-throughput systems, real-time applications
-- ✅ **Bandwidth matters** - Cloud deployments with data egress costs
-- ✅ **Both sides are .NET** - Microservices, distributed systems
-- ✅ **Message volume is high** - Processing thousands/millions of messages
-- ✅ **AOT compilation** - Native AOT deployment scenarios
-- ✅ **Production workloads** - Stable, high-performance requirements
-
-See [Serializers Overview](Serializers.md) for comparison with other serialization options.
+Derive from `ByteConverter<T>` (in `Zerra.Serialization.Bytes.Converters`) and register it before first use with `ByteSerializer.AddConverter(typeof(T), () => new MyConverter())`.
 
 ## Troubleshooting
 
-### Deserialization Fails
-
-**Problem**: `Deserialize` throws exception
-
-**Solutions**:
-- Ensure both client and server use same binary serializer and the same `ByteSerializerOptions`
-- Verify type definitions match exactly between sender and receiver (or use `[SerializerIndex]` for versioning)
-- Check that the [Zerra package (source generator)](AOT.md) is referenced in both projects
-- Ensure encryption keys match if using encryption
-
-### Poor Performance
-
-**Problem**: Serialization is slower than expected
-
-**Solutions**:
-- Verify [source generation](AOT.md) is configured correctly
-- Check for excessive object allocations in your models
-- Use stream-based serialization for large objects
-- Profile to identify bottlenecks in your domain objects
-
-### Type Not Supported
-
-**Problem**: Custom type fails to serialize
-
-**Solutions**:
-- Ensure type has a parameterless constructor, or a constructor whose parameter names match its members
-- Use public properties with getters and setters
-- For members typed as `object` or an interface, enable `UseTypes`
-- Reference the [Zerra package (source generator)](AOT.md) to generate type metadata
-- Simplify complex type hierarchies
+- **Deserialization fails or produces wrong values:** check both sides use the same options and the same type definitions, or version the type with `[SerializerIndex]`. When encryption is used, also check both sides use the same key.
+- **A type isn't supported:** give it a parameterless constructor, or one whose parameter names match its members, and use public properties. For members typed as `object` or an interface, set `UseTypes`.
+- **A type fails under Native AOT:** check the project declaring it references the `Zerra` package, or mark it `[GenerateTypeDetail]`. See [AOT](AOT.md).
 
 ## See Also
 
-- [JsonSerializer](JsonSerializer.md) - JSON serialization with Graph-based property control
-- [Serializers Overview](Serializers.md) - Compare serialization options
-- [AOT Support](AOT.md) - Configure source generation for Native AOT
-- [Server Setup](ServerSetup.md) - Configure server-side serialization
-- [Client Setup](ClientSetup.md) - Configure client-side serialization
+- [Serializers](Serializers.md) - Choosing a serializer
+- [JsonSerializer](JsonSerializer.md) - JSON serialization
