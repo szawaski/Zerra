@@ -25,7 +25,7 @@ namespace Zerra.SourceGeneration
                 return;
             if (typeSymbol is not INamedTypeSymbol namedTypeSymbol)
                 return;
-            if (!namedTypeSymbol.AllInterfaces.Any(x => x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler"))
+            if (!namedTypeSymbol.AllInterfaces.Any(x => (x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler") && x.ContainingNamespace.ToString() == "Zerra.CQRS") && !namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IAggregateEvent" && x.ContainingNamespace.ToString() == "Zerra.Repository"))
                 return;
 
             var fullName = Helper.GetFullName(namedTypeSymbol);

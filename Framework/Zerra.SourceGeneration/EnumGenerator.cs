@@ -72,7 +72,7 @@ namespace Zerra.SourceGeneration
                     hasFirst = true;
 
                 var text = @field.Name;
-                var enumNameAttribute = @field.GetAttributes().FirstOrDefault(x => x.AttributeClass?.Name == "EnumName");
+                var enumNameAttribute = @field.GetAttributes().FirstOrDefault(x => x.AttributeClass is not null && x.AttributeClass.Name == "EnumName" && x.AttributeClass.ContainingNamespace.IsGlobalNamespace);
                 if (enumNameAttribute != null)
                 {
                     var textArg = enumNameAttribute.ConstructorArguments.FirstOrDefault();

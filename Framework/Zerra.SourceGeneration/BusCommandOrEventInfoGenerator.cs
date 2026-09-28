@@ -23,7 +23,7 @@ namespace Zerra.SourceGeneration
                 return;
             if (symbol is not INamedTypeSymbol namedTypeSymbol)
                 return;
-            if (!namedTypeSymbol.AllInterfaces.Any(x => x.Name == "ICommandHandler" || x.Name == "IEventHandler"))
+            if (!namedTypeSymbol.AllInterfaces.Any(x => (x.Name == "ICommandHandler" || x.Name == "IEventHandler") && x.ContainingNamespace.ToString() == "Zerra.CQRS"))
                 return;
 
             var niceName = namedTypeSymbol.MetadataName;
@@ -32,12 +32,12 @@ namespace Zerra.SourceGeneration
             var eventTypes = new List<ITypeSymbol>();
             foreach (var interfaceTypeSymbol in namedTypeSymbol.AllInterfaces)
             {
-                if (interfaceTypeSymbol.Name == "ICommandHandler")
+                if (interfaceTypeSymbol.Name == "ICommandHandler" && interfaceTypeSymbol.ContainingNamespace.ToString() == "Zerra.CQRS")
                 {
                     var commandType = interfaceTypeSymbol.TypeArguments[0];
                     commandTypes.Add(commandType);
                 }
-                else if (interfaceTypeSymbol.Name == "IEventHandler")
+                else if (interfaceTypeSymbol.Name == "IEventHandler" && interfaceTypeSymbol.ContainingNamespace.ToString() == "Zerra.CQRS")
                 {
                     var eventType = interfaceTypeSymbol.TypeArguments[0];
                     eventTypes.Add(eventType);

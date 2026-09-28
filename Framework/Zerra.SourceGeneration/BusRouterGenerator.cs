@@ -27,7 +27,7 @@ namespace Zerra.SourceGeneration
             if (typeSymbol is not INamedTypeSymbol namedTypeSymbol)
                 return;
 
-            if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IQueryHandler"))
+            if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IQueryHandler" && x.ContainingNamespace.ToString() == "Zerra.CQRS"))
             {
                 var typeNameForClass = Helper.GetClassSafeName(typeSymbol);
                 var className = $"Caller_{typeNameForClass}";
@@ -70,7 +70,7 @@ namespace Zerra.SourceGeneration
                 _ = sbInitializer.Append(EnvironmentHelper.NewLine);
                 _ = sbInitializer.Append("global::Zerra.Reflection.Register.Router(").Append(typeNameForSymbol).Append(", static (global::Zerra.CQRS.IBusInternal bus, string source) => new ").Append(fullClassName).Append("(bus, source)").Append(");");
             }
-            if (namedTypeSymbol.AllInterfaces.Any(x => x.MetadataName == "ICommandHandler`2"))
+            if (namedTypeSymbol.AllInterfaces.Any(x => x.MetadataName == "ICommandHandler`2" && x.ContainingNamespace.ToString() == "Zerra.CQRS"))
             {
                 Generate(namedTypeSymbol, sbInitializer);
                 foreach (var i in namedTypeSymbol.AllInterfaces)
@@ -197,7 +197,7 @@ namespace Zerra.SourceGeneration
 
         private static void Generate(INamedTypeSymbol namedTypeSymbol, StringBuilder sb)
         {
-            if (namedTypeSymbol.MetadataName != "ICommandHandler`2")
+            if (namedTypeSymbol.MetadataName != "ICommandHandler`2" || namedTypeSymbol.ContainingNamespace.ToString() != "Zerra.CQRS")
                 return;
 
             var members = namedTypeSymbol.GetMembers();

@@ -35,16 +35,16 @@ namespace Zerra.SourceGeneration
         }
         private static bool Filter(INamedTypeSymbol namedTypeSymbol)
         {
-            if (namedTypeSymbol.AllInterfaces.Any(x => x.ContainingNamespace.ToString() == "Zerra.CQRS" && (x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler")))
+            if (namedTypeSymbol.AllInterfaces.Any(x => (x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler") && x.ContainingNamespace.ToString() == "Zerra.CQRS"))
                 return true;
-            if (!namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass?.Name == "IgnoreGenerateTypeDetailAttribute"))
+            if (!namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass is not null && x.AttributeClass.Name == "IgnoreGenerateTypeDetailAttribute" && x.AttributeClass.ContainingNamespace.ToString() == "Zerra.Reflection"))
             {
                 foreach (var attribute in namedTypeSymbol.GetAttributes())
                 {
                     var attributeClass = attribute.AttributeClass;
                     while (attributeClass != null)
                     {
-                        if (attributeClass.Name == "GenerateTypeDetailAttribute")
+                        if (attributeClass.Name == "GenerateTypeDetailAttribute" && attributeClass.ContainingNamespace.ToString() == "Zerra.Reflection")
                             return true;
                         attributeClass = attributeClass.BaseType;
                     }
@@ -57,7 +57,7 @@ namespace Zerra.SourceGeneration
             if (Helper.FindBase("Zerra.Repository", "AggregateRoot", namedTypeSymbol) != null)
                return true;
             //maybe redundant after the AggregateRoot check, but doesn't hurt
-            if (namedTypeSymbol.AllInterfaces.Any(x => x.ContainingNamespace.ToString() == "Zerra.Repository" && x.Name == "IAggregateEvent"))
+            if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IAggregateEvent" && x.ContainingNamespace.ToString() == "Zerra.Repository"))
                 return true;
 
             if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IMapDefinition" && x.ContainingNamespace.ToString() == "Zerra.Map"))

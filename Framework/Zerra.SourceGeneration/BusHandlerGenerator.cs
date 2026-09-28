@@ -23,7 +23,7 @@ namespace Zerra.SourceGeneration
                 return;
             if (typeSymbol is not INamedTypeSymbol namedTypeSymbol)
                 return;
-            if (!namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IQueryHandler" || x.Name == "ICommandHandler" || x.Name == "IEventHandler"))
+            if (!namedTypeSymbol.AllInterfaces.Any(x => (x.Name == "IQueryHandler" || x.Name == "ICommandHandler" || x.Name == "IEventHandler") && x.ContainingNamespace.ToString() == "Zerra.CQRS"))
                 return;
 
             var typeNameForInterface = Helper.GetFullName(namedTypeSymbol);
@@ -44,7 +44,7 @@ namespace Zerra.SourceGeneration
                     continue;
 
                 string methodName;
-                if (namedTypeSymbol.Name == "ICommandHandler" || namedTypeSymbol.Name == "IEventHandler")
+                if ((namedTypeSymbol.Name == "ICommandHandler" || namedTypeSymbol.Name == "IEventHandler") && namedTypeSymbol.ContainingNamespace.ToString() == "Zerra.CQRS")
                     methodName = $"{method.Name}-{method.Parameters[0].Type.Name}";
                 else
                     methodName = method.Name;
