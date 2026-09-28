@@ -208,7 +208,8 @@ public interface IEmailService
 // Register
 busServices.AddService<IEmailService>(new EmailService(smtpConfig));
 
-// Use in an event handler (event handlers do not receive a CancellationToken)
+// Use in an event handler registered PerService, so the email is sent once
+// (event handlers do not receive a CancellationToken)
 public async Task Handle(UserCreatedEvent @event)
 {
     var emailService = Context.GetService<IEmailService>();
@@ -333,7 +334,7 @@ var bus = Bus.New(
 
 // Register handlers
 bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
-bus.AddHandler<IUserQueries>(new UserQueryHandler());
+bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
 
 // Setup network components
 var serializer = new ZerraByteSerializer();
@@ -341,7 +342,7 @@ var encryptor = new ZerraEncryptor("securePassword", SymmetricAlgorithmType.AESw
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, new ConsoleLogger());
 
 bus.AddCommandConsumer<IUserCommandHandler>(server);
-bus.AddQueryServer<IUserQueries>(server);
+bus.AddQueryServer<IUserQueryHandler>(server);
 
 await bus.WaitForExitAsync(cancellationToken);
 ```
@@ -372,10 +373,10 @@ var encryptor = new ZerraEncryptor("securePassword", SymmetricAlgorithmType.AESw
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, new ConsoleLogger());
 
 bus.AddCommandProducer<IUserCommandHandler>(client);
-bus.AddQueryClient<IUserQueries>(client);
+bus.AddQueryClient<IUserQueryHandler>(client);
 
 // Now use the bus
-var users = await bus.Call<IUserQueries>().GetActiveUsers(cancellationToken);
+var users = await bus.Call<IUserQueryHandler>().GetActiveUsers(cancellationToken);
 ```
 
 ## Best Practices

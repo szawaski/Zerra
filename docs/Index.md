@@ -11,8 +11,6 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 ### Getting Started
 - [Getting Started](GettingStarted.md) - Build a service and a client, then route between in-process, TCP, HTTP, and message brokers
 - [Store Demo](../Demo/Store/README.md) - A complete multi-service sample application
-- [Agents](Agents.md) - Architectural context for AI agents working with Zerra
-- [Upgrading from Zerra 5 to 6](UpgradeV5ToV6.md) - Step-by-step migration of a Zerra 5 solution, written for AI agents
 
 ### Configuration & Setup
 - [AOT (Ahead-of-Time Compilation)](AOT.md) - Automatic source generator for precompiled reflection and Native AOT support (included with Zerra package)
@@ -23,6 +21,8 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - [Logging](Logging.md) - Implement ILogger and IBusLogger for comprehensive logging
 - [Service Injection](ServiceInjection.md) - Manage dependencies with BusServices
 - [Zerra.Web](ZerraWeb.md) - ASP.NET integration and CQRS API Gateway
+  - [Front End Scripts](FrontEndScripts.md) - JavaScript and TypeScript browser clients with generated models
+  - [ApiClient](ApiClient.md) - .NET clients for the API Gateway
 - [Client Setup](ClientSetup.md) - Configure client-side applications in Program.cs
 - [Server Setup](ServerSetup.md) - Configure server-side applications in Program.cs
 
@@ -49,6 +49,10 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 ### Repository (Experimental)
 - [Repository](Repository.md) - Data store agnostic LINQ-based data access with AOT support
 - [Repository Generation](RepositoryGeneration.md) - Code First schema generation and Database First T4 reverse engineering
+
+### For AI Agents and Upgrading
+- [Agents](Agents.md) - Architectural context for AI agents working with Zerra
+- [Upgrading from Zerra 5 to 6](UpgradeV5ToV6.md) - Step-by-step migration of a Zerra 5 solution, written for AI agents
 
 ### Additional Resources
 - [Main Project README](../README.md) - Project overview and packages

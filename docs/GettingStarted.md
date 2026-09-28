@@ -92,7 +92,7 @@ public class UserCreatedEvent : IEvent
     public string Email { get; set; }
 }
 
-public interface IUserEventHandler : IEventHandler<UserCreatedEvent>
+public interface IEmailEventHandler : IEventHandler<UserCreatedEvent>
 {
 }
 ```
@@ -131,7 +131,7 @@ public class UserCommandHandler : BaseHandler, IUserCommandHandler
         => Context.GetService<IUserRepository>().UpdateAsync(command.Id, command.Email, cancellationToken);
 }
 
-public class UserEventHandler : BaseHandler, IUserEventHandler
+public class EmailEventHandler : BaseHandler, IEmailEventHandler
 {
     public async Task Handle(UserCreatedEvent @event)
     {
@@ -167,7 +167,7 @@ var bus = Bus.New("UserService", log, busLog, busServices);
 // Local handlers
 bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
 bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
-bus.AddHandler<IUserEventHandler>(new UserEventHandler());
+bus.AddHandler<IEmailEventHandler>(new EmailEventHandler());
 
 // Expose them over TCP, serialized in binary and encrypted with a shared key
 var serializer = new ZerraByteSerializer();
@@ -227,13 +227,13 @@ bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
 var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
 bus.AddQueryServer<IUserQueryHandler>(tcpServer);
 bus.AddCommandConsumer<IUserCommandHandler>(tcpServer);
-bus.AddEventConsumer<IUserEventHandler>(tcpServer, EventConsumerMode.PerService);
+bus.AddEventConsumer<IEmailEventHandler>(tcpServer, EventConsumerMode.PerService);
 
 // Client
 var tcpClient = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
 bus.AddQueryClient<IUserQueryHandler>(tcpClient);
 bus.AddCommandProducer<IUserCommandHandler>(tcpClient);
-bus.AddEventProducer<IUserEventHandler>(tcpClient);
+bus.AddEventProducer<IEmailEventHandler>(tcpClient);
 ```
 
 ### HTTP
@@ -266,12 +266,12 @@ Commands and events can travel through a broker. Queries are request-response an
 // Server (Kafka shown; RabbitMQ and Azure Service Bus follow the same pattern)
 var kafkaConsumer = new KafkaConsumer("localhost:9092", serializer, encryptor, log, environment: "dev", userName: null, password: null);
 bus.AddCommandConsumer<IUserCommandHandler>(kafkaConsumer);
-bus.AddEventConsumer<IUserEventHandler>(kafkaConsumer, EventConsumerMode.PerService);
+bus.AddEventConsumer<IEmailEventHandler>(kafkaConsumer, EventConsumerMode.PerService);
 
 // Client
 var kafkaProducer = new KafkaProducer("localhost:9092", serializer, encryptor, log, environment: "dev", userName: null, password: null);
 bus.AddCommandProducer<IUserCommandHandler>(kafkaProducer);
-bus.AddEventProducer<IUserEventHandler>(kafkaProducer);
+bus.AddEventProducer<IEmailEventHandler>(kafkaProducer);
 
 // RabbitMQ:          new RabbitMQProducer(host, serializer, encryptor, log, environment)
 // Azure Service Bus: new AzureServiceBusProducer(connectionString, serializer, encryptor, log, environment)

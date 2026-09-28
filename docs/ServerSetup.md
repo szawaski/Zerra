@@ -50,7 +50,7 @@ var bus = Bus.New(
 
 // Register handlers
 bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
-bus.AddHandler<IUserQueries>(new UserQueryHandler());
+bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
 
 // Create TCP server
@@ -58,7 +58,7 @@ var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, logger);
 
 // Register consumers and servers
 bus.AddCommandConsumer<IUserCommandHandler>(server);
-bus.AddQueryServer<IUserQueries>(server);
+bus.AddQueryServer<IUserQueryHandler>(server);
 bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
 
 // Wait for shutdown signal
@@ -117,7 +117,7 @@ var bus = Bus.New(
 
 // Create and register handlers
 bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
-bus.AddHandler<IUserQueries>(new UserQueryHandler());
+bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
 
 // Create network server
@@ -125,7 +125,7 @@ var server = new TcpCqrsServer(serverAddress, serializer, encryptor, logger);
 
 // Register consumers and servers
 bus.AddCommandConsumer<IUserCommandHandler>(server);
-bus.AddQueryServer<IUserQueries>(server);
+bus.AddQueryServer<IUserQueryHandler>(server);
 bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
 
 Console.WriteLine($"User Service started on {serverAddress}");
@@ -193,13 +193,13 @@ builder.Services.AddSingleton<IBusSetup>(serviceProvider =>
 
     // Register handlers
     bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
-    bus.AddHandler<IUserQueries>(new UserQueryHandler());
+    bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
     bus.AddHandler<IUserEventHandler>(new UserEventHandler());
 
     // Configure network server
     var server = new TcpCqrsServer(serverAddress, serializer, encryptor, logger);
     bus.AddCommandConsumer<IUserCommandHandler>(server);
-    bus.AddQueryServer<IUserQueries>(server);
+    bus.AddQueryServer<IUserQueryHandler>(server);
     bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
 
     return bus;
@@ -252,7 +252,7 @@ var server = new TcpCqrsServer(
 );
 
 bus.AddCommandConsumer<IUserCommandHandler>(server);
-bus.AddQueryServer<IUserQueries>(server);
+bus.AddQueryServer<IUserQueryHandler>(server);
 bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
 ```
 
@@ -271,7 +271,7 @@ var server = new HttpCqrsServer(
 );
 
 bus.AddCommandConsumer<IUserCommandHandler>(server);
-bus.AddQueryServer<IUserQueries>(server);
+bus.AddQueryServer<IUserQueryHandler>(server);
 bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
 ```
 
@@ -283,12 +283,12 @@ Support both TCP and HTTP simultaneously:
 // TCP server for high-performance clients
 var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, logger);
 bus.AddCommandConsumer<IUserCommandHandler>(tcpServer);
-bus.AddQueryServer<IUserQueries>(tcpServer);
+bus.AddQueryServer<IUserQueryHandler>(tcpServer);
 
 // HTTP server for web clients
 var httpServer = new HttpCqrsServer("localhost:8080", serializer, encryptor, null, null, logger);
 bus.AddCommandConsumer<IUserCommandHandler>(httpServer);
-bus.AddQueryServer<IUserQueries>(httpServer);
+bus.AddQueryServer<IUserQueryHandler>(httpServer);
 ```
 
 ## Message Broker Integration
@@ -482,24 +482,24 @@ Each service below typically runs in its own process (`Bus.New` also sets the pr
 // User Service
 var userBus = Bus.New("UserService", logger, busLogger, userServices);
 userBus.AddHandler<IUserCommandHandler>(userCommandHandler);
-userBus.AddHandler<IUserQueries>(userQueryHandler);
+userBus.AddHandler<IUserQueryHandler>(userQueryHandler);
 var userServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, logger);
 userBus.AddCommandConsumer<IUserCommandHandler>(userServer);
-userBus.AddQueryServer<IUserQueries>(userServer);
+userBus.AddQueryServer<IUserQueryHandler>(userServer);
 
 // Order Service
 var orderBus = Bus.New("OrderService", logger, busLogger, orderServices);
 orderBus.AddHandler<IOrderCommandHandler>(orderCommandHandler);
-orderBus.AddHandler<IOrderQueries>(orderQueryHandler);
+orderBus.AddHandler<IOrderQueryHandler>(orderQueryHandler);
 var orderServer = new TcpCqrsServer("localhost:9002", serializer, encryptor, logger);
 orderBus.AddCommandConsumer<IOrderCommandHandler>(orderServer);
-orderBus.AddQueryServer<IOrderQueries>(orderServer);
+orderBus.AddQueryServer<IOrderQueryHandler>(orderServer);
 
 // Product Service
 var productBus = Bus.New("ProductService", logger, busLogger, productServices);
-productBus.AddHandler<IProductQueries>(productQueryHandler);
+productBus.AddHandler<IProductQueryHandler>(productQueryHandler);
 var productServer = new TcpCqrsServer("localhost:9003", serializer, encryptor, logger);
-productBus.AddQueryServer<IProductQueries>(productServer);
+productBus.AddQueryServer<IProductQueryHandler>(productServer);
 ```
 
 ## See Also

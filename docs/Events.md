@@ -10,7 +10,7 @@ Events in Zerra:
 - Represent state changes that have already occurred
 - Follow publish-subscribe pattern (one-to-many)
 - Multiple handlers can respond to the same event
-- **Delivered to every replica of every subscriber** by default, so a handler must be correct when N instances all run it (see [Events Are Fanned Out to Every Replica](#events-are-fanned-out-to-every-replica)), unless the subscriber registers its consumer with [`EventConsumerMode.PerService`](#choosing-per-replica-or-per-service)
+- Delivered to every subscriber. Each subscriber chooses, when it registers its consumer, whether **every replica** gets a copy (`PerReplica`) or **one replica** handles each event (`PerService`). There is no default. See [Events Are Fanned Out to Every Replica](#events-are-fanned-out-to-every-replica)
 - Dispatched asynchronously to local or remote handlers
 - Support distributed event-driven architecture
 - Used for eventual consistency and reactive workflows
@@ -297,55 +297,47 @@ public interface IEmailEventHandler :
 
 ### Handler Implementation
 
-Handlers inherit from `BaseHandler` to access bus context. Unlike command handlers, `IEventHandler<T>.Handle` takes only the event (`Task Handle(T @event)`) with no `CancellationToken`:
+Handlers inherit from `BaseHandler` to access bus context. Unlike command handlers, `IEventHandler<T>.Handle` takes only the event (`Task Handle(T @event)`) with no `CancellationToken`.
+
+A service splits its event handlers by how many replicas should do the work, since the mode is chosen per registered interface. `UserEventHandler` keeps each replica's own cache current, so every replica needs the event:
 
 ```csharp
 public class UserEventHandler : BaseHandler, IUserEventHandler
 {
-    public async Task Handle(UserCreatedEvent @event)
+    public Task Handle(UserCreatedEvent @event)
     {
         Log?.Info($"User created event received: {@event.UserId}");
-
-        // Send welcome email
-        var emailService = Context.GetService<IEmailService>();
-        await emailService.SendWelcomeEmailAsync(@event.Email);
-
-        // Update analytics
-        var analytics = Context.GetService<IAnalyticsService>();
-        await analytics.TrackUserCreatedAsync(@event.UserId, @event.CreatedAt);
+        return Task.CompletedTask;
     }
 
-    public async Task Handle(UserUpdatedEvent @event)
+    public Task Handle(UserUpdatedEvent @event)
     {
-        Log?.Info($"User updated event received: {@event.UserId}");
-
-        // Invalidate cache
-        var cache = Context.GetService<ICacheService>();
-        await cache.RemoveAsync($"user:{@event.UserId}");
-
-        // Update search index
-        var searchService = Context.GetService<ISearchService>();
-        await searchService.UpdateUserIndexAsync(@event.UserId);
+        // this replica's in-memory cache
+        Context.GetService<UserCache>().Remove(@event.UserId);
+        return Task.CompletedTask;
     }
 
-    public async Task Handle(UserDeletedEvent @event)
+    public Task Handle(UserDeletedEvent @event)
     {
-        Log?.Info($"User deleted event received: {@event.UserId}");
-
-        // Remove from cache
-        var cache = Context.GetService<ICacheService>();
-        await cache.RemoveAsync($"user:{@event.UserId}");
-
-        // Archive user data
-        var archiveService = Context.GetService<IArchiveService>();
-        await archiveService.ArchiveUserAsync(@event.UserId, @event.DeletedAt);
+        Context.GetService<UserCache>().Remove(@event.UserId);
+        return Task.CompletedTask;
     }
 }
+
+bus.AddHandler<IUserEventHandler>(new UserEventHandler());
+bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerReplica);
+```
+
+Sending mail must happen once, so it goes in its own handler whose replicas compete for each event:
+
+```csharp
+bus.AddHandler<IEmailEventHandler>(new EmailEventHandler());
+bus.AddEventConsumer<IEmailEventHandler>(consumer, EventConsumerMode.PerService);
 ```
 
 ### Multiple Handlers for Same Event
 
-Multiple services can handle the same event:
+Multiple services can handle the same event, and each chooses its own mode. The email and analytics handlers below both register `PerService`, so the email is sent once and the event is tracked once:
 
 ```csharp
 // Email Service Handler
@@ -396,13 +388,21 @@ public class AnalyticsEventHandler : BaseHandler, IAnalyticsEventHandler
         });
     }
 }
+
+// Email service
+bus.AddEventConsumer<IEmailEventHandler>(emailConsumer, EventConsumerMode.PerService);
+
+// Analytics service
+bus.AddEventConsumer<IAnalyticsEventHandler>(analyticsConsumer, EventConsumerMode.PerService);
 ```
 
 ### Accessing BusContext
 
-Event handlers have full access to bus context:
+Event handlers have full access to bus context. The handler below reserves inventory and dispatches a payment command, work that must happen once, so its consumer is registered `PerService`:
 
-> The handler below reserves inventory and dispatches a payment command. Shown for the context API only: registered `PerReplica`, with several replicas, it would reserve the items and charge the customer once per replica. Real work like that belongs in a command, or in a consumer registered [`PerService`](#choosing-per-replica-or-per-service). See [Events Are Fanned Out to Every Replica](#events-are-fanned-out-to-every-replica).
+```csharp
+bus.AddEventConsumer<IOrderEventHandler>(consumer, EventConsumerMode.PerService);
+```
 
 ```csharp
 public class OrderEventHandler : BaseHandler, IOrderEventHandler
@@ -493,7 +493,7 @@ public class UserCommandHandler : BaseHandler, IUserCommandHandler
 
 Events can trigger other events:
 
-> Every replica that receives the first event runs the chain, so a three-replica service reserves inventory three times and dispatches three payment commands. Chain state-changing steps with commands, not events; use an event only for the notification at the end.
+Each step below changes state, so `IOrderEventHandler` is registered `PerService`, as above. Under `PerReplica`, a three-replica service would reserve inventory three times and process three payments.
 
 ```csharp
 public class OrderEventHandler : BaseHandler, IOrderEventHandler
@@ -638,7 +638,7 @@ await bus.DispatchAsync(new UserCreatedEvent
 ### Handler Error Handling
 
 ```csharp
-public class UserEventHandler : BaseHandler, IUserEventHandler
+public class EmailEventHandler : BaseHandler, IEmailEventHandler
 {
     public async Task Handle(UserCreatedEvent @event)
     {
@@ -670,6 +670,7 @@ public class UserEventHandler : BaseHandler, IUserEventHandler
 Design handlers to be idempotent since events may be delivered multiple times. Note that idempotency handles redelivery to the *same* replica; it does not stop several replicas from doing the work concurrently, which is a separate question answered by [choosing a command](#events-are-fanned-out-to-every-replica):
 
 ```csharp
+// EmailEventHandler, registered PerService
 public async Task Handle(UserCreatedEvent @event)
 {
     var cache = Context.GetService<ICacheService>();
@@ -701,117 +702,15 @@ public async Task Handle(UserCreatedEvent @event)
 }
 ```
 
-## Event Sourcing Pattern
+## Event Sourcing
 
-Use events as the source of truth:
+To keep an aggregate's history as its source of truth, derive it from `AggregateRoot` and append `IAggregateEvent` types to its stream. Those events are its state, not bus messages, so none of the fanout rules above apply to them. See [Aggregate Events Are Not CQRS Events](#aggregate-events-are-not-cqrs-events) and `Demo/Store/Store.Carts.Service/Aggregates/CartAggregate.cs`.
 
-```csharp
-// Event definitions
-public class AccountCreatedEvent : IEvent
-{
-    public required Guid AccountId { get; set; }
-    public required string AccountNumber { get; set; }
-    public required decimal InitialBalance { get; set; }
-    public required DateTime CreatedAt { get; set; }
-}
-
-public class MoneyDepositedEvent : IEvent
-{
-    public required Guid AccountId { get; set; }
-    public required decimal Amount { get; set; }
-    public required DateTime DepositedAt { get; set; }
-}
-
-public class MoneyWithdrawnEvent : IEvent
-{
-    public required Guid AccountId { get; set; }
-    public required decimal Amount { get; set; }
-    public required DateTime WithdrawnAt { get; set; }
-}
-
-// Event store handler
-public class AccountEventStoreHandler : BaseHandler,
-    IEventHandler<AccountCreatedEvent>,
-    IEventHandler<MoneyDepositedEvent>,
-    IEventHandler<MoneyWithdrawnEvent>
-{
-    public async Task Handle(AccountCreatedEvent @event)
-    {
-        var eventStore = Context.GetService<IEventStore>();
-        await eventStore.AppendEventAsync(@event.AccountId, @event);
-    }
-
-    public async Task Handle(MoneyDepositedEvent @event)
-    {
-        var eventStore = Context.GetService<IEventStore>();
-        await eventStore.AppendEventAsync(@event.AccountId, @event);
-    }
-
-    public async Task Handle(MoneyWithdrawnEvent @event)
-    {
-        var eventStore = Context.GetService<IEventStore>();
-        await eventStore.AppendEventAsync(@event.AccountId, @event);
-    }
-}
-
-// Projection handler
-public class AccountProjectionHandler : BaseHandler,
-    IEventHandler<AccountCreatedEvent>,
-    IEventHandler<MoneyDepositedEvent>,
-    IEventHandler<MoneyWithdrawnEvent>
-{
-    public async Task Handle(AccountCreatedEvent @event)
-    {
-        var repository = Context.GetService<IAccountRepository>();
-
-        var account = new Account
-        {
-            Id = @event.AccountId,
-            AccountNumber = @event.AccountNumber,
-            Balance = @event.InitialBalance,
-            CreatedAt = @event.CreatedAt
-        };
-
-        await repository.CreateAsync(account);
-    }
-
-    public async Task Handle(MoneyDepositedEvent @event)
-    {
-        var repository = Context.GetService<IAccountRepository>();
-        var account = await repository.GetByIdAsync(@event.AccountId);
-
-        account.Balance += @event.Amount;
-        await repository.UpdateAsync(account);
-    }
-
-    public async Task Handle(MoneyWithdrawnEvent @event)
-    {
-        var repository = Context.GetService<IAccountRepository>();
-        var account = await repository.GetByIdAsync(@event.AccountId);
-
-        account.Balance -= @event.Amount;
-        await repository.UpdateAsync(account);
-    }
-}
-```
+When other services need to know about a change, the command handler that appended the aggregate event also dispatches a CQRS event or command.
 
 ## Best Practices
 
-### 1. Name Events in Past Tense
-
-```csharp
-// ✅ Good - past tense
-public class UserCreatedEvent : IEvent
-public class OrderPlacedEvent : IEvent
-public class PaymentProcessedEvent : IEvent
-
-// ❌ Poor - present/imperative tense
-public class CreateUserEvent : IEvent
-public class PlaceOrderEvent : IEvent
-public class ProcessPaymentEvent : IEvent
-```
-
-### 2. Make Events Immutable
+### 1. Make Events Immutable
 
 ```csharp
 // ✅ Good - required properties, init-only
@@ -831,7 +730,7 @@ public class UserCreatedEvent : IEvent
 }
 ```
 
-### 3. Include All Relevant Data
+### 2. Include All Relevant Data
 
 ```csharp
 // ✅ Good - includes context
@@ -851,7 +750,7 @@ public class OrderPlacedEvent : IEvent
 }
 ```
 
-### 4. Design Idempotent Handlers
+### 3. Design Idempotent Handlers
 
 ```csharp
 // ✅ Good - idempotent
@@ -869,10 +768,10 @@ public async Task Handle(UserCreatedEvent @event)
 }
 ```
 
-### 5. Handle Errors Gracefully
+### 4. Handle Errors Gracefully
 
 ```csharp
-// ✅ Good - handles errors, continues processing
+// ✅ Good - handles errors, continues processing (a PerService handler, since it sends mail)
 public async Task Handle(UserCreatedEvent @event)
 {
     try
@@ -893,43 +792,6 @@ public async Task Handle(UserCreatedEvent @event)
     {
         Log?.Error("Failed to update analytics", ex);
         // Continue
-    }
-}
-```
-
-### 6. Keep Handlers Focused
-
-```csharp
-// ✅ Good - single responsibility
-public class EmailEventHandler : BaseHandler, IEventHandler<UserCreatedEvent>
-{
-    public async Task Handle(UserCreatedEvent @event)
-    {
-        var emailService = Context.GetService<IEmailService>();
-        await emailService.SendWelcomeEmailAsync(@event.Email);
-    }
-}
-
-public class AnalyticsEventHandler : BaseHandler, IEventHandler<UserCreatedEvent>
-{
-    public async Task Handle(UserCreatedEvent @event)
-    {
-        var analytics = Context.GetService<IAnalyticsService>();
-        await analytics.TrackUserCreatedAsync(@event.UserId);
-    }
-}
-
-// ❌ Poor - doing too much
-public class UserEventHandler : BaseHandler, IEventHandler<UserCreatedEvent>
-{
-    public async Task Handle(UserCreatedEvent @event)
-    {
-        // Sending email
-        // Updating analytics
-        // Updating cache
-        // Updating search index
-        // Dispatching other events
-        // Too many responsibilities!
     }
 }
 ```

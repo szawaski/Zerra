@@ -208,7 +208,7 @@ void EndEvent(
 ```csharp
 // Called when query call starts
 void BeginCall(
-    Type interfaceType,     // Query interface type (e.g., IUserQueries)
+    Type interfaceType,     // Query interface type (e.g., IUserQueryHandler)
     string methodName,      // Method being called (e.g., "GetUserById")
     object[] arguments,     // Method arguments
     string service,         // Current service name

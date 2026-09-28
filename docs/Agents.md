@@ -120,7 +120,7 @@ var builder = WebApplication.CreateBuilder(args);
 var settings = new KestrelCqrsServerLinkedSettings(route: null, authorizer: null, contentType: ContentType.Bytes);
 bus.AddQueryServer<IShippingQueryHandler>(new KestrelCqrsServerQueryServer(settings));
 bus.AddCommandConsumer<IShippingCommandHandler>(new KestrelCqrsServerCommandConsumer(settings));
-bus.AddEventConsumer<IOrderEventHandler>(new KestrelCqrsServerEventConsumer(settings), EventConsumerMode.PerReplica);
+bus.AddEventConsumer<IOrderEventHandler>(new KestrelCqrsServerEventConsumer(settings), EventConsumerMode.PerService);
 
 var app = builder.Build();
 app.Lifetime.ApplicationStopped.Register(bus.StopServices); //after Kestrel has finished the requests in progress, which may still use the bus
@@ -242,7 +242,7 @@ A subscriber can turn the fanout off for itself with `bus.AddEventConsumer<T>(co
 - Represent read operations that return data
 - Synchronous request-response pattern
 - Implemented via interface methods (not explicit types)
-- Defined in handler interfaces like `IUserQueries : IQueryHandler`
+- Defined in handler interfaces like `IUserQueryHandler : IQueryHandler`
 
 ## The Bus
 

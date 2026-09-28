@@ -47,11 +47,11 @@ var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, logger);
 bus.AddCommandProducer<IUserCommandHandler>(client);
 
 // Register query client
-bus.AddQueryClient<IUserQueries>(client);
+bus.AddQueryClient<IUserQueryHandler>(client);
 
 // Now dispatch commands and call queries
 await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com" });
-var users = await bus.Call<IUserQueries>().GetActiveUsers(cancellationToken);
+var users = await bus.Call<IUserQueryHandler>().GetActiveUsers(cancellationToken);
 ```
 
 ## Complete Program.cs Example
@@ -97,7 +97,7 @@ var bus = Bus.New(
 // Create and configure network client
 var client = new TcpCqrsClient(serverAddress, serializer, encryptor, logger);
 bus.AddCommandProducer<IUserCommandHandler>(client);
-bus.AddQueryClient<IUserQueries>(client);
+bus.AddQueryClient<IUserQueryHandler>(client);
 
 // Application logic
 try
@@ -112,7 +112,7 @@ try
     Console.WriteLine("User created successfully");
 
     // Call query
-    var users = await bus.Call<IUserQueries>().GetActiveUsers(CancellationToken.None);
+    var users = await bus.Call<IUserQueryHandler>().GetActiveUsers(CancellationToken.None);
     Console.WriteLine($"Found {users.Count} active users");
 
     Console.WriteLine("Press any key to exit...");
@@ -178,7 +178,7 @@ builder.Services.AddSingleton<IBus>(serviceProvider =>
     // Configure network client
     var client = new TcpCqrsClient(serverAddress, serializer, encryptor, logger);
     bus.AddCommandProducer<IUserCommandHandler>(client);
-    bus.AddQueryClient<IUserQueries>(client);
+    bus.AddQueryClient<IUserQueryHandler>(client);
 
     return bus;
 });
@@ -232,14 +232,14 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetUsers(CancellationToken cancellationToken)
     {
-        var users = await bus.Call<IUserQueries>().GetActiveUsers(cancellationToken);
+        var users = await bus.Call<IUserQueryHandler>().GetActiveUsers(cancellationToken);
         return Ok(users);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetUser(int id, CancellationToken cancellationToken)
     {
-        var user = await bus.Call<IUserQueries>().GetUserById(id, cancellationToken);
+        var user = await bus.Call<IUserQueryHandler>().GetUserById(id, cancellationToken);
         if (user == null)
             return NotFound();
 
@@ -263,7 +263,7 @@ var client = new TcpCqrsClient(
 );
 
 bus.AddCommandProducer<IUserCommandHandler>(client);
-bus.AddQueryClient<IUserQueries>(client);
+bus.AddQueryClient<IUserQueryHandler>(client);
 ```
 
 ### HTTP CQRS Client
@@ -280,7 +280,7 @@ var client = new HttpCqrsClient(
 );
 
 bus.AddCommandProducer<IUserCommandHandler>(client);
-bus.AddQueryClient<IUserQueries>(client);
+bus.AddQueryClient<IUserQueryHandler>(client);
 ```
 
 ### Multiple Servers
@@ -291,16 +291,16 @@ Connect to multiple backend services:
 // User service
 var userClient = new TcpCqrsClient("localhost:9001", serializer, encryptor, logger);
 bus.AddCommandProducer<IUserCommandHandler>(userClient);
-bus.AddQueryClient<IUserQueries>(userClient);
+bus.AddQueryClient<IUserQueryHandler>(userClient);
 
 // Order service
 var orderClient = new TcpCqrsClient("localhost:9002", serializer, encryptor, logger);
 bus.AddCommandProducer<IOrderCommandHandler>(orderClient);
-bus.AddQueryClient<IOrderQueries>(orderClient);
+bus.AddQueryClient<IOrderQueryHandler>(orderClient);
 
 // Product service
 var productClient = new HttpCqrsClient("http://productservice:8080", serializer, encryptor, null, logger);
-bus.AddQueryClient<IProductQueries>(productClient);
+bus.AddQueryClient<IProductQueryHandler>(productClient);
 ```
 
 ## Configuration Options
@@ -363,21 +363,21 @@ var bus = Bus.New("HybridApp", logger, busLogger, busServices);
 
 // Register local handlers
 bus.AddHandler<ILocalCommandHandler>(new LocalCommandHandler());
-bus.AddHandler<ILocalQueries>(new LocalQueryHandler());
+bus.AddHandler<ILocalQueryHandler>(new LocalQueryHandler());
 
 // Register remote producers/clients
 var remoteClient = new TcpCqrsClient("remoteserver:9001", serializer, encryptor, logger);
 bus.AddCommandProducer<IRemoteCommandHandler>(remoteClient);
-bus.AddQueryClient<IRemoteQueries>(remoteClient);
+bus.AddQueryClient<IRemoteQueryHandler>(remoteClient);
 
 // Now you can:
 // - Handle local commands/queries with local handlers
 await bus.DispatchAwaitAsync(new LocalCommand());
-var localData = await bus.Call<ILocalQueries>().GetLocalData();
+var localData = await bus.Call<ILocalQueryHandler>().GetLocalData();
 
 // - Dispatch remote commands/queries to remote server
 await bus.DispatchAwaitAsync(new RemoteCommand());
-var remoteData = await bus.Call<IRemoteQueries>().GetRemoteData();
+var remoteData = await bus.Call<IRemoteQueryHandler>().GetRemoteData();
 ```
 
 ## Timeout Configuration
@@ -423,7 +423,7 @@ catch (Exception ex)
 ```csharp
 try
 {
-    var users = await bus.Call<IUserQueries>().GetActiveUsers(cancellationToken);
+    var users = await bus.Call<IUserQueryHandler>().GetActiveUsers(cancellationToken);
 }
 catch (TimeoutException ex)
 {

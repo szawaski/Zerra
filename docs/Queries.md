@@ -24,7 +24,7 @@ Queries in Zerra:
 using Zerra.CQRS;
 using MyApp.Models;
 
-public interface IUserQueries : IQueryHandler
+public interface IUserQueryHandler : IQueryHandler
 {
     Task<User> GetUserById(int id, CancellationToken cancellationToken);
     Task<List<User>> GetActiveUsers(CancellationToken cancellationToken);
@@ -49,7 +49,7 @@ Handlers inherit from `BaseHandler` to access the bus context:
 using Zerra.CQRS;
 using MyApp.Models;
 
-public class UserQueryHandler : BaseHandler, IUserQueries
+public class UserQueryHandler : BaseHandler, IUserQueryHandler
 {
     public async Task<User> GetUserById(int id, CancellationToken cancellationToken)
     {
@@ -87,7 +87,7 @@ public class UserQueryHandler : BaseHandler, IUserQueries
 The `BaseHandler` base class provides access to:
 
 ```csharp
-public class UserQueryHandler : BaseHandler, IUserQueries
+public class UserQueryHandler : BaseHandler, IUserQueryHandler
 {
     public async Task<User> GetUserById(int id, CancellationToken cancellationToken)
     {
@@ -123,11 +123,11 @@ When handlers are registered locally, queries execute in-process:
 
 ```csharp
 // Register handler locally
-bus.AddHandler<IUserQueries>(new UserQueryHandler());
+bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
 
 // Call query - executes locally
-var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
-var users = await bus.Call<IUserQueries>().GetActiveUsers(cancellationToken);
+var user = await bus.Call<IUserQueryHandler>().GetUserById(123, cancellationToken);
+var users = await bus.Call<IUserQueryHandler>().GetActiveUsers(cancellationToken);
 ```
 
 ### Remote Query Calls
@@ -136,16 +136,16 @@ When a query client is registered, queries are sent to a remote server:
 
 ```csharp
 // Server side - register handler and server
-bus.AddHandler<IUserQueries>(new UserQueryHandler());
+bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, logger);
-bus.AddQueryServer<IUserQueries>(server);
+bus.AddQueryServer<IUserQueryHandler>(server);
 
 // Client side - register client
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, logger);
-bus.AddQueryClient<IUserQueries>(client);
+bus.AddQueryClient<IUserQueryHandler>(client);
 
 // Call query - executes remotely
-var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
+var user = await bus.Call<IUserQueryHandler>().GetUserById(123, cancellationToken);
 ```
 
 ### Call Syntax
@@ -172,7 +172,7 @@ using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 try
 {
     // Token propagates to remote server
-    var users = await bus.Call<IUserQueries>().GetActiveUsers(cts.Token);
+    var users = await bus.Call<IUserQueryHandler>().GetActiveUsers(cts.Token);
 }
 catch (OperationCanceledException)
 {
@@ -200,7 +200,7 @@ Queries can return `Stream` for large payloads or continuous data:
 ### Define Streaming Query
 
 ```csharp
-public interface IFileQueries : IQueryHandler
+public interface IFileQueryHandler : IQueryHandler
 {
     Task<Stream> DownloadFile(string filePath, CancellationToken cancellationToken);
     Task<Stream> GetLogFile(DateTime date, CancellationToken cancellationToken);
@@ -210,7 +210,7 @@ public interface IFileQueries : IQueryHandler
 ### Implement Streaming Handler
 
 ```csharp
-public class FileQueryHandler : BaseHandler, IFileQueries
+public class FileQueryHandler : BaseHandler, IFileQueryHandler
 {
     public Task<Stream> DownloadFile(string filePath, CancellationToken cancellationToken)
     {
@@ -243,7 +243,7 @@ public class FileQueryHandler : BaseHandler, IFileQueries
 
 ```csharp
 // Client side - receive stream without buffering entire content
-using var stream = await bus.Call<IFileQueries>().DownloadFile("data/large-file.bin", cancellationToken);
+using var stream = await bus.Call<IFileQueryHandler>().DownloadFile("data/large-file.bin", cancellationToken);
 
 // Save to local file - streams directly without loading all into memory
 using var outputFile = File.Create("downloaded-file.bin");
@@ -252,7 +252,7 @@ await stream.CopyToAsync(outputFile, cancellationToken);
 Console.WriteLine("File downloaded successfully");
 
 // Or process log file line-by-line
-using var logStream = await bus.Call<IFileQueries>().GetLogFile(DateTime.Today, cancellationToken);
+using var logStream = await bus.Call<IFileQueryHandler>().GetLogFile(DateTime.Today, cancellationToken);
 using var reader = new StreamReader(logStream);
 
 // Read line-by-line without loading entire file into memory
@@ -269,12 +269,12 @@ while (!reader.EndOfStream)
 A query can also take a `Stream` argument, at most one. Over TCP, HTTP, Kestrel, and the API gateway the other arguments are sent first, then the stream's bytes follow in the same request body until the caller's stream ends, so neither side holds the whole upload in memory.
 
 ```csharp
-public interface IFileQueries : IQueryHandler
+public interface IFileQueryHandler : IQueryHandler
 {
     Task<ImportPreviewModel> PreviewImport(string fileName, Stream content, CancellationToken cancellationToken);
 }
 
-public class FileQueryHandler : BaseHandler, IFileQueries
+public class FileQueryHandler : BaseHandler, IFileQueryHandler
 {
     public async Task<ImportPreviewModel> PreviewImport(string fileName, Stream content, CancellationToken cancellationToken)
     {
@@ -290,7 +290,7 @@ public class FileQueryHandler : BaseHandler, IFileQueries
 
 //Client side, the caller owns and disposes its stream
 await using var file = File.OpenRead("import.csv");
-var preview = await bus.Call<IFileQueries>().PreviewImport("import.csv", file, cancellationToken);
+var preview = await bus.Call<IFileQueryHandler>().PreviewImport("import.csv", file, cancellationToken);
 ```
 
 - The stream is only valid until the handler's task completes. Whatever the handler doesn't read is read and discarded by the server so the connection can be reused, and disposing it (as `StreamReader` does) is fine.
@@ -310,11 +310,11 @@ public Task<Stream> DownloadFile(string filePath, CancellationToken cancellation
 }
 
 // ✅ Good - Dispose stream in caller
-using var stream = await bus.Call<IFileQueries>().DownloadFile(path, cancellationToken);
+using var stream = await bus.Call<IFileQueryHandler>().DownloadFile(path, cancellationToken);
 await stream.CopyToAsync(outputFile, cancellationToken);
 
 // ✅ Good - Process large streams incrementally
-using var stream = await bus.Call<IFileQueries>().GetLogFile(date, cancellationToken);
+using var stream = await bus.Call<IFileQueryHandler>().GetLogFile(date, cancellationToken);
 using var reader = new StreamReader(stream);
 while (!reader.EndOfStream)
 {
@@ -323,7 +323,7 @@ while (!reader.EndOfStream)
 }
 
 // ❌ Bad - Loading entire stream into memory
-using var stream = await bus.Call<IFileQueries>().DownloadFile(path, cancellationToken);
+using var stream = await bus.Call<IFileQueryHandler>().DownloadFile(path, cancellationToken);
 var allBytes = new byte[stream.Length]; // Allocates entire file in memory!
 await stream.ReadAsync(allBytes, cancellationToken);
 
@@ -344,7 +344,7 @@ While Zerra supports synchronous queries, they are not recommended:
 ### Synchronous Definition
 
 ```csharp
-public interface IUserQueries : IQueryHandler
+public interface IUserQueryHandler : IQueryHandler
 {
     // ⚠️ Not recommended - blocks thread
     void GetVoid();
@@ -361,10 +361,10 @@ public interface IUserQueries : IQueryHandler
 
 ```csharp
 // ❌ Synchronous - blocks calling thread during network call
-var count = bus.Call<IUserQueries>().GetCount();
+var count = bus.Call<IUserQueryHandler>().GetCount();
 
 // ✅ Asynchronous - doesn't block, better scalability
-var count = await bus.Call<IUserQueries>().GetCountAsync(cancellationToken);
+var count = await bus.Call<IUserQueryHandler>().GetCountAsync(cancellationToken);
 ```
 
 ## Complex Return Types
@@ -372,7 +372,7 @@ var count = await bus.Call<IUserQueries>().GetCountAsync(cancellationToken);
 ### Returning Collections
 
 ```csharp
-public interface IUserQueries : IQueryHandler
+public interface IUserQueryHandler : IQueryHandler
 {
     Task<List<User>> GetUsers(CancellationToken cancellationToken);
     Task<User[]> GetUsersArray(CancellationToken cancellationToken);
@@ -392,7 +392,7 @@ public class UserSearchResult
     public int CurrentPage { get; set; }
 }
 
-public interface IUserQueries : IQueryHandler
+public interface IUserQueryHandler : IQueryHandler
 {
     Task<UserSearchResult> SearchUsers(
         string searchTerm, 
@@ -405,7 +405,7 @@ public interface IUserQueries : IQueryHandler
 ### Returning Nullable Types
 
 ```csharp
-public interface IUserQueries : IQueryHandler
+public interface IUserQueryHandler : IQueryHandler
 {
     Task<User?> FindUserByEmail(string email, CancellationToken cancellationToken);
     Task<int?> GetOptionalValue(int id, CancellationToken cancellationToken);
@@ -419,7 +419,7 @@ public async Task<User?> FindUserByEmail(string email, CancellationToken cancell
 }
 
 // Calling
-var user = await bus.Call<IUserQueries>().FindUserByEmail("test@example.com", cancellationToken);
+var user = await bus.Call<IUserQueryHandler>().FindUserByEmail("test@example.com", cancellationToken);
 if (user != null)
 {
     Console.WriteLine($"Found user: {user.Name}");
@@ -431,7 +431,7 @@ if (user != null)
 ### Server-Side Error Handling
 
 ```csharp
-public class UserQueryHandler : BaseHandler, IUserQueries
+public class UserQueryHandler : BaseHandler, IUserQueryHandler
 {
     public async Task<User> GetUserById(int id, CancellationToken cancellationToken)
     {
@@ -464,12 +464,12 @@ When a query is handled by a remote service, any exception thrown in the handler
 ```csharp
 try
 {
-    var user = await bus.Call<IUserQueries>().GetUserById(123, cancellationToken);
+    var user = await bus.Call<IUserQueryHandler>().GetUserById(123, cancellationToken);
 }
 catch (RemoteServiceException ex)
 {
     // Server handler threw an exception
-    Console.WriteLine($"Source:     {ex.Source}");    // e.g. "IUserQueries.GetUserById"
+    Console.WriteLine($"Source:     {ex.Source}");    // e.g. "IUserQueryHandler.GetUserById"
     Console.WriteLine($"Error type: {ex.ErrorType}"); // e.g. "KeyNotFoundException"
     Console.WriteLine($"Message:    {ex.Message}");
     Console.WriteLine($"Stack trace:\n{ex.StackTrace}");
@@ -496,7 +496,7 @@ catch (Exception ex)
 ### Caching Pattern
 
 ```csharp
-public class UserQueryHandler : BaseHandler, IUserQueries
+public class UserQueryHandler : BaseHandler, IUserQueryHandler
 {
     public async Task<User> GetUserById(int id, CancellationToken cancellationToken)
     {
@@ -529,7 +529,7 @@ public class UserQueryHandler : BaseHandler, IUserQueries
 ### Pagination
 
 ```csharp
-public interface IUserQueries : IQueryHandler
+public interface IUserQueryHandler : IQueryHandler
 {
     Task<PagedResult<User>> GetUsersPage(
         int pageNumber, 

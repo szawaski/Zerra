@@ -78,7 +78,7 @@ var producer = new RabbitMQProducer(
 bus.AddCommandProducer<IUserCommandHandler>(producer);
 
 // Register event producer (optional)
-bus.AddEventProducer<IUserEvents>(producer);
+bus.AddEventProducer<IUserEventHandler>(producer);
 
 // Now you can dispatch commands and events
 await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com" });
@@ -129,7 +129,7 @@ var producer = new RabbitMQProducer(
 );
 
 bus.AddCommandProducer<IUserCommandHandler>(producer);
-bus.AddEventProducer<IUserEvents>(producer);
+bus.AddEventProducer<IUserEventHandler>(producer);
 
 try
 {

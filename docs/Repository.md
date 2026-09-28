@@ -48,7 +48,7 @@ Benchmarks were run against Microsoft SQL Server using [BenchmarkDotNet](https:/
 
 The one-to-many include result is particularly notable: EF performs a separate query per parent row (N+1 style) unless carefully tuned, while Zerra batches the related rows in a single additional query, dramatically reducing both round-trips and allocations at scale.
 
-> Benchmarks are in [`EFBenchmark.cs`](../Tests/Zerra.Repository.Benchmark/Benchmarks/EFBenchmark.cs).
+> Benchmarks are in [`EFBenchmark.cs`](../Benchmarks/Zerra.Repository.Benchmark/Benchmarks/EFBenchmark.cs).
 
 ## NuGet Packages
 
