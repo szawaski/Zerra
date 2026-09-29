@@ -189,7 +189,7 @@ namespace Zerra.Repository
                     }
                 }
                 if (methodDetail is null)
-                    throw new Exception($"No aggregate event methods found in {aggregateType.Name} to accept {eventType.Name}");
+                    throw new Exception($"No aggregate event method found in {aggregateType.Name} to accept {eventType.Name}");
                 return methodDetail;
             });
         }

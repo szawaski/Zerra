@@ -162,7 +162,7 @@ namespace Zerra.SourceGeneration
                 }
                 else
                 {
-                    _ = sb.Append("bus._CallMethod<").Append(method.ReturnsVoid ? "object" : method.ReturnType.ToString()).Append(">(");
+                    _ = sb.Append("bus._CallMethod<").Append(method.ReturnsVoid ? "object" : Helper.GetFullNameWithNullability(method.ReturnType)).Append(">(");
                 }
 
                 _ = sb.Append(parentTypeOf).Append(", \"").Append(method.Name).Append("\", [");
