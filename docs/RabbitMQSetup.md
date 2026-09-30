@@ -19,6 +19,7 @@ var producer = new RabbitMQProducer(
     host: "localhost",        // host name or AMQP URI, see below
     serializer: serializer,
     encryptor: encryptor,     // optional
+    compressor: compressor,   // optional
     log: log,                 // optional
     environment: "dev");      // optional exchange prefix
 
@@ -33,7 +34,7 @@ One producer serves any number of interfaces, and RabbitMQ delivers each event t
 The handling side registers its handlers and a `RabbitMQConsumer`, which takes the same constructor arguments:
 
 ```csharp
-var consumer = new RabbitMQConsumer("localhost", serializer, encryptor, log, environment: "dev");
+var consumer = new RabbitMQConsumer("localhost", serializer, encryptor, null, log, environment: "dev");
 
 bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
@@ -66,8 +67,8 @@ The mode is each subscriber's own choice and changes nothing for the publisher o
 - **AMQP URI**: sets the credentials, port, virtual host, and TLS in one value. Use `amqps://` for TLS (default port `5671`), and URL-encode special characters in the user name or password, such as `@` as `%40`.
 
 ```csharp
-var producer = new RabbitMQProducer("amqp://myUser:myPassword@rabbit.example.com:5672/myVhost", serializer, encryptor, log, "prod");
-var consumer = new RabbitMQConsumer("amqps://myUser:myPassword@rabbit.example.com/myVhost", serializer, encryptor, log, "prod");
+var producer = new RabbitMQProducer("amqp://myUser:myPassword@rabbit.example.com:5672/myVhost", serializer, encryptor, null, log, "prod");
+var consumer = new RabbitMQConsumer("amqps://myUser:myPassword@rabbit.example.com/myVhost", serializer, encryptor, null, log, "prod");
 ```
 
 The URI contains secrets, so load it from configuration or a secret store. Zerra never logs it.
@@ -78,9 +79,9 @@ The URI contains secrets, so load it from configuration or a secret store. Zerra
 
 ```csharp
 if (RabbitMQConnection.Test("localhost", log: log))
-    bus.AddEventProducer<IOrderEventHandler>(new RabbitMQProducer("localhost", serializer, encryptor, log, null));
+    bus.AddEventProducer<IOrderEventHandler>(new RabbitMQProducer("localhost", serializer, encryptor, null, log, null));
 else
-    bus.AddEventProducer<IOrderEventHandler>(new TcpCqrsClient("localhost:9102", serializer, encryptor, log));
+    bus.AddEventProducer<IOrderEventHandler>(new TcpCqrsClient("localhost:9102", serializer, encryptor, null, log));
 ```
 
 `Demo/Store` does this for order events, in `Store.Orders.Service`, `Store.Inventory.Service`, and `Store.Shipping.Service`.

@@ -29,8 +29,8 @@ namespace Zerra.CQRS.Network
         private byte[]? segmentLengthBufferSource;
         private int segmentLengthBufferLength;
         private int segmentLengthBufferPosition;
-
-        //chunked writes are buffered so a chunk's length, data, and the ending go out in one write instead of many small packets
+        private static readonly byte[] finishReadBuffer = new byte[1];
+        private const int discardReadBufferLength = 1024 * 16;
         private const int writeBufferLength = 1024 * 16;
         private const int writeChunkHeaderLength = 10; //8 hex digits and a line break, leading zeros are allowed
         private static readonly StandardFormat writeChunkLengthFormat = new('X', 8);
@@ -440,6 +440,73 @@ namespace Zerra.CQRS.Network
 
                 position += totalBytesRead;
                 return totalBytesRead;
+            }
+        }
+
+        //reads and checks the body's ending so the connection is ready for what follows, data still before it means the body wasn't fully read
+        public void FinishRead()
+        {
+            if (writeMode)
+                throw new InvalidOperationException("Stream is in write mode");
+            if (contentLength.HasValue ? position == contentLength.Value : segmentLength == 0)
+                return;
+            Span<byte> buffer = stackalloc byte[1];
+            if (InternalRead(buffer) > 0)
+                throw new CqrsNetworkException("Body has unread data");
+        }
+
+        public async ValueTask FinishReadAsync(CancellationToken cancellationToken)
+        {
+            if (writeMode)
+                throw new InvalidOperationException("Stream is in write mode");
+            if (contentLength.HasValue ? position == contentLength.Value : segmentLength == 0)
+                return;
+            if (await InternalReadAsync(finishReadBuffer, cancellationToken) > 0)
+                throw new CqrsNetworkException("Body has unread data");
+        }
+
+        //reads through the body's ending skipping any data before it, such as an upload the handler stopped reading
+        public void DiscardRead()
+        {
+            if (writeMode)
+                throw new InvalidOperationException("Stream is in write mode");
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(discardReadBufferLength);
+            var maxSize = 0;
+            try
+            {
+                int read;
+                while ((read = InternalRead(bufferOwner)) > 0)
+                {
+                    if (read > maxSize)
+                        maxSize = read;
+                }
+            }
+            finally
+            {
+                bufferOwner.AsSpan(0, maxSize).Clear();
+                ArrayPoolHelper<byte>.Return(bufferOwner);
+            }
+        }
+
+        public async ValueTask DiscardReadAsync(CancellationToken cancellationToken)
+        {
+            if (writeMode)
+                throw new InvalidOperationException("Stream is in write mode");
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(discardReadBufferLength);
+            var maxSize = 0;
+            try
+            {
+                int read;
+                while ((read = await InternalReadAsync(bufferOwner, cancellationToken)) > 0)
+                {
+                    if (read > maxSize)
+                        maxSize = read;
+                }
+            }
+            finally
+            {
+                bufferOwner.AsSpan(0, maxSize).Clear();
+                ArrayPoolHelper<byte>.Return(bufferOwner);
             }
         }
 

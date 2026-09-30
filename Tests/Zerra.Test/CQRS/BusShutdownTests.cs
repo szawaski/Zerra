@@ -19,10 +19,10 @@ namespace Zerra.Test.CQRS
             var handler = new ShutdownQueryHandler();
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<IShutdownQueryHandler>(handler);
-            busServer.AddQueryServer<IShutdownQueryHandler>(new TcpCqrsServer(url, serializer, encryptor, null));
+            busServer.AddQueryServer<IShutdownQueryHandler>(new TcpCqrsServer(url, serializer, encryptor, null, null));
 
             var busClient = Bus.New("test-client", null, null, null);
-            busClient.AddQueryClient<IShutdownQueryHandler>(new TcpCqrsClient(url, serializer, encryptor, null));
+            busClient.AddQueryClient<IShutdownQueryHandler>(new TcpCqrsClient(url, serializer, encryptor, null, null));
 
             var call = busClient.Call<IShutdownQueryHandler>().Slow(500, TestContext.Current.CancellationToken);
             await handler.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
@@ -47,10 +47,10 @@ namespace Zerra.Test.CQRS
             var handler = new ShutdownQueryHandler();
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<IShutdownQueryHandler>(handler);
-            busServer.AddQueryServer<IShutdownQueryHandler>(new HttpCqrsServer(url, serializer, encryptor, null, null));
+            busServer.AddQueryServer<IShutdownQueryHandler>(new HttpCqrsServer(url, serializer, encryptor, null, null, null));
 
             var busClient = Bus.New("test-client", null, null, null);
-            busClient.AddQueryClient<IShutdownQueryHandler>(new HttpCqrsClient(url, serializer, encryptor, null, null));
+            busClient.AddQueryClient<IShutdownQueryHandler>(new HttpCqrsClient(url, serializer, encryptor, null, null, null));
 
             var call = busClient.Call<IShutdownQueryHandler>().Slow(500, TestContext.Current.CancellationToken);
             await handler.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
@@ -73,10 +73,10 @@ namespace Zerra.Test.CQRS
             var handler = new ShutdownQueryHandler();
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<IShutdownQueryHandler>(handler);
-            busServer.AddQueryServer<IShutdownQueryHandler>(new TcpCqrsServer(url, serializer, encryptor, null));
+            busServer.AddQueryServer<IShutdownQueryHandler>(new TcpCqrsServer(url, serializer, encryptor, null, null));
 
             var busClient = Bus.New("test-client", null, null, null);
-            busClient.AddQueryClient<IShutdownQueryHandler>(new TcpCqrsClient(url, serializer, encryptor, null));
+            busClient.AddQueryClient<IShutdownQueryHandler>(new TcpCqrsClient(url, serializer, encryptor, null, null));
 
             var call = busClient.Call<IShutdownQueryHandler>().Slow(500, TestContext.Current.CancellationToken);
             await handler.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
@@ -99,10 +99,10 @@ namespace Zerra.Test.CQRS
             var handler = new ShutdownCommandHandler();
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<IShutdownCommandHandler>(handler);
-            busServer.AddCommandConsumer<IShutdownCommandHandler>(new TcpCqrsServer(url, serializer, encryptor, null));
+            busServer.AddCommandConsumer<IShutdownCommandHandler>(new TcpCqrsServer(url, serializer, encryptor, null, null));
 
             var busClient = Bus.New("test-client", null, null, null);
-            busClient.AddCommandProducer<IShutdownCommandHandler>(new TcpCqrsClient(url, serializer, encryptor, null));
+            busClient.AddCommandProducer<IShutdownCommandHandler>(new TcpCqrsClient(url, serializer, encryptor, null, null));
 
             //the server acknowledges before the handler runs, so the sender has already moved on
             await busClient.DispatchAsync(new ShutdownCommand() { Delay = 500 });
@@ -126,10 +126,10 @@ namespace Zerra.Test.CQRS
             var handler = new ShutdownCommandHandler();
             var busServer = Bus.New("test-server", null, null, null, shutdownTimeout: TimeSpan.FromMilliseconds(300));
             busServer.AddHandler<IShutdownCommandHandler>(handler);
-            busServer.AddCommandConsumer<IShutdownCommandHandler>(new TcpCqrsServer(url, serializer, encryptor, null));
+            busServer.AddCommandConsumer<IShutdownCommandHandler>(new TcpCqrsServer(url, serializer, encryptor, null, null));
 
             var busClient = Bus.New("test-client", null, null, null);
-            busClient.AddCommandProducer<IShutdownCommandHandler>(new TcpCqrsClient(url, serializer, encryptor, null));
+            busClient.AddCommandProducer<IShutdownCommandHandler>(new TcpCqrsClient(url, serializer, encryptor, null, null));
 
             await busClient.DispatchAsync(new ShutdownCommand() { Delay = 3000 });
             await handler.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);

@@ -7,6 +7,7 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.IO;
 using Zerra.Logging;
@@ -26,6 +27,7 @@ namespace Zerra.Web
     {
         private readonly ISerializer serializer;
         private readonly IEncryptor? encryptor;
+        private readonly ICompressor? compressor;
         private readonly ICqrsAuthorizer? authorizer;
         private readonly Uri routeUri;
         private readonly HttpClientHandler handler;
@@ -37,13 +39,15 @@ namespace Zerra.Web
         /// <param name="endpoint">The remote Kestrel server endpoint (e.g., "http://localhost:9001").</param>
         /// <param name="serializer">The serializer for request/response serialization and deserialization.</param>
         /// <param name="encryptor">Optional encryptor/decryptor for message encryption. If null, messages are not encrypted.</param>
+        /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="authorizer">Optional authorizer for providing custom authentication headers.</param>
         /// <param name="route">Optional route path to append to the endpoint (e.g., "/cqrs").</param>
-        public KestrelCqrsClient(string endpoint, ISerializer serializer, IEncryptor? encryptor, ILogger? log, ICqrsAuthorizer? authorizer, string? route) : base(endpoint, log)
+        public KestrelCqrsClient(string endpoint, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, ICqrsAuthorizer? authorizer, string? route) : base(endpoint, log)
         {
             this.serializer = serializer;
             this.encryptor = encryptor;
+            this.compressor = compressor;
             this.authorizer = authorizer;
 
             if (route is not null)
@@ -220,26 +224,40 @@ namespace Zerra.Web
 
                 request.Content = new WriteStreamContent(async (postStream) =>
                 {
+                    Stream writeStream = postStream;
+                    CryptoFlushStream? cryptoStream = null;
+                    Stream? compressStream = null;
                     if (encryptor is not null)
+                        writeStream = cryptoStream = encryptor.Encrypt(new LeaveOpenStream(postStream), true);
+                    if (compressor is not null)
+                        writeStream = compressStream = compressor.Compress(writeStream, true);
+                    if (argumentStream is null)
                     {
-                        var cryptoStream = encryptor.Encrypt(new LeaveOpenStream(postStream), true);
-                        if (argumentStream is null)
+                        await serializer.SerializeAsync(writeStream, data, cancellationToken);
+                    }
+                    else
+                    {
+                        using (var uploadDataStream = new TcpProtocolBodyStream(writeStream, null, true, true, default, false))
                         {
-                            await serializer.SerializeAsync(cryptoStream, data, cancellationToken);
+                            await serializer.SerializeAsync(uploadDataStream, data, cancellationToken);
+                            await uploadDataStream.FlushAsync(cancellationToken);
                         }
-                        else
-                        {
-                            using (var uploadDataStream = new TcpProtocolBodyStream(cryptoStream, null, true, true, default, false))
-                            {
-                                await serializer.SerializeAsync(uploadDataStream, data, cancellationToken);
-                                await uploadDataStream.FlushAsync(cancellationToken);
-                            }
 #if NETSTANDARD2_0
-                            await argumentStream.CopyToAsync(cryptoStream, 81920, cancellationToken);
+                        await argumentStream.CopyToAsync(writeStream, 81920, cancellationToken);
 #else
-                            await argumentStream.CopyToAsync(cryptoStream, cancellationToken);
+                        await argumentStream.CopyToAsync(writeStream, cancellationToken);
 #endif
-                        }
+                    }
+                    if (compressStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        compressStream.Dispose();
+#else
+                        await compressStream.DisposeAsync();
+#endif
+                    }
+                    if (cryptoStream is not null)
+                    {
 #if NETSTANDARD2_0
                         cryptoStream.FlushFinalBlock();
 #else
@@ -250,26 +268,6 @@ namespace Zerra.Web
 #else
                         await cryptoStream.DisposeAsync();
 #endif
-                    }
-                    else
-                    {
-                        if (argumentStream is null)
-                        {
-                            await serializer.SerializeAsync(postStream, data, cancellationToken);
-                        }
-                        else
-                        {
-                            using (var uploadDataStream = new TcpProtocolBodyStream(postStream, null, true, true, default, false))
-                            {
-                                await serializer.SerializeAsync(uploadDataStream, data, cancellationToken);
-                                await uploadDataStream.FlushAsync(cancellationToken);
-                            }
-#if NETSTANDARD2_0
-                            await argumentStream.CopyToAsync(postStream, 81920, cancellationToken);
-#else
-                            await argumentStream.CopyToAsync(postStream, cancellationToken);
-#endif
-                        }
                     }
                 });
                 if (argumentStream is not null)
@@ -305,6 +303,8 @@ namespace Zerra.Web
 
                 if (encryptor is not null)
                     responseStream = encryptor.Decrypt(responseStream, false);
+                if (compressor is not null)
+                    responseStream = compressor.Decompress(responseStream, false);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -382,40 +382,32 @@ namespace Zerra.Web
 
                 request.Content = new WriteStreamContent((postStream) =>
                 {
+                    Stream writeStream = postStream;
+                    CryptoFlushStream? cryptoStream = null;
+                    Stream? compressStream = null;
                     if (encryptor is not null)
+                        writeStream = cryptoStream = encryptor.Encrypt(new LeaveOpenStream(postStream), true);
+                    if (compressor is not null)
+                        writeStream = compressStream = compressor.Compress(writeStream, true);
+                    if (argumentStream is null)
                     {
-                        var cryptoStream = encryptor.Encrypt(new LeaveOpenStream(postStream), true);
-                        if (argumentStream is null)
-                        {
-                            serializer.Serialize(cryptoStream, data);
-                        }
-                        else
-                        {
-                            using (var uploadDataStream = new TcpProtocolBodyStream(cryptoStream, null, true, true, default, false))
-                            {
-                                serializer.Serialize(uploadDataStream, data);
-                                uploadDataStream.Flush();
-                            }
-                            argumentStream.CopyTo(cryptoStream);
-                        }
-                        cryptoStream.FlushFinalBlock();
-                        cryptoStream.Dispose();
+                        serializer.Serialize(writeStream, data);
                     }
                     else
                     {
-                        if (argumentStream is null)
+                        using (var uploadDataStream = new TcpProtocolBodyStream(writeStream, null, true, true, default, false))
                         {
-                            serializer.Serialize(postStream, data);
+                            serializer.Serialize(uploadDataStream, data);
+                            uploadDataStream.Flush();
                         }
-                        else
-                        {
-                            using (var uploadDataStream = new TcpProtocolBodyStream(postStream, null, true, true, default, false))
-                            {
-                                serializer.Serialize(uploadDataStream, data);
-                                uploadDataStream.Flush();
-                            }
-                            argumentStream.CopyTo(postStream);
-                        }
+                        argumentStream.CopyTo(writeStream);
+                    }
+                    if (compressStream is not null)
+                        compressStream.Dispose();
+                    if (cryptoStream is not null)
+                    {
+                        cryptoStream.FlushFinalBlock();
+                        cryptoStream.Dispose();
                     }
                 });
                 if (argumentStream is not null)
@@ -447,6 +439,8 @@ namespace Zerra.Web
 
                 if (encryptor is not null)
                     responseStream = encryptor.Decrypt(responseStream, false);
+                if (compressor is not null)
+                    responseStream = compressor.Decompress(responseStream, false);
 
                 if (!response.IsSuccessStatusCode)
                 {

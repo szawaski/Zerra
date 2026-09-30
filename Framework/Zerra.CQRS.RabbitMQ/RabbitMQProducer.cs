@@ -7,6 +7,7 @@ using System.Data;
 using System.Security.Claims;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.CQRS.Network;
@@ -37,6 +38,7 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly string host;
         private readonly ISerializer serializer;
         private readonly IEncryptor? encryptor;
+        private readonly ICompressor? compressor;
         private readonly ILogger? log;
         private readonly string? environment;
         private readonly ConcurrentDictionary<Type, string> topicsByCommandType;
@@ -55,16 +57,18 @@ namespace Zerra.CQRS.RabbitMQ
         /// <param name="host">The RabbitMQ server hostname or IP address, or an AMQP URI (amqp://user:password@host:port/vhost, amqps:// for TLS) to also configure credentials, port, virtual host, and TLS.</param>
         /// <param name="serializer">The serializer for message serialization and deserialization.</param>
         /// <param name="encryptor">Optional encryptor for message encryption. If null, messages are not encrypted.</param>
+        /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="environment">Optional environment name to prefix exchange names for isolation.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public RabbitMQProducer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
+        public RabbitMQProducer(string host, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
             this.serializer = serializer;
             this.encryptor = encryptor;
+            this.compressor = compressor;
             this.log = log;
             this.environment = environment;
             this.topicsByCommandType = new();
@@ -123,6 +127,8 @@ namespace Zerra.CQRS.RabbitMQ
                     };
 
                     var body = serializer.SerializeBytes(rabbitMessage);
+                    if (compressor is not null)
+                        body = compressor.Compress(body);
                     if (encryptor is not null)
                         body = encryptor.Encrypt(body);
 
@@ -209,6 +215,8 @@ namespace Zerra.CQRS.RabbitMQ
                     };
 
                     var body = serializer.SerializeBytes(rabbitMessage);
+                    if (compressor is not null)
+                        body = compressor.Compress(body);
                     if (encryptor is not null)
                         body = encryptor.Encrypt(body);
 
@@ -285,6 +293,8 @@ namespace Zerra.CQRS.RabbitMQ
                     };
 
                     var body = serializer.SerializeBytes(rabbitMessage);
+                    if (compressor is not null)
+                        body = compressor.Compress(body);
                     if (encryptor is not null)
                         body = encryptor.Encrypt(body);
 
@@ -342,6 +352,12 @@ namespace Zerra.CQRS.RabbitMQ
                         acknowledgementBody = encryptor.Decrypt(acknowledgementBody.ToArray());
 #else
                         acknowledgementBody = encryptor.Decrypt(acknowledgementBody);
+#endif
+                    if (compressor is not null)
+#if NETSTANDARD2_0
+                        acknowledgementBody = compressor.Decompress(acknowledgementBody.ToArray());
+#else
+                        acknowledgementBody = compressor.Decompress(acknowledgementBody);
 #endif
 
                     acknowledgement = serializer.Deserialize<Acknowledgement>(acknowledgementBody);

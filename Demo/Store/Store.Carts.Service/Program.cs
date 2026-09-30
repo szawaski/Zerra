@@ -56,8 +56,9 @@ log.Info($"Seed data done in {seeding.ElapsedMilliseconds} ms");
 
 var serializer = StoreSettings.CreateServiceSerializer();
 var encryptor = StoreSettings.CreateServiceEncryptor();
+var compressor = StoreSettings.CreateCompressor();
 
-var server = new TcpCqrsServer(StoreSettings.CartsServiceUrl, serializer, encryptor, log);
+var server = new TcpCqrsServer(StoreSettings.CartsServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryServer<ICartsQueryHandler>(server);
 bus.AddCommandConsumer<ICartsCommandHandler>(server);
 //Catalog sends price changes here, over the same TCP server the gateway uses. A command and not an event, so with several Carts
@@ -66,15 +67,15 @@ bus.AddCommandConsumer<ICartRepricingHandler>(server);
 //...and publishes its changes as events, through RabbitMQ when it's running and straight here over TCP when it isn't. Every Carts
 //instance gets a copy, which is what dropping a per-instance cache needs: a command would reach one of them and leave the rest stale.
 if (useRabbitMQ)
-    bus.AddEventConsumer<ICatalogEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null), EventConsumerMode.PerReplica);
+    bus.AddEventConsumer<ICatalogEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, null, log, null), EventConsumerMode.PerReplica);
 else
     bus.AddEventConsumer<ICatalogEventHandler>(server, EventConsumerMode.PerReplica);
 
 //Downstream services: product names and prices from Catalog, the customer list and checkout from Orders
-var catalogClient = new TcpCqrsClient(StoreSettings.CatalogServiceUrl, serializer, encryptor, log);
+var catalogClient = new TcpCqrsClient(StoreSettings.CatalogServiceUrl, serializer, encryptor, compressor, log);
 bus.AddQueryClient<ICatalogQueryHandler>(catalogClient);
 
-var ordersClient = new TcpCqrsClient(StoreSettings.OrdersServiceUrl, serializer, encryptor, log);
+var ordersClient = new TcpCqrsClient(StoreSettings.OrdersServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryClient<IOrdersQueryHandler>(ordersClient);
 bus.AddCommandProducer<IOrdersCommandHandler>(ordersClient);
 

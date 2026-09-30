@@ -47,7 +47,8 @@ Services share only `*.Domain` projects, never each other's data models or handl
 - There's no native AOT; types the generator misses are built at runtime as usual.
 - Synchronous query calls through `ApiClient` and `KestrelCqrsClient` throw `PlatformNotSupportedException`, because `HttpClient` has no synchronous send there. Use async query methods.
 - `Hasher.PBKDF2*` and `SymmetricEncryptor.GetKey` support only `HashAlgorithmName.SHA1`; any other algorithm throws `PlatformNotSupportedException`.
-- The serializers and the mapper don't handle `IReadOnlySet<T>`, `DateOnly`, or `TimeOnly`, and the span overloads of `IEncryptor` aren't there.
+- `ZerraCompressor` supports only `Deflate` and `GZip`; `ZLib` and `Brotli` throw `PlatformNotSupportedException`.
+- The serializers and the mapper don't handle `IReadOnlySet<T>`, `DateOnly`, or `TimeOnly`, and the span overloads of `IEncryptor` and `ICompressor` aren't there.
 - Zerra.Web uses the ASP.NET Core 2.3 packages instead of the `Microsoft.AspNetCore.App` framework reference.
 
 ### Contracts
@@ -95,12 +96,12 @@ bus.AddHandler<ICatalogCommandHandler>(new CatalogCommandHandler());
 
 var serializer = new ZerraByteSerializer();
 var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AESwithPrefix);
-var server = new TcpCqrsServer("localhost:9101", serializer, encryptor, log);
+var server = new TcpCqrsServer("localhost:9101", serializer, encryptor, null, log);   //null: no compressor, see Compressors.md
 bus.AddQueryServer<ICatalogQueryHandler>(server);
 bus.AddCommandConsumer<ICatalogCommandHandler>(server);
 
 //calling another service: a client, then register what this service may use
-var inventory = new TcpCqrsClient("localhost:9102", serializer, encryptor, log);
+var inventory = new TcpCqrsClient("localhost:9102", serializer, encryptor, null, log);
 bus.AddCommandProducer<IStockReservationHandler>(inventory);
 bus.AddEventProducer<IOrderEventHandler>(inventory);
 
@@ -124,7 +125,7 @@ bus.AddEventConsumer<IOrderEventHandler>(new KestrelCqrsServerEventConsumer(sett
 
 var app = builder.Build();
 app.Lifetime.ApplicationStopped.Register(bus.StopServices); //after Kestrel has finished the requests in progress, which may still use the bus
-app.UseKestrelCqrsServer(serializer, encryptor, log, settings);
+app.UseKestrelCqrsServer(serializer, encryptor, null, log, settings);
 app.Run();
 ```
 
@@ -413,6 +414,7 @@ Types the brokers serialize must work without dynamic code (an app with `Publish
 ### HTTP/Network
 - `TcpCqrsServer` / `HttpCqrsServer` act as query servers and command/event consumers
 - `TcpCqrsClient` / `HttpCqrsClient` act as query clients and command/event producers
+- Every server, client, producer, and consumer takes an optional `IEncryptor` and, right after it, an optional `ICompressor`. Sending runs serialize, compress, encrypt; receiving runs decrypt, decompress, deserialize. Compression only pays off once payloads get large; message brokers carrying large commands gain the most. See [Compressors](Compressors.md)
 - `Zerra.Web` hosts the bus in ASP.NET Core and provides the external API gateway
 
 ## Best Practices
@@ -498,6 +500,7 @@ When working with Zerra code:
 - Never block on async code with `.GetAwaiter().GetResult()`, `.Result`, or `.Wait()`. Add a real synchronous path instead.
 - `Zerra`, `Zerra.Web`, and `Zerra.CQRS.*` build for `netstandard2.0` and `net10.0`. Where an API is missing from `netstandard2.0`, branch with `#if NETSTANDARD2_0` / `#else` / `#endif` at the call site, keeping the `net10.0` path unchanged. Only `NETSTANDARD2_0` and `!NETSTANDARD2_0` are used; don't use `NETx_0_OR_GREATER`. AOT attributes (`RequiresUnreferencedCode`, `RequiresDynamicCode`, `UnconditionalSuppressMessage`, `DynamicDependency`) and nullable attributes like `MaybeNullWhen` go inside `#if !NETSTANDARD2_0`. Types the compiler itself needs (`IsExternalInit`, `RequiredMemberAttribute`) are in `Framework/Zerra/CompilerSupport.cs`. Build both targets after a change (`dotnet build -f netstandard2.0`).
 - Runtime code must stay AOT compatible (`IsAotCompatible` is on for `net10.0`). Get type information from `TypeDetail` (source generated) instead of generating it at runtime. Where a call is flagged with `RequiresDynamicCode` but is safe, suppress `IL3050` with a comment explaining why, as the existing code does.
+- A transport applies `ICompressor` before `IEncryptor` when writing and after it when reading, and has to work with either or both left `null`. On a stream, the compress stream is disposed (with `leaveOpen` true) before the encryptor's final block is flushed. After reading a body, the TCP and HTTP transports call `FinishRead`/`FinishReadAsync` on its `TcpProtocolBodyStream` or `HttpProtocolBodyStream`, which reads and checks the ending (a decompressor stops at its own end without reading it) so the connection can be reused. Leftover data before the ending throws. Where leftover data is expected, an upload the handler stopped reading or a rejected request's body, call `DiscardRead`/`DiscardReadAsync` instead, which skips through the ending. Don't read a body to `Stream.Null` instead.
 - Tests: `Tests/Zerra.Test` (core, serializers, CQRS network, plus `Web/` for the Kestrel middleware and clients), `Tests/Zerra.SourceGeneration.Test`, and `Tests/Zerra.Repository.Test`. The repository engine tests need local SQL Server, PostgreSQL (5432), MySQL (3306), and MariaDB (3307); the connection strings are in `Tests/Zerra.Repository.Test/*/*TestSqlDataContext.cs`. Each run drops and recreates the test database, and after code-first generation the tests assert the generated plan is empty. The messaging tests in the same project (`Kafka/`, `RabbitMQ/`, `AzureServiceBus/`) run the shared `MessageTest` sequence through the producer and consumer interfaces and need Kafka (9092), RabbitMQ (5672), and the Service Bus emulator (AMQP 5673, management 5300); each run uses its own topics and deletes them afterwards. `Demo/Infrastructure/start-infrastructure.ps1` starts any of these data stores and messaging services in Docker that aren't already running.
 - `Framework/Zerra.T4` targets net48 and copies its build to `Front End Scripts/Binaries`. Rebuild it after changing the JavaScript or TypeScript generators, and keep `Bus.js` and `Bus.ts` in step with each other.
 - The repository uses CRLF line endings in the working tree. Some command-line tools strip the CRs (Git Bash `sed -i`, for one), so check with `git ls-files --eol`.

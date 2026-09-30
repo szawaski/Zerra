@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Net.Sockets;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using System.Security.Claims;
@@ -18,6 +19,7 @@ namespace Zerra.CQRS.Network
     {
         private readonly ISerializer serializer;
         private readonly IEncryptor? encryptor;
+        private readonly ICompressor? compressor;
         private readonly SocketClientPool socketPool;
 
         /// <summary>
@@ -26,12 +28,14 @@ namespace Zerra.CQRS.Network
         /// <param name="serviceUrl">The URL of the server.</param>
         /// <param name="serializer">The serializer for request and response data.</param>
         /// <param name="encryptor">Optional encryption provider for encrypting request and response data.</param>
+        /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logging provider.</param>
-        public TcpCqrsClient(string serviceUrl, ISerializer serializer, IEncryptor? encryptor, ILogger? log)
+        public TcpCqrsClient(string serviceUrl, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log)
             : base(serviceUrl, log)
         {
             this.serializer = serializer;
             this.encryptor = encryptor;
+            this.compressor = compressor;
             this.socketPool = SocketClientPool.Shared;
         }
 
@@ -43,6 +47,7 @@ namespace Zerra.CQRS.Network
             SocketPoolStream? stream = null;
             Stream? requestBodyStream = null;
             CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? requestBodyCompressStream = null;
             Stream? responseBodyStream = null;
             var bufferOwner = ArrayPoolHelper<byte>.Rent(TcpCommon.BufferLength);
             var isThrowingRemote = false;
@@ -98,43 +103,38 @@ namespace Zerra.CQRS.Network
 
                     requestBodyStream = new TcpProtocolBodyStream(stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
+                    Stream requestBodyWriteStream = requestBodyStream;
                     if (encryptor is not null)
+                        requestBodyWriteStream = requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
+                    if (compressor is not null)
+                        requestBodyWriteStream = requestBodyCompressStream = compressor.Compress(requestBodyWriteStream, true);
+                    if (argumentStream is null)
                     {
-                        requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
-                        if (argumentStream is null)
+                        serializer.Serialize(requestBodyWriteStream, data);
+                    }
+                    else
+                    {
+                        //the request data is framed so the server knows where it ends and the stream begins
+                        using (var uploadDataStream = new TcpProtocolBodyStream(requestBodyWriteStream, null, true, true, default, false))
                         {
-                            serializer.Serialize(requestBodyCryptoStream, data);
+                            serializer.Serialize(uploadDataStream, data);
+                            uploadDataStream.Flush();
                         }
-                        else
-                        {
-                            //the request data is framed so the server knows where it ends and the stream begins
-                            using (var uploadDataStream = new TcpProtocolBodyStream(requestBodyCryptoStream, null, true, true, default, false))
-                            {
-                                serializer.Serialize(uploadDataStream, data);
-                                uploadDataStream.Flush();
-                            }
-                            argumentStream.CopyTo(requestBodyCryptoStream);
-                        }
+                        argumentStream.CopyTo(requestBodyWriteStream);
+                    }
+                    if (requestBodyCompressStream is not null)
+                    {
+                        requestBodyCompressStream.Dispose();
+                        requestBodyCompressStream = null;
+                    }
+                    if (requestBodyCryptoStream is not null)
+                    {
                         requestBodyCryptoStream.FlushFinalBlock();
                         requestBodyCryptoStream.Dispose();
                         requestBodyCryptoStream = null;
                     }
                     else
                     {
-                        if (argumentStream is null)
-                        {
-                            serializer.Serialize(requestBodyStream, data);
-                        }
-                        else
-                        {
-                            //the request data is framed so the server knows where it ends and the stream begins
-                            using (var uploadDataStream = new TcpProtocolBodyStream(requestBodyStream, null, true, true, default, false))
-                            {
-                                serializer.Serialize(uploadDataStream, data);
-                                uploadDataStream.Flush();
-                            }
-                            argumentStream.CopyTo(requestBodyStream);
-                        }
                         requestBodyStream.Flush();
                         requestBodyStream.Dispose();
                     }
@@ -179,17 +179,21 @@ namespace Zerra.CQRS.Network
                     var responseHeader = TcpCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
+                    TcpProtocolBodyStream responseBodyProtocolStream;
                     if (isStream)
-                        responseBodyStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
+                        responseBodyStream = responseBodyProtocolStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
                     else
-                        responseBodyStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
+                        responseBodyStream = responseBodyProtocolStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
 
                     if (encryptor is not null)
                         responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
+                    if (compressor is not null)
+                        responseBodyStream = compressor.Decompress(responseBodyStream, false);
 
                     if (responseHeader.IsError)
                     {
                         var responseException = ExceptionSerializer.Deserialize($"{interfaceType.Name}.{methodName}", serializer, responseBodyStream);
+                        responseBodyProtocolStream.FinishRead();
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -201,6 +205,8 @@ namespace Zerra.CQRS.Network
                     else
                     {
                         var model = serializer.Deserialize<TReturn>(responseBodyStream);
+                        //the ending is read and checked, a decompressor stops at its own end without reading it
+                        responseBodyProtocolStream.FinishRead();
                         responseBodyStream.Dispose();
                         return model!;
                     }
@@ -208,6 +214,15 @@ namespace Zerra.CQRS.Network
                 catch (Exception ex)
                 {
                     //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCompressStream is not null)
+                    {
+                        try
+                        {
+                            //disposing writes its end into the crypto or request stream, which can fail the same as the request did
+                            requestBodyCompressStream.Dispose();
+                        }
+                        catch { }
+                    }
                     if (requestBodyCryptoStream is not null)
                     {
                         try
@@ -270,6 +285,7 @@ namespace Zerra.CQRS.Network
             SocketPoolStream? stream = null;
             Stream? requestBodyStream = null;
             CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? requestBodyCompressStream = null;
             Stream? responseBodyStream = null;
             var bufferOwner = ArrayPoolHelper<byte>.Rent(TcpCommon.BufferLength);
             var isThrowingRemote = false;
@@ -325,27 +341,40 @@ namespace Zerra.CQRS.Network
 
                     requestBodyStream = new TcpProtocolBodyStream(stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
+                    Stream requestBodyWriteStream = requestBodyStream;
                     if (encryptor is not null)
+                        requestBodyWriteStream = requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
+                    if (compressor is not null)
+                        requestBodyWriteStream = requestBodyCompressStream = compressor.Compress(requestBodyWriteStream, true);
+                    if (argumentStream is null)
                     {
-                        requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
-                        if (argumentStream is null)
+                        await serializer.SerializeAsync(requestBodyWriteStream, data, cancellationToken);
+                    }
+                    else
+                    {
+                        //the request data is framed so the server knows where it ends and the stream begins
+                        using (var uploadDataStream = new TcpProtocolBodyStream(requestBodyWriteStream, null, true, true, default, false))
                         {
-                            await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
+                            await serializer.SerializeAsync(uploadDataStream, data, cancellationToken);
+                            await uploadDataStream.FlushAsync(cancellationToken);
                         }
-                        else
-                        {
-                            //the request data is framed so the server knows where it ends and the stream begins
-                            using (var uploadDataStream = new TcpProtocolBodyStream(requestBodyCryptoStream, null, true, true, default, false))
-                            {
-                                await serializer.SerializeAsync(uploadDataStream, data, cancellationToken);
-                                await uploadDataStream.FlushAsync(cancellationToken);
-                            }
 #if NETSTANDARD2_0
-                            await argumentStream.CopyToAsync(requestBodyCryptoStream, 81920, cancellationToken);
+                        await argumentStream.CopyToAsync(requestBodyWriteStream, 81920, cancellationToken);
 #else
-                            await argumentStream.CopyToAsync(requestBodyCryptoStream, cancellationToken);
+                        await argumentStream.CopyToAsync(requestBodyWriteStream, cancellationToken);
 #endif
-                        }
+                    }
+                    if (requestBodyCompressStream is not null)
+                    {
+#if NETSTANDARD2_0
+                        requestBodyCompressStream.Dispose();
+#else
+                        await requestBodyCompressStream.DisposeAsync();
+#endif
+                        requestBodyCompressStream = null;
+                    }
+                    if (requestBodyCryptoStream is not null)
+                    {
 #if !NETSTANDARD2_0
                         await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
@@ -360,24 +389,6 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        if (argumentStream is null)
-                        {
-                            await serializer.SerializeAsync(requestBodyStream, data, cancellationToken);
-                        }
-                        else
-                        {
-                            //the request data is framed so the server knows where it ends and the stream begins
-                            using (var uploadDataStream = new TcpProtocolBodyStream(requestBodyStream, null, true, true, default, false))
-                            {
-                                await serializer.SerializeAsync(uploadDataStream, data, cancellationToken);
-                                await uploadDataStream.FlushAsync(cancellationToken);
-                            }
-#if NETSTANDARD2_0
-                            await argumentStream.CopyToAsync(requestBodyStream, 81920, cancellationToken);
-#else
-                            await argumentStream.CopyToAsync(requestBodyStream, cancellationToken);
-#endif
-                        }
                         await requestBodyStream.FlushAsync(cancellationToken);
 #if NETSTANDARD2_0
                         requestBodyStream.Dispose();
@@ -426,17 +437,21 @@ namespace Zerra.CQRS.Network
                     var responseHeader = TcpCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
+                    TcpProtocolBodyStream responseBodyProtocolStream;
                     if (isStream)
-                        responseBodyStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
+                        responseBodyStream = responseBodyProtocolStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
                     else
-                        responseBodyStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
+                        responseBodyStream = responseBodyProtocolStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
 
                     if (encryptor is not null)
                         responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
+                    if (compressor is not null)
+                        responseBodyStream = compressor.Decompress(responseBodyStream, false);
 
                     if (responseHeader.IsError)
                     {
                         var responseException = await ExceptionSerializer.DeserializeAsync($"{interfaceType.Name}.{methodName}", serializer, responseBodyStream, cancellationToken);
+                        await responseBodyProtocolStream.FinishReadAsync(cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -448,6 +463,8 @@ namespace Zerra.CQRS.Network
                     else
                     {
                         var model = await serializer.DeserializeAsync<TReturn>(responseBodyStream, cancellationToken);
+                        //the ending is read and checked, a decompressor stops at its own end without reading it
+                        await responseBodyProtocolStream.FinishReadAsync(cancellationToken);
 #if NETSTANDARD2_0
                         responseBodyStream.Dispose();
 #else
@@ -459,6 +476,19 @@ namespace Zerra.CQRS.Network
                 catch (Exception ex)
                 {
                     //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCompressStream is not null)
+                    {
+                        try
+                        {
+                            //disposing writes its end into the crypto or request stream, which can fail the same as the request did
+#if NETSTANDARD2_0
+                            requestBodyCompressStream.Dispose();
+#else
+                            await requestBodyCompressStream.DisposeAsync();
+#endif
+                        }
+                        catch { }
+                    }
                     if (requestBodyCryptoStream is not null)
                     {
                         try
@@ -549,6 +579,7 @@ namespace Zerra.CQRS.Network
             SocketPoolStream? stream = null;
             Stream? requestBodyStream = null;
             CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? requestBodyCompressStream = null;
             Stream? responseBodyStream = null;
             var bufferOwner = ArrayPoolHelper<byte>.Rent(TcpCommon.BufferLength);
             var isThrowingRemote = false;
@@ -591,10 +622,23 @@ namespace Zerra.CQRS.Network
 
                     requestBodyStream = new TcpProtocolBodyStream(stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
+                    Stream requestBodyWriteStream = requestBodyStream;
                     if (encryptor is not null)
+                        requestBodyWriteStream = requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
+                    if (compressor is not null)
+                        requestBodyWriteStream = requestBodyCompressStream = compressor.Compress(requestBodyWriteStream, true);
+                    await serializer.SerializeAsync(requestBodyWriteStream, data, cancellationToken);
+                    if (requestBodyCompressStream is not null)
                     {
-                        requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
-                        await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
+#if NETSTANDARD2_0
+                        requestBodyCompressStream.Dispose();
+#else
+                        await requestBodyCompressStream.DisposeAsync();
+#endif
+                        requestBodyCompressStream = null;
+                    }
+                    if (requestBodyCryptoStream is not null)
+                    {
 #if !NETSTANDARD2_0
                         await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
@@ -609,7 +653,6 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        await serializer.SerializeAsync(requestBodyStream, data, cancellationToken);
                         await requestBodyStream.FlushAsync(cancellationToken);
 
 #if NETSTANDARD2_0
@@ -659,14 +702,18 @@ namespace Zerra.CQRS.Network
                     var responseHeader = TcpCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
-                    responseBodyStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
+                    TcpProtocolBodyStream responseBodyProtocolStream;
+                    responseBodyStream = responseBodyProtocolStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
 
                     if (encryptor is not null)
                         responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
+                    if (compressor is not null)
+                        responseBodyStream = compressor.Decompress(responseBodyStream, false);
 
                     if (responseHeader.IsError)
                     {
                         var responseException = await ExceptionSerializer.DeserializeAsync(commandType.Name, serializer, responseBodyStream, cancellationToken);
+                        await responseBodyProtocolStream.FinishReadAsync(cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -680,6 +727,19 @@ namespace Zerra.CQRS.Network
                 catch (Exception ex)
                 {
                     //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCompressStream is not null)
+                    {
+                        try
+                        {
+                            //disposing writes its end into the crypto or request stream, which can fail the same as the request did
+#if NETSTANDARD2_0
+                            requestBodyCompressStream.Dispose();
+#else
+                            await requestBodyCompressStream.DisposeAsync();
+#endif
+                        }
+                        catch { }
+                    }
                     if (requestBodyCryptoStream is not null)
                     {
                         try
@@ -763,6 +823,7 @@ namespace Zerra.CQRS.Network
             SocketPoolStream? stream = null;
             Stream? requestBodyStream = null;
             CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? requestBodyCompressStream = null;
             Stream? responseBodyStream = null;
             var bufferOwner = ArrayPoolHelper<byte>.Rent(TcpCommon.BufferLength);
             var isThrowingRemote = false;
@@ -805,10 +866,23 @@ namespace Zerra.CQRS.Network
 
                     requestBodyStream = new TcpProtocolBodyStream(stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
+                    Stream requestBodyWriteStream = requestBodyStream;
                     if (encryptor is not null)
+                        requestBodyWriteStream = requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
+                    if (compressor is not null)
+                        requestBodyWriteStream = requestBodyCompressStream = compressor.Compress(requestBodyWriteStream, true);
+                    await serializer.SerializeAsync(requestBodyWriteStream, data, cancellationToken);
+                    if (requestBodyCompressStream is not null)
                     {
-                        requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
-                        await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
+#if NETSTANDARD2_0
+                        requestBodyCompressStream.Dispose();
+#else
+                        await requestBodyCompressStream.DisposeAsync();
+#endif
+                        requestBodyCompressStream = null;
+                    }
+                    if (requestBodyCryptoStream is not null)
+                    {
 #if !NETSTANDARD2_0
                         await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
@@ -823,7 +897,6 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        await serializer.SerializeAsync(requestBodyStream, data, cancellationToken);
                         await requestBodyStream.FlushAsync(cancellationToken);
 
 #if NETSTANDARD2_0
@@ -873,14 +946,18 @@ namespace Zerra.CQRS.Network
                     var responseHeader = TcpCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
-                    responseBodyStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
+                    TcpProtocolBodyStream responseBodyProtocolStream;
+                    responseBodyStream = responseBodyProtocolStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
 
                     if (encryptor is not null)
                         responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
+                    if (compressor is not null)
+                        responseBodyStream = compressor.Decompress(responseBodyStream, false);
 
                     if (responseHeader.IsError)
                     {
                         var responseException = await ExceptionSerializer.DeserializeAsync(commandType.Name, serializer, responseBodyStream, cancellationToken);
+                        await responseBodyProtocolStream.FinishReadAsync(cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -892,6 +969,8 @@ namespace Zerra.CQRS.Network
                     else
                     {
                         var model = await serializer.DeserializeAsync<TResult>(responseBodyStream, cancellationToken);
+                        //the ending is read and checked, a decompressor stops at its own end without reading it
+                        await responseBodyProtocolStream.FinishReadAsync(cancellationToken);
 #if NETSTANDARD2_0
                         responseBodyStream.Dispose();
 #else
@@ -903,6 +982,19 @@ namespace Zerra.CQRS.Network
                 catch (Exception ex)
                 {
                     //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCompressStream is not null)
+                    {
+                        try
+                        {
+                            //disposing writes its end into the crypto or request stream, which can fail the same as the request did
+#if NETSTANDARD2_0
+                            requestBodyCompressStream.Dispose();
+#else
+                            await requestBodyCompressStream.DisposeAsync();
+#endif
+                        }
+                        catch { }
+                    }
                     if (requestBodyCryptoStream is not null)
                     {
                         try
@@ -987,6 +1079,7 @@ namespace Zerra.CQRS.Network
             SocketPoolStream? stream = null;
             Stream? requestBodyStream = null;
             CryptoFlushStream? requestBodyCryptoStream = null;
+            Stream? requestBodyCompressStream = null;
             Stream? responseBodyStream = null;
             var bufferOwner = ArrayPoolHelper<byte>.Rent(TcpCommon.BufferLength);
             var isThrowingRemote = false;
@@ -1029,10 +1122,23 @@ namespace Zerra.CQRS.Network
 
                     requestBodyStream = new TcpProtocolBodyStream(stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
+                    Stream requestBodyWriteStream = requestBodyStream;
                     if (encryptor is not null)
+                        requestBodyWriteStream = requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
+                    if (compressor is not null)
+                        requestBodyWriteStream = requestBodyCompressStream = compressor.Compress(requestBodyWriteStream, true);
+                    await serializer.SerializeAsync(requestBodyWriteStream, data, cancellationToken);
+                    if (requestBodyCompressStream is not null)
                     {
-                        requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
-                        await serializer.SerializeAsync(requestBodyCryptoStream, data, cancellationToken);
+#if NETSTANDARD2_0
+                        requestBodyCompressStream.Dispose();
+#else
+                        await requestBodyCompressStream.DisposeAsync();
+#endif
+                        requestBodyCompressStream = null;
+                    }
+                    if (requestBodyCryptoStream is not null)
+                    {
 #if !NETSTANDARD2_0
                         await requestBodyCryptoStream.FlushFinalBlockAsync(cancellationToken);
 #else
@@ -1047,7 +1153,6 @@ namespace Zerra.CQRS.Network
                     }
                     else
                     {
-                        await serializer.SerializeAsync(requestBodyStream, data, cancellationToken);
                         await requestBodyStream.FlushAsync(cancellationToken);
 
 #if NETSTANDARD2_0
@@ -1097,14 +1202,18 @@ namespace Zerra.CQRS.Network
                     var responseHeader = TcpCommon.ReadHeader(buffer.Slice(0, headerLength), headerPosition);
 
                     //Response Body
-                    responseBodyStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
+                    TcpProtocolBodyStream responseBodyProtocolStream;
+                    responseBodyStream = responseBodyProtocolStream = new TcpProtocolBodyStream(stream, responseHeader.BodyStartBuffer, false, false);
 
                     if (encryptor is not null)
                         responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
+                    if (compressor is not null)
+                        responseBodyStream = compressor.Decompress(responseBodyStream, false);
 
                     if (responseHeader.IsError)
                     {
                         var responseException = await ExceptionSerializer.DeserializeAsync(eventType.Name, serializer, responseBodyStream, cancellationToken);
+                        await responseBodyProtocolStream.FinishReadAsync(cancellationToken);
                         isThrowingRemote = true;
                         throw responseException;
                     }
@@ -1118,6 +1227,19 @@ namespace Zerra.CQRS.Network
                 catch (Exception ex)
                 {
                     //the request streams leave the socket open so they go first, the response stream closes the socket stream so it goes after the socket is handled
+                    if (requestBodyCompressStream is not null)
+                    {
+                        try
+                        {
+                            //disposing writes its end into the crypto or request stream, which can fail the same as the request did
+#if NETSTANDARD2_0
+                            requestBodyCompressStream.Dispose();
+#else
+                            await requestBodyCompressStream.DisposeAsync();
+#endif
+                        }
+                        catch { }
+                    }
                     if (requestBodyCryptoStream is not null)
                     {
                         try

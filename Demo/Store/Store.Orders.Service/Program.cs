@@ -59,23 +59,24 @@ bus.AddHandler<IOrdersCommandHandler>(new OrdersCommandHandler());
 
 var serializer = StoreSettings.CreateServiceSerializer();
 var encryptor = StoreSettings.CreateServiceEncryptor();
+var compressor = StoreSettings.CreateCompressor();
 
-var server = new TcpCqrsServer(StoreSettings.OrdersServiceUrl, serializer, encryptor, log);
+var server = new TcpCqrsServer(StoreSettings.OrdersServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryServer<IOrdersQueryHandler>(server);
 bus.AddCommandConsumer<IOrdersCommandHandler>(server);
 
 //Downstream services: prices from Catalog, stock reservations and order events to Inventory
-var catalogClient = new TcpCqrsClient(StoreSettings.CatalogServiceUrl, serializer, encryptor, log);
+var catalogClient = new TcpCqrsClient(StoreSettings.CatalogServiceUrl, serializer, encryptor, compressor, log);
 bus.AddQueryClient<ICatalogQueryHandler>(catalogClient);
 
-var inventoryClient = new TcpCqrsClient(StoreSettings.InventoryServiceUrl, serializer, encryptor, log);
+var inventoryClient = new TcpCqrsClient(StoreSettings.InventoryServiceUrl, serializer, encryptor, null, log);
 
 //Every stock change goes to Inventory as a command on IStockReservationHandler, through Kafka when it's running and straight over TCP when
 //it isn't: reserving on placement, and settling the reservation on ship or cancel. Commands and not events because each one moves stock and
 //has to happen once; Kafka's shared consumer group means one Inventory replica handles each. The bus takes one producer per command, so the
 //choice is made here at startup, and Inventory makes the same check.
 if (useKafka)
-    bus.AddCommandProducer<IStockReservationHandler>(new KafkaProducer(StoreSettings.KafkaHost, serializer, encryptor, log, null, null, null));
+    bus.AddCommandProducer<IStockReservationHandler>(new KafkaProducer(StoreSettings.KafkaHost, serializer, encryptor, null, log, null, null, null));
 else
     bus.AddCommandProducer<IStockReservationHandler>(inventoryClient);
 
@@ -85,12 +86,12 @@ else
 //there is a producer per subscriber, and the event is sent to each: TCP to Inventory, HTTP/Kestrel to Shipping, which is hosted in ASP.NET Core.
 if (useRabbitMQ)
 {
-    bus.AddEventProducer<IOrdersEventHandler>(new RabbitMQProducer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null));
+    bus.AddEventProducer<IOrdersEventHandler>(new RabbitMQProducer(StoreSettings.RabbitMQHost, serializer, encryptor, null, log, null));
 }
 else
 {
     bus.AddEventProducer<IOrdersEventHandler>(inventoryClient);
-    bus.AddEventProducer<IOrdersEventHandler>(new KestrelCqrsClient(StoreSettings.ShippingServiceUrl, serializer, encryptor, log, null, null));
+    bus.AddEventProducer<IOrdersEventHandler>(new KestrelCqrsClient(StoreSettings.ShippingServiceUrl, serializer, encryptor, null, log, null, null));
 }
 
 log.Info($"Orders service listening on {StoreSettings.OrdersServiceUrl}, started in {startup.ElapsedMilliseconds} ms ({startup.ElapsedMilliseconds - databaseSetup.ElapsedMilliseconds - seeding.ElapsedMilliseconds} ms excluding database setup and seed data), press Ctrl+C to stop");

@@ -52,14 +52,15 @@ bus.AddHandler<ICatalogCommandHandler>(new CatalogCommandHandler());
 
 var serializer = StoreSettings.CreateServiceSerializer();
 var encryptor = StoreSettings.CreateServiceEncryptor();
+var compressor = StoreSettings.CreateCompressor();
 
-var server = new TcpCqrsServer(StoreSettings.CatalogServiceUrl, serializer, encryptor, log);
+var server = new TcpCqrsServer(StoreSettings.CatalogServiceUrl, serializer, encryptor, compressor, log);
 bus.AddQueryServer<ICatalogQueryHandler>(server);
 bus.AddCommandConsumer<ICatalogCommandHandler>(server);
 
 //Catalog tells Carts to reprice when a price changes, so a cart never shows a price the store no longer charges. A command and not an
 //event: an event would reach every Carts replica and have them all reprice the same carts, a command is handled by one of them.
-var cartsClient = new TcpCqrsClient(StoreSettings.CartsServiceUrl, serializer, encryptor, log);
+var cartsClient = new TcpCqrsClient(StoreSettings.CartsServiceUrl, serializer, encryptor, null, log);
 bus.AddCommandProducer<ICartRepricingHandler>(cartsClient);
 
 //...and the product events that go with it, which Carts and Reviews both subscribe to. Each one caches products in its own memory, so
@@ -67,12 +68,12 @@ bus.AddCommandProducer<ICartRepricingHandler>(cartsClient);
 //delivers it to every subscriber and every replica. Without RabbitMQ it goes direct, one producer per subscriber.
 if (useRabbitMQ)
 {
-    bus.AddEventProducer<ICatalogEventHandler>(new RabbitMQProducer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null));
+    bus.AddEventProducer<ICatalogEventHandler>(new RabbitMQProducer(StoreSettings.RabbitMQHost, serializer, encryptor, null, log, null));
 }
 else
 {
     bus.AddEventProducer<ICatalogEventHandler>(cartsClient);
-    bus.AddEventProducer<ICatalogEventHandler>(new TcpCqrsClient(StoreSettings.ReviewsServiceUrl, serializer, encryptor, log));
+    bus.AddEventProducer<ICatalogEventHandler>(new TcpCqrsClient(StoreSettings.ReviewsServiceUrl, serializer, encryptor, null, log));
 }
 
 log.Info($"Catalog service listening on {StoreSettings.CatalogServiceUrl}, started in {startup.ElapsedMilliseconds} ms ({startup.ElapsedMilliseconds - databaseSetup.ElapsedMilliseconds - seeding.ElapsedMilliseconds} ms excluding database setup and seed data), press Ctrl+C to stop");

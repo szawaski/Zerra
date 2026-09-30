@@ -216,7 +216,7 @@ namespace Zerra.Test.Web
 
         private static KestrelCqrsClient CreateClient(FakeServer server, IEncryptor? encryptor)
         {
-            var client = new KestrelCqrsClient(server.Url, serializer, encryptor, null, null, null);
+            var client = new KestrelCqrsClient(server.Url, serializer, encryptor, null, null, null, null);
             ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
             ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommand));
             ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));

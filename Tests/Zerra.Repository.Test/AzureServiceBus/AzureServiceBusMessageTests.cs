@@ -4,6 +4,7 @@
 
 using Xunit;
 using Zerra.CQRS;
+using Zerra.Compression;
 using Zerra.CQRS.AzureServiceBus;
 using Zerra.Encryption;
 using Zerra.Serialization;
@@ -30,12 +31,13 @@ namespace Zerra.Repository.Test.AzureServiceBus
             var eventTopic = MessageTest.NewTopic("Event");
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+            var compressor = new ZerraCompressor(CompressionAlgorithmType.Brotli);
             var log = new TestLogger();
 
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, encryptor, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, encryptor, compressor, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, compressor, log, null))
                 {
                     await MessageTest.TestSequence(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -57,8 +59,8 @@ namespace Zerra.Repository.Test.AzureServiceBus
 
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, null, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
                 {
                     await MessageTest.TestCommandSentBeforeConsumer(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
                 }
@@ -78,8 +80,8 @@ namespace Zerra.Repository.Test.AzureServiceBus
 
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, null, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
                 {
                     //deleted with the administration client directly, not AzureServiceBusCommon, so the cached queue list still has it
                     await MessageTest.TestConsumesAgainAfterTopicDeleted(producer, consumer, commandTopic, async () =>
@@ -102,7 +104,7 @@ namespace Zerra.Repository.Test.AzureServiceBus
 
             try
             {
-                await using (var producer = new AzureServiceBusProducer(host, new ZerraByteSerializer(), null, new TestLogger(), null))
+                await using (var producer = new AzureServiceBusProducer(host, new ZerraByteSerializer(), null, null, new TestLogger(), null))
                 {
                     ackQueue = (string)typeof(AzureServiceBusProducer).GetField("ackQueue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producer)!;
                     ((ICommandProducer)producer).RegisterCommandType(1, commandTopic, typeof(TestCommand));
@@ -137,8 +139,8 @@ namespace Zerra.Repository.Test.AzureServiceBus
 
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, encryptor, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, encryptor, null, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, null, log, null))
                 {
                     await MessageTest.TestFinishesProcessingOnClose(producer, producer, consumer, consumer, commandTopic, eventTopic, disposeAsync, TestContext.Current.CancellationToken);
                 }
@@ -162,10 +164,10 @@ namespace Zerra.Repository.Test.AzureServiceBus
             try
             {
                 //a consumer per client, standing in for the replicas of two services
-                await using (var serviceAReplica1 = new AzureServiceBusConsumer(host, serializer, encryptor, log, null))
-                await using (var serviceAReplica2 = new AzureServiceBusConsumer(host, serializer, encryptor, log, null))
-                await using (var serviceB = new AzureServiceBusConsumer(host, serializer, encryptor, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, log, null))
+                await using (var serviceAReplica1 = new AzureServiceBusConsumer(host, serializer, encryptor, null, log, null))
+                await using (var serviceAReplica2 = new AzureServiceBusConsumer(host, serializer, encryptor, null, log, null))
+                await using (var serviceB = new AzureServiceBusConsumer(host, serializer, encryptor, null, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, null, log, null))
                 {
                     await MessageTest.TestEventConsumerModePerService(producer, serviceAReplica1, serviceAReplica2, serviceB, eventTopic, TestContext.Current.CancellationToken);
                 }

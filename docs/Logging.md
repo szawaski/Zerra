@@ -19,7 +19,7 @@ IBusLogger busLog = new ConsoleBusLogger();
 
 Log.SetLog(log);                                    // the static Log, used by framework code outside the bus
 var bus = Bus.New("MyService", log, busLog, busServices);
-var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);   // servers, clients, and consumers take one too
+var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);   // servers, clients, and consumers take one too
 ```
 
 Handlers log through `Log`, inherited from `BaseHandler`, which is null when the bus has no logger:

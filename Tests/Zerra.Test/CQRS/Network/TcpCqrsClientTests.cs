@@ -212,7 +212,7 @@ namespace Zerra.Test.CQRS.Network
             using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
             listener.Listen();
-            using var client = new TcpCqrsClient($"127.0.0.1:{((IPEndPoint)listener.LocalEndPoint!).Port}", serializer, null, null);
+            using var client = new TcpCqrsClient($"127.0.0.1:{((IPEndPoint)listener.LocalEndPoint!).Port}", serializer, null, null, null);
             ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
             using var cts = new CancellationTokenSource();
 
@@ -355,7 +355,7 @@ namespace Zerra.Test.CQRS.Network
         [Fact]
         public void Call_UnregisteredInterface_Throws()
         {
-            using var client = new TcpCqrsClient("127.0.0.1:9999", serializer, null, null);
+            using var client = new TcpCqrsClient("127.0.0.1:9999", serializer, null, null, null);
 
             var exception = Assert.Throws<Exception>(() =>
                 ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source));
@@ -366,7 +366,7 @@ namespace Zerra.Test.CQRS.Network
         [Fact]
         public void DispatchAsync_UnregisteredCommand_Throws()
         {
-            using var client = new TcpCqrsClient("127.0.0.1:9999", serializer, null, null);
+            using var client = new TcpCqrsClient("127.0.0.1:9999", serializer, null, null, null);
 
             var exception = Assert.Throws<Exception>(() =>
             {
@@ -382,13 +382,13 @@ namespace Zerra.Test.CQRS.Network
         [InlineData(" ")]
         public void Constructor_MissingUrl_Throws(string? url)
         {
-            _ = Assert.Throws<ArgumentNullException>(() => new TcpCqrsClient(url!, serializer, null, null));
+            _ = Assert.Throws<ArgumentNullException>(() => new TcpCqrsClient(url!, serializer, null, null, null));
         }
 
         [Fact]
         public void ServiceUrl_ReturnsConstructorUrl()
         {
-            using var client = new TcpCqrsClient("127.0.0.1:9999", serializer, null, null);
+            using var client = new TcpCqrsClient("127.0.0.1:9999", serializer, null, null, null);
 
             Assert.Equal("127.0.0.1:9999", ((IQueryClient)client).ServiceUrl);
             Assert.Equal("127.0.0.1:9999", ((ICommandProducer)client).MessageHost);
@@ -397,7 +397,7 @@ namespace Zerra.Test.CQRS.Network
 
         private static TcpCqrsClient CreateClient(FakeServer server, IEncryptor? encryptor)
         {
-            var client = new TcpCqrsClient(server.Url, serializer, encryptor, null);
+            var client = new TcpCqrsClient(server.Url, serializer, encryptor, null, null);
             ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
             ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommand));
             ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));

@@ -6,6 +6,7 @@ using Zerra.Collections;
 using System.Security.Claims;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Reflection;
@@ -23,6 +24,7 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly string topic;
             private readonly ISerializer serializer;
             private readonly IEncryptor? encryptor;
+            private readonly ICompressor? compressor;
             private readonly ILogger? log;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
@@ -34,7 +36,7 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly ConcurrentHashSet<Task> handling = new();
             private static readonly Action<Task, object?> removeHandling = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
 
-            public EventConsumer(int maxConcurrent, string topic, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -59,6 +61,7 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 this.serializer = serializer;
                 this.encryptor = encryptor;
+                this.compressor = compressor;
                 this.log = log;
                 this.handlerAsync = handlerAsync;
                 this.canceller = new CancellationTokenSource();
@@ -156,6 +159,8 @@ namespace Zerra.CQRS.RabbitMQ
                 {
                     if (encryptor is not null)
                         body = encryptor.Decrypt(body);
+                    if (compressor is not null)
+                        body = compressor.Decompress(body);
 
                     var message = serializer.Deserialize<RabbitMQMessage>(body);
                     if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)

@@ -272,11 +272,11 @@ Where an event is handled depends only on registration:
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
 
 // Publisher: send to a broker (RabbitMQ and Azure Service Bus follow the same pattern)
-bus.AddEventProducer<IUserEventHandler>(new KafkaProducer("localhost:9092", serializer, encryptor, log, environment: null, userName: null, password: null));
+bus.AddEventProducer<IUserEventHandler>(new KafkaProducer("localhost:9092", serializer, encryptor, null, log, environment: null, userName: null, password: null));
 
 // Subscriber: receive from the broker
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
-bus.AddEventConsumer<IUserEventHandler>(new KafkaConsumer("localhost:9092", serializer, encryptor, log, environment: null, userName: null, password: null), EventConsumerMode.PerReplica);
+bus.AddEventConsumer<IUserEventHandler>(new KafkaConsumer("localhost:9092", serializer, encryptor, null, log, environment: null, userName: null, password: null), EventConsumerMode.PerReplica);
 ```
 
 A publisher can register a local handler and a producer for the same interface. The event is then handled locally **and** published.

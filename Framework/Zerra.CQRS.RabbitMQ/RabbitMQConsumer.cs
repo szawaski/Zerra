@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using RabbitMQ.Client;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Serialization;
@@ -22,6 +23,7 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly string host;
         private readonly ISerializer serializer;
         private readonly IEncryptor? encryptor;
+        private readonly ICompressor? compressor;
         private readonly ILogger? log;
         private readonly string? environment;
 
@@ -45,16 +47,18 @@ namespace Zerra.CQRS.RabbitMQ
         /// <param name="host">The RabbitMQ server hostname or IP address, or an AMQP URI (amqp://user:password@host:port/vhost, amqps:// for TLS) to also configure credentials, port, virtual host, and TLS.</param>
         /// <param name="serializer">The serializer for message deserialization and serialization.</param>
         /// <param name="encryptor">Optional decryptor for message decryption. If null, messages are assumed to be unencrypted.</param>
+        /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="environment">Optional environment name to match exchange name prefixes for isolation.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public RabbitMQConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
+        public RabbitMQConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
             this.serializer = serializer;
             this.encryptor = encryptor;
+            this.compressor = compressor;
             this.log = log;
             this.environment = environment;
             this.commandExchanges = new();
@@ -215,7 +219,7 @@ namespace Zerra.CQRS.RabbitMQ
                     return;
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, serializer, encryptor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
                 OpenExchanges();
             }
         }
@@ -231,7 +235,7 @@ namespace Zerra.CQRS.RabbitMQ
                     return;
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, compressor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync));
                 OpenExchanges();
             }
         }

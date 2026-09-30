@@ -59,10 +59,10 @@ bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
 
 // Remote: server side
 bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
-bus.AddQueryServer<IUserQueryHandler>(new TcpCqrsServer("localhost:9001", serializer, encryptor, log));
+bus.AddQueryServer<IUserQueryHandler>(new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log));
 
 // Remote: client side
-bus.AddQueryClient<IUserQueryHandler>(new TcpCqrsClient("localhost:9001", serializer, encryptor, log));
+bus.AddQueryClient<IUserQueryHandler>(new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log));
 ```
 
 Queries always travel directly over TCP or HTTP, never through a message broker. See [Server Setup](ServerSetup.md) and [Client Setup](ClientSetup.md).

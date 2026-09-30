@@ -26,6 +26,8 @@ A high-performance, distributed CQRS (Command Query Responsibility Segregation) 
 
 🔐 **Message Encryption** - Transparent symmetric encryption supporting AES, DES, TripleDES, RC2, and custom algorithms
 
+🗜️ **Message Compression** - Optional Deflate, GZip, ZLib, or Brotli compression applied before encryption
+
 ✨ **Zero Dependencies** - No external package dependencies on .NET 10; the .NET Standard 2.0 build adds only Microsoft's System.* compatibility packages
 
 🧩 **.NET 10 and .NET Standard 2.0** - `Zerra`, `Zerra.Web`, and the `Zerra.CQRS.*` transports also run on .NET Framework 4.7.2+ and other .NET Standard 2.0 platforms
@@ -63,7 +65,7 @@ bus.AddHandler<IUserCommandHandlers>(userCommandHandler);
 bus.AddHandler<IUserQueries>(userQueryHandler);
 
 // Create TCP CQRS server
-var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log: null);
+var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log: null);
 bus.AddCommandConsumer<IUserCommandHandlers>(server);
 bus.AddQueryServer<IUserQueries>(server);
 
@@ -87,7 +89,7 @@ IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithm
 var bus = Bus.New(service: "ClientService");
 
 // Create TCP CQRS client
-var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log: null);
+var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log: null);
 bus.AddCommandProducer<IUserCommandHandlers>(client);
 bus.AddQueryClient<IUserQueries>(client);
 

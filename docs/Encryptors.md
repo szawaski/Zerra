@@ -9,11 +9,11 @@ using Zerra.Encryption;
 
 IEncryptor encryptor = new ZerraEncryptor(configuration["Encryption:Key"], SymmetricAlgorithmType.AESwithPrefix);
 
-var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
-var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
+var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);
+var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log);
 ```
 
-Like serializers, encryptors are passed to each server, client, producer, and consumer, not to `Bus.New`.
+Like serializers, encryptors are passed to each server, client, producer, and consumer, not to `Bus.New`. The argument after the encryptor is an optional [compressor](Compressors.md), which runs before encryption when sending and after decryption when receiving.
 
 ## Configuration
 
@@ -73,4 +73,5 @@ public interface IEncryptor
 ## See Also
 
 - [Serializers](Serializers.md) - What gets encrypted
+- [Compressors](Compressors.md) - Compressing before encrypting
 - [Security](Security.md) - Authorization and claims

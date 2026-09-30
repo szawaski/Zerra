@@ -193,11 +193,11 @@ The usual gateway has no handlers of its own. It registers a client for each bac
 ```csharp
 var bus = Bus.New("Gateway", log, busLog);
 
-var users = new TcpCqrsClient("user-service:9001", new ZerraByteSerializer(), encryptor, log);
+var users = new TcpCqrsClient("user-service:9001", new ZerraByteSerializer(), encryptor, null, log);
 bus.AddCommandProducer<IUserCommandHandler>(users);
 bus.AddQueryClient<IUserQueryHandler>(users);
 
-var orders = new TcpCqrsClient("order-service:9002", new ZerraByteSerializer(), encryptor, log);
+var orders = new TcpCqrsClient("order-service:9002", new ZerraByteSerializer(), encryptor, null, log);
 bus.AddCommandProducer<IOrderCommandHandler>(orders);
 bus.AddQueryClient<IOrderQueryHandler>(orders);
 
@@ -227,7 +227,7 @@ bus.AddEventConsumer<IOrderEventHandler>(new KestrelCqrsServerEventConsumer(sett
 
 var app = builder.Build();
 app.Lifetime.ApplicationStopped.Register(bus.StopServices); // after Kestrel finishes the requests in progress
-app.UseKestrelCqrsServer(serializer, encryptor, log, settings);
+app.UseKestrelCqrsServer(serializer, encryptor, null, log, settings);
 app.Run();
 ```
 

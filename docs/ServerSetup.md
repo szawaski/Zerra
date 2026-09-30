@@ -27,7 +27,7 @@ bus.AddHandler<IUserEventHandler>(new UserEventHandler());
 
 var serializer = new ZerraByteSerializer();
 var encryptor = new ZerraEncryptor(encryptionKey, SymmetricAlgorithmType.AESwithPrefix);
-var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
+var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);   // null: no compressor, see Compressors.md
 bus.AddCommandConsumer<IUserCommandHandler>(server);
 bus.AddQueryServer<IUserQueryHandler>(server);
 bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
@@ -35,7 +35,7 @@ bus.AddEventConsumer<IUserEventHandler>(server, EventConsumerMode.PerReplica);
 await bus.WaitForExitAsync();
 ```
 
-- Callers must use the same serializer and encryption key. Read the key from configuration or a secret store, never source code.
+- Callers must use the same serializer, encryption key, and compressor. Read the key from configuration or a secret store, never source code.
 - Handler instances are shared by concurrent messages, so keep them stateless.
 - `AddEventConsumer` always takes an `EventConsumerMode`: `PerReplica` gives every replica of the service a copy of each event, and `PerService` has the replicas compete. See [Choosing per replica or per service](Events.md#choosing-per-replica-or-per-service).
 - `Bus.New` also sets the process-wide static `Bus`, so a process normally has one bus.
@@ -53,9 +53,9 @@ The [Bus options](ClientSetup.md#bus-options) (timeouts, concurrency limits, `sh
 Every server is a query server, a command consumer, and an event consumer at once.
 
 ```csharp
-var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
+var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);
 
-var httpServer = new HttpCqrsServer("localhost:8080", serializer, encryptor,
+var httpServer = new HttpCqrsServer("localhost:8080", serializer, encryptor, null,
     authorizer: null,     // optional ICqrsAuthorizer to validate request headers
     allowOrigins: null,   // optional CORS origins
     log: log);
@@ -71,14 +71,14 @@ A broker consumer handles both commands and events. Topics and queues are named 
 
 ```csharp
 using Zerra.CQRS.Kafka;
-var kafka = new KafkaConsumer("localhost:9092", serializer, encryptor, log,
+var kafka = new KafkaConsumer("localhost:9092", serializer, encryptor, null, log,
     environment: "dev", userName: null, password: null);   // SASL credentials are optional
 
 using Zerra.CQRS.RabbitMQ;
-var rabbit = new RabbitMQConsumer("localhost", serializer, encryptor, log, environment: "dev");
+var rabbit = new RabbitMQConsumer("localhost", serializer, encryptor, null, log, environment: "dev");
 
 using Zerra.CQRS.AzureServiceBus;
-var asb = new AzureServiceBusConsumer(connectionString, serializer, encryptor, log, environment: "dev");
+var asb = new AzureServiceBusConsumer(connectionString, serializer, encryptor, null, log, environment: "dev");
 
 bus.AddCommandConsumer<IUserCommandHandler>(kafka);
 bus.AddEventConsumer<IUserEventHandler>(kafka, EventConsumerMode.PerReplica);
@@ -145,5 +145,5 @@ await bus.WaitForExitAsync();
 
 - [Client Setup](ClientSetup.md) - Calling services, and the bus options
 - [Service Injection](ServiceInjection.md) - Services for handlers
-- [Serializers](Serializers.md) and [Encryptors](Encryptors.md) - What goes over the wire
+- [Serializers](Serializers.md), [Encryptors](Encryptors.md), and [Compressors](Compressors.md) - What goes over the wire
 - [Logging](Logging.md) - `ILogger` and `IBusLogger`

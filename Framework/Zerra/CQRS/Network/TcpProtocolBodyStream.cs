@@ -24,9 +24,8 @@ namespace Zerra.CQRS.Network
         private bool ended;
         private const int segmentLengthBufferLength = 4;
         private byte[]? segmentLengthBufferSource;
-
-        //writes are buffered so a segment's length, data, and the ending go out in one write instead of many small packets
-        //lengths are written with BitConverter to match the byte order the reader uses
+        private static readonly byte[] finishReadBuffer = new byte[1];
+        private const int discardReadBufferLength = 1024 * 16;
         private const int writeBufferLength = 1024 * 16;
         private byte[]? writeBufferSource;
         private int writeSegmentStart;
@@ -249,6 +248,73 @@ namespace Zerra.CQRS.Network
 
             position += totalBytesRead;
             return totalBytesRead;
+        }
+
+        //reads and checks the body's ending so the connection is ready for what follows, data still before it means the body wasn't fully read
+        public void FinishRead()
+        {
+            if (writeMode)
+                throw new InvalidOperationException("Stream is in write mode");
+            if (segmentLength == 0)
+                return;
+            Span<byte> buffer = stackalloc byte[1];
+            if (InternalRead(buffer) > 0)
+                throw new CqrsNetworkException("Body has unread data");
+        }
+
+        public async ValueTask FinishReadAsync(CancellationToken cancellationToken)
+        {
+            if (writeMode)
+                throw new InvalidOperationException("Stream is in write mode");
+            if (segmentLength == 0)
+                return;
+            if (await InternalReadAsync(finishReadBuffer, cancellationToken) > 0)
+                throw new CqrsNetworkException("Body has unread data");
+        }
+
+        //reads through the body's ending skipping any data before it, such as an upload the handler stopped reading
+        public void DiscardRead()
+        {
+            if (writeMode)
+                throw new InvalidOperationException("Stream is in write mode");
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(discardReadBufferLength);
+            var maxSize = 0;
+            try
+            {
+                int read;
+                while ((read = InternalRead(bufferOwner)) > 0)
+                {
+                    if (read > maxSize)
+                        maxSize = read;
+                }
+            }
+            finally
+            {
+                bufferOwner.AsSpan(0, maxSize).Clear();
+                ArrayPoolHelper<byte>.Return(bufferOwner);
+            }
+        }
+
+        public async ValueTask DiscardReadAsync(CancellationToken cancellationToken)
+        {
+            if (writeMode)
+                throw new InvalidOperationException("Stream is in write mode");
+            var bufferOwner = ArrayPoolHelper<byte>.Rent(discardReadBufferLength);
+            var maxSize = 0;
+            try
+            {
+                int read;
+                while ((read = await InternalReadAsync(bufferOwner, cancellationToken)) > 0)
+                {
+                    if (read > maxSize)
+                        maxSize = read;
+                }
+            }
+            finally
+            {
+                bufferOwner.AsSpan(0, maxSize).Clear();
+                ArrayPoolHelper<byte>.Return(bufferOwner);
+            }
         }
 
         protected override void InternalWrite(ReadOnlySpan<byte> buffer)

@@ -172,7 +172,7 @@ bus.AddHandler<IEmailEventHandler>(new EmailEventHandler());
 // Expose them over TCP, serialized in binary and encrypted with a shared key
 var serializer = new ZerraByteSerializer();
 var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AESwithPrefix);
-var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
+var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);   // null: no compressor, see Compressors.md
 bus.AddQueryServer<IUserQueryHandler>(server);
 bus.AddCommandConsumer<IUserCommandHandler>(server);
 
@@ -191,7 +191,7 @@ var bus = Bus.New("ClientService", log, busLog);
 
 var serializer = new ZerraByteSerializer();
 var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AESwithPrefix);
-var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
+var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log);
 bus.AddQueryClient<IUserQueryHandler>(client);
 bus.AddCommandProducer<IUserCommandHandler>(client);
 
@@ -224,13 +224,13 @@ bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
 
 ```csharp
 // Server
-var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
+var tcpServer = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);
 bus.AddQueryServer<IUserQueryHandler>(tcpServer);
 bus.AddCommandConsumer<IUserCommandHandler>(tcpServer);
 bus.AddEventConsumer<IEmailEventHandler>(tcpServer, EventConsumerMode.PerService);
 
 // Client
-var tcpClient = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
+var tcpClient = new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log);
 bus.AddQueryClient<IUserQueryHandler>(tcpClient);
 bus.AddCommandProducer<IUserCommandHandler>(tcpClient);
 bus.AddEventProducer<IEmailEventHandler>(tcpClient);
@@ -240,12 +240,12 @@ bus.AddEventProducer<IEmailEventHandler>(tcpClient);
 
 ```csharp
 // Server (authorizer and allowOrigins are optional)
-var httpServer = new HttpCqrsServer("localhost:9001", serializer, encryptor, authorizer: null, allowOrigins: null, log: log);
+var httpServer = new HttpCqrsServer("localhost:9001", serializer, encryptor, null, authorizer: null, allowOrigins: null, log: log);
 bus.AddQueryServer<IUserQueryHandler>(httpServer);
 bus.AddCommandConsumer<IUserCommandHandler>(httpServer);
 
 // Client
-var httpClient = new HttpCqrsClient("localhost:9001", serializer, encryptor, authorizer: null, log: log);
+var httpClient = new HttpCqrsClient("localhost:9001", serializer, encryptor, null, authorizer: null, log: log);
 bus.AddQueryClient<IUserQueryHandler>(httpClient);
 bus.AddCommandProducer<IUserCommandHandler>(httpClient);
 ```
@@ -264,17 +264,17 @@ Commands and events can travel through a broker. Queries are request-response an
 
 ```csharp
 // Server (Kafka shown; RabbitMQ and Azure Service Bus follow the same pattern)
-var kafkaConsumer = new KafkaConsumer("localhost:9092", serializer, encryptor, log, environment: "dev", userName: null, password: null);
+var kafkaConsumer = new KafkaConsumer("localhost:9092", serializer, encryptor, null, log, environment: "dev", userName: null, password: null);
 bus.AddCommandConsumer<IUserCommandHandler>(kafkaConsumer);
 bus.AddEventConsumer<IEmailEventHandler>(kafkaConsumer, EventConsumerMode.PerService);
 
 // Client
-var kafkaProducer = new KafkaProducer("localhost:9092", serializer, encryptor, log, environment: "dev", userName: null, password: null);
+var kafkaProducer = new KafkaProducer("localhost:9092", serializer, encryptor, null, log, environment: "dev", userName: null, password: null);
 bus.AddCommandProducer<IUserCommandHandler>(kafkaProducer);
 bus.AddEventProducer<IEmailEventHandler>(kafkaProducer);
 
-// RabbitMQ:          new RabbitMQProducer(host, serializer, encryptor, log, environment)
-// Azure Service Bus: new AzureServiceBusProducer(connectionString, serializer, encryptor, log, environment)
+// RabbitMQ:          new RabbitMQProducer(host, serializer, encryptor, compressor, log, environment)
+// Azure Service Bus: new AzureServiceBusProducer(connectionString, serializer, encryptor, compressor, log, environment)
 ```
 
 `AddEventConsumer` always states a mode. `PerService` means the service's replicas compete, so one of them handles each event. `PerReplica` means every replica gets its own copy, which suits work like dropping a replica's in-memory cache. See [Events](Events.md#choosing-per-replica-or-per-service).
@@ -294,7 +294,7 @@ app.UseCqrsApiGateway("/CQRS");
 - **Timeouts, concurrency limits, and shutdown:** the [Bus options](ClientSetup.md#bus-options).
 - **Services for handlers:** register them by interface in `BusServices` and get them with `Context.GetService<T>()`. See [Service Injection](ServiceInjection.md).
 - **Logging:** `ILogger` for messages, and `IBusLogger` for the start and end of every command, event, and query. See [Logging](Logging.md).
-- **Serialization and encryption:** `ZerraByteSerializer` between services, `ZerraJsonSerializer` for browsers, and `ZerraEncryptor` with a shared key. See [Serializers](Serializers.md) and [Encryptors](Encryptors.md).
+- **Serialization, encryption, and compression:** `ZerraByteSerializer` between services, `ZerraJsonSerializer` for browsers, `ZerraEncryptor` with a shared key, and optionally `ZerraCompressor` for large payloads. See [Serializers](Serializers.md), [Encryptors](Encryptors.md), and [Compressors](Compressors.md).
 ## Lifecycle
 
 Servers, consumers, clients, and producers start when they are added to the bus.

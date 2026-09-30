@@ -9,6 +9,67 @@ namespace Zerra.Test.CQRS.Network
 {
     public class TcpProtocolBodyStreamTests
     {
+        //a 3 byte segment, the ending, then the next message
+        private static readonly byte[] finishReadBody = [3, 0, 0, 0, 1, 2, 3, 0, 0, 0, 0, 0x7F];
+
+        private static async Task FinishRead(TcpProtocolBodyStream stream, bool async)
+        {
+            if (async)
+                await stream.FinishReadAsync(TestContext.Current.CancellationToken);
+            else
+                stream.FinishRead();
+        }
+
+        private static async Task DiscardRead(TcpProtocolBodyStream stream, bool async)
+        {
+            if (async)
+                await stream.DiscardReadAsync(TestContext.Current.CancellationToken);
+            else
+                stream.DiscardRead();
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task FinishRead_AfterData_ReadsOnlyTheEnding(bool async)
+        {
+            var baseStream = new MemoryStream(finishReadBody);
+            var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: false, leaveOpen: true);
+            var buffer = new byte[3];
+            stream.ReadExactly(buffer);
+
+            await FinishRead(stream, async);
+
+            Assert.Equal([1, 2, 3], buffer);
+            Assert.Equal(finishReadBody.Length - 1, baseStream.Position);
+            await FinishRead(stream, async); //already ended
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task FinishRead_UnreadData_Throws(bool async)
+        {
+            var stream = new TcpProtocolBodyStream(new MemoryStream(finishReadBody), Array.Empty<byte>(), writeMode: false, leaveOpen: true);
+            _ = stream.ReadByte();
+
+            _ = await Assert.ThrowsAsync<CqrsNetworkException>(() => FinishRead(stream, async));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task DiscardRead_SkipsToEnding(bool async)
+        {
+            var baseStream = new MemoryStream(finishReadBody);
+            var stream = new TcpProtocolBodyStream(baseStream, Array.Empty<byte>(), writeMode: false, leaveOpen: true);
+            _ = stream.ReadByte();
+
+            await DiscardRead(stream, async);
+
+            Assert.Equal(finishReadBody.Length - 1, baseStream.Position);
+        }
+
         [Fact]
         public void Constructor_WriteMode()
         {

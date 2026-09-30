@@ -202,8 +202,8 @@ namespace Zerra.Web
                     using (var uploadDataStream = new TcpProtocolBodyStream(context.Request.Body, null, false, true))
                     {
                         data = await serializer.DeserializeAsync<ApiRequestData>(uploadDataStream, context.RequestAborted);
-                        //through the end of the framing in case the serializer stopped short of it
-                        await uploadDataStream.CopyToAsync(Stream.Null, 81920, context.RequestAborted);
+                        //the framing.s ending is read and checked, the handler reads the stream after it
+                        await uploadDataStream.FinishReadAsync(context.RequestAborted);
                     }
                     if (data is null || String.IsNullOrWhiteSpace(data.ProviderType))
                         throw new Exception("Invalid Request"); //only queries take a stream

@@ -19,6 +19,7 @@ var producer = new KafkaProducer(
     host: "localhost:9092",   // bootstrap servers
     serializer: serializer,
     encryptor: encryptor,     // optional
+    compressor: compressor,   // optional
     log: log,                 // optional
     environment: "dev",       // optional topic prefix
     userName: null,           // optional SASL/PLAIN user name
@@ -37,7 +38,7 @@ One producer serves any number of interfaces, and Kafka delivers each event to e
 The handling side registers its handlers and a `KafkaConsumer`, which takes the same constructor arguments:
 
 ```csharp
-var consumer = new KafkaConsumer("localhost:9092", serializer, encryptor, log, environment: "dev", userName: null, password: null);
+var consumer = new KafkaConsumer("localhost:9092", serializer, encryptor, null, log, environment: "dev", userName: null, password: null);
 
 bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
@@ -69,9 +70,9 @@ The mode is each subscriber's own choice and changes nothing for the publisher o
 
 ```csharp
 if (await KafkaConnection.TestAsync("localhost:9092", userName: null, password: null, log: log))
-    bus.AddCommandProducer<IStockReservationHandler>(new KafkaProducer("localhost:9092", serializer, encryptor, log, null, null, null));
+    bus.AddCommandProducer<IStockReservationHandler>(new KafkaProducer("localhost:9092", serializer, encryptor, null, log, null, null, null));
 else
-    bus.AddCommandProducer<IStockReservationHandler>(new TcpCqrsClient("localhost:9102", serializer, encryptor, log));
+    bus.AddCommandProducer<IStockReservationHandler>(new TcpCqrsClient("localhost:9102", serializer, encryptor, null, log));
 ```
 
 `Demo/Store` does this for stock reservations, in `Store.Orders.Service/Program.cs` and `Store.Inventory.Service/Program.cs`.

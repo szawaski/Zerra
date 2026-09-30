@@ -8,6 +8,7 @@ using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using System.Text;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.CQRS.Network;
@@ -30,6 +31,7 @@ namespace Zerra.CQRS.Kafka
 
         private readonly Zerra.Serialization.ISerializer serializer;
         private readonly IEncryptor? encryptor;
+        private readonly ICompressor? compressor;
         private readonly ILogger? log;
         private readonly string? environment;
 
@@ -50,6 +52,7 @@ namespace Zerra.CQRS.Kafka
         /// <param name="host">The Kafka bootstrap server address (e.g., "localhost:9092").</param>
         /// <param name="serializer">The serializer for message serialization and deserialization.</param>
         /// <param name="encryptor">Optional encryptor for message encryption. If null, messages are not encrypted.</param>
+        /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="environment">Optional environment name to prefix topic names for isolation.</param>
         /// <param name="userName">Optional username for SASL authentication. Must be paired with password.</param>
@@ -62,12 +65,13 @@ namespace Zerra.CQRS.Kafka
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Alpine", "Confluent.Kafka")]
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Centos8", "Confluent.Kafka")]
 #endif
-        public KafkaProducer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, string? userName, string? password)
+        public KafkaProducer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName, string? password)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.serializer = serializer;
             this.encryptor = encryptor;
+            this.compressor = compressor;
             this.log = log;
             this.environment = environment;
             this.commonHost = KafkaCommon.GetHost(host, userName, password);
@@ -161,6 +165,8 @@ namespace Zerra.CQRS.Kafka
                 };
 
                 var body = serializer.SerializeBytes(message);
+                if (compressor is not null)
+                    body = compressor.Compress(body);
                 if (encryptor is not null)
                     body = encryptor.Encrypt(body);
 
@@ -253,6 +259,8 @@ namespace Zerra.CQRS.Kafka
                 };
 
                 var body = serializer.SerializeBytes(message);
+                if (compressor is not null)
+                    body = compressor.Compress(body);
                 if (encryptor is not null)
                     body = encryptor.Encrypt(body);
 
@@ -318,6 +326,8 @@ namespace Zerra.CQRS.Kafka
                 };
 
                 var body = serializer.SerializeBytes(message);
+                if (compressor is not null)
+                    body = compressor.Compress(body);
                 if (encryptor is not null)
                     body = encryptor.Encrypt(body);
 
@@ -412,6 +422,8 @@ namespace Zerra.CQRS.Kafka
                                     var response = consumerResult.Message.Value;
                                     if (encryptor is not null)
                                         response = encryptor.Decrypt(response);
+                                    if (compressor is not null)
+                                        response = compressor.Decompress(response);
                                     acknowledgement = serializer.Deserialize<Acknowledgement>(response);
                                     acknowledgement ??= new Acknowledgement(serializer, "Invalid Acknowledgement");
                                 }

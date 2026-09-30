@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using Zerra.Collections;
 using System.Security.Claims;
 using System.Text;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Reflection;
@@ -26,6 +27,7 @@ namespace Zerra.CQRS.Kafka
             private readonly string clientID;
             private readonly Zerra.Serialization.ISerializer serializer;
             private readonly IEncryptor? encryptor;
+            private readonly ICompressor? compressor;
             private readonly ILogger? log;
             private readonly HandleRemoteCommandDispatch handlerAsync;
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
@@ -65,7 +67,7 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -82,6 +84,7 @@ namespace Zerra.CQRS.Kafka
                 this.clientID = Environment.MachineName;
                 this.serializer = serializer;
                 this.encryptor = encryptor;
+                this.compressor = compressor;
                 this.log = log;
                 this.handlerAsync = handlerAsync;
                 this.handlerAwaitAsync = handlerAwaitAsync;
@@ -213,6 +216,8 @@ namespace Zerra.CQRS.Kafka
                         var body = consumerResult.Message.Value;
                         if (encryptor is not null)
                             body = encryptor.Decrypt(body);
+                        if (compressor is not null)
+                            body = compressor.Decompress(body);
 
                         var message = serializer.Deserialize<KafkaMessage>(body);
                         if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
@@ -264,6 +269,8 @@ namespace Zerra.CQRS.Kafka
 
                     var acknowledgement = new Acknowledgement(serializer, result, error);
                     var body = serializer.SerializeBytes(acknowledgement);
+                    if (compressor is not null)
+                        body = compressor.Compress(body);
                     if (encryptor is not null)
                         body = encryptor.Encrypt(body);
 

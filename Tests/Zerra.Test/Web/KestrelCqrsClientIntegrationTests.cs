@@ -58,7 +58,7 @@ namespace Zerra.Test.Web
 
         private static KestrelCqrsClient CreateClient(string url)
         {
-            var client = new KestrelCqrsClient(url, serializer, null, null, null, null);
+            var client = new KestrelCqrsClient(url, serializer, null, null, null, null, null);
             ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommand));
             ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));
             ((IEventProducer)client).RegisterEventType(10, "test", typeof(TestEvent));
@@ -92,7 +92,7 @@ namespace Zerra.Test.Web
                 builder.WebHost.UseUrls("http://127.0.0.1:0");
                 builder.Logging.ClearProviders();
                 var app = builder.Build();
-                _ = app.UseKestrelCqrsServer(serializer, null, null, settings);
+                _ = app.UseKestrelCqrsServer(serializer, null, null, null, settings);
                 await app.StartAsync();
 
                 var server = new TestServer(app, settings, app.Urls.First());

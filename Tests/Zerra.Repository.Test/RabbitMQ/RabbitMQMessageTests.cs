@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using RabbitMQ.Client;
 using Xunit;
 using Zerra.CQRS;
+using Zerra.Compression;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.Reflection;
 using Zerra.Encryption;
@@ -32,12 +33,13 @@ namespace Zerra.Repository.Test.RabbitMQ
             var eventTopic = MessageTest.NewTopic("Event");
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+            var compressor = new ZerraCompressor(CompressionAlgorithmType.Brotli);
             var log = new TestLogger();
 
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, encryptor, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, compressor, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, encryptor, compressor, log, null))
                 {
                     await MessageTest.TestSequence(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -58,8 +60,8 @@ namespace Zerra.Repository.Test.RabbitMQ
 
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, null, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, null, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
                 {
                     await MessageTest.TestCommandSentBeforeConsumer(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
                 }
@@ -84,8 +86,8 @@ namespace Zerra.Repository.Test.RabbitMQ
 
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, encryptor, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, null, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, encryptor, null, log, null))
                 {
                     await MessageTest.TestFinishesProcessingOnClose(producer, producer, consumer, consumer, commandTopic, eventTopic, disposeAsync, TestContext.Current.CancellationToken);
                 }
@@ -108,10 +110,10 @@ namespace Zerra.Repository.Test.RabbitMQ
             try
             {
                 //a consumer per connection, standing in for the replicas of two services
-                using (var serviceAReplica1 = new RabbitMQConsumer(host, serializer, encryptor, log, null))
-                using (var serviceAReplica2 = new RabbitMQConsumer(host, serializer, encryptor, log, null))
-                using (var serviceB = new RabbitMQConsumer(host, serializer, encryptor, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, encryptor, log, null))
+                using (var serviceAReplica1 = new RabbitMQConsumer(host, serializer, encryptor, null, log, null))
+                using (var serviceAReplica2 = new RabbitMQConsumer(host, serializer, encryptor, null, log, null))
+                using (var serviceB = new RabbitMQConsumer(host, serializer, encryptor, null, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, encryptor, null, log, null))
                 {
                     await MessageTest.TestEventConsumerModePerService(producer, serviceAReplica1, serviceAReplica2, serviceB, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -141,8 +143,8 @@ namespace Zerra.Repository.Test.RabbitMQ
 
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, encryptor, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, null, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, encryptor, null, log, null))
                 {
                     ICommandConsumer commandConsumer = consumer;
                     IEventConsumer eventConsumer = consumer;

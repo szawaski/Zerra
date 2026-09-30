@@ -56,29 +56,30 @@ bus.AddHandler<ICatalogEventHandler>(new CatalogEventHandler());
 
 var serializer = StoreSettings.CreateServiceSerializer();
 var encryptor = StoreSettings.CreateServiceEncryptor();
+var compressor = StoreSettings.CreateCompressor();
 
-var server = new TcpCqrsServer(StoreSettings.ReviewsServiceUrl, serializer, encryptor, log);
+var server = new TcpCqrsServer(StoreSettings.ReviewsServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryServer<IReviewsQueryHandler>(server);
 
 //The gateway sends review commands through Azure Service Bus when it's running, otherwise directly over TCP. The gateway makes the same check,
 //so this service listens on whichever route the gateway will use. Queries always come directly over TCP.
 if (useServiceBus)
-    bus.AddCommandConsumer<IReviewsCommandHandler>(new AzureServiceBusConsumer(StoreSettings.AzureServiceBusConnectionString, serializer, encryptor, log, null));
+    bus.AddCommandConsumer<IReviewsCommandHandler>(new AzureServiceBusConsumer(StoreSettings.AzureServiceBusConnectionString, serializer, encryptor, null, log, null));
 else
     bus.AddCommandConsumer<IReviewsCommandHandler>(server);
 
 //Catalog publishes its product events through RabbitMQ when it's running, otherwise straight here over TCP. Catalog makes the same check,
 //so this service listens on whichever route it will use. Every Reviews replica gets a copy and drops its own cached product.
 if (useRabbitMQ)
-    bus.AddEventConsumer<ICatalogEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null), EventConsumerMode.PerReplica);
+    bus.AddEventConsumer<ICatalogEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, null, log, null), EventConsumerMode.PerReplica);
 else
     bus.AddEventConsumer<ICatalogEventHandler>(server, EventConsumerMode.PerReplica);
 
 //Downstream services: the product's name from Catalog, purchase history from Orders to mark a review Verified
-var catalogClient = new TcpCqrsClient(StoreSettings.CatalogServiceUrl, serializer, encryptor, log);
+var catalogClient = new TcpCqrsClient(StoreSettings.CatalogServiceUrl, serializer, encryptor, compressor, log);
 bus.AddQueryClient<ICatalogQueryHandler>(catalogClient);
 
-var ordersClient = new TcpCqrsClient(StoreSettings.OrdersServiceUrl, serializer, encryptor, log);
+var ordersClient = new TcpCqrsClient(StoreSettings.OrdersServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryClient<IOrdersQueryHandler>(ordersClient);
 
 log.Info($"Reviews service listening on {StoreSettings.ReviewsServiceUrl}, started in {startup.ElapsedMilliseconds} ms ({startup.ElapsedMilliseconds - databaseSetup.ElapsedMilliseconds - seeding.ElapsedMilliseconds} ms excluding database setup and seed data), press Ctrl+C to stop");

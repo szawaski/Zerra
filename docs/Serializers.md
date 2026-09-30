@@ -19,8 +19,8 @@ ISerializer serializer = new ZerraByteSerializer();                             
 ISerializer json = new ZerraJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions { IgnoreCase = true });
 ISerializer stj = new SystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
-var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
-var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
+var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);
+var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log);
 ```
 
 A serializer is passed to each server, client, producer, and consumer, not to `Bus.New`. A typical system uses `ZerraByteSerializer` between services and `ZerraJsonSerializer` at the API gateway.
@@ -58,3 +58,4 @@ public interface ISerializer
 
 - [ByteSerializer](ByteSerializer.md) and [JsonSerializer](JsonSerializer.md) - Details of each
 - [Encryptors](Encryptors.md) - Encrypting what the serializer produces
+- [Compressors](Compressors.md) - Compressing what the serializer produces

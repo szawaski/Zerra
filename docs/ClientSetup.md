@@ -20,7 +20,7 @@ var bus = Bus.New("ClientApp", log, busLog);
 
 var serializer = new ZerraByteSerializer();                                               // must match the server
 var encryptor = new ZerraEncryptor(encryptionKey, SymmetricAlgorithmType.AESwithPrefix);  // must match the server
-var users = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
+var users = new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log);   // null: no compressor, see Compressors.md
 bus.AddQueryClient<IUserQueryHandler>(users);
 bus.AddCommandProducer<IUserCommandHandler>(users);
 bus.AddEventProducer<IUserEventHandler>(users);
@@ -37,9 +37,9 @@ In ASP.NET Core, register the bus as a singleton `IBus` and inject it where need
 
 | Client | Package | Reaches |
 |---|---|---|
-| `TcpCqrsClient(url, serializer, encryptor, log)` | `Zerra` | a `TcpCqrsServer` |
-| `HttpCqrsClient(url, serializer, encryptor, authorizer, log)` | `Zerra` | an `HttpCqrsServer` |
-| `KestrelCqrsClient(url, serializer, encryptor, log, authorizer, route)` | `Zerra.Web` | a service hosted in ASP.NET Core |
+| `TcpCqrsClient(url, serializer, encryptor, compressor, log)` | `Zerra` | a `TcpCqrsServer` |
+| `HttpCqrsClient(url, serializer, encryptor, compressor, authorizer, log)` | `Zerra` | an `HttpCqrsServer` |
+| `KestrelCqrsClient(url, serializer, encryptor, compressor, log, authorizer, route)` | `Zerra.Web` | a service hosted in ASP.NET Core |
 | `ApiClient` | `Zerra` | the CQRS API gateway, see [ApiClient](ApiClient.md) |
 | `KafkaProducer`, `RabbitMQProducer`, `AzureServiceBusProducer` | `Zerra.CQRS.*` | a broker; commands and events only |
 
@@ -48,14 +48,14 @@ Each client is a query client, a command producer, and an event producer. The op
 Register one client per backend service. A caller can mix transports freely:
 
 ```csharp
-var users = new TcpCqrsClient("user-service:9001", serializer, encryptor, log);
+var users = new TcpCqrsClient("user-service:9001", serializer, encryptor, null, log);
 bus.AddQueryClient<IUserQueryHandler>(users);
 bus.AddCommandProducer<IUserCommandHandler>(users);
 
-var shipping = new KestrelCqrsClient("http://shipping-service:9105", serializer, encryptor, log, authorizer: null, route: null);
+var shipping = new KestrelCqrsClient("http://shipping-service:9105", serializer, encryptor, null, log, authorizer: null, route: null);
 bus.AddQueryClient<IShippingQueryHandler>(shipping);
 
-var kafka = new KafkaProducer("localhost:9092", serializer, encryptor, log, environment: "dev", userName: null, password: null);
+var kafka = new KafkaProducer("localhost:9092", serializer, encryptor, null, log, environment: "dev", userName: null, password: null);
 bus.AddCommandProducer<IOrderCommandHandler>(kafka);
 ```
 
@@ -118,5 +118,5 @@ See [Commands](Commands.md#errors) and [Queries](Queries.md#errors).
 ## See Also
 
 - [Server Setup](ServerSetup.md) - The other end
-- [Serializers](Serializers.md) and [Encryptors](Encryptors.md) - What goes over the wire
+- [Serializers](Serializers.md), [Encryptors](Encryptors.md), and [Compressors](Compressors.md) - What goes over the wire
 - [Logging](Logging.md) - `ILogger` and `IBusLogger`

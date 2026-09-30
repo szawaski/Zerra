@@ -17,7 +17,7 @@ Handlers are called the same way whether they live in the same process, across T
 - **Clear message semantics.** Queries read, commands change state and are handled once, events notify every subscriber. Per-replica or per-service delivery is an explicit choice for each subscriber.
 - **Fast by design.** Source generators replace runtime reflection, the binary serializer is compact, and everything is Native AOT compatible.
 - **No external dependencies.** Nothing beyond .NET itself on .NET 10. The .NET Standard 2.0 build, which also runs on .NET Framework 4.7.2+, adds only Microsoft's System.* compatibility packages.
-- **Complete toolkit.** Built-in binary and JSON serializers, message encryption, claims propagation, a browser API gateway with generated JavaScript and TypeScript clients, and an experimental LINQ repository across SQL Server, PostgreSQL, MySQL, MariaDB, and KurrentDB.
+- **Complete toolkit.** Built-in binary and JSON serializers, message encryption and compression, claims propagation, a browser API gateway with generated JavaScript and TypeScript clients, and an experimental LINQ repository across SQL Server, PostgreSQL, MySQL, MariaDB, and KurrentDB.
 
 ## At a Glance
 
@@ -59,7 +59,7 @@ Where the handler runs is decided only at startup:
 bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
 
 // Or in another service, over TCP
-bus.AddQueryClient<IUserQueryHandler>(new TcpCqrsClient("users:9001", serializer, encryptor, log));
+bus.AddQueryClient<IUserQueryHandler>(new TcpCqrsClient("users:9001", serializer, encryptor, null, log));
 ```
 
 ## Get Started
@@ -76,7 +76,7 @@ dotnet add package Zerra
 
 | Package | Purpose |
 |---|---|
-| `Zerra` | Bus, handlers, TCP/HTTP transports, serializers, encryption, source generation |
+| `Zerra` | Bus, handlers, TCP/HTTP transports, serializers, encryption, compression, source generation |
 | `Zerra.Web` | ASP.NET Core hosting and the browser CQRS API gateway |
 | `Zerra.CQRS.Kafka` | Kafka transport |
 | `Zerra.CQRS.RabbitMQ` | RabbitMQ transport |

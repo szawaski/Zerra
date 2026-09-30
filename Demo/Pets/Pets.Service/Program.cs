@@ -35,13 +35,13 @@ busServices.AddRepo(repo);
 IBusSetup busServer = Bus.New("pets-service-server", log, busLog, busServices);
 busServer.AddHandler<IPetsQueryHandler>(new PetsQueryHandler());
 busServer.AddHandler<IPetsCommandHandler>(new PetsCommandHandler());
-var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, log);
+var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);
 busServer.AddQueryServer<IPetsQueryHandler>(server);
 busServer.AddCommandConsumer<IPetsCommandHandler>(server);
 
 //Create Client-Side Bus
 IBusSetup busClient = Bus.New("pets-service-client", log, busLog, busServices);
-var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, log);
+var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log);
 busClient.AddQueryClient<IPetsQueryHandler>(client);
 busClient.AddCommandProducer<IPetsCommandHandler>(client);
 

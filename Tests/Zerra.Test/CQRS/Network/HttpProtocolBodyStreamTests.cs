@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Text;
 using Xunit;
 using Zerra.CQRS.Network;
 
@@ -10,6 +11,76 @@ namespace Zerra.Test.CQRS.Network
 {
     public class HttpProtocolBodyStreamTests
     {
+        private static async Task FinishRead(HttpProtocolBodyStream stream, bool async)
+        {
+            if (async)
+                await stream.FinishReadAsync(TestContext.Current.CancellationToken);
+            else
+                stream.FinishRead();
+        }
+
+        private static async Task DiscardRead(HttpProtocolBodyStream stream, bool async)
+        {
+            if (async)
+                await stream.DiscardReadAsync(TestContext.Current.CancellationToken);
+            else
+                stream.DiscardRead();
+        }
+
+        //with a content length the next message follows the 3 bytes, a chunked body can't be read past without failing
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public async Task FinishRead_AfterData_ReadsOnlyTheEnding(bool async, bool chunked)
+        {
+            var body = Encoding.UTF8.GetBytes(chunked ? "3\r\nabc\r\n0\r\n\r\n" : "abcX");
+            Stream baseStream = chunked ? new NoReadPastEndStream(body) : new MemoryStream(body);
+            var stream = new HttpProtocolBodyStream(chunked ? null : 3, baseStream, Array.Empty<byte>(), writeMode: false, leaveOpen: true);
+            var buffer = new byte[3];
+            stream.ReadExactly(buffer);
+
+            await FinishRead(stream, async);
+
+            Assert.Equal("abc", Encoding.UTF8.GetString(buffer));
+            if (!chunked)
+                Assert.Equal(body.Length - 1, baseStream.Position); //chunked reads fail past the ending instead
+            await FinishRead(stream, async); //already ended
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public async Task FinishRead_UnreadData_Throws(bool async, bool chunked)
+        {
+            var body = Encoding.UTF8.GetBytes(chunked ? "3\r\nabc\r\n0\r\n\r\n" : "abcX");
+            var stream = new HttpProtocolBodyStream(chunked ? null : 3, chunked ? new NoReadPastEndStream(body) : new MemoryStream(body), Array.Empty<byte>(), writeMode: false, leaveOpen: true);
+            _ = stream.ReadByte();
+
+            _ = await Assert.ThrowsAsync<CqrsNetworkException>(() => FinishRead(stream, async));
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public async Task DiscardRead_SkipsToEnding(bool async, bool chunked)
+        {
+            var body = Encoding.UTF8.GetBytes(chunked ? "3\r\nabc\r\n0\r\n\r\n" : "abcX");
+            Stream baseStream = chunked ? new NoReadPastEndStream(body) : new MemoryStream(body);
+            var stream = new HttpProtocolBodyStream(chunked ? null : 3, baseStream, Array.Empty<byte>(), writeMode: false, leaveOpen: true);
+            _ = stream.ReadByte();
+
+            await DiscardRead(stream, async);
+
+            if (!chunked)
+                Assert.Equal(body.Length - 1, baseStream.Position); //chunked reads fail past the ending instead
+        }
+
         [Fact]
         public void Constructor_WriteMode_WithContentLength()
         {

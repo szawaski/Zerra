@@ -6,6 +6,7 @@ using Azure.Messaging.ServiceBus;
 using System.Collections.Concurrent;
 using System.Security.Claims;
 using Zerra.CQRS.Network;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Serialization;
@@ -27,6 +28,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
         private readonly ISerializer serializer;
         private readonly IEncryptor? encryptor;
+        private readonly ICompressor? compressor;
         private readonly ILogger? log;
         private readonly string? environment;
         private readonly string ackQueue;
@@ -46,16 +48,18 @@ namespace Zerra.CQRS.AzureServiceBus
         /// <param name="host">The Azure Service Bus connection string.</param>
         /// <param name="serializer">The serializer for message serialization and deserialization.</param>
         /// <param name="encryptor">Optional encryptor for message encryption. If null, messages are not encrypted.</param>
+        /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information.</param>
         /// <param name="environment">Optional environment name to prefix queue and topic names for isolation.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public AzureServiceBusProducer(string host, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment)
+        public AzureServiceBusProducer(string host, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.commonNamespace = AzureServiceBusCommon.GetNamespace(host);
             this.serializer = serializer;
             this.encryptor = encryptor;
+            this.compressor = compressor;
             this.log = log;
             this.environment = environment;
 
@@ -128,6 +132,8 @@ namespace Zerra.CQRS.AzureServiceBus
                 };
 
                 var body = serializer.SerializeBytes(message);
+                if (compressor is not null)
+                    body = compressor.Compress(body);
                 if (encryptor is not null)
                     body = encryptor.Encrypt(body);
 
@@ -214,6 +220,8 @@ namespace Zerra.CQRS.AzureServiceBus
                 };
 
                 var body = serializer.SerializeBytes(message);
+                if (compressor is not null)
+                    body = compressor.Compress(body);
                 if (encryptor is not null)
                     body = encryptor.Encrypt(body);
 
@@ -275,6 +283,8 @@ namespace Zerra.CQRS.AzureServiceBus
                 };
 
                 var body = serializer.SerializeBytes(message);
+                if (compressor is not null)
+                    body = compressor.Compress(body);
                 if (encryptor is not null)
                     body = encryptor.Encrypt(body);
 
@@ -356,6 +366,8 @@ namespace Zerra.CQRS.AzureServiceBus
                                 var response = serviceBusMessage.Body.ToStream();
                                 if (encryptor is not null)
                                     response = encryptor.Decrypt(response, false);
+                                if (compressor is not null)
+                                    response = compressor.Decompress(response, false);
                                 acknowledgement = await serializer.DeserializeAsync<Acknowledgement>(response, canceller.Token);
                                 acknowledgement ??= new Acknowledgement(serializer, "Invalid Acknowledgement");
                             }

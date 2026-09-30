@@ -9,6 +9,7 @@ using System.Security.Claims;
 using Zerra.Buffers;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Reflection;
@@ -30,6 +31,7 @@ namespace Zerra.Web
         private readonly RequestDelegate requestDelegate;
         private readonly ISerializer serializer;
         private readonly IEncryptor? encryptor;
+        private readonly ICompressor? compressor;
         private readonly ILogger? log;
         private readonly KestrelCqrsServerLinkedSettings settings;
 
@@ -39,13 +41,15 @@ namespace Zerra.Web
         /// <param name="requestDelegate">The next middleware in the pipeline.</param>
         /// <param name="serializer">The serializer for request/response serialization and deserialization.</param>
         /// <param name="encryptor">Optional encryptor/decryptor for message encryption. If null, messages are assumed to be unencrypted.</param>
+        /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="settings">The server settings including route, allowed origins, handler configurations, and registered CQRS types.</param>
-        public KestrelCqrsServerMiddleware(RequestDelegate requestDelegate, ISerializer serializer, IEncryptor? encryptor, ILogger? log, KestrelCqrsServerLinkedSettings settings)
+        public KestrelCqrsServerMiddleware(RequestDelegate requestDelegate, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, KestrelCqrsServerLinkedSettings settings)
         {
             this.requestDelegate = requestDelegate;
             this.serializer = serializer;
             this.encryptor = encryptor;
+            this.compressor = compressor;
             this.log = log;
             this.settings = settings;
         }
@@ -197,6 +201,8 @@ namespace Zerra.Web
                 {
                     if (encryptor is not null)
                         body = encryptor.Decrypt(body, false);
+                    if (compressor is not null)
+                        body = compressor.Decompress(body, false);
 
                     if (String.Equals(context.Request.Headers[HttpCommon.UploadStreamHeader], HttpCommon.UploadStreamValue, StringComparison.OrdinalIgnoreCase))
                     {
@@ -208,8 +214,8 @@ namespace Zerra.Web
                         using (var uploadDataStream = new TcpProtocolBodyStream(body, null, false, true))
                         {
                             data = await serializer.DeserializeAsync<CqrsRequestData>(uploadDataStream, context.RequestAborted);
-                            //through the end of the framing in case the serializer stopped short of it
-                            await uploadDataStream.CopyToAsync(Stream.Null, 81920, context.RequestAborted);
+                            //the framing.s ending is read and checked, the handler reads the stream after it
+                            await uploadDataStream.FinishReadAsync(context.RequestAborted);
                         }
                         if (data is null || String.IsNullOrWhiteSpace(data.ProviderType))
                             throw new Exception("Invalid Request"); //only queries take a stream
@@ -300,48 +306,68 @@ namespace Zerra.Web
 
                         try
                         {
-                            if (encryptor is not null)
+                            Stream responseBodyWriteStream = responseBodyStream;
+                            CryptoFlushStream? responseBodyCryptoStream = null;
+                            Stream? responseBodyCompressStream = null;
+                            try
                             {
-                                CryptoFlushStream? responseBodyCryptoStream = null;
-                                try
-                                {
-                                    responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
+                                if (encryptor is not null)
+                                    responseBodyWriteStream = responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
+                                if (compressor is not null)
+                                    responseBodyWriteStream = responseBodyCompressStream = compressor.Compress(responseBodyWriteStream, true);
 
 #if NETSTANDARD2_0
-                                    while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, context.RequestAborted)) > 0)
-                                        await responseBodyCryptoStream.WriteAsync(bufferOwner, 0, bytesRead, context.RequestAborted);
+                                while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, context.RequestAborted)) > 0)
+                                    await responseBodyWriteStream.WriteAsync(bufferOwner, 0, bytesRead, context.RequestAborted);
 #else
-                                    while ((bytesRead = await result.Stream.ReadAsync(buffer)) > 0)
-                                        await responseBodyCryptoStream.WriteAsync(buffer.Slice(0, bytesRead), context.RequestAborted);
+                                while ((bytesRead = await result.Stream.ReadAsync(buffer)) > 0)
+                                    await responseBodyWriteStream.WriteAsync(buffer.Slice(0, bytesRead), context.RequestAborted);
 #endif
+                                if (responseBodyCompressStream is not null)
+                                {
+#if NETSTANDARD2_0
+                                    responseBodyCompressStream.Dispose();
+#else
+                                    await responseBodyCompressStream.DisposeAsync();
+#endif
+                                    responseBodyCompressStream = null;
+                                }
+                                if (responseBodyCryptoStream is not null)
+                                {
 #if NETSTANDARD2_0
                                     responseBodyCryptoStream.FlushFinalBlock();
 #else
                                     await responseBodyCryptoStream.FlushFinalBlockAsync(context.RequestAborted);
 #endif
                                 }
-                                finally
+                                else
                                 {
-                                    if (responseBodyCryptoStream is not null)
-                                    {
-#if NETSTANDARD2_0
-                                        responseBodyCryptoStream.Dispose();
-#else
-                                        await responseBodyCryptoStream.DisposeAsync();
-#endif
-                                    }
+                                    await responseBodyStream.FlushAsync(context.RequestAborted);
                                 }
                             }
-                            else
+                            finally
                             {
+                                if (responseBodyCompressStream is not null)
+                                {
+                                    try
+                                    {
+                                        //disposing writes its end into the crypto or response stream, which can fail the same as the response did
 #if NETSTANDARD2_0
-                                while ((bytesRead = await result.Stream.ReadAsync(bufferOwner, 0, bufferOwner.Length, context.RequestAborted)) > 0)
-                                    await responseBodyStream.WriteAsync(bufferOwner, 0, bytesRead, context.RequestAborted);
+                                        responseBodyCompressStream.Dispose();
 #else
-                                while ((bytesRead = await result.Stream.ReadAsync(buffer)) > 0)
-                                    await responseBodyStream.WriteAsync(buffer.Slice(0, bytesRead), context.RequestAborted);
+                                        await responseBodyCompressStream.DisposeAsync();
 #endif
-                                await responseBodyStream.FlushAsync(context.RequestAborted);
+                                    }
+                                    catch { }
+                                }
+                                if (responseBodyCryptoStream is not null)
+                                {
+#if NETSTANDARD2_0
+                                    responseBodyCryptoStream.Dispose();
+#else
+                                    await responseBodyCryptoStream.DisposeAsync();
+#endif
+                                }
                             }
                         }
                         finally
@@ -359,38 +385,63 @@ namespace Zerra.Web
                     }
                     else
                     {
-                        if (encryptor is not null)
+                        Stream responseBodyWriteStream = responseBodyStream;
+                        CryptoFlushStream? responseBodyCryptoStream = null;
+                        Stream? responseBodyCompressStream = null;
+                        try
                         {
-                            CryptoFlushStream? responseBodyCryptoStream = null;
-                            try
-                            {
-                                responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
+                            if (encryptor is not null)
+                                responseBodyWriteStream = responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
+                            if (compressor is not null)
+                                responseBodyWriteStream = responseBodyCompressStream = compressor.Compress(responseBodyWriteStream, true);
 
-                                await serializer.SerializeAsync(responseBodyCryptoStream, result.Model, context.RequestAborted);
+                            await serializer.SerializeAsync(responseBodyWriteStream, result.Model, context.RequestAborted);
+                            if (responseBodyCompressStream is not null)
+                            {
+#if NETSTANDARD2_0
+                                responseBodyCompressStream.Dispose();
+#else
+                                await responseBodyCompressStream.DisposeAsync();
+#endif
+                                responseBodyCompressStream = null;
+                            }
+                            if (responseBodyCryptoStream is not null)
+                            {
 #if NETSTANDARD2_0
                                 responseBodyCryptoStream.FlushFinalBlock();
 #else
                                 await responseBodyCryptoStream.FlushFinalBlockAsync(context.RequestAborted);
 #endif
-                                return;
                             }
-                            finally
+                            else
                             {
-                                if (responseBodyCryptoStream is not null)
+                                await responseBodyStream.FlushAsync(context.RequestAborted);
+                            }
+                            return;
+                        }
+                        finally
+                        {
+                            if (responseBodyCompressStream is not null)
+                            {
+                                try
                                 {
+                                    //disposing writes its end into the crypto or response stream, which can fail the same as the response did
 #if NETSTANDARD2_0
-                                    responseBodyCryptoStream.Dispose();
+                                    responseBodyCompressStream.Dispose();
 #else
-                                    await responseBodyCryptoStream.DisposeAsync();
+                                    await responseBodyCompressStream.DisposeAsync();
 #endif
                                 }
+                                catch { }
                             }
-                        }
-                        else
-                        {
-                            await serializer.SerializeAsync(responseBodyStream, result.Model, context.RequestAborted);
-                            await responseBodyStream.FlushAsync(context.RequestAborted);
-                            return;
+                            if (responseBodyCryptoStream is not null)
+                            {
+#if NETSTANDARD2_0
+                                responseBodyCryptoStream.Dispose();
+#else
+                                await responseBodyCryptoStream.DisposeAsync();
+#endif
+                            }
                         }
                     }
                 }
@@ -484,10 +535,24 @@ namespace Zerra.Web
                     if (hasResult)
                     {
                         var responseBodyStream = context.Response.Body;
+                        Stream responseBodyWriteStream = responseBodyStream;
+                        CryptoFlushStream? responseBodyCryptoStream = null;
+                        Stream? responseBodyCompressStream = null;
                         if (encryptor is not null)
+                            responseBodyWriteStream = responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
+                        if (compressor is not null)
+                            responseBodyWriteStream = responseBodyCompressStream = compressor.Compress(responseBodyWriteStream, true);
+                        await serializer.SerializeAsync(responseBodyWriteStream, result, context.RequestAborted);
+                        if (responseBodyCompressStream is not null)
                         {
-                            var responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
-                            await serializer.SerializeAsync(responseBodyCryptoStream, result, context.RequestAborted);
+#if NETSTANDARD2_0
+                            responseBodyCompressStream.Dispose();
+#else
+                            await responseBodyCompressStream.DisposeAsync();
+#endif
+                        }
+                        if (responseBodyCryptoStream is not null)
+                        {
 #if NETSTANDARD2_0
                             responseBodyCryptoStream.FlushFinalBlock();
 #else
@@ -501,7 +566,6 @@ namespace Zerra.Web
                         }
                         else
                         {
-                            await serializer.SerializeAsync(responseBodyStream, result, context.RequestAborted);
                             await responseBodyStream.FlushAsync(context.RequestAborted);
                         }
                     }
@@ -544,10 +608,24 @@ namespace Zerra.Web
                 }
 
                 var responseBodyStream = context.Response.Body;
+                Stream responseBodyWriteStream = responseBodyStream;
+                CryptoFlushStream? responseBodyCryptoStream = null;
+                Stream? responseBodyCompressStream = null;
                 if (encryptor is not null)
+                    responseBodyWriteStream = responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
+                if (compressor is not null)
+                    responseBodyWriteStream = responseBodyCompressStream = compressor.Compress(responseBodyWriteStream, true);
+                await ExceptionSerializer.SerializeAsync(serializer, responseBodyWriteStream, ex, context.RequestAborted);
+                if (responseBodyCompressStream is not null)
                 {
-                    var responseBodyCryptoStream = encryptor.Encrypt(responseBodyStream, true);
-                    await ExceptionSerializer.SerializeAsync(serializer, responseBodyCryptoStream, ex, context.RequestAborted);
+#if NETSTANDARD2_0
+                    responseBodyCompressStream.Dispose();
+#else
+                    await responseBodyCompressStream.DisposeAsync();
+#endif
+                }
+                if (responseBodyCryptoStream is not null)
+                {
 #if NETSTANDARD2_0
                     responseBodyCryptoStream.FlushFinalBlock();
 #else
@@ -561,7 +639,6 @@ namespace Zerra.Web
                 }
                 else
                 {
-                    await ExceptionSerializer.SerializeAsync(serializer, responseBodyStream, ex, context.RequestAborted);
                     await responseBodyStream.FlushAsync(context.RequestAborted);
                 }
             }

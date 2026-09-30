@@ -6,6 +6,7 @@ using Azure.Messaging.ServiceBus;
 using System.Collections.Concurrent;
 using Zerra.Collections;
 using System.Security.Claims;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Reflection;
@@ -25,6 +26,7 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly string queue;
             private readonly ISerializer serializer;
             private readonly IEncryptor? encryptor;
+            private readonly ICompressor? compressor;
             private readonly ILogger? log;
             private readonly HandleRemoteCommandDispatch handlerAsync;
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
@@ -53,7 +55,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
             }
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string queue, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string queue, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -70,6 +72,7 @@ namespace Zerra.CQRS.AzureServiceBus
 
                 this.serializer = serializer;
                 this.encryptor = encryptor;
+                this.compressor = compressor;
                 this.log = log;
                 this.handlerAsync = handlerAsync;
                 this.handlerAwaitAsync = handlerAwaitAsync;
@@ -162,6 +165,8 @@ namespace Zerra.CQRS.AzureServiceBus
                     {
                         if (encryptor is not null)
                             body = encryptor.Decrypt(body, false);
+                        if (compressor is not null)
+                            body = compressor.Decompress(body, false);
 
                         message = await serializer.DeserializeAsync<AzureServiceBusMessage>(body, CancellationToken.None);
                     }
@@ -215,6 +220,8 @@ namespace Zerra.CQRS.AzureServiceBus
                     var acknowledgement = new Acknowledgement(serializer, result, error);
 
                     var body = serializer.SerializeBytes(acknowledgement);
+                    if (compressor is not null)
+                        body = compressor.Compress(body);
                     if (encryptor is not null)
                         body = encryptor.Encrypt(body);
 

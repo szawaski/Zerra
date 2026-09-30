@@ -19,6 +19,7 @@ var producer = new AzureServiceBusProducer(
     host: connectionString,   // the namespace's connection string
     serializer: serializer,
     encryptor: encryptor,     // optional
+    compressor: compressor,   // optional
     log: log,                 // optional
     environment: "dev");      // optional queue and topic prefix
 
@@ -33,7 +34,7 @@ One producer serves any number of interfaces, and Service Bus delivers each even
 The handling side registers its handlers and an `AzureServiceBusConsumer`, which takes the same constructor arguments:
 
 ```csharp
-var consumer = new AzureServiceBusConsumer(connectionString, serializer, encryptor, log, environment: "dev");
+var consumer = new AzureServiceBusConsumer(connectionString, serializer, encryptor, null, log, environment: "dev");
 
 bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
@@ -64,9 +65,9 @@ The service name is the one passed to `Bus.New`. The mode is each subscriber's o
 
 ```csharp
 if (await AzureServiceBusConnection.TestAsync(connectionString, log: log))
-    bus.AddCommandProducer<IReviewsCommandHandler>(new AzureServiceBusProducer(connectionString, serializer, encryptor, log, null));
+    bus.AddCommandProducer<IReviewsCommandHandler>(new AzureServiceBusProducer(connectionString, serializer, encryptor, null, log, null));
 else
-    bus.AddCommandProducer<IReviewsCommandHandler>(new TcpCqrsClient("localhost:9104", serializer, encryptor, log));
+    bus.AddCommandProducer<IReviewsCommandHandler>(new TcpCqrsClient("localhost:9104", serializer, encryptor, null, log));
 ```
 
 `Demo/Store` does this for review commands, in `Store.Web/Program.cs` and `Store.Reviews.Service/Program.cs`.

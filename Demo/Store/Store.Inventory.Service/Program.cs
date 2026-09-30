@@ -58,7 +58,7 @@ bus.AddHandler<IOrdersEventHandler>(commandHandler);
 var serializer = StoreSettings.CreateServiceSerializer();
 var encryptor = StoreSettings.CreateServiceEncryptor();
 
-var server = new TcpCqrsServer(StoreSettings.InventoryServiceUrl, serializer, encryptor, log);
+var server = new TcpCqrsServer(StoreSettings.InventoryServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryServer<IInventoryQueryHandler>(server);
 bus.AddCommandConsumer<IInventoryCommandHandler>(server);
 
@@ -67,7 +67,7 @@ bus.AddCommandConsumer<IInventoryCommandHandler>(server);
 //once: an event is delivered to every Inventory replica and each one would move the same units again. Kafka gives a command one
 //shared consumer group so exactly one replica handles it. Orders makes the same check, so it uses whichever route this service listens on.
 if (useKafka)
-    bus.AddCommandConsumer<IStockReservationHandler>(new KafkaConsumer(StoreSettings.KafkaHost, serializer, encryptor, log, null, null, null));
+    bus.AddCommandConsumer<IStockReservationHandler>(new KafkaConsumer(StoreSettings.KafkaHost, serializer, encryptor, null, log, null, null, null));
 else
     bus.AddCommandConsumer<IStockReservationHandler>(server);
 
@@ -76,7 +76,7 @@ else
 //each get a copy. On RabbitMQ that is one queue named for this service on the Fanout exchange, shared by the replicas; the Shipping
 //service has its own queue on the same exchange and still gets every event.
 if (useRabbitMQ)
-    bus.AddEventConsumer<IOrdersEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null), EventConsumerMode.PerService);
+    bus.AddEventConsumer<IOrdersEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, null, log, null), EventConsumerMode.PerService);
 else
     bus.AddEventConsumer<IOrdersEventHandler>(server, EventConsumerMode.PerService);
 

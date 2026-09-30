@@ -5,6 +5,7 @@
 using Confluent.Kafka;
 using Xunit;
 using Zerra.CQRS;
+using Zerra.Compression;
 using Zerra.CQRS.Kafka;
 using Zerra.Encryption;
 using Zerra.Serialization;
@@ -30,13 +31,14 @@ namespace Zerra.Repository.Test.Kafka
             var eventTopic = MessageTest.NewTopic("Event");
             var serializer = new ZerraByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+            var compressor = new ZerraCompressor(CompressionAlgorithmType.Brotli);
             var log = new TestLogger();
             string? ackTopic = null;
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, encryptor, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, encryptor, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, encryptor, compressor, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, encryptor, compressor, log, null, null, null))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageTest.TestSequence(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
@@ -65,8 +67,8 @@ namespace Zerra.Repository.Test.Kafka
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, encryptor, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, encryptor, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, encryptor, null, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, encryptor, null, log, null, null, null))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageTest.TestFinishesProcessingOnClose(producer, producer, consumer, consumer, commandTopic, eventTopic, disposeAsync, TestContext.Current.CancellationToken);
@@ -89,10 +91,10 @@ namespace Zerra.Repository.Test.Kafka
             try
             {
                 //a consumer per connection, standing in for the replicas of two services
-                using (var serviceAReplica1 = new KafkaConsumer(host, serializer, encryptor, log, null, null, null))
-                using (var serviceAReplica2 = new KafkaConsumer(host, serializer, encryptor, log, null, null, null))
-                using (var serviceB = new KafkaConsumer(host, serializer, encryptor, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, encryptor, log, null, null, null))
+                using (var serviceAReplica1 = new KafkaConsumer(host, serializer, encryptor, null, log, null, null, null))
+                using (var serviceAReplica2 = new KafkaConsumer(host, serializer, encryptor, null, log, null, null, null))
+                using (var serviceB = new KafkaConsumer(host, serializer, encryptor, null, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, encryptor, null, log, null, null, null))
                 {
                     await MessageTest.TestEventConsumerModePerService(producer, serviceAReplica1, serviceAReplica2, serviceB, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -115,7 +117,7 @@ namespace Zerra.Repository.Test.Kafka
 
             try
             {
-                using (var producer = new KafkaProducer(host, new ZerraByteSerializer(), null, new TestLogger(), null, null, null))
+                using (var producer = new KafkaProducer(host, new ZerraByteSerializer(), null, null, new TestLogger(), null, null, null))
                 {
                     ackTopic = AckTopic(producer);
                     ((ICommandProducer)producer).RegisterCommandType(1, commandTopic, typeof(TestCommand));
@@ -154,8 +156,8 @@ namespace Zerra.Repository.Test.Kafka
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, null, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, null, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageTest.TestCommandSentBeforeConsumer(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
@@ -180,8 +182,8 @@ namespace Zerra.Repository.Test.Kafka
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, null, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, null, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
                 {
                     ackTopic = AckTopic(producer);
                     //deleted with the broker's own admin client, not KafkaCommon, so the cached topic list still has it
@@ -214,7 +216,7 @@ namespace Zerra.Repository.Test.Kafka
             //each producer's acknowledgements go to its own topic
             async Task SendFromNewProducer()
             {
-                using var producer = new KafkaProducer(host, serializer, null, log, null, null, null);
+                using var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null);
                 ackTopics.Add(AckTopic(producer));
                 ((ICommandProducer)producer).RegisterCommandType(10, commandTopic, typeof(TestCommand));
                 await ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand() { ID = Guid.NewGuid() }, "Zerra.Repository.Test", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(90), TestContext.Current.CancellationToken);
@@ -222,7 +224,7 @@ namespace Zerra.Repository.Test.Kafka
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, null, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
                 {
                     var commandConsumer = (ICommandConsumer)consumer;
                     commandConsumer.Setup(new CommandCounter(), (command, source, cancellationToken) => Task.CompletedTask, (command, source, cancellationToken) => Task.CompletedTask, (command, source, cancellationToken) => Task.FromResult<object?>(null));

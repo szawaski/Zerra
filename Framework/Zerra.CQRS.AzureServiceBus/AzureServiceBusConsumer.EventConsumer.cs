@@ -5,6 +5,7 @@
 using Azure.Messaging.ServiceBus;
 using Zerra.Collections;
 using System.Security.Claims;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Reflection;
@@ -23,6 +24,7 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly string subscription;
             private readonly ISerializer serializer;
             private readonly IEncryptor? encryptor;
+            private readonly ICompressor? compressor;
             private readonly ILogger? log;
             private readonly HandleRemoteEventDispatch handlerAsync;
             private readonly CancellationTokenSource canceller;
@@ -33,7 +35,7 @@ namespace Zerra.CQRS.AzureServiceBus
             //PerService gets a subscription named for the service so its replicas compete for the events, it's shared so it's never deleted
             private readonly bool deleteSubscriptionOnStop;
 
-            public EventConsumer(int maxConcurrent, string topic, ISerializer serializer, IEncryptor? encryptor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -61,6 +63,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 this.serializer = serializer;
                 this.encryptor = encryptor;
+                this.compressor = compressor;
                 this.log = log;
                 this.handlerAsync = handlerAsync;
                 this.canceller = new CancellationTokenSource();
@@ -159,6 +162,8 @@ namespace Zerra.CQRS.AzureServiceBus
                     {
                         if (encryptor is not null)
                             body = encryptor.Decrypt(body, false);
+                        if (compressor is not null)
+                            body = compressor.Decompress(body, false);
 
                         message = await serializer.DeserializeAsync<AzureServiceBusMessage>(body, CancellationToken.None);
                     }

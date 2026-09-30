@@ -22,6 +22,7 @@ Zerra 6 does no scanning. Each service's `Program.cs` builds everything itself: 
 | Logging | Static `Log.InfoAsync`, discovered `ILoggingProvider`, `Zerra.Logger` package | `Zerra.Logging.ILogger` you implement, passed to `Bus.New` and set with `Log.SetLog` |
 | Configuration | `Zerra.Config` | Removed. Bring your own (see [Configuration](#9-configuration)) |
 | Network encryption | `SymmetricConfig` built from an `EncryptionKey` string | `IEncryptor`, normally `new ZerraEncryptor(key, SymmetricAlgorithmType.AESwithPrefix)` |
+| Network compression | None | Optional `ICompressor`, such as `new ZerraCompressor(CompressionAlgorithmType.Brotli)`, passed after the encryptor; `null` for none |
 | Serialization choice | `ContentType` passed to clients and servers | `ISerializer` instance: `ZerraByteSerializer` or `ZerraJsonSerializer` |
 
 v5 and v6 services can't talk to each other, since the wire format and the encryption changed. Upgrade every service that shares messages at the same time.
@@ -262,14 +263,14 @@ Transport types from v5 and what replaces them:
 
 | Zerra 5 | Zerra 6 |
 |---|---|
-| `TcpServiceCreator` (TCP, bytes) | `new TcpCqrsServer(url, serializer, encryptor, log)` / `new TcpCqrsClient(url, serializer, encryptor, log)` with `new ZerraByteSerializer()` |
-| `HttpServiceCreator(contentType, authorizer, allowOrigins)` | `new HttpCqrsServer(url, serializer, encryptor, authorizer, allowOrigins, log)` / `new HttpCqrsClient(url, serializer, encryptor, authorizer, log)` |
-| `KestrelServiceCreator(app, route, contentType, authorizer)` | `KestrelCqrsServerQueryServer` / `KestrelCqrsServerCommandConsumer` / `KestrelCqrsServerEventConsumer` sharing one `KestrelCqrsServerLinkedSettings`, plus `app.UseKestrelCqrsServer(serializer, encryptor, log, settings)`. Callers use `KestrelCqrsClient`. See [Agents.md](Agents.md#hosting-a-service-in-aspnet-core-instead-of-tcp) |
-| `KafkaServiceCreator(queryCreator, env, user, pwd)` | Queries: the TCP/HTTP types above. Messages: `new KafkaProducer(host, serializer, encryptor, log, env, user, pwd)` / `new KafkaConsumer(...)` |
-| `RabbitMQServiceCreator(queryCreator, env)` | `new RabbitMQProducer(host, serializer, encryptor, log, env)` / `new RabbitMQConsumer(...)` |
-| `AzureServiceBusServiceCreator(queryCreator, env)` | `new AzureServiceBusProducer(connectionString, serializer, encryptor, log, env)` / `new AzureServiceBusConsumer(...)` |
+| `TcpServiceCreator` (TCP, bytes) | `new TcpCqrsServer(url, serializer, encryptor, compressor, log)` / `new TcpCqrsClient(url, serializer, encryptor, compressor, log)` with `new ZerraByteSerializer()` |
+| `HttpServiceCreator(contentType, authorizer, allowOrigins)` | `new HttpCqrsServer(url, serializer, encryptor, compressor, authorizer, allowOrigins, log)` / `new HttpCqrsClient(url, serializer, encryptor, compressor, authorizer, log)` |
+| `KestrelServiceCreator(app, route, contentType, authorizer)` | `KestrelCqrsServerQueryServer` / `KestrelCqrsServerCommandConsumer` / `KestrelCqrsServerEventConsumer` sharing one `KestrelCqrsServerLinkedSettings`, plus `app.UseKestrelCqrsServer(serializer, encryptor, compressor, log, settings)`. Callers use `KestrelCqrsClient`. See [Agents.md](Agents.md#hosting-a-service-in-aspnet-core-instead-of-tcp) |
+| `KafkaServiceCreator(queryCreator, env, user, pwd)` | Queries: the TCP/HTTP types above. Messages: `new KafkaProducer(host, serializer, encryptor, compressor, log, env, user, pwd)` / `new KafkaConsumer(...)` |
+| `RabbitMQServiceCreator(queryCreator, env)` | `new RabbitMQProducer(host, serializer, encryptor, compressor, log, env)` / `new RabbitMQConsumer(...)` |
+| `AzureServiceBusServiceCreator(queryCreator, env)` | `new AzureServiceBusProducer(connectionString, serializer, encryptor, compressor, log, env)` / `new AzureServiceBusConsumer(...)` |
 | `AzureEventHubServiceCreator` | Removed |
-| `TcpRawCqrsServer(contentType, url, symmetricConfig)` | `TcpCqrsServer(url, serializer, encryptor, log)` |
+| `TcpRawCqrsServer(contentType, url, symmetricConfig)` | `TcpCqrsServer(url, serializer, encryptor, compressor, log)` |
 
 A single server object can be the query server, command consumer, and event consumer for one URL, which is how v5's creators shared servers. Create one per URL and reuse it. Use the same kind of serializer on both ends; v5's TCP creator used bytes.
 
@@ -295,12 +296,12 @@ bus.AddHandler<ILogNoteCommandProvider>(new LogNoteCommandProvider());
 //2. what this service hosts
 var serializer = new ZerraByteSerializer();
 var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AESwithPrefix);
-var server = new TcpCqrsServer(domainServiceUrl, serializer, encryptor, log);
+var server = new TcpCqrsServer(domainServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryServer<ILogNoteQueryProvider>(server);
 bus.AddCommandConsumer<ILogNoteCommandProvider>(server);
 
 //3. what this service calls
-var emailClient = new TcpCqrsClient(emailServiceUrl, serializer, encryptor, log);
+var emailClient = new TcpCqrsClient(emailServiceUrl, serializer, encryptor, null, log);
 bus.AddCommandProducer<IEmailCommandProvider>(emailClient);
 
 bus.WaitForExit();                                     //or await bus.WaitForExitAsync(token)
@@ -335,12 +336,12 @@ public static IBusSetup StartServices(string serviceName, IRepo? repo)
 
     if (serviceName == "MyApp.Service.Email")
     {
-        var server = new TcpCqrsServer(emailUrl, serializer, encryptor, logger);
+        var server = new TcpCqrsServer(emailUrl, serializer, encryptor, null, logger);
         bus.AddCommandConsumer<IEmailCommandProvider>(server);
     }
     else
     {
-        var client = new TcpCqrsClient(emailUrl, serializer, encryptor, logger);
+        var client = new TcpCqrsClient(emailUrl, serializer, encryptor, null, logger);
         bus.AddCommandProducer<IEmailCommandProvider>(client);
     }
     //...one block like this for each service

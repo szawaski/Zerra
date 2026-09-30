@@ -1,9 +1,11 @@
 ﻿using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.IO;
 using Zerra.Serialization;
+using Zerra.Test.Compression;
 
 namespace Zerra.Test.CQRS
 {
@@ -91,10 +93,10 @@ namespace Zerra.Test.CQRS
 
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<ITestQueryHandler>(new TestQueryHandler());
-            busServer.AddQueryServer<ITestQueryHandler>(new TcpCqrsServer(url, serializer, encryptor, null));
+            busServer.AddQueryServer<ITestQueryHandler>(new TcpCqrsServer(url, serializer, encryptor, null, null));
 
             var busClient = Bus.New("test-client", null, null, null);
-            busClient.AddQueryClient<ITestQueryHandler>(new TcpCqrsClient(url, serializer, encryptor, null));
+            busClient.AddQueryClient<ITestQueryHandler>(new TcpCqrsClient(url, serializer, encryptor, null, null));
 
             await BusCalls(busClient, "test-server");
 
@@ -111,10 +113,10 @@ namespace Zerra.Test.CQRS
 
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<ITestQueryHandler>(new TestQueryHandler());
-            busServer.AddQueryServer<ITestQueryHandler>(new HttpCqrsServer(url, serializer, encryptor, null, null));
+            busServer.AddQueryServer<ITestQueryHandler>(new HttpCqrsServer(url, serializer, encryptor, null, null, null));
 
             var busClient = Bus.New("test-client", null, null, null);
-            busClient.AddQueryClient<ITestQueryHandler>(new HttpCqrsClient(url, serializer, encryptor, null, null));
+            busClient.AddQueryClient<ITestQueryHandler>(new HttpCqrsClient(url, serializer, encryptor, null, null, null));
 
             await BusCalls(busClient, "test-server");
 
@@ -130,10 +132,10 @@ namespace Zerra.Test.CQRS
 
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<ITestQueryHandler>(new TestQueryHandler());
-            busServer.AddQueryServer<ITestQueryHandler>(new TcpCqrsServer(url, serializer, null, null));
+            busServer.AddQueryServer<ITestQueryHandler>(new TcpCqrsServer(url, serializer, null, null, null));
 
             var busClient = Bus.New("test-client", null, null, null);
-            busClient.AddQueryClient<ITestQueryHandler>(new TcpCqrsClient(url, serializer, null, null));
+            busClient.AddQueryClient<ITestQueryHandler>(new TcpCqrsClient(url, serializer, null, null, null));
 
             await BusCalls(busClient, "test-server");
 
@@ -149,15 +151,99 @@ namespace Zerra.Test.CQRS
 
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<ITestQueryHandler>(new TestQueryHandler());
-            busServer.AddQueryServer<ITestQueryHandler>(new HttpCqrsServer(url, serializer, null, null, null));
+            busServer.AddQueryServer<ITestQueryHandler>(new HttpCqrsServer(url, serializer, null, null, null, null));
 
             var busClient = Bus.New("test-client", null, null, null);
-            busClient.AddQueryClient<ITestQueryHandler>(new HttpCqrsClient(url, serializer, null, null, null));
+            busClient.AddQueryClient<ITestQueryHandler>(new HttpCqrsClient(url, serializer, null, null, null, null));
 
             await BusCalls(busClient, "test-server");
 
             await busClient.StopServicesAsync();
             await busServer.StopServicesAsync();
+        }
+
+        [Theory(Timeout = 10000)]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public async Task BusQueryClientServerTcpCompressed(bool encrypt, bool exactEnd)
+        {
+            var url = TestNetwork.NewUrl();
+            var serializer = new ZerraByteSerializer();
+            var encryptor = encrypt ? new ZerraEncryptor("test", SymmetricAlgorithmType.AES) : null;
+            ICompressor compressor = exactEnd ? new ExactEndCompressor() : new ZerraCompressor(CompressionAlgorithmType.Brotli);
+
+            var busServer = Bus.New("test-server", null, null, null);
+            busServer.AddHandler<ITestQueryHandler>(new TestQueryHandler());
+            busServer.AddQueryServer<ITestQueryHandler>(new TcpCqrsServer(url, serializer, encryptor, compressor, null));
+
+            var busClient = Bus.New("test-client", null, null, null);
+            busClient.AddQueryClient<ITestQueryHandler>(new TcpCqrsClient(url, serializer, encryptor, compressor, null));
+
+            await BusCalls(busClient, "test-server");
+
+            await busClient.StopServicesAsync();
+            await busServer.StopServicesAsync();
+        }
+
+        [Theory(Timeout = 10000)]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public async Task BusQueryClientServerHttpCompressed(bool encrypt, bool exactEnd)
+        {
+            var url = TestNetwork.NewUrl();
+            var serializer = new ZerraByteSerializer();
+            var encryptor = encrypt ? new ZerraEncryptor("test", SymmetricAlgorithmType.AES) : null;
+            ICompressor compressor = exactEnd ? new ExactEndCompressor() : new ZerraCompressor(CompressionAlgorithmType.GZip);
+
+            var busServer = Bus.New("test-server", null, null, null);
+            busServer.AddHandler<ITestQueryHandler>(new TestQueryHandler());
+            busServer.AddQueryServer<ITestQueryHandler>(new HttpCqrsServer(url, serializer, encryptor, compressor, null, null));
+
+            var busClient = Bus.New("test-client", null, null, null);
+            busClient.AddQueryClient<ITestQueryHandler>(new HttpCqrsClient(url, serializer, encryptor, compressor, null, null));
+
+            await BusCalls(busClient, "test-server");
+
+            await busClient.StopServicesAsync();
+            await busServer.StopServicesAsync();
+        }
+
+        [Theory(Timeout = 10000)]
+        [InlineData(false, false, false)]
+        [InlineData(false, false, true)]
+        [InlineData(true, false, false)]
+        [InlineData(true, false, true)]
+        [InlineData(false, true, false)]
+        [InlineData(false, true, true)]
+        [InlineData(true, true, false)]
+        [InlineData(true, true, true)]
+        public async Task BusProducerConsumerCompressed(bool encrypt, bool http, bool exactEnd)
+        {
+            var url = TestNetwork.NewUrl();
+            var serializer = new ZerraByteSerializer();
+            var encryptor = encrypt ? new ZerraEncryptor("test", SymmetricAlgorithmType.AES) : null;
+            ICompressor compressor = exactEnd ? new ExactEndCompressor() : new ZerraCompressor(CompressionAlgorithmType.Deflate);
+
+            using var waiter = new SemaphoreSlim(0, 1);
+            var results = new List<int>();
+
+            var busServer = Bus.New("test-server", null, null, null);
+            busServer.AddHandler<ITestCommandHandler>(new TestCommandHandler(results, waiter));
+            busServer.AddHandler<ITestEventHandler>(new TestEventHandler(results, waiter));
+            var server = http ? (CqrsServerBase)new HttpCqrsServer(url, serializer, encryptor, compressor, null, null) : new TcpCqrsServer(url, serializer, encryptor, compressor, null);
+            busServer.AddCommandConsumer<ITestCommandHandler>(server);
+            busServer.AddEventConsumer<ITestEventHandler>(server, EventConsumerMode.PerReplica);
+
+            var busClient = Bus.New("test-client", null, null, null);
+            var client = http ? (CqrsClientBase)new HttpCqrsClient(url, serializer, encryptor, compressor, null, null) : new TcpCqrsClient(url, serializer, encryptor, compressor, null);
+            busClient.AddCommandProducer<ITestCommandHandler>(client);
+            busClient.AddEventProducer<ITestEventHandler>(client);
+
+            await BusDispatches(busClient, waiter, results);
         }
 
         [Fact]
@@ -173,12 +259,12 @@ namespace Zerra.Test.CQRS
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<ITestCommandHandler>(new TestCommandHandler(results, waiter));
             busServer.AddHandler<ITestEventHandler>(new TestEventHandler(results, waiter));
-            var server = new TcpCqrsServer(url, serializer, encryptor, null);
+            var server = new TcpCqrsServer(url, serializer, encryptor, null, null);
             busServer.AddCommandConsumer<ITestCommandHandler>(server);
             busServer.AddEventConsumer<ITestEventHandler>(server, EventConsumerMode.PerReplica);
 
             var busClient = Bus.New("test-client", null, null, null);
-            var client = new TcpCqrsClient(url, serializer, encryptor, null);
+            var client = new TcpCqrsClient(url, serializer, encryptor, null, null);
             busClient.AddCommandProducer<ITestCommandHandler>(client);
             busClient.AddEventProducer<ITestEventHandler>(client);
 
@@ -198,14 +284,14 @@ namespace Zerra.Test.CQRS
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<ITestCommandHandler>(new TestCommandHandler(results, waiter));
             busServer.AddHandler<ITestEventHandler>(new TestEventHandler(results, waiter));
-            var server = new TcpCqrsServer(url, serializer, encryptor, null);
+            var server = new TcpCqrsServer(url, serializer, encryptor, null, null);
             busServer.AddCommandConsumer<ITestCommandHandler>(server);
             busServer.AddEventConsumer<ITestEventHandler>(server, EventConsumerMode.PerReplica);
 
             //the sender logs, and an event with one producer goes straight to it
             var busLogger = new TestBusLogger();
             var busClient = Bus.New("test-client", null, busLogger, null);
-            var client = new TcpCqrsClient(url, serializer, encryptor, null);
+            var client = new TcpCqrsClient(url, serializer, encryptor, null, null);
             busClient.AddCommandProducer<ITestCommandHandler>(client);
             busClient.AddEventProducer<ITestEventHandler>(client);
 
@@ -242,12 +328,12 @@ namespace Zerra.Test.CQRS
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<ITestCommandHandler>(new TestCommandHandler(results, waiter));
             busServer.AddHandler<ITestEventHandler>(new TestEventHandler(results, waiter));
-            var server = new HttpCqrsServer(url, serializer, encryptor, null, null);
+            var server = new HttpCqrsServer(url, serializer, encryptor, null, null, null);
             busServer.AddCommandConsumer<ITestCommandHandler>(server);
             busServer.AddEventConsumer<ITestEventHandler>(server, EventConsumerMode.PerReplica);
 
             var busClient = Bus.New("test-client", null, null, null);
-            var client = new HttpCqrsClient(url, serializer, encryptor, null, null);
+            var client = new HttpCqrsClient(url, serializer, encryptor, null, null, null);
             busClient.AddCommandProducer<ITestCommandHandler>(client);
             busClient.AddEventProducer<ITestEventHandler>(client);
 
@@ -266,20 +352,20 @@ namespace Zerra.Test.CQRS
             var results1 = new List<int>();
             var busServer1 = Bus.New("test-server1", null, null, null);
             busServer1.AddHandler<ITestEventHandler>(new TestEventHandler(results1, waiter1));
-            busServer1.AddEventConsumer<ITestEventHandler>(new TcpCqrsServer(url1, serializer, encryptor, null), EventConsumerMode.PerReplica);
+            busServer1.AddEventConsumer<ITestEventHandler>(new TcpCqrsServer(url1, serializer, encryptor, null, null), EventConsumerMode.PerReplica);
 
             using var waiter2 = new SemaphoreSlim(0, 1);
             var results2 = new List<int>();
             var busServer2 = Bus.New("test-server2", null, null, null);
             busServer2.AddHandler<ITestEventHandler>(new TestEventHandler(results2, waiter2));
-            busServer2.AddEventConsumer<ITestEventHandler>(new TcpCqrsServer(url2, serializer, encryptor, null), EventConsumerMode.PerReplica);
+            busServer2.AddEventConsumer<ITestEventHandler>(new TcpCqrsServer(url2, serializer, encryptor, null, null), EventConsumerMode.PerReplica);
 
             //each producer is sent the event, adding the same producer again is ignored so it isn't sent twice
             var busClient = Bus.New("test-client", null, null, null);
-            var client1 = new TcpCqrsClient(url1, serializer, encryptor, null);
+            var client1 = new TcpCqrsClient(url1, serializer, encryptor, null, null);
             busClient.AddEventProducer<ITestEventHandler>(client1);
             busClient.AddEventProducer<ITestEventHandler>(client1);
-            busClient.AddEventProducer<ITestEventHandler>(new TcpCqrsClient(url2, serializer, encryptor, null));
+            busClient.AddEventProducer<ITestEventHandler>(new TcpCqrsClient(url2, serializer, encryptor, null, null));
 
             await busClient.DispatchAsync(new TestEvent { Thing = 41 });
             Assert.True(await waiter1.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));

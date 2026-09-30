@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Microsoft.AspNetCore.Builder;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Serialization;
@@ -24,13 +25,14 @@ namespace Zerra.Web
         /// <param name="builder">The application builder.</param>
         /// <param name="serializer">The serializer for request/response serialization and deserialization.</param>
         /// <param name="encryptor">Optional encryptor/decryptor for message encryption. If null, messages are unencrypted.</param>
+        /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="settings">The server settings shared with the query server and consumers.</param>
         /// <returns>The application builder for method chaining.</returns>
-        public static IApplicationBuilder UseKestrelCqrsServer(this IApplicationBuilder builder, ISerializer serializer, IEncryptor? encryptor, ILogger? log, KestrelCqrsServerLinkedSettings settings)
+        public static IApplicationBuilder UseKestrelCqrsServer(this IApplicationBuilder builder, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, KestrelCqrsServerLinkedSettings settings)
         {
             //built here instead of UseMiddleware, which picks the constructor by argument type and a null encryptor or log matches none
-            return builder.Use(next => new KestrelCqrsServerMiddleware(next, serializer, encryptor, log, settings).Invoke);
+            return builder.Use(next => new KestrelCqrsServerMiddleware(next, serializer, encryptor, compressor, log, settings).Invoke);
         }
     }
 }

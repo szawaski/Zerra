@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Serialization;
 using Zerra.Web;
@@ -22,6 +23,7 @@ namespace Zerra.Test.Web
 
         private static readonly ISerializer serializer = new ZerraByteSerializer();
         private static readonly IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
+        private static readonly ICompressor compressor = new ZerraCompressor(CompressionAlgorithmType.Brotli);
 
         [Theory(Timeout = timeout)]
         [InlineData(false)]
@@ -83,7 +85,7 @@ namespace Zerra.Test.Web
         {
             var enc = encrypt ? encryptor : null;
             await using var server = await TestServer.StartAsync(enc);
-            using var client = kestrelClient ? (CqrsClientBase)new KestrelCqrsClient(server.Url, serializer, enc, null, null, null) : CreateClient(server.Url, enc);
+            using var client = kestrelClient ? (CqrsClientBase)new KestrelCqrsClient(server.Url, serializer, enc, null, null, null, null) : CreateClient(server.Url, enc);
             if (kestrelClient)
                 ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
 
@@ -97,6 +99,38 @@ namespace Zerra.Test.Web
             Assert.Equal(expected, asyncResult);
             Assert.Equal(expected, syncResult);
             Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+        }
+
+        [Theory(Timeout = timeout)]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public async Task Compressed_RoundTrips(bool encrypt, bool kestrelClient)
+        {
+            var enc = encrypt ? encryptor : null;
+            await using var server = await TestServer.StartAsync(enc, null, compressor);
+            using var client = kestrelClient ? (CqrsClientBase)new KestrelCqrsClient(server.Url, serializer, enc, compressor, null, null, null) : CreateClient(server.Url, enc, compressor);
+            if (kestrelClient)
+            {
+                ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+                ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));
+            }
+
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+            Assert.Equal(10, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [5], source), TestContext.Current.CancellationToken));
+            Assert.Equal(new string('x', 50_000), await ((IQueryClient)client).CallTaskGeneric<string>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetLarge), [typeof(int)], [50_000], source, TestContext.Current.CancellationToken));
+
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+                ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Fail), [], [], source, TestContext.Current.CancellationToken));
+            Assert.Equal("query failed", exception.Message);
+
+            var bytes = new byte[1024 * 1024 + 7];
+            new Random(5).NextBytes(bytes);
+            var uploadResult = await ((IQueryClient)client).CallTaskGeneric<long>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(bytes)], source, TestContext.Current.CancellationToken);
+            Assert.Equal(bytes.Sum(x => (long)x) + 3, uploadResult);
+
+            Assert.Equal(42, await ((ICommandProducer)client).DispatchAwaitAsync(new TestCommandWithResult { Value = 21 }, source, TestContext.Current.CancellationToken));
         }
 
         //the middleware answers a disallowed origin with an empty 401
@@ -149,9 +183,9 @@ namespace Zerra.Test.Web
             Assert.Equal(7, await server.EventReceived.WaitAsync(TestContext.Current.CancellationToken));
         }
 
-        private static HttpCqrsClient CreateClient(string url, IEncryptor? encryptor)
+        private static HttpCqrsClient CreateClient(string url, IEncryptor? encryptor, ICompressor? compressor = null)
         {
-            var client = new HttpCqrsClient(url, serializer, encryptor, null, null);
+            var client = new HttpCqrsClient(url, serializer, encryptor, compressor, null, null);
             ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
             ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommand));
             ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));
@@ -178,7 +212,7 @@ namespace Zerra.Test.Web
                 this.Url = url;
             }
 
-            public static async Task<TestServer> StartAsync(IEncryptor? encryptor, string[]? allowOrigins = null)
+            public static async Task<TestServer> StartAsync(IEncryptor? encryptor, string[]? allowOrigins = null, ICompressor? compressor = null)
             {
                 var settings = new KestrelCqrsServerLinkedSettings(null, null, serializer.ContentType) { AllowOrigins = allowOrigins };
 
@@ -186,7 +220,7 @@ namespace Zerra.Test.Web
                 builder.WebHost.UseUrls("http://127.0.0.1:0");
                 builder.Logging.ClearProviders();
                 var app = builder.Build();
-                _ = app.UseKestrelCqrsServer(serializer, encryptor, null, settings);
+                _ = app.UseKestrelCqrsServer(serializer, encryptor, compressor, null, settings);
                 await app.StartAsync();
 
                 var server = new TestServer(app, settings, app.Urls.First());

@@ -1,3 +1,4 @@
+using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Serialization;
 
@@ -55,6 +56,12 @@ namespace Store.Common
         /// A real deployment would load this from a secret store.
         /// </summary>
         public static IEncryptor CreateServiceEncryptor() => new ZerraEncryptor(Get("STORE_SHARED_KEY", "zerra-store-demo-shared-key"), SymmetricAlgorithmType.AESwithPrefix);
+
+        /// <summary>
+        /// Catalog's traffic is compressed: its product lists and the CSV export and import are large and repetitive. The rest of the store's
+        /// messages are small enough that compressing them would cost more than it saves. The Catalog server and every client of it use this.
+        /// </summary>
+        public static ICompressor CreateCompressor() => new ZerraCompressor(CompressionAlgorithmType.Deflate);
 
         private static string Get(string name, string defaultValue)
         {

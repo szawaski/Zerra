@@ -134,14 +134,14 @@ bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
 
 // Remote over TCP: server side
 bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
-bus.AddCommandConsumer<IUserCommandHandler>(new TcpCqrsServer("localhost:9001", serializer, encryptor, log));
+bus.AddCommandConsumer<IUserCommandHandler>(new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log));
 
 // Remote over TCP: client side
-bus.AddCommandProducer<IUserCommandHandler>(new TcpCqrsClient("localhost:9001", serializer, encryptor, log));
+bus.AddCommandProducer<IUserCommandHandler>(new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log));
 
 // Remote through a broker (RabbitMQ and Azure Service Bus follow the same pattern)
-bus.AddCommandConsumer<IUserCommandHandler>(new KafkaConsumer("localhost:9092", serializer, encryptor, log, environment: null, userName: null, password: null));
-bus.AddCommandProducer<IUserCommandHandler>(new KafkaProducer("localhost:9092", serializer, encryptor, log, environment: null, userName: null, password: null));
+bus.AddCommandConsumer<IUserCommandHandler>(new KafkaConsumer("localhost:9092", serializer, encryptor, null, log, environment: null, userName: null, password: null));
+bus.AddCommandProducer<IUserCommandHandler>(new KafkaProducer("localhost:9092", serializer, encryptor, null, log, environment: null, userName: null, password: null));
 ```
 
 See [Server Setup](ServerSetup.md), [Client Setup](ClientSetup.md), and the broker setup guides for the details.

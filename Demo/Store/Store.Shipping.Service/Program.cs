@@ -61,13 +61,13 @@ bus.AddCommandConsumer<IShippingCommandHandler>(new KestrelCqrsServerCommandCons
 //which would give the same order a shipment per replica, each with its own carrier and tracking number. The Inventory service subscribes the
 //same way and still gets every event, because the two services have separate subscriptions.
 if (useRabbitMQ)
-    bus.AddEventConsumer<IOrdersEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, log, null), EventConsumerMode.PerService);
+    bus.AddEventConsumer<IOrdersEventHandler>(new RabbitMQConsumer(StoreSettings.RabbitMQHost, serializer, encryptor, null, log, null), EventConsumerMode.PerService);
 else
     bus.AddEventConsumer<IOrdersEventHandler>(new KestrelCqrsServerEventConsumer(kestrelSettings), EventConsumerMode.PerService);
 
 var app = builder.Build();
 app.Lifetime.ApplicationStopped.Register(bus.StopServices); //after Kestrel has finished the requests in progress, which may still use the bus
-app.UseKestrelCqrsServer(serializer, encryptor, log, kestrelSettings);
+app.UseKestrelCqrsServer(serializer, encryptor, null, log, kestrelSettings);
 
 //Kestrel starts in Run, so the time is logged once it's listening
 app.Lifetime.ApplicationStarted.Register(() => log.Info($"Shipping service listening on {StoreSettings.ShippingServiceUrl}, started in {startup.ElapsedMilliseconds} ms, press Ctrl+C to stop"));

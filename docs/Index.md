@@ -18,6 +18,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
   - [ByteSerializer](ByteSerializer.md) - High-performance binary serialization
   - [JsonSerializer](JsonSerializer.md) - JSON serialization with Graph-based property control
 - [Encryptors](Encryptors.md) - Secure message encryption with ZerraEncryptor
+- [Compressors](Compressors.md) - Message compression with ZerraCompressor
 - [Logging](Logging.md) - Implement ILogger and IBusLogger for comprehensive logging
 - [Service Injection](ServiceInjection.md) - Manage dependencies with BusServices
 - [Zerra.Web](ZerraWeb.md) - ASP.NET integration and CQRS API Gateway
@@ -79,6 +80,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 
 ### Common Tasks
 - **Add encryption** → See [Encryptors](Encryptors.md) for ZerraEncryptor setup
+- **Add compression** → See [Compressors](Compressors.md) for ZerraCompressor setup
 - **Add logging** → See [Logging](Logging.md) for ILogger and IBusLogger
 - **Inject services** → See [Service Injection](ServiceInjection.md) for BusServices usage
 - **Map between types** → See [Mapper](Mapper.md) for object mapping and conversions

@@ -408,7 +408,7 @@ namespace Zerra.Test.CQRS.Network
         [Fact]
         public void Call_UnregisteredInterface_Throws()
         {
-            using var client = new HttpCqrsClient("http://127.0.0.1:9999", serializer, null, null, null);
+            using var client = new HttpCqrsClient("http://127.0.0.1:9999", serializer, null, null, null, null);
 
             var exception = Assert.Throws<Exception>(() =>
                 ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source));
@@ -419,7 +419,7 @@ namespace Zerra.Test.CQRS.Network
         [Fact]
         public void DispatchAsync_UnregisteredCommand_Throws()
         {
-            using var client = new HttpCqrsClient("http://127.0.0.1:9999", serializer, null, null, null);
+            using var client = new HttpCqrsClient("http://127.0.0.1:9999", serializer, null, null, null, null);
 
             var exception = Assert.Throws<Exception>(() =>
             {
@@ -435,13 +435,13 @@ namespace Zerra.Test.CQRS.Network
         [InlineData(" ")]
         public void Constructor_MissingUrl_Throws(string? url)
         {
-            _ = Assert.Throws<ArgumentNullException>(() => new HttpCqrsClient(url!, serializer, null, null, null));
+            _ = Assert.Throws<ArgumentNullException>(() => new HttpCqrsClient(url!, serializer, null, null, null, null));
         }
 
         [Fact]
         public void ServiceUrl_ReturnsConstructorUrl()
         {
-            using var client = new HttpCqrsClient("http://127.0.0.1:9999", serializer, null, null, null);
+            using var client = new HttpCqrsClient("http://127.0.0.1:9999", serializer, null, null, null, null);
 
             Assert.Equal("http://127.0.0.1:9999", ((IQueryClient)client).ServiceUrl);
             Assert.Equal("http://127.0.0.1:9999", ((ICommandProducer)client).MessageHost);
@@ -450,7 +450,7 @@ namespace Zerra.Test.CQRS.Network
 
         private static HttpCqrsClient CreateClient(FakeServer server, IEncryptor? encryptor, ICqrsAuthorizer? authorizer = null)
         {
-            var client = new HttpCqrsClient(server.Url, serializer, encryptor, authorizer, null);
+            var client = new HttpCqrsClient(server.Url, serializer, encryptor, null, authorizer, null);
             ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
             ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommand));
             ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));

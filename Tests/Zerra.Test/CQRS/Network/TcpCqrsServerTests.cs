@@ -305,7 +305,7 @@ namespace Zerra.Test.CQRS.Network
         [Fact]
         public void ServiceUrl_ReturnsConstructorUrl()
         {
-            using var server = new TcpCqrsServer("127.0.0.1:9999", serializer, null, null);
+            using var server = new TcpCqrsServer("127.0.0.1:9999", serializer, null, null, null);
 
             Assert.Equal("127.0.0.1:9999", ((IQueryServer)server).ServiceUrl);
             Assert.Equal("127.0.0.1:9999", ((ICommandConsumer)server).MessageHost);
@@ -315,7 +315,7 @@ namespace Zerra.Test.CQRS.Network
         [Fact]
         public void Open_AfterDispose_Throws()
         {
-            var server = new TcpCqrsServer($"127.0.0.1:{GetFreePort()}", serializer, null, null);
+            var server = new TcpCqrsServer($"127.0.0.1:{GetFreePort()}", serializer, null, null, null);
             server.Dispose();
 
             _ = Assert.Throws<ObjectDisposedException>(() => ((IQueryServer)server).Open());
@@ -326,7 +326,7 @@ namespace Zerra.Test.CQRS.Network
         {
             //opened without registering anything so a connection can't be handled, it must be closed instead of left open
             var port = GetFreePort();
-            using var server = new TcpCqrsServer($"127.0.0.1:{port}", serializer, null, null);
+            using var server = new TcpCqrsServer($"127.0.0.1:{port}", serializer, null, null, null);
             ((IQueryServer)server).Open();
 
             using var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -337,7 +337,7 @@ namespace Zerra.Test.CQRS.Network
         private static TcpCqrsServer StartQueryServer(out int port, IEncryptor? encryptor, QueryHandlerDelegate handler)
         {
             port = GetFreePort();
-            var server = new TcpCqrsServer($"127.0.0.1:{port}", serializer, encryptor, null);
+            var server = new TcpCqrsServer($"127.0.0.1:{port}", serializer, encryptor, null, null);
             IQueryServer queryServer = server;
             queryServer.Setup(new CommandCounter(), handler);
             queryServer.RegisterInterfaceType(10, typeof(ITestQueryHandler));
@@ -352,7 +352,7 @@ namespace Zerra.Test.CQRS.Network
             HandleRemoteEventDispatch? @event = null)
         {
             port = GetFreePort();
-            var server = new TcpCqrsServer($"127.0.0.1:{port}", serializer, encryptor, null);
+            var server = new TcpCqrsServer($"127.0.0.1:{port}", serializer, encryptor, null, null);
             ICommandConsumer commandConsumer = server;
             commandConsumer.Setup(new CommandCounter(),
                 command ?? ((_, _, _) => Task.CompletedTask),

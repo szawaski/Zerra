@@ -25,27 +25,28 @@ Zerra.Logging.ILogger log = new ConsoleLogger();
 var bus = Bus.New("Web", log, new ConsoleBusLogger());
 var serializer = StoreSettings.CreateServiceSerializer();
 var encryptor = StoreSettings.CreateServiceEncryptor();
+var compressor = StoreSettings.CreateCompressor();
 
-var catalogClient = new TcpCqrsClient(StoreSettings.CatalogServiceUrl, serializer, encryptor, log);
+var catalogClient = new TcpCqrsClient(StoreSettings.CatalogServiceUrl, serializer, encryptor, compressor, log);
 bus.AddQueryClient<ICatalogQueryHandler>(catalogClient);
 bus.AddCommandProducer<ICatalogCommandHandler>(catalogClient);
 
-var inventoryClient = new TcpCqrsClient(StoreSettings.InventoryServiceUrl, serializer, encryptor, log);
+var inventoryClient = new TcpCqrsClient(StoreSettings.InventoryServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryClient<IInventoryQueryHandler>(inventoryClient);
 bus.AddCommandProducer<IInventoryCommandHandler>(inventoryClient);
 //IStockReservationHandler is deliberately left out, only the Orders service may reserve stock
 
-var ordersClient = new TcpCqrsClient(StoreSettings.OrdersServiceUrl, serializer, encryptor, log);
+var ordersClient = new TcpCqrsClient(StoreSettings.OrdersServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryClient<IOrdersQueryHandler>(ordersClient);
 bus.AddCommandProducer<IOrdersCommandHandler>(ordersClient);
 
-var reviewsClient = new TcpCqrsClient(StoreSettings.ReviewsServiceUrl, serializer, encryptor, log);
+var reviewsClient = new TcpCqrsClient(StoreSettings.ReviewsServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryClient<IReviewsQueryHandler>(reviewsClient);
 //Review commands go through Azure Service Bus when it's running, otherwise straight to Reviews over TCP. Queries always go directly,
 //a broker only carries commands and events. The bus takes one producer per command, so the choice is made here at startup, and Reviews makes the same check.
 if (!StoreSettings.DirectMessagingOnly && await AzureServiceBusConnection.TestAsync(StoreSettings.AzureServiceBusConnectionString, log: log))
 {
-    bus.AddCommandProducer<IReviewsCommandHandler>(new AzureServiceBusProducer(StoreSettings.AzureServiceBusConnectionString, serializer, encryptor, log, null));
+    bus.AddCommandProducer<IReviewsCommandHandler>(new AzureServiceBusProducer(StoreSettings.AzureServiceBusConnectionString, serializer, encryptor, null, log, null));
     log.Info("Review commands to Reviews: Azure Service Bus");
 }
 else
@@ -54,13 +55,13 @@ else
     log.Info("Review commands to Reviews: direct TCP");
 }
 
-var cartsClient = new TcpCqrsClient(StoreSettings.CartsServiceUrl, serializer, encryptor, log);
+var cartsClient = new TcpCqrsClient(StoreSettings.CartsServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryClient<ICartsQueryHandler>(cartsClient);
 bus.AddCommandProducer<ICartsCommandHandler>(cartsClient);
 //ICartRepricingHandler is left out too, only the Catalog service sends it. The cart aggregate events never reach the bus at all
 
 //Shipping is hosted in ASP.NET Core, so it's an HTTP client here instead of the TCP clients above; the gateway doesn't care which transport a service uses
-var shippingClient = new KestrelCqrsClient(StoreSettings.ShippingServiceUrl, serializer, encryptor, log, null, null);
+var shippingClient = new KestrelCqrsClient(StoreSettings.ShippingServiceUrl, serializer, encryptor, null, log, null, null);
 bus.AddQueryClient<IShippingQueryHandler>(shippingClient);
 bus.AddCommandProducer<IShippingCommandHandler>(shippingClient);
 

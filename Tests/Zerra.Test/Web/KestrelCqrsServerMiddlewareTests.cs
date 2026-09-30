@@ -235,7 +235,7 @@ namespace Zerra.Test.Web
             using var throttle = new SemaphoreSlim(1, 1);
             settings.Types[typeof(ITestQueryHandler)].Dispose();
             settings.Types[typeof(ITestQueryHandler)] = throttle;
-            var middleware = new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, null, null, settings);
+            var middleware = new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, null, null, null, settings);
 
             //the first request holds the only slot
             var first = middleware.Invoke(CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, TestContext.Current.CancellationToken));
@@ -263,7 +263,7 @@ namespace Zerra.Test.Web
         {
             var nextInvoked = false;
             var settings = CreateSettings("/cqrs", null, null, null, null, null, null);
-            using var middleware = new KestrelCqrsServerMiddleware(_ => { nextInvoked = true; return Task.CompletedTask; }, serializer, null, null, settings);
+            using var middleware = new KestrelCqrsServerMiddleware(_ => { nextInvoked = true; return Task.CompletedTask; }, serializer, null, null, null, settings);
             var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), null, TestContext.Current.CancellationToken);
             context.Request.Path = "/other";
 
@@ -281,7 +281,7 @@ namespace Zerra.Test.Web
             var enc = encrypt ? encryptor : null;
             using var settings = CreateSettings(null, null, (_, _, arguments, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(serializer.Deserialize<int>(arguments[0]) * 2)), null, null, null, null);
             var builder = new ApplicationBuilder(new ServiceCollection().BuildServiceProvider());
-            _ = builder.UseKestrelCqrsServer(serializer, enc, null, settings);
+            _ = builder.UseKestrelCqrsServer(serializer, enc, null, null, settings);
             var app = builder.Build();
             var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), enc, TestContext.Current.CancellationToken);
 
@@ -296,7 +296,7 @@ namespace Zerra.Test.Web
         {
             using var settings = CreateSettings("/cqrs", null, null, null, null, null, null);
             var builder = new ApplicationBuilder(new ServiceCollection().BuildServiceProvider());
-            _ = builder.UseKestrelCqrsServer(serializer, null, null, settings);
+            _ = builder.UseKestrelCqrsServer(serializer, null, null, null, settings);
             var nextInvoked = false;
             _ = builder.Use(next => context => { nextInvoked = true; return Task.CompletedTask; });
             var app = builder.Build();
@@ -312,7 +312,7 @@ namespace Zerra.Test.Web
             HandleRemoteCommandDispatch? command = null, HandleRemoteCommandDispatch? commandAwait = null, HandleRemoteCommandWithResultDispatch? commandWithResult = null, HandleRemoteEventDispatch? @event = null)
         {
             var settings = CreateSettings(null, allowOrigins, query, command, commandAwait, commandWithResult, @event);
-            return new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, encryptor, null, settings);
+            return new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, encryptor, null, null, settings);
         }
 
         private static KestrelCqrsServerLinkedSettings CreateSettings(string? route, string[]? allowOrigins, QueryHandlerDelegate? query,
