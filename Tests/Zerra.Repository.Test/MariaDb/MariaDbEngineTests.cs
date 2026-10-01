@@ -47,7 +47,7 @@ namespace Zerra.Repository.Test.MariaDb
         public async Task TestSequence()
         {
             var connectionString = MariaDbTestSqlDataContext.ConnectionString;
-            var engine = MariaDbDataContext.GetEngine(connectionString);
+            var engine = new MariaDbEngine(connectionString);
 
             DropDatabase(connectionString);
 

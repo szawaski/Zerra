@@ -26,7 +26,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         {
             var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) };
 
-            var engine = MsSqlDataContext.GetEngine(MsSqlTestSqlDataContext.ConnectionString);
+            var engine = new MsSqlEngine(MsSqlTestSqlDataContext.ConnectionString);
             CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
 
             var repoSetup = Repo.New();

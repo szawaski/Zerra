@@ -46,7 +46,7 @@ namespace Zerra.Repository.Test.MsSql
         public async Task TestSequence()
         {
             var connectionString = MsSqlTestSqlDataContext.ConnectionString;
-            var engine = MsSqlDataContext.GetEngine(connectionString);
+            var engine = new MsSqlEngine(connectionString);
 
             DropDatabase(connectionString);
 

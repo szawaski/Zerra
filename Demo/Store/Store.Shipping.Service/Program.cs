@@ -26,7 +26,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 //Shipping is intentionally memory-only, there's no database to reach or fall back from. The point of this service is hosting the CQRS
 //server inside ASP.NET Core over HTTP instead of the raw TCP transport the other services use, so it needs nothing else running to try it
-var engine = MemoryDataContext.GetEngine();
+var engine = new MemoryEngine();
 CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst | DataStoreGenerationType.NoDelete, [typeof(ShipmentDataModel)], log);
 IDataStoreInfo dataStore = new DataStoreInfo("In-memory (by design, this service needs no database)");
 log.Info($"Data store: {dataStore.Description}");

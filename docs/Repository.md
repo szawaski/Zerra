@@ -77,15 +77,15 @@ public sealed class OrderDataModel
 
 ## Setup
 
-### 1. Data Contexts
+### 1. Engines
 
-A data context creates a store's engine and tests whether the store can be reached. Each store has one: `MsSqlDataContext`, `PostgreSqlDataContext`, `MySqlDataContext`, `MariaDbDataContext`, `KurrentDBDataContext`, and `MemoryDataContext`.
+An engine is a store. Create the one for your database with its connection string: `MsSqlEngine`, `PostgreSqlEngine`, `MySqlEngine`, `MariaDbEngine`, `KurrentDBEngine` (an event store), or `MemoryEngine`.
 
 ```csharp
-var engine = MsSqlDataContext.GetEngine(connectionString);   // doesn't connect until it's used
+var engine = new MsSqlEngine(connectionString);   // doesn't connect until it's used
 ```
 
-`TestConnection` returns whether the server answered, and if you pass a logger it logs why it didn't. Test at startup to choose the engine the providers get (see step 3), the same way `RabbitMQConnectionTest.Test` chooses a message transport.
+Each database also has a connection test: `MsSqlConnectionTest`, `PostgreSqlConnectionTest`, `MySqlConnectionTest`, `MariaDbConnectionTest`, and `KurrentDBConnectionTest`. `Test` returns whether the server answered, and if you pass a logger it logs why it didn't. Test at startup to choose the engine the providers get (see step 3), the same way `RabbitMQConnectionTest.Test` chooses a message transport.
 
 ### 2. A Provider
 
@@ -103,20 +103,20 @@ public sealed class OrdersStoreProvider<TModel> : TransactStoreProvider<TModel>
 }
 ```
 
-Each in-memory engine is its own store, so a test can start from an empty one with `MemoryDataContext.GetEngine()`. Providers for related models must share an engine.
+Each in-memory engine is its own store, so a test can start from an empty one with `new MemoryEngine()`. Providers for related models must share an engine.
 
 ### 3. Register the Repo
 
 ```csharp
 // memory as a fallback when the database isn't running
-ITransactStoreEngine ordersEngine = MsSqlDataContext.TestConnection(ordersConnectionString, log)
-    ? MsSqlDataContext.GetEngine(ordersConnectionString)
-    : MemoryDataContext.GetEngine();
+ITransactStoreEngine ordersEngine = MsSqlConnectionTest.Test(ordersConnectionString, log)
+    ? new MsSqlEngine(ordersConnectionString)
+    : new MemoryEngine();
 
 var repo = Repo.New();
 repo.AddProvider(new OrdersStoreProvider<OrderDataModel>(ordersEngine));
 repo.AddProvider(new OrdersStoreProvider<OrderLineDataModel>(ordersEngine));
-repo.AddProvider(new CatalogStoreProvider<ProductDataModel>(PostgreSqlDataContext.GetEngine(catalogConnectionString)));   // a different store, same IRepo
+repo.AddProvider(new CatalogStoreProvider<ProductDataModel>(new PostgreSqlEngine(catalogConnectionString)));   // a different store, same IRepo
 
 
 var busServices = new BusServices();

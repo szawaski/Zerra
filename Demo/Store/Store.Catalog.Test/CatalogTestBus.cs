@@ -25,7 +25,7 @@ namespace Store.Catalog.Test
         public CatalogTestBus()
         {
             //an engine of its own is an in-memory store of its own, so no other test sees this one's rows
-            var engine = MemoryDataContext.GetEngine();
+            var engine = new MemoryEngine();
             var repo = Repo.New();
             repo.AddProvider(new CatalogStoreProvider<CategoryDataModel>(engine));
             repo.AddProvider(new CatalogStoreProvider<ProductDataModel>(engine));

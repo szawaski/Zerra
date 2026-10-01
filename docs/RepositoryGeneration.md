@@ -63,7 +63,7 @@ Call this at application startup, passing your store's engine, the model types t
 
 ```csharp
 ILogger log = new ConsoleLogger(); // your ILogger implementation
-var engine = MsSqlDataContext.GetEngine(connectionString);
+var engine = new MsSqlEngine(connectionString);
 
 CodeFirstGeneration.Generate(
     engine,

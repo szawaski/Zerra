@@ -30,12 +30,12 @@ log.Info("Starting Orders service");
 var databaseSetup = Stopwatch.StartNew();
 //logs in with the SQL Server account, then Windows authentication
 ITransactStoreEngine engine;
-if (!StoreSettings.InMemoryOnly && MsSqlDataContext.TestConnection(StoreSettings.OrdersMsSql, log))
-    engine = MsSqlDataContext.GetEngine(StoreSettings.OrdersMsSql);
-else if (!StoreSettings.InMemoryOnly && MsSqlDataContext.TestConnection(StoreSettings.OrdersMsSqlWindowsAuth, log))
-    engine = MsSqlDataContext.GetEngine(StoreSettings.OrdersMsSqlWindowsAuth);
+if (!StoreSettings.InMemoryOnly && MsSqlConnectionTest.Test(StoreSettings.OrdersMsSql, log))
+    engine = new MsSqlEngine(StoreSettings.OrdersMsSql);
+else if (!StoreSettings.InMemoryOnly && MsSqlConnectionTest.Test(StoreSettings.OrdersMsSqlWindowsAuth, log))
+    engine = new MsSqlEngine(StoreSettings.OrdersMsSqlWindowsAuth);
 else
-    engine = MemoryDataContext.GetEngine();
+    engine = new MemoryEngine();
 var dataStore = DataStoreSetup.Prepare(engine, "SQL Server", [typeof(CustomerDataModel), typeof(OrderDataModel), typeof(OrderItemDataModel)], log);
 databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");

@@ -25,9 +25,9 @@ log.Info("Starting Carts service");
 
 //Data store: an event store instead of tables, each cart is a stream of events that the cart aggregate replays. KurrentDB when it's running, checked here first like the message brokers
 var databaseSetup = Stopwatch.StartNew();
-var useKurrentDB = !StoreSettings.InMemoryOnly && KurrentDBDataContext.TestConnection(StoreSettings.CartsKurrentDB, true, log: log);
+var useKurrentDB = !StoreSettings.InMemoryOnly && KurrentDBConnectionTest.Test(StoreSettings.CartsKurrentDB, true, log: log);
 //the in-memory engine keeps its events in the instance, the handlers share this one
-IEventStoreEngine eventStore = useKurrentDB ? KurrentDBDataContext.GetEngine(StoreSettings.CartsKurrentDB, true) : MemoryDataContext.GetEngine();
+IEventStoreEngine eventStore = useKurrentDB ? new KurrentDBEngine(StoreSettings.CartsKurrentDB, true) : new MemoryEngine();
 var dataStore = DataStoreSetup.PrepareEventStore(eventStore, "KurrentDB", log);
 databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");

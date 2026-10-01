@@ -12,27 +12,27 @@ namespace Zerra.Repository.Test.Memory
         [Fact]
         public async Task TestSequenceTransactStore()
         {
-            RepoTest.TestSequenceTransactStore(MemoryDataContext.GetEngine());
-            await RepoTest.TestSequenceTransactStoreAsync(MemoryDataContext.GetEngine());
+            RepoTest.TestSequenceTransactStore(new MemoryEngine());
+            await RepoTest.TestSequenceTransactStoreAsync(new MemoryEngine());
         }
 
         [Fact]
         public async Task TestSequenceEventStore()
         {
-            RepoTest.TestSequenceEventStore(MemoryDataContext.GetEngine());
-            await RepoTest.TestSequenceEventStoreAsync(MemoryDataContext.GetEngine());
+            RepoTest.TestSequenceEventStore(new MemoryEngine());
+            await RepoTest.TestSequenceEventStoreAsync(new MemoryEngine());
         }
 
         [Fact]
         public async Task TestSequenceAggregate()
         {
-            await AggregateTest.TestSequenceAsync(MemoryDataContext.GetEngine());
+            await AggregateTest.TestSequenceAsync(new MemoryEngine());
         }
 
         [Fact]
         public async Task TestAggregateConcurrency()
         {
-            await AggregateTest.TestConcurrencyAsync(MemoryDataContext.GetEngine());
+            await AggregateTest.TestConcurrencyAsync(new MemoryEngine());
         }
     }
 }

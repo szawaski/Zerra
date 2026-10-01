@@ -25,8 +25,8 @@ log.Info("Starting Inventory service");
 
 //Data store: this service's own database when it's running, checked here first like the message brokers, schema from the data models, then seed data
 var databaseSetup = Stopwatch.StartNew();
-var useMySql = !StoreSettings.InMemoryOnly && MySqlDataContext.TestConnection(StoreSettings.InventoryMySql, log);
-ITransactStoreEngine engine = useMySql ? MySqlDataContext.GetEngine(StoreSettings.InventoryMySql) : MemoryDataContext.GetEngine();
+var useMySql = !StoreSettings.InMemoryOnly && MySqlConnectionTest.Test(StoreSettings.InventoryMySql, log);
+ITransactStoreEngine engine = useMySql ? new MySqlEngine(StoreSettings.InventoryMySql) : new MemoryEngine();
 var dataStore = DataStoreSetup.Prepare(engine, "MySQL", [typeof(StockItemDataModel), typeof(StockReservationDataModel), typeof(StockMovementDataModel)], log);
 databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");

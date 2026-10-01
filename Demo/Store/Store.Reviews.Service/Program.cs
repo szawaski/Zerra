@@ -26,8 +26,8 @@ log.Info("Starting Reviews service");
 
 //Data store: this service's own database when it's running, checked here first like the message brokers, schema from the data models, then seed data
 var databaseSetup = Stopwatch.StartNew();
-var useMariaDb = !StoreSettings.InMemoryOnly && MariaDbDataContext.TestConnection(StoreSettings.ReviewsMariaDb, log);
-ITransactStoreEngine engine = useMariaDb ? MariaDbDataContext.GetEngine(StoreSettings.ReviewsMariaDb) : MemoryDataContext.GetEngine();
+var useMariaDb = !StoreSettings.InMemoryOnly && MariaDbConnectionTest.Test(StoreSettings.ReviewsMariaDb, log);
+ITransactStoreEngine engine = useMariaDb ? new MariaDbEngine(StoreSettings.ReviewsMariaDb) : new MemoryEngine();
 var dataStore = DataStoreSetup.Prepare(engine, "MariaDB", [typeof(ReviewDataModel)], log);
 databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");

@@ -8,28 +8,17 @@ using Zerra.Logging;
 namespace Zerra.Repository.MariaDb
 {
     /// <summary>
-    /// Creates MariaDB engines and checks whether a MariaDB server can be reached, such as at startup to choose between MariaDB and another data store.
+    /// Checks whether a MariaDB server can be reached, such as at startup to choose between MariaDB and another data store.
     /// </summary>
-    public static class MariaDbDataContext
+    public static class MariaDbConnectionTest
     {
-        /// <summary>
-        /// Creates an engine for the MariaDB database. It doesn't connect until it's used.
-        /// </summary>
-        /// <param name="connectionString">The MariaDB connection string.</param>
-        /// <returns>The engine to give the store providers and <see cref="CodeFirstGeneration"/>.</returns>
-        public static MariaDbEngine GetEngine(string connectionString)
-        {
-            if (String.IsNullOrWhiteSpace(connectionString)) throw new ArgumentNullException(nameof(connectionString));
-            return new MariaDbEngine(connectionString);
-        }
-
         /// <summary>
         /// Tests the connection by asking the server for its version on the sys database, so the database itself doesn't have to exist yet.
         /// </summary>
         /// <param name="connectionString">The MariaDB connection string, its Connect Timeout sets how long to wait.</param>
         /// <param name="log">Optional logger, told why the connection failed.</param>
         /// <returns>True if the server answered; otherwise false.</returns>
-        public static bool TestConnection(string connectionString, ILogger? log = null)
+        public static bool Test(string connectionString, ILogger? log = null)
         {
             if (String.IsNullOrWhiteSpace(connectionString)) throw new ArgumentNullException(nameof(connectionString));
 
@@ -52,14 +41,14 @@ namespace Zerra.Repository.MariaDb
                         if (version != null && version.Length > 0 && Char.IsNumber(version[0]))
                             return true;
 
-                        log?.Warn($"{nameof(MariaDbDataContext)} could not connect: Invalid version {version}");
+                        log?.Warn($"{nameof(MariaDbConnectionTest)} could not connect: Invalid version {version}");
                         return false;
                     }
                 }
             }
             catch (Exception ex)
             {
-                log?.Warn($"{nameof(MariaDbDataContext)} could not connect: {ex.Message}");
+                log?.Warn($"{nameof(MariaDbConnectionTest)} could not connect: {ex.Message}");
                 return false;
             }
         }

@@ -49,7 +49,7 @@ namespace Zerra.Repository.Test.PostgreSql
         public async Task TestSequence()
         {
             var connectionString = PostgreSqlTestSqlDataContext.ConnectionString;
-            var engine = PostgreSqlDataContext.GetEngine(connectionString);
+            var engine = new PostgreSqlEngine(connectionString);
 
             DropDatabase(connectionString);
 

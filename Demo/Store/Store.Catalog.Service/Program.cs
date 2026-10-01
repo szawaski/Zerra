@@ -24,8 +24,8 @@ log.Info("Starting Catalog service");
 
 //Data store: this service's own database when it's running, checked here first like the message brokers, schema from the data models, then seed data
 var databaseSetup = Stopwatch.StartNew();
-var usePostgreSql = !StoreSettings.InMemoryOnly && PostgreSqlDataContext.TestConnection(StoreSettings.CatalogPostgreSql, log);
-ITransactStoreEngine engine = usePostgreSql ? PostgreSqlDataContext.GetEngine(StoreSettings.CatalogPostgreSql) : MemoryDataContext.GetEngine();
+var usePostgreSql = !StoreSettings.InMemoryOnly && PostgreSqlConnectionTest.Test(StoreSettings.CatalogPostgreSql, log);
+ITransactStoreEngine engine = usePostgreSql ? new PostgreSqlEngine(StoreSettings.CatalogPostgreSql) : new MemoryEngine();
 var dataStore = DataStoreSetup.Prepare(engine, "PostgreSQL", [typeof(CategoryDataModel), typeof(ProductDataModel)], log);
 databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");

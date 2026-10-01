@@ -46,7 +46,7 @@ namespace Zerra.Repository.Test.MySql
         public async Task TestSequence()
         {
             var connectionString = MySqlTestSqlDataContext.ConnectionString;
-            var engine = MySqlDataContext.GetEngine(connectionString);
+            var engine = new MySqlEngine(connectionString);
 
             DropDatabase(connectionString);
 

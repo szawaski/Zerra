@@ -27,19 +27,19 @@ var timer = Stopwatch.StartNew();
 var useDatabase = false;
 ITransactStoreEngine engine;
 if (!useDatabase)
-    engine = MemoryDataContext.GetEngine();
-else if (MsSqlDataContext.TestConnection(ZerraPetsMsSqlContext.ConnectionString))
-    engine = MsSqlDataContext.GetEngine(ZerraPetsMsSqlContext.ConnectionString);
-else if (MsSqlDataContext.TestConnection(ZerraPetsMsSqlWindowsAuthContext.ConnectionString))
-    engine = MsSqlDataContext.GetEngine(ZerraPetsMsSqlWindowsAuthContext.ConnectionString);
-else if (MySqlDataContext.TestConnection(ZerraPetsMySqlContext.ConnectionString))
-    engine = MySqlDataContext.GetEngine(ZerraPetsMySqlContext.ConnectionString);
-else if (MariaDbDataContext.TestConnection(ZerraPetsMariaDbContext.ConnectionString))
-    engine = MariaDbDataContext.GetEngine(ZerraPetsMariaDbContext.ConnectionString);
-else if (PostgreSqlDataContext.TestConnection(ZerraPetsPostgreSqlContext.ConnectionString))
-    engine = PostgreSqlDataContext.GetEngine(ZerraPetsPostgreSqlContext.ConnectionString);
+    engine = new MemoryEngine();
+else if (MsSqlConnectionTest.Test(ZerraPetsMsSqlContext.ConnectionString))
+    engine = new MsSqlEngine(ZerraPetsMsSqlContext.ConnectionString);
+else if (MsSqlConnectionTest.Test(ZerraPetsMsSqlWindowsAuthContext.ConnectionString))
+    engine = new MsSqlEngine(ZerraPetsMsSqlWindowsAuthContext.ConnectionString);
+else if (MySqlConnectionTest.Test(ZerraPetsMySqlContext.ConnectionString))
+    engine = new MySqlEngine(ZerraPetsMySqlContext.ConnectionString);
+else if (MariaDbConnectionTest.Test(ZerraPetsMariaDbContext.ConnectionString))
+    engine = new MariaDbEngine(ZerraPetsMariaDbContext.ConnectionString);
+else if (PostgreSqlConnectionTest.Test(ZerraPetsPostgreSqlContext.ConnectionString))
+    engine = new PostgreSqlEngine(ZerraPetsPostgreSqlContext.ConnectionString);
 else
-    engine = MemoryDataContext.GetEngine();
+    engine = new MemoryEngine();
 
 var repo = Repo.New();
 repo.AddProvider(new ZerraPetsSqlProvider<PetDataModel>(engine));

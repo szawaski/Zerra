@@ -191,14 +191,14 @@ Watch for these:
 
 ### Data Contexts and Providers
 
-- **Data contexts are gone as classes you derive from.** `DataContext`, `DataContextSelector`, and `IDataStoreEngine` (with its `ValidateDataSource`) were removed. `MsSqlDataContext`, `PostgreSqlDataContext`, `MySqlDataContext`, `MariaDbDataContext`, `KurrentDBDataContext`, and `MemoryDataContext` are static: `GetEngine(connectionString)` creates the store's engine and `TestConnection(connectionString, log)` checks the store can be reached. Replace each derived context with a call to `GetEngine`, keeping its connection string. To fall back to another store, choose the engine at startup with `TestConnection`. See [Repository](Repository.md#1-data-contexts).
+- **Data contexts were removed.** `DataContext`, the store data contexts (`MsSqlDataContext` and the others), `DataContextSelector`, and `IDataStoreEngine` (with its `ValidateDataSource`) are gone. Create the engine directly with the context's connection string, e.g. `new MsSqlEngine(connectionString)`, and pass it to the providers. To fall back to another store, choose the engine at startup with the store's connection test, e.g. `MsSqlConnectionTest.Test(connectionString, log)`. See [Repository](Repository.md#1-engines).
 - **`BuildStoreGenerationPlan` moved to `ITransactStoreEngine`**, and `EmptyDataStoreGenerationPlan` was removed. `CodeFirstGeneration.Generate` takes an `ITransactStoreEngine`.
 - **`DataStoreGenerationType` override** was removed from the data context. Delete it. If the app relied on it to create or update the schema, call `CodeFirstGeneration.Generate(engine, ...)` at startup instead (see [Repository Generation](RepositoryGeneration.md)).
 - **`DataStoreGenerationType.CodeFirst` ran on first use.** v5 updated the schema the first time any provider used the context, in whichever process that was. `CodeFirstGeneration.Generate` runs only where you call it, so call it in every entry point that used to rely on it (service, tools, tests), for example from one shared method that also builds the repo.
 - **`TransactStoreProvider<TContext, TModel>` is now `TransactStoreProvider<TModel>`**, taking the engine in its constructor: `new TransactStoreProvider<OrderDataModel>(engine)`. It keeps its `QueryLinking`/`PersistLinking`/`EventLinking` overrides. `EventStoreAsTransactStoreProvider<TModel>` takes an `IEventStoreEngine` and `ByteStoreProvider` an `IByteStoreEngine`. Providers for related models must share one engine.
 - **`[TransactStoreEntity<TModel>]` on the data context** (which gave the listed models a provider without writing provider classes) was removed. `TransactStoreProvider<TModel>` isn't abstract, so register one per model instead:
   ```csharp
-  var engine = MsSqlDataContext.GetEngine(connectionString);
+  var engine = new MsSqlEngine(connectionString);
   repo.AddProvider(new TransactStoreProvider<CountryDataModel>(engine));
   repo.AddProvider(new TransactStoreProvider<ObligationDataModel>(engine));
   ```
