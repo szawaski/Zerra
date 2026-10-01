@@ -147,11 +147,11 @@ namespace Zerra.Repository
                 OnQuery(graph);
             }
 
-            if (QueryLinking)
+            if (QueryLinking && graph is not null)
             {
                 foreach (var modelPropertyInfo in ModelTypeDetail.RelatedMembers)
                 {
-                    if (graph is not null && graph.HasMemberExplicitly(modelPropertyInfo.Name))
+                    if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                     {
                         if (!modelPropertyInfo.IsEnumerable)
                         {
@@ -179,14 +179,14 @@ namespace Zerra.Repository
         public IReadOnlyCollection<TModel> OnGetWithRelations(IReadOnlyCollection<TModel> models, Graph? graph)
         {
             var returnModels = models;
-        
-            if (QueryLinking)
+
+            if (QueryLinking && graph is not null)
             {
                 //Get related
                 //var tasks = new HashSet<Task>();
                 foreach (var modelPropertyInfo in ModelTypeDetail.RelatedMembers)
                 {
-                    if (graph is not null && graph.HasMemberExplicitly(modelPropertyInfo.Name))
+                    if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                     {
                         //var task = Task.Run(() =>
                         //{
@@ -347,13 +347,13 @@ namespace Zerra.Repository
         {
             var returnModels = models;
 
-            if (QueryLinking)
+            if (QueryLinking && graph is not null)
             {
                 //Get related
                 //var tasks = new List<Task>();
                 foreach (var modelPropertyInfo in ModelTypeDetail.RelatedMembers)
                 {
-                    if (graph is not null && graph.HasMemberExplicitly(modelPropertyInfo.Name))
+                    if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
                     {
                         //var task = Task.Run(async () =>
                         //{
