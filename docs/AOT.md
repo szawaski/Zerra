@@ -57,6 +57,8 @@ To read the generated code, expand **Dependencies → Analyzers → Zerra.Source
 
 The generator also runs for `netstandard2.0` and .NET Framework projects. There is no Native AOT there, so a type the generator missed is built at runtime as usual.
 
+Those projects default to C# 7.3, and the generated module initializer needs C# 9, so the build fails with `ZERRA001`. Set `<LangVersion>9.0</LangVersion>` or higher.
+
 ## Troubleshooting
 
 - **A type fails under AOT with `NotSupportedException`:** Zerra needed a type detail the generator didn't produce. Add `[GenerateTypeDetail]` to the type, or check that the project declaring it references the `Zerra` package.

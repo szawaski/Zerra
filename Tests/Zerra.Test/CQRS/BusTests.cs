@@ -17,7 +17,7 @@ namespace Zerra.Test.CQRS
             var bus = Bus.New("test-service", null, null, null);
             bus.AddHandler<ITestQueryHandler>(new TestQueryHandler());
 
-            await BusCalls(bus, "test-service");
+            await BusCalls(bus, "test-service", TestContext.Current.CancellationToken);
         }
 
         [Fact]
@@ -30,7 +30,7 @@ namespace Zerra.Test.CQRS
             bus.AddHandler<ITestCommandHandler>(new TestCommandHandler(results, waiter));
             bus.AddHandler<ITestEventHandler>(new TestEventHandler(results, waiter));
 
-            await BusDispatches(bus, waiter, results);
+            await BusDispatches(bus, waiter, results, TestContext.Current.CancellationToken);
         }
 
         [Fact]
@@ -78,7 +78,7 @@ namespace Zerra.Test.CQRS
             bus.AddHandler<ITestEventHandler>(new TestEventHandler(results, waiter));
 
             //bus logging must not change whether the caller waits for a local handler
-            await BusDispatches(bus, waiter, results);
+            await BusDispatches(bus, waiter, results, TestContext.Current.CancellationToken);
 
             Assert.True(busLogger.CommandsEnded > 0);
             Assert.True(busLogger.EventsEnded > 0);
@@ -98,7 +98,7 @@ namespace Zerra.Test.CQRS
             var busClient = Bus.New("test-client", null, null, null);
             busClient.AddQueryClient<ITestQueryHandler>(new TcpCqrsClient(url, serializer, encryptor, null, null));
 
-            await BusCalls(busClient, "test-server");
+            await BusCalls(busClient, "test-server", TestContext.Current.CancellationToken);
 
             await busClient.StopServicesAsync();
             await busServer.StopServicesAsync();
@@ -118,7 +118,7 @@ namespace Zerra.Test.CQRS
             var busClient = Bus.New("test-client", null, null, null);
             busClient.AddQueryClient<ITestQueryHandler>(new HttpCqrsClient(url, serializer, encryptor, null, null, null));
 
-            await BusCalls(busClient, "test-server");
+            await BusCalls(busClient, "test-server", TestContext.Current.CancellationToken);
 
             await busClient.StopServicesAsync();
             await busServer.StopServicesAsync();
@@ -137,7 +137,7 @@ namespace Zerra.Test.CQRS
             var busClient = Bus.New("test-client", null, null, null);
             busClient.AddQueryClient<ITestQueryHandler>(new TcpCqrsClient(url, serializer, null, null, null));
 
-            await BusCalls(busClient, "test-server");
+            await BusCalls(busClient, "test-server", TestContext.Current.CancellationToken);
 
             await busClient.StopServicesAsync();
             await busServer.StopServicesAsync();
@@ -156,7 +156,7 @@ namespace Zerra.Test.CQRS
             var busClient = Bus.New("test-client", null, null, null);
             busClient.AddQueryClient<ITestQueryHandler>(new HttpCqrsClient(url, serializer, null, null, null, null));
 
-            await BusCalls(busClient, "test-server");
+            await BusCalls(busClient, "test-server", TestContext.Current.CancellationToken);
 
             await busClient.StopServicesAsync();
             await busServer.StopServicesAsync();
@@ -181,7 +181,7 @@ namespace Zerra.Test.CQRS
             var busClient = Bus.New("test-client", null, null, null);
             busClient.AddQueryClient<ITestQueryHandler>(new TcpCqrsClient(url, serializer, encryptor, compressor, null));
 
-            await BusCalls(busClient, "test-server");
+            await BusCalls(busClient, "test-server", TestContext.Current.CancellationToken);
 
             await busClient.StopServicesAsync();
             await busServer.StopServicesAsync();
@@ -206,7 +206,7 @@ namespace Zerra.Test.CQRS
             var busClient = Bus.New("test-client", null, null, null);
             busClient.AddQueryClient<ITestQueryHandler>(new HttpCqrsClient(url, serializer, encryptor, compressor, null, null));
 
-            await BusCalls(busClient, "test-server");
+            await BusCalls(busClient, "test-server", TestContext.Current.CancellationToken);
 
             await busClient.StopServicesAsync();
             await busServer.StopServicesAsync();
@@ -243,7 +243,7 @@ namespace Zerra.Test.CQRS
             busClient.AddCommandProducer<ITestCommandHandler>(client);
             busClient.AddEventProducer<ITestEventHandler>(client);
 
-            await BusDispatches(busClient, waiter, results);
+            await BusDispatches(busClient, waiter, results, TestContext.Current.CancellationToken);
         }
 
         [Fact]
@@ -268,7 +268,7 @@ namespace Zerra.Test.CQRS
             busClient.AddCommandProducer<ITestCommandHandler>(client);
             busClient.AddEventProducer<ITestEventHandler>(client);
 
-            await BusDispatches(busClient, waiter, results);
+            await BusDispatches(busClient, waiter, results, TestContext.Current.CancellationToken);
         }
 
         [Fact]
@@ -295,7 +295,7 @@ namespace Zerra.Test.CQRS
             busClient.AddCommandProducer<ITestCommandHandler>(client);
             busClient.AddEventProducer<ITestEventHandler>(client);
 
-            await BusDispatches(busClient, waiter, results);
+            await BusDispatches(busClient, waiter, results, TestContext.Current.CancellationToken);
 
             Assert.True(busLogger.CommandsEnded > 0);
             Assert.True(busLogger.EventsEnded > 0);
@@ -337,7 +337,7 @@ namespace Zerra.Test.CQRS
             busClient.AddCommandProducer<ITestCommandHandler>(client);
             busClient.AddEventProducer<ITestEventHandler>(client);
 
-            await BusDispatches(busClient, waiter, results);
+            await BusDispatches(busClient, waiter, results, TestContext.Current.CancellationToken);
         }
 
         [Fact]
@@ -381,7 +381,7 @@ namespace Zerra.Test.CQRS
             await busServer2.StopServicesAsync();
         }
 
-        private static async Task BusCalls(IBus bus, string serviceName)
+        private static async Task BusCalls(IBus bus, string serviceName, CancellationToken cancellationToken)
         {
             var service = bus.Call<ITestQueryHandler>().GetServiceName();
             Assert.Equal(serviceName, service);
@@ -398,10 +398,10 @@ namespace Zerra.Test.CQRS
             var thingsWithParamAsync = await bus.Call<ITestQueryHandler>().GetThingsWithParamAsync(21);
             Assert.Equal(42, thingsWithParamAsync);
 
-            var thingsWithCancellation = bus.Call<ITestQueryHandler>().GetThingsWithCancellation(21, default);
+            var thingsWithCancellation = bus.Call<ITestQueryHandler>().GetThingsWithCancellation(21, cancellationToken);
             Assert.Equal(42, thingsWithCancellation);
 
-            var thingsWithCancellationAsync = await bus.Call<ITestQueryHandler>().GetThingsWithCancellationAsync(21, default);
+            var thingsWithCancellationAsync = await bus.Call<ITestQueryHandler>().GetThingsWithCancellationAsync(21, cancellationToken);
             Assert.Equal(42, thingsWithCancellationAsync);
 
             var stream = bus.Call<ITestQueryHandler>().GetStream();
@@ -420,7 +420,7 @@ namespace Zerra.Test.CQRS
             var uploadCount = bus.Call<ITestQueryHandler>().Upload(3, new MemoryStream(uploadBytes));
             Assert.Equal(uploadBytes.Length + 3, uploadCount);
 
-            var uploadSum = await bus.Call<ITestQueryHandler>().UploadAsync(new MemoryStream(uploadBytes), 3, default);
+            var uploadSum = await bus.Call<ITestQueryHandler>().UploadAsync(new MemoryStream(uploadBytes), 3, cancellationToken);
             Assert.Equal(uploadBytes.Sum(x => (long)x) + 3, uploadSum);
 
             //the request data spans several segments before the stream
@@ -428,7 +428,7 @@ namespace Zerra.Test.CQRS
             var uploadLarge = await bus.Call<ITestQueryHandler>().UploadWithArgumentAsync(largeArgument, new MemoryStream(uploadBytes));
             Assert.Equal(largeArgument.Length + uploadBytes.Length, uploadLarge);
 
-            var uploadNull = await bus.Call<ITestQueryHandler>().UploadAsync(null, 3, default);
+            var uploadNull = await bus.Call<ITestQueryHandler>().UploadAsync(null, 3, cancellationToken);
             Assert.Equal(-1, uploadNull);
 
             //the handler reads part of the stream, the next call on the connection still works
@@ -455,16 +455,16 @@ namespace Zerra.Test.CQRS
             }
         }
 
-        private async Task BusDispatches(IBus bus, SemaphoreSlim waiter, List<int> results)
+        private async Task BusDispatches(IBus bus, SemaphoreSlim waiter, List<int> results, CancellationToken cancellationToken)
         {
             await bus.DispatchAsync(new TestCommand { Thing = 21, Delay = 50 });
             Assert.DoesNotContain(21, results);
-            await waiter.WaitAsync();
+            await waiter.WaitAsync(cancellationToken);
             Assert.Contains(21, results);
 
             await bus.DispatchAwaitAsync(new TestCommand { Thing = 22, Delay = 50 });
             Assert.Contains(22, results);
-            await waiter.WaitAsync();
+            await waiter.WaitAsync(cancellationToken);
 
             var result = await bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 23, Delay = 50 });
             Assert.Equal(46, result);
@@ -472,7 +472,7 @@ namespace Zerra.Test.CQRS
 
             await bus.DispatchAsync(new TestEvent { Thing = 31 });
             Assert.DoesNotContain(31, results);
-            await waiter.WaitAsync();
+            await waiter.WaitAsync(cancellationToken);
             Assert.Contains(31, results);
 
             using (var cancellationTokenSource = new CancellationTokenSource())

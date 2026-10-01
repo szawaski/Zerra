@@ -43,7 +43,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Zerra\Zerra.csproj" />
+        <ProjectReference Include="..\Zerra\Zerra.csproj" PrivateAssets="none" />
     </ItemGroup>
 
     <ItemGroup>

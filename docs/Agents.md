@@ -45,6 +45,7 @@ Services share only `*.Domain` projects, never each other's data models or handl
 `Zerra`, `Zerra.Web`, `Zerra.CQRS.Kafka`, `Zerra.CQRS.RabbitMQ`, and `Zerra.CQRS.AzureServiceBus` target `netstandard2.0` as well as `net10.0`, so a `*.Domain` library or a .NET Framework (4.7.2 or later) app can reference them. The `Zerra.Repository.*` projects are `net10.0` only. The source generator works there too. On `netstandard2.0`:
 
 - There's no native AOT; types the generator misses are built at runtime as usual.
+- The generator needs C# 9 or later, but `netstandard2.0` and .NET Framework projects default to C# 7.3 and fail with `ZERRA001`. Set `<LangVersion>9.0</LangVersion>` or higher.
 - Synchronous query calls through `ApiClient` and `KestrelCqrsClient` throw `PlatformNotSupportedException`, because `HttpClient` has no synchronous send there. Use async query methods.
 - `Hasher.PBKDF2*` and `SymmetricEncryptor.GetKey` support only `HashAlgorithmName.SHA1`; any other algorithm throws `PlatformNotSupportedException`.
 - `ZerraCompressor` supports only `Deflate` and `GZip`; `ZLib` and `Brotli` throw `PlatformNotSupportedException`.

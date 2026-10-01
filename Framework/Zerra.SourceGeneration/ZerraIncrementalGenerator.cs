@@ -19,6 +19,14 @@ namespace Zerra.SourceGeneration
     [Generator]
     public class ZerraIncrementalGenerator : IIncrementalGenerator
     {
+        private static readonly DiagnosticDescriptor languageVersionDescriptor = new(
+            "ZERRA001",
+            "Zerra requires C# 9 or later",
+            "Zerra source generation requires C# 9 or later but this project uses C# {0}; set <LangVersion>9.0</LangVersion> or higher in the project file",
+            "Zerra",
+            DiagnosticSeverity.Error,
+            true);
+
         /// <summary>
         /// Initializes the incremental generator by registering syntax and source output providers.
         /// </summary>
@@ -32,7 +40,18 @@ namespace Zerra.SourceGeneration
             .Where(x => x != null)
             .Collect();
 
-            context.RegisterSourceOutput(syntaxProvider, (a, b) => SourceOutput(a, b));
+            var languageVersionProvider = context.ParseOptionsProvider.Select((options, cancellationToken) => ((CSharpParseOptions)options).LanguageVersion);
+
+            context.RegisterSourceOutput(syntaxProvider.Combine(languageVersionProvider), (a, b) =>
+            {
+                //the initializer is a module initializer which needs C# 9
+                if (b.Right < LanguageVersion.CSharp9)
+                {
+                    a.ReportDiagnostic(Diagnostic.Create(languageVersionDescriptor, Location.None, b.Right.ToDisplayString()));
+                    return;
+                }
+                SourceOutput(a, b.Left);
+            });
         }
 
         private static void SourceOutput(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols)

@@ -123,7 +123,7 @@ namespace Zerra.Repository.Test.Kafka
                     ((ICommandProducer)producer).RegisterCommandType(1, commandTopic, typeof(TestCommand));
 
                     //registering starts the listener, the first command doesn't wait for the topic
-                    await WaitUntilTopicExists(ackTopic);
+                    await WaitUntilTopicExists(ackTopic, TestContext.Current.CancellationToken);
                 }
             }
             finally
@@ -272,7 +272,7 @@ namespace Zerra.Repository.Test.Kafka
             try
             {
                 await Task.WhenAll(replicas.Select(x => KafkaCommon.EnsureTopic(x, topic).AsTask()));
-                await WaitUntilTopicExists(topic);
+                await WaitUntilTopicExists(topic, TestContext.Current.CancellationToken);
             }
             finally
             {
@@ -292,7 +292,7 @@ namespace Zerra.Repository.Test.Kafka
         }
 
         //lists every topic, asking for one by name could auto-create it
-        private static async Task WaitUntilTopicExists(string topic)
+        private static async Task WaitUntilTopicExists(string topic, CancellationToken cancellationToken)
         {
             using var admin = new AdminClientBuilder(new AdminClientConfig() { BootstrapServers = host }).Build();
             for (var attempt = 1; ; attempt++)
@@ -301,7 +301,7 @@ namespace Zerra.Repository.Test.Kafka
                     return;
                 if (attempt == 60)
                     throw new TimeoutException($"Topic {topic} was not created");
-                await Task.Delay(500);
+                await Task.Delay(500, cancellationToken);
             }
         }
 

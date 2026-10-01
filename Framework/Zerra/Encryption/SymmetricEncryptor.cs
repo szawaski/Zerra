@@ -274,12 +274,16 @@ namespace Zerra.Encryption
                 if (write)
                 {
                     var cryptoStream = new CryptoStream(stream, transform, CryptoStreamMode.Write);
+#pragma warning disable CS0612 // Type or member is obsolete
                     var shiftStream = new CryptoShiftStream(cryptoStream, key.BlockSize, CryptoStreamMode.Write, false, leaveOpen);
+#pragma warning restore CS0612 // Type or member is obsolete
                     return new CryptoFlushStream(shiftStream, transform, false);
                 }
                 else
                 {
+#pragma warning disable CS0612 // Type or member is obsolete
                     var shiftStream = new CryptoShiftStream(stream, key.BlockSize, CryptoStreamMode.Read, false, leaveOpen);
+#pragma warning restore CS0612 // Type or member is obsolete
                     var cryptoStream = new CryptoStream(shiftStream, transform, CryptoStreamMode.Read);
                     return new CryptoFlushStream(cryptoStream, transform, false);
                 }
@@ -493,14 +497,18 @@ namespace Zerra.Encryption
             {
                 if (write)
                 {
+#pragma warning disable CS0612 // Type or member is obsolete
                     var shiftStream = new CryptoShiftStream(stream, key.BlockSize, CryptoStreamMode.Write, true, leaveOpen);
+#pragma warning restore CS0612 // Type or member is obsolete
                     var cryptoStream = new CryptoStream(shiftStream, transform, CryptoStreamMode.Write);
                     return new CryptoFlushStream(cryptoStream, transform, false);
                 }
                 else
                 {
                     var cryptoStream = new CryptoStream(stream, transform, CryptoStreamMode.Read);
+#pragma warning disable CS0612 // Type or member is obsolete
                     var shiftStream = new CryptoShiftStream(cryptoStream, key.BlockSize, CryptoStreamMode.Read, true, leaveOpen);
+#pragma warning restore CS0612 // Type or member is obsolete
                     return new CryptoFlushStream(shiftStream, transform, false);
                 }
             }
