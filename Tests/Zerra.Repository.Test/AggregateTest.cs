@@ -13,11 +13,8 @@ namespace Zerra.Repository.Test
         /// to its own stream, so the state of a fresh instance comes only from replaying that stream. These events are the aggregate's state,
         /// not CQRS events: they stay in the stream and never reach the bus, so no bus is needed here.
         /// </summary>
-        public static async Task TestSequenceAsync<T>()
-            where T : DataContext, new()
+        public static async Task TestSequenceAsync(IEventStoreEngine eventStore)
         {
-            var eventStore = GetEventStore<T>();
-
             var id = Guid.NewGuid();
             var aggregate = new TestAggregate(id, eventStore);
 
@@ -167,11 +164,8 @@ namespace Zerra.Repository.Test
         /// <summary>
         /// Appending with event number validation enforces optimistic concurrency, so an append from a stale instance is rejected.
         /// </summary>
-        public static async Task TestConcurrencyAsync<T>()
-            where T : DataContext, new()
+        public static async Task TestConcurrencyAsync(IEventStoreEngine eventStore)
         {
-            var eventStore = GetEventStore<T>();
-
             var id = Guid.NewGuid();
 
             //the first append validates that the stream does not exist yet
@@ -224,17 +218,6 @@ namespace Zerra.Repository.Test
             var noMethod = new TestOtherAggregate(Guid.NewGuid(), eventStore);
             _ = await Assert.ThrowsAnyAsync<Exception>(() => noMethod.Append(new TestAggregateAmountAdded() { Amount = 1 }));
             Assert.False(await new TestOtherAggregate(noMethod.ID, eventStore).Rebuild());
-        }
-
-        private static IEventStoreEngine GetEventStore<T>()
-            where T : DataContext, new()
-        {
-            var context = new T();
-            if (!context.TryGetEngine(out var engine))
-                throw new Exception($"{typeof(T).Name} could not produce an engine");
-            if (engine is not IEventStoreEngine eventStoreEngine)
-                throw new Exception($"{typeof(T).Name} produced an engine of {engine.GetType().Name} which is not a {nameof(IEventStoreEngine)}");
-            return eventStoreEngine;
         }
     }
 }

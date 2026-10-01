@@ -12,15 +12,38 @@ using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Map;
 using Zerra.Repository;
+using Zerra.Repository.MariaDb;
+using Zerra.Repository.Memory;
+using Zerra.Repository.MsSql;
+using Zerra.Repository.MySql;
+using Zerra.Repository.PostgreSql;
 using Zerra.Serialization;
 
 Console.WriteLine();
 var timer = Stopwatch.StartNew();
 
 //Setup Components
+//the demo runs in memory, set useDatabase to use the first database that's running instead
+var useDatabase = false;
+ITransactStoreEngine engine;
+if (!useDatabase)
+    engine = MemoryDataContext.GetEngine();
+else if (MsSqlDataContext.TestConnection(ZerraPetsMsSqlContext.ConnectionString))
+    engine = MsSqlDataContext.GetEngine(ZerraPetsMsSqlContext.ConnectionString);
+else if (MsSqlDataContext.TestConnection(ZerraPetsMsSqlWindowsAuthContext.ConnectionString))
+    engine = MsSqlDataContext.GetEngine(ZerraPetsMsSqlWindowsAuthContext.ConnectionString);
+else if (MySqlDataContext.TestConnection(ZerraPetsMySqlContext.ConnectionString))
+    engine = MySqlDataContext.GetEngine(ZerraPetsMySqlContext.ConnectionString);
+else if (MariaDbDataContext.TestConnection(ZerraPetsMariaDbContext.ConnectionString))
+    engine = MariaDbDataContext.GetEngine(ZerraPetsMariaDbContext.ConnectionString);
+else if (PostgreSqlDataContext.TestConnection(ZerraPetsPostgreSqlContext.ConnectionString))
+    engine = PostgreSqlDataContext.GetEngine(ZerraPetsPostgreSqlContext.ConnectionString);
+else
+    engine = MemoryDataContext.GetEngine();
+
 var repo = Repo.New();
-repo.AddProvider(new ZerraPetsSqlProvider<PetDataModel>());
-repo.AddProvider(new ZerraPetsSqlProvider<PetTypeDataModel>());
+repo.AddProvider(new ZerraPetsSqlProvider<PetDataModel>(engine));
+repo.AddProvider(new ZerraPetsSqlProvider<PetTypeDataModel>(engine));
 
 ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
@@ -29,6 +52,7 @@ IBusLogger busLog = new BusLogger();
 
 var busServices = new BusServices();
 busServices.AddService<IThing>(new Thing("Hello"));
+busServices.AddService<ITransactStoreEngine>(engine);
 busServices.AddRepo(repo);
 
 //Create Server-Side Bus
@@ -110,7 +134,7 @@ await Bus.DispatchAwaitAsync(new DeleteTestDatabaseCommand());
 Console.WriteLine($"Delete Test Database: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
-CodeFirstGeneration.Generate<ZerraPetsSelectorDbContext>(DataStoreGenerationType.CodeFirst, [typeof(PetDataModel), typeof(PetTypeDataModel)], log);
+CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, [typeof(PetDataModel), typeof(PetTypeDataModel)], log);
 Console.WriteLine($"CodeFirstGeneration.Generate: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 

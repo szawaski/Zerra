@@ -6,6 +6,7 @@ using Store.Inventory.Service.Handlers;
 using Store.Orders.Domain;
 using Zerra.CQRS;
 using Zerra.Repository;
+using Zerra.Repository.Memory;
 
 namespace Store.Inventory.Test
 {
@@ -20,14 +21,12 @@ namespace Store.Inventory.Test
 
         public InventoryTestBus()
         {
-            //the service's store providers skip MySQL and use the in-memory store, the same as the demo's In Memory launch profile
-            Environment.SetEnvironmentVariable("STORE_IN_MEMORY", "true");
-            //a context of its own is an in-memory store of its own, so no other test sees this one's rows
-            var context = new InventoryDataContext();
+            //an engine of its own is an in-memory store of its own, so no other test sees this one's rows
+            var engine = MemoryDataContext.GetEngine();
             var repo = Zerra.Repository.Repo.New();
-            repo.AddProvider(new InventoryStoreProvider<StockItemDataModel>(context));
-            repo.AddProvider(new InventoryStoreProvider<StockReservationDataModel>(context));
-            repo.AddProvider(new InventoryStoreProvider<StockMovementDataModel>(context));
+            repo.AddProvider(new InventoryStoreProvider<StockItemDataModel>(engine));
+            repo.AddProvider(new InventoryStoreProvider<StockReservationDataModel>(engine));
+            repo.AddProvider(new InventoryStoreProvider<StockMovementDataModel>(engine));
             Repo = repo;
 
             var busServices = new BusServices();

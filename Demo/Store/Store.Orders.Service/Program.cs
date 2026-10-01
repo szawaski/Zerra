@@ -15,33 +15,43 @@ using Zerra.CQRS.Network;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.Logging;
 using Zerra.Repository;
+using Zerra.Repository.Memory;
+using Zerra.Repository.MsSql;
 using Zerra.Web;
 
 var startup = Stopwatch.StartNew();
 
 Console.Title = "Store - Orders Service";
 ILogger log = new ConsoleLogger();
-Log.SetLog(log); //framework messages too, such as why a database was skipped
+Log.SetLog(log); //framework messages too, such as a failed database read
 log.Info("Starting Orders service");
 
-//Data store: this service's own database, schema from the data models, then seed data
+//Data store: this service's own database when it's running, checked here first like the message brokers, schema from the data models, then seed data
 var databaseSetup = Stopwatch.StartNew();
-var dataStore = DataStoreSetup.Prepare<OrdersDataContext>("SQL Server", [typeof(CustomerDataModel), typeof(OrderDataModel), typeof(OrderItemDataModel)], log);
+//logs in with the SQL Server account, then Windows authentication
+ITransactStoreEngine engine;
+if (!StoreSettings.InMemoryOnly && MsSqlDataContext.TestConnection(StoreSettings.OrdersMsSql, log))
+    engine = MsSqlDataContext.GetEngine(StoreSettings.OrdersMsSql);
+else if (!StoreSettings.InMemoryOnly && MsSqlDataContext.TestConnection(StoreSettings.OrdersMsSqlWindowsAuth, log))
+    engine = MsSqlDataContext.GetEngine(StoreSettings.OrdersMsSqlWindowsAuth);
+else
+    engine = MemoryDataContext.GetEngine();
+var dataStore = DataStoreSetup.Prepare(engine, "SQL Server", [typeof(CustomerDataModel), typeof(OrderDataModel), typeof(OrderItemDataModel)], log);
 databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 var repo = Repo.New();
-repo.AddProvider(new OrdersStoreProvider<CustomerDataModel>());
-repo.AddProvider(new OrdersStoreProvider<OrderDataModel>());
-repo.AddProvider(new OrdersStoreProvider<OrderItemDataModel>());
+repo.AddProvider(new OrdersStoreProvider<CustomerDataModel>(engine));
+repo.AddProvider(new OrdersStoreProvider<OrderDataModel>(engine));
+repo.AddProvider(new OrdersStoreProvider<OrderItemDataModel>(engine));
 var seeding = Stopwatch.StartNew();
 await OrdersSeeder.SeedAsync(repo, log);
 seeding.Stop();
 log.Info($"Seed data done in {seeding.ElapsedMilliseconds} ms");
 
 //Message brokers: each is used when it's running, checked here first so the choice can be reported like the data store
-var useKafka = !StoreSettings.DirectMessagingOnly && await KafkaConnection.TestAsync(StoreSettings.KafkaHost, null, null, log: log);
-var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnection.Test(StoreSettings.RabbitMQHost, log: log);
+var useKafka = !StoreSettings.DirectMessagingOnly && await KafkaConnectionTest.TestAsync(StoreSettings.KafkaHost, null, null, log: log);
+var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnectionTest.Test(StoreSettings.RabbitMQHost, log: log);
 //Orders only receives commands from the gateway over TCP, its Kafka and RabbitMQ use is outbound
 IMessagingInfo messaging = new MessagingInfo("Direct TCP");
 log.Info($"Messaging: {messaging.Description}");

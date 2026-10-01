@@ -8,40 +8,60 @@ using Zerra.Logging;
 namespace Zerra.Repository.MsSql
 {
     /// <summary>
-    /// Abstract base class for a Microsoft SQL Server data context.
+    /// Creates SQL Server engines and checks whether a SQL Server can be reached, such as at startup to choose between SQL Server and another data store.
     /// </summary>
-    public abstract class MsSqlDataContext : DataContext
+    public static class MsSqlDataContext
     {
         /// <summary>
-        /// Gets the SQL Server connection string used to connect to the database.
+        /// Creates an engine for the SQL Server database. It doesn't connect until it's used.
         /// </summary>
-        public abstract string GetConnectionString();
-
-        private readonly Lock locker = new();
-        private IDataStoreEngine? engine = null;
-        /// <inheritdoc/>
-        protected override sealed IDataStoreEngine GetEngine()
+        /// <param name="connectionString">The SQL Server connection string.</param>
+        /// <returns>The engine to give the store providers and <see cref="CodeFirstGeneration"/>.</returns>
+        public static MsSqlEngine GetEngine(string connectionString)
         {
-            if (engine is null)
+            if (String.IsNullOrWhiteSpace(connectionString)) throw new ArgumentNullException(nameof(connectionString));
+            return new MsSqlEngine(connectionString);
+        }
+
+        /// <summary>
+        /// Tests the connection by asking the server for its version on the master database, so the database itself doesn't have to exist yet.
+        /// </summary>
+        /// <param name="connectionString">The SQL Server connection string, its Connect Timeout sets how long to wait.</param>
+        /// <param name="log">Optional logger, told why the connection failed.</param>
+        /// <returns>True if the server answered; otherwise false.</returns>
+        public static bool TestConnection(string connectionString, ILogger? log = null)
+        {
+            if (String.IsNullOrWhiteSpace(connectionString)) throw new ArgumentNullException(nameof(connectionString));
+
+            const string sql = "SELECT @@version";
+
+            try
             {
-                lock (locker)
+                var builder = new SqlConnectionStringBuilder(connectionString);
+                builder.InitialCatalog = "master";
+                var connectionStringForMaster = builder.ToString();
+
+                using (var connection = new SqlConnection(connectionStringForMaster))
                 {
-                    if (engine is null)
+                    connection.Open();
+                    using (var command = connection.CreateCommand())
                     {
-                        var connectionString = GetConnectionString();
-                        try
-                        {
-                            var connectionForParsing = new SqlConnectionStringBuilder(connectionString);
-                        }
-                        catch
-                        {
-                            Log.Info($"{nameof(MsSqlDataContext)} failed to parse connection string");
-                        }
-                        engine = new MsSqlEngine(connectionString);
+                        command.CommandTimeout = 0;
+                        command.CommandText = sql;
+                        var version = (string)command.ExecuteScalar();
+                        if (version.Contains("Microsoft SQL"))
+                            return true;
+
+                        log?.Warn($"{nameof(MsSqlDataContext)} could not connect: Invalid version {version}");
+                        return false;
                     }
                 }
             }
-            return engine;
+            catch (Exception ex)
+            {
+                log?.Warn($"{nameof(MsSqlDataContext)} could not connect: {ex.Message}");
+                return false;
+            }
         }
     }
 }

@@ -8,40 +8,60 @@ using Zerra.Logging;
 namespace Zerra.Repository.MySql
 {
     /// <summary>
-    /// Abstract base class for a MySQL data context.
+    /// Creates MySQL engines and checks whether a MySQL server can be reached, such as at startup to choose between MySQL and another data store.
     /// </summary>
-    public abstract class MySqlDataContext : DataContext
+    public static class MySqlDataContext
     {
         /// <summary>
-        /// Gets the MySQL connection string used to connect to the database.
+        /// Creates an engine for the MySQL database. It doesn't connect until it's used.
         /// </summary>
-        public abstract string GetConnectionString();
-
-        private readonly Lock locker = new();
-        private IDataStoreEngine? engine = null;
-        /// <inheritdoc/>
-        protected override sealed IDataStoreEngine GetEngine()
+        /// <param name="connectionString">The MySQL connection string.</param>
+        /// <returns>The engine to give the store providers and <see cref="CodeFirstGeneration"/>.</returns>
+        public static MySqlEngine GetEngine(string connectionString)
         {
-            if (engine is null)
+            if (String.IsNullOrWhiteSpace(connectionString)) throw new ArgumentNullException(nameof(connectionString));
+            return new MySqlEngine(connectionString);
+        }
+
+        /// <summary>
+        /// Tests the connection by asking the server for its version on the sys database, so the database itself doesn't have to exist yet.
+        /// </summary>
+        /// <param name="connectionString">The MySQL connection string, its Connect Timeout sets how long to wait.</param>
+        /// <param name="log">Optional logger, told why the connection failed.</param>
+        /// <returns>True if the server answered; otherwise false.</returns>
+        public static bool TestConnection(string connectionString, ILogger? log = null)
+        {
+            if (String.IsNullOrWhiteSpace(connectionString)) throw new ArgumentNullException(nameof(connectionString));
+
+            const string sql = "SELECT version()";
+
+            try
             {
-                lock (locker)
+                var builder = new MySqlConnectionStringBuilder(connectionString);
+                builder.Database = "sys";
+                var connectionStringForMaster = builder.ToString();
+
+                using (var connection = new MySqlConnection(connectionStringForMaster))
                 {
-                    if (engine is null)
+                    connection.Open();
+                    using (var command = connection.CreateCommand())
                     {
-                        var connectionString = GetConnectionString();
-                        try
-                        {
-                            var connectionForParsing = new MySqlConnectionStringBuilder(connectionString);
-                        }
-                        catch
-                        {
-                            Log.Info($"{nameof(MySqlDataContext)} failed to parse connection string");
-                        }
-                        engine = new MySqlEngine(connectionString);
+                        command.CommandTimeout = 0;
+                        command.CommandText = sql;
+                        var version = (string)command.ExecuteScalar();
+                        if (version.Length > 0 && Char.IsNumber(version[0]))
+                            return true;
+
+                        log?.Warn($"{nameof(MySqlDataContext)} could not connect: Invalid version {version}");
+                        return false;
                     }
                 }
             }
-            return engine;
+            catch (Exception ex)
+            {
+                log?.Warn($"{nameof(MySqlDataContext)} could not connect: {ex.Message}");
+                return false;
+            }
         }
     }
 }

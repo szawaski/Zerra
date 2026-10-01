@@ -8,40 +8,60 @@ using Zerra.Logging;
 namespace Zerra.Repository.PostgreSql
 {
     /// <summary>
-    /// Abstract base class for a PostgreSQL data context.
+    /// Creates PostgreSQL engines and checks whether a PostgreSQL server can be reached, such as at startup to choose between PostgreSQL and another data store.
     /// </summary>
-    public abstract class PostgreSqlDataContext : DataContext
+    public static class PostgreSqlDataContext
     {
         /// <summary>
-        /// Gets the PostgreSQL connection string used to connect to the database.
+        /// Creates an engine for the PostgreSQL database. It doesn't connect until it's used.
         /// </summary>
-        public abstract string GetConnectionString();
-
-        private readonly Lock locker = new();
-        private IDataStoreEngine? engine = null;
-        /// <inheritdoc/>
-        protected override sealed IDataStoreEngine GetEngine()
+        /// <param name="connectionString">The PostgreSQL connection string.</param>
+        /// <returns>The engine to give the store providers and <see cref="CodeFirstGeneration"/>.</returns>
+        public static PostgreSqlEngine GetEngine(string connectionString)
         {
-            if (engine is null)
+            if (String.IsNullOrWhiteSpace(connectionString)) throw new ArgumentNullException(nameof(connectionString));
+            return new PostgreSqlEngine(connectionString);
+        }
+
+        /// <summary>
+        /// Tests the connection by asking the server for its version on the postgres database, so the database itself doesn't have to exist yet.
+        /// </summary>
+        /// <param name="connectionString">The PostgreSQL connection string, its Timeout sets how long to wait.</param>
+        /// <param name="log">Optional logger, told why the connection failed.</param>
+        /// <returns>True if the server answered; otherwise false.</returns>
+        public static bool TestConnection(string connectionString, ILogger? log = null)
+        {
+            if (String.IsNullOrWhiteSpace(connectionString)) throw new ArgumentNullException(nameof(connectionString));
+
+            const string sql = "SELECT version()";
+
+            try
             {
-                lock (locker)
+                var builder = new NpgsqlConnectionStringBuilder(connectionString);
+                builder.Database = "postgres";
+                var connectionStringForMaster = builder.ToString();
+
+                using (var connection = new NpgsqlConnection(connectionStringForMaster))
                 {
-                    if (engine is null)
+                    connection.Open();
+                    using (var command = connection.CreateCommand())
                     {
-                        var connectionString = GetConnectionString();
-                        try
-                        {
-                            var connectionForParsing = new NpgsqlConnectionStringBuilder(connectionString);
-                        }
-                        catch
-                        {
-                            Log.Info($"{nameof(PostgreSqlDataContext)} failed to parse connection string");
-                        }
-                        engine = new PostgreSqlEngine(connectionString);
+                        command.CommandTimeout = 0;
+                        command.CommandText = sql;
+                        var version = (string)command.ExecuteScalar()!;
+                        if (version.Contains("PostgreSQL"))
+                            return true;
+
+                        log?.Warn($"{nameof(PostgreSqlDataContext)} could not connect: Invalid version {version}");
+                        return false;
                     }
                 }
             }
-            return engine;
+            catch (Exception ex)
+            {
+                log?.Warn($"{nameof(PostgreSqlDataContext)} could not connect: {ex.Message}");
+                return false;
+            }
         }
     }
 }

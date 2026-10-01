@@ -78,7 +78,7 @@ Register an [`IRepo`](Repository.md) with `AddRepo`, and handlers deriving from 
 using Zerra.Repository;
 
 var repo = Repo.New();
-repo.AddProvider(new UserStoreProvider<UserDataModel>());
+repo.AddProvider(new UserStoreProvider<UserDataModel>(MsSqlDataContext.GetEngine(connectionString)));
 busServices.AddRepo(repo);
 
 public class UserCommandHandler : BaseHandlerWithRepo, IUserCommandHandler

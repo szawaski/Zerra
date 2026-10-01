@@ -9,6 +9,7 @@ using Store.Reviews.Service.Data;
 using Store.Reviews.Service.Handlers;
 using Zerra.CQRS;
 using Zerra.Repository;
+using Zerra.Repository.Memory;
 
 namespace Store.Reviews.Test
 {
@@ -25,12 +26,10 @@ namespace Store.Reviews.Test
 
         public ReviewsTestBus()
         {
-            //the service's store providers skip MariaDB and use the in-memory store, the same as the demo's In Memory launch profile
-            Environment.SetEnvironmentVariable("STORE_IN_MEMORY", "true");
-            //a context of its own is an in-memory store of its own, so no other test sees this one's rows
-            var context = new ReviewsDataContext();
+            //an engine of its own is an in-memory store of its own, so no other test sees this one's rows
+            var engine = MemoryDataContext.GetEngine();
             var repo = Zerra.Repository.Repo.New();
-            repo.AddProvider(new ReviewsStoreProvider<ReviewDataModel>(context));
+            repo.AddProvider(new ReviewsStoreProvider<ReviewDataModel>(engine));
             Repo = repo;
 
             var busServices = new BusServices();

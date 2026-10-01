@@ -15,17 +15,19 @@ namespace Zerra.Repository.Test.KurrentDB
         [Fact]
         public async Task TestSequenceAggregate()
         {
-            await AggregateTest.TestSequenceAsync<KurrentDBTestDataContext>();
+            using var engine = KurrentDBDataContext.GetEngine(KurrentDBTestDataContext.ConnectionString, KurrentDBTestDataContext.Insecure);
+            await AggregateTest.TestSequenceAsync(engine);
         }
 
         [Fact]
         public async Task TestAggregateConcurrency()
         {
-            await AggregateTest.TestConcurrencyAsync<KurrentDBTestDataContext>();
+            using var engine = KurrentDBDataContext.GetEngine(KurrentDBTestDataContext.ConnectionString, KurrentDBTestDataContext.Insecure);
+            await AggregateTest.TestConcurrencyAsync(engine);
         }
 
         [Fact]
-        public async Task ValidateDataSource_HealthCheckAnswers_IsValid()
+        public async Task ConnectionTest_HealthCheckAnswers_IsValid()
         {
             //stands in for the server's HTTP health endpoint, the client may open its own connections too so every connection is accepted
             using var listener = new TcpListener(IPAddress.Loopback, 0);
@@ -59,8 +61,7 @@ namespace Zerra.Repository.Test.KurrentDB
                 }
             }, TestContext.Current.CancellationToken);
 
-            using var engine = new KurrentDBEngine($"http://127.0.0.1:{port}", true);
-            var isValid = await Task.Run(engine.ValidateDataSource);
+            var isValid = await Task.Run(() => KurrentDBDataContext.TestConnection($"http://127.0.0.1:{port}", true));
             stop.Cancel();
             await serverTask;
 
@@ -69,7 +70,7 @@ namespace Zerra.Repository.Test.KurrentDB
         }
 
         [Fact]
-        public void ValidateDataSource_NothingListening_IsNotValid()
+        public void ConnectionTest_NothingListening_IsNotValid()
         {
             //a port that was free a moment ago, nothing accepts on it
             using var listener = new TcpListener(IPAddress.Loopback, 0);
@@ -77,8 +78,7 @@ namespace Zerra.Repository.Test.KurrentDB
             var port = ((IPEndPoint)listener.LocalEndpoint).Port;
             listener.Stop();
 
-            using var engine = new KurrentDBEngine($"http://127.0.0.1:{port}", true);
-            Assert.False(engine.ValidateDataSource());
+            Assert.False(KurrentDBDataContext.TestConnection($"http://127.0.0.1:{port}", true));
         }
     }
 }

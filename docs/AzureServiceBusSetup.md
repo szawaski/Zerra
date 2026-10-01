@@ -61,10 +61,10 @@ The service name is the one passed to `Bus.New`. The mode is each subscriber's o
 
 ## Checking the Connection
 
-`AzureServiceBusConnection.TestAsync` reads the namespace's properties through the administration endpoint, the same one that creates queues and topics, and returns whether it answered, waiting five seconds unless given another timeout. The logger, if given, is told why it failed. Use it at startup to fall back to a direct connection when Service Bus isn't reachable. The receiving side makes the same check and registers the matching consumer, so both ends pick the same route:
+`AzureServiceBusConnectionTest.TestAsync` reads the namespace's properties through the administration endpoint, the same one that creates queues and topics, and returns whether it answered, waiting five seconds unless given another timeout. The logger, if given, is told why it failed. Use it at startup to fall back to a direct connection when Service Bus isn't reachable. The receiving side makes the same check and registers the matching consumer, so both ends pick the same route:
 
 ```csharp
-if (await AzureServiceBusConnection.TestAsync(connectionString, log: log))
+if (await AzureServiceBusConnectionTest.TestAsync(connectionString, log: log))
     bus.AddCommandProducer<IReviewsCommandHandler>(new AzureServiceBusProducer(connectionString, serializer, encryptor, null, log, null));
 else
     bus.AddCommandProducer<IReviewsCommandHandler>(new TcpCqrsClient("localhost:9104", serializer, encryptor, null, log));

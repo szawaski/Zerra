@@ -13,32 +13,36 @@ using Zerra.CQRS.Network;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.Logging;
 using Zerra.Repository;
+using Zerra.Repository.Memory;
+using Zerra.Repository.MySql;
 
 var startup = Stopwatch.StartNew();
 
 Console.Title = "Store - Inventory Service";
 ILogger log = new ConsoleLogger();
-Log.SetLog(log); //framework messages too, such as why a database was skipped
+Log.SetLog(log); //framework messages too, such as a failed database read
 log.Info("Starting Inventory service");
 
-//Data store: this service's own database, schema from the data models, then seed data
+//Data store: this service's own database when it's running, checked here first like the message brokers, schema from the data models, then seed data
 var databaseSetup = Stopwatch.StartNew();
-var dataStore = DataStoreSetup.Prepare<InventoryDataContext>("MySQL", [typeof(StockItemDataModel), typeof(StockReservationDataModel), typeof(StockMovementDataModel)], log);
+var useMySql = !StoreSettings.InMemoryOnly && MySqlDataContext.TestConnection(StoreSettings.InventoryMySql, log);
+ITransactStoreEngine engine = useMySql ? MySqlDataContext.GetEngine(StoreSettings.InventoryMySql) : MemoryDataContext.GetEngine();
+var dataStore = DataStoreSetup.Prepare(engine, "MySQL", [typeof(StockItemDataModel), typeof(StockReservationDataModel), typeof(StockMovementDataModel)], log);
 databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 var repo = Repo.New();
-repo.AddProvider(new InventoryStoreProvider<StockItemDataModel>());
-repo.AddProvider(new InventoryStoreProvider<StockReservationDataModel>());
-repo.AddProvider(new InventoryStoreProvider<StockMovementDataModel>());
+repo.AddProvider(new InventoryStoreProvider<StockItemDataModel>(engine));
+repo.AddProvider(new InventoryStoreProvider<StockReservationDataModel>(engine));
+repo.AddProvider(new InventoryStoreProvider<StockMovementDataModel>(engine));
 var seeding = Stopwatch.StartNew();
 await InventorySeeder.SeedAsync(repo, log);
 seeding.Stop();
 log.Info($"Seed data done in {seeding.ElapsedMilliseconds} ms");
 
 //Message brokers: each is used when it's running, checked here first so the choice can be reported like the data store
-var useKafka = !StoreSettings.DirectMessagingOnly && await KafkaConnection.TestAsync(StoreSettings.KafkaHost, null, null, log: log);
-var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnection.Test(StoreSettings.RabbitMQHost, log: log);
+var useKafka = !StoreSettings.DirectMessagingOnly && await KafkaConnectionTest.TestAsync(StoreSettings.KafkaHost, null, null, log: log);
+var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnectionTest.Test(StoreSettings.RabbitMQHost, log: log);
 IMessagingInfo messaging = new MessagingInfo($"Stock commands: {(useKafka ? "Kafka" : "Direct TCP")}. Order events: {(useRabbitMQ ? "RabbitMQ" : "Direct TCP")}.");
 log.Info($"Messaging: {messaging.Description}");
 

@@ -14,7 +14,7 @@ It is a lighter alternative designed for Zerra services, not a replacement for E
 |---|---|---|
 | **Native AOT** | ✅ Fully compatible | ⚠️ Limited support |
 | **Data source per model** | ✅ Each model can use a different store | ❌ All models share one `DbContext` |
-| **Switching stores** | ✅ Swap via `DataContextSelector` | ❌ Significant refactoring |
+| **Switching stores** | ✅ Pass a different engine at startup | ❌ Significant refactoring |
 | **Bus integration** | ✅ `BaseHandlerWithRepo` | ❌ Manual wiring |
 | **Change tracking** | ✅ None; every operation is explicit | ⚠️ Automatic, with overhead |
 | **Loading related data** | ✅ A `Graph<T>` per call | ⚠️ `.Include()` chains |
@@ -79,36 +79,23 @@ public sealed class OrderDataModel
 
 ### 1. Data Contexts
 
-A data context says where a store is. Each store has a base class: `MsSqlDataContext`, `PostgreSqlDataContext`, `MySqlDataContext`, `MariaDbDataContext`, and `MemoryDataContext`.
+A data context creates a store's engine and tests whether the store can be reached. Each store has one: `MsSqlDataContext`, `PostgreSqlDataContext`, `MySqlDataContext`, `MariaDbDataContext`, `KurrentDBDataContext`, and `MemoryDataContext`.
 
 ```csharp
-public sealed class OrdersSqlContext : MsSqlDataContext
-{
-    public override string GetConnectionString() => configuration["ConnectionStrings:Orders"];
-}
-
-public sealed class OrdersMemoryContext : MemoryDataContext { }
+var engine = MsSqlDataContext.GetEngine(connectionString);   // doesn't connect until it's used
 ```
 
-A `DataContextSelector` uses the first of several contexts whose store is reachable, checking each context type once per process. List the real database first and memory last as a fallback:
-
-```csharp
-public sealed class OrdersDataContext : DataContextSelector
-{
-    protected override IEnumerable<DataContext> LoadDataContexts() => [new OrdersSqlContext(), new OrdersMemoryContext()];
-}
-```
+`TestConnection` returns whether the server answered, and if you pass a logger it logs why it didn't. Test at startup to choose the engine the providers get (see step 3), the same way `RabbitMQConnectionTest.Test` chooses a message transport.
 
 ### 2. A Provider
 
-A provider connects model types to a context:
+A provider connects model types to an engine:
 
 ```csharp
-public sealed class OrdersStoreProvider<TModel> : TransactStoreProvider<OrdersDataContext, TModel>
+public sealed class OrdersStoreProvider<TModel> : TransactStoreProvider<TModel>
     where TModel : class, new()
 {
-    public OrdersStoreProvider() { }
-    public OrdersStoreProvider(OrdersDataContext context) : base(context) { }
+    public OrdersStoreProvider(ITransactStoreEngine engine) : base(engine) { }
 
     protected override bool EventLinking => false;
     protected override bool QueryLinking => true;    // load relations named in a graph
@@ -116,15 +103,21 @@ public sealed class OrdersStoreProvider<TModel> : TransactStoreProvider<OrdersDa
 }
 ```
 
-Created without arguments, every provider on a context type shares one context instance. Pass an instance to give a group of providers their own. Each `MemoryDataContext` instance is its own store, so a test can start from an empty one. Providers for related models must share an instance.
+Each in-memory engine is its own store, so a test can start from an empty one with `MemoryDataContext.GetEngine()`. Providers for related models must share an engine.
 
 ### 3. Register the Repo
 
 ```csharp
+// memory as a fallback when the database isn't running
+ITransactStoreEngine ordersEngine = MsSqlDataContext.TestConnection(ordersConnectionString, log)
+    ? MsSqlDataContext.GetEngine(ordersConnectionString)
+    : MemoryDataContext.GetEngine();
+
 var repo = Repo.New();
-repo.AddProvider(new OrdersStoreProvider<OrderDataModel>());
-repo.AddProvider(new OrdersStoreProvider<OrderLineDataModel>());
-repo.AddProvider(new CatalogStoreProvider<ProductDataModel>());   // a different store, same IRepo
+repo.AddProvider(new OrdersStoreProvider<OrderDataModel>(ordersEngine));
+repo.AddProvider(new OrdersStoreProvider<OrderLineDataModel>(ordersEngine));
+repo.AddProvider(new CatalogStoreProvider<ProductDataModel>(PostgreSqlDataContext.GetEngine(catalogConnectionString)));   // a different store, same IRepo
+
 
 var busServices = new BusServices();
 busServices.AddRepo(repo);

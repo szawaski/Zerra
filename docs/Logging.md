@@ -4,7 +4,7 @@
 
 Zerra logs through two interfaces you implement:
 
-- **`ILogger`** (`Zerra.Logging`): application and framework messages, such as a failed connection or why a database was skipped.
+- **`ILogger`** (`Zerra.Logging`): application and framework messages, such as a failed connection or database read.
 - **`IBusLogger`** (`Zerra.CQRS`): the start and end of every command, event, and query, with where it came from, where it ran, how long it took, and any exception.
 
 Both are optional. Zerra doesn't ship a concrete logger, so implement them over your logging library. The `ConsoleLogger` and `ConsoleBusLogger` used throughout these docs are the samples [below](#console-implementations).

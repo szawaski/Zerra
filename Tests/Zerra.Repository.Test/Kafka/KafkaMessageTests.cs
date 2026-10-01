@@ -19,9 +19,9 @@ namespace Zerra.Repository.Test.Kafka
         [Fact]
         public async Task TestConnection()
         {
-            Assert.True(await KafkaConnection.TestAsync(host, null, null));
+            Assert.True(await KafkaConnectionTest.TestAsync(host, null, null));
             //nothing listens on port 1
-            Assert.False(await KafkaConnection.TestAsync("localhost:1", null, null, TimeSpan.FromSeconds(2)));
+            Assert.False(await KafkaConnectionTest.TestAsync("localhost:1", null, null, TimeSpan.FromSeconds(2)));
         }
 
         [Fact(Timeout = 300000)]

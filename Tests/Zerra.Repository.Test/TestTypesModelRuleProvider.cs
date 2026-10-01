@@ -4,10 +4,9 @@
 
 namespace Zerra.Repository.Test
 {
-    public class TestTypesModelRuleProvider<TContext> : BaseTransactStoreRuleProvider<ITransactStoreProvider<TestTypesModel>, TestTypesModel>
-      where TContext : DataContext, new()
+    public class TestTypesModelRuleProvider : BaseTransactStoreRuleProvider<ITransactStoreProvider<TestTypesModel>, TestTypesModel>
     {
-        public TestTypesModelRuleProvider()
-            : base(new TransactStoreProvider<TContext, TestTypesModel>()) { }
+        public TestTypesModelRuleProvider(ITransactStoreEngine engine)
+            : base(new TransactStoreProvider<TestTypesModel>(engine)) { }
     }
 }

@@ -15,12 +15,9 @@ namespace Zerra.Repository.Memory
     public sealed partial class MemoryEngine : ITransactStoreEngine, IEventStoreEngine
     {
         /// <inheritdoc />
-        public bool ValidateDataSource() => true;
-
-        /// <inheritdoc />
         public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetail)
         {
-            return new EmptyDataStoreGenerationPlan();
+            return new MemoryDataStoreGenerationPlan();
         }
     }
 }

@@ -3,15 +3,9 @@ using Zerra.Repository.MySql;
 
 namespace Pets.Service.Data
 {
-    public sealed class ZerraPetsMySqlContext : MySqlDataContext
+    public static class ZerraPetsMySqlContext
     {
-        public override string GetConnectionString() => connectionString;
-
-        private readonly string connectionString;
-        public ZerraPetsMySqlContext()
-        {
-            this.connectionString = "Server=localhost;Port=3306;Uid=root;Pwd=password123;Database=ZerraPets";
-        }
+        public const string ConnectionString = "Server=localhost;Port=3306;Uid=root;Pwd=password123;Database=ZerraPets";
 
 
         public static async Task DeleteMySql(MySqlEngine engine)

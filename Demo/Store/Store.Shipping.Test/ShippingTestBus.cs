@@ -6,6 +6,7 @@ using Store.Shipping.Service.Data;
 using Store.Shipping.Service.Handlers;
 using Zerra.CQRS;
 using Zerra.Repository;
+using Zerra.Repository.Memory;
 
 namespace Store.Shipping.Test
 {
@@ -20,10 +21,10 @@ namespace Store.Shipping.Test
 
         public ShippingTestBus()
         {
-            //a context of its own is an in-memory store of its own, so no other test sees this one's rows
-            var context = new ShippingDataContext();
+            //an engine of its own is an in-memory store of its own, so no other test sees this one's rows
+            var engine = MemoryDataContext.GetEngine();
             var repo = Zerra.Repository.Repo.New();
-            repo.AddProvider(new ShippingStoreProvider<ShipmentDataModel>(context));
+            repo.AddProvider(new ShippingStoreProvider<ShipmentDataModel>(engine));
             Repo = repo;
 
             var busServices = new BusServices();

@@ -66,10 +66,10 @@ The mode is each subscriber's own choice and changes nothing for the publisher o
 
 ## Checking the Connection
 
-`KafkaConnection.TestAsync` asks the cluster to describe itself and returns whether it answered, waiting five seconds unless given another timeout. The logger, if given, is told why it failed. Use it at startup to fall back to a direct connection when Kafka isn't running. The receiving side makes the same check and registers the matching consumer, so both ends pick the same route:
+`KafkaConnectionTest.TestAsync` asks the cluster to describe itself and returns whether it answered, waiting five seconds unless given another timeout. The logger, if given, is told why it failed. Use it at startup to fall back to a direct connection when Kafka isn't running. The receiving side makes the same check and registers the matching consumer, so both ends pick the same route:
 
 ```csharp
-if (await KafkaConnection.TestAsync("localhost:9092", userName: null, password: null, log: log))
+if (await KafkaConnectionTest.TestAsync("localhost:9092", userName: null, password: null, log: log))
     bus.AddCommandProducer<IStockReservationHandler>(new KafkaProducer("localhost:9092", serializer, encryptor, null, log, null, null, null));
 else
     bus.AddCommandProducer<IStockReservationHandler>(new TcpCqrsClient("localhost:9102", serializer, encryptor, null, log));

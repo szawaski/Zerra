@@ -59,12 +59,14 @@ public sealed class PetDataModel
 
 ### 2. Call `CodeFirstGeneration.Generate`
 
-Call this at application startup, passing your `DataContext` type, the model types to manage, and an `ILogger` to receive the generation output:
+Call this at application startup, passing your store's engine, the model types to manage, and an `ILogger` to receive the generation output:
 
 ```csharp
 ILogger log = new ConsoleLogger(); // your ILogger implementation
+var engine = MsSqlDataContext.GetEngine(connectionString);
 
-CodeFirstGeneration.Generate<MyMsSqlContext>(
+CodeFirstGeneration.Generate(
+    engine,
     DataStoreGenerationType.CodeFirst,
     [typeof(PetTypeDataModel), typeof(PetDataModel)],
     log);
@@ -84,13 +86,15 @@ Flags can be combined:
 
 ```csharp
 // Preview only — logs the plan without applying any changes
-CodeFirstGeneration.Generate<MyMsSqlContext>(
+CodeFirstGeneration.Generate(
+    engine,
     DataStoreGenerationType.CodeFirst | DataStoreGenerationType.Preview,
     [typeof(PetTypeDataModel), typeof(PetDataModel)],
     log);
 
 // Apply creates and updates, but never drop anything
-CodeFirstGeneration.Generate<MyMsSqlContext>(
+CodeFirstGeneration.Generate(
+    engine,
     DataStoreGenerationType.CodeFirst | DataStoreGenerationType.NoDelete,
     [typeof(PetTypeDataModel), typeof(PetDataModel)],
     log);

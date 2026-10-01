@@ -6,6 +6,7 @@ using Store.Common.Data;
 using Store.Common.Messaging;
 using Zerra.CQRS;
 using Zerra.Repository;
+using Zerra.Repository.Memory;
 
 namespace Store.Catalog.Test
 {
@@ -23,13 +24,11 @@ namespace Store.Catalog.Test
 
         public CatalogTestBus()
         {
-            //the service's store providers skip PostgreSQL and use the in-memory store, the same as the demo's In Memory launch profile
-            Environment.SetEnvironmentVariable("STORE_IN_MEMORY", "true");
-            //a context of its own is an in-memory store of its own, so no other test sees this one's rows
-            var context = new CatalogDataContext();
+            //an engine of its own is an in-memory store of its own, so no other test sees this one's rows
+            var engine = MemoryDataContext.GetEngine();
             var repo = Repo.New();
-            repo.AddProvider(new CatalogStoreProvider<CategoryDataModel>(context));
-            repo.AddProvider(new CatalogStoreProvider<ProductDataModel>(context));
+            repo.AddProvider(new CatalogStoreProvider<CategoryDataModel>(engine));
+            repo.AddProvider(new CatalogStoreProvider<ProductDataModel>(engine));
             this.repo = repo;
 
             var busServices = new BusServices();

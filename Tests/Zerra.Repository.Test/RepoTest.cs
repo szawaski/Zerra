@@ -11,12 +11,11 @@ namespace Zerra.Repository.Test
 {
     public static class RepoTest
     {
-        public static void TestSequenceTransactStore<T>() 
-            where T : DataContext, new()
+        public static void TestSequenceTransactStore(ITransactStoreEngine engine)
         {
             var repo = Repo.New();
-            repo.AddProvider(new TransactStoreProvider<T, TestTypesModel>());
-            repo.AddProvider(new TransactStoreProvider<T, TestRelationsModel>());
+            repo.AddProvider(new TransactStoreProvider<TestTypesModel>(engine));
+            repo.AddProvider(new TransactStoreProvider<TestRelationsModel>(engine));
 
             var model = TestTypesModel.Create();
             repo.Create<TestTypesModel>(model);
@@ -52,8 +51,8 @@ namespace Zerra.Repository.Test
             TestQueryExpressions(repo, model, relationBModelCheck);
 
             var repoWithRules = Repo.New();
-            repoWithRules.AddProvider(new TestTypesModelRuleProvider<T>());
-            repoWithRules.AddProvider(new TestRelationsRule2Provider<T>());
+            repoWithRules.AddProvider(new TestTypesModelRuleProvider(engine));
+            repoWithRules.AddProvider(new TestRelationsRule2Provider(engine));
 
             TestQuery(repoWithRules, model, relationBModelCheck);
 
@@ -140,12 +139,11 @@ namespace Zerra.Repository.Test
             Assert.Equal(expected.Select(x => x.RelationAKey).Order(), match.RelationB.Select(x => x.RelationAKey).Order());
         }
 
-        public static async Task TestSequenceTransactStoreAsync<T>() 
-            where T : DataContext, new()
+        public static async Task TestSequenceTransactStoreAsync(ITransactStoreEngine engine)
         {
             var repo = Repo.New();
-            repo.AddProvider(new TransactStoreProvider<T, TestTypesModel>());
-            repo.AddProvider(new TransactStoreProvider<T, TestRelationsModel>());
+            repo.AddProvider(new TransactStoreProvider<TestTypesModel>(engine));
+            repo.AddProvider(new TransactStoreProvider<TestRelationsModel>(engine));
 
             var model = TestTypesModel.Create();
             await repo.CreateAsync<TestTypesModel>(model);
@@ -180,8 +178,8 @@ namespace Zerra.Repository.Test
             await TestQueryAsync(repo, model, relationBModelCheck);
 
             var repoWithRules = Repo.New();
-            repoWithRules.AddProvider(new TestTypesModelRuleProvider<T>());
-            repoWithRules.AddProvider(new TestRelationsRule2Provider<T>());
+            repoWithRules.AddProvider(new TestTypesModelRuleProvider(engine));
+            repoWithRules.AddProvider(new TestRelationsRule2Provider(engine));
 
             await TestQueryAsync(repoWithRules, model, relationBModelCheck);
 
@@ -211,11 +209,10 @@ namespace Zerra.Repository.Test
         /// The event store counterpart of <see cref="TestSequenceTransactStore{T}"/>. An event store reads one stream at a time so every
         /// query names the identity, and nothing is overwritten, so the history of the model stays readable through the Event and Temporal calls.
         /// </summary>
-        public static void TestSequenceEventStore<T>()
-            where T : DataContext, new()
+        public static void TestSequenceEventStore(IEventStoreEngine engine)
         {
             var repo = Repo.New();
-            repo.AddProvider(new EventStoreAsTransactStoreProvider<T, TestTypesModel>());
+            repo.AddProvider(new EventStoreAsTransactStoreProvider<TestTypesModel>(engine));
 
             var createdModel = TestTypesModel.Create();
             repo.Create<TestTypesModel>("Created", createdModel);
@@ -238,7 +235,7 @@ namespace Zerra.Repository.Test
             TestQueryEventStore(repo, createdModel, model);
 
             var repoWithRules = Repo.New();
-            repoWithRules.AddProvider(new TestTypesModelEventRuleProvider<T>());
+            repoWithRules.AddProvider(new TestTypesModelEventRuleProvider(engine));
 
             TestQueryEventStore(repoWithRules, createdModel, model);
 
@@ -289,11 +286,10 @@ namespace Zerra.Repository.Test
         /// The event store counterpart of <see cref="TestSequenceTransactStoreAsync{T}"/>. An event store reads one stream at a time so every
         /// query names the identity, and nothing is overwritten, so the history of the model stays readable through the Event and Temporal calls.
         /// </summary>
-        public static async Task TestSequenceEventStoreAsync<T>()
-            where T : DataContext, new()
+        public static async Task TestSequenceEventStoreAsync(IEventStoreEngine engine)
         {
             var repo = Repo.New();
-            repo.AddProvider(new EventStoreAsTransactStoreProvider<T, TestTypesModel>());
+            repo.AddProvider(new EventStoreAsTransactStoreProvider<TestTypesModel>(engine));
 
             var createdModel = TestTypesModel.Create();
             await repo.CreateAsync<TestTypesModel>("Created", createdModel);
@@ -316,7 +312,7 @@ namespace Zerra.Repository.Test
             await TestQueryEventStoreAsync(repo, createdModel, model);
 
             var repoWithRules = Repo.New();
-            repoWithRules.AddProvider(new TestTypesModelEventRuleProvider<T>());
+            repoWithRules.AddProvider(new TestTypesModelEventRuleProvider(engine));
 
             await TestQueryEventStoreAsync(repoWithRules, createdModel, model);
 
@@ -570,11 +566,9 @@ namespace Zerra.Repository.Test
         /// <summary>
         /// Right after code first generation the data store matches the models, so generating again must find nothing to change.
         /// </summary>
-        public static void AssertSchemaMatchesModels<T>(Type[] modelTypes)
-            where T : DataContext, new()
+        public static void AssertSchemaMatchesModels(ITransactStoreEngine engine, Type[] modelTypes)
         {
-            Assert.True(new T().TryGetEngine(out var engine));
-            var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
+                        var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
             var plan = engine.BuildStoreGenerationPlan(true, true, true, modelDetails);
             Assert.True(plan.Plan.Count == 0, $"Schema changes planned right after generation:{Environment.NewLine}{String.Join(Environment.NewLine, plan.Plan)}");
         }

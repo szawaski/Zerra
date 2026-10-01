@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+// Copyright ï¿½ KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -7,6 +7,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Zerra.Repository.Benchmark.EFData;
 using Zerra.Repository.Test;
+using Zerra.Repository.MsSql;
 using Zerra.Repository.Test.MsSql;
 
 namespace Zerra.Repository.Benchmark.Benchmarks
@@ -25,11 +26,12 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         {
             var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) };
 
-            CodeFirstGeneration.Generate<MsSqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
+            var engine = MsSqlDataContext.GetEngine(MsSqlTestSqlDataContext.ConnectionString);
+            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
 
             var repoSetup = Repo.New();
-            repoSetup.AddProvider(new TransactStoreProvider<MsSqlTestSqlDataContext, TestTypesModel>());
-            repoSetup.AddProvider(new TransactStoreProvider<MsSqlTestSqlDataContext, TestRelationsModel>());
+            repoSetup.AddProvider(new TransactStoreProvider<TestTypesModel>(engine));
+            repoSetup.AddProvider(new TransactStoreProvider<TestRelationsModel>(engine));
             repo = repoSetup;
 
             for (var i = 0; i < 100; i++)
@@ -60,8 +62,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         {
             reuseContext.Dispose();
 
-            var context = new MsSqlTestSqlDataContext();
-            var builder = new SqlConnectionStringBuilder(context.GetConnectionString());
+            var builder = new SqlConnectionStringBuilder(MsSqlTestSqlDataContext.ConnectionString);
             var testDatabase = builder.InitialCatalog;
             builder.InitialCatalog = "master";
             var connectionStringForMaster = builder.ToString();

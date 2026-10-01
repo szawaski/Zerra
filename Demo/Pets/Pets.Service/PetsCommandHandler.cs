@@ -59,9 +59,7 @@ namespace Pets.Service
 
         public async Task Handle(DeleteTestDatabaseCommand command, CancellationToken cancellationToken)
         {
-            var context = new ZerraPetsSelectorDbContext();
-            if (!context.TryGetEngine(out var engine))
-                throw new InvalidOperationException();
+            var engine = Context.GetService<ITransactStoreEngine>();
 
             if (engine is Zerra.Repository.MsSql.MsSqlEngine msSqlEngine)
                 await ZerraPetsMsSqlContext.DeleteMsSql(msSqlEngine);

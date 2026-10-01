@@ -12,7 +12,7 @@ namespace Zerra.CQRS.Kafka
     /// <summary>
     /// Checks whether a Kafka cluster can be reached, such as at startup to choose between Kafka and a direct transport.
     /// </summary>
-    public static class KafkaConnection
+    public static class KafkaConnectionTest
     {
         private static readonly TimeSpan defaultTimeout = TimeSpan.FromSeconds(5);
 
@@ -57,7 +57,7 @@ namespace Zerra.CQRS.Kafka
             }
             catch (Exception ex)
             {
-                log?.Warn($"{nameof(KafkaConnection)} could not connect to {host}: {ex.Message}");
+                log?.Warn($"{nameof(KafkaConnectionTest)} could not connect to {host}: {ex.Message}");
                 return false;
             }
         }

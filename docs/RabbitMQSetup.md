@@ -75,10 +75,10 @@ The URI contains secrets, so load it from configuration or a secret store. Zerra
 
 ## Checking the Connection
 
-`RabbitMQConnection.Test` opens and closes a connection and returns whether it opened, waiting five seconds unless given another timeout. It's synchronous because the RabbitMQ client only connects synchronously. The logger, if given, is told why it failed. Use it at startup to fall back to a direct connection when RabbitMQ isn't running. Subscribers make the same check and register the matching consumer, so both ends pick the same route:
+`RabbitMQConnectionTest.Test` opens and closes a connection and returns whether it opened, waiting five seconds unless given another timeout. It's synchronous because the RabbitMQ client only connects synchronously. The logger, if given, is told why it failed. Use it at startup to fall back to a direct connection when RabbitMQ isn't running. Subscribers make the same check and register the matching consumer, so both ends pick the same route:
 
 ```csharp
-if (RabbitMQConnection.Test("localhost", log: log))
+if (RabbitMQConnectionTest.Test("localhost", log: log))
     bus.AddEventProducer<IOrderEventHandler>(new RabbitMQProducer("localhost", serializer, encryptor, null, log, null));
 else
     bus.AddEventProducer<IOrderEventHandler>(new TcpCqrsClient("localhost:9102", serializer, encryptor, null, log));

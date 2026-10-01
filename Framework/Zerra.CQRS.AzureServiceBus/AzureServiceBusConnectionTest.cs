@@ -10,7 +10,7 @@ namespace Zerra.CQRS.AzureServiceBus
     /// <summary>
     /// Checks whether an Azure Service Bus namespace can be reached, such as at startup to choose between Service Bus and a direct transport.
     /// </summary>
-    public static class AzureServiceBusConnection
+    public static class AzureServiceBusConnectionTest
     {
         private static readonly TimeSpan defaultTimeout = TimeSpan.FromSeconds(5);
 
@@ -38,7 +38,7 @@ namespace Zerra.CQRS.AzureServiceBus
             }
             catch (Exception ex)
             {
-                log?.Warn($"{nameof(AzureServiceBusConnection)} could not connect: {ex.Message}");
+                log?.Warn($"{nameof(AzureServiceBusConnectionTest)} could not connect: {ex.Message}");
                 return false;
             }
         }

@@ -2,15 +2,9 @@
 using Zerra.Repository.MariaDb;
 
 namespace Pets.Service.Data
-{    public sealed class ZerraPetsMariaDbContext : MariaDbDataContext
+{    public static class ZerraPetsMariaDbContext
     {
-        public override string GetConnectionString() => connectionString;
-
-        private readonly string connectionString;
-        public ZerraPetsMariaDbContext()
-        {
-            this.connectionString = "Server=localhost;Port=3307;Uid=root;Pwd=password123;Database=ZerraPets";
-        }
+        public const string ConnectionString = "Server=localhost;Port=3307;Uid=root;Pwd=password123;Database=ZerraPets";
 
 
         public static async Task DeleteMariaDb(MariaDbEngine engine)

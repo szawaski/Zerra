@@ -2,12 +2,10 @@ using Zerra.Repository;
 
 namespace Store.Shipping.Service.Data
 {
-    public sealed class ShippingStoreProvider<TModel> : TransactStoreProvider<ShippingDataContext, TModel>
+    public sealed class ShippingStoreProvider<TModel> : TransactStoreProvider<TModel>
         where TModel : class, new()
     {
-        public ShippingStoreProvider() { }
-        //a context of its own is a store of its own when it's in-memory, the tests give each test one
-        public ShippingStoreProvider(ShippingDataContext context) : base(context) { }
+        public ShippingStoreProvider(ITransactStoreEngine engine) : base(engine) { }
 
         protected override bool EventLinking => false;
         protected override bool QueryLinking => true;

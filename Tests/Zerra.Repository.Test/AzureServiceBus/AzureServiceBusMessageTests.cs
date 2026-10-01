@@ -19,9 +19,9 @@ namespace Zerra.Repository.Test.AzureServiceBus
         [Fact]
         public async Task TestConnection()
         {
-            Assert.True(await AzureServiceBusConnection.TestAsync(host, null));
+            Assert.True(await AzureServiceBusConnectionTest.TestAsync(host, null));
             //not the emulator, so its management port isn't substituted, and nothing listens on port 1
-            Assert.False(await AzureServiceBusConnection.TestAsync("Endpoint=sb://localhost:1;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;", TimeSpan.FromSeconds(2)));
+            Assert.False(await AzureServiceBusConnectionTest.TestAsync("Endpoint=sb://localhost:1;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;", TimeSpan.FromSeconds(2)));
         }
 
         [Fact(Timeout = 300000)]

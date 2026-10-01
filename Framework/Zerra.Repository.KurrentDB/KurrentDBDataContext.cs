@@ -2,39 +2,60 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Logging;
+
 namespace Zerra.Repository.KurrentDB
 {
     /// <summary>
-    /// Abstract base class for KurrentDB data contexts that provides connection management and engine initialization.
+    /// Creates KurrentDB engines and checks whether a KurrentDB node can be reached, such as at startup to choose between KurrentDB and another event store.
     /// </summary>
-    public abstract class KurrentDBDataContext : DataContext
+    public static class KurrentDBDataContext
     {
-        /// <summary>
-        /// Gets the connection string used to connect to the KurrentDB instance.
-        /// </summary>
-        public abstract string ConnectionString { get; }
-        /// <summary>
-        /// Gets a value indicating whether to use an insecure connection (without TLS/SSL).
-        /// </summary>
-        public abstract bool Insecure { get; }
+        private static readonly TimeSpan defaultTimeout = TimeSpan.FromSeconds(5);
 
-        private readonly object locker = new();
-        private IDataStoreEngine? engine = null;
-        /// <inheritdoc/>
-        protected override IDataStoreEngine GetEngine()
+        /// <summary>
+        /// Creates an engine for the KurrentDB node. Dispose it when the application stops, it holds the client's connections.
+        /// </summary>
+        /// <param name="connectionString">The connection string for the KurrentDB instance.</param>
+        /// <param name="insecure">Whether the node runs without TLS/SSL.</param>
+        /// <returns>The engine to give the aggregates and store providers.</returns>
+        public static KurrentDBEngine GetEngine(string connectionString, bool insecure)
         {
-            if (engine is null)
+            if (String.IsNullOrWhiteSpace(connectionString)) throw new ArgumentNullException(nameof(connectionString));
+            return new KurrentDBEngine(connectionString, insecure);
+        }
+
+        /// <summary>
+        /// Tests the connection with the node's HTTP health check. This is synchronous because the KurrentDB client only has async calls, so the health check is used instead.
+        /// </summary>
+        /// <param name="connectionString">The connection string for the KurrentDB instance.</param>
+        /// <param name="insecure">Whether the node runs without TLS/SSL.</param>
+        /// <param name="timeout">How long to wait for the health check, five seconds if not given.</param>
+        /// <param name="log">Optional logger, told why the connection failed.</param>
+        /// <returns>True if the health check answered; otherwise false.</returns>
+        public static bool TestConnection(string connectionString, bool insecure, TimeSpan? timeout = null, ILogger? log = null)
+        {
+            if (String.IsNullOrWhiteSpace(connectionString)) throw new ArgumentNullException(nameof(connectionString));
+
+            try
             {
-                lock (locker)
-                {
-                    if (engine is null)
-                    {
-                        engine = new KurrentDBEngine(ConnectionString, Insecure);
-                        return engine;
-                    }
-                }
+                var address = new Uri(connectionString);
+                var healthUri = new UriBuilder(address) { Scheme = insecure ? Uri.UriSchemeHttp : address.Scheme, Path = "/health/live", Query = String.Empty }.Uri;
+
+                using var httpClient = new HttpClient() { Timeout = timeout ?? defaultTimeout };
+                using var request = new HttpRequestMessage(HttpMethod.Get, healthUri);
+                using var response = httpClient.Send(request);
+                if (response.IsSuccessStatusCode)
+                    return true;
+
+                log?.Warn($"{nameof(KurrentDBDataContext)} could not connect: health check returned {(int)response.StatusCode}");
+                return false;
             }
-            return engine;
+            catch (Exception ex)
+            {
+                log?.Warn($"{nameof(KurrentDBDataContext)} could not connect: {ex.Message}");
+                return false;
+            }
         }
     }
 }

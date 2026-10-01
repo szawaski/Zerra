@@ -1,11 +1,11 @@
 ﻿using Zerra.Logging;
 
-namespace Zerra.Repository
+namespace Zerra.Repository.Memory
 {
     /// <summary>
-    /// Represents a no-op data store generation plan that contains no changes and performs no actions.
+    /// The generation plan of an in-memory store, which has no schema, so it contains no changes and performs no actions.
     /// </summary>
-    public sealed class EmptyDataStoreGenerationPlan : IDataStoreGenerationPlan
+    public sealed class MemoryDataStoreGenerationPlan : IDataStoreGenerationPlan
     {
         /// <summary>
         /// Gets an empty collection indicating no schema changes are planned.

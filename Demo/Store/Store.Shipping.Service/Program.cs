@@ -11,6 +11,7 @@ using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.Repository;
+using Zerra.Repository.Memory;
 using Zerra.Web;
 
 var startup = Stopwatch.StartNew();
@@ -18,21 +19,23 @@ var startup = Stopwatch.StartNew();
 Console.Title = "Store - Shipping Service";
 //Zerra.Logging.ILogger, ASP.NET's implicit usings also bring in Microsoft.Extensions.Logging.ILogger
 Zerra.Logging.ILogger log = new ConsoleLogger();
-Zerra.Logging.Log.SetLog(log); //framework messages too, such as why a database was skipped
+Zerra.Logging.Log.SetLog(log); //framework messages too, such as a failed database read
 log.Info("Starting Shipping service");
 
 var builder = WebApplication.CreateBuilder(args);
 
-//No database to reach here, see ShippingDataContext for why
-CodeFirstGeneration.Generate<ShippingDataContext>(DataStoreGenerationType.CodeFirst | DataStoreGenerationType.NoDelete, [typeof(ShipmentDataModel)], log);
+//Shipping is intentionally memory-only, there's no database to reach or fall back from. The point of this service is hosting the CQRS
+//server inside ASP.NET Core over HTTP instead of the raw TCP transport the other services use, so it needs nothing else running to try it
+var engine = MemoryDataContext.GetEngine();
+CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst | DataStoreGenerationType.NoDelete, [typeof(ShipmentDataModel)], log);
 IDataStoreInfo dataStore = new DataStoreInfo("In-memory (by design, this service needs no database)");
 log.Info($"Data store: {dataStore.Description}");
 
 var repo = Repo.New();
-repo.AddProvider(new ShippingStoreProvider<ShipmentDataModel>());
+repo.AddProvider(new ShippingStoreProvider<ShipmentDataModel>(engine));
 
 //Commands come from the gateway over HTTP/Kestrel. The order events from Orders take RabbitMQ when it's running, HTTP/Kestrel when it isn't
-var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnection.Test(StoreSettings.RabbitMQHost, log: log);
+var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnectionTest.Test(StoreSettings.RabbitMQHost, log: log);
 IMessagingInfo messaging = new MessagingInfo($"Shipment commands: Direct HTTP. Order events: {(useRabbitMQ ? "RabbitMQ" : "Direct HTTP")}.");
 log.Info($"Messaging: {messaging.Description}");
 

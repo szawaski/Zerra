@@ -8,6 +8,7 @@ using Store.Orders.Service.Data;
 using Store.Orders.Service.Handlers;
 using Zerra.CQRS;
 using Zerra.Repository;
+using Zerra.Repository.Memory;
 
 namespace Store.Orders.Test
 {
@@ -27,14 +28,12 @@ namespace Store.Orders.Test
 
         public OrdersTestBus()
         {
-            //the service's store providers skip SQL Server and use the in-memory store, the same as the demo's In Memory launch profile
-            Environment.SetEnvironmentVariable("STORE_IN_MEMORY", "true");
-            //a context of its own is an in-memory store of its own, so no other test sees this one's rows
-            var context = new OrdersDataContext();
+            //an engine of its own is an in-memory store of its own, so no other test sees this one's rows
+            var engine = MemoryDataContext.GetEngine();
             var repo = Zerra.Repository.Repo.New();
-            repo.AddProvider(new OrdersStoreProvider<CustomerDataModel>(context));
-            repo.AddProvider(new OrdersStoreProvider<OrderDataModel>(context));
-            repo.AddProvider(new OrdersStoreProvider<OrderItemDataModel>(context));
+            repo.AddProvider(new OrdersStoreProvider<CustomerDataModel>(engine));
+            repo.AddProvider(new OrdersStoreProvider<OrderDataModel>(engine));
+            repo.AddProvider(new OrdersStoreProvider<OrderItemDataModel>(engine));
             Repo = repo;
 
             var busServices = new BusServices();

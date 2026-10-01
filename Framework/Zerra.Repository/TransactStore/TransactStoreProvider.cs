@@ -7,12 +7,10 @@ using Zerra.Reflection;
 namespace Zerra.Repository
 {
     /// <summary>
-    /// Concrete transact store provider that executes queries and persist operations against a <typeparamref name="TContext"/> data context using an <see cref="ITransactStoreEngine"/>.
+    /// Concrete transact store provider that executes queries and persist operations using an <see cref="ITransactStoreEngine"/>.
     /// </summary>
-    /// <typeparam name="TContext">The data context type that supplies the engine.</typeparam>
     /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
-    public class TransactStoreProvider<TContext, TModel> : RootTransactStoreProvider<TModel>
-        where TContext : DataContext, new()
+    public class TransactStoreProvider<TModel> : RootTransactStoreProvider<TModel>
         where TModel : class, new()
     {
         private const int deleteBatchSizeSingleIdentity = 1028;
@@ -23,31 +21,21 @@ namespace Zerra.Repository
         /// <summary>The engine used to execute queries and persist operations against the underlying data store.</summary>
         protected readonly ITransactStoreEngine Engine;
 
-        /// <summary>Initializes a new instance of <see cref="TransactStoreProvider{TContext, TModel}"/>, resolving the <see cref="ITransactStoreEngine"/> from the <typeparamref name="TContext"/> instance every provider on the type shares.</summary>
-        public TransactStoreProvider()
-            : this(DataContextInstance<TContext>.Shared)
+        /// <summary>Initializes a new instance of <see cref="TransactStoreProvider{TModel}"/> on <paramref name="engine"/>.</summary>
+        /// <param name="engine">The engine to use, such as one from a data context's GetEngine. Providers given the same in-memory engine share its store.</param>
+        public TransactStoreProvider(ITransactStoreEngine engine)
         {
-        }
-
-        /// <summary>Initializes a new instance of <see cref="TransactStoreProvider{TContext, TModel}"/>, resolving the <see cref="ITransactStoreEngine"/> from <paramref name="context"/>.</summary>
-        /// <param name="context">The context to use. Providers given the same instance share its engine, so a new instance of an in-memory context is a new, empty store.</param>
-        public TransactStoreProvider(TContext context)
-        {
-            if (context is null)
-                throw new ArgumentNullException(nameof(context));
+            if (engine is null)
+                throw new ArgumentNullException(nameof(engine));
             this.deleteBatchSize = ModelTypeDetail.IdentityMembers.Count == 1 ? deleteBatchSizeSingleIdentity : deleteBatchSizeManyIdentity;
-            if (!context.TryGetEngine(out var engine))
-                throw new Exception($"{typeof(TContext).Name} could not produce an engine of {typeof(ITransactStoreEngine).Name}");
-            if (engine is not ITransactStoreEngine transactStoreEngine)
-                throw new Exception($"{typeof(TContext).Name} produced an engine of {engine.GetType().Name} which is not a {typeof(ITransactStoreEngine).Name}");
-            this.Engine = transactStoreEngine;
+            this.Engine = engine;
         }
 
         /// <inheritdoc/>
         protected override sealed IReadOnlyCollection<TModel> Many(Query query)
         {
             if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
             var models = Engine.ExecuteMany<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return models;
@@ -56,7 +44,7 @@ namespace Zerra.Repository
         protected override sealed TModel? First(Query query)
         {
             if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
             var model = Engine.ExecuteFirst<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return model;
@@ -65,7 +53,7 @@ namespace Zerra.Repository
         protected override sealed TModel? Single(Query query)
         {
             if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
             var model = Engine.ExecuteSingle<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return model;
@@ -74,7 +62,7 @@ namespace Zerra.Repository
         protected override sealed long Count(Query query)
         {
             if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
             var count = Engine.ExecuteCount<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return count;
@@ -83,7 +71,7 @@ namespace Zerra.Repository
         protected override sealed bool Any(Query query)
         {
             if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
             var any = Engine.ExecuteAny<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return any;
@@ -103,7 +91,7 @@ namespace Zerra.Repository
         protected override sealed Task<IReadOnlyCollection<TModel>> ManyAsync(Query query)
         {
             if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
             var models = Engine.ExecuteManyAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return models;
@@ -112,7 +100,7 @@ namespace Zerra.Repository
         protected override sealed Task<TModel?> FirstAsync(Query query)
         {
             if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
             var model = Engine.ExecuteFirstAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return model;
@@ -121,7 +109,7 @@ namespace Zerra.Repository
         protected override sealed Task<TModel?> SingleAsync(Query query)
         {
             if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
             var model = Engine.ExecuteSingleAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return model;
@@ -130,7 +118,7 @@ namespace Zerra.Repository
         protected override sealed Task<long> CountAsync(Query query)
         {
             if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
             var count = Engine.ExecuteCountAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return count;
@@ -139,7 +127,7 @@ namespace Zerra.Repository
         protected override sealed Task<bool> AnyAsync(Query query)
         {
             if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TContext, TModel>)}");
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
             var any = Engine.ExecuteAnyAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return any;

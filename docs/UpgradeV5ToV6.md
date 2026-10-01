@@ -191,14 +191,16 @@ Watch for these:
 
 ### Data Contexts and Providers
 
-- **Connection string.** `public override string ConnectionString => ...` becomes `public override string GetConnectionString() => ...`.
-- **`DataStoreGenerationType` override** was removed from the data context. Delete it. If the app relied on it to create or update the schema, call `CodeFirstGeneration.Generate<TContext>(...)` at startup instead (see [Repository Generation](RepositoryGeneration.md)).
+- **Data contexts are gone as classes you derive from.** `DataContext`, `DataContextSelector`, and `IDataStoreEngine` (with its `ValidateDataSource`) were removed. `MsSqlDataContext`, `PostgreSqlDataContext`, `MySqlDataContext`, `MariaDbDataContext`, `KurrentDBDataContext`, and `MemoryDataContext` are static: `GetEngine(connectionString)` creates the store's engine and `TestConnection(connectionString, log)` checks the store can be reached. Replace each derived context with a call to `GetEngine`, keeping its connection string. To fall back to another store, choose the engine at startup with `TestConnection`. See [Repository](Repository.md#1-data-contexts).
+- **`BuildStoreGenerationPlan` moved to `ITransactStoreEngine`**, and `EmptyDataStoreGenerationPlan` was removed. `CodeFirstGeneration.Generate` takes an `ITransactStoreEngine`.
+- **`DataStoreGenerationType` override** was removed from the data context. Delete it. If the app relied on it to create or update the schema, call `CodeFirstGeneration.Generate(engine, ...)` at startup instead (see [Repository Generation](RepositoryGeneration.md)).
 - **`DataStoreGenerationType.CodeFirst` ran on first use.** v5 updated the schema the first time any provider used the context, in whichever process that was. `CodeFirstGeneration.Generate` runs only where you call it, so call it in every entry point that used to rely on it (service, tools, tests), for example from one shared method that also builds the repo.
-- `TransactStoreProvider<TContext, TModel>` (the plain provider base class) keeps its name and its `QueryLinking`/`PersistLinking`/`EventLinking` overrides.
-- **`[TransactStoreEntity<TModel>]` on the data context** (which gave the listed models a provider without writing provider classes) was removed. `TransactStoreProvider<TContext, TModel>` isn't abstract, so register one per model instead:
+- **`TransactStoreProvider<TContext, TModel>` is now `TransactStoreProvider<TModel>`**, taking the engine in its constructor: `new TransactStoreProvider<OrderDataModel>(engine)`. It keeps its `QueryLinking`/`PersistLinking`/`EventLinking` overrides. `EventStoreAsTransactStoreProvider<TModel>` takes an `IEventStoreEngine` and `ByteStoreProvider` an `IByteStoreEngine`. Providers for related models must share one engine.
+- **`[TransactStoreEntity<TModel>]` on the data context** (which gave the listed models a provider without writing provider classes) was removed. `TransactStoreProvider<TModel>` isn't abstract, so register one per model instead:
   ```csharp
-  repo.AddProvider(new TransactStoreProvider<LegalResearchDataContext, CountryDataModel>());
-  repo.AddProvider(new TransactStoreProvider<LegalResearchDataContext, ObligationDataModel>());
+  var engine = MsSqlDataContext.GetEngine(connectionString);
+  repo.AddProvider(new TransactStoreProvider<CountryDataModel>(engine));
+  repo.AddProvider(new TransactStoreProvider<ObligationDataModel>(engine));
   ```
 - **Layer providers (encryption, compression, rules)** used to find the provider below them through discovery. Now the constructor passes it in, and the outermost layer is what you register:
   ```csharp

@@ -9,7 +9,7 @@ namespace Zerra.CQRS.RabbitMQ
     /// <summary>
     /// Checks whether a RabbitMQ server can be reached, such as at startup to choose between RabbitMQ and a direct transport.
     /// </summary>
-    public static class RabbitMQConnection
+    public static class RabbitMQConnectionTest
     {
         private static readonly TimeSpan defaultTimeout = TimeSpan.FromSeconds(5);
 
@@ -38,7 +38,7 @@ namespace Zerra.CQRS.RabbitMQ
             }
             catch (Exception ex)
             {
-                log?.Warn($"{nameof(RabbitMQConnection)} could not connect: {ex.Message}");
+                log?.Warn($"{nameof(RabbitMQConnectionTest)} could not connect: {ex.Message}");
                 return false;
             }
         }

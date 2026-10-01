@@ -2,12 +2,11 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Repository.MariaDb;
 
 namespace Zerra.Repository.Test.MariaDb
 {
-    public class MariaDbTestSqlDataContext : MariaDbDataContext
+    public static class MariaDbTestSqlDataContext
     {
-        public override string GetConnectionString() => "Server=localhost;Port=3307;Uid=root;Pwd=password123;Database=ZerraSqlTest";
+        public const string ConnectionString = "Server=localhost;Port=3307;Uid=root;Pwd=password123;Database=ZerraSqlTest";
     }
 }

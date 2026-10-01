@@ -1857,42 +1857,5 @@ AND KF.TABLE_SCHEMA = DATABASE() AND LOWER(KF.TABLE_NAME) = '{model.DataSourceEn
 
             return sqlConstrains;
         }
-
-        /// <inheritdoc />
-        public bool ValidateDataSource()
-        {
-            if (String.IsNullOrWhiteSpace(connectionString))
-                return false;
-
-            const string sql = "SELECT version()";
-
-            try
-            {
-                var builder = new MySqlConnectionStringBuilder(connectionString);
-                builder.Database = "sys";
-                var connectionStringForMaster = builder.ToString();
-
-                using (var connection = new MySqlConnection(connectionStringForMaster))
-                {
-                    connection.Open();
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandTimeout = 0;
-                        command.CommandText = sql;
-                        var version = (string?)command.ExecuteScalar();
-                        if (version != null && version.Length > 0 && Char.IsNumber(version[0]))
-                            return true;
-
-                        Log.Warn($"{nameof(MariaDbEngine)} failed to validate: Invalid version {version}");
-                        return false;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warn($"{nameof(MariaDbEngine)} failed to validate: {ex.Message}");
-            }
-            return false;
-        }
     }
 }

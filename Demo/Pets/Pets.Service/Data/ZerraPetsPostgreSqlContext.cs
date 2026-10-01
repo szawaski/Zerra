@@ -3,15 +3,9 @@ using Zerra.Repository.PostgreSql;
 
 namespace Pets.Service.Data
 {
-    public sealed class ZerraPetsPostgreSqlContext : PostgreSqlDataContext
+    public static class ZerraPetsPostgreSqlContext
     {
-        public override string GetConnectionString() => connectionString;
-
-        private readonly string connectionString;
-        public ZerraPetsPostgreSqlContext()
-        {
-            this.connectionString = "Host=localhost;Port=5432;User ID=postgres;Password=password123;Database=zerrapets";
-        }
+        public const string ConnectionString = "Host=localhost;Port=5432;User ID=postgres;Password=password123;Database=zerrapets";
 
         public static async Task DeletePostgreSql(PostgreSqlEngine engine)
         {

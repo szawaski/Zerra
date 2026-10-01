@@ -12,9 +12,9 @@ namespace Zerra.Repository.Test.MySql
 {
     public class MySqlEngineTests
     {
-        private static int ExecuteSql(MySqlTestSqlDataContext context, string sql)
+        private static int ExecuteSql(string connectionString, string sql)
         {
-            using (var connection = new MySqlConnection(context.GetConnectionString()))
+            using (var connection = new MySqlConnection(connectionString))
             {
                 connection.Open();
                 using (var command = connection.CreateCommand())
@@ -25,9 +25,9 @@ namespace Zerra.Repository.Test.MySql
             }
         }
 
-        private static void DropDatabase(MySqlTestSqlDataContext context)
+        private static void DropDatabase(string connectionString)
         {
-            var builder = new MySqlConnectionStringBuilder(context.GetConnectionString());
+            var builder = new MySqlConnectionStringBuilder(connectionString);
             var testDatabase = builder.Database;
             builder.Database = "sys";
             var connectionStringForMaster = builder.ToString();
@@ -45,27 +45,28 @@ namespace Zerra.Repository.Test.MySql
         [Fact]
         public async Task TestSequence()
         {
-            var context = new MySqlTestSqlDataContext();
+            var connectionString = MySqlTestSqlDataContext.ConnectionString;
+            var engine = MySqlDataContext.GetEngine(connectionString);
 
-            DropDatabase(context);
+            DropDatabase(connectionString);
 
             var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) };
 
-            CodeFirstGeneration.Generate<MySqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
-            RepoTest.AssertSchemaMatchesModels<MySqlTestSqlDataContext>(modelTypes);
+            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
 
-            RepoTest.TestSequenceTransactStore<MySqlTestSqlDataContext>();
-            await RepoTest.TestSequenceTransactStoreAsync<MySqlTestSqlDataContext>();
+            RepoTest.TestSequenceTransactStore(engine);
+            await RepoTest.TestSequenceTransactStoreAsync(engine);
 
             const string changeColumn = "ALTER TABLE `TestTypes` MODIFY `Int32Thing` bigint NULL";
             const string addColumn = "ALTER TABLE `TestTypes` ADD `DummyToMakeNullable` int NOT NULL";
             const string dropColumn = "ALTER TABLE `TestTypes` DROP COLUMN `ByteThing`";
-            _ = ExecuteSql(context, changeColumn);
-            _ = ExecuteSql(context, addColumn);
-            _ = ExecuteSql(context, dropColumn);
+            _ = ExecuteSql(connectionString, changeColumn);
+            _ = ExecuteSql(connectionString, addColumn);
+            _ = ExecuteSql(connectionString, dropColumn);
 
-            CodeFirstGeneration.Generate<MySqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
-            RepoTest.AssertSchemaMatchesModels<MySqlTestSqlDataContext>(modelTypes);
+            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
 
             var sb = new StringBuilder();
             var modelDetails = ModelAnalyzer.GetModel(typeof(TestTypesModel));
@@ -79,10 +80,10 @@ namespace Zerra.Repository.Test.MySql
             }
             var dropAllColumns = sb.ToString();
 
-            _ = ExecuteSql(context, dropAllColumns);
+            _ = ExecuteSql(connectionString, dropAllColumns);
 
-            CodeFirstGeneration.Generate<MySqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
-            RepoTest.AssertSchemaMatchesModels<MySqlTestSqlDataContext>(modelTypes);
+            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
 
             _ = sb.Clear();
             foreach (var property in modelDetails.Members)
@@ -101,12 +102,12 @@ namespace Zerra.Repository.Test.MySql
             }
             var addJunkColumns = sb.ToString();
 
-            _ = ExecuteSql(context, addJunkColumns);
+            _ = ExecuteSql(connectionString, addJunkColumns);
 
-            CodeFirstGeneration.Generate<MySqlTestSqlDataContext>(DataStoreGenerationType.CodeFirst, modelTypes);
-            RepoTest.AssertSchemaMatchesModels<MySqlTestSqlDataContext>(modelTypes);
+            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
 
-            DropDatabase(context);
+            DropDatabase(connectionString);
         }
     }
 }

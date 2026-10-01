@@ -13,23 +13,28 @@ using Zerra.CQRS.Network;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.Logging;
 using Zerra.Repository;
+using Zerra.Repository.Memory;
+using Zerra.Repository.KurrentDB;
 
 var startup = Stopwatch.StartNew();
 
 Console.Title = "Store - Carts Service";
 ILogger log = new ConsoleLogger();
-Log.SetLog(log); //framework messages too, such as why a database was skipped
+Log.SetLog(log); //framework messages too, such as a failed database read
 log.Info("Starting Carts service");
 
-//Data store: an event store instead of tables, each cart is a stream of events that the cart aggregate replays
+//Data store: an event store instead of tables, each cart is a stream of events that the cart aggregate replays. KurrentDB when it's running, checked here first like the message brokers
 var databaseSetup = Stopwatch.StartNew();
-var dataStore = DataStoreSetup.PrepareEventStore<CartsDataContext>("KurrentDB", log, out var eventStore);
+var useKurrentDB = !StoreSettings.InMemoryOnly && KurrentDBDataContext.TestConnection(StoreSettings.CartsKurrentDB, true, log: log);
+//the in-memory engine keeps its events in the instance, the handlers share this one
+IEventStoreEngine eventStore = useKurrentDB ? KurrentDBDataContext.GetEngine(StoreSettings.CartsKurrentDB, true) : MemoryDataContext.GetEngine();
+var dataStore = DataStoreSetup.PrepareEventStore(eventStore, "KurrentDB", log);
 databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 //Carts receives queries and commands from the gateway and a reprice command from Catalog over TCP, and Catalog's product events over
 //RabbitMQ when it's running. Its checkout command to Orders is outbound.
-var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnection.Test(StoreSettings.RabbitMQHost, log: log);
+var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnectionTest.Test(StoreSettings.RabbitMQHost, log: log);
 IMessagingInfo messaging = new MessagingInfo($"Commands: Direct TCP. Product events: {(useRabbitMQ ? "RabbitMQ" : "Direct TCP")}.");
 log.Info($"Messaging: {messaging.Description}");
 

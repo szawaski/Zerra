@@ -176,14 +176,5 @@ namespace Zerra.Repository.Test.Memory
 
             Assert.Equal("Created", engine.Read(streamName, null, null, null, null, null)[0].EventName);
         }
-
-        [Fact]
-        public void Engine_IsAnEventStoreEngineFromTheDataContext()
-        {
-            var context = new MemoryTestDataContext();
-
-            Assert.True(context.TryGetEngine(out var engine));
-            _ = Assert.IsAssignableFrom<IEventStoreEngine>(engine);
-        }
     }
 }

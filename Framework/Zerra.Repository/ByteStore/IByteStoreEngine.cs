@@ -7,7 +7,7 @@ namespace Zerra.Repository
     /// <summary>
     /// Defines the low-level storage engine contract for reading and writing byte streams.
     /// </summary>
-    public interface IByteStoreEngine : IDataStoreEngine
+    public interface IByteStoreEngine
     {
         /// <summary>
         /// Retrieves a stream for the entry with the specified name.

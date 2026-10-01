@@ -11,10 +11,8 @@ namespace Zerra.Repository
     /// A transactional store provider that reconstructs model state by replaying events from an <see cref="IEventStoreEngine"/>,
     /// enabling temporal queries over event-sourced data.
     /// </summary>
-    /// <typeparam name="TContext">The <see cref="DataContext"/> type that provides the <see cref="IEventStoreEngine"/>.</typeparam>
     /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
-    public class EventStoreAsTransactStoreProvider<TContext, TModel> : RootTransactStoreProvider<TModel>
-        where TContext : DataContext, new()
+    public class EventStoreAsTransactStoreProvider<TModel> : RootTransactStoreProvider<TModel>
         where TModel : class, new()
     {
         /// <summary>
@@ -28,32 +26,14 @@ namespace Zerra.Repository
         protected readonly IEventStoreEngine Engine;
 
         /// <summary>
-        /// Initializes a new instance and resolves the <see cref="IEventStoreEngine"/> from the <typeparamref name="TContext"/> instance every provider on the type shares.
+        /// Initializes a new instance on <paramref name="engine"/>.
         /// </summary>
-        /// <exception cref="Exception">
-        /// Thrown when <typeparamref name="TContext"/> cannot produce an <see cref="IEventStoreEngine"/>.
-        /// </exception>
-        public EventStoreAsTransactStoreProvider()
-            : this(DataContextInstance<TContext>.Shared)
+        /// <param name="engine">The engine to use, such as one from a data context's GetEngine. Providers given the same in-memory engine share its store.</param>
+        public EventStoreAsTransactStoreProvider(IEventStoreEngine engine)
         {
-        }
-
-        /// <summary>
-        /// Initializes a new instance and resolves the <see cref="IEventStoreEngine"/> from <paramref name="context"/>.
-        /// </summary>
-        /// <param name="context">The context to use. Providers given the same instance share its engine, so a new instance of an in-memory context is a new, empty store.</param>
-        /// <exception cref="Exception">
-        /// Thrown when <typeparamref name="TContext"/> cannot produce an <see cref="IEventStoreEngine"/>.
-        /// </exception>
-        public EventStoreAsTransactStoreProvider(TContext context)
-        {
-            if (context is null)
-                throw new ArgumentNullException(nameof(context));
-            if (!context.TryGetEngine(out var engine))
-                throw new Exception($"{typeof(TContext).Name} could not produce an engine of {typeof(IEventStoreEngine).Name}");
-            if (engine is not IEventStoreEngine eventStoreEngine)
-                throw new Exception($"{typeof(TContext).Name} produced an engine of {engine.GetType().Name} which is not a {typeof(IEventStoreEngine).Name}");
-            this.Engine = eventStoreEngine;
+            if (engine is null)
+                throw new ArgumentNullException(nameof(engine));
+            this.Engine = engine;
         }
 
         /// <inheritdoc/>

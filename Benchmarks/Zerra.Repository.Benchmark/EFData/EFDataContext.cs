@@ -15,7 +15,7 @@ namespace Zerra.Repository.Benchmark.EFData
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             //same database as the Zerra side of the benchmark, including its SQL Server account then Windows authentication fallback
-            optionsBuilder.UseSqlServer(new MsSqlTestSqlDataContext().GetConnectionString());
+            optionsBuilder.UseSqlServer(MsSqlTestSqlDataContext.ConnectionString);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

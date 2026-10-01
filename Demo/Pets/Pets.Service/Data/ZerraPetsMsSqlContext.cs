@@ -3,15 +3,9 @@ using Zerra.Repository.MsSql;
 
 namespace Pets.Service.Data
 {
-    public sealed class ZerraPetsMsSqlContext : MsSqlDataContext
+    public static class ZerraPetsMsSqlContext
     {
-        public override string GetConnectionString() => connectionString;
-
-        private readonly string connectionString;
-        public ZerraPetsMsSqlContext()
-        {
-            this.connectionString = "Data Source=.;Initial Catalog=ZerraPets;User ID=sa;Password=Password123;MultipleActiveResultSets=True;TrustServerCertificate=True";
-        }
+        public const string ConnectionString = "Data Source=.;Initial Catalog=ZerraPets;User ID=sa;Password=Password123;MultipleActiveResultSets=True;TrustServerCertificate=True";
 
         public static async Task DeleteMsSql(MsSqlEngine engine)
         {

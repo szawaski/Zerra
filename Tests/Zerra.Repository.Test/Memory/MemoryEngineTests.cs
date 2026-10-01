@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Xunit;
+using Zerra.Repository.Memory;
 
 namespace Zerra.Repository.Test.Memory
 {
@@ -11,27 +12,27 @@ namespace Zerra.Repository.Test.Memory
         [Fact]
         public async Task TestSequenceTransactStore()
         {
-            RepoTest.TestSequenceTransactStore<MemoryTestDataContext>();
-            await RepoTest.TestSequenceTransactStoreAsync<MemoryTestDataContext>();
+            RepoTest.TestSequenceTransactStore(MemoryDataContext.GetEngine());
+            await RepoTest.TestSequenceTransactStoreAsync(MemoryDataContext.GetEngine());
         }
 
         [Fact]
         public async Task TestSequenceEventStore()
         {
-            RepoTest.TestSequenceEventStore<MemoryTestDataContext>();
-            await RepoTest.TestSequenceEventStoreAsync<MemoryTestDataContext>();
+            RepoTest.TestSequenceEventStore(MemoryDataContext.GetEngine());
+            await RepoTest.TestSequenceEventStoreAsync(MemoryDataContext.GetEngine());
         }
 
         [Fact]
         public async Task TestSequenceAggregate()
         {
-            await AggregateTest.TestSequenceAsync<MemoryTestDataContext>();
+            await AggregateTest.TestSequenceAsync(MemoryDataContext.GetEngine());
         }
 
         [Fact]
         public async Task TestAggregateConcurrency()
         {
-            await AggregateTest.TestConcurrencyAsync<MemoryTestDataContext>();
+            await AggregateTest.TestConcurrencyAsync(MemoryDataContext.GetEngine());
         }
     }
 }

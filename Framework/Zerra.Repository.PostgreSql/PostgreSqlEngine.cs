@@ -1858,42 +1858,5 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
 
             return sqlConstrains;
         }
-
-        /// <inheritdoc/>
-        public bool ValidateDataSource()
-        {
-            if (String.IsNullOrWhiteSpace(connectionString))
-                return false;
-
-            const string sql = "SELECT version()";
-
-            try
-            {
-                var builder = new NpgsqlConnectionStringBuilder(connectionString);
-                builder.Database = "postgres";
-                var connectionStringForMaster = builder.ToString();
-
-                using (var connection = new NpgsqlConnection(connectionStringForMaster))
-                {
-                    connection.Open();
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandTimeout = 0;
-                        command.CommandText = sql;
-                        var version = (string)command.ExecuteScalar()!;
-                        if (version.Contains("PostgreSQL"))
-                            return true;
-
-                        Log.Warn($"{nameof(PostgreSqlEngine)} failed to validate: Invalid version {version}");
-                        return false;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warn($"{nameof(PostgreSqlEngine)} failed to validate: {ex.Message}");
-            }
-            return false;
-        }
     }
 }

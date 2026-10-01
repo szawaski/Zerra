@@ -44,7 +44,7 @@ var reviewsClient = new TcpCqrsClient(StoreSettings.ReviewsServiceUrl, serialize
 bus.AddQueryClient<IReviewsQueryHandler>(reviewsClient);
 //Review commands go through Azure Service Bus when it's running, otherwise straight to Reviews over TCP. Queries always go directly,
 //a broker only carries commands and events. The bus takes one producer per command, so the choice is made here at startup, and Reviews makes the same check.
-if (!StoreSettings.DirectMessagingOnly && await AzureServiceBusConnection.TestAsync(StoreSettings.AzureServiceBusConnectionString, log: log))
+if (!StoreSettings.DirectMessagingOnly && await AzureServiceBusConnectionTest.TestAsync(StoreSettings.AzureServiceBusConnectionString, log: log))
 {
     bus.AddCommandProducer<IReviewsCommandHandler>(new AzureServiceBusProducer(StoreSettings.AzureServiceBusConnectionString, serializer, encryptor, null, log, null));
     log.Info("Review commands to Reviews: Azure Service Bus");

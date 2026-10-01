@@ -7,7 +7,7 @@ namespace Zerra.Repository
     /// <summary>
     /// Defines the low-level storage operations for an append-only event store.
     /// </summary>
-    public interface IEventStoreEngine : IDataStoreEngine
+    public interface IEventStoreEngine
     {
         /// <summary>
         /// Appends a new event with data to the specified stream.

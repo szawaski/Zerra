@@ -5,26 +5,21 @@
 namespace Zerra.Repository
 {
     /// <summary>
-    /// An <see cref="IByteStoreProvider"/> implementation that delegates storage operations to an <see cref="IByteStoreEngine"/> obtained from a <typeparamref name="TContext"/>.
+    /// An <see cref="IByteStoreProvider"/> implementation that delegates storage operations to an <see cref="IByteStoreEngine"/>.
     /// </summary>
-    /// <typeparam name="TContext">The <see cref="DataContext"/> type used to resolve the underlying <see cref="IByteStoreEngine"/>.</typeparam>
-    public sealed class ByteStoreProvider<TContext> : IByteStoreProvider
-        where TContext : DataContext, new()
+    public sealed class ByteStoreProvider : IByteStoreProvider
     {
         private readonly IByteStoreEngine Engine;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="ByteStoreProvider{TContext}"/>, resolving an <see cref="IByteStoreEngine"/> from the specified context.
+        /// Initializes a new instance of <see cref="ByteStoreProvider"/> on <paramref name="engine"/>.
         /// </summary>
-        /// <exception cref="Exception">Thrown if <typeparamref name="TContext"/> cannot produce an <see cref="IByteStoreEngine"/>.</exception>
-        public ByteStoreProvider()
+        /// <param name="engine">The engine to store the bytes in.</param>
+        public ByteStoreProvider(IByteStoreEngine engine)
         {
-            var context = new TContext();
-            if (!context.TryGetEngine(out var engine))
-                throw new Exception($"{typeof(TContext).Name} could not produce an engine of {typeof(IByteStoreEngine).Name}");
-            if (engine is not IByteStoreEngine byteStoreEngine)
-                throw new Exception($"{typeof(TContext).Name} produced an engine of {engine.GetType().Name} which is not a {typeof(IByteStoreEngine).Name}");
-            this.Engine = byteStoreEngine;
+            if (engine is null)
+                throw new ArgumentNullException(nameof(engine));
+            this.Engine = engine;
         }
 
         /// <inheritdoc/>

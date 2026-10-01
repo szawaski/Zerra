@@ -11,7 +11,7 @@ namespace Zerra.Repository
     /// <summary>
     /// Defines the contract for a transact store engine that executes queries and persist operations against a data store.
     /// </summary>
-    public interface ITransactStoreEngine : IDataStoreEngine
+    public interface ITransactStoreEngine
     {
         /// <summary>Executes a query and returns all matching models.</summary>
         /// <typeparam name="TModel">The model type to query.</typeparam>
@@ -170,5 +170,15 @@ namespace Zerra.Repository
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>A task containing the number of rows affected.</returns>
         Task<int> ExecuteDeleteAsync<TModel>(ICollection ids, ModelDetail modelDetail) where TModel : class, new();
+
+        /// <summary>
+        /// Builds a plan for generating or modifying the data store structure based on the provided model details.
+        /// </summary>
+        /// <param name="create">Indicates whether to include creation of new store structures.</param>
+        /// <param name="update">Indicates whether to include updates to existing store structures.</param>
+        /// <param name="delete">Indicates whether to include deletion of obsolete store structures.</param>
+        /// <param name="modelDetail">The collection of model details used to build the generation plan.</param>
+        /// <returns>An <see cref="IDataStoreGenerationPlan"/> representing the planned store changes.</returns>
+        IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetail);
     }
 }

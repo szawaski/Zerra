@@ -2,7 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Repository.Reflection;
 using Zerra.Logging;
 using KurrentDB.Client;
 
@@ -17,7 +16,6 @@ namespace Zerra.Repository.KurrentDB
         private const int saveStateEvery = 100;
 
         private readonly KurrentDBClient client;
-        private readonly Uri healthUri;
         /// <summary>
         /// Initializes a new instance of the <see cref="KurrentDBEngine"/> class.
         /// </summary>
@@ -35,9 +33,6 @@ namespace Zerra.Repository.KurrentDB
                 }
             };
             client = new KurrentDBClient(settings);
-
-            //the server's HTTP health check, used for validation because the client only has async calls
-            healthUri = new UriBuilder(address) { Scheme = insecure ? Uri.UriSchemeHttp : address.Scheme, Path = "/health/live", Query = String.Empty }.Uri;
         }
 
         /// <inheritdoc/>
@@ -276,33 +271,6 @@ namespace Zerra.Repository.KurrentDB
         public void Dispose()
         {
             client.Dispose();
-        }
-
-        /// <inheritdoc/>
-        public bool ValidateDataSource()
-        {
-            try
-            {
-                //HttpClient.Send is synchronous, so validating doesn't block on async code
-                using var httpClient = new HttpClient() { Timeout = TimeSpan.FromSeconds(5) };
-                using var request = new HttpRequestMessage(HttpMethod.Get, healthUri);
-                using var response = httpClient.Send(request);
-                if (response.IsSuccessStatusCode)
-                    return true;
-
-                Log.Warn($"{nameof(KurrentDBEngine)} failed to validate: health check returned {(int)response.StatusCode}");
-            }
-            catch (Exception ex)
-            {
-                Log.Warn($"{nameof(KurrentDBEngine)} failed to validate: {ex.Message}");
-            }
-            return false;
-        }
-
-        /// <inheritdoc/>
-        public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetail)
-        {
-            return new EmptyDataStoreGenerationPlan();
         }
     }
 }

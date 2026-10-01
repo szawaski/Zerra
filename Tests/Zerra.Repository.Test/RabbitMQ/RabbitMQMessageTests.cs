@@ -21,9 +21,9 @@ namespace Zerra.Repository.Test.RabbitMQ
         [Fact]
         public void TestConnection()
         {
-            Assert.True(RabbitMQConnection.Test(host));
+            Assert.True(RabbitMQConnectionTest.Test(host));
             //nothing listens on port 1
-            Assert.False(RabbitMQConnection.Test("amqp://guest:guest@localhost:1", TimeSpan.FromSeconds(2)));
+            Assert.False(RabbitMQConnectionTest.Test("amqp://guest:guest@localhost:1", TimeSpan.FromSeconds(2)));
         }
 
         [Fact(Timeout = 300000)]

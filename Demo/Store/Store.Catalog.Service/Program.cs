@@ -12,30 +12,34 @@ using Zerra.CQRS.Network;
 using Zerra.CQRS.RabbitMQ;
 using Zerra.Logging;
 using Zerra.Repository;
+using Zerra.Repository.Memory;
+using Zerra.Repository.PostgreSql;
 
 var startup = Stopwatch.StartNew();
 
 Console.Title = "Store - Catalog Service";
 ILogger log = new ConsoleLogger();
-Log.SetLog(log); //framework messages too, such as why a database was skipped
+Log.SetLog(log); //framework messages too, such as a failed database read
 log.Info("Starting Catalog service");
 
-//Data store: this service's own database, schema from the data models, then seed data
+//Data store: this service's own database when it's running, checked here first like the message brokers, schema from the data models, then seed data
 var databaseSetup = Stopwatch.StartNew();
-var dataStore = DataStoreSetup.Prepare<CatalogDataContext>("PostgreSQL", [typeof(CategoryDataModel), typeof(ProductDataModel)], log);
+var usePostgreSql = !StoreSettings.InMemoryOnly && PostgreSqlDataContext.TestConnection(StoreSettings.CatalogPostgreSql, log);
+ITransactStoreEngine engine = usePostgreSql ? PostgreSqlDataContext.GetEngine(StoreSettings.CatalogPostgreSql) : MemoryDataContext.GetEngine();
+var dataStore = DataStoreSetup.Prepare(engine, "PostgreSQL", [typeof(CategoryDataModel), typeof(ProductDataModel)], log);
 databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 var repo = Repo.New();
-repo.AddProvider(new CatalogStoreProvider<CategoryDataModel>());
-repo.AddProvider(new CatalogStoreProvider<ProductDataModel>());
+repo.AddProvider(new CatalogStoreProvider<CategoryDataModel>(engine));
+repo.AddProvider(new CatalogStoreProvider<ProductDataModel>(engine));
 var seeding = Stopwatch.StartNew();
 await CatalogSeeder.SeedAsync(repo, log);
 seeding.Stop();
 log.Info($"Seed data done in {seeding.ElapsedMilliseconds} ms");
 
 //Message brokers: RabbitMQ carries the product events when it's running, checked here first so the choice can be reported like the data store
-var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnection.Test(StoreSettings.RabbitMQHost, log: log);
+var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnectionTest.Test(StoreSettings.RabbitMQHost, log: log);
 //Catalog receives queries and commands from the gateway over TCP, its RabbitMQ use is outbound
 IMessagingInfo messaging = new MessagingInfo("Direct TCP");
 log.Info($"Publishing product events over {(useRabbitMQ ? "RabbitMQ" : "direct TCP")}");

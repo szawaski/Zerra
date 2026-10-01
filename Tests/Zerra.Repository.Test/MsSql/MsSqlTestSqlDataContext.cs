@@ -3,11 +3,10 @@
 // Licensed to you under the MIT license
 
 using Microsoft.Data.SqlClient;
-using Zerra.Repository.MsSql;
 
 namespace Zerra.Repository.Test.MsSql
 {
-    public class MsSqlTestSqlDataContext : MsSqlDataContext
+    public static class MsSqlTestSqlDataContext
     {
         private const string sqlAccountConnectionString = "data source=.;initial catalog=ZerraSqlTest;user id=sa;password=Password123;MultipleActiveResultSets=True;TrustServerCertificate=True;";
         private const string windowsAuthConnectionString = "data source=.;initial catalog=ZerraSqlTest;integrated security=True;MultipleActiveResultSets=True;TrustServerCertificate=True;";
@@ -32,6 +31,6 @@ namespace Zerra.Repository.Test.MsSql
             }
         });
 
-        public override string GetConnectionString() => connectionString.Value;
+        public static string ConnectionString => connectionString.Value;
     }
 }

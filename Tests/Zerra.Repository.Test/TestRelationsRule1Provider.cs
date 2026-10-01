@@ -7,11 +7,10 @@ using System.Linq.Expressions;
 
 namespace Zerra.Repository.Test
 {
-    public class TestRelationsRule1Provider<TContext> : BaseTransactStoreRuleProvider<ITransactStoreProvider<TestRelationsModel>, TestRelationsModel>
-        where TContext : DataContext, new()
+    public class TestRelationsRule1Provider : BaseTransactStoreRuleProvider<ITransactStoreProvider<TestRelationsModel>, TestRelationsModel>
     {
-        public TestRelationsRule1Provider()
-            : base(new TransactStoreProvider<TContext, TestRelationsModel>()) { }
+        public TestRelationsRule1Provider(ITransactStoreEngine engine)
+            : base(new TransactStoreProvider<TestRelationsModel>(engine)) { }
 
         public override LambdaExpression WhereExpression(Graph graph)
         {

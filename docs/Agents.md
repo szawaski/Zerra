@@ -83,10 +83,11 @@ public interface IOrderEventHandler : IEventHandler<OrderShippedEvent> { }
 
 ```csharp
 ILogger log = new ConsoleLogger();          //your Zerra.Logging.ILogger implementation
-Log.SetLog(log);                            //framework messages too, such as why a database was skipped
+Log.SetLog(log);                            //framework messages too, such as a failed database read
 
+var engine = PostgreSqlDataContext.GetEngine(connectionString);   //one engine shared by every provider on the store
 var repo = Repo.New();
-repo.AddProvider(new CatalogStoreProvider<ProductDataModel>());
+repo.AddProvider(new CatalogStoreProvider<ProductDataModel>(engine));
 var busServices = new BusServices();
 busServices.AddRepo(repo);                  //handlers deriving from BaseHandlerWithRepo get it as Repo
 
@@ -196,8 +197,8 @@ public sealed class OrderDataModel
 }
 ```
 
-- `DataContextSelector` uses the first context that validates, so list the real database first and a `MemoryDataContext` last as the fallback.
-- Create the schema on startup with `CodeFirstGeneration.Generate<TContext>(DataStoreGenerationType.CodeFirst | DataStoreGenerationType.NoDelete, modelTypes, log)`, then seed only when the store is empty. Data models need a parameterless constructor.
+- To fall back to memory, choose the engine in Program.cs with the store's data context, e.g. `PostgreSqlDataContext.TestConnection(connectionString, log) ? PostgreSqlDataContext.GetEngine(connectionString) : MemoryDataContext.GetEngine()`, the same way `RabbitMQConnectionTest.Test` is used for brokers, and pass that one engine to every provider and to `CodeFirstGeneration.Generate`.
+- Create the schema on startup with `CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst | DataStoreGenerationType.NoDelete, modelTypes, log)` on the same engine the providers use, then seed only when the store is empty. Data models need a parameterless constructor.
 - Handlers derive from `BaseHandlerWithRepo` and use the async `IRepo` methods. LINQ `Where` expressions support comparisons, arithmetic, `&&`, `||`, `!`, bool members, `??`, integer bitwise operators, `array.Contains(x.Prop)`, and `HasValue`/`Value` on nullables. Strings support `Contains`, `StartsWith`, `EndsWith` (wildcards in the text are matched literally, a `StringComparison` ignoring case is honored), `Equals`, `string.IsNullOrEmpty`/`IsNullOrWhiteSpace`, `Length`, `ToUpper`/`ToLower`, `Trim`/`TrimStart`/`TrimEnd`, `Substring`, `IndexOf`, `Replace`, `string.Concat`, and `+`. `Math.Abs`/`Ceiling`/`Floor`/`Round`/`Pow`/`Sqrt` are translated; SQL rounds midpoints away from zero. Date and time parts such as `x.PlacedOn.Year`, `.Date`, and `.DayOfWeek` work on `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, and `TimeSpan` (including `TotalHours` and the other totals). Related collections support `Any`, `All`, `Count`/`LongCount`, and `Sum`/`Min`/`Max`/`Average` with a selector. Anything that doesn't use the model, such as `DateTime.Now.Date` or `new[] { a, b }`, is evaluated before the query. Case sensitivity of `==`, `Contains`, `StartsWith`, and `EndsWith` follows the database collation, and `Trim`/`IsNullOrWhiteSpace` only trim spaces.
 - Relations load only when named in a graph: `Repo.ManyAsync<OrderDataModel>(new Graph<OrderDataModel>(true, x => x.Customer, x => x.Lines))`. One-to-many properties can be arrays, `List<T>`, or interfaces like `IReadOnlyList<T>`.
 - Update only some columns by passing a graph: `Repo.UpdateAsync(order, new Graph<OrderDataModel>(x => x.Status))`.
@@ -403,9 +404,9 @@ Both close the servers and consumers so they receive nothing new, dispose them (
 ## Integration Points
 
 ### Message Broker Implementations
-- `Zerra.CQRS.Kafka`: Kafka producer/consumer, `KafkaConnection.TestAsync` to check the cluster is reachable
-- `Zerra.CQRS.RabbitMQ`: RabbitMQ producer/consumer, `RabbitMQConnection.Test` to check the server is reachable
-- `Zerra.CQRS.AzureServiceBus`: Azure Service Bus producer/consumer, `AzureServiceBusConnection.TestAsync` to check the namespace is reachable
+- `Zerra.CQRS.Kafka`: Kafka producer/consumer, `KafkaConnectionTest.TestAsync` to check the cluster is reachable
+- `Zerra.CQRS.RabbitMQ`: RabbitMQ producer/consumer, `RabbitMQConnectionTest.Test` to check the server is reachable
+- `Zerra.CQRS.AzureServiceBus`: Azure Service Bus producer/consumer, `AzureServiceBusConnectionTest.TestAsync` to check the namespace is reachable
 
 The Store demo checks each broker at startup and falls back to direct TCP/HTTP when it isn't running: the sender registers either the broker's producer or the direct client, and the receiver makes the same check and registers either the broker's consumer or its direct consumer, so both ends pick the same route. See "Message brokers" in `Demo/Store/README.md`.
 

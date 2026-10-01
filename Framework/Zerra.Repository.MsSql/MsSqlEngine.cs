@@ -1839,42 +1839,5 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName}'";
 
             return sqlConstrains;
         }
-
-        /// <inheritdoc/>
-        public bool ValidateDataSource()
-        {
-            if (String.IsNullOrWhiteSpace(connectionString))
-                return false;
-
-            const string sql = "SELECT @@version";
-
-            try
-            {
-                var builder = new SqlConnectionStringBuilder(connectionString);
-                builder.InitialCatalog = "master";
-                var connectionStringForMaster = builder.ToString();
-
-                using (var connection = new SqlConnection(connectionStringForMaster))
-                {
-                    connection.Open();
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandTimeout = 0;
-                        command.CommandText = sql;
-                        var version = (string)command.ExecuteScalar();
-                        if (version.Contains("Microsoft SQL"))
-                            return true;
-
-                        Log.Warn($"{nameof(MsSqlEngine)} failed to validate: Invalid version {version}");
-                        return false;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warn($"{nameof(MsSqlEngine)} failed to validate: {ex.Message}");
-            }
-            return false;
-        }
     }
 }
