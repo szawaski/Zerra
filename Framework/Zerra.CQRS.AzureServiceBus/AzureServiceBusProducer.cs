@@ -24,6 +24,7 @@ namespace Zerra.CQRS.AzureServiceBus
     public sealed class AzureServiceBusProducer : ICommandProducer, IEventProducer, IDisposable, IAsyncDisposable
     {
         private bool listenerStarted = false;
+        private Task? ackListening = null;
         private readonly SemaphoreSlim listenerStartedLock = new(1, 1);
 
         private readonly ISerializer serializer;
@@ -107,7 +108,7 @@ namespace Zerra.CQRS.AzureServiceBus
                             {
                                 await AzureServiceBusCommon.CreateQueue(commonNamespace, ackQueue, true);
 
-                                _ = Task.Run(AckListeningThread);
+                                ackListening = Task.Run(AckListeningThread);
                                 listenerStarted = true;
                             }
                         }
@@ -196,7 +197,7 @@ namespace Zerra.CQRS.AzureServiceBus
                         {
                             await AzureServiceBusCommon.CreateQueue(commonNamespace, ackQueue, true);
 
-                            _ = Task.Run(AckListeningThread);
+                            ackListening = Task.Run(AckListeningThread);
                             listenerStarted = true;
                         }
                     }
@@ -414,6 +415,17 @@ namespace Zerra.CQRS.AzureServiceBus
         public async ValueTask DisposeAsync()
         {
             canceller.Cancel();
+            if (ackListening is not null)
+            {
+                try
+                {
+                    await ackListening;
+                }
+                catch (Exception ex)
+                {
+                    log?.Error(ex);
+                }
+            }
             await client.DisposeAsync();
             listenerStartedLock.Dispose();
             canceller.Dispose();
@@ -423,6 +435,17 @@ namespace Zerra.CQRS.AzureServiceBus
         public void Dispose()
         {
             canceller.Cancel();
+            if (ackListening is not null)
+            {
+                try
+                {
+                    ackListening.Wait();
+                }
+                catch (AggregateException ex)
+                {
+                    log?.Error(ex.InnerException ?? ex);
+                }
+            }
             _ = client.DisposeAsync().AsTask();
             listenerStartedLock.Dispose();
             canceller.Dispose();
@@ -457,7 +480,7 @@ namespace Zerra.CQRS.AzureServiceBus
                             {
                                 await AzureServiceBusCommon.CreateQueue(commonNamespace, ackQueue, true);
 
-                                _ = Task.Run(AckListeningThread);
+                                ackListening = Task.Run(AckListeningThread);
                                 listenerStarted = true;
                             }
                         }

@@ -22,7 +22,9 @@ namespace Zerra.CQRS.Kafka
             public bool IsOpen { get; private set; }
 
             private readonly int maxConcurrent;
-            private readonly CommandCounter commandCounter;
+            private readonly CommandCounter? commandCounter;
+            private readonly int? maxPollIntervalMs;
+            private readonly TimeSpan busyPollInterval;
             private readonly string topic;
             private readonly string clientID;
             private readonly Zerra.Serialization.ISerializer serializer;
@@ -67,11 +69,11 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync, int? maxPollIntervalMs)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
-                this.maxConcurrent = commandCounter.ReceiveCountBeforeExit.HasValue ? Math.Min(commandCounter.ReceiveCountBeforeExit.Value, maxConcurrent) : maxConcurrent;
+                this.maxConcurrent = commandCounter is not null ? Math.Min(commandCounter.ReceiveCountBeforeExit, maxConcurrent) : maxConcurrent;
                 this.commandCounter = commandCounter;
 
                 bool truncated;
@@ -89,6 +91,9 @@ namespace Zerra.CQRS.Kafka
                 this.handlerAsync = handlerAsync;
                 this.handlerAwaitAsync = handlerAwaitAsync;
                 this.handlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
+                this.maxPollIntervalMs = maxPollIntervalMs;
+                //well within max.poll.interval.ms, librdkafka's default is 5 minutes
+                this.busyPollInterval = maxPollIntervalMs.HasValue ? TimeSpan.FromMilliseconds(maxPollIntervalMs.Value / 4) : TimeSpan.FromSeconds(10);
                 this.canceller = new CancellationTokenSource();
             }
 
@@ -135,6 +140,12 @@ namespace Zerra.CQRS.Kafka
                     consumerConfig.BootstrapServers = commonHost.Host;
                     consumerConfig.GroupId = topic;
                     consumerConfig.EnableAutoCommit = false;
+                    if (maxPollIntervalMs.HasValue)
+                    {
+                        consumerConfig.MaxPollIntervalMs = maxPollIntervalMs;
+                        //max.poll.interval.ms can't be under session.timeout.ms
+                        consumerConfig.SessionTimeoutMs = Math.Min(maxPollIntervalMs.Value, 45000);
+                    }
                     //commands in the topic are meant for this service, so a new group starts from the beginning instead of skipping commands sent before it first joined
                     consumerConfig.AutoOffsetReset = AutoOffsetReset.Earliest;
                     if (commonHost.UserName is not null && commonHost.Password is not null)
@@ -158,10 +169,26 @@ namespace Zerra.CQRS.Kafka
                         {
                             for (; ; )
                             {
-                                await throttle.WaitAsync(canceller.Token);
+                                if (!throttle.Wait(0))
+                                {
+                                    //librdkafka drops a consumer from the group when it isn't polled within max.poll.interval.ms,
+                                    //so while every handler is busy the partitions are paused and still polled
+                                    consumer.Pause(consumer.Assignment);
+                                    while (!await throttle.WaitAsync(busyPollInterval, topicMissing.Token))
+                                    {
+                                        var held = consumer.Consume(TimeSpan.Zero);
+                                        if (held is not null)
+                                        {
+                                            //from a partition assigned since the pause, it's read again once resumed
+                                            consumer.Seek(held.TopicPartitionOffset);
+                                            consumer.Pause(consumer.Assignment);
+                                        }
+                                    }
+                                    consumer.Resume(consumer.Assignment);
+                                }
 
-                                if (!commandCounter.BeginReceive())
-                                    continue; //don't receive anymore, externally will be shutdown, fill throttle
+                                if (commandCounter is not null && !commandCounter.BeginReceive())
+                                    break; //don't receive anymore, externally will be shutdown
 
                                 ConsumeResult<string, byte[]> consumerResult;
                                 try
@@ -171,7 +198,10 @@ namespace Zerra.CQRS.Kafka
                                 }
                                 catch
                                 {
-                                    commandCounter.CancelReceive(throttle);
+                                    if (commandCounter is not null)
+                                        commandCounter.CancelReceive(throttle);
+                                    else
+                                        _ = throttle.Release();
                                     throw;
                                 }
 
@@ -179,7 +209,8 @@ namespace Zerra.CQRS.Kafka
                                 _ = handling.Add(handleTask);
                                 _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
-                                if (canceller.IsCancellationRequested)
+                                //leaving the group hands the partition to another replica now instead of when this one exits
+                                if (canceller.IsCancellationRequested || (commandCounter is not null && commandCounter.ReceiveLimitReached))
                                     break;
                             }
                         }
@@ -256,7 +287,12 @@ namespace Zerra.CQRS.Kafka
                 finally
                 {
                     if (!awaitResponse)
-                        commandCounter.CompleteReceive(throttle);
+                    {
+                        if (commandCounter is not null)
+                            commandCounter.CompleteReceive(throttle);
+                        else
+                            _ = throttle.Release();
+                    }
                 }
 
                 if (!awaitResponse)
@@ -310,7 +346,10 @@ namespace Zerra.CQRS.Kafka
                 }
                 finally
                 {
-                    commandCounter.CompleteReceive(throttle);
+                    if (commandCounter is not null)
+                        commandCounter.CompleteReceive(throttle);
+                    else
+                        _ = throttle.Release();
                 }
             }
 

@@ -381,6 +381,29 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact(Timeout = timeout)]
+        public async Task Command_WithoutLimit_ReleasesThrottle()
+        {
+            var handled = 0;
+            using var server = StartMessageServer(out var port, null, command: (_, _, _) =>
+            {
+                _ = Interlocked.Increment(ref handled);
+                return Task.CompletedTask;
+            });
+
+            //more than the server's 10 concurrent, each handled after its response
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            for (var i = 0; i < 15; i++)
+            {
+                await connection.SendAsync(MessageRequest(new TestCommand { Value = i }, false, false), null, cancellationToken: TestContext.Current.CancellationToken);
+                var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
+                Assert.NotNull(header);
+                Assert.False(header.IsError);
+            }
+            while (Volatile.Read(ref handled) < 15)
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        [Fact(Timeout = timeout)]
         public async Task CommandAwait_RespondsAfterHandlerCompletes()
         {
             var handled = false;
@@ -437,6 +460,47 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact(Timeout = timeout)]
+        public async Task Command_PastReceiveLimit_RejectedWithoutCountingComplete()
+        {
+            var exits = 0;
+            var exited = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var server = StartMessageServer(out var port, null, commandAwait: async (_, _, _) =>
+            {
+                started.SetResult();
+                await release.Task;
+            }, commandCounter: new CommandCounter(1, () =>
+            {
+                _ = Interlocked.Increment(ref exits);
+                exited.SetResult();
+            }));
+
+            await using var first = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await first.SendAsync(MessageRequest(new TestCommand { Value = 1 }, true, false), null, cancellationToken: TestContext.Current.CancellationToken);
+            await started.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+            //the second request on the connection is read after the server has finished with the first
+            await using var second = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            for (var i = 0; i < 2; i++)
+            {
+                await second.SendAsync(MessageRequest(new TestCommand { Value = 2 }, true, false), null, cancellationToken: TestContext.Current.CancellationToken);
+                var rejected = await second.ReadHeaderAsync(TestContext.Current.CancellationToken);
+                Assert.NotNull(rejected);
+                Assert.True(rejected.IsError);
+                Assert.Equal("Cannot receive any more commands", (await second.ReadErrorAsync(rejected, null, TestContext.Current.CancellationToken)).Message);
+            }
+            Assert.Equal(0, Volatile.Read(ref exits));
+
+            release.SetResult();
+            var header = await first.ReadHeaderAsync(TestContext.Current.CancellationToken);
+            Assert.NotNull(header);
+            Assert.False(header.IsError);
+            await exited.Task.WaitAsync(TestContext.Current.CancellationToken);
+            Assert.Equal(1, Volatile.Read(ref exits));
+        }
+
+        [Fact(Timeout = timeout)]
         public async Task Event_InvokesHandlerAndResponds()
         {
             var received = new TaskCompletionSource<(int Value, string Source)>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -475,13 +539,37 @@ namespace Zerra.Test.CQRS.Network
             _ = Assert.Throws<ObjectDisposedException>(() => ((IQueryServer)server).Open());
         }
 
+        [Fact]
+        public void Setup_EachRoleOnce_EvenAfterOpen()
+        {
+            using var server = OpenOnFreePort(out _, (freePort) => new HttpCqrsServer($"127.0.0.1:{freePort}", serializer, null, null, null, null), (server) =>
+            {
+                ((ICommandConsumer)server).Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null));
+                ((ICommandConsumer)server).Open();
+            });
+            ((IEventConsumer)server).Setup("test-service", (_, _) => Task.CompletedTask);
+
+            _ = Assert.Throws<InvalidOperationException>(() => ((ICommandConsumer)server).Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null)));
+            _ = Assert.Throws<InvalidOperationException>(() => ((IEventConsumer)server).Setup("test-service", (_, _) => Task.CompletedTask));
+        }
+
+        [Fact]
+        public void Open_PortInUse_ThrowsAndDisposes()
+        {
+            using var taken = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            taken.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+            taken.Listen();
+            var server = new HttpCqrsServer($"127.0.0.1:{((IPEndPoint)taken.LocalEndPoint!).Port}", serializer, null, null, null, null);
+
+            _ = Assert.Throws<SocketException>(() => ((IQueryServer)server).Open());
+            server.Dispose();
+        }
+
         [Fact(Timeout = timeout)]
         public async Task NotSetup_ClosesConnection()
         {
             //opened without registering anything so a connection can't be handled, it must be closed instead of left open
-            var port = GetFreePort();
-            using var server = new HttpCqrsServer($"127.0.0.1:{port}", serializer, null, null, null, null);
-            ((IQueryServer)server).Open();
+            using var server = OpenOnFreePort(out var port, (freePort) => new HttpCqrsServer($"127.0.0.1:{freePort}", serializer, null, null, null, null), (server) => ((IQueryServer)server).Open());
 
             using var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             await client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, port), TestContext.Current.CancellationToken);
@@ -490,35 +578,36 @@ namespace Zerra.Test.CQRS.Network
 
         private static HttpCqrsServer StartQueryServer(out int port, IEncryptor? encryptor, QueryHandlerDelegate handler, ICqrsAuthorizer? authorizer = null, string[]? allowOrigins = null)
         {
-            port = GetFreePort();
-            var server = new HttpCqrsServer($"127.0.0.1:{port}", serializer, encryptor, null, authorizer, allowOrigins);
-            IQueryServer queryServer = server;
-            queryServer.Setup(new CommandCounter(), handler);
-            queryServer.RegisterInterfaceType(10, typeof(ITestQueryHandler));
-            queryServer.Open();
-            return server;
+            return OpenOnFreePort(out port, (freePort) => new HttpCqrsServer($"127.0.0.1:{freePort}", serializer, encryptor, null, authorizer, allowOrigins), (server) =>
+            {
+                IQueryServer queryServer = server;
+                queryServer.Setup(handler);
+                queryServer.RegisterInterfaceType(10, typeof(ITestQueryHandler));
+                queryServer.Open();
+            });
         }
 
         private static HttpCqrsServer StartMessageServer(out int port, IEncryptor? encryptor,
             HandleRemoteCommandDispatch? command = null,
             HandleRemoteCommandDispatch? commandAwait = null,
             HandleRemoteCommandWithResultDispatch? commandWithResult = null,
-            HandleRemoteEventDispatch? @event = null)
+            HandleRemoteEventDispatch? @event = null,
+            CommandCounter? commandCounter = null)
         {
-            port = GetFreePort();
-            var server = new HttpCqrsServer($"127.0.0.1:{port}", serializer, encryptor, null, null, null);
-            ICommandConsumer commandConsumer = server;
-            commandConsumer.Setup(new CommandCounter(),
-                command ?? ((_, _, _) => Task.CompletedTask),
-                commandAwait ?? ((_, _, _) => Task.CompletedTask),
-                commandWithResult ?? ((_, _, _) => Task.FromResult<object?>(null)));
-            commandConsumer.RegisterCommandType(10, "test", typeof(TestCommand));
-            commandConsumer.RegisterCommandType(10, "test", typeof(TestCommandWithResult));
-            IEventConsumer eventConsumer = server;
-            eventConsumer.Setup("test-service", @event ?? ((_, _) => Task.CompletedTask));
-            eventConsumer.RegisterEventType(10, "test", typeof(TestEvent), EventConsumerMode.PerReplica);
-            commandConsumer.Open();
-            return server;
+            return OpenOnFreePort(out port, (freePort) => new HttpCqrsServer($"127.0.0.1:{freePort}", serializer, encryptor, null, null, null), (server) =>
+            {
+                ICommandConsumer commandConsumer = server;
+                commandConsumer.Setup(commandCounter,
+                    command ?? ((_, _, _) => Task.CompletedTask),
+                    commandAwait ?? ((_, _, _) => Task.CompletedTask),
+                    commandWithResult ?? ((_, _, _) => Task.FromResult<object?>(null)));
+                commandConsumer.RegisterCommandType(10, "test", typeof(TestCommand));
+                commandConsumer.RegisterCommandType(10, "test", typeof(TestCommandWithResult));
+                IEventConsumer eventConsumer = server;
+                eventConsumer.Setup("test-service", @event ?? ((_, _) => Task.CompletedTask));
+                eventConsumer.RegisterEventType(10, "test", typeof(TestEvent), EventConsumerMode.PerReplica);
+                commandConsumer.Open();
+            });
         }
 
         private static CqrsRequestData QueryRequest(Type interfaceType, string methodName, params object[] arguments) => new()
@@ -537,6 +626,25 @@ namespace Zerra.Test.CQRS.Network
             MessageResult = messageResult,
             Source = source
         };
+
+        //the free port is released before the server binds it, so something else can take it in between
+        private static T OpenOnFreePort<T>(out int port, Func<int, T> create, Action<T> open) where T : IDisposable
+        {
+            for (var attempt = 1; ; attempt++)
+            {
+                port = GetFreePort();
+                var server = create(port);
+                try
+                {
+                    open(server);
+                    return server;
+                }
+                catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse && attempt < 10)
+                {
+                    server.Dispose();
+                }
+            }
+        }
 
         private static int GetFreePort()
         {

@@ -24,6 +24,7 @@ namespace Zerra.CQRS
         private Dictionary<Type, object>? handlers = null;
         private Dictionary<Type, ICommandProducer>? commandProducers = null;
         private HashSet<ICommandConsumer>? commandConsumers = null;
+        private HashSet<ICommandConsumer>? limitedCommandConsumers = null;
         private Dictionary<Type, List<IEventProducer>>? eventProducers = null;
         private HashSet<IEventConsumer>? eventConsumers = null;
         private Dictionary<Type, IQueryClient>? queryClients = null;
@@ -48,7 +49,6 @@ namespace Zerra.CQRS
 
         private readonly BusContext context;
         private readonly IBusLogger? busLog;
-        private readonly CommandCounter commandCounter;
         private readonly TimeSpan? defaultCallTimeout;
         private readonly TimeSpan? defaultDispatchTimeout;
         private readonly TimeSpan? defaultDispatchAwaitTimeout;
@@ -64,7 +64,6 @@ namespace Zerra.CQRS
         /// <param name="log">Optional logger for bus operations.</param>
         /// <param name="busLog">Optional bus logger for detailed message logging.</param>
         /// <param name="busServices">Optional services provider for handler dependency resolution.</param>
-        /// <param name="commandToReceiveUntilExit">Optional number of commands to receive before automatically exiting.</param>
         /// <param name="defaultCallTimeout">Optional default timeout for query calls.</param>
         /// <param name="defaultDispatchTimeout">Optional default timeout for command dispatch without waiting for acknowledgment.</param>
         /// <param name="defaultDispatchAwaitTimeout">Optional default timeout for command dispatch while waiting for acknowledgment.</param>
@@ -73,24 +72,23 @@ namespace Zerra.CQRS
         /// <param name="maxConcurrentEventsPerTopic">Optional maximum concurrent events per topic; defaults to ProcessorCount * 16.</param>
         /// <param name="shutdownTimeout">Optional limit on how long stopping waits while the servers and consumers are disposed, each waiting for the queries, commands, and events it already received to finish. After it the clients are disposed and stopping returns, nothing is cancelled; defaults to 30 seconds.</param>
         /// <returns>A configured bus setup instance ready for handler and producer/consumer registration.</returns>
-        public static IBusSetup New(string serviceName, ILogger? log = null, IBusLogger? busLog = null, BusServices? busServices = null, int? commandToReceiveUntilExit = null,
+        public static IBusSetup New(string serviceName, ILogger? log = null, IBusLogger? busLog = null, BusServices? busServices = null,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
             int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null, TimeSpan? shutdownTimeout = null)
         {
-            var bus = new Bus(serviceName, log, busLog, busServices, commandToReceiveUntilExit,
+            var bus = new Bus(serviceName, log, busLog, busServices,
                 defaultCallTimeout, defaultDispatchTimeout, defaultDispatchAwaitTimeout,
                 maxConcurrentQueries, maxConcurrentCommandsPerTopic, maxConcurrentEventsPerTopic, shutdownTimeout);
             Bus.staticBus = bus;
             return bus;
         }
 
-        private Bus(string serviceName, ILogger? log, IBusLogger? busLog, BusServices? busServices, int? commandToReceiveUntilExit = null,
+        private Bus(string serviceName, ILogger? log, IBusLogger? busLog, BusServices? busServices,
             TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
             int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null, TimeSpan? shutdownTimeout = null)
         {
             this.context = new BusContext(this, serviceName, log, busServices);
             this.busLog = busLog;
-            this.commandCounter = new CommandCounter(commandToReceiveUntilExit, SignalExit);
             this.defaultCallTimeout = defaultCallTimeout;
             this.defaultDispatchTimeout = defaultDispatchTimeout;
             this.defaultDispatchAwaitTimeout = defaultDispatchAwaitTimeout;
@@ -409,7 +407,11 @@ namespace Zerra.CQRS
         {
             var waiter = BeginWaitForExit(shutdownTimeout);
             if (waiter is null)
+            {
+                //signalled before this was called, such as by a consumer reaching its count, the services still stop
+                StopServices();
                 return;
+            }
             try
             {
                 waiter.Wait(cancellationToken);
@@ -430,7 +432,11 @@ namespace Zerra.CQRS
         {
             var waiter = BeginWaitForExit(shutdownTimeout);
             if (waiter is null)
+            {
+                //signalled before this was called, such as by a consumer reaching its count, the services still stop
+                await StopServicesAsync();
                 return;
+            }
             try
             {
                 await waiter.WaitAsync(cancellationToken);
@@ -1263,17 +1269,35 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        void IBusSetup.AddCommandConsumer<TInterface>(ICommandConsumer commandConsumer)
+        void IBusSetup.AddCommandConsumer<TInterface>(ICommandConsumer commandConsumer, int? commandToReceiveUntilExit)
         {
             var interfaceType = typeof(TInterface);
             if (!interfaceType.IsInterface)
                 throw new Exception($"{interfaceType.Name} is not an interface");
             if (commandConsumer == null)
                 throw new ArgumentNullException(nameof(commandConsumer));
+            if (commandToReceiveUntilExit.HasValue && commandToReceiveUntilExit.Value < 1)
+                throw new ArgumentException("cannot be less than 1", nameof(commandToReceiveUntilExit));
 
-            commandConsumer.Setup(commandCounter, RemoteHandleCommandDispatchAsync, RemoteHandleCommandDispatchAwaitAsync, RemoteHandleCommandWithResultDispatchAwaitAsync);
             commandConsumers ??= new();
-            _ = commandConsumers.Add(commandConsumer);
+            if (commandConsumers.Contains(commandConsumer))
+            {
+                //the count is the consumer's, so it can't be shared with another interface
+                if (commandToReceiveUntilExit.HasValue || (limitedCommandConsumers is not null && limitedCommandConsumers.Contains(commandConsumer)))
+                    throw new InvalidOperationException($"A command consumer added with {nameof(commandToReceiveUntilExit)} serves only one interface, {interfaceType.Name} needs its own consumer");
+            }
+            else
+            {
+                _ = commandConsumers.Add(commandConsumer);
+                CommandCounter? commandCounter = null;
+                if (commandToReceiveUntilExit.HasValue)
+                {
+                    commandCounter = new CommandCounter(commandToReceiveUntilExit.Value, SignalExit);
+                    limitedCommandConsumers ??= new();
+                    _ = limitedCommandConsumers.Add(commandConsumer);
+                }
+                commandConsumer.Setup(commandCounter, RemoteHandleCommandDispatchAsync, RemoteHandleCommandDispatchAwaitAsync, RemoteHandleCommandWithResultDispatchAwaitAsync);
+            }
 
             var info = BusCommandOrEventInfo.GetByType(interfaceType, handledTypes);
             if (info.CommandTypes.Count == 0)
@@ -1345,9 +1369,9 @@ namespace Zerra.CQRS
             if (eventConsumer == null)
                 throw new ArgumentNullException(nameof(eventConsumer));
 
-            eventConsumer.Setup(context.ServiceName, RemoteHandleEventDispatchAsync);
             eventConsumers ??= new();
-            _ = eventConsumers.Add(eventConsumer);
+            if (eventConsumers.Add(eventConsumer))
+                eventConsumer.Setup(context.ServiceName, RemoteHandleEventDispatchAsync);
 
             var info = BusCommandOrEventInfo.GetByType(interfaceType, handledTypes);
             if (info.EventTypes.Count == 0)
@@ -1404,9 +1428,9 @@ namespace Zerra.CQRS
             if (queryServer == null)
                 throw new ArgumentNullException(nameof(queryServer));
 
-            queryServer.Setup(commandCounter, RemoteHandleQueryCallAsync);
             queryServers ??= new();
-            _ = queryServers.Add(queryServer);
+            if (queryServers.Add(queryServer))
+                queryServer.Setup(RemoteHandleQueryCallAsync);
 
             if (queryClients != null && queryClients.ContainsKey(interfaceType))
             {

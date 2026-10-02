@@ -464,11 +464,9 @@ namespace Zerra.Web
 
                     if (typeDetail.Interfaces.Contains(typeof(ICommand)))
                     {
-                        if (settings.CommandCounter is null) throw new InvalidOperationException($"{nameof(KestrelCqrsServerCommandConsumer)} is not setup");
-                        isCommand = true;
-
-                        if (!settings.CommandCounter.BeginReceive())
+                        if (settings.CommandCounter is not null && !settings.CommandCounter.BeginReceive())
                             throw new Exception("Cannot receive any more commands");
+                        isCommand = true;
 
                         var command = (ICommand?)serializer.Deserialize(data.MessageData, messageType); //the client serializes with the same serializer
                         if (command is null)

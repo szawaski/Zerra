@@ -136,6 +136,37 @@ namespace Zerra.Test.Web
             Assert.Equal(typeof(TestCommand).AssemblyQualifiedName, context.Response.Headers[HttpCommon.ProviderTypeHeader]);
         }
 
+        [Fact(Timeout = timeout)]
+        public async Task Command_PastReceiveLimit_RejectedWithoutCountingComplete()
+        {
+            var exits = 0;
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var middleware = CreateMiddleware(null, commandAwait: async (_, _, _) =>
+            {
+                started.SetResult();
+                await release.Task;
+            }, commandCounter: new CommandCounter(1, () => Interlocked.Increment(ref exits)));
+
+            var first = CreateContext(MessageRequest(new TestCommand { Value = 1 }, true, false), null, TestContext.Current.CancellationToken);
+            var firstInvoke = middleware.Invoke(first);
+            await started.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+            for (var i = 0; i < 2; i++)
+            {
+                var rejected = CreateContext(MessageRequest(new TestCommand { Value = 2 }, true, false), null, TestContext.Current.CancellationToken);
+                await middleware.Invoke(rejected);
+                Assert.Equal(500, rejected.Response.StatusCode);
+                Assert.Equal("Cannot receive any more commands", ExceptionSerializer.Deserialize(source, serializer, ReadResponse(rejected, null)).Message);
+            }
+            Assert.Equal(0, Volatile.Read(ref exits));
+
+            release.SetResult();
+            await firstInvoke;
+            Assert.Equal(200, first.Response.StatusCode);
+            Assert.Equal(1, Volatile.Read(ref exits));
+        }
+
         [Theory(Timeout = timeout)]
         [InlineData(false)]
         [InlineData(true)]
@@ -309,23 +340,23 @@ namespace Zerra.Test.Web
         }
 
         private static KestrelCqrsServerMiddleware CreateMiddleware(IEncryptor? encryptor, string[]? allowOrigins = null, QueryHandlerDelegate? query = null,
-            HandleRemoteCommandDispatch? command = null, HandleRemoteCommandDispatch? commandAwait = null, HandleRemoteCommandWithResultDispatch? commandWithResult = null, HandleRemoteEventDispatch? @event = null)
+            HandleRemoteCommandDispatch? command = null, HandleRemoteCommandDispatch? commandAwait = null, HandleRemoteCommandWithResultDispatch? commandWithResult = null, HandleRemoteEventDispatch? @event = null, CommandCounter? commandCounter = null)
         {
-            var settings = CreateSettings(null, allowOrigins, query, command, commandAwait, commandWithResult, @event);
+            var settings = CreateSettings(null, allowOrigins, query, command, commandAwait, commandWithResult, @event, commandCounter);
             return new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, encryptor, null, null, settings);
         }
 
         private static KestrelCqrsServerLinkedSettings CreateSettings(string? route, string[]? allowOrigins, QueryHandlerDelegate? query,
-            HandleRemoteCommandDispatch? command, HandleRemoteCommandDispatch? commandAwait, HandleRemoteCommandWithResultDispatch? commandWithResult, HandleRemoteEventDispatch? @event)
+            HandleRemoteCommandDispatch? command, HandleRemoteCommandDispatch? commandAwait, HandleRemoteCommandWithResultDispatch? commandWithResult, HandleRemoteEventDispatch? @event, CommandCounter? commandCounter = null)
         {
             var settings = new KestrelCqrsServerLinkedSettings(route, null, serializer.ContentType) { AllowOrigins = allowOrigins };
 
             IQueryServer queryServer = new KestrelCqrsServerQueryServer(settings);
-            queryServer.Setup(new CommandCounter(), query ?? ((_, _, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(null))));
+            queryServer.Setup(query ?? ((_, _, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(null))));
             queryServer.RegisterInterfaceType(10, typeof(ITestQueryHandler));
 
             ICommandConsumer commandConsumer = new KestrelCqrsServerCommandConsumer(settings);
-            commandConsumer.Setup(new CommandCounter(),
+            commandConsumer.Setup(commandCounter,
                 command ?? ((_, _, _) => Task.CompletedTask),
                 commandAwait ?? ((_, _, _) => Task.CompletedTask),
                 commandWithResult ?? ((_, _, _) => Task.FromResult<object?>(null)));

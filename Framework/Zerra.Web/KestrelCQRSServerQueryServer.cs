@@ -85,14 +85,12 @@ namespace Zerra.Web
         /// Sets up the query server with handlers for processing query requests.
         /// </summary>
         /// <remarks>
-        /// Stores the command counter and query handler delegate for use during request processing.
+        /// Stores the query handler delegate for use during request processing.
         /// Called during initialization before the server starts receiving requests.
         /// </remarks>
-        /// <param name="commandCounter">The counter for tracking command processing limits.</param>
         /// <param name="providerHandlerAsync">The async delegate for handling query method invocations.</param>
-        void IQueryServer.Setup(CommandCounter commandCounter, QueryHandlerDelegate providerHandlerAsync)
+        void IQueryServer.Setup(QueryHandlerDelegate providerHandlerAsync)
         {
-            settings.CommandCounter = commandCounter;
             settings.ProviderHandlerAsync = providerHandlerAsync;
         }
     }

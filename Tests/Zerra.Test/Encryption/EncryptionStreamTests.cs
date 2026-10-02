@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+// Copyright ï¿½ KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -143,7 +143,8 @@ namespace Zerra.Test.Encryption
                 values.Add(SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithPrefix, key, test));
 
             Assert.True(values.Distinct().Count() == values.Count);
-            var endings = values.Select(x => x.Substring(x.Length - 6, 6));
+            //the whole last block, the last few base64 characters are mostly padding and collide by chance
+            var endings = values.Select(x => Convert.ToBase64String(Convert.FromBase64String(x)[^16..]));
             Assert.True(endings.Distinct().Count() == values.Count);
 
             for (var i = 0; i < values.Count; i++)

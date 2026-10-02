@@ -3,11 +3,13 @@
 // Licensed to you under the MIT license
 
 using Confluent.Kafka;
+using System.Collections.Concurrent;
 using Xunit;
 using Zerra.CQRS;
 using Zerra.Compression;
 using Zerra.CQRS.Kafka;
 using Zerra.Encryption;
+using Zerra.Reflection;
 using Zerra.Serialization;
 
 namespace Zerra.Repository.Test.Kafka
@@ -109,22 +111,192 @@ namespace Zerra.Repository.Test.Kafka
             }
         }
 
-        [Fact(Timeout = 120000)]
-        public async Task TestAckListenerStartsOnRegister()
+        [Theory(Timeout = 300000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestSharedConsumer(bool eventFirst)
+        {
+            var commandTopicA = MessageTest.NewTopic("CommandA");
+            var commandTopicB = MessageTest.NewTopic("CommandB");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            string? ackTopic = null;
+
+            try
+            {
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                {
+                    ackTopic = AckTopic(producer);
+                    await MessageTest.TestSharedConsumer(producer, producer, consumer, commandTopicA, commandTopicB, eventTopic, eventFirst, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await Cleanup(commandTopicA, eventTopic, ackTopic);
+                await KafkaCommon.DeleteTopic(host, null, null, commandTopicB);
+                await DeleteConsumerGroup(commandTopicB);
+            }
+        }
+
+        //librdkafka drops a consumer that isn't polled within max.poll.interval.ms, set low here so the handler can stay busy past it quickly
+        [Theory(Timeout = 300000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestBusyHandlersStayInGroup(bool events)
+        {
+            var topic = MessageTest.NewTopic(events ? "Event" : "Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            string? ackTopic = null;
+            TypeFinder.Register(typeof(TestCommand));
+            TypeFinder.Register(typeof(TestEvent));
+
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var received = new ConcurrentQueue<Guid>();
+            async Task Handle(Guid id)
+            {
+                received.Enqueue(id);
+                await release.Task;
+            }
+
+            try
+            {
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null) { MaxPollIntervalMs = 7000 })
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                {
+                    ackTopic = AckTopic(producer);
+                    Func<Guid, Task> send;
+                    if (events)
+                    {
+                        ((IEventConsumer)consumer).Setup("ZerraTestService", (@event, _) => Handle(((TestEvent)@event).ID));
+                        ((IEventConsumer)consumer).RegisterEventType(1, topic, typeof(TestEvent), EventConsumerMode.PerReplica);
+                        ((IEventProducer)producer).RegisterEventType(1, topic, typeof(TestEvent));
+                        ((IEventConsumer)consumer).Open();
+                        send = (id) => ((IEventProducer)producer).DispatchAsync(new TestEvent() { ID = id }, "Test", TestContext.Current.CancellationToken);
+                    }
+                    else
+                    {
+                        ((ICommandConsumer)consumer).Setup(null, (command, _, _) => Handle(((TestCommand)command).ID), (command, _, _) => Handle(((TestCommand)command).ID), (_, _, _) => throw new NotSupportedException());
+                        ((ICommandConsumer)consumer).RegisterCommandType(1, topic, typeof(TestCommand));
+                        ((ICommandProducer)producer).RegisterCommandType(1, topic, typeof(TestCommand));
+                        ((ICommandConsumer)consumer).Open();
+                        send = (id) => ((ICommandProducer)producer).DispatchAsync(new TestCommand() { ID = id }, "Test", TestContext.Current.CancellationToken);
+                    }
+
+                    //an event sent before the new group has its partition isn't read, so it's sent again until one is handled
+                    for (var attempt = 1; received.IsEmpty; attempt++)
+                    {
+                        if (attempt == 90)
+                            throw new TimeoutException("Nothing was received");
+                        await send(Guid.NewGuid());
+                        await Task.Delay(1000, TestContext.Current.CancellationToken);
+                    }
+
+                    //the one handler stays busy past max.poll.interval.ms, errors before this are the new topic still being created
+                    var errorsBefore = log.Errors;
+                    await Task.Delay(TimeSpan.FromSeconds(12), TestContext.Current.CancellationToken);
+                    release.SetResult();
+
+                    var last = Guid.NewGuid();
+                    await send(last);
+                    for (var attempt = 1; !received.Contains(last); attempt++)
+                    {
+                        if (attempt == 300)
+                            throw new TimeoutException("The command after the busy handler was not received");
+                        await Task.Delay(100, TestContext.Current.CancellationToken);
+                    }
+                    Assert.Equal(errorsBefore, log.Errors);
+                }
+            }
+            finally
+            {
+                await KafkaCommon.DeleteTopic(host, null, null, topic);
+                if (!events)
+                    await DeleteConsumerGroup(topic);
+                if (ackTopic is not null)
+                    await KafkaCommon.DeleteTopic(host, null, null, ackTopic);
+            }
+        }
+
+        [Fact(Timeout = 600000)]
+        public async Task TestSustainedLoad()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            string? ackTopic = null;
+
+            try
+            {
+                using (var replica1 = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
+                using (var replica2 = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                {
+                    ackTopic = AckTopic(producer);
+                    await MessageTest.TestSustainedLoad(producer, producer, replica1, replica2, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+                }
+                Assert.Equal(0, log.Errors);
+            }
+            finally
+            {
+                await Cleanup(commandTopic, eventTopic, ackTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestReceiveLimitHandsOff()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            string? ackTopic = null;
+
+            try
+            {
+                using (var replica1 = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
+                using (var replica2 = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                {
+                    ackTopic = AckTopic(producer);
+                    await MessageTest.TestReceiveLimitHandsOff(producer, replica1, replica2, commandTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await KafkaCommon.DeleteTopic(host, null, null, commandTopic);
+                await DeleteConsumerGroup(commandTopic);
+                if (ackTopic is not null)
+                    await KafkaCommon.DeleteTopic(host, null, null, ackTopic);
+            }
+        }
+
+        [Theory(Timeout = 120000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestAckListenerStartsOnRegister(bool disposeAsync)
         {
             var commandTopic = MessageTest.NewTopic("Command");
             string? ackTopic = null;
 
             try
             {
-                using (var producer = new KafkaProducer(host, new ZerraByteSerializer(), null, null, new TestLogger(), null, null, null))
-                {
-                    ackTopic = AckTopic(producer);
-                    ((ICommandProducer)producer).RegisterCommandType(1, commandTopic, typeof(TestCommand));
+                var producer = new KafkaProducer(host, new ZerraByteSerializer(), null, null, new TestLogger(), null, null, null);
+                ackTopic = AckTopic(producer);
+                ((ICommandProducer)producer).RegisterCommandType(1, commandTopic, typeof(TestCommand));
 
-                    //registering starts the listener, the first command doesn't wait for the topic
-                    await WaitUntilTopicExists(ackTopic, TestContext.Current.CancellationToken);
-                }
+                //registering starts the listener, the first command doesn't wait for the topic
+                await WaitUntilTopicExists(ackTopic, TestContext.Current.CancellationToken);
+
+                if (disposeAsync)
+                    await producer.DisposeAsync();
+                else
+                    producer.Dispose();
+
+                using (var admin = new AdminClientBuilder(new AdminClientConfig() { BootstrapServers = host }).Build())
+                    Assert.DoesNotContain(admin.GetMetadata(TimeSpan.FromSeconds(10)).Topics, x => x.Topic == ackTopic && x.Error.Code == ErrorCode.NoError);
             }
             finally
             {
@@ -227,7 +399,7 @@ namespace Zerra.Repository.Test.Kafka
                 using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
                 {
                     var commandConsumer = (ICommandConsumer)consumer;
-                    commandConsumer.Setup(new CommandCounter(), (command, source, cancellationToken) => Task.CompletedTask, (command, source, cancellationToken) => Task.CompletedTask, (command, source, cancellationToken) => Task.FromResult<object?>(null));
+                    commandConsumer.Setup(null, (command, source, cancellationToken) => Task.CompletedTask, (command, source, cancellationToken) => Task.CompletedTask, (command, source, cancellationToken) => Task.FromResult<object?>(null));
                     commandConsumer.RegisterCommandType(10, commandTopic, typeof(TestCommand));
                     commandConsumer.Open();
 

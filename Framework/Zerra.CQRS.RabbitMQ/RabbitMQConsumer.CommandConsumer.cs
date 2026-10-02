@@ -22,7 +22,7 @@ namespace Zerra.CQRS.RabbitMQ
             public bool IsOpen { get; private set; }
 
             private readonly int maxConcurrent;
-            private readonly CommandCounter commandCounter;
+            private readonly CommandCounter? commandCounter;
             private readonly string topic;
             private readonly ISerializer serializer;
             private readonly IEncryptor? encryptor;
@@ -47,15 +47,22 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly Lock channelLock = new();
 #endif
             private string? consumerTag = null;
+            private string? cancelledConsumerTag = null;
+#if NETSTANDARD2_0
+            private readonly object cancelLock = new();
+#else
+            private readonly Lock cancelLock = new();
+#endif
+            private volatile bool receiveLimitReached = false;
             private readonly SemaphoreSlim throttle;
             private readonly ConcurrentHashSet<Task> handling = new();
             private static readonly Action<Task, object?> removeHandling = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string topic, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string topic, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
-                this.maxConcurrent = commandCounter.ReceiveCountBeforeExit.HasValue ? Math.Min(commandCounter.ReceiveCountBeforeExit.Value, maxConcurrent) : maxConcurrent;
+                this.maxConcurrent = commandCounter is not null ? Math.Min(commandCounter.ReceiveCountBeforeExit, maxConcurrent) : maxConcurrent;
                 this.commandCounter = commandCounter;
 
                 bool truncated;
@@ -108,6 +115,14 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.Received += async (sender, e) =>
                     {
+                        if (receiveLimitReached)
+                        {
+                            //waits for a cancel in progress so the command put back can't be sent here again
+                            StopReceiving(consumer, e.ConsumerTag);
+                            Requeue(consumer, e.DeliveryTag);
+                            return;
+                        }
+
                         try
                         {
                             await throttle.WaitAsync(canceller.Token);
@@ -117,8 +132,20 @@ namespace Zerra.CQRS.RabbitMQ
                             return;
                         }
 
-                        if (!commandCounter.BeginReceive())
-                            return; //don't receive anymore, externally will be shutdown
+                        if (commandCounter is not null)
+                        {
+                            if (!commandCounter.BeginReceive())
+                            {
+                                _ = throttle.Release();
+                                StopReceiving(consumer, e.ConsumerTag);
+                                Requeue(consumer, e.DeliveryTag);
+                                return; //don't receive anymore, externally will be shutdown
+                            }
+
+                            //cancelled before the ack, otherwise the broker keeps sending commands here that would have to be put back
+                            if (commandCounter.ReceiveLimitReached)
+                                StopReceiving(consumer, e.ConsumerTag);
+                        }
 
                         try
                         {
@@ -128,7 +155,20 @@ namespace Zerra.CQRS.RabbitMQ
                         catch (Exception ex)
                         {
                             log?.Error(topic, ex);
-                            commandCounter.CancelReceive(throttle);
+                            if (commandCounter is not null)
+                            {
+                                commandCounter.CancelReceive(throttle);
+                                //the consumer was cancelled for this command, which can be received again
+                                if (receiveLimitReached)
+                                {
+                                    receiveLimitReached = false;
+                                    _ = Task.Run(() => ListeningThread(connection));
+                                }
+                            }
+                            else
+                            {
+                                _ = throttle.Release();
+                            }
                             return;
                         }
 
@@ -142,7 +182,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                     consumer.ConsumerCancelled += (sender, e) =>
                     {
-                        if (!canceller.IsCancellationRequested && consumer.Model.IsOpen)
+                        if (!canceller.IsCancellationRequested && !e.ConsumerTags.Contains(Volatile.Read(ref cancelledConsumerTag)) && consumer.Model.IsOpen)
                             _ = Task.Run(() => ListeningThread(connection));
                         return Task.CompletedTask;
                     };
@@ -164,6 +204,45 @@ namespace Zerra.CQRS.RabbitMQ
                         await Task.Delay(RabbitMQCommon.RetryDelay);
                         goto retry;
                     }
+                }
+            }
+
+            private void StopReceiving(AsyncEventingBasicConsumer consumer, string consumerTag)
+            {
+                receiveLimitReached = true;
+                _ = CancelConsumer(consumer.Model, consumerTag);
+            }
+
+            private void Requeue(AsyncEventingBasicConsumer consumer, ulong deliveryTag)
+            {
+                try
+                {
+                    lock (channelLock)
+                        consumer.Model.BasicNack(deliveryTag, false, true);
+                }
+                catch (Exception ex)
+                {
+                    log?.Error(topic, ex);
+                }
+            }
+
+            //the limit and Close can both cancel the same consumer, it's only cancelled once and a second caller waits for the broker to confirm it
+            private bool CancelConsumer(IModel channel, string consumerTag)
+            {
+                lock (cancelLock)
+                {
+                    if (cancelledConsumerTag == consumerTag)
+                        return false;
+                    try
+                    {
+                        channel.BasicCancel(consumerTag);
+                    }
+                    catch (Exception ex)
+                    {
+                        log?.Error(topic, ex);
+                    }
+                    Volatile.Write(ref cancelledConsumerTag, consumerTag);
+                    return true;
                 }
             }
 
@@ -214,7 +293,12 @@ namespace Zerra.CQRS.RabbitMQ
                 finally
                 {
                     if (!awaitResponse)
-                        commandCounter.CompleteReceive(throttle);
+                    {
+                        if (commandCounter is not null)
+                            commandCounter.CompleteReceive(throttle);
+                        else
+                            _ = throttle.Release();
+                    }
                 }
 
                 if (!awaitResponse)
@@ -243,7 +327,10 @@ namespace Zerra.CQRS.RabbitMQ
                 }
                 finally
                 {
-                    commandCounter.CompleteReceive(throttle);
+                    if (commandCounter is not null)
+                        commandCounter.CompleteReceive(throttle);
+                    else
+                        _ = throttle.Release();
                 }
             }
 
@@ -255,16 +342,7 @@ namespace Zerra.CQRS.RabbitMQ
                 var channel = this.channel;
                 var consumerTag = this.consumerTag;
                 if (channel is not null && consumerTag is not null)
-                {
-                    try
-                    {
-                        channel.BasicCancel(consumerTag);
-                    }
-                    catch (Exception ex)
-                    {
-                        log?.Error(topic, ex);
-                    }
-                }
+                    _ = CancelConsumer(channel, consumerTag);
             }
 
             public void Dispose()

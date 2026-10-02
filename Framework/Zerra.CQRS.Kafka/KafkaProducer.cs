@@ -27,6 +27,7 @@ namespace Zerra.CQRS.Kafka
     public sealed class KafkaProducer : ICommandProducer, IEventProducer, IDisposable
     {
         private bool listenerStarted = false;
+        private Task? ackListening = null;
         private readonly SemaphoreSlim listenerStartedLock = new(1, 1);
 
         private readonly Zerra.Serialization.ISerializer serializer;
@@ -140,7 +141,7 @@ namespace Zerra.CQRS.Kafka
                             if (!listenerStarted)
                             {
                                 await KafkaCommon.CreateTopic(commonHost, ackTopic);
-                                _ = Task.Run(AckListeningThread);
+                                ackListening = Task.Run(AckListeningThread);
                                 listenerStarted = true;
                             }
                         }
@@ -235,7 +236,7 @@ namespace Zerra.CQRS.Kafka
                         if (!listenerStarted)
                         {
                             await KafkaCommon.CreateTopic(commonHost, ackTopic);
-                            _ = Task.Run(AckListeningThread);
+                            ackListening = Task.Run(AckListeningThread);
                             listenerStarted = true;
                         }
                     }
@@ -474,11 +475,22 @@ namespace Zerra.CQRS.Kafka
         /// Releases all resources used by the <see cref="KafkaProducer"/>.
         /// </summary>
         /// <remarks>
-        /// Cancels the acknowledgement listener, disposes the Kafka producer, and releases semaphore resources.
+        /// Cancels the acknowledgement listener and waits for it to delete the acknowledgement topic, disposes the Kafka producer, and releases semaphore resources.
         /// </remarks>
         public void Dispose()
         {
             canceller.Cancel();
+            if (ackListening is not null)
+            {
+                try
+                {
+                    ackListening.Wait();
+                }
+                catch (AggregateException ex)
+                {
+                    log?.Error(ex.InnerException ?? ex);
+                }
+            }
             producer.Dispose();
             listenerStartedLock.Dispose();
             canceller.Dispose();
@@ -488,12 +500,25 @@ namespace Zerra.CQRS.Kafka
         /// Releases all resources used by the <see cref="KafkaProducer"/>.
         /// </summary>
         /// <remarks>
-        /// The Kafka producer only releases synchronously, so this is the same as <see cref="Dispose"/>.
+        /// Cancels the acknowledgement listener and waits for it to delete the acknowledgement topic, disposes the Kafka producer, and releases semaphore resources.
         /// </remarks>
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
-            Dispose();
-            return default;
+            canceller.Cancel();
+            if (ackListening is not null)
+            {
+                try
+                {
+                    await ackListening;
+                }
+                catch (Exception ex)
+                {
+                    log?.Error(ex);
+                }
+            }
+            producer.Dispose();
+            listenerStartedLock.Dispose();
+            canceller.Dispose();
         }
 
         void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
@@ -522,7 +547,7 @@ namespace Zerra.CQRS.Kafka
                             if (!listenerStarted)
                             {
                                 await KafkaCommon.CreateTopic(commonHost, ackTopic);
-                                _ = Task.Run(AckListeningThread);
+                                ackListening = Task.Run(AckListeningThread);
                                 listenerStarted = true;
                             }
                         }

@@ -50,6 +50,80 @@ namespace Zerra.Repository.Test.AzureServiceBus
             }
         }
 
+        [Theory(Timeout = 300000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestSharedConsumer(bool eventFirst)
+        {
+            var commandTopicA = MessageTest.NewTopic("CommandA");
+            var commandTopicB = MessageTest.NewTopic("CommandB");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                {
+                    await MessageTest.TestSharedConsumer(producer, producer, consumer, commandTopicA, commandTopicB, eventTopic, eventFirst, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopicA);
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopicB);
+                await AzureServiceBusCommon.DeleteTopic(host, eventTopic);
+            }
+        }
+
+        [Fact(Timeout = 600000)]
+        public async Task TestSustainedLoad()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                await using (var replica1 = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
+                await using (var replica2 = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                {
+                    await MessageTest.TestSustainedLoad(producer, producer, replica1, replica2, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+                }
+                Assert.Equal(0, log.Errors);
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+                await AzureServiceBusCommon.DeleteTopic(host, eventTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestReceiveLimitHandsOff()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                await using (var replica1 = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
+                await using (var replica2 = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                {
+                    await MessageTest.TestReceiveLimitHandsOff(producer, replica1, replica2, commandTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+            }
+        }
+
         [Fact(Timeout = 300000)]
         public async Task TestCommandSentBeforeConsumer()
         {
@@ -96,28 +170,35 @@ namespace Zerra.Repository.Test.AzureServiceBus
             }
         }
 
-        [Fact(Timeout = 120000)]
-        public async Task TestAckListenerStartsOnRegister()
+        [Theory(Timeout = 120000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestAckListenerStartsOnRegister(bool disposeAsync)
         {
             var commandTopic = MessageTest.NewTopic("Command");
             string? ackQueue = null;
 
             try
             {
-                await using (var producer = new AzureServiceBusProducer(host, new ZerraByteSerializer(), null, null, new TestLogger(), null))
-                {
-                    ackQueue = (string)typeof(AzureServiceBusProducer).GetField("ackQueue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producer)!;
-                    ((ICommandProducer)producer).RegisterCommandType(1, commandTopic, typeof(TestCommand));
+                var producer = new AzureServiceBusProducer(host, new ZerraByteSerializer(), null, null, new TestLogger(), null);
+                ackQueue = (string)typeof(AzureServiceBusProducer).GetField("ackQueue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producer)!;
+                ((ICommandProducer)producer).RegisterCommandType(1, commandTopic, typeof(TestCommand));
 
-                    //registering starts the listener, the first command doesn't wait for the queue
-                    var admin = AzureServiceBusCommon.CreateAdministrationClient(host);
-                    for (var attempt = 1; !(await admin.QueueExistsAsync(ackQueue, TestContext.Current.CancellationToken)).Value; attempt++)
-                    {
-                        if (attempt == 60)
-                            throw new TimeoutException($"Queue {ackQueue} was not created");
-                        await Task.Delay(500, TestContext.Current.CancellationToken);
-                    }
+                //registering starts the listener, the first command doesn't wait for the queue
+                var admin = AzureServiceBusCommon.CreateAdministrationClient(host);
+                for (var attempt = 1; !(await admin.QueueExistsAsync(ackQueue, TestContext.Current.CancellationToken)).Value; attempt++)
+                {
+                    if (attempt == 60)
+                        throw new TimeoutException($"Queue {ackQueue} was not created");
+                    await Task.Delay(500, TestContext.Current.CancellationToken);
                 }
+
+                if (disposeAsync)
+                    await producer.DisposeAsync();
+                else
+                    producer.Dispose();
+
+                Assert.False((await admin.QueueExistsAsync(ackQueue, TestContext.Current.CancellationToken)).Value);
             }
             finally
             {

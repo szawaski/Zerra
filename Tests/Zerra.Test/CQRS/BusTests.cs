@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using System.Collections.Concurrent;
+using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Compression;
@@ -313,6 +314,260 @@ namespace Zerra.Test.CQRS
             await bus.DispatchAwaitAsync(new TestCommand { Thing = 40, Delay = 100 });
 
             Assert.InRange(busLogger.LastCommandMilliseconds, 90, 10000);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Bus_OneConsumer_SeveralInterfaces(bool eventFirst)
+        {
+            var consumer = new SetupOnceConsumer();
+            var bus = Bus.New("test-service", null, null, null);
+            if (eventFirst)
+                bus.AddEventConsumer<ITestEventHandler>(consumer, EventConsumerMode.PerReplica);
+            bus.AddCommandConsumer<ITestCommandHandler>(consumer);
+            bus.AddCommandConsumer<ISecondTestCommandHandler>(consumer);
+            if (!eventFirst)
+                bus.AddEventConsumer<ITestEventHandler>(consumer, EventConsumerMode.PerReplica);
+
+            Assert.Equal(1, consumer.CommandSetups);
+            Assert.Equal(1, consumer.EventSetups);
+            Assert.Equal(new[] { typeof(TestCommand), typeof(TestCommandWithResult), typeof(SecondTestCommand) }.OrderBy(x => x.Name), consumer.CommandTypes.OrderBy(x => x.Name));
+            Assert.Equal(2, consumer.CommandTopics.Distinct().Count());
+            Assert.Equal(new[] { typeof(TestEvent) }, consumer.EventTypes);
+
+            await bus.StopServicesAsync();
+        }
+
+        //sustained traffic between two buses: every message is handled once, each awaited command gets its own result,
+        //and the server never runs more handlers at once than its limit, which its commands and events share
+        [Theory(Timeout = 120000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task BusProducerConsumer_SustainedLoad(bool http)
+        {
+            const int maxConcurrent = 10;
+            var url = TestNetwork.NewUrl();
+            var serializer = new ZerraByteSerializer();
+
+            var handler = new LoadHandler();
+            var busServer = Bus.New("load-server", null, null, null, maxConcurrentCommandsPerTopic: maxConcurrent, maxConcurrentEventsPerTopic: maxConcurrent);
+            busServer.AddHandler<ILoadCommandHandler>(handler);
+            busServer.AddHandler<ILoadEventHandler>(handler);
+            var server = http ? (CqrsServerBase)new HttpCqrsServer(url, serializer, null, null, null, null) : new TcpCqrsServer(url, serializer, null, null, null);
+            busServer.AddCommandConsumer<ILoadCommandHandler>(server);
+            busServer.AddEventConsumer<ILoadEventHandler>(server, EventConsumerMode.PerReplica);
+
+            var busClient = Bus.New("load-client", null, null, null);
+            var client = http ? (CqrsClientBase)new HttpCqrsClient(url, serializer, null, null, null, null) : new TcpCqrsClient(url, serializer, null, null, null);
+            busClient.AddCommandProducer<ILoadCommandHandler>(client);
+            busClient.AddEventProducer<ILoadEventHandler>(client);
+
+            try
+            {
+                //the server's one throttle is shared by its commands and events
+                await SustainedLoad(busClient, handler, maxConcurrent, TestContext.Current.CancellationToken);
+            }
+            finally
+            {
+                await busServer.StopServicesAsync();
+                await busClient.StopServicesAsync();
+            }
+        }
+
+        //sustained queries between two buses: each call gets its own result, streamed response or error back, and the server never runs more queries at once than its limit
+        [Theory(Timeout = 120000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task BusQueries_SustainedLoad(bool http)
+        {
+            const int maxConcurrent = 10;
+            var url = TestNetwork.NewUrl();
+            var serializer = new ZerraByteSerializer();
+
+            var handler = new LoadQueryHandler();
+            var busServer = Bus.New("query-load-server", null, null, null, maxConcurrentQueries: maxConcurrent);
+            busServer.AddHandler<ILoadQueryHandler>(handler);
+            busServer.AddQueryServer<ILoadQueryHandler>(http ? new HttpCqrsServer(url, serializer, null, null, null, null) : new TcpCqrsServer(url, serializer, null, null, null));
+
+            var busClient = Bus.New("query-load-client", null, null, null);
+            busClient.AddQueryClient<ILoadQueryHandler>(http ? new HttpCqrsClient(url, serializer, null, null, null, null) : new TcpCqrsClient(url, serializer, null, null, null));
+
+            try
+            {
+                var doubling = Enumerable.Range(0, 1000).Select(x => busClient.Call<ILoadQueryHandler>().DoubleAsync(x, TestContext.Current.CancellationToken)).ToArray();
+                var streaming = Enumerable.Range(0, 200).Select(async x =>
+                {
+                    await using var stream = await busClient.Call<ILoadQueryHandler>().BytesAsync(x);
+                    return await stream.ToArrayAsync();
+                }).ToArray();
+                var throwing = Enumerable.Range(0, 100).Select(async x =>
+                {
+                    try
+                    {
+                        _ = await busClient.Call<ILoadQueryHandler>().ThrowAsync(x);
+                        return null;
+                    }
+                    catch (Exception ex)
+                    {
+                        return ex.Message;
+                    }
+                }).ToArray();
+
+                var doubled = await Task.WhenAll(doubling);
+                var streamed = await Task.WhenAll(streaming);
+                var thrown = await Task.WhenAll(throwing);
+
+                for (var i = 0; i < doubled.Length; i++)
+                    Assert.Equal(i * 2, doubled[i]);
+                for (var i = 0; i < streamed.Length; i++)
+                    Assert.Equal(Enumerable.Repeat((byte)i, 1000 + i), streamed[i]);
+                for (var i = 0; i < thrown.Length; i++)
+                    Assert.Equal($"Failed {i}", thrown[i]);
+
+                Assert.Equal(1300, handler.Calls);
+                Assert.InRange(handler.MaxHandling, 2, maxConcurrent);
+            }
+            finally
+            {
+                await busServer.StopServicesAsync();
+                await busClient.StopServicesAsync();
+            }
+        }
+
+        public static async Task SustainedLoad(IBus busClient, LoadHandler handler, int maxHandling, CancellationToken cancellationToken)
+        {
+            var commands = Enumerable.Range(0, 1000).Select(x => new LoadCommand() { ID = Guid.NewGuid() }).ToArray();
+            var commandsWithResult = Enumerable.Range(0, 200).Select(x => new LoadCommandWithResult() { ID = Guid.NewGuid(), Value = x }).ToArray();
+            var events = Enumerable.Range(0, 500).Select(x => new LoadEvent() { ID = Guid.NewGuid() }).ToArray();
+
+            var sendingCommands = Task.WhenAll(commands.Select(x => busClient.DispatchAsync(x)));
+            var sendingEvents = Task.WhenAll(events.Select(x => busClient.DispatchAsync(x)));
+            var results = await Task.WhenAll(commandsWithResult.Select(x => busClient.DispatchAwaitAsync(x)));
+            await Task.WhenAll(sendingCommands, sendingEvents);
+
+            for (var i = 0; i < commandsWithResult.Length; i++)
+                Assert.Equal(commandsWithResult[i].Value * 2, results[i]);
+
+            var ids = commands.Select(x => x.ID).Concat(commandsWithResult.Select(x => x.ID)).Concat(events.Select(x => x.ID)).ToArray();
+            while (ids.Count(handler.Received.ContainsKey) < ids.Length)
+                await Task.Delay(10, cancellationToken);
+            await Task.Delay(500, cancellationToken);
+
+            Assert.All(ids, id => Assert.Equal(1, handler.Received[id]));
+            Assert.Equal(ids.Length, handler.Received.Count);
+            Assert.InRange(handler.MaxHandling, 2, maxHandling);
+        }
+
+        //the exit is the process's and happens once, after it every WaitForExit returns at once, so no other test may reach a bus consumer's count
+        [Fact(Timeout = 60000)]
+        public async Task WaitForExit_ReturnsOnceLimitedConsumerHandledItsCount()
+        {
+            const int count = 3;
+            var url = TestNetwork.NewUrl();
+            var serializer = new ZerraByteSerializer();
+
+            var handler = new LoadHandler();
+            var busServer = Bus.New("exit-server", null, null, null);
+            busServer.AddHandler<ILoadCommandHandler>(handler);
+            busServer.AddCommandConsumer<ILoadCommandHandler>(new TcpCqrsServer(url, serializer, null, null, null), count);
+
+            var busClient = Bus.New("exit-client", null, null, null);
+            busClient.AddCommandProducer<ILoadCommandHandler>(new TcpCqrsClient(url, serializer, null, null, null));
+
+            try
+            {
+                var exiting = busServer.WaitForExitAsync(TestContext.Current.CancellationToken);
+                for (var i = 0; i < count; i++)
+                {
+                    Assert.False(exiting.IsCompleted);
+                    await busClient.DispatchAwaitAsync(new LoadCommand() { ID = Guid.NewGuid() });
+                }
+
+                await exiting.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+                Assert.Equal(count, handler.Received.Count);
+
+                //the server was stopped
+                _ = await Assert.ThrowsAnyAsync<Exception>(() => busClient.DispatchAwaitAsync(new LoadCommand() { ID = Guid.NewGuid() }, TimeSpan.FromSeconds(5)));
+                Assert.Equal(count, handler.Received.Count);
+
+                //waiting after the exit was signalled, as when a consumer reaches its count before the service gets to wait, still stops the services
+                var lateUrl = TestNetwork.NewUrl();
+                var lateHandler = new LoadHandler();
+                var lateBusServer = Bus.New("late-exit-server", null, null, null);
+                lateBusServer.AddHandler<ILoadCommandHandler>(lateHandler);
+                lateBusServer.AddCommandConsumer<ILoadCommandHandler>(new TcpCqrsServer(lateUrl, serializer, null, null, null));
+                var lateBusClient = Bus.New("late-exit-client", null, null, null);
+                lateBusClient.AddCommandProducer<ILoadCommandHandler>(new TcpCqrsClient(lateUrl, serializer, null, null, null));
+                try
+                {
+                    await lateBusClient.DispatchAwaitAsync(new LoadCommand() { ID = Guid.NewGuid() });
+                    await lateBusServer.WaitForExitAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+                    _ = await Assert.ThrowsAnyAsync<Exception>(() => lateBusClient.DispatchAwaitAsync(new LoadCommand() { ID = Guid.NewGuid() }, TimeSpan.FromSeconds(5)));
+                    _ = Assert.Single(lateHandler.Received);
+                }
+                finally
+                {
+                    await lateBusClient.StopServicesAsync();
+                }
+            }
+            finally
+            {
+                await busClient.StopServicesAsync();
+            }
+        }
+
+        [Fact]
+        public async Task Bus_CommandConsumerWithLimit_GetsItsOwnCounter()
+        {
+            var limited = new SetupOnceConsumer();
+            var unlimited = new SetupOnceConsumer();
+            var bus = Bus.New("test-service", null, null, null);
+            bus.AddCommandConsumer<ITestCommandHandler>(limited, 2);
+            bus.AddCommandConsumer<ISecondTestCommandHandler>(unlimited);
+
+            Assert.NotNull(limited.CommandCounter);
+            Assert.Equal(2, limited.CommandCounter.ReceiveCountBeforeExit);
+            Assert.Null(unlimited.CommandCounter);
+
+            await bus.StopServicesAsync();
+        }
+
+        [Theory]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public async Task Bus_CommandConsumerWithLimit_OneInterfaceOnly(bool firstLimited, bool secondLimited)
+        {
+            var consumer = new SetupOnceConsumer();
+            var bus = Bus.New("test-service", null, null, null);
+            bus.AddCommandConsumer<ITestCommandHandler>(consumer, firstLimited ? 1 : null);
+
+            _ = Assert.Throws<InvalidOperationException>(() => bus.AddCommandConsumer<ISecondTestCommandHandler>(consumer, secondLimited ? 1 : null));
+            Assert.Equal(1, consumer.CommandSetups);
+
+            await bus.StopServicesAsync();
+        }
+
+        [Fact]
+        public void Bus_CommandConsumerWithLimit_LessThanOneThrows()
+        {
+            var bus = Bus.New("test-service", null, null, null);
+            _ = Assert.Throws<ArgumentException>(() => bus.AddCommandConsumer<ITestCommandHandler>(new SetupOnceConsumer(), 0));
+        }
+
+        [Fact]
+        public async Task Bus_OneQueryServer_SeveralInterfaces()
+        {
+            var server = new SetupCountingQueryServer();
+            var bus = Bus.New("test-service", null, null, null);
+            bus.AddQueryServer<ITestQueryHandler>(server);
+            bus.AddQueryServer<ISecondTestQueryHandler>(server);
+
+            Assert.Equal(1, server.Setups);
+            Assert.Equal(new[] { typeof(ITestQueryHandler), typeof(ISecondTestQueryHandler) }, server.InterfaceTypes);
+
+            await bus.StopServicesAsync();
         }
 
         [Fact]
@@ -706,6 +961,184 @@ namespace Zerra.Test.CQRS
                 results.Add(command.Thing * 2);
                 return command.Thing * 2;
             }
+        }
+
+        public interface ISecondTestQueryHandler : IQueryHandler
+        {
+            public int GetOtherThings();
+        }
+
+        public sealed class SetupCountingQueryServer : IQueryServer
+        {
+            public int Setups;
+            public readonly List<Type> InterfaceTypes = new();
+
+            string IQueryServer.ServiceUrl => "test";
+
+            void IQueryServer.Setup(QueryHandlerDelegate providerHandlerAsync) => Setups++;
+            void IQueryServer.RegisterInterfaceType(int maxConcurrent, Type type) => InterfaceTypes.Add(type);
+            void IQueryServer.Open() { }
+            void IQueryServer.Close() { }
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => default;
+        }
+
+        public interface ILoadQueryHandler : IQueryHandler
+        {
+            public Task<int> DoubleAsync(int value, CancellationToken cancellationToken);
+            public Task<Stream> BytesAsync(int value);
+            public Task<int> ThrowAsync(int value);
+        }
+
+        //counts the calls and the most handlers running at once, each taking a moment so they overlap
+        public sealed class LoadQueryHandler : BaseHandler, ILoadQueryHandler
+        {
+            private int calls;
+            private int handling;
+            private int maxHandling;
+            public int Calls => Volatile.Read(ref calls);
+            public int MaxHandling => Volatile.Read(ref maxHandling);
+
+            private async Task Handle()
+            {
+                _ = Interlocked.Increment(ref calls);
+                var now = Interlocked.Increment(ref handling);
+                for (var current = Volatile.Read(ref maxHandling); now > current; current = Volatile.Read(ref maxHandling))
+                {
+                    if (Interlocked.CompareExchange(ref maxHandling, now, current) == current)
+                        break;
+                }
+                try
+                {
+                    await Task.Delay(1);
+                }
+                finally
+                {
+                    _ = Interlocked.Decrement(ref handling);
+                }
+            }
+
+            public async Task<int> DoubleAsync(int value, CancellationToken cancellationToken)
+            {
+                await Handle();
+                return value * 2;
+            }
+            public async Task<Stream> BytesAsync(int value)
+            {
+                await Handle();
+                return new MemoryStream(Enumerable.Repeat((byte)value, 1000 + value).ToArray());
+            }
+            public async Task<int> ThrowAsync(int value)
+            {
+                await Handle();
+                throw new InvalidOperationException($"Failed {value}");
+            }
+        }
+
+        public sealed class LoadCommand : ICommand
+        {
+            public Guid ID { get; set; }
+        }
+        public sealed class LoadCommandWithResult : ICommand<int>
+        {
+            public Guid ID { get; set; }
+            public int Value { get; set; }
+        }
+        public sealed class LoadEvent : IEvent
+        {
+            public Guid ID { get; set; }
+        }
+
+        public interface ILoadCommandHandler :
+            ICommandHandler<LoadCommand>,
+            ICommandHandler<LoadCommandWithResult, int>
+        { }
+        public interface ILoadEventHandler :
+            IEventHandler<LoadEvent>
+        { }
+
+        //counts how many times each message is handled and the most handlers running at once, each taking a moment so they overlap
+        public sealed class LoadHandler : BaseHandler, ILoadCommandHandler, ILoadEventHandler
+        {
+            public readonly ConcurrentDictionary<Guid, int> Received = new();
+            private int handling;
+            private int maxHandling;
+            public int MaxHandling => Volatile.Read(ref maxHandling);
+
+            private async Task Handle(Guid id)
+            {
+                _ = Received.AddOrUpdate(id, 1, static (_, times) => times + 1);
+                var now = Interlocked.Increment(ref handling);
+                for (var current = Volatile.Read(ref maxHandling); now > current; current = Volatile.Read(ref maxHandling))
+                {
+                    if (Interlocked.CompareExchange(ref maxHandling, now, current) == current)
+                        break;
+                }
+                try
+                {
+                    await Task.Delay(1);
+                }
+                finally
+                {
+                    _ = Interlocked.Decrement(ref handling);
+                }
+            }
+
+            public Task Handle(LoadCommand command, CancellationToken cancellationToken) => Handle(command.ID);
+            public async Task<int> Handle(LoadCommandWithResult command, CancellationToken cancellationToken)
+            {
+                await Handle(command.ID);
+                return command.Value * 2;
+            }
+            public Task Handle(LoadEvent @event) => Handle(@event.ID);
+        }
+
+        public sealed class SecondTestCommand : ICommand
+        {
+            public int Thing { get; set; }
+        }
+
+        public interface ISecondTestCommandHandler :
+            ICommandHandler<SecondTestCommand>
+        { }
+
+        public sealed class SetupOnceConsumer : ICommandConsumer, IEventConsumer
+        {
+            public int CommandSetups;
+            public int EventSetups;
+            public CommandCounter? CommandCounter;
+            public readonly List<Type> CommandTypes = new();
+            public readonly List<string> CommandTopics = new();
+            public readonly List<Type> EventTypes = new();
+
+            string ICommandConsumer.MessageHost => "test";
+            string IEventConsumer.MessageHost => "test";
+
+            void ICommandConsumer.Setup(CommandCounter? commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+            {
+                if (++CommandSetups > 1)
+                    throw new InvalidOperationException("Command consumer already setup");
+                CommandCounter = commandCounter;
+            }
+            void IEventConsumer.Setup(string serviceName, HandleRemoteEventDispatch handlerAsync)
+            {
+                if (++EventSetups > 1)
+                    throw new InvalidOperationException("Event consumer already setup");
+            }
+
+            void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
+            {
+                CommandTypes.Add(type);
+                CommandTopics.Add(topic);
+            }
+            void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode) => EventTypes.Add(type);
+
+            void ICommandConsumer.Open() { }
+            void IEventConsumer.Open() { }
+            void ICommandConsumer.Close() { }
+            void IEventConsumer.Close() { }
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => default;
         }
 
         public sealed class TestEvent : IEvent

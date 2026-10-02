@@ -2,7 +2,7 @@
 namespace Zerra.CQRS
 {
     /// <summary>
-    /// A counter to track and limit the commands processed by this service.
+    /// A counter to track and limit the commands processed by a command consumer.
     /// Short lived services can be told to terminate after processing a number of commands.
     /// </summary>
     public sealed class CommandCounter
@@ -16,17 +16,12 @@ namespace Zerra.CQRS
         private int started = 0;
         private int completed = 0;
 
-        private readonly int? receiveCountBeforeExit;
-        private readonly Action? processExit;
+        private readonly int receiveCountBeforeExit;
+        private readonly Action processExit;
 
-        internal CommandCounter()
+        internal CommandCounter(int receiveCountBeforeExit, Action processExit)
         {
-            this.receiveCountBeforeExit = null;
-            this.processExit = null;
-        }
-        internal CommandCounter(int? receiveCountBeforeExit, Action processExit)
-        {
-            if (receiveCountBeforeExit.HasValue && receiveCountBeforeExit.Value < 1) throw new ArgumentException("cannot be less than 1", nameof(receiveCountBeforeExit));
+            if (receiveCountBeforeExit < 1) throw new ArgumentException("cannot be less than 1", nameof(receiveCountBeforeExit));
 
             this.receiveCountBeforeExit = receiveCountBeforeExit;
             this.processExit = processExit;
@@ -35,7 +30,7 @@ namespace Zerra.CQRS
         /// <summary>
         /// The number of commands to process before the service terminates.
         /// </summary>
-        public int? ReceiveCountBeforeExit => receiveCountBeforeExit;
+        public int ReceiveCountBeforeExit => receiveCountBeforeExit;
 
         /// <summary>
         /// Called by a <see cref="ICommandHandler{T}"/>, increment the count and return if a command should be received and handled.
@@ -43,16 +38,27 @@ namespace Zerra.CQRS
         /// <returns>True if the service should continue to receive and handle a command.</returns>
         public bool BeginReceive()
         {
-            if (!receiveCountBeforeExit.HasValue)
-                return true;
-
             lock (locker)
             {
-                if (started == receiveCountBeforeExit.Value)
+                if (started == receiveCountBeforeExit)
                     return false; //do not receive any more
                 started++;
             }
             return true;
+        }
+
+        /// <summary>
+        /// True once every command to receive before the service terminates has been received.
+        /// </summary>
+        public bool ReceiveLimitReached
+        {
+            get
+            {
+                lock (locker)
+                {
+                    return started == receiveCountBeforeExit;
+                }
+            }
         }
 
         /// <summary>
@@ -61,12 +67,6 @@ namespace Zerra.CQRS
         /// <param name="throttle">A throttler used by the <see cref="ICommandHandler{T}"/> passed here so it can release at the approriate time.</param>
         public void CancelReceive(SemaphoreSlim throttle)
         {
-            if (!receiveCountBeforeExit.HasValue)
-            {
-                _ = throttle.Release();
-                return;
-            }
-
             lock (locker)
             {
                 started--;
@@ -80,18 +80,12 @@ namespace Zerra.CQRS
         /// <param name="throttle">A throttler used by the <see cref="ICommandHandler{T}"/> passed here so it can release at the approriate time.</param>
         public void CompleteReceive(SemaphoreSlim throttle)
         {
-            if (!receiveCountBeforeExit.HasValue)
-            {
-                _ = throttle.Release();
-                return;
-            }
-
             lock (locker)
             {
                 completed++;
-                if (completed == receiveCountBeforeExit.Value)
-                    processExit?.Invoke();
-                else if (throttle.CurrentCount < receiveCountBeforeExit.Value - started)
+                if (completed == receiveCountBeforeExit)
+                    processExit.Invoke();
+                else if (throttle.CurrentCount < receiveCountBeforeExit - started)
                     _ = throttle.Release(); //do not release more than needed to reach maxReceive
             }
         }

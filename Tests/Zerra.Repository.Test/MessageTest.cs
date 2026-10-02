@@ -49,7 +49,7 @@ namespace Zerra.Repository.Test
 
             var receiver = new Receiver();
 
-            commandConsumer.Setup(new CommandCounter(), receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
+            commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
             commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
             commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
             eventConsumer.Setup(serviceName, receiver.HandleEventAsync);
@@ -99,7 +99,7 @@ namespace Zerra.Repository.Test
             var received = receiver.Expect(command.ID);
             await commandProducer.DispatchAsync(command, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken);
 
-            commandConsumer.Setup(new CommandCounter(), receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
+            commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
             commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
             commandConsumer.Open();
             try
@@ -115,6 +115,186 @@ namespace Zerra.Repository.Test
         }
 
         /// <summary>
+        /// One consumer for two command topics and an event topic, set up and opened in the order the bus does when it's added for each interface.
+        /// </summary>
+        public static async Task TestSharedConsumer<TConsumer>(ICommandProducer commandProducer, IEventProducer eventProducer, TConsumer consumer, string commandTopicA, string commandTopicB, string eventTopic, bool eventFirst, CancellationToken cancellationToken)
+            where TConsumer : ICommandConsumer, IEventConsumer
+        {
+            TypeFinder.Register(typeof(TestCommand));
+            TypeFinder.Register(typeof(TestCommandWithResult));
+            TypeFinder.Register(typeof(TestEvent));
+
+            var receiver = new Receiver();
+            var commandConsumer = (ICommandConsumer)consumer;
+            var eventConsumer = (IEventConsumer)consumer;
+
+            if (eventFirst)
+            {
+                eventConsumer.Setup(serviceName, receiver.HandleEventAsync);
+                eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
+                eventConsumer.Open();
+            }
+            commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
+            commandConsumer.RegisterCommandType(maxConcurrent, commandTopicA, typeof(TestCommand));
+            commandConsumer.Open();
+            commandConsumer.RegisterCommandType(maxConcurrent, commandTopicB, typeof(TestCommandWithResult));
+            commandConsumer.Open();
+            if (!eventFirst)
+            {
+                eventConsumer.Setup(serviceName, receiver.HandleEventAsync);
+                eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
+                eventConsumer.Open();
+            }
+
+            _ = Assert.Throws<InvalidOperationException>(() => commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync));
+            _ = Assert.Throws<InvalidOperationException>(() => eventConsumer.Setup(serviceName, receiver.HandleEventAsync));
+
+            commandProducer.RegisterCommandType(maxConcurrent, commandTopicA, typeof(TestCommand));
+            commandProducer.RegisterCommandType(maxConcurrent, commandTopicB, typeof(TestCommandWithResult));
+            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+
+            try
+            {
+                await WaitForCommandConsumer(commandProducer, cancellationToken);
+                await RetryUntilReady("Second command consumer", cancellationToken, (attemptCancellationToken) =>
+                    commandProducer.DispatchAwaitAsync(new TestCommandWithResult() { ID = Guid.NewGuid() }, source, attemptCancellationToken));
+                await WaitForEventConsumer(eventProducer, receiver, cancellationToken);
+            }
+            finally
+            {
+                commandConsumer.Close();
+                eventConsumer.Close();
+            }
+        }
+
+        /// <summary>
+        /// Two replicas that each receive one command before exiting. The one that received a command still handling it doesn't hold up the other command.
+        /// </summary>
+        public static async Task TestReceiveLimitHandsOff(ICommandProducer commandProducer, ICommandConsumer replica1, ICommandConsumer replica2, string commandTopic, CancellationToken cancellationToken)
+        {
+            TypeFinder.Register(typeof(TestCommand));
+
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var received1 = new BlockingReceiver(release.Task);
+            var received2 = new BlockingReceiver(release.Task);
+
+            replica1.Setup(new CommandCounter(1, () => { }), received1.HandleCommandAsync, received1.HandleCommandAsync, received1.HandleCommandWithResultAwaitAsync);
+            replica1.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            replica2.Setup(new CommandCounter(1, () => { }), received2.HandleCommandAsync, received2.HandleCommandAsync, received2.HandleCommandWithResultAwaitAsync);
+            replica2.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+
+            replica1.Open();
+            replica2.Open();
+            try
+            {
+                var ids = new[] { Guid.NewGuid(), Guid.NewGuid() };
+                foreach (var id in ids)
+                    await commandProducer.DispatchAsync(new TestCommand() { ID = id }, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken);
+
+                await WaitUntil(() => received1.IDs.Count + received2.IDs.Count == 2, readyTimeout, cancellationToken);
+                Assert.Equal(ids.OrderBy(x => x), received1.IDs.Concat(received2.IDs).OrderBy(x => x));
+                _ = Assert.Single(received1.IDs);
+                _ = Assert.Single(received2.IDs);
+            }
+            finally
+            {
+                release.SetResult();
+                replica1.Close();
+                replica2.Close();
+            }
+        }
+
+        /// <summary>
+        /// Sustained traffic from one producer to two replicas. Every command is handled once by one of them, every event once by each,
+        /// each awaited command gets its own result back, and neither replica runs more handlers at once than it was registered for.
+        /// </summary>
+        public static async Task TestSustainedLoad<TConsumer>(ICommandProducer commandProducer, IEventProducer eventProducer, TConsumer replica1, TConsumer replica2, string commandTopic, string eventTopic, CancellationToken cancellationToken)
+            where TConsumer : ICommandConsumer, IEventConsumer
+        {
+            const int commandCount = 1000;
+            const int commandWithResultCount = 200;
+            const int eventCount = 500;
+            var loadTimeout = TimeSpan.FromMinutes(3);
+
+            TypeFinder.Register(typeof(TestCommand));
+            TypeFinder.Register(typeof(TestCommandWithResult));
+            TypeFinder.Register(typeof(TestEvent));
+
+            var received1 = new LoadReceiver();
+            var received2 = new LoadReceiver();
+            foreach (var (replica, received) in new[] { (replica1, received1), (replica2, received2) })
+            {
+                ((ICommandConsumer)replica).Setup(null, received.HandleCommandAsync, received.HandleCommandAsync, received.HandleCommandWithResultAsync);
+                ((ICommandConsumer)replica).RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+                ((ICommandConsumer)replica).RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
+                ((IEventConsumer)replica).Setup(serviceName, received.HandleEventAsync);
+                ((IEventConsumer)replica).RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
+            }
+            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
+            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+
+            ((ICommandConsumer)replica1).Open();
+            ((IEventConsumer)replica1).Open();
+            ((ICommandConsumer)replica2).Open();
+            ((IEventConsumer)replica2).Open();
+            try
+            {
+                await WaitForCommandConsumer(commandProducer, cancellationToken);
+                //each replica has its own subscription, both have to be listening before the events are counted
+                await RetryUntilReady("Event consumers", cancellationToken, async (attemptCancellationToken) =>
+                {
+                    await eventProducer.DispatchAsync(new TestEvent() { ID = Guid.NewGuid() }, source, attemptCancellationToken);
+                    await WaitUntil(() => received1.EventCount > 0 && received2.EventCount > 0, readyAttemptTimeout, attemptCancellationToken);
+                });
+
+                var commands = Enumerable.Range(0, commandCount).Select(x => new TestCommand() { ID = Guid.NewGuid(), Value = x }).ToArray();
+                var commandsWithResult = Enumerable.Range(0, commandWithResultCount).Select(x => new TestCommandWithResult() { ID = Guid.NewGuid(), Value = x }).ToArray();
+                var events = Enumerable.Range(0, eventCount).Select(x => new TestEvent() { ID = Guid.NewGuid(), Value = x }).ToArray();
+
+                var sendingCommands = Task.WhenAll(commands.Select(x => commandProducer.DispatchAsync(x, source, cancellationToken)));
+                var sendingEvents = Task.WhenAll(events.Select(x => eventProducer.DispatchAsync(x, source, cancellationToken)));
+                var results = await Task.WhenAll(commandsWithResult.Select(x => commandProducer.DispatchAwaitAsync(x, source, cancellationToken))).WaitAsync(loadTimeout, cancellationToken);
+                await Task.WhenAll(sendingCommands, sendingEvents).WaitAsync(loadTimeout, cancellationToken);
+
+                for (var i = 0; i < commandsWithResult.Length; i++)
+                    Assert.Equal(commandsWithResult[i].Value * 2, results[i]);
+
+                var commandIDs = commands.Select(x => x.ID).Concat(commandsWithResult.Select(x => x.ID)).ToArray();
+                var eventIDs = events.Select(x => x.ID).ToArray();
+                //at least, so a duplicate is caught by the assertions below rather than making the wait time out
+                await WaitUntil(() => received1.CommandsReceived(commandIDs) + received2.CommandsReceived(commandIDs) >= commandIDs.Length, loadTimeout, cancellationToken);
+                await WaitUntil(() => received1.EventsReceived(eventIDs) >= eventIDs.Length && received2.EventsReceived(eventIDs) >= eventIDs.Length, loadTimeout, cancellationToken);
+                await Task.Delay(settleDelay, cancellationToken);
+
+                foreach (var id in commandIDs)
+                    Assert.Equal(1, received1.CommandTimes(id) + received2.CommandTimes(id));
+                foreach (var id in eventIDs)
+                {
+                    Assert.Equal(1, received1.EventTimes(id));
+                    Assert.Equal(1, received2.EventTimes(id));
+                }
+
+                foreach (var received in new[] { received1, received2 })
+                {
+                    Assert.InRange(received.MaxCommandsHandling, 0, maxConcurrent);
+                    Assert.InRange(received.MaxEventsHandling, 0, maxConcurrent);
+                }
+                //handlers overlapped, how many depends on how fast the transport receives
+                Assert.True(Math.Max(received1.MaxCommandsHandling, received2.MaxCommandsHandling) > 1);
+                Assert.True(Math.Max(received1.MaxEventsHandling, received2.MaxEventsHandling) > 1);
+            }
+            finally
+            {
+                ((ICommandConsumer)replica1).Close();
+                ((IEventConsumer)replica1).Close();
+                ((ICommandConsumer)replica2).Close();
+                ((IEventConsumer)replica2).Close();
+            }
+        }
+
+        /// <summary>
         /// The command topic is deleted outside of Zerra while a consumer is running. The consumer fails, forgets the topic it had listed as existing,
         /// and creates it again, after which commands are received again.
         /// </summary>
@@ -125,7 +305,7 @@ namespace Zerra.Repository.Test
 
             var receiver = new Receiver();
 
-            commandConsumer.Setup(new CommandCounter(), receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
+            commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
             commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
             commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
             commandConsumer.Open();
@@ -398,7 +578,7 @@ namespace Zerra.Repository.Test
 
             var receiver = new SlowReceiver();
 
-            commandConsumer.Setup(new CommandCounter(), receiver.HandleCommandAsync, receiver.HandleCommandAsync, receiver.HandleCommandWithResultAwaitAsync);
+            commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAsync, receiver.HandleCommandWithResultAwaitAsync);
             commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
             eventConsumer.Setup(serviceName, receiver.HandleEventAsync);
             eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
@@ -533,6 +713,81 @@ namespace Zerra.Repository.Test
                 var testEvent = Assert.IsType<TestEvent>(@event);
                 return Handle(testEvent.ID, testEvent.Value, CancellationToken.None);
             }
+        }
+
+        //counts how many times each message is handled and the most handlers running at once, each taking a moment so they overlap
+        private sealed class LoadReceiver
+        {
+            private readonly ConcurrentDictionary<Guid, int> commands = new();
+            private readonly ConcurrentDictionary<Guid, int> events = new();
+            private int commandsHandling;
+            private int eventsHandling;
+            private int maxCommandsHandling;
+            private int maxEventsHandling;
+
+            public int EventCount => events.Count;
+            public int MaxCommandsHandling => Volatile.Read(ref maxCommandsHandling);
+            public int MaxEventsHandling => Volatile.Read(ref maxEventsHandling);
+
+            public int CommandsReceived(Guid[] ids) => ids.Count(commands.ContainsKey);
+            public int EventsReceived(Guid[] ids) => ids.Count(events.ContainsKey);
+            public int CommandTimes(Guid id) => commands.TryGetValue(id, out var times) ? times : 0;
+            public int EventTimes(Guid id) => events.TryGetValue(id, out var times) ? times : 0;
+
+            private static async Task Handle(ConcurrentDictionary<Guid, int> received, Guid id, Func<int> begin, Action end)
+            {
+                _ = received.AddOrUpdate(id, 1, static (_, times) => times + 1);
+                _ = begin();
+                try
+                {
+                    await Task.Delay(1);
+                }
+                finally
+                {
+                    end();
+                }
+            }
+
+            private static int Begin(ref int handling, ref int max)
+            {
+                var now = Interlocked.Increment(ref handling);
+                for (var current = Volatile.Read(ref max); now > current; current = Volatile.Read(ref max))
+                {
+                    if (Interlocked.CompareExchange(ref max, now, current) == current)
+                        break;
+                }
+                return now;
+            }
+
+            public Task HandleCommandAsync(ICommand command, string source, CancellationToken cancellationToken)
+                => Handle(commands, command is TestCommandWithResult withResult ? withResult.ID : Assert.IsType<TestCommand>(command).ID, () => Begin(ref commandsHandling, ref maxCommandsHandling), () => Interlocked.Decrement(ref commandsHandling));
+
+            public async Task<object?> HandleCommandWithResultAsync(ICommand command, string source, CancellationToken cancellationToken)
+            {
+                var testCommand = Assert.IsType<TestCommandWithResult>(command);
+                await Handle(commands, testCommand.ID, () => Begin(ref commandsHandling, ref maxCommandsHandling), () => Interlocked.Decrement(ref commandsHandling));
+                return testCommand.Value * 2;
+            }
+
+            public Task HandleEventAsync(IEvent @event, string source)
+                => Handle(events, Assert.IsType<TestEvent>(@event).ID, () => Begin(ref eventsHandling, ref maxEventsHandling), () => Interlocked.Decrement(ref eventsHandling));
+        }
+
+        private sealed class BlockingReceiver
+        {
+            private readonly Task release;
+            public readonly ConcurrentQueue<Guid> IDs = new();
+
+            public BlockingReceiver(Task release) => this.release = release;
+
+            public Task HandleCommandAsync(ICommand command, string source, CancellationToken cancellationToken)
+            {
+                IDs.Enqueue(Assert.IsType<TestCommand>(command).ID);
+                return release;
+            }
+
+            public Task<object?> HandleCommandWithResultAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
+                => throw new NotSupportedException();
         }
 
         //records what each handler received by message ID, so a test can wait for exactly its own message

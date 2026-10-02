@@ -256,7 +256,6 @@ Central message router created via `Bus.New()`:
 - `log`: Optional `ILogger` instance
 - `busLog`: Optional `IBusLogger` for cross-service logging
 - `busServices`: Optional `BusServices` containing registered dependencies
-- `commandToReceiveUntilExit`: Optional count for graceful shutdown
 - `defaultCallTimeout`, `defaultDispatchTimeout`, `defaultDispatchAwaitTimeout`: Optional `TimeSpan` timeouts
 - `maxConcurrentQueries`, `maxConcurrentCommandsPerTopic`, `maxConcurrentEventsPerTopic`: Optional concurrency limits
 - `shutdownTimeout`: Limits how long stopping waits while the servers and consumers finish what they already received (default 30 seconds); nothing is cancelled when it passes
@@ -267,7 +266,7 @@ Central message router created via `Bus.New()`:
 - Routes commands/events/queries to local handlers or remote producers
 - Manages lifecycle of consumers, producers, clients, servers
 - Provides `BusContext` to handlers
-- Counts received commands with `CommandCounter` to support exit-after-N-commands
+- Counts the commands a consumer added with `commandToReceiveUntilExit` receives, to support exit-after-N-commands
 
 ## Handlers
 
@@ -348,9 +347,9 @@ maxConcurrentCommandsPerTopic = Environment.ProcessorCount * 8
 maxConcurrentEventsPerTopic = Environment.ProcessorCount * 16
 ```
 
-**CommandCounter** enables graceful shutdown after N commands:
+**Exit after N commands**: a command consumer added with `commandToReceiveUntilExit` exits the service once it has handled that many. It serves only that one interface:
 ```csharp
-var bus = Bus.New("MyService", commandToReceiveUntilExit: 100);
+bus.AddCommandConsumer<IJobCommandHandler>(consumer, commandToReceiveUntilExit: 100);
 ```
 
 ## Logging

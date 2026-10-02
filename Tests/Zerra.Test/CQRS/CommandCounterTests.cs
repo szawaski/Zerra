@@ -10,13 +10,6 @@ namespace Zerra.Test.CQRS
     public class CommandCounterTests
     {
         [Fact]
-        public void ReceiveCountBeforeExit_Property_WhenUnlimited()
-        {
-            var counter = new CommandCounter();
-            Assert.Null(counter.ReceiveCountBeforeExit);
-        }
-
-        [Fact]
         public void ReceiveCountBeforeExit_Property_WhenLimited()
         {
 #pragma warning disable CS0219 // Variable is assigned but its value is never used
@@ -24,15 +17,6 @@ namespace Zerra.Test.CQRS
 #pragma warning restore CS0219 // Variable is assigned but its value is never used
             var counter = new CommandCounter(5, () => exitCalled = true);
             Assert.Equal(5, counter.ReceiveCountBeforeExit);
-        }
-
-        [Fact]
-        public void BeginReceive_ReturnsTrue_WhenNoLimit()
-        {
-            var counter = new CommandCounter();
-            Assert.True(counter.BeginReceive());
-            Assert.True(counter.BeginReceive());
-            Assert.True(counter.BeginReceive());
         }
 
         [Fact]
@@ -47,16 +31,17 @@ namespace Zerra.Test.CQRS
         }
 
         [Fact]
-        public void CancelReceive_ReleasesThrottle_WhenNoLimit()
+        public void ReceiveLimitReached_AfterLastReceive_UntilCancelled()
         {
-            var counter = new CommandCounter();
-            var throttle = new SemaphoreSlim(1);
-
-            throttle.Wait(TestContext.Current.CancellationToken);
-            Assert.Equal(0, throttle.CurrentCount);
+            var counter = new CommandCounter(2, () => { });
+            var throttle = new SemaphoreSlim(0);
+            Assert.True(counter.BeginReceive());
+            Assert.False(counter.ReceiveLimitReached);
+            Assert.True(counter.BeginReceive());
+            Assert.True(counter.ReceiveLimitReached);
 
             counter.CancelReceive(throttle);
-            Assert.Equal(1, throttle.CurrentCount);
+            Assert.False(counter.ReceiveLimitReached);
         }
 
         [Fact]
@@ -78,16 +63,6 @@ namespace Zerra.Test.CQRS
             // Should now be able to receive one more
             Assert.True(counter.BeginReceive());
             Assert.False(counter.BeginReceive());
-        }
-
-        [Fact]
-        public void CompleteReceive_ReleasesThrottle_WhenNoLimit()
-        {
-            var counter = new CommandCounter();
-            var throttle = new SemaphoreSlim(0);
-
-            counter.CompleteReceive(throttle);
-            Assert.Equal(1, throttle.CurrentCount);
         }
 
         [Fact]

@@ -226,7 +226,7 @@ namespace Zerra.Test.Web
                 var server = new TestServer(app, settings, app.Urls.First());
 
                 IQueryServer queryServer = new KestrelCqrsServerQueryServer(settings);
-                queryServer.Setup(new CommandCounter(), (_, methodName, arguments, argumentStream, _, _, _) => methodName switch
+                queryServer.Setup((_, methodName, arguments, argumentStream, _, _, _) => methodName switch
                 {
                     nameof(ITestQueryHandler.GetThings) => Task.FromResult(new RemoteQueryCallResponse(serializer.Deserialize<int>(arguments[0]) * 2)),
                     nameof(ITestQueryHandler.Upload) => UploadAsync(serializer.Deserialize<int>(arguments[0]), argumentStream!),
@@ -237,7 +237,7 @@ namespace Zerra.Test.Web
                 queryServer.RegisterInterfaceType(10, typeof(ITestQueryHandler));
 
                 ICommandConsumer commandConsumer = new KestrelCqrsServerCommandConsumer(settings);
-                commandConsumer.Setup(new CommandCounter(),
+                commandConsumer.Setup(null,
                     (_, _, _) => { _ = Interlocked.Increment(ref server.commandCount); return Task.CompletedTask; },
                     (_, _, _) => { _ = Interlocked.Increment(ref server.commandCount); return Task.CompletedTask; },
                     (command, _, _) => { _ = Interlocked.Increment(ref server.commandCount); return Task.FromResult<object?>(((TestCommandWithResult)command).Value * 2); });

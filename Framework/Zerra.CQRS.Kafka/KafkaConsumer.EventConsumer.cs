@@ -33,8 +33,10 @@ namespace Zerra.CQRS.Kafka
             //PerService gets a group named for the service so its replicas compete for the events, it's shared so it's never deleted
             private readonly string groupId;
             private readonly bool deleteGroupOnStop;
+            private readonly int? maxPollIntervalMs;
+            private readonly TimeSpan busyPollInterval;
 
-            public EventConsumer(int maxConcurrent, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync, int? maxPollIntervalMs)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -53,6 +55,9 @@ namespace Zerra.CQRS.Kafka
                 this.log = log;
                 this.handlerAsync = handlerAsync;
                 this.canceller = new CancellationTokenSource();
+                this.maxPollIntervalMs = maxPollIntervalMs;
+                //well within max.poll.interval.ms, librdkafka's default is 5 minutes
+                this.busyPollInterval = maxPollIntervalMs.HasValue ? TimeSpan.FromMilliseconds(maxPollIntervalMs.Value / 4) : TimeSpan.FromSeconds(10);
                 if (eventConsumerMode == EventConsumerMode.PerService)
                 {
                     this.groupId = StringExtensions.Join(KafkaCommon.GroupMaxLength, "_", this.topic, serviceName, out truncated);
@@ -93,6 +98,12 @@ namespace Zerra.CQRS.Kafka
                     consumerConfig.BootstrapServers = commonHost.Host;
                     consumerConfig.GroupId = groupId;
                     consumerConfig.EnableAutoCommit = false;
+                    if (maxPollIntervalMs.HasValue)
+                    {
+                        consumerConfig.MaxPollIntervalMs = maxPollIntervalMs;
+                        //max.poll.interval.ms can't be under session.timeout.ms
+                        consumerConfig.SessionTimeoutMs = Math.Min(maxPollIntervalMs.Value, 45000);
+                    }
                     if (commonHost.UserName is not null && commonHost.Password is not null)
                     {
                         consumerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
@@ -115,7 +126,23 @@ namespace Zerra.CQRS.Kafka
                         {
                             for (; ; )
                             {
-                                await throttle.WaitAsync(canceller.Token);
+                                if (!throttle.Wait(0))
+                                {
+                                    //librdkafka drops a consumer from the group when it isn't polled within max.poll.interval.ms,
+                                    //so while every handler is busy the partitions are paused and still polled
+                                    consumer.Pause(consumer.Assignment);
+                                    while (!await throttle.WaitAsync(busyPollInterval, topicMissing.Token))
+                                    {
+                                        var held = consumer.Consume(TimeSpan.Zero);
+                                        if (held is not null)
+                                        {
+                                            //from a partition assigned since the pause, it's read again once resumed
+                                            consumer.Seek(held.TopicPartitionOffset);
+                                            consumer.Pause(consumer.Assignment);
+                                        }
+                                    }
+                                    consumer.Resume(consumer.Assignment);
+                                }
 
                                 ConsumeResult<string, byte[]> consumerResult;
                                 try

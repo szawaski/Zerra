@@ -41,6 +41,9 @@ namespace Zerra.CQRS.Kafka
         private CommandCounter? commandCounter = null;
         private string? serviceName = null;
 
+        //librdkafka's max.poll.interval.ms, and session.timeout.ms when that's lower, the tests set it lower to show a consumer with every handler busy isn't dropped from the group
+        internal int? MaxPollIntervalMs { get; set; }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="KafkaConsumer"/> class.
         /// </summary>
@@ -82,14 +85,14 @@ namespace Zerra.CQRS.Kafka
         /// <summary>
         /// Sets up the consumer with command handlers.
         /// </summary>
-        /// <param name="commandCounter">The command counter for tracking sent commands.</param>
+        /// <param name="commandCounter">Counts the commands received when the consumer was added with a number to receive before the service exits, null for no limit.</param>
         /// <param name="handlerAsync">The asynchronous handler for processing commands.</param>
         /// <param name="handlerAwaitAsync">The awaitable asynchronous handler for processing commands.</param>
         /// <param name="handlerWithResultAwaitAsync">The asynchronous handler for processing commands with result.</param>
-        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+        void ICommandConsumer.Setup(CommandCounter? commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
-            if (isOpen)
-                throw new InvalidOperationException("Connection already open");
+            if (commandHandlerAsync is not null)
+                throw new InvalidOperationException("Command consumer already setup");
             this.commandCounter = commandCounter;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
@@ -102,8 +105,8 @@ namespace Zerra.CQRS.Kafka
         /// <param name="handlerAsync">The asynchronous handler for processing events.</param>
         void IEventConsumer.Setup(string serviceName, HandleRemoteEventDispatch handlerAsync)
         {
-            if (isOpen)
-                throw new InvalidOperationException("Connection already open");
+            if (eventHandlerAsync is not null)
+                throw new InvalidOperationException("Event consumer already setup");
             this.serviceName = serviceName;
             this.eventHandlerAsync = handlerAsync;
         }
@@ -221,7 +224,7 @@ namespace Zerra.CQRS.Kafka
         /// <exception cref="Exception">Thrown if the consumer is not properly setup.</exception>
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (commandCounter is null || commandHandlerAsync is null || commandHandlerAwaitAsync is null || commandHandlerWithResultAwaitAsync is null)
+            if (commandHandlerAsync is null || commandHandlerAwaitAsync is null || commandHandlerWithResultAwaitAsync is null)
                 throw new Exception($"{nameof(KafkaConsumer)} is not setup");
 
             lock (commandExchanges)
@@ -230,7 +233,7 @@ namespace Zerra.CQRS.Kafka
                     return;
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync, MaxPollIntervalMs));
                 OpenExchanges();
             }
         }
@@ -254,7 +257,7 @@ namespace Zerra.CQRS.Kafka
                     return;
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, compressor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, compressor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync, MaxPollIntervalMs));
                 OpenExchanges();
             }
         }

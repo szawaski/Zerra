@@ -22,7 +22,7 @@ namespace Zerra.CQRS.AzureServiceBus
             public bool IsOpen { get; private set; }
 
             private readonly int maxConcurrent;
-            private readonly CommandCounter commandCounter;
+            private readonly CommandCounter? commandCounter;
             private readonly string queue;
             private readonly ISerializer serializer;
             private readonly IEncryptor? encryptor;
@@ -55,11 +55,11 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
             }
 
-            public CommandConsumer(int maxConcurrent, CommandCounter commandCounter, string queue, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string queue, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
-                this.maxConcurrent = commandCounter.ReceiveCountBeforeExit.HasValue ? Math.Min(commandCounter.ReceiveCountBeforeExit.Value, maxConcurrent) : maxConcurrent;
+                this.maxConcurrent = commandCounter is not null ? Math.Min(commandCounter.ReceiveCountBeforeExit, maxConcurrent) : maxConcurrent;
                 this.commandCounter = commandCounter;
 
                 bool truncated;
@@ -108,8 +108,8 @@ namespace Zerra.CQRS.AzureServiceBus
                         {
                             await throttle.WaitAsync(canceller.Token);
 
-                            if (!commandCounter.BeginReceive())
-                                continue; //don't receive anymore, externally will be shutdown, fill throttle
+                            if (commandCounter is not null && !commandCounter.BeginReceive())
+                                break; //don't receive anymore, externally will be shutdown
 
                             ServiceBusReceivedMessage? serviceBusMessage;
                             try
@@ -118,12 +118,18 @@ namespace Zerra.CQRS.AzureServiceBus
                             }
                             catch
                             {
-                                commandCounter.CancelReceive(throttle);
+                                if (commandCounter is not null)
+                                    commandCounter.CancelReceive(throttle);
+                                else
+                                    _ = throttle.Release();
                                 throw;
                             }
                             if (serviceBusMessage is null)
                             {
-                                commandCounter.CancelReceive(throttle);
+                                if (commandCounter is not null)
+                                    commandCounter.CancelReceive(throttle);
+                                else
+                                    _ = throttle.Release();
                                 continue;
                             }
 
@@ -132,7 +138,7 @@ namespace Zerra.CQRS.AzureServiceBus
                             _ = handling.Add(handleTask);
                             _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
-                            if (canceller.IsCancellationRequested)
+                            if (canceller.IsCancellationRequested || (commandCounter is not null && commandCounter.ReceiveLimitReached))
                                 break;
                         }
                     }
@@ -206,7 +212,12 @@ namespace Zerra.CQRS.AzureServiceBus
                 finally
                 {
                     if (!awaitResponse)
-                        commandCounter.CompleteReceive(throttle);
+                    {
+                        if (commandCounter is not null)
+                            commandCounter.CompleteReceive(throttle);
+                        else
+                            _ = throttle.Release();
+                    }
                 }
 
                 if (!awaitResponse)
@@ -271,7 +282,10 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 finally
                 {
-                    commandCounter.CompleteReceive(throttle);
+                    if (commandCounter is not null)
+                        commandCounter.CompleteReceive(throttle);
+                    else
+                        _ = throttle.Release();
                 }
             }
 

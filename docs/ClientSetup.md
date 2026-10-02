@@ -87,12 +87,11 @@ var bus = Bus.New(
     maxConcurrentQueries: Environment.ProcessorCount * 32,
     maxConcurrentCommandsPerTopic: Environment.ProcessorCount * 8,
     maxConcurrentEventsPerTopic: Environment.ProcessorCount * 16,
-    shutdownTimeout: TimeSpan.FromSeconds(30),
-    commandToReceiveUntilExit: null
+    shutdownTimeout: TimeSpan.FromSeconds(30)
 );
 ```
 
-The concurrency limits and `shutdownTimeout` shown are the defaults. `shutdownTimeout` and `commandToReceiveUntilExit` are described in [Server Setup](ServerSetup.md#shutdown).
+The concurrency limits and `shutdownTimeout` shown are the defaults. `shutdownTimeout` is described in [Server Setup](ServerSetup.md#shutdown).
 
 ### Timeout Configuration
 

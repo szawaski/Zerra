@@ -71,6 +71,8 @@ namespace Zerra.Web
         /// <param name="handlerAsync">The async delegate for event dispatch and notification.</param>
         void IEventConsumer.Setup(string serviceName, HandleRemoteEventDispatch handlerAsync)
         {
+            if (settings.EventHandlerAsync is not null && settings.EventHandlerAsync != handlerAsync)
+                throw new InvalidOperationException("Event consumer already setup");
             settings.EventHandlerAsync = handlerAsync;
         }
 

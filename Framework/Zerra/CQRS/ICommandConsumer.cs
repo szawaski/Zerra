@@ -24,11 +24,11 @@ namespace Zerra.CQRS
         /// <summary>
         /// A method called from <see cref="Bus"/> on startup to provide parts needed for the server.
         /// </summary>
-        /// <param name="commandCounter">A counter to track and limit requests.</param>
+        /// <param name="commandCounter">Counts the commands received when the consumer was added with a number to receive before the service exits, null for no limit.</param>
         /// <param name="handlerAsync">The hander delegate router that will link the acutal command methods.</param>
         /// <param name="handlerAwaitAsync">The hander delegate router that will link the acutal command async methods.</param>
         /// <param name="handlerWithResultAwaitAsync">The hander delegate router that will link the acutal command with result methods.</param>
-        void Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync);
+        void Setup(CommandCounter? commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync);
         /// <summary>
         /// A method called from <see cref="Bus"/> to start receiving.
         /// </summary>

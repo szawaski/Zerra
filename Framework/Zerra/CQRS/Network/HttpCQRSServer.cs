@@ -78,7 +78,7 @@ namespace Zerra.CQRS.Network
                     var requestBodyRead = false;
                     var inHandlerContext = false;
                     var throttleUsed = false;
-                    var commandCounterUsedContinuation = false;
+                    var throttleReleasedByContinuation = false;
                     var monitorIsCancellationRequested = false;
                     var requestBegun = false;
                     try
@@ -407,11 +407,9 @@ namespace Zerra.CQRS.Network
 
                             if (info.CommandTypes.Contains(messageType))
                             {
-                                if (commandCounter is null) throw new InvalidOperationException($"{nameof(HttpCqrsServer)} is not setup");
-                                isCommand = true;
-
-                                if (!commandCounter.BeginReceive())
+                                if (commandCounter is not null && !commandCounter.BeginReceive())
                                     throw new CqrsNetworkException("Cannot receive any more commands");
+                                isCommand = true;
 
                                 var command = (ICommand?)serializer.Deserialize(data.MessageData, messageType);
                                 if (command is null)
@@ -453,9 +451,11 @@ namespace Zerra.CQRS.Network
                                     //tracked until the handler finishes so disposing waits for it
                                     _ = running.Add(commandHandlerTask);
                                     _ = commandHandlerTask.ContinueWith(removeRunning, running, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-                                    if (commandCounter != null)
+                                    if (commandCounter is not null)
                                         _ = commandHandlerTask.ContinueWith(x => commandCounter.CompleteReceive(throttle));
-                                    commandCounterUsedContinuation = true;
+                                    else
+                                        _ = commandHandlerTask.ContinueWith(x => throttle.Release());
+                                    throttleReleasedByContinuation = true;
                                     hasResult = false;
                                 }
                                 inHandlerContext = false;
@@ -472,6 +472,8 @@ namespace Zerra.CQRS.Network
                                 //tracked until the handler finishes so disposing waits for it
                                 _ = running.Add(eventHandlerTask);
                                 _ = eventHandlerTask.ContinueWith(removeRunning, running, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                                _ = eventHandlerTask.ContinueWith(x => throttle.Release());
+                                throttleReleasedByContinuation = true;
                                 hasResult = false;
                                 inHandlerContext = false;
                             }
@@ -652,7 +654,7 @@ namespace Zerra.CQRS.Network
 #endif
                         }
                         ArrayPoolHelper<byte>.Return(bufferOwner);
-                        if (throttleUsed && !commandCounterUsedContinuation)
+                        if (throttleUsed && !throttleReleasedByContinuation)
                         {
                             if (isCommand && commandCounter is not null)
                                 commandCounter.CompleteReceive(throttle);

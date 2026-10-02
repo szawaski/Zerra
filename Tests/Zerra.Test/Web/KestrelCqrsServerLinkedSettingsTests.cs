@@ -3,7 +3,9 @@
 // Licensed to you under the MIT license
 
 using Xunit;
+using Zerra.CQRS;
 using Zerra.CQRS.Network;
+using Zerra.Test.CQRS;
 using Zerra.Web;
 
 namespace Zerra.Test.Web
@@ -58,6 +60,40 @@ namespace Zerra.Test.Web
 
             Assert.Empty(settings.Types);
             _ = throttle.Release(); //the request finishing after dispose doesn't throw
+        }
+
+        [Fact]
+        public async Task Consumers_SharedSettings_OneBusOnly()
+        {
+            using var settings = new KestrelCqrsServerLinkedSettings(null, null, ContentType.Bytes);
+
+            var bus = Bus.New("test-service", null, null, null);
+            bus.AddCommandConsumer<BusTests.ITestCommandHandler>(new KestrelCqrsServerCommandConsumer(settings));
+            bus.AddCommandConsumer<BusTests.ISecondTestCommandHandler>(new KestrelCqrsServerCommandConsumer(settings));
+            bus.AddEventConsumer<BusTests.ITestEventHandler>(new KestrelCqrsServerEventConsumer(settings), EventConsumerMode.PerReplica);
+            Assert.Contains(typeof(BusTests.TestCommand), settings.Types.Keys);
+            Assert.Contains(typeof(BusTests.SecondTestCommand), settings.Types.Keys);
+            Assert.Contains(typeof(BusTests.TestEvent), settings.Types.Keys);
+
+            var otherBus = Bus.New("other-service", null, null, null);
+            _ = Assert.Throws<InvalidOperationException>(() => otherBus.AddCommandConsumer<BusTests.ITestCommandHandler>(new KestrelCqrsServerCommandConsumer(settings)));
+            _ = Assert.Throws<InvalidOperationException>(() => otherBus.AddEventConsumer<BusTests.ITestEventHandler>(new KestrelCqrsServerEventConsumer(settings), EventConsumerMode.PerReplica));
+
+            await otherBus.StopServicesAsync();
+            await bus.StopServicesAsync();
+        }
+
+        [Fact]
+        public async Task Consumers_SharedSettings_LimitedOneInterfaceOnly()
+        {
+            using var settings = new KestrelCqrsServerLinkedSettings(null, null, ContentType.Bytes);
+
+            var bus = Bus.New("test-service", null, null, null);
+            bus.AddCommandConsumer<BusTests.ITestCommandHandler>(new KestrelCqrsServerCommandConsumer(settings), 1);
+            _ = Assert.Throws<InvalidOperationException>(() => bus.AddCommandConsumer<BusTests.ISecondTestCommandHandler>(new KestrelCqrsServerCommandConsumer(settings)));
+            Assert.Equal(1, settings.CommandCounter?.ReceiveCountBeforeExit);
+
+            await bus.StopServicesAsync();
         }
     }
 }

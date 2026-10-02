@@ -67,12 +67,21 @@ namespace Zerra.Web
         /// Stores the command counter and command handler delegates for use during request processing.
         /// Called during initialization before the consumer starts receiving requests.
         /// </remarks>
-        /// <param name="commandCounter">The counter for tracking command processing limits.</param>
+        /// <param name="commandCounter">The counter for tracking command processing limits, null for no limit.</param>
         /// <param name="handlerAsync">The async delegate for fire-and-forget command dispatch.</param>
         /// <param name="handlerAwaitAsync">The async delegate for command dispatch with await semantics.</param>
         /// <param name="handlerWithResultAwaitAsync">The async delegate for command dispatch with result return.</param>
-        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+        void ICommandConsumer.Setup(CommandCounter? commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
+            if (settings.CommandHandlerAsync is not null)
+            {
+                if (settings.CommandHandlerAsync != handlerAsync)
+                    throw new InvalidOperationException("Command consumer already setup");
+                //another consumer on the same settings from the same bus, a count can't be shared with it
+                if (commandCounter is not null || settings.CommandCounter is not null)
+                    throw new InvalidOperationException("A command consumer with a number of commands to receive before exiting serves only one interface");
+                return;
+            }
             settings.CommandCounter = commandCounter;
             settings.CommandHandlerAsync = handlerAsync;
             settings.CommandHandlerAwaitAsync = handlerAwaitAsync;

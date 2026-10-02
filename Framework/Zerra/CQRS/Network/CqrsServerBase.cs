@@ -45,7 +45,7 @@ namespace Zerra.CQRS.Network
         private bool disposed = false;
 
         /// <summary>
-        /// A counter to limit the number of commands the running service will receive before termination.
+        /// A counter to limit the number of commands the running service will receive before termination, null for no limit.
         /// </summary>
         protected CommandCounter? commandCounter = null;
 
@@ -87,9 +87,8 @@ namespace Zerra.CQRS.Network
         string ICommandConsumer.MessageHost => serviceUrl;
         string IEventConsumer.MessageHost => serviceUrl;
 
-        void IQueryServer.Setup(CommandCounter commandCounter, QueryHandlerDelegate handlerAsync)
+        void IQueryServer.Setup(QueryHandlerDelegate handlerAsync)
         {
-            this.commandCounter = commandCounter;
             this.providerHandlerAsync = handlerAsync;
         }
 
@@ -102,8 +101,10 @@ namespace Zerra.CQRS.Network
             _ = types.Add(type);
         }
 
-        void ICommandConsumer.Setup(CommandCounter commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+        void ICommandConsumer.Setup(CommandCounter? commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
         {
+            if (commandHandlerAsync is not null)
+                throw new InvalidOperationException("Command consumer already setup");
             this.commandCounter = commandCounter;
             this.commandHandlerAsync = handlerAsync;
             this.commandHandlerAwaitAsync = handlerAwaitAsync;
@@ -121,6 +122,8 @@ namespace Zerra.CQRS.Network
 
         void IEventConsumer.Setup(string serviceName, HandleRemoteEventDispatch handlerAsync)
         {
+            if (eventHandlerAsync is not null)
+                throw new InvalidOperationException("Event consumer already setup");
             this.eventHandlerAsync = handlerAsync;
         }
 
@@ -165,16 +168,26 @@ namespace Zerra.CQRS.Network
                 var urls = serviceUrl.Split(';', StringSplitOptions.RemoveEmptyEntries);
 #endif
                 var endpoints = IPResolver.GetIPEndPoints(urls);
-                this.listeners = new SocketListener[endpoints.Count];
+                var listeners = new SocketListener[endpoints.Count];
                 for (var i = 0; i < endpoints.Count; i++)
                 {
                     var endpoint = endpoints[i];
                     var socket = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                    socket.NoDelay = true;
-                    socket.Bind(endpoint);
-                    var listener = new SocketListener(socket, HandleConnection);
-                    this.listeners[i] = listener;
+                    try
+                    {
+                        socket.NoDelay = true;
+                        socket.Bind(endpoint);
+                    }
+                    catch
+                    {
+                        socket.Dispose();
+                        for (var j = 0; j < i; j++)
+                            listeners[j].Dispose();
+                        throw;
+                    }
+                    listeners[i] = new SocketListener(socket, HandleConnection);
                 }
+                this.listeners = listeners;
 
                 log?.Info($"{thisType.Name} resolved {serviceUrl} as {String.Join(", ", endpoints.Select(x => x.ToString()))}");
 
@@ -195,9 +208,12 @@ namespace Zerra.CQRS.Network
 
         private Task HandleConnection(Socket socket, CancellationToken cancellationToken)
         {
+            //tracked before handling starts, a request already received runs its handler before Handle returns its task
+            var tracked = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _ = running.Add(tracked.Task);
+            _ = tracked.Task.ContinueWith(removeRunning, running, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
             var task = Handle(socket, cancellationToken);
-            _ = running.Add(task);
-            _ = task.ContinueWith(removeRunning, running, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            _ = task.ContinueWith(static (_, state) => ((TaskCompletionSource<bool>)state!).SetResult(true), tracked, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
             return task;
         }
 

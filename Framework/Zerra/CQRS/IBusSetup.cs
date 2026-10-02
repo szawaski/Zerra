@@ -27,7 +27,9 @@ namespace Zerra.CQRS
         /// </summary>
         /// <typeparam name="TInterface">An interface inheriting command handler interface(s) for the types of commands to receive.</typeparam>
         /// <param name="commandConsumer">The command consumer service.</param>
-        void AddCommandConsumer<TInterface>(ICommandConsumer commandConsumer);
+        /// <param name="commandToReceiveUntilExit">Optional number of commands this consumer receives before the service exits. The service exits once any consumer added with one has handled that many.
+        /// A consumer added with one serves only this interface, so it can't be added again.</param>
+        void AddCommandConsumer<TInterface>(ICommandConsumer commandConsumer, int? commandToReceiveUntilExit = null);
         /// <summary>
         /// Add an event producer service to send events to remote services.
         /// An event type can have several producers, such as one per downstream service, and each is sent every event.

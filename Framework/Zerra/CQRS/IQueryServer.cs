@@ -25,9 +25,8 @@ namespace Zerra.CQRS
         /// <summary>
         /// A method called from <see cref="Bus"/> on startup to provide parts needed for the server.
         /// </summary>
-        /// <param name="commandCounter">A counter to track and limit requests.</param>
         /// <param name="providerHandlerAsync">The hander delegate router that will link the acutal query methods.</param>
-        void Setup(CommandCounter commandCounter, QueryHandlerDelegate providerHandlerAsync);
+        void Setup(QueryHandlerDelegate providerHandlerAsync);
         /// <summary>
         /// A method called from <see cref="Bus"/> to start hosting.
         /// </summary>

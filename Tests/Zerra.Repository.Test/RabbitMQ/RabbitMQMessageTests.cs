@@ -51,6 +51,80 @@ namespace Zerra.Repository.Test.RabbitMQ
             }
         }
 
+        [Theory(Timeout = 300000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestSharedConsumer(bool eventFirst)
+        {
+            var commandTopicA = MessageTest.NewTopic("CommandA");
+            var commandTopicB = MessageTest.NewTopic("CommandB");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                {
+                    await MessageTest.TestSharedConsumer(producer, producer, consumer, commandTopicA, commandTopicB, eventTopic, eventFirst, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                DeleteExchanges(commandTopicA, commandTopicB, eventTopic);
+                DeleteQueues(commandTopicA, commandTopicB);
+            }
+        }
+
+        [Fact(Timeout = 600000)]
+        public async Task TestSustainedLoad()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                using (var replica1 = new RabbitMQConsumer(host, serializer, null, null, log, null))
+                using (var replica2 = new RabbitMQConsumer(host, serializer, null, null, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                {
+                    await MessageTest.TestSustainedLoad(producer, producer, replica1, replica2, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+                }
+                Assert.Equal(0, log.Errors);
+            }
+            finally
+            {
+                DeleteExchanges(commandTopic, eventTopic);
+                DeleteQueues(commandTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestReceiveLimitHandsOff()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                using (var replica1 = new RabbitMQConsumer(host, serializer, null, null, log, null))
+                using (var replica2 = new RabbitMQConsumer(host, serializer, null, null, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                {
+                    await MessageTest.TestReceiveLimitHandsOff(producer, replica1, replica2, commandTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                DeleteExchanges(commandTopic);
+                DeleteQueues(commandTopic);
+            }
+        }
+
         [Fact(Timeout = 300000)]
         public async Task TestCommandSentBeforeConsumer()
         {
@@ -152,7 +226,7 @@ namespace Zerra.Repository.Test.RabbitMQ
                     IEventProducer eventProducer = producer;
 
                     Task handleCommand(ICommand command, string source, CancellationToken token) { commands[((TestCommand)command).ID] = true; return Task.CompletedTask; }
-                    commandConsumer.Setup(new CommandCounter(), handleCommand, handleCommand, (command, source, token) => Task.FromResult<object?>(null));
+                    commandConsumer.Setup(null, handleCommand, handleCommand, (command, source, token) => Task.FromResult<object?>(null));
                     commandConsumer.RegisterCommandType(10, commandTopic, typeof(TestCommand));
                     eventConsumer.Setup(serviceName, (@event, source) => { events[((TestEvent)@event).ID] = true; return Task.CompletedTask; });
                     eventConsumer.RegisterEventType(10, eventTopic, typeof(TestEvent), EventConsumerMode.PerService);

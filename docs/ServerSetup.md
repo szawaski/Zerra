@@ -134,12 +134,17 @@ In ASP.NET Core, register `bus.StopServices` on `ApplicationStopped` so Kestrel'
 
 ### Exiting After N Commands
 
-`commandToReceiveUntilExit` makes the service exit after handling that many commands, for batch jobs and KEDA-style scaling where a short-lived container processes a batch and exits:
+`commandToReceiveUntilExit` on `AddCommandConsumer` makes the service exit after that consumer has handled that many commands, for batch jobs and KEDA-style scaling where a short-lived container processes a batch and exits:
 
 ```csharp
-var bus = Bus.New("UserService", log, busLog, busServices, commandToReceiveUntilExit: 100);
+var bus = Bus.New("UserService", log, busLog, busServices);
+bus.AddCommandConsumer<IUserJobHandler>(consumer, commandToReceiveUntilExit: 1);
 await bus.WaitForExitAsync();
 ```
+
+The count belongs to that consumer, so a consumer added with one serves only that interface; adding it again throws. If several consumers are added with a count, the service exits when the first of them finishes.
+
+Once a replica has received that many commands it stops listening while it finishes handling them, so other replicas pick up the commands still waiting. On Kafka it leaves the consumer group and hands over the partition, on RabbitMQ it cancels its consumer, and on Azure Service Bus it closes its receiver.
 
 ## See Also
 

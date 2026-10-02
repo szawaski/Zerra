@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
+using Zerra.Test.CQRS;
 using Zerra.Serialization;
 using Zerra.Web;
 
@@ -56,6 +57,44 @@ namespace Zerra.Test.Web
             Assert.Equal(7, await server.EventReceived.WaitAsync(TestContext.Current.CancellationToken));
         }
 
+        //sustained traffic between two buses through the middleware, which throttles each message type on its own
+        [Fact(Timeout = 120000)]
+        public async Task Bus_SustainedLoad()
+        {
+            const int maxConcurrent = 10;
+            using var settings = new KestrelCqrsServerLinkedSettings(null, null, serializer.ContentType);
+            var builder = WebApplication.CreateBuilder();
+            builder.WebHost.UseUrls("http://127.0.0.1:0");
+            builder.Logging.ClearProviders();
+            await using var app = builder.Build();
+            _ = app.UseKestrelCqrsServer(serializer, null, null, null, settings);
+            await app.StartAsync(TestContext.Current.CancellationToken);
+
+            var handler = new BusTests.LoadHandler();
+            var busServer = Bus.New("load-server", null, null, null, maxConcurrentCommandsPerTopic: maxConcurrent, maxConcurrentEventsPerTopic: maxConcurrent);
+            busServer.AddHandler<BusTests.ILoadCommandHandler>(handler);
+            busServer.AddHandler<BusTests.ILoadEventHandler>(handler);
+            busServer.AddCommandConsumer<BusTests.ILoadCommandHandler>(new KestrelCqrsServerCommandConsumer(settings));
+            busServer.AddEventConsumer<BusTests.ILoadEventHandler>(new KestrelCqrsServerEventConsumer(settings), EventConsumerMode.PerReplica);
+
+            var busClient = Bus.New("load-client", null, null, null);
+            var client = new KestrelCqrsClient(app.Urls.First(), serializer, null, null, null, null, null);
+            busClient.AddCommandProducer<BusTests.ILoadCommandHandler>(client);
+            busClient.AddEventProducer<BusTests.ILoadEventHandler>(client);
+
+            try
+            {
+                //two command types and an event type
+                await BusTests.SustainedLoad(busClient, handler, maxConcurrent * 3, TestContext.Current.CancellationToken);
+            }
+            finally
+            {
+                await busServer.StopServicesAsync();
+                await busClient.StopServicesAsync();
+                await app.StopAsync(TestContext.Current.CancellationToken);
+            }
+        }
+
         private static KestrelCqrsClient CreateClient(string url)
         {
             var client = new KestrelCqrsClient(url, serializer, null, null, null, null, null);
@@ -98,7 +137,7 @@ namespace Zerra.Test.Web
                 var server = new TestServer(app, settings, app.Urls.First());
 
                 ICommandConsumer commandConsumer = new KestrelCqrsServerCommandConsumer(settings);
-                commandConsumer.Setup(new CommandCounter(),
+                commandConsumer.Setup(null,
                     (_, _, _) => { _ = Interlocked.Increment(ref server.commandCount); return Task.CompletedTask; },
                     (_, _, _) => { _ = Interlocked.Increment(ref server.commandCount); return Task.CompletedTask; },
                     (command, _, _) => { _ = Interlocked.Increment(ref server.commandCount); return Task.FromResult<object?>(((TestCommandWithResult)command).Value * 2); });
