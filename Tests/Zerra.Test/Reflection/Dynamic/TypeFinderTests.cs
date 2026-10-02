@@ -19,6 +19,27 @@ namespace Zerra.Test.Reflection.Dynamic
         }
 
         [Fact]
+        public async Task GetTypeFromName_FirstLookupsAtOnce_ReturnType()
+        {
+            //names no other test looks up, each first resolved by many threads at the same moment
+            var arguments = new[] { typeof(int), typeof(long), typeof(short), typeof(byte), typeof(bool), typeof(char), typeof(double), typeof(float), typeof(decimal), typeof(Guid) };
+            var types = arguments.SelectMany(x => arguments.Select(y => typeof(ValueTuple<,,>).MakeGenericType(x, y, typeof(TypeFinderRaceModel)))).ToArray();
+
+            foreach (var type in types)
+            {
+                var name = type.AssemblyQualifiedName!;
+                using var start = new ManualResetEventSlim(false);
+                var lookups = Enumerable.Range(0, 16).Select(_ => Task.Run(() =>
+                {
+                    start.Wait();
+                    return TypeFinder.GetTypeFromName(name);
+                })).ToArray();
+                start.Set();
+                Assert.All(await Task.WhenAll(lookups), x => Assert.Equal(type, x));
+            }
+        }
+
+        [Fact]
         public void GetTypeFromName_FullName_ReturnsCorrectType()
         {
             var name = "System.Int32";
@@ -171,4 +192,5 @@ namespace Zerra.Test.Reflection.Dynamic
     }
 
     internal sealed class TypeFinderTestModel { }
+    internal sealed class TypeFinderRaceModel { }
 }

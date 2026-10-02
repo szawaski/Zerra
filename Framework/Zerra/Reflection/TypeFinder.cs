@@ -40,10 +40,10 @@ namespace Zerra.Reflection
                 var type = Type.GetType(name);
                 if (type == null)
                     throw new InvalidOperationException($"Could not find type {name}. It may have been trimmed depending on the build configuration.");
-                matches = typeByName.GetOrAdd(name, static (key) => new());
+                matches = typeByName.GetOrAdd(name, new ConcurrentList<Type?>() { type });
                 lock (matches)
                 {
-                    if (matches.Count == 0 || !matches.Contains(type))
+                    if (!matches.Contains(type))
                         matches.Add(type);
                 }
                 return type;
@@ -88,10 +88,10 @@ namespace Zerra.Reflection
                 type = Type.GetType(name);
                 if (type != null)
                 {
-                    matches = typeByName.GetOrAdd(name, static (key) => new());
+                    matches = typeByName.GetOrAdd(name, new ConcurrentList<Type?>() { type });
                     lock (matches)
                     {
-                        if ((matches.Count == 0 || type is not null) && !matches.Contains(type))
+                        if (!matches.Contains(type))
                             matches.Add(type);
                     }
 #pragma warning disable CS8762 // Parameter must have a non-null value when exiting in some condition.
@@ -125,16 +125,22 @@ namespace Zerra.Reflection
         {
             if (type.AssemblyQualifiedName != null)
             {
-                var types = typeByName.GetOrAdd(type.AssemblyQualifiedName, static (key) => new());
-                if (!types.Contains(type))
-                    types.Add(type);
+                var types = typeByName.GetOrAdd(type.AssemblyQualifiedName, new ConcurrentList<Type?>() { type });
+                lock (types)
+                {
+                    if (!types.Contains(type))
+                        types.Add(type);
+                }
             }
 
             if (type.FullName != null)
             {
-                var types = typeByName.GetOrAdd(type.FullName, static (key) => new());
-                if (!types.Contains(type))
-                    types.Add(type);
+                var types = typeByName.GetOrAdd(type.FullName, new ConcurrentList<Type?>() { type });
+                lock (types)
+                {
+                    if (!types.Contains(type))
+                        types.Add(type);
+                }
             }
         }
     }
