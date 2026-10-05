@@ -5,7 +5,9 @@
   </Folder>
   <Folder Name="/Demo/" />
   <Folder Name="/Demo/Infrastructure/">
+    <File Path="Demo/Infrastructure/start-infrastructure.cmd" />
     <File Path="Demo/Infrastructure/start-infrastructure.ps1" />
+    <File Path="Demo/Infrastructure/remove-infrastructure.cmd" />
     <File Path="Demo/Infrastructure/remove-infrastructure.ps1" />
     <File Path="Demo/Infrastructure/infrastructure-common.ps1" />
     <File Path="Demo/Infrastructure/docker-compose.yml" />
@@ -17,8 +19,9 @@
   </Folder>
   <Folder Name="/Demo/Store/">
     <File Path="Demo/Store/README.md" />
-    <File Path="Demo/Store/start-store.ps1" />
+    <File Path="Demo/Store/publish-store-aot.cmd" />
     <File Path="Demo/Store/publish-store-aot.ps1" />
+    <File Path="Demo/Store/start-store-aot.cmd" />
     <File Path="Demo/Store/start-store-aot.ps1" />
     <Project Path="Demo/Store/Store.Common/Store.Common.csproj" />
     <Project Path="Demo/Store/Store.Web/Store.Web.csproj" />
