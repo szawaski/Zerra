@@ -18,7 +18,8 @@ namespace Zerra.Serialization.Json.IO
         /// </summary>
         /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
         /// <returns><c>true</c> if a token was successfully read; <c>false</c> if more bytes are needed.</returns>
-        public unsafe bool TryReadToken(out int sizeNeeded)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadToken(out int sizeNeeded)
         {
 #if DEBUG
             if (DebugShouldReturn())
@@ -27,6 +28,66 @@ namespace Zerra.Serialization.Json.IO
                 return false;
             }
 #endif
+            if (position < length)
+            {
+                if (useBytes)
+                {
+                    switch (bufferBytes[position])
+                    {
+                        case colonByte:
+                            position++;
+                            Token = JsonToken.PropertySeperator;
+                            sizeNeeded = 0;
+                            return true;
+                        case commaByte:
+                            position++;
+                            Token = JsonToken.NextItem;
+                            sizeNeeded = 0;
+                            return true;
+                        case closeBraceByte:
+                            position++;
+                            Token = JsonToken.ObjectEnd;
+                            sizeNeeded = 0;
+                            return true;
+                        case closeBracketByte:
+                            position++;
+                            Token = JsonToken.ArrayEnd;
+                            sizeNeeded = 0;
+                            return true;
+                    }
+                }
+                else
+                {
+                    switch (bufferChars[position])
+                    {
+                        case ':':
+                            position++;
+                            Token = JsonToken.PropertySeperator;
+                            sizeNeeded = 0;
+                            return true;
+                        case ',':
+                            position++;
+                            Token = JsonToken.NextItem;
+                            sizeNeeded = 0;
+                            return true;
+                        case '}':
+                            position++;
+                            Token = JsonToken.ObjectEnd;
+                            sizeNeeded = 0;
+                            return true;
+                        case ']':
+                            position++;
+                            Token = JsonToken.ArrayEnd;
+                            sizeNeeded = 0;
+                            return true;
+                    }
+                }
+            }
+            return TryReadTokenFull(out sizeNeeded);
+        }
+
+        private unsafe bool TryReadTokenFull(out int sizeNeeded)
+        {
             sizeNeeded = 0;
 
             if (length - position < 1)
@@ -113,7 +174,7 @@ namespace Zerra.Serialization.Json.IO
                                     return false;
                                 }
                                 position++;
-                                var valid = localBufferBytes.Slice(position, 3).SequenceEqual(ullBytes);
+                                var valid = pBuffer[position] == (byte)'u' && pBuffer[position + 1] == (byte)'l' && pBuffer[position + 2] == (byte)'l';
                                 if (!valid)
                                     throw CreateException("Invalid number/true/false/null");
                                 position += 3;
@@ -129,7 +190,7 @@ namespace Zerra.Serialization.Json.IO
                                     return false;
                                 }
                                 position++;
-                                var valid = localBufferBytes.Slice(position, 3).SequenceEqual(rueBytes);
+                                var valid = pBuffer[position] == (byte)'r' && pBuffer[position + 1] == (byte)'u' && pBuffer[position + 2] == (byte)'e';
                                 if (!valid)
                                     throw CreateException("Invalid number/true/false/null");
                                 position += 3;
@@ -145,7 +206,7 @@ namespace Zerra.Serialization.Json.IO
                                     return false;
                                 }
                                 position++;
-                                var valid = bufferBytes.Slice(position, 4).SequenceEqual(alseBytes);
+                                var valid = pBuffer[position] == (byte)'a' && pBuffer[position + 1] == (byte)'l' && pBuffer[position + 2] == (byte)'s' && pBuffer[position + 3] == (byte)'e';
                                 if (!valid)
                                     throw CreateException("Invalid number/true/false/null");
                                 position += 4;
@@ -272,7 +333,6 @@ namespace Zerra.Serialization.Json.IO
                             {
                                 var startPosition = position;
 
-#if NETSTANDARD2_0
                                 var numberLength = -1;
                                 for (var scan = position; scan < localBufferBytes.Length; scan++)
                                 {
@@ -283,9 +343,6 @@ namespace Zerra.Serialization.Json.IO
                                         break;
                                     }
                                 }
-#else
-                                var numberLength = localBufferBytes.Slice(position).IndexOfAnyExcept(numberBytes);
-#endif
                                 if (numberLength == -1)
                                 {
                                     if (!isFinalBlock)
@@ -385,7 +442,7 @@ namespace Zerra.Serialization.Json.IO
                                     return false;
                                 }
                                 position++;
-                                var valid = localBufferChars.Slice(position, 3).SequenceEqual(ullChars);
+                                var valid = pBuffer[position] == 'u' && pBuffer[position + 1] == 'l' && pBuffer[position + 2] == 'l';
                                 if (!valid)
                                     throw CreateException("Invalid number/true/false/null");
                                 position += 3;
@@ -401,7 +458,7 @@ namespace Zerra.Serialization.Json.IO
                                     return false;
                                 }
                                 position++;
-                                var valid = localBufferChars.Slice(position, 3).SequenceEqual(rueChars);
+                                var valid = pBuffer[position] == 'r' && pBuffer[position + 1] == 'u' && pBuffer[position + 2] == 'e';
                                 if (!valid)
                                     throw CreateException("Invalid number/true/false/null");
                                 position += 3;
@@ -417,7 +474,7 @@ namespace Zerra.Serialization.Json.IO
                                     return false;
                                 }
                                 position++;
-                                var valid = localBufferChars.Slice(position, 4).SequenceEqual(alseChars);
+                                var valid = pBuffer[position] == 'a' && pBuffer[position + 1] == 'l' && pBuffer[position + 2] == 's' && pBuffer[position + 3] == 'e';
                                 if (!valid)
                                     throw CreateException("Invalid number/true/false/null");
                                 position += 4;
@@ -544,7 +601,6 @@ namespace Zerra.Serialization.Json.IO
                             {
                                 var startPosition = position;
 
-#if NETSTANDARD2_0
                                 var numberLength = -1;
                                 for (var scan = position; scan < localBufferChars.Length; scan++)
                                 {
@@ -555,9 +611,6 @@ namespace Zerra.Serialization.Json.IO
                                         break;
                                     }
                                 }
-#else
-                                var numberLength = localBufferChars.Slice(position).IndexOfAnyExcept(numberChars);
-#endif
                                 if (numberLength == -1)
                                 {
                                     if (!isFinalBlock)
@@ -798,175 +851,6 @@ namespace Zerra.Serialization.Json.IO
                     ArrayPoolHelper<char>.Return(escapeBufferOwner);
 
                 return result;
-            }
-        }
-
-        /// <summary>
-        /// Peeks ahead to determine the number of elements in the current JSON array without advancing the reader position.
-        /// </summary>
-        /// <param name="length">When this method returns <c>true</c>, contains the number of elements in the array; otherwise, zero.</param>
-        /// <returns><c>true</c> if the array length was successfully determined; <c>false</c> if the buffer contains incomplete data.</returns>
-        public unsafe bool TryPeakArrayLength(out int length)
-        {
-            var openBrackets = 1;
-            var openBraces = 0;
-            var quoted = false;
-            var escaping = false;
-            length = 0;
-
-            if (Token == JsonToken.ObjectStart)
-                openBraces++;
-            else if (Token == JsonToken.ArrayStart)
-                openBrackets++;
-
-            if (useBytes)
-            {
-                fixed (byte* ptr = bufferBytes.Slice(position))
-                {
-                    byte* ptr2 = ptr;
-                    for (var i = position; i < bufferBytes.Length; i++)
-                    {
-                        var b = *ptr2++;
-                        switch (b)
-                        {
-                            case commaByte:
-                                if (!quoted && openBrackets == 1 && openBraces == 0)
-                                    length++;
-                                if (escaping)
-                                    escaping = false;
-                                continue;
-                            case openBracketByte:
-                                if (!quoted)
-                                    openBrackets++;
-                                else if (escaping)
-                                    escaping = false;
-                                continue;
-                            case closeBracketByte:
-                                if (!quoted)
-                                {
-                                    if (--openBrackets == 0)
-                                    {
-                                        length++;
-                                        return true;
-                                    }
-                                }
-                                else if (escaping)
-                                {
-                                    escaping = false;
-                                }
-                                continue;
-                            case openBraceByte:
-                                if (!quoted)
-                                    openBraces++;
-                                else if (escaping)
-                                    escaping = false;
-                                continue;
-                            case closeBraceByte:
-                                if (!quoted)
-                                    openBraces--;
-                                else if (escaping)
-                                    escaping = false;
-                                continue;
-                            case quoteByte:
-                                if (!quoted)
-                                    quoted = true;
-                                else if (escaping)
-                                    escaping = false;
-                                else
-                                    quoted = false;
-                                continue;
-                            case escapeByte:
-                                if (quoted)
-                                {
-                                    if (escaping)
-                                        escaping = false;
-                                    else
-                                        escaping = true;
-                                }
-                                continue;
-                            default:
-                                if (escaping)
-                                    escaping = false;
-                                continue;
-                        }
-                    }
-                }
-                return false;
-            }
-            else
-            {
-                fixed (char* ptr = bufferChars.Slice(position))
-                {
-                    char* ptr2 = ptr;
-                    for (var i = position; i < bufferChars.Length; i++)
-                    {
-                        var c = *ptr2++;
-                        switch (c)
-                        {
-                            case ',':
-                                if (!quoted && openBrackets == 1 && openBraces == 0)
-                                    length++;
-                                if (escaping)
-                                    escaping = false;
-                                continue;
-                            case '[':
-                                if (!quoted)
-                                    openBrackets++;
-                                else if (escaping)
-                                    escaping = false;
-                                continue;
-                            case ']':
-                                if (!quoted)
-                                {
-                                    if (--openBrackets == 0)
-                                    {
-                                        length++;
-                                        return true;
-                                    }
-                                }
-                                else if (escaping)
-                                {
-                                    escaping = false;
-                                }
-                                continue;
-                            case '{':
-                                if (!quoted)
-                                    openBraces++;
-                                else if (escaping)
-                                    escaping = false;
-                                continue;
-                            case '}':
-                                if (!quoted)
-                                    openBraces--;
-                                else if (escaping)
-                                    escaping = false;
-                                continue;
-                            case '"':
-                                if (!quoted)
-                                    quoted = true;
-                                else if (escaping)
-                                    escaping = false;
-                                else
-                                    quoted = false;
-                                continue;
-                            case '\\':
-                                if (quoted)
-                                {
-                                    if (escaping)
-                                        escaping = false;
-                                    else
-                                        escaping = true;
-                                }
-                                continue;
-                            default:
-                                if (escaping)
-                                    escaping = false;
-                                continue;
-
-                        }
-                    }
-                }
-                return false;
             }
         }
     }

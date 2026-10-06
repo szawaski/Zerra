@@ -52,14 +52,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
                     return true;
                 }
 
-                if (reader.TryPeakArrayLength(out var length))
-#if NETSTANDARD2_0
-                    value = new HashSet<TValue>();
-#else
-                    value = new HashSet<TValue>(length);
-#endif
-                else
-                    value = new HashSet<TValue>();
+                value = new HashSet<TValue>();
             }
             else
             {

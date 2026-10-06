@@ -50,14 +50,6 @@ namespace Zerra.Serialization.Json.IO
         private const byte quoteByte = (byte)'"';
         private const byte escapeByte = (byte)'\\';
 
-        private static readonly byte[] ullBytes = [(byte)'u', (byte)'l', (byte)'l'];
-        private static readonly byte[] rueBytes = [(byte)'r', (byte)'u', (byte)'e'];
-        private static readonly byte[] alseBytes = [(byte)'a', (byte)'l', (byte)'s', (byte)'e'];
-
-        private static readonly char[] ullChars = ['u', 'l', 'l'];
-        private static readonly char[] rueChars = ['r', 'u', 'e'];
-        private static readonly char[] alseChars = ['a', 'l', 's', 'e'];
-
 #if !NETSTANDARD2_0
         private static readonly SearchValues<byte> quoteEscapeBytes = SearchValues.Create((byte)'"', (byte)'\\');
         private static readonly SearchValues<char> quoteEscapeChars = SearchValues.Create('"', '\\');
@@ -71,8 +63,6 @@ namespace Zerra.Serialization.Json.IO
         private const byte rByte = (byte)'r';
 
         //Numbers
-        private static readonly char[] numberChars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '.', 'e', 'E'];
-        private static readonly byte[] numberBytes = [(byte)'0', (byte)'1', (byte)'2', (byte)'3', (byte)'4', (byte)'5', (byte)'6', (byte)'7', (byte)'8', (byte)'9', (byte)'+', (byte)'-', (byte)'.', (byte)'e', (byte)'E'];
         private const byte eByte = (byte)'e';
         private const byte eUpperByte = (byte)'E';
 

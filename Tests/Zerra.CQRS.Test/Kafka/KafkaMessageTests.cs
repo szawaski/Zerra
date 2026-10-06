@@ -29,7 +29,6 @@ namespace Zerra.CQRS.Test.Kafka
         [Fact]
         public async Task TestConnectionTls()
         {
-            //the test broker only listens in plaintext, so a TLS handshake fails
             Assert.True(await KafkaConnectionTest.TestAsync(host, null, null, TimeSpan.FromSeconds(5), useTls: false));
             Assert.False(await KafkaConnectionTest.TestAsync(host, null, null, TimeSpan.FromSeconds(5), useTls: true));
             Assert.False(await KafkaConnectionTest.TestAsync(host, "user", "password", TimeSpan.FromSeconds(5), useTls: true));

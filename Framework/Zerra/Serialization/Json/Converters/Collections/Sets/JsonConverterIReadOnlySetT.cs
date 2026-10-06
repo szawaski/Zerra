@@ -51,10 +51,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
                     return true;
                 }
 
-                if (reader.TryPeakArrayLength(out var length))
-                    set = new HashSet<TValue>(length);
-                else
-                    set = new HashSet<TValue>();
+                set = new HashSet<TValue>();
             }
             else
             {

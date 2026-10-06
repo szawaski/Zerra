@@ -47,10 +47,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Collections
                     return true;
                 }
 
-                if (reader.TryPeakArrayLength(out var length))
-                    value = new List<TValue>(length);
-                else
-                    value = new List<TValue>();
+                value = new List<TValue>();
             }
             else
             {

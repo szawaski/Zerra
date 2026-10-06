@@ -452,10 +452,7 @@ namespace Zerra.Serialization.Json.Converters
                     return true;
                 }
 
-                if (reader.TryPeakArrayLength(out var length))
-                    accessor = new ArrayOrListAccessor<JsonObject>(new JsonObject[length]);
-                else
-                    accessor = new ArrayOrListAccessor<JsonObject>();
+                accessor = new ArrayOrListAccessor<JsonObject>();
             }
             else
             {

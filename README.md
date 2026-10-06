@@ -74,18 +74,13 @@ dotnet add package Zerra
 - **[Running in Production](docs/Production.md)**: delivery, security, versioning, and observability
 - **[Testing](docs/Testing.md)**: what the ~1,700 tests cover, including transport tests against real brokers and databases
 
-## Is Zerra a Fit?
+## When to Use Zerra
 
-Zerra suits .NET systems that want typed CQRS contracts that stay the same while handlers move between one process, direct TCP or HTTP, and message brokers, especially where Native AOT or a small dependency footprint matters.
-
-| If you need | Consider |
-|---|---|
-| In-process request and notification dispatch only | MediatR, or Zerra with every handler local |
-| Broker messaging with built-in retries, sagas, outbox, and dead-lettering | MassTransit or NServiceBus |
-| Resilient HTTP calls between services, without a messaging model | `HttpClient` with Microsoft.Extensions.Http.Resilience |
-| One contract for in-process, TCP/HTTP, Kafka, RabbitMQ, and Azure Service Bus, Native AOT compatible | Zerra |
-
-Zerra acknowledges a message when it's received, so the queue never waits on a slow handler and no handler runs twice; shutdown finishes everything received, and a handler's exception goes back to the caller rather than being retried. [Delivery and Failure Handling](docs/Reliability.md) explains the model.
+- **Adding services to an existing system.** Build a new service with Zerra, and an existing app consumes it by adding just the client side: reference the service's contracts, register a client, and call it as a typed interface, from .NET or .NET Framework 4.7.2+. Existing ASP.NET Core apps can also host the [API gateway](docs/ZerraWeb.md) beside their controllers.
+- **Starting as a monolith and splitting later.** Write handlers once in one process, then move any of them into its own service by changing registration, without touching the code that calls them.
+- **Choosing the transport per interface.** Direct TCP for fast calls between services, HTTP inside ASP.NET Core, and a broker for work that should be queued, mixed freely within one system.
+- **Small, fast services.** Source generation, Native AOT, no external dependencies, and a [binary serializer](docs/Benchmarks.md) that's faster and smaller than JSON keep services quick to start and cheap to run.
+- **Testing without infrastructure.** Every handler runs in memory on a local bus, so tests and local development need no brokers or servers.
 
 ## In Production
 

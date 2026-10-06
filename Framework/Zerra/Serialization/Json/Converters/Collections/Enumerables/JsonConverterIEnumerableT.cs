@@ -49,10 +49,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                     return true;
                 }
 
-                if (reader.TryPeakArrayLength(out var length))
-                    accessor = new ArrayOrListAccessor<TValue>(new TValue[length]);
-                else
-                    accessor = new ArrayOrListAccessor<TValue>();
+                accessor = new ArrayOrListAccessor<TValue>();
             }
             else
             {

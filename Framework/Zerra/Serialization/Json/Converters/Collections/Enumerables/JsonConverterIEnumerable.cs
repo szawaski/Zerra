@@ -50,10 +50,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                     return true;
                 }
 
-                if (reader.TryPeakArrayLength(out var length))
-                    accessor = new ArrayOrListAccessor<object>(new object[length]);
-                else
-                    accessor = new ArrayOrListAccessor<object>();
+                accessor = new ArrayOrListAccessor<object>();
             }
             else
             {

@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.Buffers;
@@ -15,6 +16,9 @@ namespace Zerra.Serialization.Json.IO
     public ref partial struct JsonWriter
     {
         private static readonly Encoding encoding = Encoding.UTF8;
+#if !NETSTANDARD2_0
+        private static readonly SearchValues<char> escapeChars = SearchValues.Create([.. Enumerable.Range(0, ' ').Select(x => (char)x), '"', '\\']);
+#endif
 
         private const int defaultBufferSize = 1024;
 
@@ -143,7 +147,7 @@ namespace Zerra.Serialization.Json.IO
                 this.bufferChars = bufferCharsOwner;
             }
             this.position = 0;
-            this.length = bufferChars.Length;
+            this.length = useBytes ? bufferBytes.Length : bufferChars.Length;
             this.useBytes = useBytes;
         }
 
