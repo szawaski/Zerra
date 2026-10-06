@@ -71,7 +71,8 @@ dotnet add package Zerra
 - **[Getting Started](docs/GettingStarted.md)**: build a service and a client, then move between in-process, TCP, HTTP, and brokers
 - **[Store demo](Demo/Store/README.md)**: seven services, five data stores, three message brokers, a browser gateway, and an event-sourced aggregate
 - **[Documentation Index](docs/Index.md)**: every guide, from queries and events to serializers and AOT
-- **[Production Checklist](docs/Production.md)**: delivery guarantees, security, versioning, and observability to verify before deploying
+- **[Running in Production](docs/Production.md)**: delivery, security, versioning, and observability
+- **[Testing](docs/Testing.md)**: what the ~1,700 tests cover, including transport tests against real brokers and databases
 
 ## Is Zerra a Fit?
 
@@ -84,7 +85,11 @@ Zerra suits .NET systems that want typed CQRS contracts that stay the same while
 | Resilient HTTP calls between services, without a messaging model | `HttpClient` with Microsoft.Extensions.Http.Resilience |
 | One contract for in-process, TCP/HTTP, Kafka, RabbitMQ, and Azure Service Bus, Native AOT compatible | Zerra |
 
-Zerra delivers commands and events at most once, and leaves retries and idempotency to your handlers. Read [Delivery and Failure Handling](docs/Reliability.md) before choosing a transport, and the [Production Checklist](docs/Production.md) before deploying.
+Zerra acknowledges a message when it's received, so the queue never waits on a slow handler and no handler runs twice; shutdown finishes everything received, and a handler's exception goes back to the caller rather than being retried. [Delivery and Failure Handling](docs/Reliability.md) explains the model.
+
+## In Production
+
+Zerra runs in production in private commercial applications, across in-process, TCP, and broker deployments. Zerra 6 is the version in development here; Zerra 5 is the current NuGet release. Changes are in the [changelog](CHANGELOG.md), and security reports go through the [security policy](SECURITY.md).
 
 ## Packages
 

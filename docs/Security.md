@@ -20,7 +20,7 @@ var encryptor = new ZerraEncryptor("shared-internal-secret", SymmetricAlgorithmT
 
 See [Encryptors](Encryptors.md) for setup details.
 
-Which connections have TLS, how to rotate keys, and which error details reach callers are covered in the [Production Checklist](Production.md#security).
+Which connections have TLS, how to rotate keys, and which error details reach callers are covered in [Running in Production](Production.md#security).
 
 ---
 

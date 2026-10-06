@@ -27,37 +27,37 @@ namespace Zerra.Benchmark.Benchmarks
             normalJsonModelBytes = ByteSerializer.Serialize(normalJsonModel);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public string Serialize_Json_Zerra()
         {
             return JsonSerializer.Serialize(normalJsonModel);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public byte[] Serialize_Json_Zerra_ByteArray()
         {
             return JsonSerializer.SerializeBytes(normalJsonModel);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public string Serialize_Json_SystemTextJson()
         {
             return System.Text.Json.JsonSerializer.Serialize(normalJsonModel);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public byte[] Serialize_Json_SystemTextJson_ByteArray()
         {
             return System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(normalJsonModel);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public string Serialize_Json_Newtonsoft()
         {
             return Newtonsoft.Json.JsonConvert.SerializeObject(normalJsonModel);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public byte[] Serialize_Bytes_Zerra()
         {
             return ByteSerializer.Serialize(normalJsonModel);
@@ -93,7 +93,7 @@ namespace Zerra.Benchmark.Benchmarks
             return Newtonsoft.Json.JsonConvert.DeserializeObject<NormalJsonModel>(normalJsonModelJson);
         }
 
-        //[Benchmark]
+        [Benchmark]
         public NormalJsonModel Deserialize_Bytes_Zerra()
         {
             return ByteSerializer.Deserialize<NormalJsonModel>(normalJsonModelBytes);

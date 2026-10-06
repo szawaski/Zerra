@@ -40,7 +40,9 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - [Delivery and Failure Handling](Reliability.md) - At-most-once delivery, acknowledgments, retries, and making handlers safe
 
 ### Going to Production
-- [Production Checklist](Production.md) - Delivery, security, versioning, observability, and testing to verify before deploying
+- [Running in Production](Production.md) - Delivery, security, versioning, and observability
+- [Testing](Testing.md) - What the tests cover and how to run them
+- [Benchmarks](Benchmarks.md) - Serializer and mapper benchmark results
 
 ### Utility Features
 - [Graph](Graph.md) - Selective member inclusion/exclusion for serialization and mapping
