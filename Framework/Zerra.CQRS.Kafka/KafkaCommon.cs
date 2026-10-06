@@ -21,14 +21,14 @@ namespace Zerra.CQRS.Kafka
         public const string AckTopicHeader = "AckTopic";
         public const string AckKeyHeader = "AckKey";
 
-        private static readonly ConcurrentDictionary<(string Host, string? UserName), KafkaCommonHost> hosts = new();
+        private static readonly ConcurrentDictionary<(string Host, string? UserName, bool UseTls), KafkaCommonHost> hosts = new();
 
-        public static KafkaCommonHost GetHost(string host, string? userName, string? password)
+        public static KafkaCommonHost GetHost(string host, string? userName, string? password, bool useTls = false)
         {
-            var key = (host, userName);
+            var key = (host, userName, useTls);
             if (hosts.TryGetValue(key, out var existing))
                 return existing;
-            var created = new KafkaCommonHost(host, userName, password);
+            var created = new KafkaCommonHost(host, userName, password, useTls);
             existing = hosts.GetOrAdd(key, created);
             if (existing != created)
                 created.Client.Dispose();

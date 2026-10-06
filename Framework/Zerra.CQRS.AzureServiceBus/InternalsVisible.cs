@@ -2,4 +2,4 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Zerra.Repository.Test")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Zerra.CQRS.Test")]

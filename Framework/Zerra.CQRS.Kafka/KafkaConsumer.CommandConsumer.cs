@@ -111,10 +111,14 @@ namespace Zerra.CQRS.Kafka
                 producerConfig.ClientId = clientID;
                 if (commonHost.UserName is not null && commonHost.Password is not null)
                 {
-                    producerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
+                    producerConfig.SecurityProtocol = commonHost.UseTls ? SecurityProtocol.SaslSsl : SecurityProtocol.SaslPlaintext;
                     producerConfig.SaslMechanism = SaslMechanism.Plain;
                     producerConfig.SaslUsername = commonHost.UserName;
                     producerConfig.SaslPassword = commonHost.Password;
+                }
+                else if (commonHost.UseTls)
+                {
+                    producerConfig.SecurityProtocol = SecurityProtocol.Ssl;
                 }
                 ackProducerConfig = producerConfig;
                 ackProducer = new AckProducer(new ProducerBuilder<string, byte[]>(producerConfig).Build());
@@ -150,10 +154,14 @@ namespace Zerra.CQRS.Kafka
                     consumerConfig.AutoOffsetReset = AutoOffsetReset.Earliest;
                     if (commonHost.UserName is not null && commonHost.Password is not null)
                     {
-                        consumerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
+                        consumerConfig.SecurityProtocol = commonHost.UseTls ? SecurityProtocol.SaslSsl : SecurityProtocol.SaslPlaintext;
                         consumerConfig.SaslMechanism = SaslMechanism.Plain;
                         consumerConfig.SaslUsername = commonHost.UserName;
                         consumerConfig.SaslPassword = commonHost.Password;
+                    }
+                    else if (commonHost.UseTls)
+                    {
+                        consumerConfig.SecurityProtocol = SecurityProtocol.Ssl;
                     }
 
                     //librdkafka only reports a deleted topic as an error and keeps waiting, so it ends the consume and the retry creates the topic again

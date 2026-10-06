@@ -10,14 +10,14 @@ using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Reflection;
 
-namespace Zerra.Repository.Test
+namespace Zerra.CQRS.Test
 {
     /// <summary>
     /// The shared sequence every messaging transport runs, only through the producer and consumer interfaces.
     /// </summary>
     public static class MessageTest
     {
-        private const string source = "Zerra.Repository.Test";
+        private const string source = "Zerra.CQRS.Test";
         private const int maxConcurrent = 10;
         private const string claimType = "ZerraMessageTest";
         private const string serviceName = "ZerraTestService";
@@ -321,6 +321,54 @@ namespace Zerra.Repository.Test
             finally
             {
                 commandConsumer.Close();
+            }
+        }
+
+        public static async Task TestHandlerErrorNotReceivedAgain(ICommandProducer commandProducer, IEventProducer eventProducer, ICommandConsumer commandConsumer, IEventConsumer eventConsumer, string commandTopic, string eventTopic, CancellationToken cancellationToken)
+        {
+            TypeFinder.Register(typeof(TestCommand));
+            TypeFinder.Register(typeof(TestEvent));
+
+            var receiver = new CountingReceiver();
+
+            commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAsync, receiver.HandleCommandWithResultAwaitAsync);
+            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            eventConsumer.Setup(ServiceAName, receiver.HandleEventAsync);
+            eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
+
+            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+
+            commandConsumer.Open();
+            eventConsumer.Open();
+            try
+            {
+                await WaitForCommandConsumer(commandProducer, cancellationToken);
+                await RetryUntilReady("Event consumer", cancellationToken, async (attemptCancellationToken) =>
+                {
+                    var probe = new TestEvent() { ID = Guid.NewGuid() };
+                    var received = receiver.Received(probe.ID);
+                    await eventProducer.DispatchAsync(probe, source, attemptCancellationToken);
+                    await received.WaitAsync(attemptCancellationToken);
+                });
+
+                var command = new TestCommand() { ID = Guid.NewGuid(), Throw = true };
+                var @event = new TestEvent() { ID = Guid.NewGuid(), Value = CountingReceiver.ThrowValue };
+                var commandReceived = receiver.Received(command.ID);
+                var eventReceived = receiver.Received(@event.ID);
+                await commandProducer.DispatchAsync(command, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken);
+                await eventProducer.DispatchAsync(@event, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken);
+                await commandReceived.WaitAsync(messageTimeout, cancellationToken);
+                await eventReceived.WaitAsync(messageTimeout, cancellationToken);
+
+                await Task.Delay(settleDelay, cancellationToken);
+                Assert.Equal(1, receiver.Count(command.ID));
+                Assert.Equal(1, receiver.Count(@event.ID));
+            }
+            finally
+            {
+                commandConsumer.Close();
+                eventConsumer.Close();
             }
         }
 
@@ -668,6 +716,44 @@ namespace Zerra.Repository.Test
             public Task HandleEventAsync(IEvent @event, string source)
             {
                 ids.Enqueue(Assert.IsType<TestEvent>(@event).ID);
+                return Task.CompletedTask;
+            }
+        }
+
+        private sealed class CountingReceiver
+        {
+            public const int ThrowValue = -1;
+
+            private readonly ConcurrentDictionary<Guid, int> counts = new();
+            private readonly ConcurrentDictionary<Guid, TaskCompletionSource> received = new();
+
+            public Task Received(Guid id) => GetCompletion(id).Task;
+            public int Count(Guid id) => counts.TryGetValue(id, out var count) ? count : 0;
+
+            private TaskCompletionSource GetCompletion(Guid id) => received.GetOrAdd(id, static _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+
+            private void Handle(Guid id, bool throws)
+            {
+                _ = counts.AddOrUpdate(id, 1, static (_, count) => count + 1);
+                _ = GetCompletion(id).TrySetResult();
+                if (throws)
+                    throw new InvalidOperationException(ErrorMessage(id));
+            }
+
+            public Task HandleCommandAsync(ICommand command, string source, CancellationToken cancellationToken)
+            {
+                var testCommand = Assert.IsType<TestCommand>(command);
+                Handle(testCommand.ID, testCommand.Throw);
+                return Task.CompletedTask;
+            }
+
+            public Task<object?> HandleCommandWithResultAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
+                => throw new NotSupportedException();
+
+            public Task HandleEventAsync(IEvent @event, string source)
+            {
+                var testEvent = Assert.IsType<TestEvent>(@event);
+                Handle(testEvent.ID, testEvent.Value == ThrowValue);
                 return Task.CompletedTask;
             }
         }

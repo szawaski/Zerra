@@ -106,10 +106,14 @@ namespace Zerra.CQRS.Kafka
                     }
                     if (commonHost.UserName is not null && commonHost.Password is not null)
                     {
-                        consumerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
+                        consumerConfig.SecurityProtocol = commonHost.UseTls ? SecurityProtocol.SaslSsl : SecurityProtocol.SaslPlaintext;
                         consumerConfig.SaslMechanism = SaslMechanism.Plain;
                         consumerConfig.SaslUsername = commonHost.UserName;
                         consumerConfig.SaslPassword = commonHost.Password;
+                    }
+                    else if (commonHost.UseTls)
+                    {
+                        consumerConfig.SecurityProtocol = SecurityProtocol.Ssl;
                     }
 
                     //librdkafka only reports a deleted topic as an error and keeps waiting, so it ends the consume and the retry creates the topic again

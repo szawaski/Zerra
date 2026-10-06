@@ -6,7 +6,7 @@ This page states what Zerra guarantees when messages cross a process boundary, a
 
 ## The Short Version
 
-- **Commands and events are delivered at most once.** Every transport acknowledges a message when a consumer receives it, before the handler runs. A message is never handled twice by Zerra's own doing, but one in flight when its process crashes is lost.
+- **Commands and events are delivered at most once.** Every transport acknowledges a message when a consumer receives it, before the handler runs. A message is never handled twice by Zerra's own doing, but one in flight when its process is forcibly terminated is lost. Acknowledging on receipt keeps the queue or partition moving for the other replicas instead of holding it until handlers finish.
 - **Zerra does not retry a failed handler.** A handler's exception goes back to a caller awaiting it, or to the logs. There is no automatic redelivery, dead-letter queue, or poison-message handling.
 - **Graceful shutdown loses nothing.** Stopping the bus stops receiving, then waits for every message already received to finish. Handlers are never cancelled.
 - **Duplicates come from callers.** A caller that retries after a `TimeoutException` may send a command that already ran, so handlers that can be retried should be idempotent.

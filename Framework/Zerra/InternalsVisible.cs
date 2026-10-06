@@ -6,3 +6,4 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Zerra.Repository")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Zerra.Web")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Zerra.Repository.Test")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Zerra.CQRS.Test")]

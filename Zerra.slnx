@@ -91,6 +91,7 @@
     <File Path="Front End Scripts/TypeScript/TypeScriptModels.tt" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="Tests/Zerra.CQRS.Test/Zerra.CQRS.Test.csproj" />
     <Project Path="Tests/Zerra.Repository.Test/Zerra.Repository.Test.csproj" />
     <Project Path="Tests/Zerra.SourceGeneration.Test/Zerra.SourceGeneration.Test.csproj" />
     <Project Path="Tests/Zerra.T4.Test/Zerra.T4.Test.csproj" />

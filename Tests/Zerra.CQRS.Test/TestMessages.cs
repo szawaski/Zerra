@@ -4,7 +4,7 @@
 
 using Zerra.CQRS;
 
-namespace Zerra.Repository.Test
+namespace Zerra.CQRS.Test
 {
     public sealed class TestCommand : ICommand
     {

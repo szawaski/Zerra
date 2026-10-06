@@ -32,9 +32,9 @@ Services talking directly over TCP, HTTP, or a broker trust each other: they acc
 | Kestrel (`Zerra.Web`) | HTTPS, configured in ASP.NET Core |
 | RabbitMQ | TLS with an `amqps://` URI ([RabbitMQ Setup](RabbitMQSetup.md#connection-settings)) |
 | Azure Service Bus | always TLS |
-| Kafka | none; `PLAINTEXT`, or `SASL_PLAINTEXT` with a user name and password |
+| Kafka | TLS with `useTls: true`, as `SSL`, or `SASL_SSL` with a user name and password ([Kafka Setup](KafkaSetup.md#connection-settings)) |
 
-Message encryption with an `IEncryptor` protects message bodies on every transport, including on a broker's disk, but not connection metadata, and not the Kafka SASL password. See [Encryptors](Encryptors.md).
+Message encryption with an `IEncryptor` protects message bodies on every transport, including on a broker's disk, but not connection metadata or credentials. See [Encryptors](Encryptors.md).
 
 ### Keys
 

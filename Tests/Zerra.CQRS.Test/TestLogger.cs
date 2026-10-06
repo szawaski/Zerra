@@ -5,7 +5,7 @@
 using Xunit;
 using Zerra.Logging;
 
-namespace Zerra.Repository.Test
+namespace Zerra.CQRS.Test
 {
     /// <summary>
     /// Writes what the messaging transports log to the test output, their listening threads catch and log errors rather than throw.

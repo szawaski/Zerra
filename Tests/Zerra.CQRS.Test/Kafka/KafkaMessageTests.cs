@@ -12,7 +12,7 @@ using Zerra.Encryption;
 using Zerra.Reflection;
 using Zerra.Serialization;
 
-namespace Zerra.Repository.Test.Kafka
+namespace Zerra.CQRS.Test.Kafka
 {
     public class KafkaMessageTests
     {
@@ -24,6 +24,39 @@ namespace Zerra.Repository.Test.Kafka
             Assert.True(await KafkaConnectionTest.TestAsync(host, null, null));
             //nothing listens on port 1
             Assert.False(await KafkaConnectionTest.TestAsync("localhost:1", null, null, TimeSpan.FromSeconds(2)));
+        }
+
+        [Fact]
+        public async Task TestConnectionTls()
+        {
+            //the test broker only listens in plaintext, so a TLS handshake fails
+            Assert.True(await KafkaConnectionTest.TestAsync(host, null, null, TimeSpan.FromSeconds(5), useTls: false));
+            Assert.False(await KafkaConnectionTest.TestAsync(host, null, null, TimeSpan.FromSeconds(5), useTls: true));
+            Assert.False(await KafkaConnectionTest.TestAsync(host, "user", "password", TimeSpan.FromSeconds(5), useTls: true));
+        }
+
+        [Fact]
+        public void TestHostPerTls()
+        {
+            var plain = KafkaCommon.GetHost(host, null, null);
+            var tls = KafkaCommon.GetHost(host, null, null, true);
+
+            Assert.False(plain.UseTls);
+            Assert.True(tls.UseTls);
+            Assert.NotSame(plain, tls);
+            Assert.Same(plain, KafkaCommon.GetHost(host, null, null, false));
+            Assert.Same(tls, KafkaCommon.GetHost(host, null, null, true));
+        }
+
+        [Fact]
+        public async Task TestTlsProducerAndConsumerUseTlsHost()
+        {
+            var serializer = new ZerraByteSerializer();
+            await using var producer = new KafkaProducer(host, serializer, null, null, null, null, null, null, useTls: true);
+            await using var consumer = new KafkaConsumer(host, serializer, null, null, null, null, null, null, useTls: true);
+
+            Assert.Same(KafkaCommon.GetHost(host, null, null, true), CommonHost(producer));
+            Assert.Same(KafkaCommon.GetHost(host, null, null, true), CommonHost(consumer));
         }
 
         [Fact(Timeout = 300000)]
@@ -345,6 +378,35 @@ namespace Zerra.Repository.Test.Kafka
         }
 
         [Fact(Timeout = 300000)]
+        public async Task TestHandlerErrorNotReceivedAgain()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            string? ackTopic = null;
+
+            try
+            {
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                {
+                    ackTopic = AckTopic(producer);
+                    await MessageTest.TestHandlerErrorNotReceivedAgain(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await KafkaCommon.DeleteTopic(host, null, null, commandTopic);
+                await KafkaCommon.DeleteTopic(host, null, null, eventTopic);
+                await DeleteConsumerGroup(commandTopic);
+                await DeleteConsumerGroup($"{eventTopic}_{MessageTest.ServiceAName}");
+                if (ackTopic is not null)
+                    await KafkaCommon.DeleteTopic(host, null, null, ackTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
         public async Task TestConsumesAgainAfterTopicDeleted()
         {
             var commandTopic = MessageTest.NewTopic("Command");
@@ -391,7 +453,7 @@ namespace Zerra.Repository.Test.Kafka
                 using var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null);
                 ackTopics.Add(AckTopic(producer));
                 ((ICommandProducer)producer).RegisterCommandType(10, commandTopic, typeof(TestCommand));
-                await ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand() { ID = Guid.NewGuid() }, "Zerra.Repository.Test", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(90), TestContext.Current.CancellationToken);
+                await ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand() { ID = Guid.NewGuid() }, "Zerra.CQRS.Test", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(90), TestContext.Current.CancellationToken);
             }
 
             try
@@ -440,7 +502,7 @@ namespace Zerra.Repository.Test.Kafka
             var topic = MessageTest.NewTopic("Command");
 
             //a host each, as replicas in separate processes have, so none of them know the others created it
-            var replicas = Enumerable.Range(0, 8).Select(_ => new KafkaCommonHost(host, null, null)).ToArray();
+            var replicas = Enumerable.Range(0, 8).Select(_ => new KafkaCommonHost(host, null, null, false)).ToArray();
             try
             {
                 await Task.WhenAll(replicas.Select(x => KafkaCommon.EnsureTopic(x, topic).AsTask()));
@@ -454,7 +516,9 @@ namespace Zerra.Repository.Test.Kafka
             }
         }
 
-        private static string AckTopic(KafkaProducer producer) => (string)typeof(KafkaProducer).GetField("ackTopic", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producer)!;
+        private static KafkaCommonHost CommonHost(object producerOrConsumer) => (KafkaCommonHost)producerOrConsumer.GetType().GetField("commonHost", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producerOrConsumer)!;
+
+        private static string AckTopic(KafkaProducer producer) =>(string)typeof(KafkaProducer).GetField("ackTopic", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producer)!;
 
         private static async Task<bool> ConsumerGroupExists(string group)
         {

@@ -12,7 +12,7 @@ using Zerra.Reflection;
 using Zerra.Encryption;
 using Zerra.Serialization;
 
-namespace Zerra.Repository.Test.RabbitMQ
+namespace Zerra.CQRS.Test.RabbitMQ
 {
     public class RabbitMQMessageTests
     {
@@ -200,6 +200,29 @@ namespace Zerra.Repository.Test.RabbitMQ
         }
 
         [Fact(Timeout = 300000)]
+        public async Task TestHandlerErrorNotReceivedAgain()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                {
+                    await MessageTest.TestHandlerErrorNotReceivedAgain(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                DeleteExchanges(commandTopic, eventTopic);
+                DeleteQueues(commandTopic, $"{eventTopic}_{MessageTest.ServiceAName}");
+            }
+        }
+
+        [Fact(Timeout = 300000)]
         public async Task TestConsumesAgainAfterQueueDeleted()
         {
             const string serviceName = "ZerraTestService";
@@ -260,8 +283,8 @@ namespace Zerra.Repository.Test.RabbitMQ
             {
                 var command = new TestCommand() { ID = Guid.NewGuid() };
                 var @event = new TestEvent() { ID = Guid.NewGuid() };
-                await commandProducer.DispatchAsync(command, "Zerra.Repository.Test", cancellationToken);
-                await eventProducer.DispatchAsync(@event, "Zerra.Repository.Test", cancellationToken);
+                await commandProducer.DispatchAsync(command, "Zerra.CQRS.Test", cancellationToken);
+                await eventProducer.DispatchAsync(@event, "Zerra.CQRS.Test", cancellationToken);
                 await Task.Delay(1000, cancellationToken);
                 if (commands.ContainsKey(command.ID) && events.ContainsKey(@event.ID))
                     return;

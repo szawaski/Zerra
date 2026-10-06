@@ -23,7 +23,8 @@ var producer = new KafkaProducer(
     log: log,                 // optional
     environment: "dev",       // optional topic prefix
     userName: null,           // optional SASL/PLAIN user name
-    password: null);          // optional SASL/PLAIN password
+    password: null,           // optional SASL/PLAIN password
+    useTls: false);           // optional, connect with TLS
 
 bus.AddCommandProducer<IUserCommandHandler>(producer);
 bus.AddEventProducer<IUserEventHandler>(producer);
@@ -63,6 +64,17 @@ The mode is each subscriber's own choice and changes nothing for the publisher o
 - A `PerReplica` group belongs to one consumer, which deletes it when it stops.
 - A `PerService` group is shared and stays, so its committed offsets hold events published while the whole service is down.
 - Topics are created with one partition, so under `PerService`, as for commands, one replica receives everything and the others stand by to take over.
+
+## Connection Settings
+
+Without a user name and password the connection is `PLAINTEXT`, and with them it's `SASL_PLAINTEXT` using the `PLAIN` mechanism. Pass `useTls: true` to connect with TLS instead: `SSL`, or `SASL_SSL` with a user name and password, as managed Kafka services such as Confluent Cloud require. The broker's certificate is checked against the system's trusted root certificates.
+
+```csharp
+var producer = new KafkaProducer("broker.example.com:9093", serializer, encryptor, null, log, "prod", userName, password, useTls: true);
+var consumer = new KafkaConsumer("broker.example.com:9093", serializer, encryptor, null, log, "prod", userName, password, useTls: true);
+```
+
+Without TLS the password crosses the network unencrypted, so use `useTls: true` whenever there's a password. `KafkaConnectionTest.TestAsync` takes the same `useTls`.
 
 ## Checking the Connection
 

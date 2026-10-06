@@ -24,6 +24,7 @@ namespace Zerra.CQRS.Kafka
         /// <param name="password">Optional password for SASL authentication. Must be paired with userName.</param>
         /// <param name="timeout">How long to wait for the cluster, five seconds if not given.</param>
         /// <param name="log">Optional logger, told why the connection failed.</param>
+        /// <param name="useTls">True to connect with TLS, SASL_SSL with a user name and password or SSL without.</param>
         /// <returns>True if the cluster answered; otherwise false.</returns>
         //Confluent.Kafka binds its native library by finding these methods and fields through reflection, which native AOT would otherwise trim away
 #if !NETSTANDARD2_0
@@ -32,7 +33,7 @@ namespace Zerra.CQRS.Kafka
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Alpine", "Confluent.Kafka")]
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Centos8", "Confluent.Kafka")]
 #endif
-        public static async Task<bool> TestAsync(string host, string? userName, string? password, TimeSpan? timeout = null, ILogger? log = null)
+        public static async Task<bool> TestAsync(string host, string? userName, string? password, TimeSpan? timeout = null, ILogger? log = null, bool useTls = false)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
@@ -40,10 +41,14 @@ namespace Zerra.CQRS.Kafka
             clientConfig.BootstrapServers = host;
             if (userName is not null && password is not null)
             {
-                clientConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
+                clientConfig.SecurityProtocol = useTls ? SecurityProtocol.SaslSsl : SecurityProtocol.SaslPlaintext;
                 clientConfig.SaslMechanism = SaslMechanism.Plain;
                 clientConfig.SaslUsername = userName;
                 clientConfig.SaslPassword = password;
+            }
+            else if (useTls)
+            {
+                clientConfig.SecurityProtocol = SecurityProtocol.Ssl;
             }
 
             try

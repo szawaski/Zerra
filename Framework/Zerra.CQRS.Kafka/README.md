@@ -48,6 +48,7 @@ await bus.WaitForExitAsync();
 
 - Commands compete: **one** replica of the service handles each command.
 - Events with `EventConsumerMode.PerReplica` reach **every** replica; with `PerService` one replica of each subscribing service handles each event.
+- Pass `useTls: true` to connect with TLS (`SSL`, or `SASL_SSL` with a user name and password).
 - `KafkaConnectionTest` checks the connection at startup, so a service can fall back to a direct `TcpCqrsClient` when the broker isn't running.
 
 ## Documentation

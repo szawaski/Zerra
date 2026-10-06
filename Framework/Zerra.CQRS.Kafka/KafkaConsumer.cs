@@ -55,6 +55,7 @@ namespace Zerra.CQRS.Kafka
         /// <param name="environment">Optional environment name to match topic name prefixes for isolation.</param>
         /// <param name="userName">Optional username for SASL authentication. Must be paired with password.</param>
         /// <param name="password">Optional password for SASL authentication. Must be paired with userName.</param>
+        /// <param name="useTls">True to connect with TLS, SASL_SSL with a user name and password or SSL without.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
         //Confluent.Kafka binds its native library by finding these methods and fields through reflection, which native AOT would otherwise trim away
 #if !NETSTANDARD2_0
@@ -63,11 +64,11 @@ namespace Zerra.CQRS.Kafka
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Alpine", "Confluent.Kafka")]
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Centos8", "Confluent.Kafka")]
 #endif
-        public KafkaConsumer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName, string? password)
+        public KafkaConsumer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName, string? password, bool useTls = false)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
-            this.commonHost = KafkaCommon.GetHost(host, userName, password);
+            this.commonHost = KafkaCommon.GetHost(host, userName, password, useTls);
             this.serializer = serializer;
             this.encryptor = encryptor;
             this.compressor = compressor;

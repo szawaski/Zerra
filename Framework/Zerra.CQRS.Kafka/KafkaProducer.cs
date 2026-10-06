@@ -58,6 +58,7 @@ namespace Zerra.CQRS.Kafka
         /// <param name="environment">Optional environment name to prefix topic names for isolation.</param>
         /// <param name="userName">Optional username for SASL authentication. Must be paired with password.</param>
         /// <param name="password">Optional password for SASL authentication. Must be paired with userName.</param>
+        /// <param name="useTls">True to connect with TLS, SASL_SSL with a user name and password or SSL without.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
         //Confluent.Kafka binds its native library by finding these methods and fields through reflection, which native AOT would otherwise trim away
 #if !NETSTANDARD2_0
@@ -66,7 +67,7 @@ namespace Zerra.CQRS.Kafka
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Alpine", "Confluent.Kafka")]
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Centos8", "Confluent.Kafka")]
 #endif
-        public KafkaProducer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName, string? password)
+        public KafkaProducer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName, string? password, bool useTls = false)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
@@ -75,7 +76,7 @@ namespace Zerra.CQRS.Kafka
             this.compressor = compressor;
             this.log = log;
             this.environment = environment;
-            this.commonHost = KafkaCommon.GetHost(host, userName, password);
+            this.commonHost = KafkaCommon.GetHost(host, userName, password, useTls);
 
             var entryAssemblyName = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name;
             var clientID = StringExtensions.Join(KafkaCommon.TopicMaxLength - 4 - 33, "_", environment ?? "Unknown_Environment", Environment.MachineName, entryAssemblyName ?? "Unknown_Assembly", out var clientIDTruncated);
@@ -99,10 +100,14 @@ namespace Zerra.CQRS.Kafka
             producerConfig.ClientId = clientID;
             if (userName is not null && password is not null)
             {
-                producerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
+                producerConfig.SecurityProtocol = useTls ? SecurityProtocol.SaslSsl : SecurityProtocol.SaslPlaintext;
                 producerConfig.SaslMechanism = SaslMechanism.Plain;
                 producerConfig.SaslUsername = userName;
                 producerConfig.SaslPassword = password;
+            }
+            else if (useTls)
+            {
+                producerConfig.SecurityProtocol = SecurityProtocol.Ssl;
             }
 
             producer = new ProducerBuilder<string, byte[]>(producerConfig).Build();
@@ -391,10 +396,14 @@ namespace Zerra.CQRS.Kafka
             consumerConfig.EnableAutoCommit = false;
             if (commonHost.UserName is not null && commonHost.Password is not null)
             {
-                consumerConfig.SecurityProtocol = SecurityProtocol.SaslPlaintext;
+                consumerConfig.SecurityProtocol = commonHost.UseTls ? SecurityProtocol.SaslSsl : SecurityProtocol.SaslPlaintext;
                 consumerConfig.SaslMechanism = SaslMechanism.Plain;
                 consumerConfig.SaslUsername = commonHost.UserName;
                 consumerConfig.SaslPassword = commonHost.Password;
+            }
+            else if (commonHost.UseTls)
+            {
+                consumerConfig.SecurityProtocol = SecurityProtocol.Ssl;
             }
 
             //the retry stays inside the outer try, a goto out of it would run the finally and dispose the canceller on a transient error

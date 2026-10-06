@@ -9,7 +9,7 @@ using Zerra.CQRS.AzureServiceBus;
 using Zerra.Encryption;
 using Zerra.Serialization;
 
-namespace Zerra.Repository.Test.AzureServiceBus
+namespace Zerra.CQRS.Test.AzureServiceBus
 {
     public class AzureServiceBusMessageTests
     {
@@ -142,6 +142,29 @@ namespace Zerra.Repository.Test.AzureServiceBus
             finally
             {
                 await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestHandlerErrorNotReceivedAgain()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                {
+                    await MessageTest.TestHandlerErrorNotReceivedAgain(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+                await AzureServiceBusCommon.DeleteTopic(host, eventTopic);
             }
         }
 
