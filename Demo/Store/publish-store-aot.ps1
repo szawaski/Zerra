@@ -23,12 +23,12 @@ if ((Test-Path $vswhereDir) -and ($env:PATH -notlike "*$vswhereDir*")) {
 }
 
 $projects = @(
-    'Store.Catalog.Service',
-    'Store.Inventory.Service',
-    'Store.Orders.Service',
-    'Store.Shipping.Service',
-    'Store.Reviews.Service',
-    'Store.Carts.Service',
+    'Store.Catalog',
+    'Store.Inventory',
+    'Store.Orders',
+    'Store.Shipping',
+    'Store.Reviews',
+    'Store.Carts',
     'Store.Web'
 )
 

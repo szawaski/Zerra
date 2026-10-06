@@ -87,7 +87,7 @@ else
     bus.AddCommandProducer<IStockReservationHandler>(new TcpCqrsClient("localhost:9102", serializer, encryptor, null, log));
 ```
 
-`Demo/Store` does this for stock reservations, in `Store.Orders.Service/Program.cs` and `Store.Inventory.Service/Program.cs`.
+`Demo/Store` does this for stock reservations, in `Store.Orders/Program.cs` and `Store.Inventory/Program.cs`.
 
 ## Topic Names
 

@@ -72,7 +72,7 @@ namespace Zerra.T4
                         _ = sb.Append(method.Parameters[i].Name).Append(": ").Append(parameterType).Append(parameterNullable ? " | null" : null);
                     }
                     _ = sb.Append("): Promise<").Append(type).Append(nullable ? " | null" : null).Append("> {").Append(Environment.NewLine);
-                    _ = sb.Append(spacing).Append(spacing).Append("return Bus.Call(\"").Append(query.Namespace).Append('.').Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
+                    _ = sb.Append(spacing).Append(spacing).Append("return Bus.Call(\"").Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
                     AppendArguments(sb, method, clientParameterCount);
                     _ = sb.Append("], ").Append(type == "Blob" ? "\"Blob\"" : type is null || isJavaScriptType ? "null" :(hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(");").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append("}").Append(Environment.NewLine);
@@ -88,7 +88,7 @@ namespace Zerra.T4
                 _ = sb.Append(spacing).Append(spacing).Append("const self: any = this;").Append(Environment.NewLine);
                 _ = sb.Append(spacing).Append(spacing).Append("const props: any = properties;").Append(Environment.NewLine);
                 _ = sb.Append(spacing).Append(spacing).Append("Object.keys(props).forEach(key => self[key] = props[key]);").Append(Environment.NewLine);
-                _ = sb.Append(spacing).Append(spacing).Append("self[\"CommandType\"] = \"").Append(command.Namespace).Append('.').Append(command.Name).Append("\";").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append(spacing).Append("self[\"CommandType\"] = \"").Append(command.Name).Append("\";").Append(Environment.NewLine);
                 var commandWithResultType = command.Implements.FirstOrDefault(x => x.Name.StartsWith("ICommand<"));
                 _ = sb.Append(spacing).Append(spacing).Append("self[\"CommandWithResult\"] = ").Append(commandWithResultType is not null ? "true" : "false").Append(";").Append(Environment.NewLine);
                 if (commandWithResultType is not null)
@@ -158,7 +158,7 @@ namespace Zerra.T4
                     for (var i = 0; i < clientParameterCount; i++)
                         _ = sb.Append(method.Parameters[i].Name).Append(", ");
                     _ = sb.Append("onComplete, onFail) {").Append(Environment.NewLine);
-                    _ = sb.Append(spacing).Append(spacing).Append("Bus.Call(\"").Append(query.Namespace).Append('.').Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
+                    _ = sb.Append(spacing).Append(spacing).Append("Bus.Call(\"").Append(query.Name).Append("\", \"").Append(method.Name).Append("\", [");
                     AppendArguments(sb, method, clientParameterCount);
                     _ = sb.Append("], ").Append(type == "Blob" ? "\"Blob\"" : type is null || isJavaScriptType ? "null" :(hasMany ? type.Remove(type.Length - 2) : type) + "Type").Append(", ").Append(hasMany ? "true" : "false").Append(", onComplete, onFail);").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append("},").Append(Environment.NewLine);
@@ -174,7 +174,7 @@ namespace Zerra.T4
                 {
                     _ = sb.Append(spacing).Append("this.").Append(property.Name).Append(" = (properties === undefined || properties.").Append(property.Name).Append(" === undefined) ? null : properties.").Append(property.Name).Append(";").Append(Environment.NewLine);
                 }
-                _ = sb.Append(spacing).Append("this.CommandType = \"").Append(command.Namespace).Append('.').Append(command.Name).Append("\";").Append(Environment.NewLine);
+                _ = sb.Append(spacing).Append("this.CommandType = \"").Append(command.Name).Append("\";").Append(Environment.NewLine);
                 var commandWithResultType = command.Implements.FirstOrDefault(x => x.Name.StartsWith("ICommand<"));
                 _ = sb.Append(spacing).Append("this.CommandWithResult = ").Append(commandWithResultType is not null ? "true" : "false").Append(";").Append(Environment.NewLine);
                 if (commandWithResultType is not null)

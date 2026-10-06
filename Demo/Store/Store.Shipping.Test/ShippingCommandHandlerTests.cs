@@ -1,6 +1,6 @@
 using Store.Common;
-using Store.Orders.Domain.Events;
 using Store.Shipping.Domain.Commands;
+using Store.Shipping.Domain.Orders;
 using Store.Shipping.Service.Data;
 using Xunit;
 

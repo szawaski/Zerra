@@ -612,7 +612,7 @@ namespace Zerra.Test.CQRS.Network
 
         private static CqrsRequestData QueryRequest(Type interfaceType, string methodName, params object[] arguments) => new()
         {
-            ProviderType = interfaceType.AssemblyQualifiedName,
+            ProviderType = interfaceType.Name,
             ProviderMethod = methodName,
             ProviderArguments = arguments.Select(x => serializer.SerializeBytes(x, x.GetType())).ToArray(),
             Source = source
@@ -620,7 +620,7 @@ namespace Zerra.Test.CQRS.Network
 
         private static CqrsRequestData MessageRequest(object message, bool messageAwait, bool messageResult) => new()
         {
-            MessageType = message.GetType().AssemblyQualifiedName,
+            MessageType = message.GetType().Name,
             MessageData = serializer.SerializeBytes(message, message.GetType()),
             MessageAwait = messageAwait,
             MessageResult = messageResult,

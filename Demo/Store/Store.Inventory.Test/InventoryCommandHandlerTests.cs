@@ -1,8 +1,8 @@
 using Store.Common;
 using Store.Inventory.Domain.Commands;
 using Store.Inventory.Domain.Models;
+using Store.Inventory.Domain.Orders;
 using Store.Inventory.Service.Data;
-using Store.Orders.Domain.Events;
 using Xunit;
 using Zerra.Repository;
 

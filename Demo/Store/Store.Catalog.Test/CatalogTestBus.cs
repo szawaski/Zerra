@@ -1,5 +1,5 @@
-using Store.Carts.Domain;
 using Store.Catalog.Domain;
+using Store.Catalog.Domain.Carts;
 using Store.Catalog.Service.Data;
 using Store.Catalog.Service.Handlers;
 using Store.Common.Data;

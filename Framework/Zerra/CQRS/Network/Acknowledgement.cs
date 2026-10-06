@@ -19,11 +19,7 @@ namespace Zerra.CQRS.Network
         /// </summary>
         public byte[]? Exception { get; set; }
         /// <summary>
-        /// The data type of the result or the exception.
-        /// </summary>
-        public string? DataType { get; set; }
-        /// <summary>
-        /// The serialized data of the result or the exception.
+        /// The serialized data of the result, read as the result type the caller expects.
         /// </summary>
         public byte[]? Data { get; set; }
 
@@ -57,7 +53,6 @@ namespace Zerra.CQRS.Network
             else if (result is not null)
             {
                 var type = result.GetType();
-                this.DataType = type.AssemblyQualifiedName;
                 this.Data = serializer.SerializeBytes(result, type);
             }
         }
@@ -91,9 +86,10 @@ namespace Zerra.CQRS.Network
         /// <param name="source">The source of the acknowledgement.</param>
         /// <param name="serializer">The serializer to use for deserializing the result or exception.</param>
         /// <param name="ack">The acknowledgement for the result or failure.</param>
+        /// <param name="resultType">The expected type of the result to deserialize.</param>
         /// <returns>The result if successful which may be a null.  A failure will throw an exception.</returns>
         /// <exception cref="RemoteServiceException"></exception>
-        public static object? GetResultOrThrowIfFailed(string source, ISerializer serializer, Acknowledgement? ack)
+        public static object? GetResultOrThrowIfFailed(string source, ISerializer serializer, Acknowledgement? ack, Type resultType)
         {
             if (ack is null)
                 throw new RemoteServiceException(source, $"Failed to deserialize acknowledgement from remote service for {source}");
@@ -104,17 +100,16 @@ namespace Zerra.CQRS.Network
                 throw ex;
             }
 
-            if (ack.DataType is not null && ack.Data is not null && ack.Data.Length > 0)
+            if (ack.Data is not null && ack.Data.Length > 0)
             {
                 try
                 {
-                    var type = TypeFinder.GetTypeFromName(ack.DataType);
-                    var result = serializer.Deserialize(ack.Data, type);
+                    var result = serializer.Deserialize(ack.Data, resultType);
                     return result;
                 }
                 catch
                 {
-                    throw new RemoteServiceException(source, $"Failed to deserialize acknowledgement of type {ack.DataType} from remote service for {source}");
+                    throw new RemoteServiceException(source, $"Failed to deserialize acknowledgement of type {resultType.Name} from remote service for {source}");
                 }
             }
 

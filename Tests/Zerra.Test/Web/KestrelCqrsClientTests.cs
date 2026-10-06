@@ -37,7 +37,7 @@ namespace Zerra.Test.Web
 
             Assert.Equal(3, server.Requests.Count);
             var request = server.Requests.First();
-            Assert.Equal(typeof(ITestQueryHandler).AssemblyQualifiedName, request.Data.ProviderType);
+            Assert.Equal(typeof(ITestQueryHandler).Name, request.Data.ProviderType);
             Assert.Equal(nameof(ITestQueryHandler.GetThings), request.Data.ProviderMethod);
             Assert.Equal(21, serializer.Deserialize<int>(request.Data.ProviderArguments![0]));
             Assert.Equal(source, request.Data.Source);
@@ -175,7 +175,7 @@ namespace Zerra.Test.Web
 
             Assert.Equal(42, result);
             var request = Assert.Single(server.Requests);
-            Assert.Equal(typeof(TestCommandWithResult).AssemblyQualifiedName, request.Data.MessageType);
+            Assert.Equal(typeof(TestCommandWithResult).Name, request.Data.MessageType);
             Assert.True(request.Data.MessageAwait);
             Assert.True(request.Data.MessageResult); //the server only responds with the result when asked for it
             Assert.Equal(21, ((TestCommandWithResult)serializer.Deserialize(request.Data.MessageData!, typeof(TestCommandWithResult))!).Value);
@@ -195,8 +195,8 @@ namespace Zerra.Test.Web
                 await ((ICommandProducer)client).DispatchAsync(new TestCommand { Value = 5 }, source, TestContext.Current.CancellationToken);
 
             var request = Assert.Single(server.Requests);
-            Assert.Equal(typeof(TestCommand).AssemblyQualifiedName, request.Data.MessageType);
-            Assert.Equal(typeof(TestCommand).AssemblyQualifiedName, request.ProviderTypeHeader);
+            Assert.Equal(typeof(TestCommand).Name, request.Data.MessageType);
+            Assert.Equal(typeof(TestCommand).Name, request.ProviderTypeHeader);
             Assert.Equal(messageAwait, request.Data.MessageAwait);
             Assert.False(request.Data.MessageResult);
         }
@@ -210,7 +210,7 @@ namespace Zerra.Test.Web
             await ((IEventProducer)client).DispatchAsync(new TestEvent { Value = 7 }, source, TestContext.Current.CancellationToken);
 
             var request = Assert.Single(server.Requests);
-            Assert.Equal(typeof(TestEvent).AssemblyQualifiedName, request.Data.MessageType);
+            Assert.Equal(typeof(TestEvent).Name, request.Data.MessageType);
             Assert.Equal(7, ((TestEvent)serializer.Deserialize(request.Data.MessageData!, typeof(TestEvent))!).Value);
         }
 

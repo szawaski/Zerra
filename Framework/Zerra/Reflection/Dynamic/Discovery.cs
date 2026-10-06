@@ -2,13 +2,10 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
-using Zerra.Collections;
 
 namespace Zerra.Reflection.Dynamic
 {
@@ -36,8 +33,6 @@ namespace Zerra.Reflection.Dynamic
 
         private static readonly ConcurrentDictionary<Type, List<Type>> interfaceByType = new();
 
-        private static readonly ConcurrentFactoryDictionary<Type, string> niceFullNames = new();
-        private static readonly ConcurrentFactoryDictionary<Type, string> niceFullGenericNames = new();
 
         private static readonly HashSet<string> discoveredAssemblies = new();
         private static readonly HashSet<Type> discoveredTypes = new();
@@ -198,12 +193,12 @@ namespace Zerra.Reflection.Dynamic
                     string? interfaceTypeGenericName = null;
                     if (interfaceType.IsGenericType)
                     {
-                        interfaceTypeName = GetNiceFullName(interfaceType);
+                        interfaceTypeName = TypeNames.GetFullName(interfaceType);
                         var typeByInterfaceNameList = typeByInterfaceName.GetOrAdd(interfaceTypeName, static (key) => new());
                         if (!typeByInterfaceNameList.Contains(typeInAssembly))
                             typeByInterfaceNameList.Add(typeInAssembly);
 
-                        interfaceTypeGenericName = GetNiceFullGenericName(interfaceType);
+                        interfaceTypeGenericName = TypeNames.GetFullGenericName(interfaceType);
                         var typeByInterfaceGenericNameList = typeByInterfaceName.GetOrAdd(interfaceTypeGenericName, static (key) => new());
                         if (!typeByInterfaceGenericNameList.Contains(typeInAssembly))
                             typeByInterfaceGenericNameList.Add(typeInAssembly);
@@ -236,7 +231,7 @@ namespace Zerra.Reflection.Dynamic
 
                 if (baseType.ContainsGenericParameters)
                 {
-                    var baseTypeName = GetNiceFullName(baseType);
+                    var baseTypeName = TypeNames.GetFullName(baseType);
                     var classByBaseNameList = classByBaseTypeName.GetOrAdd(baseTypeName, static (key) => new());
                     classByBaseNameList.Add(typeInAssembly);
                 }
@@ -277,7 +272,7 @@ namespace Zerra.Reflection.Dynamic
 
             if (interfaceType.ContainsGenericParameters)
             {
-                var name = GetNiceFullName(interfaceType);
+                var name = TypeNames.GetFullName(interfaceType);
                 return typeByInterfaceName.ContainsKey(name);
             }
             else
@@ -301,7 +296,7 @@ namespace Zerra.Reflection.Dynamic
 
             if (baseType.ContainsGenericParameters)
             {
-                var name = GetNiceFullName(baseType);
+                var name = TypeNames.GetFullName(baseType);
                 return classByBaseTypeName.ContainsKey(name);
             }
             else
@@ -328,7 +323,7 @@ namespace Zerra.Reflection.Dynamic
 
             if (interfaceType.ContainsGenericParameters)
             {
-                var name = GetNiceFullName(interfaceType);
+                var name = TypeNames.GetFullName(interfaceType);
                 return classByInterfaceName.ContainsKey(name);
             }
             else
@@ -359,7 +354,7 @@ namespace Zerra.Reflection.Dynamic
             List<Type>? typeList;
             if (interfaceType.ContainsGenericParameters)
             {
-                var name = GetNiceFullName(interfaceType);
+                var name = TypeNames.GetFullName(interfaceType);
                 if (!typeByInterfaceName.TryGetValue(name, out typeList))
                 {
                     if (throwException)
@@ -408,7 +403,7 @@ namespace Zerra.Reflection.Dynamic
             List<Type>? classList;
             if (baseType.ContainsGenericParameters)
             {
-                var name = GetNiceFullName(baseType);
+                var name = TypeNames.GetFullName(baseType);
                 if (!classByBaseTypeName.TryGetValue(name, out classList))
                 {
                     if (throwException)
@@ -460,7 +455,7 @@ namespace Zerra.Reflection.Dynamic
             List<Type>? classList;
             if (interfaceType.ContainsGenericParameters)
             {
-                var name = GetNiceFullName(interfaceType);
+                var name = TypeNames.GetFullName(interfaceType);
                 if (!classByInterfaceName.TryGetValue(name, out classList))
                 {
                     if (throwException)
@@ -511,7 +506,7 @@ namespace Zerra.Reflection.Dynamic
             List<Type>? typeList;
             if (interfaceType.ContainsGenericParameters)
             {
-                var name = GetNiceFullName(interfaceType);
+                var name = TypeNames.GetFullName(interfaceType);
                 if (!typeByInterfaceName.TryGetValue(name, out typeList))
                     return Type.EmptyTypes;
             }
@@ -540,7 +535,7 @@ namespace Zerra.Reflection.Dynamic
             List<Type>? typeList;
             if (baseType.ContainsGenericParameters)
             {
-                var name = GetNiceFullName(baseType);
+                var name = TypeNames.GetFullName(baseType);
                 if (!classByBaseTypeName.TryGetValue(name, out typeList))
                     return Type.EmptyTypes;
             }
@@ -572,7 +567,7 @@ namespace Zerra.Reflection.Dynamic
             List<Type>? classList;
             if (interfaceType.ContainsGenericParameters)
             {
-                var name = GetNiceFullName(interfaceType);
+                var name = TypeNames.GetFullName(interfaceType);
                 if (!classByInterfaceName.TryGetValue(name, out classList))
                     return Type.EmptyTypes;
             }
@@ -654,178 +649,6 @@ namespace Zerra.Reflection.Dynamic
             if (!typeByAttribute.TryGetValue(attribute, out var classList))
                 return Type.EmptyTypes;
             return classList;
-        }
-
-        private static string GetNiceFullName(Type it)
-        {
-            if (it is null)
-                return "null";
-            var name = niceFullNames.GetOrAdd(it, static (it) => GenerateNiceName(it, false));
-            return name;
-        }
-
-        private static string GetNiceFullGenericName(Type it)
-        {
-            if (it is null)
-                return "null";
-            var name = niceFullGenericNames.GetOrAdd(it, static (it) => GenerateNiceName(it, true));
-            return name;
-        }
-
-        private static string GenerateNiceName(Type type, bool generic)
-        {
-            if (type.IsGenericType && (generic || type.ContainsGenericParameters))
-            {
-                var span = type.Name.AsSpan();
-                var i = 0;
-                for (; i < span.Length; i++)
-                {
-                    if (span[i] == '`')
-                        break;
-                }
-
-#if NETSTANDARD2_0
-                var name = span.Slice(0, i).ToString();
-#else
-                var name = span.Slice(0, i);
-#endif
-
-                //Have to inspect because inner generics or partially constructed generics won't work
-                var parameters = type.GetGenericArguments();
-
-                var sb = new StringBuilder();
-
-                if (type.Namespace is not null)
-                    _ = sb.Append(type.Namespace).Append('.');
-                _ = sb.Append(name).Append('<');
-
-                for (var j = 0; j < parameters.Length; j++)
-                {
-                    if (j > 0)
-                        _ = sb.Append(',');
-                    var parameter = parameters[j];
-                    if (parameter.IsGenericParameter || generic)
-                        _ = sb.Append('T');
-                    else
-                        _ = sb.Append(GetNiceFullName(parameter));
-                }
-
-                _ = sb.Append('>');
-                return sb.ToString();
-            }
-            else if ((type.IsGenericType || type.IsArray) && type.FullName is not null)
-            {
-                var sb = new StringBuilder();
-
-                var openGeneric = 0;
-                var openGenericArray = 0;
-                var nameStart = 0;
-                var inArray = false;
-                var span = type.FullName.AsSpan();
-                var i = 0;
-                for (; i < span.Length; i++)
-                {
-                    var c = span[i];
-                    switch (c)
-                    {
-                        case '[':
-                            if (nameStart == -1)
-                            {
-                                if (openGeneric == openGenericArray)
-                                {
-                                    openGeneric++;
-                                }
-                                else
-                                {
-                                    openGenericArray++;
-                                    if (nameStart != -1)
-                                    {
-#if NETSTANDARD2_0
-                                        sb.Append(span.Slice(nameStart, i - 1 - nameStart).ToString());
-#else
-                                        sb.Append(span.Slice(nameStart, i - 1 - nameStart));
-#endif
-                                        nameStart = -1;
-                                    }
-                                    nameStart = i + 1;
-                                    if (i > 0 && span[i - 1] != ',')
-                                        sb.Append('<');
-                                }
-                            }
-                            else
-                            {
-#if NETSTANDARD2_0
-                                sb.Append(span.Slice(nameStart, i + 1 - nameStart).ToString());
-#else
-                                sb.Append(span.Slice(nameStart, i + 1 - nameStart));
-#endif
-                                nameStart = -1;
-                                inArray = true;
-                            }
-                            break;
-                        case ',':
-                            if (inArray)
-                            {
-                                sb.Append(',');
-                            }
-                            else if (openGenericArray != openGeneric)
-                            {
-                                sb.Append(',');
-                            }
-                            else if (nameStart != -1)
-                            {
-#if NETSTANDARD2_0
-                                sb.Append(span.Slice(nameStart, i - nameStart).ToString());
-#else
-                                sb.Append(span.Slice(nameStart, i - nameStart));
-#endif
-                                nameStart = -1;
-                            }
-                            break;
-                        case '`':
-                            if (nameStart != -1)
-                            {
-#if NETSTANDARD2_0
-                                sb.Append(span.Slice(nameStart, i - nameStart).ToString());
-#else
-                                sb.Append(span.Slice(nameStart, i - nameStart));
-#endif
-                                nameStart = -1;
-                            }
-                            break;
-                        case ']':
-                            if (inArray)
-                            {
-                                sb.Append(']');
-                                inArray = false;
-                            }
-                            else if (nameStart == -1)
-                            {
-                                if (openGenericArray == openGeneric)
-                                {
-                                    openGenericArray--;
-                                }
-                                else
-                                {
-                                    openGeneric--;
-                                    nameStart = i + 1;
-                                    sb.Append('>');
-                                }
-                            }
-                            break;
-                    }
-                }
-
-                return sb.ToString();
-            }
-            else
-            {
-                if (type.FullName is not null)
-                    return type.FullName;
-                if (type.Namespace is not null)
-                    return $"{type.Namespace}.{type.Name}";
-                return type.Name;
-            }
         }
     }
 }

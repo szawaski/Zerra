@@ -89,10 +89,14 @@ namespace Zerra.Web
         /// <param name="eventConsumerMode">Not used for Kestrel; the producer's client urls decide whether every replica or one of them receives each event.</param>
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode)
         {
-            if (settings.Types.ContainsKey(type))
+            if (settings.Types.TryGetValue(type.Name, out var registered))
+            {
+                if (registered.Type != type)
+                    throw new InvalidOperationException($"{type.FullName} has the same name as {registered.Type.FullName}, the name is what's sent between services");
                 return;
+            }
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-            if (!settings.Types.TryAdd(type, throttle))
+            if (!settings.Types.TryAdd(type.Name, (type, throttle)))
                 throttle.Dispose();
         }
     }

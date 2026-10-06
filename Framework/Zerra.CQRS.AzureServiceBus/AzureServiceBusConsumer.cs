@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections.Concurrent;
 using Azure.Messaging.ServiceBus;
 using Zerra.Compression;
 using Zerra.Encryption;
@@ -29,8 +30,8 @@ namespace Zerra.CQRS.AzureServiceBus
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
         private readonly Dictionary<string, EventConsumer> eventExchanges;
-        private readonly HashSet<Type> commandTypes;
-        private readonly HashSet<Type> eventTypes;
+        private readonly ConcurrentDictionary<string, Type> commandTypes;
+        private readonly ConcurrentDictionary<string, Type> eventTypes;
         private readonly ServiceBusClient client;
 
         private bool isOpen;
@@ -188,11 +189,12 @@ namespace Zerra.CQRS.AzureServiceBus
 
             lock (commandExchanges)
             {
-                if (!commandTypes.Add(type))
-                    return;
+                var existing = commandTypes.GetOrAdd(type.Name, type);
+                if (existing != type)
+                    throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, commandTypes, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
                 OpenExchanges();
             }
         }
@@ -204,11 +206,12 @@ namespace Zerra.CQRS.AzureServiceBus
 
             lock (eventExchanges)
             {
-                if (!eventTypes.Add(type))
-                    return;
+                var existing = eventTypes.GetOrAdd(type.Name, type);
+                if (existing != type)
+                    throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, serializer, encryptor, compressor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, eventTypes, serializer, encryptor, compressor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync));
                 OpenExchanges();
             }
         }

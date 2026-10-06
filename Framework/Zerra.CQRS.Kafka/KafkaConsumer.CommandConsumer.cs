@@ -10,7 +10,6 @@ using System.Text;
 using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Reflection;
 using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.Kafka
@@ -27,6 +26,7 @@ namespace Zerra.CQRS.Kafka
             private readonly TimeSpan busyPollInterval;
             private readonly string topic;
             private readonly string clientID;
+            private readonly ConcurrentDictionary<string, Type> commandTypes;
             private readonly Zerra.Serialization.ISerializer serializer;
             private readonly IEncryptor? encryptor;
             private readonly ICompressor? compressor;
@@ -69,7 +69,7 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
-            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync, int? maxPollIntervalMs)
+            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string topic, ConcurrentDictionary<string, Type> commandTypes, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync, int? maxPollIntervalMs)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -84,6 +84,7 @@ namespace Zerra.CQRS.Kafka
                 if (truncated)
                     log?.Warn($"{nameof(KafkaConsumer)} truncated the command topic to {KafkaCommon.TopicMaxLength} characters: {this.topic}. Another topic truncating to the same name would be consumed as this one.");
                 this.clientID = Environment.MachineName;
+                this.commandTypes = commandTypes;
                 this.serializer = serializer;
                 this.encryptor = encryptor;
                 this.compressor = compressor;
@@ -262,7 +263,9 @@ namespace Zerra.CQRS.Kafka
                         if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                             throw new Exception("Invalid Message");
 
-                        var command = serializer.Deserialize(message.MessageData, TypeFinder.GetTypeFromName(message.MessageType)) as ICommand;
+                        if (!commandTypes.TryGetValue(message.MessageType, out var commandType))
+                            throw new Exception($"Unhandled Message Type {message.MessageType}");
+                        var command = serializer.Deserialize(message.MessageData, commandType) as ICommand;
                         if (command is null)
                             throw new Exception("Invalid Message");
 

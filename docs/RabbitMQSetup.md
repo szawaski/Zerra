@@ -84,7 +84,7 @@ else
     bus.AddEventProducer<IOrderEventHandler>(new TcpCqrsClient("localhost:9102", serializer, encryptor, null, log));
 ```
 
-`Demo/Store` does this for order events, in `Store.Orders.Service`, `Store.Inventory.Service`, and `Store.Shipping.Service`.
+`Demo/Store` does this for order events, in `Store.Orders`, `Store.Inventory`, and `Store.Shipping`.
 
 ## Names
 

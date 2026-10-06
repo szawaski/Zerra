@@ -21,7 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Store.Shipping.Service\Store.Shipping.Service.csproj" />
+        <ProjectReference Include="..\Store.Shipping\Store.Shipping.csproj" />
     </ItemGroup>
 
     <ItemGroup>

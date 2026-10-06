@@ -265,10 +265,10 @@ namespace Zerra.Web
                     if (data.ProviderArguments is null) throw new Exception("Invalid Request");
                     if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
 
-                    var providerType = TypeFinder.GetTypeFromName(data.ProviderType);
-
-                    if (!settings.Types.TryGetValue(providerType, out var providerThrottle))
-                        throw new Exception($"{providerType.Name} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
+                    if (!settings.Types.TryGetValue(data.ProviderType, out var provider))
+                        throw new Exception($"{data.ProviderType} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
+                    var providerType = provider.Type;
+                    var providerThrottle = provider.Throttle;
 
                     await providerThrottle.WaitAsync(context.RequestAborted);
                     throttle = providerThrottle; //only released once taken, a request canceled while waiting has nothing to release
@@ -450,11 +450,11 @@ namespace Zerra.Web
                     if (data.MessageData is null) throw new Exception("Invalid Request");
                     if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
 
-                    var messageType = TypeFinder.GetTypeFromName(data.MessageType);
+                    if (!settings.Types.TryGetValue(data.MessageType, out var message))
+                        throw new Exception($"{data.MessageType} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
+                    var messageType = message.Type;
+                    var messageThrottle = message.Throttle;
                     var typeDetail = TypeAnalyzer.GetTypeDetail(messageType);
-
-                    if (!settings.Types.TryGetValue(messageType, out var messageThrottle))
-                        throw new Exception($"{messageType.Name} is not registered with {nameof(KestrelCqrsServerMiddleware)}");
 
                     await messageThrottle.WaitAsync(context.RequestAborted);
                     throttle = messageThrottle; //only released once taken, a request canceled while waiting has nothing to release

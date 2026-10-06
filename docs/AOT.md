@@ -49,7 +49,7 @@ It also generates:
 
 `[IgnoreGenerateTypeDetail]` excludes a type.
 
-Everything is registered by a module initializer in `ZerraSourceGenerationInitializer.cs`, so nothing needs calling at startup. It prints one line per assembly, such as `Source Generation Startup - Store.Catalog.Service: 12 ms`. That line is expected.
+Everything is registered by a module initializer in `ZerraSourceGenerationInitializer.cs`, so nothing needs calling at startup. It prints one line per assembly, such as `Source Generation Startup - Store.Catalog: 12 ms`. That line is expected.
 
 To read the generated code, expand **Dependencies → Analyzers → Zerra.SourceGeneration** in Visual Studio, or set `<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>` and look under `obj/Debug/net10.0/generated/Zerra.SourceGeneration/`.
 

@@ -53,7 +53,7 @@ namespace Zerra.Test.Web
         {
             var settings = new KestrelCqrsServerLinkedSettings(null, null, ContentType.Bytes);
             var throttle = new SemaphoreSlim(1, 1);
-            Assert.True(settings.Types.TryAdd(typeof(string), throttle));
+            Assert.True(settings.Types.TryAdd(nameof(String), (typeof(string), throttle)));
             Assert.True(throttle.Wait(0, TestContext.Current.CancellationToken)); //a request in progress
 
             settings.Dispose();
@@ -71,9 +71,9 @@ namespace Zerra.Test.Web
             bus.AddCommandConsumer<BusTests.ITestCommandHandler>(new KestrelCqrsServerCommandConsumer(settings));
             bus.AddCommandConsumer<BusTests.ISecondTestCommandHandler>(new KestrelCqrsServerCommandConsumer(settings));
             bus.AddEventConsumer<BusTests.ITestEventHandler>(new KestrelCqrsServerEventConsumer(settings), EventConsumerMode.PerReplica);
-            Assert.Contains(typeof(BusTests.TestCommand), settings.Types.Keys);
-            Assert.Contains(typeof(BusTests.SecondTestCommand), settings.Types.Keys);
-            Assert.Contains(typeof(BusTests.TestEvent), settings.Types.Keys);
+            Assert.Contains(nameof(BusTests.TestCommand), settings.Types.Keys);
+            Assert.Contains(nameof(BusTests.SecondTestCommand), settings.Types.Keys);
+            Assert.Contains(nameof(BusTests.TestEvent), settings.Types.Keys);
 
             var otherBus = Bus.New("other-service", null, null, null);
             _ = Assert.Throws<InvalidOperationException>(() => otherBus.AddCommandConsumer<BusTests.ITestCommandHandler>(new KestrelCqrsServerCommandConsumer(settings)));

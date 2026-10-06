@@ -1,6 +1,4 @@
-using Store.Orders.Domain;
-using Store.Orders.Domain.Commands;
-using Store.Orders.Domain.Models;
+using Store.Carts.Domain.Orders;
 using Zerra.CQRS;
 
 namespace Store.Carts.Test
@@ -21,13 +19,5 @@ namespace Store.Carts.Test
             PlacedOrders.Add(command);
             return Task.FromResult(new PlaceOrderResult() { OrderID = Guid.NewGuid(), OrderNumber = $"SO-TEST-{PlacedOrders.Count}", Total = 100m * PlacedOrders.Count });
         }
-
-        public Task<string> GetDataStoreName(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<string> GetMessagingName(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<OrderModel[]> GetOrders(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<OrderModel> GetOrder(Guid orderID, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<bool> HasPurchased(Guid customerID, Guid productID, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task Handle(CancelOrderCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task Handle(ShipOrderCommand command, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

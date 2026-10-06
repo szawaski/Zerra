@@ -62,7 +62,7 @@ namespace Zerra.CQRS.Network
 
                 var data = new CqrsRequestData()
                 {
-                    ProviderType = interfaceType.AssemblyQualifiedName ?? throw new ArgumentException("Handler interface must have AssemblyQualifiedName"),
+                    ProviderType = interfaceType.Name,
                     ProviderMethod = methodName,
 
                     Claims = claims,
@@ -301,7 +301,7 @@ namespace Zerra.CQRS.Network
 
                 var data = new CqrsRequestData()
                 {
-                    ProviderType = interfaceType.AssemblyQualifiedName ?? throw new ArgumentException("Handler interface must have AssemblyQualifiedName"),
+                    ProviderType = interfaceType.Name,
                     ProviderMethod = methodName,
 
                     Claims = claims,
@@ -592,7 +592,7 @@ namespace Zerra.CQRS.Network
             var isThrowingRemote = false;
             try
             {
-                var messageTypeName = commandType.AssemblyQualifiedName ?? throw new InvalidOperationException("Type must have AssemblyQualifiedName");
+                var messageTypeName = commandType.Name;
 
                 var messageData = serializer.SerializeBytes(command, commandType);
 
@@ -843,7 +843,7 @@ namespace Zerra.CQRS.Network
             var isThrowingRemote = false;
             try
             {
-                var messageTypeName = commandType.AssemblyQualifiedName ?? throw new ArgumentException("Command type must have AssemblyQualifiedName");
+                var messageTypeName = commandType.Name;
 
                 var messageData = serializer.SerializeBytes(command, commandType);
 
@@ -1106,7 +1106,7 @@ namespace Zerra.CQRS.Network
             var isThrowingRemote = false;
             try
             {
-                var messageTypeName = eventType.AssemblyQualifiedName ?? throw new ArgumentException("Event type must have AssemblyQualifiedName");
+                var messageTypeName = eventType.Name;
 
                 var messageData = serializer.SerializeBytes(@event, eventType);
 

@@ -21,13 +21,27 @@ Keep samples focused on Zerra: handlers read and write data models through `IRep
 
 ### Solution Layout
 
+The contracts are the query interfaces, commands, events, the models they carry, and the handler interfaces. Services find each other's contracts by type name, not namespace or assembly, so there are two ways to lay them out. Either way, services never share data models or handlers.
+
+**Shared domain projects** (`Demo/Pets`). Each service publishes its contracts in a project that its callers reference.
+
 | Project | Contains | References |
 |---|---|---|
-| `X.Domain` | Contracts: query interfaces, commands, events, the models they carry, and handler interfaces | `Zerra`. Set `IsAotCompatible` |
+| `X.Domain` | The service's contracts | `Zerra`. Set `IsAotCompatible` |
 | `X.Service` | Handler classes, data models, and `Program.cs` that builds the bus | its own `X.Domain`, plus the `X.Domain` of each service it calls, `Zerra`, `Zerra.Repository.*` |
 | `X.Web` (optional) | ASP.NET app hosting the CQRS API gateway and the static pages | every `X.Domain` it forwards, `Zerra.Web` |
 
-Services share only `*.Domain` projects, never each other's data models or handlers.
+**Copies in each service** (`Demo/Store`). Each service is one project that keeps its own copy of the contracts it uses from other services.
+
+| Project | Contains | References |
+|---|---|---|
+| `X` | `Domain/` with the service's contracts, `Domain/<OtherService>/` with copies of the contracts it uses, `Service/` with handlers and data models, and `Program.cs` | `Zerra`, `Zerra.Repository.*` |
+| `X.Web` (optional) | ASP.NET app hosting the gateway and the static pages, with copies of every contract it forwards | `Zerra.Web` |
+
+Choosing between them:
+
+- **Shared** keeps each contract in one place. A change is made once, and the compiler catches every caller it breaks. The services build against each other's projects, so they're tied together in source control and releases.
+- **Copies** isolate the services. Each one builds and deploys from its own repository and pipeline with no shared project to version, and a copy holds only what that service uses, such as an interface trimmed to the methods it calls. A contract change has to be made in every copy. A copy keeps its members in the same order as the original, since `ZerraByteSerializer` matches members by order unless they have `[SerializerIndex]`.
 
 ### Project Setup
 
@@ -142,7 +156,7 @@ bus.AddEventProducer<IOrderEventHandler>(inventoryClient);   //TcpCqrsClient
 bus.AddEventProducer<IOrderEventHandler>(shippingClient);    //KestrelCqrsClient
 ```
 
-See `Store.Orders.Service/Program.cs`. A message broker producer (Kafka/RabbitMQ/AzureServiceBus) only needs registering once, the broker delivers each event to every subscribed consumer on its own.
+See `Store.Orders/Program.cs`. A message broker producer (Kafka/RabbitMQ/AzureServiceBus) only needs registering once, the broker delivers each event to every subscribed consumer on its own.
 
 That means every *replica* of each subscriber too, so each subscriber's handler has to be correct when several instances run it at the same time, unless that subscriber registers its consumer with `EventConsumerMode.PerService`. See [Command or Event?](#command-or-event-read-this-first).
 
@@ -167,7 +181,7 @@ app.UseCqrsApiGateway("/CQRS");
 ### Browser Clients
 
 - Copy `Front End Scripts/JavaScript/Bus.js` (jQuery) or `Front End Scripts/TypeScript/Bus.ts` (fetch) into the site.
-- Generate the typed client from the `*.Domain` sources with a T4 template that calls `Zerra.T4.CQRSClientDomain.GenerateJavaScript(folder)` or `GenerateTypeScript(folder)`, using `Front End Scripts/Binaries/Zerra.T4.dll`. See `Demo/Store/Store.Web/wwwroot/js/JavaScriptModels.tt`. Scan only your own folder, and regenerate after changing contracts.
+- Generate the typed client from the contract sources with a T4 template that calls `Zerra.T4.CQRSClientDomain.GenerateJavaScript(folder)` or `GenerateTypeScript(folder)`, using `Front End Scripts/Binaries/Zerra.T4.dll`. See `Demo/Store/Store.Web/wwwroot/js/JavaScriptModels.tt`. Scan only your own folder, and regenerate after changing contracts.
 - Generated query functions omit the trailing `CancellationToken`.
 
 ### Errors
@@ -224,7 +238,7 @@ So: **`PerReplica` work has to be correct when every replica does it.** Dropping
 
 One state change often needs both, for two reasons. In `Demo/Store`, a price change dispatches `ProductPriceChangedEvent` so every Carts and Reviews replica drops its cached product, and `RepriceCartItemsCommand` so the carts are repriced once. Service-to-service commands go on their own interface that the web gateway does not register (`ICartRepricingHandler`, `IStockReservationHandler`), so browsers cannot send them. The same demo has the `PerService` case too: shipping an order publishes `OrderShippedEvent`, and Inventory and Shipping each subscribe `PerService` so one replica of each settles the reservation and creates the shipment.
 
-**Aggregate events are a third thing, not covered by any of this.** The events an `AggregateRoot` appends to its stream are the aggregate's state, replayed by `Rebuild`, read by nobody else. They implement `Zerra.Repository.IAggregateEvent`, never `IEvent`; `Append` and `Delete` require it, and source generation uses it to emit their type detail. They never go on the bus and they live with the aggregate in the service project, not in a shared `*.Domain`. See [Events](Events.md#aggregate-events-are-not-cqrs-events) and `Store.Carts.Service/Aggregates/`.
+**Aggregate events are a third thing, not covered by any of this.** The events an `AggregateRoot` appends to its stream are the aggregate's state, replayed by `Rebuild`, read by nobody else. They implement `Zerra.Repository.IAggregateEvent`, never `IEvent`; `Append` and `Delete` require it, and source generation uses it to emit their type detail. They never go on the bus and they live with the aggregate in the service project, not in a shared `*.Domain`. See [Events](Events.md#aggregate-events-are-not-cqrs-events) and `Store.Carts/Service/Aggregates/`.
 
 Idempotent handlers cover redelivery to the same replica. They do not stop several replicas doing the work at once, which is what the command/event choice is for. See [Events](Events.md#events-are-fanned-out-to-every-replica).
 
@@ -412,7 +426,7 @@ Both close the servers and consumers so they receive nothing new, dispose them (
 
 The Store demo checks each broker at startup and falls back to direct TCP/HTTP when it isn't running: the sender registers either the broker's producer or the direct client, and the receiver makes the same check and registers either the broker's consumer or its direct consumer, so both ends pick the same route. See "Message brokers" in `Demo/Store/README.md`.
 
-Types the brokers serialize must work without dynamic code (an app with `PublishAot` disables it even under `dotnet run`): messages are serialized by their runtime type, the envelopes carry the message type as an assembly qualified name resolved by `TypeFinder`, and the envelope and `Acknowledgement` classes have `[GenerateTypeDetail]` with public setters, since the source generator only sets public properties.
+Types the brokers serialize must work without dynamic code (an app with `PublishAot` disables it even under `dotnet run`): messages are serialized by their runtime type, the envelopes carry the message type by name, resolved against the types registered with the consumer, and the envelope and `Acknowledgement` classes have `[GenerateTypeDetail]` with public setters, since the source generator only sets public properties.
 
 ### HTTP/Network
 - `TcpCqrsServer` / `HttpCqrsServer` act as query servers and command/event consumers

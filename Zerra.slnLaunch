@@ -3,32 +3,32 @@
     "Name": "Store Demo (In Memory, Direct Messaging)",
     "Projects": [
       {
-        "Path": "Demo\\Store\\Store.Catalog.Service\\Store.Catalog.Service.csproj",
+        "Path": "Demo\\Store\\Store.Catalog\\Store.Catalog.csproj",
         "Action": "Start",
         "DebugTarget": "In Memory, Direct Messaging"
       },
       {
-        "Path": "Demo\\Store\\Store.Inventory.Service\\Store.Inventory.Service.csproj",
+        "Path": "Demo\\Store\\Store.Inventory\\Store.Inventory.csproj",
         "Action": "Start",
         "DebugTarget": "In Memory, Direct Messaging"
       },
       {
-        "Path": "Demo\\Store\\Store.Orders.Service\\Store.Orders.Service.csproj",
+        "Path": "Demo\\Store\\Store.Orders\\Store.Orders.csproj",
         "Action": "Start",
         "DebugTarget": "In Memory, Direct Messaging"
       },
       {
-        "Path": "Demo\\Store\\Store.Shipping.Service\\Store.Shipping.Service.csproj",
+        "Path": "Demo\\Store\\Store.Shipping\\Store.Shipping.csproj",
         "Action": "Start",
         "DebugTarget": "In Memory, Direct Messaging"
       },
       {
-        "Path": "Demo\\Store\\Store.Reviews.Service\\Store.Reviews.Service.csproj",
+        "Path": "Demo\\Store\\Store.Reviews\\Store.Reviews.csproj",
         "Action": "Start",
         "DebugTarget": "In Memory, Direct Messaging"
       },
       {
-        "Path": "Demo\\Store\\Store.Carts.Service\\Store.Carts.Service.csproj",
+        "Path": "Demo\\Store\\Store.Carts\\Store.Carts.csproj",
         "Action": "Start",
         "DebugTarget": "In Memory, Direct Messaging"
       },
@@ -43,32 +43,32 @@
     "Name": "Store Demo (Databases, Message Brokers)",
     "Projects": [
       {
-        "Path": "Demo\\Store\\Store.Catalog.Service\\Store.Catalog.Service.csproj",
+        "Path": "Demo\\Store\\Store.Catalog\\Store.Catalog.csproj",
         "Action": "Start",
         "DebugTarget": "Databases, Message Brokers"
       },
       {
-        "Path": "Demo\\Store\\Store.Inventory.Service\\Store.Inventory.Service.csproj",
+        "Path": "Demo\\Store\\Store.Inventory\\Store.Inventory.csproj",
         "Action": "Start",
         "DebugTarget": "Databases, Message Brokers"
       },
       {
-        "Path": "Demo\\Store\\Store.Orders.Service\\Store.Orders.Service.csproj",
+        "Path": "Demo\\Store\\Store.Orders\\Store.Orders.csproj",
         "Action": "Start",
         "DebugTarget": "Databases, Message Brokers"
       },
       {
-        "Path": "Demo\\Store\\Store.Shipping.Service\\Store.Shipping.Service.csproj",
+        "Path": "Demo\\Store\\Store.Shipping\\Store.Shipping.csproj",
         "Action": "Start",
         "DebugTarget": "Databases, Message Brokers"
       },
       {
-        "Path": "Demo\\Store\\Store.Reviews.Service\\Store.Reviews.Service.csproj",
+        "Path": "Demo\\Store\\Store.Reviews\\Store.Reviews.csproj",
         "Action": "Start",
         "DebugTarget": "Databases, Message Brokers"
       },
       {
-        "Path": "Demo\\Store\\Store.Carts.Service\\Store.Carts.Service.csproj",
+        "Path": "Demo\\Store\\Store.Carts\\Store.Carts.csproj",
         "Action": "Start",
         "DebugTarget": "Databases, Message Brokers"
       },

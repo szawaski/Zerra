@@ -28,12 +28,12 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $projects = @(
-    'Store.Catalog.Service',
-    'Store.Inventory.Service',
-    'Store.Orders.Service',
-    'Store.Shipping.Service',
-    'Store.Reviews.Service',
-    'Store.Carts.Service',
+    'Store.Catalog',
+    'Store.Inventory',
+    'Store.Orders',
+    'Store.Shipping',
+    'Store.Reviews',
+    'Store.Carts',
     'Store.Web'
 )
 
@@ -56,7 +56,7 @@ try {
         #a published exe has no launchSettings.json, the two ASP.NET Core services need their listen address set explicitly
         $urlSetter = switch ($project) {
             'Store.Web' { "`$env:ASPNETCORE_URLS = 'http://localhost:5100'; " }
-            'Store.Shipping.Service' { "`$env:ASPNETCORE_URLS = 'http://localhost:9105'; " }
+            'Store.Shipping' { "`$env:ASPNETCORE_URLS = 'http://localhost:9105'; " }
             default { '' }
         }
 

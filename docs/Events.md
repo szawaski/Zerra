@@ -133,7 +133,7 @@ Two different things in Zerra are called events, and the rules above apply to on
 Because they are different things, they are written differently:
 
 - **An aggregate event implements `IAggregateEvent`, not `IEvent`.** `IEvent` marks a bus message, and an aggregate event is never one. `AggregateRoot.Append<TEvent>` and `Delete<TEvent>` require `IAggregateEvent`, and source generation uses the same marker to emit the type detail the event needs to be serialized into the stream in a trimmed or native AOT build.
-- **It lives with the aggregate, not in a shared contracts project.** No other domain reads it, so putting it in a `*.Domain` assembly next to the commands and queries advertises it as something other services can subscribe to. `Demo/Store` keeps `CartItemAddedEvent` in `Store.Carts.Service/Aggregates/` beside `CartAggregate`, not in `Store.Carts.Domain`.
+- **It lives with the aggregate, not with the contracts.** No other domain reads it, so putting it next to the commands and queries advertises it as something other services can subscribe to. `Demo/Store` keeps `CartItemAddedEvent` in `Store.Carts/Service/Aggregates/` beside `CartAggregate`, not in `Store.Carts/Domain/`.
 - **It never goes on the bus.** `Append` writes it to the stream and stops there.
 
 And the reasoning about them is different:
@@ -160,7 +160,7 @@ namespace Store.Carts.Service.Aggregates        //with the aggregate, in the ser
 }
 ```
 
-When something outside the service does need to know, the handler that appended the event dispatches a CQRS event or a command of its own, and that one is a contract: it implements `IEvent` or `ICommand` and lives in the domain project. Choosing between those two is what the section above is about.
+When something outside the service does need to know, the handler that appended the event dispatches a CQRS event or a command of its own, and that one is a contract: it implements `IEvent` or `ICommand` and lives with the contracts. Choosing between those two is what the section above is about.
 
 ## Defining Events
 
@@ -308,7 +308,7 @@ A handler can receive the same event twice, for example after a consumer restart
 
 ## Event Sourcing
 
-To keep an aggregate's history as its source of truth, derive it from `AggregateRoot` and append `IAggregateEvent` types to its stream. Those events are its state, not bus messages, so none of the fanout rules above apply to them. See [Aggregate Events Are Not CQRS Events](#aggregate-events-are-not-cqrs-events) and `Demo/Store/Store.Carts.Service/Aggregates/CartAggregate.cs`.
+To keep an aggregate's history as its source of truth, derive it from `AggregateRoot` and append `IAggregateEvent` types to its stream. Those events are its state, not bus messages, so none of the fanout rules above apply to them. See [Aggregate Events Are Not CQRS Events](#aggregate-events-are-not-cqrs-events) and `Demo/Store/Store.Carts/Service/Aggregates/CartAggregate.cs`.
 
 When other services need to know about a change, the command handler that appended the aggregate event also dispatches a CQRS event or command.
 

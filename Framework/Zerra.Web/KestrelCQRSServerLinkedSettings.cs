@@ -18,9 +18,9 @@ namespace Zerra.Web
     public sealed class KestrelCqrsServerLinkedSettings : IDisposable
     {
         /// <summary>
-        /// Gets the dictionary mapping CQRS types to their concurrency throttle semaphores.
+        /// Gets the dictionary mapping CQRS type names to the types and their concurrency throttle semaphores.
         /// </summary>
-        public ConcurrentDictionary<Type, SemaphoreSlim> Types { get; }
+        public ConcurrentDictionary<string, (Type Type, SemaphoreSlim Throttle)> Types { get; }
 
         /// <summary>
         /// Gets or sets the command counter for tracking command processing limits.

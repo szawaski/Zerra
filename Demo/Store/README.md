@@ -24,6 +24,8 @@ flowchart LR
 
 Solid lines are queries and commands, dotted lines are events. Services also query each other, for example Orders, Reviews, and Carts all read products from Catalog. Service-to-service traffic is binary and encrypted, over TCP, or over HTTP for Shipping, which is hosted in ASP.NET Core. Traffic to and from Catalog is also compressed with Deflate, since its product lists and CSV export and import are large; the other messages are too small to gain from it.
 
+Each service is one project with a `Domain` folder for its contracts and a `Service` folder for its handlers and data. Services don't reference each other: a service keeps its own copy of the contracts it uses from another service, in `Domain/<Service>/`, and only the type names have to match, not the namespaces. A copy keeps its members in the same order as the original, since the binary serializer matches members by order. Store.Web has copies of every contract the browser calls.
+
 ## Run It
 
 **Visual Studio (17.11 or later):** choose the **Store Demo (In Memory, Direct Messaging)** launch profile and press F5. All seven projects start and the browser opens `http://localhost:5100`. No databases or brokers are needed.
@@ -52,18 +54,19 @@ To run the real databases and brokers in Docker, use `Demo/Infrastructure/start-
 | Feature | Where |
 |---|---|
 | Browser gateway | `Store.Web/Program.cs` |
-| A service: handlers, server, clients to other services | `Store.*.Service/Program.cs` |
-| Handlers | `Store.*.Service/Handlers/` |
+| A service: handlers, server, clients to other services | `Store.*/Program.cs` |
+| Handlers | `Store.*/Service/Handlers/` |
 | Command with a result, awaited across services | `ReserveStockCommand` from Orders to Inventory |
 | One change that needs both a command and an event | `CatalogCommandHandler.Handle(ChangeProductPriceCommand)` |
-| Event handled on every replica (`PerReplica`) | `Store.Carts.Service/Handlers/CatalogEventHandler.cs`, which drops the replica's cached product |
-| Event handled once per service (`PerService`) | `OrderShippedEvent`, subscribed in `Store.Inventory.Service` and `Store.Shipping.Service` |
-| Service hosted in ASP.NET Core instead of TCP | `Store.Shipping.Service/Program.cs` |
+| Event handled on every replica (`PerReplica`) | `Store.Carts/Service/Handlers/CatalogEventHandler.cs`, which drops the replica's cached product |
+| Event handled once per service (`PerService`) | `OrderShippedEvent`, subscribed in `Store.Inventory` and `Store.Shipping` |
+| Service hosted in ASP.NET Core instead of TCP | `Store.Shipping/Program.cs` |
 | Message brokers with a fallback to direct calls | `Program.cs` in Orders, Inventory, Shipping, Reviews, and Store.Web |
-| Event sourcing with `AggregateRoot` | `Store.Carts.Service/Aggregates/CartAggregate.cs` |
-| Repository with a database per service and in-memory fallback | `Store.*.Service/Data/`, `Store.Common/Data/DataStoreSetup.cs` |
+| Event sourcing with `AggregateRoot` | `Store.Carts/Service/Aggregates/CartAggregate.cs` |
+| Repository with a database per service and in-memory fallback | `Store.*/Service/Data/`, `Store.Common/Data/DataStoreSetup.cs` |
 | Streaming queries, download and upload | `ICatalogQueryHandler.ExportProductsCsv` and `PreviewProductImport` |
 | Browser calls with generated clients | `Store.Web/wwwroot/js/` |
+| Each service's own contracts, and its copies of the contracts it uses from other services | `Store.*/Domain/`, for example `Store.Carts/Domain/Catalog/` |
 | Handler tests on an in-memory bus | `Store.*.Test` |
 
 Why each message is a command or an event is explained in [Command or Event?](../../docs/Agents.md#command-or-event-read-this-first) and [Events](../../docs/Events.md#choosing-per-replica-or-per-service). The cart's own stream events are aggregate events, not bus messages; see [Events](../../docs/Events.md#aggregate-events-are-not-cqrs-events).
@@ -123,7 +126,7 @@ Zerra and the Store projects publish with no trim or AOT warnings. Some database
 
 ## Regenerating the JavaScript Models
 
-`Store.Web/wwwroot/js/JavaScriptModels.js` is generated from the `*.Domain` projects by `JavaScriptModels.tt`. Visual Studio runs the template when it's saved.
+`Store.Web/wwwroot/js/JavaScriptModels.js` is generated from the contracts in `Store.Web/Domain` by `JavaScriptModels.tt`. Visual Studio runs the template when it's saved.
 
 ## Simplifications
 

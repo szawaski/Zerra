@@ -9,7 +9,7 @@ using RabbitMQ.Client.Events;
 using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Reflection;
+using System.Collections.Concurrent;
 using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMQ
@@ -22,6 +22,7 @@ namespace Zerra.CQRS.RabbitMQ
 
             private readonly int maxConcurrent;
             private readonly string topic;
+            private readonly ConcurrentDictionary<string, Type> eventTypes;
             private readonly ISerializer serializer;
             private readonly IEncryptor? encryptor;
             private readonly ICompressor? compressor;
@@ -36,7 +37,7 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly ConcurrentHashSet<Task> handling = new();
             private static readonly Action<Task, object?> removeHandling = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
 
-            public EventConsumer(int maxConcurrent, string topic, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, ConcurrentDictionary<string, Type> eventTypes, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -59,6 +60,7 @@ namespace Zerra.CQRS.RabbitMQ
                 {
                     this.queue = null;
                 }
+                this.eventTypes = eventTypes;
                 this.serializer = serializer;
                 this.encryptor = encryptor;
                 this.compressor = compressor;
@@ -166,7 +168,9 @@ namespace Zerra.CQRS.RabbitMQ
                     if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                         throw new Exception("Invalid Message");
 
-                    var @event = serializer.Deserialize(message.MessageData, TypeFinder.GetTypeFromName(message.MessageType)) as IEvent;
+                    if (!eventTypes.TryGetValue(message.MessageType, out var eventType))
+                        throw new Exception($"Unhandled Message Type {message.MessageType}");
+                    var @event = serializer.Deserialize(message.MessageData, eventType) as IEvent;
                     if (@event is null)
                         throw new Exception("Invalid Message");
 

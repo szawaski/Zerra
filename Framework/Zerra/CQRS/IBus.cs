@@ -141,6 +141,12 @@ namespace Zerra.CQRS
         /// <param name="source">The source of the remote call.</param>
         /// <returns>A task to complete handling the dispatch.</returns>
         Task RemoteHandleEventDispatchAsync(IEvent @event, string source);
+        /// <summary>
+        /// Gets a query interface, command, or event type added to the bus by its name.
+        /// </summary>
+        /// <param name="name">The name of the type without its namespace.</param>
+        /// <returns>The type, or null if no type with the name was added.</returns>
+        Type? GetTypeByName(string name);
 
         /// <summary>
         /// Gets the logger instance for recording diagnostic and operational events for this handler.

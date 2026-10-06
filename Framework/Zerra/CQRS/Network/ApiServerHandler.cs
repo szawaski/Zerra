@@ -81,8 +81,8 @@ namespace Zerra.CQRS.Network
             if (data.ProviderArguments is null) throw new ArgumentNullException(nameof(ApiRequestData.ProviderArguments));
             if (String.IsNullOrWhiteSpace(data.Source)) throw new ArgumentNullException(nameof(ApiRequestData.Source));
 
-            var providerType = TypeFinder.GetTypeFromName(data.ProviderType);
-            if (!providerType.IsInterface)
+            var providerType = bus.GetTypeByName(data.ProviderType);
+            if (providerType is null || !providerType.IsInterface)
                 throw new ArgumentException($"Provider {data.ProviderType} is not an interface type");
 
             return bus.RemoteHandleQueryCallAsync(providerType, data.ProviderMethod, data.ProviderArguments, argumentStream, data.Source, serializer, cancellationToken);
@@ -94,7 +94,9 @@ namespace Zerra.CQRS.Network
             if (data.MessageData is null) throw new ArgumentNullException(nameof(ApiRequestData.MessageData));
             if (String.IsNullOrWhiteSpace(data.Source)) throw new ArgumentNullException(nameof(ApiRequestData.Source));
 
-            var commandType = TypeFinder.GetTypeFromName(data.MessageType);
+            var commandType = bus.GetTypeByName(data.MessageType);
+            if (commandType is null)
+                throw new Exception($"Type {data.MessageType} is not registered with the bus");
             var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
             if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                 throw new Exception($"Type {data.MessageType} is not a command");
@@ -114,7 +116,9 @@ namespace Zerra.CQRS.Network
             if (data.MessageData is null) throw new ArgumentNullException(nameof(ApiRequestData.MessageData));
             if (String.IsNullOrWhiteSpace(data.Source)) throw new ArgumentNullException(nameof(ApiRequestData.Source));
 
-            var commandType = TypeFinder.GetTypeFromName(data.MessageType);
+            var commandType = bus.GetTypeByName(data.MessageType);
+            if (commandType is null)
+                throw new Exception($"Type {data.MessageType} is not registered with the bus");
             var typeDetail = TypeAnalyzer.GetTypeDetail(commandType);
             if (!typeDetail.Interfaces.Contains(typeof(ICommand)))
                 throw new Exception($"Type {data.MessageType} is not a command");

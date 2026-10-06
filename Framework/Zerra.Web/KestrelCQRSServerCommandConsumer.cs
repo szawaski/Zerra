@@ -100,10 +100,14 @@ namespace Zerra.Web
         /// <param name="type">The command type to register.</param>
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
-            if (settings.Types.ContainsKey(type))
+            if (settings.Types.TryGetValue(type.Name, out var registered))
+            {
+                if (registered.Type != type)
+                    throw new InvalidOperationException($"{type.FullName} has the same name as {registered.Type.FullName}, the name is what's sent between services");
                 return;
+            }
             var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-            if (!settings.Types.TryAdd(type, throttle))
+            if (!settings.Types.TryAdd(type.Name, (type, throttle)))
                 throttle.Dispose();
         }
     }

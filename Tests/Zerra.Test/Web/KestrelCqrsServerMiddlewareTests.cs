@@ -133,7 +133,7 @@ namespace Zerra.Test.Web
             Assert.Equal(200, context.Response.StatusCode);
             Assert.Equal(5, Assert.IsType<TestCommand>(received).Value);
             Assert.Empty(ReadResponse(context, null));
-            Assert.Equal(typeof(TestCommand).AssemblyQualifiedName, context.Response.Headers[HttpCommon.ProviderTypeHeader]);
+            Assert.Equal(typeof(TestCommand).Name, context.Response.Headers[HttpCommon.ProviderTypeHeader]);
         }
 
         [Fact(Timeout = timeout)]
@@ -264,8 +264,8 @@ namespace Zerra.Test.Web
                 return new RemoteQueryCallResponse(42);
             }, null, null, null, null);
             using var throttle = new SemaphoreSlim(1, 1);
-            settings.Types[typeof(ITestQueryHandler)].Dispose();
-            settings.Types[typeof(ITestQueryHandler)] = throttle;
+            settings.Types[nameof(ITestQueryHandler)].Throttle.Dispose();
+            settings.Types[nameof(ITestQueryHandler)] = (typeof(ITestQueryHandler), throttle);
             var middleware = new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, null, null, null, settings);
 
             //the first request holds the only slot
@@ -372,7 +372,7 @@ namespace Zerra.Test.Web
 
         private static CqrsRequestData QueryRequest(string methodName, params object[] arguments) => new()
         {
-            ProviderType = typeof(ITestQueryHandler).AssemblyQualifiedName,
+            ProviderType = typeof(ITestQueryHandler).Name,
             ProviderMethod = methodName,
             ProviderArguments = arguments.Select(x => serializer.SerializeBytes(x, x.GetType())).ToArray(),
             Source = source
@@ -380,7 +380,7 @@ namespace Zerra.Test.Web
 
         private static CqrsRequestData MessageRequest(object message, bool messageAwait, bool messageResult) => new()
         {
-            MessageType = message.GetType().AssemblyQualifiedName,
+            MessageType = message.GetType().Name,
             MessageData = serializer.SerializeBytes(message, message.GetType()),
             MessageAwait = messageAwait,
             MessageResult = messageResult,

@@ -1,9 +1,9 @@
 using Store.Common.Data;
 using Store.Common.Messaging;
 using Store.Inventory.Domain;
+using Store.Inventory.Domain.Orders;
 using Store.Inventory.Service.Data;
 using Store.Inventory.Service.Handlers;
-using Store.Orders.Domain;
 using Zerra.CQRS;
 using Zerra.Repository;
 using Zerra.Repository.Memory;

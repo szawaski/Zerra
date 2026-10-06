@@ -24,7 +24,6 @@ namespace Zerra.Test.CQRS.Network
             Assert.NotNull(ack.Exception);
             Assert.True(ack.Exception.Length > 0);
             Assert.Null(ack.Data);
-            Assert.Null(ack.DataType);
         }
 
         [Fact]
@@ -37,11 +36,10 @@ namespace Zerra.Test.CQRS.Network
             Assert.NotNull(ack.Exception);
             Assert.True(ack.Exception.Length > 0);
             Assert.Null(ack.Data);
-            Assert.Null(ack.DataType);
         }
 
         [Fact]
-        public void Constructor_WithResult_SetsDataAndDataType()
+        public void Constructor_WithResult_SetsData()
         {
             var serializer = CreateTestSerializer();
             var result = "Hello, World!";
@@ -49,8 +47,18 @@ namespace Zerra.Test.CQRS.Network
 
             Assert.Null(ack.Exception);
             Assert.NotNull(ack.Data);
-            Assert.NotNull(ack.DataType);
             Assert.True(ack.Data.Length > 0);
+        }
+
+        [Fact]
+        public void GetResultOrThrowIfFailed_WithGenericResult_ReturnsResult()
+        {
+            var serializer = CreateTestSerializer();
+            var ack = new Acknowledgement(serializer, new List<int>() { 1, 2 }, null);
+
+            var result = Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack, typeof(List<int>));
+
+            Assert.Equal([1, 2], Assert.IsType<List<int>>(result));
         }
 
         [Fact]
@@ -61,7 +69,6 @@ namespace Zerra.Test.CQRS.Network
 
             Assert.Null(ack.Exception);
             Assert.Null(ack.Data);
-            Assert.Null(ack.DataType);
         }
 
         [Fact]
@@ -107,7 +114,7 @@ namespace Zerra.Test.CQRS.Network
         {
             var serializer = CreateTestSerializer();
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, null));
+            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, null, typeof(object)));
             Assert.Contains("Test Source", ex.Message);
         }
 
@@ -117,7 +124,7 @@ namespace Zerra.Test.CQRS.Network
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, null, new ArgumentException("Bad argument"));
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack));
+            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack, typeof(object)));
             Assert.Contains("Bad argument", ex.Message);
         }
 
@@ -127,7 +134,7 @@ namespace Zerra.Test.CQRS.Network
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, "Service error message");
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack));
+            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack, typeof(object)));
             Assert.Contains("Service error message", ex.Message);
         }
 
@@ -137,7 +144,7 @@ namespace Zerra.Test.CQRS.Network
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, null, null);
 
-            var result = Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack);
+            var result = Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack, typeof(object));
 
             Assert.Null(result);
         }
@@ -149,7 +156,7 @@ namespace Zerra.Test.CQRS.Network
             var expected = "Hello, World!";
             var ack = new Acknowledgement(serializer, expected, null);
 
-            var result = Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack);
+            var result = Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack, typeof(string));
 
             Assert.NotNull(result);
             Assert.Equal(expected, result);
@@ -162,7 +169,7 @@ namespace Zerra.Test.CQRS.Network
             var expected = 42;
             var ack = new Acknowledgement(serializer, expected, null);
 
-            var result = Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack);
+            var result = Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack, typeof(int));
 
             Assert.NotNull(result);
             Assert.Equal(expected, result);
@@ -177,7 +184,6 @@ namespace Zerra.Test.CQRS.Network
 
             Assert.NotNull(ack.Exception);
             Assert.Null(ack.Data);
-            Assert.Null(ack.DataType);
         }
 
         //the messaging transports send acknowledgements through the serializer
@@ -190,7 +196,7 @@ namespace Zerra.Test.CQRS.Network
             var deserialized = serializer.Deserialize<Acknowledgement>(serializer.SerializeBytes(ack));
 
             Assert.NotNull(deserialized);
-            Assert.Equal(42, Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, deserialized));
+            Assert.Equal(42, Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, deserialized, typeof(int)));
         }
 
         [Fact]

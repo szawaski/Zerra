@@ -8,7 +8,7 @@ using System.Security.Claims;
 using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Reflection;
+using System.Collections.Concurrent;
 
 namespace Zerra.CQRS.Kafka
 {
@@ -20,6 +20,7 @@ namespace Zerra.CQRS.Kafka
 
             private readonly int maxConcurrent;
             private readonly string topic;
+            private readonly ConcurrentDictionary<string, Type> eventTypes;
             private readonly Zerra.Serialization.ISerializer serializer;
             private readonly IEncryptor? encryptor;
             private readonly ICompressor? compressor;
@@ -36,7 +37,7 @@ namespace Zerra.CQRS.Kafka
             private readonly int? maxPollIntervalMs;
             private readonly TimeSpan busyPollInterval;
 
-            public EventConsumer(int maxConcurrent, string topic, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync, int? maxPollIntervalMs)
+            public EventConsumer(int maxConcurrent, string topic, ConcurrentDictionary<string, Type> eventTypes, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync, int? maxPollIntervalMs)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -49,6 +50,7 @@ namespace Zerra.CQRS.Kafka
                     this.topic = topic.Truncate(KafkaCommon.TopicMaxLength, out truncated);
                 if (truncated)
                     log?.Warn($"{nameof(KafkaConsumer)} truncated the event topic to {KafkaCommon.TopicMaxLength} characters: {this.topic}. Another topic truncating to the same name would be consumed as this one.");
+                this.eventTypes = eventTypes;
                 this.serializer = serializer;
                 this.encryptor = encryptor;
                 this.compressor = compressor;
@@ -218,7 +220,9 @@ namespace Zerra.CQRS.Kafka
                         if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                             throw new Exception("Invalid Message");
 
-                        var @event = serializer.Deserialize(message.MessageData, TypeFinder.GetTypeFromName(message.MessageType)) as IEvent;
+                        if (!eventTypes.TryGetValue(message.MessageType, out var eventType))
+                            throw new Exception($"Unhandled Message Type {message.MessageType}");
+                        var @event = serializer.Deserialize(message.MessageData, eventType) as IEvent;
                         if (@event is null)
                             throw new Exception("Invalid Message");
 

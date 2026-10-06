@@ -156,7 +156,7 @@ namespace Zerra.Test.Web
             context.Request.Headers.Accept = "application/jsonnameless; charset=utf-8";
             context.Request.Body = new MemoryStream(jsonSerializer.SerializeBytes(new ApiRequestData()
             {
-                ProviderType = typeof(ITestQueryHandler).AssemblyQualifiedName,
+                ProviderType = typeof(ITestQueryHandler).Name,
                 ProviderMethod = nameof(ITestQueryHandler.GetModel),
                 ProviderArguments = [],
                 Source = source
@@ -409,7 +409,7 @@ namespace Zerra.Test.Web
 
         private static ApiRequestData QueryRequest(string methodName, params object[] arguments) => new()
         {
-            ProviderType = typeof(ITestQueryHandler).AssemblyQualifiedName,
+            ProviderType = typeof(ITestQueryHandler).Name,
             ProviderMethod = methodName,
             ProviderArguments = arguments.Select(x => serializer.SerializeBytes(x, x.GetType())).ToArray(),
             Source = source
@@ -470,6 +470,7 @@ namespace Zerra.Test.Web
             public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();
             public Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();
             public Task RemoteHandleEventDispatchAsync(IEvent @event, string source) => throw new NotImplementedException();
+            public Type? GetTypeByName(string name) => name == nameof(ITestQueryHandler) ? typeof(ITestQueryHandler) : null;
 
             public void AddHandler<TInterface>(TInterface handler) where TInterface : notnull => throw new NotImplementedException();
             public void AddCommandProducer<TInterface>(ICommandProducer commandProducer) => throw new NotImplementedException();

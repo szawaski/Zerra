@@ -1,10 +1,8 @@
-using Store.Catalog.Domain;
-using Store.Catalog.Domain.Models;
 using Store.Common.Data;
 using Store.Common.Messaging;
-using Store.Orders.Domain;
-using Store.Orders.Domain.Models;
 using Store.Reviews.Domain;
+using Store.Reviews.Domain.Catalog;
+using Store.Reviews.Domain.Orders;
 using Store.Reviews.Service.Data;
 using Store.Reviews.Service.Handlers;
 using Zerra.CQRS;

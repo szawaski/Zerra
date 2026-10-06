@@ -38,6 +38,7 @@ namespace Zerra.Test.CQRS
             public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();
             public Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();
             public Task RemoteHandleEventDispatchAsync(IEvent @event, string source) => throw new NotImplementedException();
+            public Type? GetTypeByName(string name) => throw new NotImplementedException();
             public TInterface Call<TInterface>() where TInterface : notnull => throw new NotImplementedException();
             public Task DispatchAsync(ICommand command, CancellationToken? cancellationToken = null) => throw new NotImplementedException();
             public Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null) => throw new NotImplementedException();

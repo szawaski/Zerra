@@ -1,11 +1,10 @@
 using Store.Carts.Domain;
+using Store.Carts.Domain.Catalog;
+using Store.Carts.Domain.Orders;
 using Store.Carts.Service.Data;
 using Store.Carts.Service.Handlers;
-using Store.Catalog.Domain;
-using Store.Catalog.Domain.Models;
 using Store.Common.Data;
 using Store.Common.Messaging;
-using Store.Orders.Domain;
 using Zerra.CQRS;
 using Zerra.Repository;
 using Zerra.Repository.Memory;

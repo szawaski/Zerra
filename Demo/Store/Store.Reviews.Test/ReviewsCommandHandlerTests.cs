@@ -1,5 +1,5 @@
-using Store.Catalog.Domain.Events;
 using Store.Common;
+using Store.Reviews.Domain.Catalog;
 using Store.Reviews.Domain.Commands;
 using Store.Reviews.Service.Data;
 using Xunit;

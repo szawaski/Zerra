@@ -7,7 +7,6 @@ using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Logging;
-using Zerra.Reflection;
 using Zerra.Serialization;
 using Zerra.Serialization.Json;
 
@@ -15,11 +14,6 @@ namespace Zerra.Test.CQRS.Network
 {
     public class ApiServerHandlerTest
     {
-        public ApiServerHandlerTest()
-        {
-            RegisterTestTypes();
-        }
-
         private interface ITestProvider
         {
             string GetData();
@@ -81,6 +75,14 @@ namespace Zerra.Test.CQRS.Network
                 return Task.CompletedTask;
             }
 
+            public Type? GetTypeByName(string name) => name switch
+            {
+                nameof(ITestProvider) => typeof(ITestProvider),
+                nameof(TestCommand) => typeof(TestCommand),
+                nameof(TestCommandWithResult) => typeof(TestCommandWithResult),
+                _ => null
+            };
+
             public TInterface Call<TInterface>() where TInterface : notnull => throw new NotImplementedException();
             public Task DispatchAsync(ICommand command, CancellationToken? cancellationToken = null) => throw new NotImplementedException();
             public Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null) => throw new NotImplementedException();
@@ -97,14 +99,6 @@ namespace Zerra.Test.CQRS.Network
 
             public TInterface GetService<TInterface>() where TInterface : notnull => throw new NotImplementedException();
             public bool TryGetService<TInterface>([NotNullWhen(true)] out TInterface? instance) where TInterface : notnull => throw new NotImplementedException();
-        }
-
-        private static void RegisterTestTypes()
-        {
-            // Register types so TypeHelper can resolve them by name
-            TypeFinder.Register(typeof(ITestProvider));
-            TypeFinder.Register(typeof(TestCommand));
-            TypeFinder.Register(typeof(TestCommandWithResult));
         }
 
         [Fact]
@@ -128,7 +122,7 @@ namespace Zerra.Test.CQRS.Network
 
             var data = new ApiRequestData
             {
-                ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
+                ProviderType = typeof(ITestProvider).Name,
                 ProviderMethod = "GetData",
                 ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
@@ -149,7 +143,7 @@ namespace Zerra.Test.CQRS.Network
 
             var data = new ApiRequestData
             {
-                ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
+                ProviderType = typeof(ITestProvider).Name,
                 ProviderMethod = "GetData",
                 ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
@@ -171,7 +165,7 @@ namespace Zerra.Test.CQRS.Network
 
             var data = new ApiRequestData
             {
-                ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
+                ProviderType = typeof(ITestProvider).Name,
                 ProviderMethod = "GetData",
                 ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
@@ -194,7 +188,7 @@ namespace Zerra.Test.CQRS.Network
             var commandJson = JsonSerializer.Serialize(new TestCommand());
             var data = new ApiRequestData
             {
-                MessageType = typeof(TestCommand).AssemblyQualifiedName,
+                MessageType = typeof(TestCommand).Name,
                 MessageData = commandJson,
                 MessageAwait = false,
                 MessageResult = false,
@@ -215,7 +209,7 @@ namespace Zerra.Test.CQRS.Network
             var commandJson = JsonSerializer.Serialize(new TestCommand());
             var data = new ApiRequestData
             {
-                MessageType = typeof(TestCommand).AssemblyQualifiedName,
+                MessageType = typeof(TestCommand).Name,
                 MessageData = commandJson,
                 MessageAwait = true,
                 MessageResult = false,
@@ -237,7 +231,7 @@ namespace Zerra.Test.CQRS.Network
             var commandJson = JsonSerializer.Serialize(new TestCommandWithResult());
             var data = new ApiRequestData
             {
-                MessageType = typeof(TestCommandWithResult).AssemblyQualifiedName,
+                MessageType = typeof(TestCommandWithResult).Name,
                 MessageData = commandJson,
                 MessageAwait = false,
                 MessageResult = true,
@@ -260,7 +254,7 @@ namespace Zerra.Test.CQRS.Network
 
             var data = new ApiRequestData
             {
-                MessageType = typeof(TestCommandWithResult).AssemblyQualifiedName,
+                MessageType = typeof(TestCommandWithResult).Name,
                 MessageData = JsonSerializer.Serialize(new TestCommandWithResult()),
                 MessageAwait = false,
                 MessageResult = true,
@@ -284,7 +278,7 @@ namespace Zerra.Test.CQRS.Network
 
             var data = new ApiRequestData
             {
-                ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
+                ProviderType = typeof(ITestProvider).Name,
                 ProviderMethod = "GetData",
                 ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
@@ -317,7 +311,7 @@ namespace Zerra.Test.CQRS.Network
 
             var data = new ApiRequestData
             {
-                ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
+                ProviderType = typeof(ITestProvider).Name,
                 ProviderMethod = null,
                 ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
@@ -335,7 +329,7 @@ namespace Zerra.Test.CQRS.Network
 
             var data = new ApiRequestData
             {
-                MessageType = typeof(TestCommand).AssemblyQualifiedName,
+                MessageType = typeof(TestCommand).Name,
                 MessageData = null,
                 MessageAwait = false,
                 MessageResult = false,
@@ -355,7 +349,7 @@ namespace Zerra.Test.CQRS.Network
 
             var data = new ApiRequestData
             {
-                ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
+                ProviderType = typeof(ITestProvider).Name,
                 ProviderMethod = "GetData",
                 ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
@@ -375,7 +369,7 @@ namespace Zerra.Test.CQRS.Network
 
             var data = new ApiRequestData
             {
-                ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
+                ProviderType = typeof(ITestProvider).Name,
                 ProviderMethod = "GetData",
                 ProviderArguments = Array.Empty<byte[]>(),
                 Source = "TestSource"
@@ -394,7 +388,7 @@ namespace Zerra.Test.CQRS.Network
 
             var data = new ApiRequestData
             {
-                ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
+                ProviderType = typeof(ITestProvider).Name,
                 ProviderMethod = "GetData",
                 ProviderArguments = null,
                 Source = "TestSource"
@@ -412,7 +406,7 @@ namespace Zerra.Test.CQRS.Network
 
             var data = new ApiRequestData
             {
-                ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
+                ProviderType = typeof(ITestProvider).Name,
                 ProviderMethod = "GetData",
                 ProviderArguments = Array.Empty<byte[]>(),
                 Source = null
@@ -466,7 +460,7 @@ namespace Zerra.Test.CQRS.Network
 
             var data = new ApiRequestData
             {
-                ProviderType = typeof(ITestProvider).AssemblyQualifiedName,
+                ProviderType = typeof(ITestProvider).Name,
                 ProviderMethod = "GetData",
                 ProviderArguments = Array.Empty<byte[]>(),
                 Source = null

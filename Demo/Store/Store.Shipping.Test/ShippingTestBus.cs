@@ -1,7 +1,7 @@
 using Store.Common.Data;
 using Store.Common.Messaging;
-using Store.Orders.Domain;
 using Store.Shipping.Domain;
+using Store.Shipping.Domain.Orders;
 using Store.Shipping.Service.Data;
 using Store.Shipping.Service.Handlers;
 using Zerra.CQRS;

@@ -1,5 +1,4 @@
-using Store.Orders.Domain;
-using Store.Orders.Domain.Models;
+using Store.Reviews.Domain.Orders;
 using Zerra.CQRS;
 
 namespace Store.Reviews.Test
@@ -12,10 +11,5 @@ namespace Store.Reviews.Test
 
         public Task<CustomerModel[]> GetCustomers(CancellationToken cancellationToken) => Task.FromResult(Customers.ToArray());
         public Task<bool> HasPurchased(Guid customerID, Guid productID, CancellationToken cancellationToken) => Task.FromResult(Purchases.Contains((customerID, productID)));
-
-        public Task<string> GetDataStoreName(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<string> GetMessagingName(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<OrderModel[]> GetOrders(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<OrderModel> GetOrder(Guid orderID, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

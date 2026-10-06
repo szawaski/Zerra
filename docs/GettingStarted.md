@@ -39,6 +39,8 @@ dotnet add package Zerra.Web                   # ASP.NET Core hosting and the br
 
 Services and clients share only the `*.Domain` project, never each other's handlers or data models.
 
+Sharing the project keeps each contract in one place, and the compiler catches every caller a change breaks. A caller can instead keep its own copy of the contracts it uses, since services match contracts by type name, not namespace or assembly. Copies let each service build and deploy from its own repository and pipeline, at the cost of making a contract change in every copy. A copy keeps its members in the same order as the original. `Demo/Store` uses copies; see [Agents](Agents.md#solution-layout).
+
 ## Define the Contracts
 
 The contracts live in `Users.Domain` and describe everything a caller can do.
@@ -283,7 +285,7 @@ Setup for each broker: [Kafka](KafkaSetup.md), [RabbitMQ](RabbitMQSetup.md), [Az
 
 ### Browsers
 
-[Zerra.Web](ZerraWeb.md) hosts a CQRS API gateway in ASP.NET Core. Browsers call it with the front end scripts in `Front End Scripts/`, using JavaScript or TypeScript clients generated from the `*.Domain` projects, and the gateway forwards to the services over whatever route its bus has.
+[Zerra.Web](ZerraWeb.md) hosts a CQRS API gateway in ASP.NET Core. Browsers call it with the front end scripts in `Front End Scripts/`, using JavaScript or TypeScript clients generated from the contracts, and the gateway forwards to the services over whatever route its bus has.
 
 ```csharp
 app.UseCqrsApiGateway("/CQRS");

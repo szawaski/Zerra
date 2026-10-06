@@ -1,5 +1,4 @@
-using Store.Carts.Domain;
-using Store.Carts.Domain.Commands;
+using Store.Catalog.Domain.Carts;
 using Zerra.CQRS;
 
 namespace Store.Catalog.Test

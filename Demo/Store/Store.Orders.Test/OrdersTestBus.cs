@@ -1,9 +1,8 @@
-using Store.Catalog.Domain;
-using Store.Catalog.Domain.Models;
 using Store.Common.Data;
 using Store.Common.Messaging;
-using Store.Inventory.Domain;
 using Store.Orders.Domain;
+using Store.Orders.Domain.Catalog;
+using Store.Orders.Domain.Inventory;
 using Store.Orders.Service.Data;
 using Store.Orders.Service.Handlers;
 using Zerra.CQRS;

@@ -120,7 +120,7 @@ namespace Zerra.CQRS.RabbitMQ
                     var rabbitMessage = new RabbitMQMessage()
                     {
                         MessageData = serializer.SerializeBytes(command, command.GetType()),
-                        MessageType = commandType.AssemblyQualifiedName,
+                        MessageType = commandType.Name,
                         HasResult = false,
                         Claims = claims,
                         Source = source
@@ -208,7 +208,7 @@ namespace Zerra.CQRS.RabbitMQ
                     var rabbitMessage = new RabbitMQMessage()
                     {
                         MessageData = serializer.SerializeBytes(command, command.GetType()),
-                        MessageType = commandType.AssemblyQualifiedName,
+                        MessageType = commandType.Name,
                         HasResult = true,
                         Claims = claims,
                         Source = source
@@ -244,7 +244,7 @@ namespace Zerra.CQRS.RabbitMQ
                         using (cancellationToken.Register(static (state) => ((TaskCompletionSource<Acknowledgement>)state!).TrySetCanceled(), waiter))
                             acknowledgement = await waiter.Task;
 
-                        var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(commandType.Name, serializer, acknowledgement)!;
+                        var result = (TResult)Acknowledgement.GetResultOrThrowIfFailed(commandType.Name, serializer, acknowledgement, typeof(TResult))!;
 
                         return result;
                     }
@@ -286,7 +286,7 @@ namespace Zerra.CQRS.RabbitMQ
                     var rabbitMessage = new RabbitMQMessage()
                     {
                         MessageData = serializer.SerializeBytes(@event, @event.GetType()),
-                        MessageType = eventType.AssemblyQualifiedName,
+                        MessageType = eventType.Name,
                         HasResult = false,
                         Claims = claims,
                         Source = source

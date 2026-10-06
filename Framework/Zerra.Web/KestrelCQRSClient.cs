@@ -73,7 +73,7 @@ namespace Zerra.Web
 
             var data = new CqrsRequestData()
             {
-                ProviderType = interfaceType.AssemblyQualifiedName,
+                ProviderType = interfaceType.Name,
                 ProviderMethod = methodName,
 
                 Claims = claims,
@@ -113,7 +113,7 @@ namespace Zerra.Web
 
             var data = new CqrsRequestData()
             {
-                ProviderType = interfaceType.AssemblyQualifiedName,
+                ProviderType = interfaceType.Name,
                 ProviderMethod = methodName,
 
                 Claims = claims,
@@ -145,7 +145,7 @@ namespace Zerra.Web
         /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken)
         {
-            var messageType = commandType.AssemblyQualifiedName;
+            var messageType = commandType.Name;
             var messageData = serializer.SerializeBytes(command, commandType);
 
             string[][]? claims = null;
@@ -168,7 +168,7 @@ namespace Zerra.Web
         /// <inheritdoc />
         protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
         {
-            var messageType = commandType.AssemblyQualifiedName;
+            var messageType = commandType.Name;
             var messageData = serializer.SerializeBytes(command, commandType);
 
             string[][]? claims = null;
@@ -191,7 +191,7 @@ namespace Zerra.Web
         /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
         {
-            var messageType = eventType.AssemblyQualifiedName;
+            var messageType = eventType.Name;
             var messageData = serializer.SerializeBytes(@event, eventType);
 
             string[][]? claims = null;

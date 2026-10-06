@@ -1,5 +1,4 @@
-using Store.Catalog.Domain;
-using Store.Catalog.Domain.Models;
+using Store.Reviews.Domain.Catalog;
 using Zerra.CQRS;
 
 namespace Store.Reviews.Test
@@ -14,13 +13,5 @@ namespace Store.Reviews.Test
             GetProductsByIDsCalls++;
             return Task.FromResult(Products.Where(x => productIDs.Contains(x.ID)).ToArray());
         }
-
-        public Task<string> GetDataStoreName(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<string> GetMessagingName(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<CategoryModel[]> GetCategories(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<ProductModel[]> GetProducts(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<ProductModel[]> GetProductsByCategory(Guid categoryID, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<Stream> ExportProductsCsv(CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<ProductImportPreviewModel> PreviewProductImport(string fileName, Stream csv, decimal maxPriceChangePercent, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

@@ -49,7 +49,7 @@ A handler's exception reaches the caller with its type name, message, and stack 
 
 Services that deploy independently run different versions of a contract for a while:
 
-- **Contract identity.** Messages and query interfaces are identified by their assembly-qualified type name. To rename a contract, add the new one and retire the old one.
+- **Contract identity.** Query interfaces, commands, events, and command results are identified by their type name without the namespace, so each service can compile its own copy of the contracts instead of sharing an assembly. The names must be unique within a service. To rename a contract, add the new one and retire the old one.
 - **Binary contracts.** `ZerraByteSerializer` matches members by declaration order by default, the most compact form. Give contracts that will change a `[SerializerIndex]` per member and add members rather than reordering ([ByteSerializer](ByteSerializer.md#versioning)). `ZerraJsonSerializer` matches by name.
 - **Deployment order.** A receiver on the new version reads an old sender's messages, giving missing members their defaults. With indexes, deploy the receiving service before the services that send a new member. With `ByteSerializerIndexType.MemberNames`, `UseTypes = true`, or `ZerraJsonSerializer`, unknown members are skipped and either order works.
 - **Major versions.** Zerra 5 and 6 use different wire formats ([Upgrade Guide](UpgradeV5ToV6.md)), so services that share messages move to a new major version together.

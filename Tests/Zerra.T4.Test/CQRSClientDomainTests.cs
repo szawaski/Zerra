@@ -99,11 +99,11 @@ namespace Zerra.T4.Test
 
             Assert.Contains("export class IWidgetQueryHandler {", output);
             Assert.Contains("    public static GetWidget(id: string): Promise<Widget> {", output);
-            Assert.Contains("        return Bus.Call(\"TestApp.IWidgetQueryHandler\", \"GetWidget\", [id], WidgetType, false);", output);
+            Assert.Contains("        return Bus.Call(\"IWidgetQueryHandler\", \"GetWidget\", [id], WidgetType, false);", output);
             //the server supplies the CancellationToken, the client holds its place with null
             Assert.Contains("    public static GetWidgets(search: string | null): Promise<Widget[]> {", output);
-            Assert.Contains("        return Bus.Call(\"TestApp.IWidgetQueryHandler\", \"GetWidgets\", [search, null], WidgetType, true);", output);
-            Assert.Contains("        return Bus.Call(\"TestApp.IWidgetQueryHandler\", \"Exists\", [id], null, false);", output);
+            Assert.Contains("        return Bus.Call(\"IWidgetQueryHandler\", \"GetWidgets\", [search, null], WidgetType, true);", output);
+            Assert.Contains("        return Bus.Call(\"IWidgetQueryHandler\", \"Exists\", [id], null, false);", output);
         }
 
         [Fact]
@@ -112,13 +112,13 @@ namespace Zerra.T4.Test
             var output = GeneratorRunner.TypeScript(domainSource);
 
             Assert.Contains("export class SaveWidgetCommand implements ICommand {", output);
-            Assert.Contains("        self[\"CommandType\"] = \"TestApp.SaveWidgetCommand\";", output);
+            Assert.Contains("        self[\"CommandType\"] = \"SaveWidgetCommand\";", output);
             Assert.Contains("        self[\"CommandWithResult\"] = false;", output);
             Assert.Contains("    Widget!: Widget | null;", output);
 
-            Assert.Contains("        self[\"CommandType\"] = \"TestApp.CountWidgetsCommand\";\r\n        self[\"CommandWithResult\"] = true;\r\n        self[\"ResultType\"] = WidgetSummaryType;", output);
+            Assert.Contains("        self[\"CommandType\"] = \"CountWidgetsCommand\";\r\n        self[\"CommandWithResult\"] = true;\r\n        self[\"ResultType\"] = WidgetSummaryType;", output);
             //JavaScript result types have no model type
-            Assert.Contains("        self[\"CommandType\"] = \"TestApp.NextNumberCommand\";\r\n        self[\"CommandWithResult\"] = true;\r\n        self[\"ResultType\"] = null;", output);
+            Assert.Contains("        self[\"CommandType\"] = \"NextNumberCommand\";\r\n        self[\"CommandWithResult\"] = true;\r\n        self[\"ResultType\"] = null;", output);
         }
 
         [Fact]
@@ -143,9 +143,9 @@ namespace Zerra.T4.Test
 
             Assert.Contains("const IWidgetQueryHandler = {", output);
             Assert.Contains("    GetWidget: function(id, onComplete, onFail) {", output);
-            Assert.Contains("        Bus.Call(\"TestApp.IWidgetQueryHandler\", \"GetWidget\", [id], WidgetType, false, onComplete, onFail);", output);
+            Assert.Contains("        Bus.Call(\"IWidgetQueryHandler\", \"GetWidget\", [id], WidgetType, false, onComplete, onFail);", output);
             Assert.Contains("    GetWidgets: function(search, onComplete, onFail) {", output);
-            Assert.Contains("        Bus.Call(\"TestApp.IWidgetQueryHandler\", \"GetWidgets\", [search, null], WidgetType, true, onComplete, onFail);", output);
+            Assert.Contains("        Bus.Call(\"IWidgetQueryHandler\", \"GetWidgets\", [search, null], WidgetType, true, onComplete, onFail);", output);
         }
 
         [Fact]
@@ -155,9 +155,9 @@ namespace Zerra.T4.Test
 
             Assert.Contains("const SaveWidgetCommand = function(properties) {", output);
             Assert.Contains("    this.Widget = (properties === undefined || properties.Widget === undefined) ? null : properties.Widget;", output);
-            Assert.Contains("    this.CommandType = \"TestApp.SaveWidgetCommand\";", output);
-            Assert.Contains("    this.CommandType = \"TestApp.CountWidgetsCommand\";\r\n    this.CommandWithResult = true;\r\n    this.ResultType = WidgetSummaryType;", output);
-            Assert.Contains("    this.CommandType = \"TestApp.NextNumberCommand\";\r\n    this.CommandWithResult = true;\r\n    this.ResultType = null;", output);
+            Assert.Contains("    this.CommandType = \"SaveWidgetCommand\";", output);
+            Assert.Contains("    this.CommandType = \"CountWidgetsCommand\";\r\n    this.CommandWithResult = true;\r\n    this.ResultType = WidgetSummaryType;", output);
+            Assert.Contains("    this.CommandType = \"NextNumberCommand\";\r\n    this.CommandWithResult = true;\r\n    this.ResultType = null;", output);
         }
 
         [Fact]
@@ -185,9 +185,9 @@ namespace Zerra.T4.Test
                 }
                 """);
 
-            Assert.Contains("        return Bus.Call(\"TestApp.Domain.IWidgetQueryHandler\", \"GetWidget\", [id], WidgetType, false);", output);
+            Assert.Contains("        return Bus.Call(\"IWidgetQueryHandler\", \"GetWidget\", [id], WidgetType, false);", output);
             Assert.Contains("export class Widget {", output);
-            Assert.Contains("        self[\"CommandType\"] = \"TestApp.Domain.SaveWidgetCommand\";", output);
+            Assert.Contains("        self[\"CommandType\"] = \"SaveWidgetCommand\";", output);
         }
 
         //the server finds the handler and command by full name, which includes the outer namespace
@@ -215,8 +215,8 @@ namespace Zerra.T4.Test
                 }
                 """);
 
-            Assert.Contains("        Bus.Call(\"TestApp.Domain.IWidgetQueryHandler\", \"Exists\", [id], null, false, onComplete, onFail);", output);
-            Assert.Contains("    this.CommandType = \"TestApp.Domain.SaveWidgetCommand\";", output);
+            Assert.Contains("        Bus.Call(\"IWidgetQueryHandler\", \"Exists\", [id], null, false, onComplete, onFail);", output);
+            Assert.Contains("    this.CommandType = \"SaveWidgetCommand\";", output);
         }
 
         [Fact]
@@ -286,7 +286,7 @@ namespace Zerra.T4.Test
             var typeScript = GeneratorRunner.TypeScript(source);
             Assert.Contains("export class Widget {\r\n    ID!: number;\r\n    Name!: string | null;\r\n    Parts!: Part[];\r\n}", typeScript);
             Assert.Contains("export class Part {\r\n    Weight!: number;\r\n}", typeScript);
-            Assert.Contains("        return Bus.Call(\"TestApp.IWidgetQueryHandler\", \"GetWidget\", [id], WidgetType, false);", typeScript);
+            Assert.Contains("        return Bus.Call(\"IWidgetQueryHandler\", \"GetWidget\", [id], WidgetType, false);", typeScript);
             Assert.Contains("export class SaveWidgetCommand implements ICommand {", typeScript);
             Assert.Contains("        self[\"ResultType\"] = WidgetResultType;", typeScript);
             Assert.Contains("    Widget!: Widget | null;", typeScript);
@@ -304,16 +304,16 @@ namespace Zerra.T4.Test
 
             var typeScript = CQRSClientDomain.GenerateTypeScript(directory);
             Assert.Contains("export class IPetsQueryHandler {", typeScript);
-            Assert.Contains("        return Bus.Call(\"Pets.Domain.IPetsQueryHandler\", \"GetPets\", [], PetModelType, true);", typeScript);
-            Assert.Contains("        return Bus.Call(\"Pets.Domain.IPetsQueryHandler\", \"GetPet\", [id], PetModelType, false);", typeScript);
+            Assert.Contains("        return Bus.Call(\"IPetsQueryHandler\", \"GetPets\", [], PetModelType, true);", typeScript);
+            Assert.Contains("        return Bus.Call(\"IPetsQueryHandler\", \"GetPet\", [id], PetModelType, false);", typeScript);
             Assert.Contains("export class PetModel {", typeScript);
             Assert.Contains("    LastEaten!: Date | null;", typeScript);
-            Assert.Contains("        self[\"CommandType\"] = \"Pets.Domain.Commands.AddPetCommand\";", typeScript);
+            Assert.Contains("        self[\"CommandType\"] = \"AddPetCommand\";", typeScript);
 
             var javaScript = CQRSClientDomain.GenerateJavaScript(directory);
             Assert.Contains("const IPetsQueryHandler = {", javaScript);
             Assert.Contains("const PetModelType =", javaScript);
-            Assert.Contains("    this.CommandType = \"Pets.Domain.Commands.AddPetCommand\";", javaScript);
+            Assert.Contains("    this.CommandType = \"AddPetCommand\";", javaScript);
         }
     }
 }

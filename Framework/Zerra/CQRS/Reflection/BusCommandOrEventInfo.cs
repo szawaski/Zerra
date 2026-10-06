@@ -26,6 +26,17 @@ namespace Zerra.CQRS.Reflection
             return messageInfo;
         }
 
+        public static CommandOrEventInfo? GetByInterfaceTypeOrNull(Type interfaceType)
+        {
+            if (byType.TryGetValue(interfaceType, out var messageInfo))
+                return messageInfo;
+#if !NETSTANDARD2_0
+            if (!RuntimeFeature.IsDynamicCodeSupported)
+                return null;
+#endif
+            return GetByType(interfaceType, null);
+        }
+
         public static void Register(Type interfaceType, string interfaceName, Type[] commandTypes, Type[] eventTypes)
         {
             if (!interfaceType.IsInterface)

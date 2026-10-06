@@ -30,6 +30,7 @@ namespace Zerra.CQRS
         private Dictionary<Type, IQueryClient>? queryClients = null;
         private HashSet<IQueryServer>? queryServers = null;
         private HashSet<Type>? handledTypes = null;
+        private Dictionary<string, Type>? handledTypesByName = null;
 
 #if NETSTANDARD2_0
         private static readonly object exitLock = new();
@@ -1229,7 +1230,32 @@ namespace Zerra.CQRS
             handlers.Add(typeof(TInterface), handler!);
             handledTypes ??= new();
             _ = handledTypes.Add(interfaceType);
+            handledTypesByName ??= new();
+            if (handledTypesByName.TryGetValue(interfaceType.Name, out var existingType) && existingType != interfaceType)
+                throw new InvalidOperationException($"{interfaceType.FullName} has the same name as {existingType.FullName}, the name is what's sent between services");
+            handledTypesByName[interfaceType.Name] = interfaceType;
+
+            var info = BusCommandOrEventInfo.GetByInterfaceTypeOrNull(interfaceType);
+            if (info is not null)
+            {
+                foreach (var commandType in info.CommandTypes)
+                {
+                    if (handledTypesByName.TryGetValue(commandType.Name, out existingType) && existingType != commandType)
+                        throw new InvalidOperationException($"{commandType.FullName} has the same name as {existingType.FullName}, the name is what's sent between services");
+                    handledTypesByName[commandType.Name] = commandType;
+                }
+                foreach (var eventType in info.EventTypes)
+                {
+                    if (handledTypesByName.TryGetValue(eventType.Name, out existingType) && existingType != eventType)
+                        throw new InvalidOperationException($"{eventType.FullName} has the same name as {existingType.FullName}, the name is what's sent between services");
+                    handledTypesByName[eventType.Name] = eventType;
+                }
+            }
         }
+
+        /// <inheritdoc />
+        public Type? GetTypeByName(string name)
+            => handledTypesByName is not null && handledTypesByName.TryGetValue(name, out var type) ? type : null;
 
         /// <inheritdoc />
         void IBusSetup.AddCommandProducer<TInterface>(ICommandProducer commandProducer)
@@ -1264,6 +1290,10 @@ namespace Zerra.CQRS
                 commandProducers.Add(commandType, commandProducer);
                 handledTypes ??= new();
                 _ = handledTypes.Add(commandType);
+                handledTypesByName ??= new();
+                if (handledTypesByName.TryGetValue(commandType.Name, out var existingType) && existingType != commandType)
+                    throw new InvalidOperationException($"{commandType.FullName} has the same name as {existingType.FullName}, the name is what's sent between services");
+                handledTypesByName[commandType.Name] = commandType;
                 context.Log?.Info($"{commandProducer.GetType().Name} at {commandProducer.MessageHost} - {commandType.Name}");
             }
         }
@@ -1316,6 +1346,10 @@ namespace Zerra.CQRS
                 commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
                 handledTypes ??= new();
                 _ = handledTypes.Add(commandType);
+                handledTypesByName ??= new();
+                if (handledTypesByName.TryGetValue(commandType.Name, out var existingType) && existingType != commandType)
+                    throw new InvalidOperationException($"{commandType.FullName} has the same name as {existingType.FullName}, the name is what's sent between services");
+                handledTypesByName[commandType.Name] = commandType;
                 context.Log?.Info($"{commandConsumer.GetType().Name} at {commandConsumer.MessageHost} - {commandType.Name}");
             }
 
@@ -1356,6 +1390,10 @@ namespace Zerra.CQRS
                 eventProducerList.Add(eventProducer);
                 handledTypes ??= new();
                 _ = handledTypes.Add(eventType);
+                handledTypesByName ??= new();
+                if (handledTypesByName.TryGetValue(eventType.Name, out var existingType) && existingType != eventType)
+                    throw new InvalidOperationException($"{eventType.FullName} has the same name as {existingType.FullName}, the name is what's sent between services");
+                handledTypesByName[eventType.Name] = eventType;
                 context.Log?.Info($"{eventProducer.GetType().Name} at {eventProducer.MessageHost} - {eventType.Name}");
             }
         }
@@ -1385,6 +1423,10 @@ namespace Zerra.CQRS
                 eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType, eventConsumerMode);
                 handledTypes ??= new();
                 _ = handledTypes.Add(eventType);
+                handledTypesByName ??= new();
+                if (handledTypesByName.TryGetValue(eventType.Name, out var existingType) && existingType != eventType)
+                    throw new InvalidOperationException($"{eventType.FullName} has the same name as {existingType.FullName}, the name is what's sent between services");
+                handledTypesByName[eventType.Name] = eventType;
                 context.Log?.Info($"{eventConsumer.GetType().Name} at {eventConsumer.MessageHost} - {eventType.Name} ({eventConsumerMode})");
             }
 
@@ -1415,6 +1457,10 @@ namespace Zerra.CQRS
             queryClients.Add(interfaceType, queryClient);
             handledTypes ??= new();
             _ = handledTypes.Add(interfaceType);
+            handledTypesByName ??= new();
+            if (handledTypesByName.TryGetValue(interfaceType.Name, out var existingType) && existingType != interfaceType)
+                throw new InvalidOperationException($"{interfaceType.FullName} has the same name as {existingType.FullName}, the name is what's sent between services");
+            handledTypesByName[interfaceType.Name] = interfaceType;
             context.Log?.Info($"{queryClient.GetType().Name} at {queryClient.ServiceUrl} - {interfaceType.Name}");
         }
 
@@ -1440,6 +1486,10 @@ namespace Zerra.CQRS
             queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
             handledTypes ??= new();
             _ = handledTypes.Add(interfaceType);
+            handledTypesByName ??= new();
+            if (handledTypesByName.TryGetValue(interfaceType.Name, out var existingType) && existingType != interfaceType)
+                throw new InvalidOperationException($"{interfaceType.FullName} has the same name as {existingType.FullName}, the name is what's sent between services");
+            handledTypesByName[interfaceType.Name] = interfaceType;
             context.Log?.Info($"{queryServer.GetType().Name} at {queryServer.ServiceUrl} - {interfaceType.Name}");
 
             queryServer.Open();

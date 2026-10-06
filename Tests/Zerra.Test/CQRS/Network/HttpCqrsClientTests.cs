@@ -460,7 +460,7 @@ namespace Zerra.Test.CQRS.Network
 
         private static void AssertQueryRequest(FakeRequest request, string methodName, int argument)
         {
-            var providerType = typeof(ITestQueryHandler).AssemblyQualifiedName;
+            var providerType = typeof(ITestQueryHandler).Name;
             Assert.StartsWith("POST ", request.Header.Declarations);
             Assert.Equal(providerType, request.Header.ProviderType);
             Assert.Equal(serializer.ContentType, request.Header.ContentType);
@@ -474,9 +474,9 @@ namespace Zerra.Test.CQRS.Network
         private static void AssertMessageRequest(FakeRequest request, Type messageType, bool messageAwait, bool messageResult)
         {
             Assert.StartsWith("POST ", request.Header.Declarations);
-            Assert.Equal(messageType.AssemblyQualifiedName, request.Header.ProviderType);
+            Assert.Equal(messageType.Name, request.Header.ProviderType);
             Assert.Equal(serializer.ContentType, request.Header.ContentType);
-            Assert.Equal(messageType.AssemblyQualifiedName, request.Data.MessageType);
+            Assert.Equal(messageType.Name, request.Data.MessageType);
             Assert.Equal(messageAwait, request.Data.MessageAwait);
             Assert.Equal(messageResult, request.Data.MessageResult);
             Assert.Equal(source, request.Data.Source);

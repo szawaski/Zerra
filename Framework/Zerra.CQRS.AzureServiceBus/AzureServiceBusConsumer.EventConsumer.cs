@@ -8,7 +8,7 @@ using System.Security.Claims;
 using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Reflection;
+using System.Collections.Concurrent;
 using Zerra.Serialization;
 
 namespace Zerra.CQRS.AzureServiceBus
@@ -22,6 +22,7 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly int maxConcurrent;
             private readonly string topic;
             private readonly string subscription;
+            private readonly ConcurrentDictionary<string, Type> eventTypes;
             private readonly ISerializer serializer;
             private readonly IEncryptor? encryptor;
             private readonly ICompressor? compressor;
@@ -35,7 +36,7 @@ namespace Zerra.CQRS.AzureServiceBus
             //PerService gets a subscription named for the service so its replicas compete for the events, it's shared so it's never deleted
             private readonly bool deleteSubscriptionOnStop;
 
-            public EventConsumer(int maxConcurrent, string topic, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, ConcurrentDictionary<string, Type> eventTypes, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -61,6 +62,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     this.subscription = $"EVT-{Guid.NewGuid():N}";
                     this.deleteSubscriptionOnStop = true;
                 }
+                this.eventTypes = eventTypes;
                 this.serializer = serializer;
                 this.encryptor = encryptor;
                 this.compressor = compressor;
@@ -175,7 +177,9 @@ namespace Zerra.CQRS.AzureServiceBus
                     if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                         throw new Exception("Invalid Message");
 
-                    var @event = serializer.Deserialize(message.MessageData, TypeFinder.GetTypeFromName(message.MessageType)) as IEvent;
+                    if (!eventTypes.TryGetValue(message.MessageType, out var eventType))
+                        throw new Exception($"Unhandled Message Type {message.MessageType}");
+                    var @event = serializer.Deserialize(message.MessageData, eventType) as IEvent;
                     if (@event is null)
                         throw new Exception("Invalid Message");
 

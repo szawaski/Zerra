@@ -22,7 +22,7 @@ The templates call `Zerra.T4.CQRSClientDomain.GenerateJavaScript(folder)` or `Ge
 
 1. Copy `Bus.js` or `Bus.ts`, its routes file, the template, and the `Binaries` folder into your solution.
 2. Point the template's `assembly` directive at `Zerra.T4.dll`, for example `<#@ assembly name="..\Binaries\Zerra.T4.dll" #>`.
-3. Set the folder it scans. The shipped template scans the whole solution folder. Narrow it to your own `*.Domain` projects so unrelated types aren't picked up, as `Demo/Store/Store.Web/wwwroot/js/JavaScriptModels.tt` does.
+3. Set the folder it scans. The shipped template scans the whole solution folder. Narrow it to the folder with your contracts so unrelated types aren't picked up. With copies in each service, scan only the gateway's copies, or every contract is found more than once; `Demo/Store/Store.Web/wwwroot/js/JavaScriptModels.tt` scans only `Store.Web`.
 4. Save the template in Visual Studio to run it, and run it again after changing a contract.
 
 To run the template on every build instead, add the text templating targets to the web project (see [`Help-ProjectBuildT4.txt`](../Front%20End%20Scripts/JavaScript/Help-ProjectBuildT4.txt)):

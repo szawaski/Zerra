@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections.Concurrent;
 using System.Net.Sockets;
 using Zerra.Collections;
 using Zerra.Logging;
@@ -14,9 +15,9 @@ namespace Zerra.CQRS.Network
     public abstract class CqrsServerBase : IQueryServer, ICommandConsumer, IEventConsumer, IDisposable
     {
         /// <summary>
-        /// The types registered for this server to handle.
+        /// The types registered for this server to handle by their names.
         /// </summary>
-        protected readonly ConcurrentReadWriteHashSet<Type> types;
+        protected readonly ConcurrentDictionary<string, Type> types;
         private readonly Type thisType;
         
         private SocketListener[]? listeners = null;
@@ -98,7 +99,9 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
-            _ = types.Add(type);
+            var existing = types.GetOrAdd(type.Name, type);
+            if (existing != type)
+                throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
         }
 
         void ICommandConsumer.Setup(CommandCounter? commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
@@ -117,7 +120,9 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
-            _ = types.Add(type);
+            var existing = types.GetOrAdd(type.Name, type);
+            if (existing != type)
+                throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
         }
 
         void IEventConsumer.Setup(string serviceName, HandleRemoteEventDispatch handlerAsync)
@@ -135,7 +140,9 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
-            _ = types.Add(type);
+            var existing = types.GetOrAdd(type.Name, type);
+            if (existing != type)
+                throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
         }
 
         void IQueryServer.Open()
@@ -279,7 +286,6 @@ namespace Zerra.CQRS.Network
                 }
             }
 
-            types.Dispose();
             GC.SuppressFinalize(this);
         }
 
@@ -315,7 +321,6 @@ namespace Zerra.CQRS.Network
                 }
             }
 
-            types.Dispose();
             GC.SuppressFinalize(this);
         }
     }

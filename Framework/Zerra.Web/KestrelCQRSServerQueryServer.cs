@@ -73,10 +73,14 @@ namespace Zerra.Web
         {
             lock (settings.Types)
             {
-                if (settings.Types.ContainsKey(type))
+                if (settings.Types.TryGetValue(type.Name, out var registered))
+                {
+                    if (registered.Type != type)
+                        throw new InvalidOperationException($"{type.FullName} has the same name as {registered.Type.FullName}, the name is what's sent between services");
                     return;
+                }
                 var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
-                if (!settings.Types.TryAdd(type, throttle))
+                if (!settings.Types.TryAdd(type.Name, (type, throttle)))
                     throttle.Dispose();
             }
         }

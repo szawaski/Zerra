@@ -1,5 +1,4 @@
-using Store.Inventory.Domain;
-using Store.Inventory.Domain.Commands;
+using Store.Orders.Domain.Inventory;
 using Zerra.CQRS;
 
 namespace Store.Orders.Test

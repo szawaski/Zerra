@@ -119,7 +119,7 @@ namespace Zerra.CQRS.Network
         /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken)
         {
-            var commandTypeName = commandType.AssemblyQualifiedName ?? throw new ArgumentException("Command type must have AssemblyQualifiedName");
+            var commandTypeName = commandType.Name;
             var commandData = JsonSerializer.Serialize(command, commandType);
 
             var data = new ApiRequestData()
@@ -136,7 +136,7 @@ namespace Zerra.CQRS.Network
         /// <inheritdoc />
         protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
         {
-            var commandTypeName = commandType.AssemblyQualifiedName ?? throw new ArgumentException("Command type must have AssemblyQualifiedName");
+            var commandTypeName = commandType.Name;
             var commandData = JsonSerializer.Serialize(command, commandType);
 
             var data = new ApiRequestData()
@@ -155,7 +155,7 @@ namespace Zerra.CQRS.Network
         /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
         {
-            var commandTypeName = eventType.AssemblyQualifiedName ?? throw new ArgumentException("Event type must have AssemblyQualifiedName");
+            var commandTypeName = eventType.Name;
             var commandData = JsonSerializer.Serialize(@event, eventType);
 
             var data = new ApiRequestData()

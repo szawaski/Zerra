@@ -1,9 +1,9 @@
 using Store.Carts.Domain;
+using Store.Carts.Domain.Catalog;
 using Store.Carts.Domain.Commands;
+using Store.Carts.Domain.Orders;
 using Store.Carts.Service.Aggregates;
-using Store.Catalog.Domain.Events;
 using Store.Common;
-using Store.Orders.Domain.Models;
 using Xunit;
 
 namespace Store.Carts.Test

@@ -70,7 +70,7 @@ else
     bus.AddCommandProducer<IReviewsCommandHandler>(new TcpCqrsClient("localhost:9104", serializer, encryptor, null, log));
 ```
 
-`Demo/Store` does this for review commands, in `Store.Web/Program.cs` and `Store.Reviews.Service/Program.cs`.
+`Demo/Store` does this for review commands, in `Store.Web/Program.cs` and `Store.Reviews/Program.cs`.
 
 ### The Emulator
 

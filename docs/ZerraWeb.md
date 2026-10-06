@@ -231,11 +231,11 @@ app.UseKestrelCqrsServer(serializer, encryptor, null, log, settings);
 app.Run();
 ```
 
-Callers use `KestrelCqrsClient` instead of `TcpCqrsClient`, with the same constructor shape plus an `authorizer` and `route`. Nothing else changes for the caller or the handlers. `Demo/Store/Store.Shipping.Service` is a complete example.
+Callers use `KestrelCqrsClient` instead of `TcpCqrsClient`, with the same constructor shape plus an `authorizer` and `route`. Nothing else changes for the caller or the handlers. `Demo/Store/Store.Shipping` is a complete example.
 
 ### Browser Clients
 
-Browsers call the gateway with `Bus.js` or `Bus.ts`, using JavaScript or TypeScript models generated from your `*.Domain` projects. See [Front End Scripts](FrontEndScripts.md).
+Browsers call the gateway with `Bus.js` or `Bus.ts`, using JavaScript or TypeScript models generated from your contracts. See [Front End Scripts](FrontEndScripts.md).
 
 ### .NET Clients
 

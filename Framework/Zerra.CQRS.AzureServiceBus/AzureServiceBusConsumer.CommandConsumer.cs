@@ -9,7 +9,6 @@ using System.Security.Claims;
 using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Reflection;
 using Zerra.CQRS.Network;
 using Zerra.Serialization;
 
@@ -24,6 +23,7 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly int maxConcurrent;
             private readonly CommandCounter? commandCounter;
             private readonly string queue;
+            private readonly ConcurrentDictionary<string, Type> commandTypes;
             private readonly ISerializer serializer;
             private readonly IEncryptor? encryptor;
             private readonly ICompressor? compressor;
@@ -55,7 +55,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
             }
 
-            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string queue, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string queue, ConcurrentDictionary<string, Type> commandTypes, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -70,6 +70,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 if (truncated)
                     log?.Warn($"{nameof(AzureServiceBusConsumer)} truncated the command queue to {AzureServiceBusCommon.EntityNameMaxLength} characters: {this.queue}. Another queue truncating to the same name would be consumed as this one.");
 
+                this.commandTypes = commandTypes;
                 this.serializer = serializer;
                 this.encryptor = encryptor;
                 this.compressor = compressor;
@@ -184,7 +185,9 @@ namespace Zerra.CQRS.AzureServiceBus
                     if (message is null || message.MessageType is null || message.MessageData is null || message.Source is null)
                         throw new Exception("Invalid Message");
 
-                    var command = serializer.Deserialize(message.MessageData, TypeFinder.GetTypeFromName(message.MessageType)) as ICommand;
+                    if (!commandTypes.TryGetValue(message.MessageType, out var commandType))
+                        throw new Exception($"Unhandled Message Type {message.MessageType}");
+                    var command = serializer.Deserialize(message.MessageData, commandType) as ICommand;
                     if (command is null)
                         throw new Exception("Invalid Message");
 
