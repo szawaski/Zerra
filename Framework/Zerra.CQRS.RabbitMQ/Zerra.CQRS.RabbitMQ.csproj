@@ -22,6 +22,7 @@
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <PackageTags>Zerra;CQRS;RabbitMQ;Messaging</PackageTags>
         <Description>RabbitMQ transport for Zerra commands and events.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
@@ -48,6 +49,10 @@
 
     <ItemGroup>
         <PackageReference Include="RabbitMQ.Client" Version="6.7.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
 </Project>

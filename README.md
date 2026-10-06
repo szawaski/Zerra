@@ -14,7 +14,7 @@ Handlers are called the same way whether they live in the same process, across T
 
 - **Location-transparent calls.** `bus.Call<IUserQueryHandler>().GetUserById(id)` is a typed method call, local or remote. No controllers, routes, or hand-written HTTP clients.
 - **Deploy as you need.** Start as one process, split into microservices later, or test every handler in memory, all with the same handlers and callers.
-- **Clear message semantics.** Queries read, commands change state and are handled once, events notify every subscriber. Per-replica or per-service delivery is an explicit choice for each subscriber.
+- **Clear message semantics.** Queries read, commands change state and are handled by one replica, events notify every subscriber. Per-replica or per-service delivery is an explicit choice for each subscriber, and the [delivery guarantees](docs/Reliability.md) are documented for each transport.
 - **Fast by design.** Source generators replace runtime reflection, the binary serializer is compact, and everything is Native AOT compatible.
 - **No external dependencies.** Nothing beyond .NET itself on .NET 10. The .NET Standard 2.0 build, which also runs on .NET Framework 4.7.2+, adds only Microsoft's System.* compatibility packages.
 - **Complete toolkit.** Built-in binary and JSON serializers, message encryption and compression, claims propagation, a browser API gateway with generated JavaScript and TypeScript clients, and an experimental LINQ repository across SQL Server, PostgreSQL, MySQL, MariaDB, and KurrentDB.
@@ -71,6 +71,20 @@ dotnet add package Zerra
 - **[Getting Started](docs/GettingStarted.md)**: build a service and a client, then move between in-process, TCP, HTTP, and brokers
 - **[Store demo](Demo/Store/README.md)**: seven services, five data stores, three message brokers, a browser gateway, and an event-sourced aggregate
 - **[Documentation Index](docs/Index.md)**: every guide, from queries and events to serializers and AOT
+- **[Production Checklist](docs/Production.md)**: delivery guarantees, security, versioning, and observability to verify before deploying
+
+## Is Zerra a Fit?
+
+Zerra suits .NET systems that want typed CQRS contracts that stay the same while handlers move between one process, direct TCP or HTTP, and message brokers, especially where Native AOT or a small dependency footprint matters.
+
+| If you need | Consider |
+|---|---|
+| In-process request and notification dispatch only | MediatR, or Zerra with every handler local |
+| Broker messaging with built-in retries, sagas, outbox, and dead-lettering | MassTransit or NServiceBus |
+| Resilient HTTP calls between services, without a messaging model | `HttpClient` with Microsoft.Extensions.Http.Resilience |
+| One contract for in-process, TCP/HTTP, Kafka, RabbitMQ, and Azure Service Bus, Native AOT compatible | Zerra |
+
+Zerra delivers commands and events at most once, and leaves retries and idempotency to your handlers. Read [Delivery and Failure Handling](docs/Reliability.md) before choosing a transport, and the [Production Checklist](docs/Production.md) before deploying.
 
 ## Packages
 

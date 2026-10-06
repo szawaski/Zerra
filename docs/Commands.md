@@ -2,7 +2,9 @@
 
 # Commands
 
-A command asks for a change of state. It is **handled once**, by one replica of the handling service, however many replicas are running. That is the difference from events, which reach every replica unless the subscriber registers [`EventConsumerMode.PerService`](Events.md#choosing-per-replica-or-per-service). Work that must happen exactly once belongs in a command. See [Events Are Fanned Out to Every Replica](Events.md#events-are-fanned-out-to-every-replica).
+A command asks for a change of state. It is **handled once**, by one replica of the handling service, however many replicas are running. That is the difference from events, which reach every replica unless the subscriber registers [`EventConsumerMode.PerService`](Events.md#choosing-per-replica-or-per-service). Work that must happen once belongs in a command. See [Events Are Fanned Out to Every Replica](Events.md#events-are-fanned-out-to-every-replica).
+
+"Once" is about replicas, not delivery: a remote command is delivered at most once and isn't retried if its handler fails or its process crashes. See [Delivery and Failure Handling](Reliability.md).
 
 A command can be sent fire-and-forget or awaited, can return a result, and is handled locally or remotely depending only on how the bus is set up.
 
@@ -100,6 +102,8 @@ var user = await bus.DispatchAwaitAsync(new ActivateUserCommand { UserId = 1 });
 
 Use `DispatchAsync` when the caller doesn't need to know the outcome, and `DispatchAwaitAsync` when it must confirm success or react to a failure.
 
+`DispatchAwaitAsync` waits for that command's handler only. Events and commands the handler sends with `DispatchAsync` have been sent but not necessarily handled when it returns. See [What a Dispatch Returns](Reliability.md#what-a-dispatch-returns).
+
 ### Timeouts
 
 Every dispatch method has an overload taking a `CancellationToken` and one taking a `TimeSpan`. Without either, the bus's `defaultDispatchTimeout` or `defaultDispatchAwaitTimeout` applies (see [Client Setup](ClientSetup.md#timeout-configuration)). A timeout throws `TimeoutException`.
@@ -182,7 +186,7 @@ catch (TimeoutException)
 
 ## Idempotency
 
-A command may be redelivered, for example after a timeout and retry, so make handlers safe to run twice where you can, like the "already active" check in `ActivateUserCommand` above.
+Zerra doesn't redeliver commands, but a caller that retries after a `TimeoutException` may send one that already ran. Make handlers safe to run twice where you can, like the "already active" check in `ActivateUserCommand` above, or give the command an ID the caller creates and skip IDs already handled. See [Making Handlers Safe](Reliability.md#making-handlers-safe).
 
 ## Coordinating Several Services
 

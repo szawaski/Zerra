@@ -218,6 +218,8 @@ A command is **handled once**, by one replica. An event is delivered to **every 
 
 Commands are handled once either way: Kafka gives command consumers one shared group, Azure Service Bus a shared queue, RabbitMQ a Direct exchange with one queue.
 
+This is about replicas, not delivery. Remote commands and events are delivered at most once: acknowledged on receipt, never retried after a handler failure or crash. Handlers a caller may retry must be idempotent. See [Delivery and Failure Handling](Reliability.md).
+
 So: **`PerReplica` work has to be correct when every replica does it.** Dropping a cache the replica holds in its own memory, an in-memory read model, pushing to that replica's connected browsers, logging and metrics all qualify. Writing to a shared database or event store, moving stock or money, creating a record, sending mail or charging a card do not. Those need a command, or an event the subscriber registers `PerService`.
 
 One state change often needs both, for two reasons. In `Demo/Store`, a price change dispatches `ProductPriceChangedEvent` so every Carts and Reviews replica drops its cached product, and `RepriceCartItemsCommand` so the carts are repriced once. Service-to-service commands go on their own interface that the web gateway does not register (`ICartRepricingHandler`, `IStockReservationHandler`), so browsers cannot send them. The same demo has the `PerService` case too: shipping an order publishes `OrderShippedEvent`, and Inventory and Shipping each subscribe `PerService` so one replica of each settles the reservation and creates the shipment.

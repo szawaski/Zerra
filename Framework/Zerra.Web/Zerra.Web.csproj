@@ -22,6 +22,7 @@
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <PackageTags>Zerra;CQRS;AspNetCore;Kestrel;IIS;Gateway</PackageTags>
         <Description>ASP.NET Core hosting for Zerra CQRS services, including an HTTP API gateway for commands and queries.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
@@ -50,6 +51,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Zerra\Zerra.csproj" PrivateAssets="none" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
 </Project>

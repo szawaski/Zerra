@@ -20,6 +20,8 @@ var encryptor = new ZerraEncryptor("shared-internal-secret", SymmetricAlgorithmT
 
 See [Encryptors](Encryptors.md) for setup details.
 
+Which connections have TLS, how to rotate keys, and which error details reach callers are covered in the [Production Checklist](Production.md#security).
+
 ---
 
 Zerra automatically propagates the security claims from the calling thread's `ClaimsPrincipal` to the remote service for all message types — Queries, Commands, and Events. This means any claims established on the client (e.g., from JWT authentication or cookie-based identity) are carried transparently across service boundaries without any additional configuration.

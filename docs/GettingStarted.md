@@ -97,7 +97,7 @@ public interface IEmailEventHandler : IEventHandler<UserCreatedEvent>
 }
 ```
 
-> **Command or event?** A command is handled once. An event reaches every replica of every subscriber, unless the subscriber registers its consumer with `EventConsumerMode.PerService`. Work that must happen exactly once, like sending an email or charging a card, belongs in a command or in a `PerService` event handler. See [Command or Event?](Agents.md#command-or-event-read-this-first).
+> **Command or event?** A command is handled once. An event reaches every replica of every subscriber, unless the subscriber registers its consumer with `EventConsumerMode.PerService`. Work that must happen once, like sending an email or charging a card, belongs in a command or in a `PerService` event handler. See [Command or Event?](Agents.md#command-or-event-read-this-first).
 
 ## Write the Handlers
 

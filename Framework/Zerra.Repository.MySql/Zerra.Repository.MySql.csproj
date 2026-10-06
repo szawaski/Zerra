@@ -24,6 +24,7 @@
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <PackageTags>Zerra;Repository;ORM;MySQL</PackageTags>
         <Description>MySQL provider for Zerra.Repository.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -40,6 +41,10 @@
     <ItemGroup>
         <ProjectReference Include="..\Zerra.Repository\Zerra.Repository.csproj" />
         <ProjectReference Include="..\Zerra\Zerra.csproj" PrivateAssets="none" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
 </Project>

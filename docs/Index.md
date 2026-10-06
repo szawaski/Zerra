@@ -37,6 +37,10 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - [Commands](Commands.md) - Dispatch state-changing operations with commands
 - [Events](Events.md) - Publish and handle state change notifications
 - [Security](Security.md) - Claims propagation from client to server for Queries, Commands, and Events
+- [Delivery and Failure Handling](Reliability.md) - At-most-once delivery, acknowledgments, retries, and making handlers safe
+
+### Going to Production
+- [Production Checklist](Production.md) - Delivery, security, versioning, observability, and testing to verify before deploying
 
 ### Utility Features
 - [Graph](Graph.md) - Selective member inclusion/exclusion for serialization and mapping

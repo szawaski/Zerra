@@ -22,6 +22,7 @@
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <PackageTags>Zerra;CQRS;Azure;ServiceBus;Messaging</PackageTags>
         <Description>Azure Service Bus transport for Zerra commands and events.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
@@ -49,6 +50,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
 </Project>

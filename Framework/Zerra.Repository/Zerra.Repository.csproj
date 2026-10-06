@@ -23,6 +23,7 @@
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <PackageTags>Zerra;Repository;ORM;LINQ;EventSourcing</PackageTags>
         <Description>Data store agnostic LINQ repository for Zerra, with event sourcing and aggregate roots.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -38,6 +39,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
 </Project>

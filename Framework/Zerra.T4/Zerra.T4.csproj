@@ -20,6 +20,7 @@
         <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
         <PackageTags>Zerra;T4;CodeGeneration;JavaScript;TypeScript</PackageTags>
         <Description>T4 helpers that generate JavaScript and TypeScript clients for Zerra CQRS, and models from an existing SQL Server database.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -48,5 +49,9 @@
         <Copy SourceFiles="@(BinariesToCopy)" DestinationFolder="$(FrontEndBinariesPath)" SkipUnchangedFiles="true" />
         <Message Text="Successfully copied binaries to $(FrontEndBinariesPath)" Importance="high" />
     </Target>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
 
 </Project>

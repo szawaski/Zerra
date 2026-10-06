@@ -86,7 +86,7 @@ ISerializer serializer = new ZerraByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
 
 // Create the bus
-var bus = Bus.New(service: "ClientService");
+var bus = Bus.New("ClientService");
 
 // Create TCP CQRS client
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log: null);

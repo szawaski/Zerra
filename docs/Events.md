@@ -52,7 +52,7 @@ Work that belongs in an **event** handler, because every replica must do it for 
 - pushing to the browsers or sockets connected to *that* replica
 - logging, metrics, tracing
 
-Work that belongs in a **command**, because it must happen exactly once:
+Work that belongs in a **command**, because it must happen once, on one replica:
 
 - writing to a shared database or an event store
 - moving stock, money, or any other counter
