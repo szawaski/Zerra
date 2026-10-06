@@ -722,7 +722,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                     }
 
-                    if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, null, default, default, current.IgnoreCondition, true))
+                    if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, null, null, null, current.IgnoreCondition, true))
                     {
                         state.Current.HasWrittenStart = true;
                         state.Current.HasWrittenSeperator = true;
@@ -763,31 +763,35 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                 }
 
-                while (state.Current.EnumeratorIndex < members.Count)
+                var useBytes = writer.UseBytes;
+                var enumeratorIndex = state.Current.EnumeratorIndex;
+                while (enumeratorIndex < members.Count)
                 {
-                    var current = members[state.Current.EnumeratorIndex];
+                    var current = members[enumeratorIndex];
                     if (current.IgnoreCondition == JsonIgnoreCondition.WhenWriting)
                     {
-                        state.Current.EnumeratorIndex++;
+                        enumeratorIndex++;
                         continue;
                     }
                     if (state.Current.Graph is not null && !state.Current.Graph.HasMember(current.Member.Name))
                     {
-                        state.Current.EnumeratorIndex++;
+                        enumeratorIndex++;
                         continue;
                     }
 
-                    if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, current.Member.Name, current.JsonNameSegmentChars, current.JsonNameSegmentBytes, current.IgnoreCondition, false))
+                    if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, current.Member.Name, useBytes ? null : current.JsonNameSegmentChars, useBytes ? current.JsonNameSegmentBytes : null, current.IgnoreCondition, false))
                     {
                         state.Current.HasWrittenStart = true;
+                        state.Current.EnumeratorIndex = enumeratorIndex;
                         return false;
                     }
-                    state.Current.EnumeratorIndex++;
+                    enumeratorIndex++;
                 }
 
                 if (!writer.TryWriteCloseBrace(out state.SizeNeeded))
                 {
                     state.Current.HasWrittenStart = true;
+                    state.Current.EnumeratorIndex = enumeratorIndex;
                     return false;
                 }
                 return true;

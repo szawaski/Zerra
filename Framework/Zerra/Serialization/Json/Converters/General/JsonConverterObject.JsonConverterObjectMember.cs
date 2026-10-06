@@ -29,11 +29,11 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             private byte[]? jsonNameSegmentBytes = null;
-            public ReadOnlySpan<byte> JsonNameSegmentBytes
+            public byte[] JsonNameSegmentBytes
             {
                 get
                 {
-                    jsonNameSegmentBytes ??= StringHelper.EscapeAndEncodeString(JsonName, true);
+                    jsonNameSegmentBytes ??= StringHelper.EscapeAndEncodeString(JsonName, true)!;
                     return jsonNameSegmentBytes;
                 }
             }
@@ -49,11 +49,11 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             private char[]? jsonNameSegmentChars = null;
-            public ReadOnlySpan<char> JsonNameSegmentChars
+            public char[] JsonNameSegmentChars
             {
                 get
                 {
-                    jsonNameSegmentChars ??= StringHelper.EscapeString(JsonName, true);
+                    jsonNameSegmentChars ??= StringHelper.EscapeString(JsonName, true)!;
                     return jsonNameSegmentChars;
                 }
             }

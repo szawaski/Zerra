@@ -832,11 +832,12 @@ namespace Zerra.Serialization.Bytes.Converters
             return true;
         }
         /// <inheritdoc/>
-        public override sealed bool TryWriteFromParentMember(ref ByteWriter writer, ref WriteState state, object parent, ushort indexProperty, ReadOnlySpan<byte> indexPropertyName)
+        public override sealed bool TryWriteFromParentMember(ref ByteWriter writer, ref WriteState state, object parent, ushort indexProperty, byte[]? indexPropertyName)
         {
             if (getter is null)
                 return true;
             var value = getter(parent);
+            var hasWrittenPropertyIndex = state.Current.HasWrittenPropertyIndex;
 
             if (canBeNull)
             {
@@ -844,11 +845,11 @@ namespace Zerra.Serialization.Bytes.Converters
                     return true;
             }
 
-            if (!state.Current.HasWrittenPropertyIndex)
+            if (!hasWrittenPropertyIndex)
             {
                 if (state.UseMemberNames)
                 {
-                    if (indexPropertyName.Length > 0)
+                    if (indexPropertyName is not null && indexPropertyName.Length > 0)
                     {
                         if (!writer.TryWritePropertyName(indexPropertyName, out state.SizeNeeded))
                             return false;
@@ -910,7 +911,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (StackRequired)
                         state.EndFrame();
-                    state.Current.HasWrittenPropertyIndex = false;
+                    if (hasWrittenPropertyIndex)
+                        state.Current.HasWrittenPropertyIndex = false;
                     state.Current.ChildWriteType = null;
                     return true;
                 }
@@ -941,7 +943,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (StackRequired)
                         state.EndFrame();
-                    state.Current.HasWrittenPropertyIndex = false;
+                    if (hasWrittenPropertyIndex)
+                        state.Current.HasWrittenPropertyIndex = false;
                     if (state.UseTypes)
                         state.Current.ChildWriteType = null;
                     return true;
@@ -958,7 +961,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
                 state.EndFrame();
-            state.Current.HasWrittenPropertyIndex = false;
+            if (hasWrittenPropertyIndex)
+                state.Current.HasWrittenPropertyIndex = false;
             if (state.UseTypes)
                 state.Current.ChildWriteType = null; ;
             return true;

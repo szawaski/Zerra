@@ -25,7 +25,8 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 
 ### Serialization
 
-- `ZerraJsonSerializer` is as fast as System.Text.Json ([Benchmarks](docs/Benchmarks.md)): serializing to UTF-8 no longer grows its buffer on every call, arrays are read in one pass instead of being scanned for their length first, dates are written with the runtime's round-trip formatter, strings are checked for escaping with vectorized search, and reading handles punctuation, numbers, and `true`/`false`/`null` with less overhead.
+- `ZerraJsonSerializer` is faster than System.Text.Json ([Benchmarks](docs/Benchmarks.md)): serializing to UTF-8 no longer grows its buffer on every call, arrays are read in one pass instead of being scanned for their length first, dates are written with the runtime's round-trip formatter, strings are checked for escaping with vectorized search, property names are copied without pinning, strings with nothing to escape are read and written on an inlined path, and reading handles punctuation, numbers, and `true`/`false`/`null` with less overhead.
+- `ZerraJsonSerializer` and `ZerraByteSerializer` clear only the bytes they wrote when returning a pooled buffer, instead of the whole buffer on every call, and write each property with less overhead.
 - Fixed `ZerraJsonSerializer` writing dictionary keys that need escaping: they threw when serializing to UTF-8 and were corrupted when serializing to a string.
 - Fixed `ZerraJsonSerializer` writing a negative UTC offset of 10 hours or more, or with minutes, on `DateTimeOffset` and local `DateTime` values.
 

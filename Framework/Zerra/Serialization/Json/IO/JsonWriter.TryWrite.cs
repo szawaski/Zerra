@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Buffers.Text;
 using System.Runtime.CompilerServices;
 
@@ -1336,7 +1337,7 @@ namespace Zerra.Serialization.Json.IO
         /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
         /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteTrue(out int sizeNeeded)
+        public bool TryWriteTrue(out int sizeNeeded)
         {
             sizeNeeded = 4;
             if (length - position < sizeNeeded)
@@ -1351,10 +1352,8 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-                bufferBytes[position++] = tByte;
-                bufferBytes[position++] = rByte;
-                bufferBytes[position++] = uByte;
-                bufferBytes[position++] = eByte;
+                BinaryPrimitives.WriteUInt32LittleEndian(bufferBytes.Slice(position), 0x65757274);
+                position += 4;
                 return true;
             }
             else
@@ -1373,7 +1372,7 @@ namespace Zerra.Serialization.Json.IO
         /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
         /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteFalse(out int sizeNeeded)
+        public bool TryWriteFalse(out int sizeNeeded)
         {
             sizeNeeded = 5;
             if (length - position < sizeNeeded)
@@ -1388,11 +1387,9 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-                bufferBytes[position++] = fByte;
-                bufferBytes[position++] = aByte;
-                bufferBytes[position++] = lByte;
-                bufferBytes[position++] = sByte;
-                bufferBytes[position++] = eByte;
+                BinaryPrimitives.WriteUInt32LittleEndian(bufferBytes.Slice(position), 0x736C6166);
+                bufferBytes[position + 4] = eByte;
+                position += 5;
                 return true;
             }
             else
@@ -1414,7 +1411,7 @@ namespace Zerra.Serialization.Json.IO
         /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
         /// <returns><c>true</c> if the segment was successfully written; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteNameSegment(ReadOnlySpan<char> value, bool startWithComma, out int sizeNeeded)
+        public bool TryWriteNameSegment(ReadOnlySpan<char> value, bool startWithComma, out int sizeNeeded)
         {
             if (useBytes)
                 throw new InvalidOperationException($"{nameof(TryWriteNameSegment)} {nameof(useBytes)} is the wrong setting for this call");
@@ -1430,14 +1427,12 @@ namespace Zerra.Serialization.Json.IO
                 return false;
 #endif
 
-            fixed (char* pSource = value, pBuffer = bufferChars)
-            {
-                if (startWithComma)
-                    pBuffer[position++] = ',';
+            if (startWithComma)
+                bufferChars[position++] = ',';
 
-                Buffer.MemoryCopy(pSource, &pBuffer[position], (bufferChars.Length - position) * 2, value.Length * 2);
-                position += value.Length;
-            }
+            //a span copy instead of fixed and Buffer.MemoryCopy, the JIT won't inline a method with pinned locals
+            value.CopyTo(bufferChars.Slice(position));
+            position += value.Length;
 
             return true;
         }
@@ -1450,7 +1445,7 @@ namespace Zerra.Serialization.Json.IO
         /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
         /// <returns><c>true</c> if the segment was successfully written; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteNameSegment(ReadOnlySpan<byte> value, bool startWithComma, out int sizeNeeded)
+        public bool TryWriteNameSegment(ReadOnlySpan<byte> value, bool startWithComma, out int sizeNeeded)
         {
             if (!useBytes)
                 throw new InvalidOperationException($"{nameof(TryWriteNameSegment)} {nameof(useBytes)} is the wrong setting for this call");
@@ -1466,15 +1461,12 @@ namespace Zerra.Serialization.Json.IO
                 return false;
 #endif
 
-            fixed (byte* pSource = value)
-            fixed (byte* pBuffer = bufferBytes)
-            {
-                if (startWithComma)
-                    pBuffer[position++] = commaByte;
+            if (startWithComma)
+                bufferBytes[position++] = commaByte;
 
-                Buffer.MemoryCopy(pSource, &pBuffer[position], bufferBytes.Length - position, value.Length);
-                position += value.Length;
-            }
+            //a span copy instead of fixed and Buffer.MemoryCopy, the JIT won't inline a method with pinned locals
+            value.CopyTo(bufferBytes.Slice(position));
+            position += value.Length;
 
             return true;
         }
@@ -1739,7 +1731,42 @@ namespace Zerra.Serialization.Json.IO
         /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
         /// <returns><c>true</c> if the value was successfully written; <c>false</c> if more bytes are needed.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteEscapedQuoted(string? value, out int sizeNeeded)
+        public bool TryWriteEscapedQuoted(string? value, out int sizeNeeded)
+        {
+            //no fixed in this fast path, the JIT won't inline a method with pinned locals
+#if !NETSTANDARD2_0
+            if (value is not null && value.Length > 0 && value.AsSpan().IndexOfAny(escapeChars) < 0 && value.AsSpan().IndexOfAnyInRange(lowerSurrogate, upperSurrogate) < 0)
+            {
+                sizeNeeded = useBytes ? encoding.GetMaxByteCount(value.Length + 2) : value.Length + 2;
+                if (length - position < sizeNeeded)
+                {
+                    if (!Grow(sizeNeeded))
+                        return false;
+                }
+#if DEBUG
+                if (DebugShouldReturn())
+                    return false;
+#endif
+                if (useBytes)
+                {
+                    bufferBytes[position++] = quoteByte;
+                    position += encoding.GetBytes(value, bufferBytes.Slice(position));
+                    bufferBytes[position++] = quoteByte;
+                }
+                else
+                {
+                    bufferChars[position++] = '"';
+                    value.AsSpan().CopyTo(bufferChars.Slice(position));
+                    position += value.Length;
+                    bufferChars[position++] = '"';
+                }
+                return true;
+            }
+#endif
+            return TryWriteEscapedQuotedSlow(value, out sizeNeeded);
+        }
+
+        private unsafe bool TryWriteEscapedQuotedSlow(string? value, out int sizeNeeded)
         {
             const int maxEscapeCharacterSize = 6;
 
@@ -1949,13 +1976,10 @@ namespace Zerra.Serialization.Json.IO
                             return false;
 #endif
 
-                        fixed (char* pBuffer = bufferChars)
-                        {
-                            pBuffer[position++] = '\"';
-                            Buffer.MemoryCopy(pValue, &pBuffer[position], (length - position) * 2, value.Length * 2);
-                            position += value.Length;
-                            pBuffer[position++] = '\"';
-                        }
+                        bufferChars[position++] = '\"';
+                        value.AsSpan().CopyTo(bufferChars.Slice(position));
+                        position += value.Length;
+                        bufferChars[position++] = '\"';
                         return true;
                     }
 

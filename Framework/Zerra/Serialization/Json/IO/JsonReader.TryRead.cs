@@ -641,7 +641,18 @@ namespace Zerra.Serialization.Json.IO
         /// Unescapes the current string token bytes.
         /// </summary>
         /// <returns>The unescaped string decoded from <see cref="ValueBytes"/>.</returns>
-        public unsafe string UnescapeStringBytes()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public string UnescapeStringBytes()
+        {
+            //no fixed in this fast path, the JIT won't inline a method with pinned locals
+#if !NETSTANDARD2_0
+            if (PositionOfFirstEscape == -1)
+                return encoding.GetString(ValueBytes);
+#endif
+            return UnescapeStringBytesSlow();
+        }
+
+        private unsafe string UnescapeStringBytesSlow()
         {
             if (ValueBytes.Length == 0)
                 return String.Empty;

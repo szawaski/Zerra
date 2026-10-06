@@ -18,7 +18,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             public readonly ushort Index;
 
             private byte[]? nameAsBytes = null;
-            public ReadOnlySpan<byte> NameAsBytes
+            public byte[] NameAsBytes
             {
                 get
                 {

@@ -121,7 +121,7 @@ namespace Zerra.Serialization.Bytes.IO
         {
             if (bufferOwner is not null)
             {
-                ArrayPoolHelper<byte>.Return(bufferOwner);
+                ArrayPoolHelper<byte>.Return(bufferOwner, position);
                 bufferOwner = null;
                 buffer = null;
             }

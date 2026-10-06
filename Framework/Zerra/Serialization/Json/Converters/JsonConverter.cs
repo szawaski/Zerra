@@ -84,12 +84,12 @@ namespace Zerra.Serialization.Json.Converters
         /// <param name="state">The current write state.</param>
         /// <param name="parent">The parent object to serialize.</param>
         /// <param name="propertyName">The optional property name for the value.</param>
-        /// <param name="jsonNameSegmentChars">An optional property name as a character span.</param>
-        /// <param name="jsonNameSegmentBytes">An optional property name as a byte span.</param>
+        /// <param name="jsonNameSegmentChars">An optional property name as a character array.</param>
+        /// <param name="jsonNameSegmentBytes">An optional property name as a byte array.</param>
         /// <param name="ignoreCondition">The condition determining whether to ignore this property.</param>
         /// <param name="ignoreDoNotWriteNullProperties">Whether to skip writing properties with null values.</param>
         /// <returns><c>true</c> if the write operation completed successfully; <c>false</c> if more bytes are needed.</returns>
-        public abstract bool TryWriteFromParentMember(ref JsonWriter writer, ref WriteState state, object parent, string? propertyName, ReadOnlySpan<char> jsonNameSegmentChars, ReadOnlySpan<byte> jsonNameSegmentBytes, JsonIgnoreCondition ignoreCondition, bool ignoreDoNotWriteNullProperties);
+        public abstract bool TryWriteFromParentMember(ref JsonWriter writer, ref WriteState state, object parent, string? propertyName, char[]? jsonNameSegmentChars, byte[]? jsonNameSegmentBytes, JsonIgnoreCondition ignoreCondition, bool ignoreDoNotWriteNullProperties);
 
         /// <summary>
         /// Attempts to read a boxed value from the JSON reader with the specified JSON token type.

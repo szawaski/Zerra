@@ -216,13 +216,13 @@ namespace Zerra.Serialization.Json.IO
         {
             if (bufferCharsOwner is not null)
             {
-                ArrayPoolHelper<char>.Return(bufferCharsOwner);
+                ArrayPoolHelper<char>.Return(bufferCharsOwner, position);
                 bufferCharsOwner = null;
                 bufferChars = null;
             }
             if (bufferBytesOwner is not null)
             {
-                ArrayPoolHelper<byte>.Return(bufferBytesOwner);
+                ArrayPoolHelper<byte>.Return(bufferBytesOwner, position);
                 bufferBytesOwner = null;
                 bufferBytes = null;
             }

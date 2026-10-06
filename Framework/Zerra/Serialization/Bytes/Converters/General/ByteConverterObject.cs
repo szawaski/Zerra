@@ -434,16 +434,21 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
             var enumerator = state.IgnoreIndexAttribute ? membersIngoreAttributes : members;
 
-            while (state.Current.EnumeratorIndex < enumerator.Length)
+            var enumeratorIndex = state.Current.EnumeratorIndex;
+            while (enumeratorIndex < enumerator.Length)
             {
-                var current = enumerator[state.Current.EnumeratorIndex].Member;
+                var current = enumerator[enumeratorIndex].Member;
                 //Base will write the property name or index if the value is not null.
                 //Done this way so we don't have to extract the value twice due to null checking.
                 if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, current.Index, state.UseMemberNames ? current.NameAsBytes : null))
+                {
+                    state.Current.EnumeratorIndex = enumeratorIndex;
                     return false;
+                }
 
-                state.Current.EnumeratorIndex++;
+                enumeratorIndex++;
             }
+            state.Current.EnumeratorIndex = enumeratorIndex;
 
             if (state.UseMemberNames)
             {

@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Bytes.IO
         /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the total number of bytes of buffer space the value needs.</param>
         /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWriteRaw(byte[] bytes, out int sizeNeeded)
+        public bool TryWriteRaw(byte[] bytes, out int sizeNeeded)
         {
             sizeNeeded = bytes.Length;
             if (length - position < sizeNeeded)
@@ -26,10 +26,7 @@ namespace Zerra.Serialization.Bytes.IO
                 return false;
 #endif
 
-            fixed (byte* pBuffer = &buffer[position], pBytes = bytes)
-            {
-                Buffer.MemoryCopy(pBytes, pBuffer, buffer.Length - position, bytes.LongLength);
-            }
+            bytes.AsSpan().CopyTo(buffer.Slice(position));
             position += bytes.Length;
             return true;
         }
@@ -39,7 +36,7 @@ namespace Zerra.Serialization.Bytes.IO
         /// <param name="sizeNeeded">When this method returns <see langword="false"/>, contains the total number of bytes of buffer space the value needs.</param>
         /// <returns><see langword="true"/> if the value was successfully written to the buffer; otherwise, <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool TryWritePropertyName(ReadOnlySpan<byte> bytes, out int sizeNeeded)
+        public bool TryWritePropertyName(ReadOnlySpan<byte> bytes, out int sizeNeeded)
         {
             sizeNeeded = bytes.Length + 4;
             if (length - position < sizeNeeded)
@@ -62,10 +59,7 @@ namespace Zerra.Serialization.Bytes.IO
             if (byteLength == 0)
                 return true;
 
-            fixed (byte* pBuffer = &buffer[position], pBytes = bytes)
-            {
-                Buffer.MemoryCopy(pBytes, pBuffer, buffer.Length - position, byteLength);
-            }
+            bytes.CopyTo(buffer.Slice(position));
             position += byteLength;
             return true;
         }

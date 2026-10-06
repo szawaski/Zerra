@@ -83,9 +83,9 @@ namespace Zerra.Serialization.Bytes.Converters
         /// <param name="state">The current write state.</param>
         /// <param name="parent">The parent object to write from.</param>
         /// <param name="indexProperty">An optional index property identifier; defaults to zero if not specified.</param>
-        /// <param name="indexPropertyName">An optional index property name as a byte span; defaults to an empty span if not specified.</param>
+        /// <param name="indexPropertyName">An optional index property name as a byte array; null if not specified.</param>
         /// <returns><c>true</c> if the write operation completed successfully; <c>false</c> if more bytes are needed.</returns>
-        public abstract bool TryWriteFromParentMember(ref ByteWriter writer, ref WriteState state, object parent, ushort indexProperty, ReadOnlySpan<byte> indexPropertyName);
+        public abstract bool TryWriteFromParentMember(ref ByteWriter writer, ref WriteState state, object parent, ushort indexProperty, byte[]? indexPropertyName);
 
 
         /// <summary>

@@ -639,11 +639,12 @@ namespace Zerra.Serialization.Json.Converters
             return true;
         }
         /// <inheritdoc/>
-        public override sealed bool TryWriteFromParentMember(ref JsonWriter writer, ref WriteState state, object parent, string? propertyName, ReadOnlySpan<char> jsonNameSegmentChars, ReadOnlySpan<byte> jsonNameSegmentBytes, JsonIgnoreCondition ignoreCondition, bool ignoreDoNotWriteNullProperties)
+        public override sealed bool TryWriteFromParentMember(ref JsonWriter writer, ref WriteState state, object parent, string? propertyName, char[]? jsonNameSegmentChars, byte[]? jsonNameSegmentBytes, JsonIgnoreCondition ignoreCondition, bool ignoreDoNotWriteNullProperties)
         {
             if (getter is null)
                 return true;
             var value = getter(parent);
+            var hasWrittenPropertyName = state.Current.HasWrittenPropertyName;
 
             if (propertyName is not null)
             {
@@ -654,7 +655,7 @@ namespace Zerra.Serialization.Json.Converters
                         return true;
                     }
 
-                    if (!state.Current.HasWrittenPropertyName)
+                    if (!hasWrittenPropertyName)
                     {
                         if (writer.UseBytes)
                         {
@@ -672,14 +673,15 @@ namespace Zerra.Serialization.Json.Converters
                         }
                         if (!state.Current.HasWrittenFirst)
                             state.Current.HasWrittenFirst = true;
-                        state.Current.HasWrittenPropertyName = true;
                     }
 
                     if (!writer.TryWriteNull(out state.SizeNeeded))
                     {
+                        state.Current.HasWrittenPropertyName = true;
                         return false;
                     }
-                    state.Current.HasWrittenPropertyName = false;
+                    if (hasWrittenPropertyName)
+                        state.Current.HasWrittenPropertyName = false;
                     return true;
                 }
                 else
@@ -689,7 +691,7 @@ namespace Zerra.Serialization.Json.Converters
                         return true;
                     }
 
-                    if (!state.Current.HasWrittenPropertyName)
+                    if (!hasWrittenPropertyName)
                     {
                         if (writer.UseBytes)
                         {
@@ -707,7 +709,6 @@ namespace Zerra.Serialization.Json.Converters
                         }
                         if (!state.Current.HasWrittenFirst)
                             state.Current.HasWrittenFirst = true;
-                        state.Current.HasWrittenPropertyName = true;
                     }
                 }
             }
@@ -746,12 +747,15 @@ namespace Zerra.Serialization.Json.Converters
                     {
                         if (StackRequired)
                             state.StashFrame();
+                        if (propertyName is not null)
+                            state.Current.HasWrittenPropertyName = true;
                         return false;
                     }
 
                     if (StackRequired)
                         state.EndFrame();
-                    state.Current.HasWrittenPropertyName = false;
+                    if (hasWrittenPropertyName)
+                        state.Current.HasWrittenPropertyName = false;
                     return true;
                 }
             }
@@ -760,12 +764,15 @@ namespace Zerra.Serialization.Json.Converters
             {
                 if (StackRequired)
                     state.StashFrame();
+                if (propertyName is not null)
+                    state.Current.HasWrittenPropertyName = true;
                 return false;
             }
 
             if (StackRequired)
                 state.EndFrame();
-            state.Current.HasWrittenPropertyName = false;
+            if (hasWrittenPropertyName)
+                state.Current.HasWrittenPropertyName = false;
             return true;
         }
 
