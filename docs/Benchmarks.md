@@ -8,7 +8,7 @@ Results from `Benchmarks/Zerra.Benchmark`, measured with BenchmarkDotNet. Run th
 dotnet run --project Benchmarks/Zerra.Benchmark/Zerra.Benchmark.csproj -c Release
 ```
 
-Environment: BenchmarkDotNet 0.15.8, .NET 10.0.12 (x64 RyuJIT), Windows 11, Intel Core i9-14900HX. Measured October 6, 2026 on a development laptop, pinned to the performance cores because this CPU also has slower efficiency cores. Absolute times vary between machines; compare rows within a table.
+Environment: BenchmarkDotNet 0.15.8, .NET 10.0.12, Windows 11, Intel Core i9-14900HX laptop, pinned to the performance cores. Measured October 6, 2026. Times vary between machines, so compare rows within a table.
 
 ## Serializers
 
@@ -37,7 +37,7 @@ One `NormalJsonModel` from `Tests/Zerra.Test` (41 properties: strings, decimals,
 
 ### Other Models
 
-`ModelSerializerBenchmarks` compares `ZerraJsonSerializer` with System.Text.Json across different shapes of data, with System.Text.Json given `JsonStringEnumConverter` so both write enums as names. Each cell is Zerra's time relative to System.Text.Json; negative is faster. Memory allocated is within 1% of System.Text.Json, or lower, for every model.
+`ModelSerializerBenchmarks` compares `ZerraJsonSerializer` with System.Text.Json on other kinds of data, both writing enums as names. Each cell is Zerra's time relative to System.Text.Json; negative is faster. Memory is the same or lower, within 1%.
 
 | Model | Serialize to string | Serialize to bytes | Deserialize from string | Deserialize from bytes |
 |---|---:|---:|---:|---:|

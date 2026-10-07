@@ -84,14 +84,14 @@ Payloads are smaller, but the reader has to know the member order, and nameless 
 
 ## Supported Types
 
-- Numbers, `bool`, `string`, `char`, `Guid`, and enums. Enums are written as names, or as numbers with `EnumAsNumber`, and read from either, including numbers in strings
+- Numbers, `bool`, `string`, `char`, `Guid`, and enums (as names, or numbers with `EnumAsNumber`)
 - `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly`, and `TimeOnly`, as ISO 8601 strings
 - Arrays, lists, sets, dictionaries, and their interfaces such as `IReadOnlyList<T>` and `IEnumerable<T>`
 - Classes, structs, and records, including nested objects
 
-Numbers and dates are always written and read with the invariant culture, so the JSON doesn't depend on the machine's culture.
+Numbers and dates don't depend on the machine's culture.
 
-Dictionaries whose keys are strings, numbers, `bool`, `char`, `Guid`, dates and times, or enums are written as JSON objects, the same as System.Text.Json. Enum keys use the name, or the number with `EnumAsNumber`. Dictionaries with other key types, such as objects, are written as an array of `{"Key":…,"Value":…}` pairs.
+Dictionaries are JSON objects when the keys are strings, numbers, `bool`, `char`, `Guid`, dates, or enums, like System.Text.Json. Other keys, such as objects, are written as an array of `{"Key":…,"Value":…}` pairs.
 
 ## Custom Converters
 

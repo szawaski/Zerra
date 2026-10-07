@@ -38,6 +38,12 @@ TimeSpan timeout = config["Timeout"].ToTimeSpan(TimeSpan.FromSeconds(30));
 int? page = request.Query["page"].ToString().ToInt32Nullable();
 ```
 
+Numbers and dates parse with the invariant culture, which suits configuration, environment variables, and query strings. Pass `provider` to parse text in another culture, such as user input:
+
+```csharp
+decimal price = input.ToDecimal(provider: CultureInfo.CurrentCulture);
+```
+
 | Type | Methods |
 |---|---|
 | `bool` | `ToBoolean`, `ToBooleanNullable`. Also accepts `"1"` and `"0"` |

@@ -2,26 +2,132 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Globalization;
 using Xunit;
 
 namespace Zerra.Test.Extensions
 {
     public class StringExtensionTests
     {
-        [Fact]
-        public void Truncate()
+        private static CultureInfo CreateCulture()
         {
-            string? nullString = null;
-            _ = Assert.Throws<ArgumentNullException>(() => nullString.Truncate(10));
-            _ = Assert.Throws<ArgumentException>(() => "test".Truncate(-1));
-
-            Assert.Equal("", "test".Truncate(0));
-            Assert.Equal("hello", "hello".Truncate(10));
-            Assert.Equal("hello", "hello".Truncate(5));
-            Assert.Equal("hello", "hello world".Truncate(5));
-            Assert.Equal("", "".Truncate(5));
+            var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+            culture.NumberFormat.NumberDecimalSeparator = ",";
+            culture.NumberFormat.NumberGroupSeparator = ".";
+            culture.NumberFormat.NegativeSign = "−";
+            culture.DateTimeFormat.ShortDatePattern = "dd.MM.yyyy";
+            culture.DateTimeFormat.DateSeparator = ".";
+            return culture;
         }
 
+        private static void WithCurrentCulture(CultureInfo culture, Action action)
+        {
+            var original = CultureInfo.CurrentCulture;
+            CultureInfo.CurrentCulture = culture;
+            try
+            {
+                action();
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = original;
+            }
+        }
+
+        [Fact]
+        public void Parse_Integers_InvariantByDefaultOrProvider()
+        {
+            var culture = CreateCulture();
+            WithCurrentCulture(culture, () =>
+            {
+                Assert.Equal((byte)200, "200".ToByte());
+                Assert.Equal((byte)200, "200".ToByteNullable());
+                Assert.Equal((short)-42, "-42".ToInt16());
+                Assert.Equal((short)-42, "-42".ToInt16Nullable());
+                Assert.Equal((ushort)42, "42".ToUInt16());
+                Assert.Equal((ushort)42, "42".ToUInt16Nullable());
+                Assert.Equal(-42, "-42".ToInt32());
+                Assert.Equal(-42, "-42".ToInt32Nullable());
+                Assert.Equal(42u, "42".ToUInt32());
+                Assert.Equal(42u, "42".ToUInt32Nullable());
+                Assert.Equal(-42L, "-42".ToInt64());
+                Assert.Equal(-42L, "-42".ToInt64Nullable());
+                Assert.Equal(42ul, "42".ToUInt64());
+                Assert.Equal(42ul, "42".ToUInt64Nullable());
+
+                Assert.Equal((byte)200, "200".ToByte(provider: culture));
+                Assert.Equal((byte)200, "200".ToByteNullable(culture));
+                Assert.Equal((short)-42, "−42".ToInt16(provider: culture));
+                Assert.Equal((short)-42, "−42".ToInt16Nullable(culture));
+                Assert.Equal((ushort)42, "42".ToUInt16(provider: culture));
+                Assert.Equal((ushort)42, "42".ToUInt16Nullable(culture));
+                Assert.Equal(-42, "−42".ToInt32(provider: culture));
+                Assert.Equal(-42, "−42".ToInt32Nullable(culture));
+                Assert.Equal(42u, "42".ToUInt32(provider: culture));
+                Assert.Equal(42u, "42".ToUInt32Nullable(culture));
+                Assert.Equal(-42L, "−42".ToInt64(provider: culture));
+                Assert.Equal(-42L, "−42".ToInt64Nullable(culture));
+                Assert.Equal(42ul, "42".ToUInt64(provider: culture));
+                Assert.Equal(42ul, "42".ToUInt64Nullable(culture));
+
+                Assert.Equal(0, "−42".ToInt32());
+                Assert.Null("−42".ToInt32Nullable());
+            });
+        }
+
+        [Fact]
+        public void Parse_FloatingPoint_InvariantByDefaultOrProvider()
+        {
+            var culture = CreateCulture();
+            WithCurrentCulture(culture, () =>
+            {
+                Assert.Equal(-1.5f, "-1.5".ToFloat());
+                Assert.Equal(-1.5f, "-1.5".ToFloatNullable());
+                Assert.Equal(-1.5, "-1.5".ToDouble());
+                Assert.Equal(-1.5, "-1.5".ToDoubleNullable());
+                Assert.Equal(-1.5m, "-1.5".ToDecimal());
+                Assert.Equal(-1.5m, "-1.5".ToDecimalNullable());
+
+                Assert.Equal(-1.5f, "−1,5".ToFloat(provider: culture));
+                Assert.Equal(-1.5f, "−1,5".ToFloatNullable(culture));
+                Assert.Equal(-1.5, "−1,5".ToDouble(provider: culture));
+                Assert.Equal(-1.5, "−1,5".ToDoubleNullable(culture));
+                Assert.Equal(-1.5m, "−1,5".ToDecimal(provider: culture));
+                Assert.Equal(-1.5m, "−1,5".ToDecimalNullable(culture));
+            });
+        }
+
+        [Fact]
+        public void Parse_DatesAndTimes_InvariantByDefaultOrProvider()
+        {
+            var culture = CreateCulture();
+            var date = new DateTime(2026, 10, 6);
+            var offset = new DateTimeOffset(2026, 10, 6, 13, 45, 30, TimeSpan.FromHours(-5));
+            WithCurrentCulture(culture, () =>
+            {
+                Assert.Equal(date, "10/06/2026".ToDateTime());
+                Assert.Equal(date, "10/06/2026".ToDateTimeNullable());
+                Assert.Equal(offset, "10/06/2026 13:45:30 -05:00".ToDateTimeOffset());
+                Assert.Equal(offset, "10/06/2026 13:45:30 -05:00".ToDateTimeOffsetNullable());
+                Assert.Equal(new TimeSpan(0, 1, 2, 3, 500), "01:02:03.5".ToTimeSpan());
+                Assert.Equal(new TimeSpan(0, 1, 2, 3, 500), "01:02:03.5".ToTimeSpanNullable());
+                Assert.Equal(new DateOnly(2026, 10, 6), "10/06/2026".ToDateOnly());
+                Assert.Equal(new DateOnly(2026, 10, 6), "10/06/2026".ToDateOnlyNullable());
+                Assert.Equal(new TimeOnly(13, 45, 30), "13:45:30".ToTimeOnly());
+                Assert.Equal(new TimeOnly(13, 45, 30), "13:45:30".ToTimeOnlyNullable());
+
+                Assert.Equal(date, "06.10.2026".ToDateTime(provider: culture));
+                Assert.Equal(date, "06.10.2026".ToDateTimeNullable(culture));
+                Assert.Equal(offset, "06.10.2026 13:45:30 -05:00".ToDateTimeOffset(provider: culture));
+                Assert.Equal(offset, "06.10.2026 13:45:30 -05:00".ToDateTimeOffsetNullable(culture));
+                Assert.Equal(new TimeSpan(0, 1, 2, 3, 500), "1:02:03,5".ToTimeSpan(provider: culture));
+                Assert.Equal(new TimeSpan(0, 1, 2, 3, 500), "1:02:03,5".ToTimeSpanNullable(culture));
+                Assert.Equal(new DateOnly(2026, 10, 6), "06.10.2026".ToDateOnly(provider: culture));
+                Assert.Equal(new DateOnly(2026, 10, 6), "06.10.2026".ToDateOnlyNullable(culture));
+                Assert.Equal(new TimeOnly(13, 45, 30), "13:45:30".ToTimeOnly(provider: culture));
+                Assert.Equal(new TimeOnly(13, 45, 30), "13:45:30".ToTimeOnlyNullable(culture));
+            });
+        }
         [Fact]
         public void Truncate_ReportsTruncation()
         {

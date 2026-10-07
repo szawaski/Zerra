@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Globalization;
+
 /// <summary>
 /// Provides extension methods for string manipulation and conversion operations.
 /// </summary>
@@ -364,14 +366,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to 0.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The byte value if successfully parsed; otherwise, the default value.</returns>
-    public static byte ToByte(this string? it, byte defaultValue = default)
+    public static byte ToByte(this string? it, byte defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (Byte.TryParse(it, out var tryvalue))
+        if (Byte.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return defaultValue;
@@ -381,14 +384,15 @@ public static class StringExtensions
     /// Converts the string to a nullable byte value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The byte value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static byte? ToByteNullable(this string? it)
+    public static byte? ToByteNullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (Byte.TryParse(it, out var tryvalue))
+        if (Byte.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -399,14 +403,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to 0.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The Int16 value if successfully parsed; otherwise, the default value.</returns>
-    public static short ToInt16(this string? it, short defaultValue = default)
+    public static short ToInt16(this string? it, short defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (Int16.TryParse(it, out var tryvalue))
+        if (Int16.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return defaultValue;
@@ -416,14 +421,15 @@ public static class StringExtensions
     /// Converts the string to a nullable 16-bit signed integer value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The Int16 value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static short? ToInt16Nullable(this string? it)
+    public static short? ToInt16Nullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (Int16.TryParse(it, out var tryvalue))
+        if (Int16.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -434,14 +440,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to 0.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The UInt16 value if successfully parsed; otherwise, the default value.</returns>
-    public static ushort ToUInt16(this string? it, ushort defaultValue = default)
+    public static ushort ToUInt16(this string? it, ushort defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (UInt16.TryParse(it, out var tryvalue))
+        if (UInt16.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return defaultValue;
@@ -451,14 +458,15 @@ public static class StringExtensions
     /// Converts the string to a nullable 16-bit unsigned integer value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The UInt16 value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static ushort? ToUInt16Nullable(this string? it)
+    public static ushort? ToUInt16Nullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (UInt16.TryParse(it, out var tryvalue))
+        if (UInt16.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -469,14 +477,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to 0.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The Int32 value if successfully parsed; otherwise, the default value.</returns>
-    public static int ToInt32(this string? it, int defaultValue = default)
+    public static int ToInt32(this string? it, int defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (Int32.TryParse(it, out var tryvalue))
+        if (Int32.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return defaultValue;
@@ -486,14 +495,15 @@ public static class StringExtensions
     /// Converts the string to a nullable 32-bit signed integer value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The Int32 value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static int? ToInt32Nullable(this string? it)
+    public static int? ToInt32Nullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (Int32.TryParse(it, out var tryvalue))
+        if (Int32.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -504,14 +514,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to 0.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The UInt32 value if successfully parsed; otherwise, the default value.</returns>
-    public static uint ToUInt32(this string? it, uint defaultValue = default)
+    public static uint ToUInt32(this string? it, uint defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (UInt32.TryParse(it, out var tryvalue))
+        if (UInt32.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return defaultValue;
@@ -521,14 +532,15 @@ public static class StringExtensions
     /// Converts the string to a nullable 32-bit unsigned integer value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The UInt32 value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static uint? ToUInt32Nullable(this string? it)
+    public static uint? ToUInt32Nullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (UInt32.TryParse(it, out var tryvalue))
+        if (UInt32.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -539,14 +551,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to 0.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The Int64 value if successfully parsed; otherwise, the default value.</returns>
-    public static long ToInt64(this string? it, long defaultValue = default)
+    public static long ToInt64(this string? it, long defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (Int64.TryParse(it, out var tryvalue))
+        if (Int64.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return defaultValue;
@@ -556,14 +569,15 @@ public static class StringExtensions
     /// Converts the string to a nullable 64-bit signed integer value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The Int64 value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static long? ToInt64Nullable(this string? it)
+    public static long? ToInt64Nullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (Int64.TryParse(it, out var tryvalue))
+        if (Int64.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -574,14 +588,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to 0.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The UInt64 value if successfully parsed; otherwise, the default value.</returns>
-    public static ulong ToUInt64(this string? it, ulong defaultValue = default)
+    public static ulong ToUInt64(this string? it, ulong defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (UInt64.TryParse(it, out var tryvalue))
+        if (UInt64.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return defaultValue;
@@ -591,14 +606,15 @@ public static class StringExtensions
     /// Converts the string to a nullable 64-bit unsigned integer value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The UInt64 value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static ulong? ToUInt64Nullable(this string? it)
+    public static ulong? ToUInt64Nullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (UInt64.TryParse(it, out var tryvalue))
+        if (UInt64.TryParse(it, NumberStyles.Integer, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -609,14 +625,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to 0.0f.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The float value if successfully parsed; otherwise, the default value.</returns>
-    public static float ToFloat(this string? it, float defaultValue = default)
+    public static float ToFloat(this string? it, float defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (Single.TryParse(it, out var tryvalue))
+        if (Single.TryParse(it, NumberStyles.Float | NumberStyles.AllowThousands, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return defaultValue;
@@ -626,14 +643,15 @@ public static class StringExtensions
     /// Converts the string to a nullable single-precision floating-point value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The float value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static float? ToFloatNullable(this string? it)
+    public static float? ToFloatNullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (Single.TryParse(it, out var tryvalue))
+        if (Single.TryParse(it, NumberStyles.Float | NumberStyles.AllowThousands, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -644,14 +662,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to 0.0.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The double value if successfully parsed; otherwise, the default value.</returns>
-    public static double ToDouble(this string? it, double defaultValue = default)
+    public static double ToDouble(this string? it, double defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (Double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, NumberStyles.Float | NumberStyles.AllowThousands, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return defaultValue;
@@ -661,14 +680,15 @@ public static class StringExtensions
     /// Converts the string to a nullable double-precision floating-point value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The double value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static double? ToDoubleNullable(this string? it)
+    public static double? ToDoubleNullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (Double.TryParse(it, out var tryvalue))
+        if (Double.TryParse(it, NumberStyles.Float | NumberStyles.AllowThousands, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -679,14 +699,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to 0m.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The decimal value if successfully parsed; otherwise, the default value.</returns>
-    public static decimal ToDecimal(this string? it, decimal defaultValue = default)
+    public static decimal ToDecimal(this string? it, decimal defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (Decimal.TryParse(it, out var tryvalue))
+        if (Decimal.TryParse(it, NumberStyles.Number, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return defaultValue;
@@ -696,14 +717,15 @@ public static class StringExtensions
     /// Converts the string to a nullable decimal value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The decimal value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static decimal? ToDecimalNullable(this string? it)
+    public static decimal? ToDecimalNullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (Decimal.TryParse(it, out var tryvalue))
+        if (Decimal.TryParse(it, NumberStyles.Number, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -714,14 +736,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to DateTime.MinValue.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The DateTime value if successfully parsed; otherwise, the default value.</returns>
-    public static DateTime ToDateTime(this string? it, DateTime defaultValue = default)
+    public static DateTime ToDateTime(this string? it, DateTime defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (DateTime.TryParse(it, out var tryDateTime))
+        if (DateTime.TryParse(it, provider ?? CultureInfo.InvariantCulture, DateTimeStyles.None, out var tryDateTime))
             return tryDateTime;
         else
             return defaultValue;
@@ -731,14 +754,15 @@ public static class StringExtensions
     /// Converts the string to a nullable DateTime value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The DateTime value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static DateTime? ToDateTimeNullable(this string? it)
+    public static DateTime? ToDateTimeNullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (DateTime.TryParse(it, out var tryvalue))
+        if (DateTime.TryParse(it, provider ?? CultureInfo.InvariantCulture, DateTimeStyles.None, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -749,14 +773,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to DateTimeOffset.MinValue.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The DateTimeOffset value if successfully parsed; otherwise, the default value.</returns>
-    public static DateTimeOffset ToDateTimeOffset(this string? it, DateTimeOffset defaultValue = default)
+    public static DateTimeOffset ToDateTimeOffset(this string? it, DateTimeOffset defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (DateTimeOffset.TryParse(it, out var tryDateTime))
+        if (DateTimeOffset.TryParse(it, provider ?? CultureInfo.InvariantCulture, DateTimeStyles.None, out var tryDateTime))
             return tryDateTime;
         else
             return defaultValue;
@@ -766,14 +791,15 @@ public static class StringExtensions
     /// Converts the string to a nullable DateTimeOffset value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The DateTimeOffset value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static DateTimeOffset? ToDateTimeOffsetNullable(this string? it)
+    public static DateTimeOffset? ToDateTimeOffsetNullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (DateTimeOffset.TryParse(it, out var tryvalue))
+        if (DateTimeOffset.TryParse(it, provider ?? CultureInfo.InvariantCulture, DateTimeStyles.None, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -784,14 +810,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to TimeSpan.Zero.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The TimeSpan value if successfully parsed; otherwise, the default value.</returns>
-    public static TimeSpan ToTimeSpan(this string? it, TimeSpan defaultValue = default)
+    public static TimeSpan ToTimeSpan(this string? it, TimeSpan defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (TimeSpan.TryParse(it, out var tryDateTime))
+        if (TimeSpan.TryParse(it, provider ?? CultureInfo.InvariantCulture, out var tryDateTime))
             return tryDateTime;
         else
             return defaultValue;
@@ -801,14 +828,15 @@ public static class StringExtensions
     /// Converts the string to a nullable TimeSpan value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The TimeSpan value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static TimeSpan? ToTimeSpanNullable(this string? it)
+    public static TimeSpan? ToTimeSpanNullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (TimeSpan.TryParse(it, out var tryvalue))
+        if (TimeSpan.TryParse(it, provider ?? CultureInfo.InvariantCulture, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -820,14 +848,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to DateOnly.MinValue.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The DateOnly value if successfully parsed; otherwise, the default value.</returns>
-    public static DateOnly ToDateOnly(this string? it, DateOnly defaultValue = default)
+    public static DateOnly ToDateOnly(this string? it, DateOnly defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (DateOnly.TryParse(it, out var tryDateTime))
+        if (DateOnly.TryParse(it, provider ?? CultureInfo.InvariantCulture, DateTimeStyles.None, out var tryDateTime))
             return tryDateTime;
         else
             return defaultValue;
@@ -837,14 +866,15 @@ public static class StringExtensions
     /// Converts the string to a nullable DateOnly value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The DateOnly value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static DateOnly? ToDateOnlyNullable(this string? it)
+    public static DateOnly? ToDateOnlyNullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (DateOnly.TryParse(it, out var tryvalue))
+        if (DateOnly.TryParse(it, provider ?? CultureInfo.InvariantCulture, DateTimeStyles.None, out var tryvalue))
             return tryvalue;
         else
             return null;
@@ -855,14 +885,15 @@ public static class StringExtensions
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
     /// <param name="defaultValue">The value to return if conversion fails or the string is null or empty. Defaults to TimeOnly.MinValue.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The TimeOnly value if successfully parsed; otherwise, the default value.</returns>
-    public static TimeOnly ToTimeOnly(this string? it, TimeOnly defaultValue = default)
+    public static TimeOnly ToTimeOnly(this string? it, TimeOnly defaultValue = default, IFormatProvider? provider = null)
     {
         if (it is null)
             return defaultValue;
         if (it == String.Empty)
             return defaultValue;
-        if (TimeOnly.TryParse(it, out var tryDateTime))
+        if (TimeOnly.TryParse(it, provider ?? CultureInfo.InvariantCulture, DateTimeStyles.None, out var tryDateTime))
             return tryDateTime;
         else
             return defaultValue;
@@ -872,14 +903,15 @@ public static class StringExtensions
     /// Converts the string to a nullable TimeOnly value, returning null if the string is null or empty.
     /// </summary>
     /// <param name="it">The string to convert. May be null.</param>
+    /// <param name="provider">The culture to parse with. Defaults to the invariant culture.</param>
     /// <returns>The TimeOnly value if successfully parsed; null if the string is null, empty, or cannot be parsed.</returns>
-    public static TimeOnly? ToTimeOnlyNullable(this string? it)
+    public static TimeOnly? ToTimeOnlyNullable(this string? it, IFormatProvider? provider = null)
     {
         if (it is null)
             return null;
         if (it == String.Empty)
             return null;
-        if (TimeOnly.TryParse(it, out var tryvalue))
+        if (TimeOnly.TryParse(it, provider ?? CultureInfo.InvariantCulture, DateTimeStyles.None, out var tryvalue))
             return tryvalue;
         else
             return null;

@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Globalization;
 using System.Linq.Expressions;
 using Xunit;
 using Zerra.Repository.Reflection;
@@ -84,6 +85,36 @@ namespace Zerra.Repository.Test
         #endregion
 
         #region Where Clauses
+
+        [Fact]
+        public void Convert_WhereNumbers_IgnoresCurrentCulture()
+        {
+            var original = CultureInfo.CurrentCulture;
+            var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+            culture.NumberFormat.NumberDecimalSeparator = ",";
+            culture.NumberFormat.NegativeSign = "−";
+            CultureInfo.CurrentCulture = culture;
+            try
+            {
+                var decimalValue = -1.5m;
+                var doubleValue = 2.25;
+                var singleValue = 0.5f;
+                var int32Value = -42;
+                Expression<Func<TestTypesModel, bool>> where = x => x.DecimalThing > decimalValue && x.DoubleThing < doubleValue && x.SingleThing == singleValue && x.Int32Thing == int32Value;
+                var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+                Assert.Contains("-1.5", sql);
+                Assert.Contains("2.25", sql);
+                Assert.Contains("0.5", sql);
+                Assert.Contains("-42", sql);
+                Assert.DoesNotContain(",5", sql);
+                Assert.DoesNotContain("−", sql);
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = original;
+            }
+        }
 
         [Fact]
         public void Convert_WhereEquals_GeneratesEquals()

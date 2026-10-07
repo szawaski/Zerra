@@ -375,6 +375,32 @@ namespace Zerra.Test.Map
         }
 
         [Fact]
+        public void MemberTypesConvert()
+        {
+            var source = new ConversionSource() { Age = 42, Tags = [1, 2], Scores = new() { ["a"] = 1, ["b"] = 2 } };
+
+            var target = source.Map<ConversionTarget>();
+
+            Assert.Equal(42.0, target.Age);
+            Assert.Equal([1, 2], target.Tags);
+            Assert.Equal(new Dictionary<string, double>() { ["a"] = 1.0, ["b"] = 2.0 }, target.Scores);
+        }
+
+        public class ConversionSource
+        {
+            public int Age { get; set; }
+            public int[] Tags { get; set; } = null!;
+            public Dictionary<string, int> Scores { get; set; } = null!;
+        }
+
+        public class ConversionTarget
+        {
+            public double Age { get; set; }
+            public List<int> Tags { get; set; } = null!;
+            public Dictionary<string, double> Scores { get; set; } = null!;
+        }
+
+        [Fact]
         public void CustomCollectionTargets()
         {
             var source = new int[] { 3, 1, 2 };

@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Globalization;
 using System.Runtime.CompilerServices;
 
 namespace Zerra.Repository.IO
@@ -14,7 +15,7 @@ namespace Zerra.Repository.IO
         public void Write(byte value)
         {
             EnsureBufferSize(4);
-            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
         }
 
@@ -24,7 +25,7 @@ namespace Zerra.Repository.IO
         public void Write(sbyte value)
         {
             EnsureBufferSize(3);
-            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
         }
 
@@ -34,7 +35,7 @@ namespace Zerra.Repository.IO
         public void Write(short value)
         {
             EnsureBufferSize(6);
-            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
         }
 
@@ -44,7 +45,7 @@ namespace Zerra.Repository.IO
         public void Write(ushort value)
         {
             EnsureBufferSize(5);
-            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
         }
 
@@ -54,7 +55,7 @@ namespace Zerra.Repository.IO
         public void Write(int value)
         {
             EnsureBufferSize(11);
-            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
         }
 
@@ -64,7 +65,7 @@ namespace Zerra.Repository.IO
         public void Write(uint value)
         {
             EnsureBufferSize(10);
-            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
         }
 
@@ -74,7 +75,7 @@ namespace Zerra.Repository.IO
         public void Write(long value)
         {
             EnsureBufferSize(20);
-            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
         }
 
@@ -84,7 +85,7 @@ namespace Zerra.Repository.IO
         public void Write(ulong value)
         {
             EnsureBufferSize(20);
-            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
         }
 
@@ -94,7 +95,7 @@ namespace Zerra.Repository.IO
         public void Write(float value)
         {
             EnsureBufferSize(16); //min
-            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
         }
 
@@ -104,7 +105,7 @@ namespace Zerra.Repository.IO
         public void Write(double value)
         {
             EnsureBufferSize(32); //min
-            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
         }
 
@@ -114,7 +115,7 @@ namespace Zerra.Repository.IO
         public void Write(decimal value)
         {
             EnsureBufferSize(31);
-            _ = value.TryFormat(buffer.Slice(position), out var consumed);
+            _ = value.TryFormat(buffer.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
         }
 

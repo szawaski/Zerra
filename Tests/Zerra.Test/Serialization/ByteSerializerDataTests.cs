@@ -22,6 +22,31 @@ namespace Zerra.Test.Serialization
         }
 
         [Fact]
+        public void Enum_AllUnderlyingTypes_RoundTrip()
+        {
+            AssertEnumRoundTrips(SByteEnum.Min, SByteEnum.Max);
+            AssertEnumRoundTrips(ByteEnum.Min, ByteEnum.Max);
+            AssertEnumRoundTrips(Int16Enum.Min, Int16Enum.Max);
+            AssertEnumRoundTrips(UInt16Enum.Min, UInt16Enum.Max);
+            AssertEnumRoundTrips(Int32Enum.Min, Int32Enum.Max);
+            AssertEnumRoundTrips(UInt32Enum.Min, UInt32Enum.Max);
+            AssertEnumRoundTrips(Int64Enum.Min, Int64Enum.Max);
+            AssertEnumRoundTrips(UInt64Enum.Min, UInt64Enum.Max);
+        }
+
+        private static void AssertEnumRoundTrips<T>(params T[] values) where T : struct, Enum
+        {
+            foreach (var value in values)
+            {
+                Assert.Equal(value, ByteSerializer.Deserialize<T>(ByteSerializer.Serialize(value)));
+                Assert.Equal(value, ByteSerializer.Deserialize<T?>(ByteSerializer.Serialize<T?>(value)));
+                Assert.Equal([value, value], ByteSerializer.Deserialize<T[]>(ByteSerializer.Serialize(new[] { value, value })));
+
+                var dictionary = new Dictionary<T, int>() { [value] = 1 };
+                Assert.Equal(dictionary, ByteSerializer.Deserialize<Dictionary<T, int>>(ByteSerializer.Serialize(dictionary)));
+            }
+        }
+        [Fact]
         public void DictionaryComplexKeys_RoundTrip()
         {
             var value = new Dictionary<SimpleModel, int?>() { [new() { Value1 = 1, Value2 = "A" }] = 1, [new() { Value1 = 2, Value2 = "B" }] = null };

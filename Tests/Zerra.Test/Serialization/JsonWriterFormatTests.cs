@@ -418,6 +418,36 @@ namespace Zerra.Test.Serialization
         public enum UnsignedLongEnum : ulong { Zero = 0, Max = ulong.MaxValue }
 
         [Fact]
+        public void Enum_AllUnderlyingTypes_RoundTrip()
+        {
+            AssertEnumRoundTrips(SByteEnum.Min, SByteEnum.Max);
+            AssertEnumRoundTrips(ByteEnum.Min, ByteEnum.Max);
+            AssertEnumRoundTrips(Int16Enum.Min, Int16Enum.Max);
+            AssertEnumRoundTrips(UInt16Enum.Min, UInt16Enum.Max);
+            AssertEnumRoundTrips(Int32Enum.Min, Int32Enum.Max);
+            AssertEnumRoundTrips(UInt32Enum.Min, UInt32Enum.Max);
+            AssertEnumRoundTrips(Int64Enum.Min, Int64Enum.Max);
+            AssertEnumRoundTrips(UInt64Enum.Min, UInt64Enum.Max);
+        }
+
+        private static void AssertEnumRoundTrips<T>(params T[] values) where T : struct, Enum
+        {
+            var numbers = new JsonSerializerOptions() { EnumAsNumber = true };
+            foreach (var value in values)
+            {
+                Assert.Equal(value, JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value)));
+                Assert.Equal(value, JsonSerializer.Deserialize<T>(JsonSerializer.SerializeBytes(value)));
+                Assert.Equal(value, JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value, numbers), numbers));
+                Assert.Equal(value, JsonSerializer.Deserialize<T>(JsonSerializer.SerializeBytes(value, numbers), numbers));
+                Assert.Equal(value, JsonSerializer.Deserialize<T?>(JsonSerializer.Serialize<T?>(value, numbers), numbers));
+                Assert.Equal(value, JsonSerializer.Deserialize<T?>(JsonSerializer.SerializeBytes<T?>(value)));
+
+                var dictionary = new Dictionary<T, int>() { [value] = 1 };
+                Assert.Equal(dictionary, JsonSerializer.Deserialize<Dictionary<T, int>>(JsonSerializer.Serialize(dictionary)));
+                Assert.Equal(dictionary, JsonSerializer.Deserialize<Dictionary<T, int>>(JsonSerializer.Serialize(dictionary, numbers), numbers));
+            }
+        }
+        [Fact]
         public void Enum_NumberOutOfUnderlyingRange_Throws()
         {
             var options = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
