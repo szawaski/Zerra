@@ -15,10 +15,26 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 return null;
             if (typeof(TKey) == typeof(string))
                 return (string)(object)key;
-            if (typeof(TKey) == typeof(DateTime))
-                return ((DateTime)(object)key).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture);
-            if (typeof(TKey) == typeof(DateTimeOffset))
-                return ((DateTimeOffset)(object)key).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture);
+            if (typeof(TKey) == typeof(DateTime) || typeof(TKey) == typeof(DateTimeOffset))
+            {
+#if NETSTANDARD2_0
+                return typeof(TKey) == typeof(DateTime) ? ((DateTime)(object)key).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture) : ((DateTimeOffset)(object)key).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture);
+#else
+                Span<char> dateChars = stackalloc char[33];
+                int dateLength;
+                if (typeof(TKey) == typeof(DateTime))
+                    _ = ((DateTime)(object)key).TryFormat(dateChars, out dateLength, "O", CultureInfo.InvariantCulture);
+                else
+                    _ = ((DateTimeOffset)(object)key).TryFormat(dateChars, out dateLength, "O", CultureInfo.InvariantCulture);
+                var fractionEnd = 27;
+                while (fractionEnd > 20 && dateChars[fractionEnd - 1] == '0')
+                    fractionEnd--;
+                if (fractionEnd == 20)
+                    fractionEnd = 19;
+                dateChars.Slice(27, dateLength - 27).CopyTo(dateChars.Slice(fractionEnd));
+                return new string(dateChars.Slice(0, fractionEnd + dateLength - 27));
+#endif
+            }
 #if !NETSTANDARD2_0
             if (typeof(TKey) == typeof(DateOnly))
                 return ((DateOnly)(object)key).ToString("O", CultureInfo.InvariantCulture);

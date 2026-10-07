@@ -476,6 +476,7 @@ Other changes:
 - **`Mapper.Copy` and `Map`** create a target only through a public parameterless constructor or one whose parameters match public members. Otherwise they throw `Cannot create instance of X`, including for a member of the object being copied; v5 left such members uncopied instead. Register a converter for the type with `Mapper.AddConverter(typeof(X), typeof(X), () => new XConverter())`, deriving from `MapConverter<X, X>`. To keep v5's behaviour, return `null` from `Map`. Returning the source instance copies it by sharing, which only suits immutable types and changes behaviour for code that expects such members to come back empty.
 - **The JSON serializer creates objects the same way**: through a public parameterless constructor or a public one whose parameters match members. A type with get-only properties and an `internal` constructor deserializes with those properties left null, without an error. Make that constructor public.
 - `Mapper.Copy(object source, Type sourceType)` replaces generic `Copy<T>` calls made through reflection.
+- **JSON output and parsing.** Numbers and dates are always written and read with the invariant culture. Dictionaries with enum keys are written as JSON objects keyed by name, the same as System.Text.Json, and the array of key and value pairs is still read. `IEnumerable<T>`, `IReadOnlyCollection<T>`, `IEnumerable`, and `ICollection` members deserialize as a `List`, so code that cast them to an array needs to change.
 
 ### Remote Exceptions
 
