@@ -4,7 +4,6 @@
 
 using System.Runtime.CompilerServices;
 using Zerra.Buffers;
-using Zerra.Reflection;
 using Zerra.Serialization.Bytes.Converters;
 using Zerra.Serialization.Bytes.IO;
 using Zerra.Serialization.Bytes.State;
@@ -28,8 +27,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (ByteConverter<T>)ByteConverterFactory.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.RootConverter<T>.Converter;
 
             var state = new WriteState(options);
 
@@ -54,8 +52,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = ByteConverterFactory.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(obj.GetType());
 
             var state = new WriteState(options);
 
@@ -85,8 +82,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(type);
 
             var state = new WriteState(options);
 
@@ -115,8 +111,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (ByteConverter<T>)ByteConverterFactory.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.RootConverter<T>.Converter;
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -164,8 +159,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = ByteConverterFactory.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(obj.GetType());
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -216,8 +210,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(type);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -269,8 +262,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = TypeAnalyzer<T>.GetTypeDetail();
-            var converter = (ByteConverter<T>)ByteConverterFactory.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.RootConverter<T>.Converter;
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -325,8 +317,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = obj.GetType().GetTypeDetail();
-            var converter = ByteConverterFactory.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(obj.GetType());
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 
@@ -384,8 +375,7 @@ namespace Zerra.Serialization.Bytes
 
             options ??= defaultOptions;
 
-            var typeDetail = type.GetTypeDetail();
-            var converter = ByteConverterFactory.GetRoot(typeDetail);
+            var converter = ByteConverterFactory.GetRoot(type);
 
             var buffer = ArrayPoolHelper<byte>.Rent(defaultBufferSize);
 

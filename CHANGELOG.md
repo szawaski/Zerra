@@ -27,8 +27,20 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 
 - `ZerraJsonSerializer` is faster than System.Text.Json ([Benchmarks](docs/Benchmarks.md)): serializing to UTF-8 no longer grows its buffer on every call, arrays are read in one pass instead of being scanned for their length first, dates are written with the runtime's round-trip formatter, strings are checked for escaping with vectorized search, property names are copied without pinning, strings with nothing to escape are read and written on an inlined path, and reading handles punctuation, numbers, and `true`/`false`/`null` with less overhead.
 - `ZerraJsonSerializer` and `ZerraByteSerializer` clear only the bytes they wrote when returning a pooled buffer, instead of the whole buffer on every call, and write each property with less overhead.
+- `ZerraJsonSerializer` reads and writes every collection and dictionary type element by element without per-item delegates, and without enumerator allocations for arrays, lists, hash sets, and dictionaries, writes string dictionary keys without allocating, transcodes ASCII strings to and from UTF-8 on a faster path, writes `TimeSpan`, `DateOnly`, and `TimeOnly` with the runtime's formatters, and parses `TimeSpan`, `TimeOnly`, and integers from strings faster, and reads and writes enum names from per-converter caches without boxing or, for cached names, allocating.
+- `ZerraByteSerializer` reads and writes every collection and dictionary type without per-item delegates, and writes arrays, lists, hash sets, and dictionaries without allocating an enumerator or accessor, and transcodes ASCII strings on a faster path, and reads and writes enums without boxing.
+- `ZerraJsonSerializer` deserializes `IEnumerable<T>`, `IReadOnlyCollection<T>`, `IEnumerable`, and `ICollection` members as a `List` instead of copying it into an array.
+- `ZerraJsonSerializer` and `ZerraByteSerializer` find the converter for each call with one cached lookup, or none for generic calls, cutting per-call overhead so small payloads are faster too.
 - Fixed `ZerraJsonSerializer` writing dictionary keys that need escaping: they threw when serializing to UTF-8 and were corrupted when serializing to a string.
 - Fixed `ZerraJsonSerializer` writing a negative UTC offset of 10 hours or more, or with minutes, on `DateTimeOffset` and local `DateTime` values.
+- Fixed `ZerraJsonSerializer` using the current culture for numbers and numeric dictionary keys: in cultures with a different decimal separator or minus sign it wrote invalid JSON and misread numbers.
+- Fixed `ZerraJsonSerializer` reading enum numbers: negative values failed from a string, and `ulong` values above `long.MaxValue` failed from a string or UTF-8.
+- Fixed `ZerraJsonSerializer` writing `DateTime`, `DateTimeOffset`, `DateOnly`, and `TimeOnly` dictionary keys in a culture format that dropped fractions and read back as default values; they are written in ISO 8601.
+
+### Mapping
+
+- `Mapper` maps arrays, lists, sets, and dictionaries element by element without per-item delegates or accessor allocations, and finds the converter for each call with one cached lookup, or none for generic calls.
+- Fixed `Mapper` throwing when mapping a dictionary, or another type built through its constructor, with value-type members such as `Dictionary<string, int>`.
 
 ### Platform
 

@@ -10,15 +10,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 {
     internal sealed class ByteConverterListT<TValue> : ByteConverter<List<TValue>>
     {
-        private ByteConverter converter = null!;
-
-        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
-        private static void Setter(object parent, TValue value) => ((List<TValue>)parent).Add(value);
+        private ByteConverter<TValue> converter = null!;
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterListT<TValue>), Getter, Setter);
+            converter = (ByteConverter<TValue>)ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterListT<TValue>), null, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<TValue>? value)
@@ -55,11 +52,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
             for (; ; )
             {
-                if (!converter.TryReadFromParent(ref reader, ref state, value))
+                if (!converter.TryReadToValue(ref reader, ref state, out var item))
                 {
                     state.Current.Object = value;
                     return false;
                 }
+                value.Add(item!);
 
                 if (value.Count == state.Current.EnumerableLength!.Value)
                     return true;
@@ -68,9 +66,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in List<TValue> value)
         {
-            IEnumerator<TValue> enumerator;
-
-            if (state.Current.Object is null)
+            if (!state.Current.EnumeratorInProgress)
             {
                 if (!writer.TryWrite(value.Count, out state.SizeNeeded))
                 {
@@ -80,24 +76,17 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
                 {
                     return true;
                 }
-
-                enumerator = value.GetEnumerator();
-            }
-            else
-            {
-                enumerator = (IEnumerator<TValue>)state.Current.Object!;
             }
 
-            while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
+            var index = state.Current.EnumeratorIndex;
+            for (; index < value.Count; index++)
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, value[index]))
                 {
-                    state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;
+                    state.Current.EnumeratorIndex = index;
                     return false;
                 }
-
-                state.Current.EnumeratorInProgress = false;
             }
 
             return true;

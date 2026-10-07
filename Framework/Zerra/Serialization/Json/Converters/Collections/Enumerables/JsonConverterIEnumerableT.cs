@@ -10,15 +10,12 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 {
     internal sealed class JsonConverterIEnumerableT<TValue> : JsonConverter<IEnumerable<TValue>>
     {
-        private JsonConverter converter = null!;
-
-        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
-        private static void Setter(object parent, TValue value) => ((ArrayOrListAccessor<TValue>)parent).Add(value);
+        private JsonConverter<TValue> converter = null!;
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            converter = JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterIEnumerableT<TValue>), Getter, Setter);
+            converter = (JsonConverter<TValue>)JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterIEnumerableT<TValue>), null, null);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out IEnumerable<TValue>? value)
@@ -32,7 +29,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                 return Drain(ref reader, ref state, token);
             }
 
-            ArrayOrListAccessor<TValue> accessor;
+            List<TValue> list;
 
             if (!state.Current.HasCreated)
             {
@@ -49,11 +46,11 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                     return true;
                 }
 
-                accessor = new ArrayOrListAccessor<TValue>();
+                list = new List<TValue>();
             }
             else
             {
-                accessor = (ArrayOrListAccessor<TValue>)state.Current.Object!;
+                list = (List<TValue>)state.Current.Object!;
             }
 
             for (; ; )
@@ -63,7 +60,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                     if (!reader.TryReadToken(out state.SizeNeeded))
                     {
                         state.Current.HasCreated = true;
-                        state.Current.Object = accessor;
+                        state.Current.Object = list;
                         value = default;
                         return false;
                     }
@@ -71,14 +68,15 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 
                 if (!state.Current.HasReadValue)
                 {
-                    if (!converter.TryReadFromParent(ref reader, ref state, accessor))
+                    if (!converter.TryReadToValue(ref reader, ref state, out var item))
                     {
                         state.Current.HasCreated = true;
                         state.Current.HasReadFirstToken = true;
-                        state.Current.Object = accessor;
+                        state.Current.Object = list;
                         value = default;
                         return false;
                     }
+                    list.Add(item!);
                 }
 
                 if (!reader.TryReadToken(out state.SizeNeeded))
@@ -86,7 +84,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                     state.Current.HasCreated = true;
                     state.Current.HasReadFirstToken = true;
                     state.Current.HasReadValue = true;
-                    state.Current.Object = accessor;
+                    state.Current.Object = list;
                     value = default;
                     return false;
                 }
@@ -101,7 +99,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                 state.Current.HasReadValue = false;
             }
 
-            value = accessor.ToArray();
+            value = list;
             return true;
         }
 
@@ -147,7 +145,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                     }
                 }
 
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, enumerator.Current, null))
                 {
                     state.Current.HasWrittenStart = true;
                     state.Current.HasWrittenSeperator = true;

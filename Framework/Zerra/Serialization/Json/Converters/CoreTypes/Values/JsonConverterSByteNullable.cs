@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Buffers.Text;
+using System.Globalization;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
@@ -26,10 +27,30 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     }
                     else
                     {
+                        //the common case of only digits, short enough not to overflow, is parsed here instead of with TryParse
+                        var chars = reader.ValueChars;
+                        var negative = chars[0] == '-';
+                        var index = negative ? 1 : 0;
+                        if (chars.Length - index is > 0 and <= 2)
+                        {
+                            int result = 0;
+                            for (; index < chars.Length; index++)
+                            {
+                                var digit = (uint)(chars[index] - '0');
+                                if (digit > 9)
+                                    break;
+                                result = result * 10 + (int)digit;
+                            }
+                            if (index == chars.Length)
+                            {
+                                value = (sbyte)(negative ? -result : result);
+                                return true;
+                            }
+                        }
 #if NETSTANDARD2_0
-                        if (!SByte.TryParse(reader.ValueChars.ToString(), out sbyte parsed) && state.ErrorOnTypeMismatch)
+                        if (!SByte.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out sbyte parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!SByte.TryParse(reader.ValueChars, out sbyte parsed) && state.ErrorOnTypeMismatch)
+                        if (!SByte.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out sbyte parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;
@@ -60,9 +81,9 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             return true;
                         }
 #if NETSTANDARD2_0
-                        if (!SByte.TryParse(reader.ValueChars.ToString(), out sbyte parsed) && state.ErrorOnTypeMismatch)
+                        if (!SByte.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out sbyte parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!SByte.TryParse(reader.ValueChars, out sbyte parsed) && state.ErrorOnTypeMismatch)
+                        if (!SByte.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out sbyte parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;

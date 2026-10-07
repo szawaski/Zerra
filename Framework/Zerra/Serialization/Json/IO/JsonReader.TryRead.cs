@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 using Zerra.Buffers;
 using Zerra.Serialization.Json.State;
 
@@ -337,7 +338,7 @@ namespace Zerra.Serialization.Json.IO
                                 for (var scan = position; scan < localBufferBytes.Length; scan++)
                                 {
                                     var value = localBufferBytes[scan];
-                                    if ((value < '0' || value > '9') && value != '+' && value != '-' && value != '.' && value != 'e' && value != 'E')
+                                    if ((uint)(value - '+') >= 64 || ((numberCharacterMask >> (value - '+')) & 1) == 0)
                                     {
                                         numberLength = scan - position;
                                         break;
@@ -605,7 +606,7 @@ namespace Zerra.Serialization.Json.IO
                                 for (var scan = position; scan < localBufferChars.Length; scan++)
                                 {
                                     var value = localBufferChars[scan];
-                                    if ((value < '0' || value > '9') && value != '+' && value != '-' && value != '.' && value != 'e' && value != 'E')
+                                    if ((uint)(value - '+') >= 64 || ((numberCharacterMask >> (value - '+')) & 1) == 0)
                                     {
                                         numberLength = scan - position;
                                         break;
@@ -647,7 +648,8 @@ namespace Zerra.Serialization.Json.IO
             //no fixed in this fast path, the JIT won't inline a method with pinned locals
 #if !NETSTANDARD2_0
             if (PositionOfFirstEscape == -1)
-                return encoding.GetString(ValueBytes);
+                //Latin1 maps each byte to the same char, the fastest decode once the bytes are known to be ASCII
+                return Ascii.IsValid(ValueBytes) ? Encoding.Latin1.GetString(ValueBytes) : encoding.GetString(ValueBytes);
 #endif
             return UnescapeStringBytesSlow();
         }

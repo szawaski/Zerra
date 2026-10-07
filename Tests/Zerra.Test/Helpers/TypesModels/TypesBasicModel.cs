@@ -82,6 +82,10 @@ namespace Zerra.Test.Helpers.TypesModels
         public EnumModel EnumThing { get; set; }
         public EnumModel? EnumThingNullable { get; set; }
         public EnumModel? EnumThingNullableNull { get; set; }
+        public EnumSignedModel EnumSignedThing { get; set; }
+        public EnumSignedModel? EnumSignedThingNullable { get; set; }
+        public EnumULongModel EnumULongThing { get; set; }
+        public EnumULongModel? EnumULongThingNullable { get; set; }
 
         public SimpleModel ClassThing { get; set; }
         public SimpleModel ClassThingNull { get; set; }
@@ -163,6 +167,10 @@ namespace Zerra.Test.Helpers.TypesModels
                 EnumThing = EnumModel.EnumItem1,
                 EnumThingNullable = EnumModel.EnumItem2,
                 EnumThingNullableNull = null,
+                EnumSignedThing = EnumSignedModel.Negative,
+                EnumSignedThingNullable = EnumSignedModel.Negative,
+                EnumULongThing = EnumULongModel.Max,
+                EnumULongThingNullable = EnumULongModel.Max,
 
                 ClassThing = new SimpleModel { Value1 = 1234, Value2 = "S-1234" },
                 ClassThingNull = null,

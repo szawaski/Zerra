@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Globalization;
 using System.Text;
 using Xunit;
 using Zerra.Serialization.Json;
@@ -101,6 +102,7 @@ namespace Zerra.Test.Serialization
         [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa😀aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\")]
         [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa😀")]
         [InlineData("\u0000\u001F\"\\\b\f\n\r\t plain ünïcödé")]
+        [InlineData("ünïcödé café 日本語")]
         public void String_RoundTrips(string value)
         {
             Assert.Equal(value, JsonSerializer.Deserialize<string>(JsonSerializer.Serialize(value)));
@@ -111,11 +113,33 @@ namespace Zerra.Test.Serialization
         [Fact]
         public void DictionaryKeys_Escaped()
         {
-            var value = new Dictionary<string, int>() { ["a\"b"] = 1, ["plain"] = 2, ["😀\\"] = 3 };
+            var value = new Dictionary<string, int>() { ["a\"b"] = 1, ["plain"] = 2, ["😀\\"] = 3, ["café"] = 4 };
 
             Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<string, int>>(JsonSerializer.Serialize(value)));
             Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<string, int>>(JsonSerializer.SerializeBytes(value)));
             Assert.Equal(value, System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(JsonSerializer.SerializeBytes(value)));
+        }
+
+        [Fact]
+        public void DictionaryKeys_Dates_RoundTrip()
+        {
+            AssertKeyRoundTrips(new DateTime(2026, 10, 6, 13, 45, 30, DateTimeKind.Utc).AddTicks(1234567));
+            AssertKeyRoundTrips(new DateTime(2026, 10, 6, 13, 45, 30, DateTimeKind.Unspecified));
+            AssertKeyRoundTrips(new DateTimeOffset(2026, 10, 6, 13, 45, 30, TimeSpan.FromHours(-5)));
+            AssertKeyRoundTrips(new DateOnly(2026, 10, 6));
+            AssertKeyRoundTrips(new TimeOnly(13, 45, 30, 500));
+            AssertKeyRoundTrips(new TimeOnly(13, 45, 30));
+            AssertKeyRoundTrips(new TimeSpan(-1, 2, 3, 4, 500));
+        }
+
+        private static void AssertKeyRoundTrips<TKey>(TKey key) where TKey : notnull
+        {
+            var value = new Dictionary<TKey, int>() { [key] = 1 };
+
+            Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<TKey, int>>(JsonSerializer.Serialize(value)));
+            Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<TKey, int>>(JsonSerializer.SerializeBytes(value)));
+            Assert.Equal(value, System.Text.Json.JsonSerializer.Deserialize<Dictionary<TKey, int>>(JsonSerializer.Serialize(value)));
+            Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<TKey, int>>(System.Text.Json.JsonSerializer.Serialize(value)));
         }
 
         public sealed class Collections
@@ -184,6 +208,206 @@ namespace Zerra.Test.Serialization
             var result = JsonSerializer.Deserialize<Collections>(stream)!;
             Assert.Equal(value.Array, result.Array);
             Assert.Equal(value.List, result.List);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(7)]
+        [InlineData(-7)]
+        [InlineData(123456789)]
+        [InlineData(-123456789)]
+        [InlineData(1000000000)]
+        [InlineData(int.MaxValue)]
+        [InlineData(int.MinValue)]
+        public void Int32_Parses(int value)
+        {
+            var json = value.ToString(CultureInfo.InvariantCulture);
+            Assert.Equal(value, JsonSerializer.Deserialize<int>(json));
+            Assert.Equal(value, JsonSerializer.Deserialize<int>(Encoding.UTF8.GetBytes(json)));
+            Assert.Equal(value, JsonSerializer.Deserialize<int?>(json));
+            Assert.Equal([value, value], JsonSerializer.Deserialize<int[]>($"[{json},{json}]"));
+        }
+
+        [Theory]
+        [InlineData(0L)]
+        [InlineData(-7L)]
+        [InlineData(999999999999999999L)]
+        [InlineData(-999999999999999999L)]
+        [InlineData(1000000000000000000L)]
+        [InlineData(long.MaxValue)]
+        [InlineData(long.MinValue)]
+        public void Int64_Parses(long value)
+        {
+            var json = value.ToString(CultureInfo.InvariantCulture);
+            Assert.Equal(value, JsonSerializer.Deserialize<long>(json));
+            Assert.Equal(value, JsonSerializer.Deserialize<long>(Encoding.UTF8.GetBytes(json)));
+            Assert.Equal(value, JsonSerializer.Deserialize<long?>(json));
+        }
+
+        [Fact]
+        public void Integers_ParseAtLimits()
+        {
+            AssertIntegerParses<sbyte>(0, -7, 99, -99, sbyte.MaxValue, sbyte.MinValue);
+            AssertIntegerParses<byte>(0, 7, 99, byte.MaxValue);
+            AssertIntegerParses<short>(0, -7, 9999, -9999, short.MaxValue, short.MinValue);
+            AssertIntegerParses<ushort>(0, 7, 9999, ushort.MaxValue);
+            AssertIntegerParses<uint>(0, 7, 999999999, uint.MaxValue);
+            AssertIntegerParses<ulong>(0, 7, 9999999999999999999, ulong.MaxValue);
+
+            var options = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<sbyte>("128", options));
+            Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<byte>("256", options));
+            Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<byte>("-1", options));
+            Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<short>("32768", options));
+            Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<ushort>("65536", options));
+            Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<uint>("4294967296", options));
+            Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<ulong>("18446744073709551616", options));
+        }
+
+        private static void AssertIntegerParses<T>(params T[] values) where T : struct, IFormattable
+        {
+            foreach (var value in values)
+            {
+                var json = value.ToString(null, CultureInfo.InvariantCulture);
+                Assert.Equal(value, JsonSerializer.Deserialize<T>(json));
+                Assert.Equal(value, JsonSerializer.Deserialize<T>(Encoding.UTF8.GetBytes(json)));
+                Assert.Equal(value, JsonSerializer.Deserialize<T?>(json));
+                Assert.Equal(value, JsonSerializer.Deserialize<T?>(Encoding.UTF8.GetBytes(json)));
+            }
+        }
+
+        [Fact]
+        public void Int32_InvalidNumber_Throws()
+        {
+            var options = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<int>("12.5", options));
+            Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<int>("12345678901", options));
+        }
+
+        [Theory]
+        [InlineData(SignedEnum.Negative)]
+        [InlineData(SignedEnum.Zero)]
+        [InlineData(SignedEnum.Positive)]
+        public void Enum_ParsesNumber(SignedEnum value)
+        {
+            var json = ((int)value).ToString(CultureInfo.InvariantCulture);
+            Assert.Equal(value, JsonSerializer.Deserialize<SignedEnum>(json));
+            Assert.Equal(value, JsonSerializer.Deserialize<SignedEnum>(Encoding.UTF8.GetBytes(json)));
+        }
+
+        public enum SignedEnum { Negative = -1, Zero = 0, Positive = 5 }
+
+        public enum UnsignedLongEnum : ulong { Zero = 0, Max = ulong.MaxValue }
+
+        [Fact]
+        public void Enum_ParsesName()
+        {
+            for (var i = 0; i < 3; i++)
+            {
+                Assert.Equal(SignedEnum.Negative, JsonSerializer.Deserialize<SignedEnum>("\"Negative\""));
+                Assert.Equal(SignedEnum.Negative, JsonSerializer.Deserialize<SignedEnum>(Encoding.UTF8.GetBytes("\"Negative\"")));
+                Assert.Equal(SignedEnum.Positive, JsonSerializer.Deserialize<SignedEnum?>("\"Positive\""));
+                Assert.Equal(SignedEnum.Positive, JsonSerializer.Deserialize<SignedEnum>("\"Posit\\u0069ve\""));
+                Assert.Equal(SignedEnum.Positive, JsonSerializer.Deserialize<SignedEnum>(Encoding.UTF8.GetBytes("\"Posit\\u0069ve\"")));
+            }
+
+            var options = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<SignedEnum>("\"Missing\"", options));
+            Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<SignedEnum>(Encoding.UTF8.GetBytes("\"Missing\""), options));
+        }
+
+        [Fact]
+        public void Enum_ParsesNumberAboveInt64()
+        {
+            var json = ulong.MaxValue.ToString(CultureInfo.InvariantCulture);
+            Assert.Equal(UnsignedLongEnum.Max, JsonSerializer.Deserialize<UnsignedLongEnum>(json));
+            Assert.Equal(UnsignedLongEnum.Max, JsonSerializer.Deserialize<UnsignedLongEnum>(Encoding.UTF8.GetBytes(json)));
+            Assert.Equal(UnsignedLongEnum.Max, JsonSerializer.Deserialize<UnsignedLongEnum?>(json));
+            Assert.Equal(UnsignedLongEnum.Max, JsonSerializer.Deserialize<UnsignedLongEnum>(JsonSerializer.Serialize(UnsignedLongEnum.Max, new JsonSerializerOptions() { EnumAsNumber = true })));
+        }
+
+        [Theory]
+        [InlineData("\"00:00:00\"")]
+        [InlineData("\"01:02:03.4560000\"")]
+        [InlineData("\"-2.15:54:46.8420010\"")]
+        [InlineData("\"10675199.02:48:05.4775807\"")]
+        [InlineData("\"1:2:3\"")]
+        public void TimeSpan_Parses(string json)
+        {
+            var expected = TimeSpan.Parse(json.Trim('"'), CultureInfo.InvariantCulture);
+            Assert.Equal(expected, JsonSerializer.Deserialize<TimeSpan>(json));
+            Assert.Equal(expected, JsonSerializer.Deserialize<TimeSpan>(Encoding.UTF8.GetBytes(json)));
+            Assert.Equal(expected, JsonSerializer.Deserialize<TimeSpan?>(json));
+        }
+
+        [Theory]
+        [InlineData("\"00:00:00\"")]
+        [InlineData("\"13:45:30.1234567\"")]
+        [InlineData("\"23:59:59.9999999\"")]
+        public void TimeOnly_Parses(string json)
+        {
+            var expected = TimeOnly.Parse(json.Trim('"'), CultureInfo.InvariantCulture);
+            Assert.Equal(expected, JsonSerializer.Deserialize<TimeOnly>(json));
+            Assert.Equal(expected, JsonSerializer.Deserialize<TimeOnly>(Encoding.UTF8.GetBytes(json)));
+            Assert.Equal(expected, JsonSerializer.Deserialize<TimeOnly?>(json));
+        }
+
+        [Fact]
+        public void Numbers_IgnoreCurrentCulture()
+        {
+            var value = new CultureModel()
+            {
+                Double = -1234.5,
+                Single = 1.25f,
+                Decimal = -9876.54m,
+                Int = -42,
+                Long = -1234567890123,
+                TimeSpan = new TimeSpan(1, 2, 3, 4, 500),
+                Keys = new() { { 1.5, 1 }, { -2.25, 2 } },
+            };
+
+            var original = CultureInfo.CurrentCulture;
+            var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+            culture.NumberFormat.NumberDecimalSeparator = ",";
+            culture.NumberFormat.NumberGroupSeparator = ".";
+            culture.NumberFormat.NegativeSign = "−";
+            CultureInfo.CurrentCulture = culture;
+            try
+            {
+                var expected = System.Text.Json.JsonSerializer.Serialize(value);
+
+                var json = JsonSerializer.Serialize(value);
+                Assert.Equal(expected, json);
+                Assert.Equal(expected, Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(value)));
+
+                var result = JsonSerializer.Deserialize<CultureModel>(json)!;
+                var resultBytes = JsonSerializer.Deserialize<CultureModel>(Encoding.UTF8.GetBytes(json))!;
+                foreach (var item in new[] { result, resultBytes })
+                {
+                    Assert.Equal(value.Double, item.Double);
+                    Assert.Equal(value.Single, item.Single);
+                    Assert.Equal(value.Decimal, item.Decimal);
+                    Assert.Equal(value.Int, item.Int);
+                    Assert.Equal(value.Long, item.Long);
+                    Assert.Equal(value.TimeSpan, item.TimeSpan);
+                    Assert.Equal(value.Keys, item.Keys);
+                }
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = original;
+            }
+        }
+
+        public class CultureModel
+        {
+            public double Double { get; set; }
+            public float Single { get; set; }
+            public decimal Decimal { get; set; }
+            public int Int { get; set; }
+            public long Long { get; set; }
+            public TimeSpan TimeSpan { get; set; }
+            public Dictionary<double, int> Keys { get; set; } = null!;
         }
 
         [Fact]

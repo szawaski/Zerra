@@ -3,6 +3,8 @@
 // Licensed to you under the MIT license
 
 using System.Buffers.Text;
+using System.Globalization;
+using System.Text;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
@@ -13,6 +15,11 @@ namespace Zerra.Serialization.Json.Converters.General
     {
         protected override bool StackRequired => false;
 
+        private Dictionary<TValue, (char[] Chars, byte[] Bytes)> quotedNames = new();
+        private Dictionary<string, TValue?> valuesByName = new();
+        private const int maxCachedNames = 256;
+        private const int maxStackNameLength = 128;
+
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out TValue? value)
         {
             if (!TypeDetail.EnumUnderlyingType.HasValue)
@@ -21,6 +28,27 @@ namespace Zerra.Serialization.Json.Converters.General
             switch (token)
             {
                 case JsonToken.String:
+#if !NETSTANDARD2_0
+                    //names already seen are found without allocating a string
+                    if (reader.PositionOfFirstEscape == -1)
+                    {
+                        if (reader.UseBytes)
+                        {
+                            if (reader.ValueBytes.Length <= maxStackNameLength)
+                            {
+                                Span<char> nameChars = stackalloc char[maxStackNameLength];
+                                var nameLength = Encoding.UTF8.GetChars(reader.ValueBytes, nameChars);
+                                if (valuesByName.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(nameChars.Slice(0, nameLength), out value))
+                                    return true;
+                            }
+                        }
+                        else
+                        {
+                            if (valuesByName.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(reader.ValueChars, out value))
+                                return true;
+                        }
+                    }
+#endif
                     string str;
                     if (reader.UseBytes)
                         str = reader.UnescapeStringBytes();
@@ -29,6 +57,9 @@ namespace Zerra.Serialization.Json.Converters.General
                     if (EnumName.TryParse(str, TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, out var parsed))
                     {
                         value = (TValue?)parsed;
+                        //replaced instead of changed so concurrent reads need no lock, capped so unusual input can't grow it
+                        if (valuesByName.Count < maxCachedNames)
+                            valuesByName = new Dictionary<string, TValue?>(valuesByName) { [str] = value };
                     }
                     else
                     {
@@ -38,30 +69,34 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     return true;
                 case JsonToken.Number:
-                    if (reader.UseBytes)
                     {
-                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out long number, out var consumed) || consumed != reader.ValueBytes.Length) && state.ErrorOnTypeMismatch)
-                            ThrowCannotConvert(ref reader);
-                        try
+                        //enum values can be negative or above long.MaxValue for ulong enums
+                        object? number = null;
+                        if (reader.UseBytes)
                         {
-                            value = (TValue?)Enum.ToObject(TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, number);
+                            if (Utf8Parser.TryParse(reader.ValueBytes, out long signed, out var consumed) && consumed == reader.ValueBytes.Length)
+                                number = signed;
+                            else if (Utf8Parser.TryParse(reader.ValueBytes, out ulong unsigned, out consumed) && consumed == reader.ValueBytes.Length)
+                                number = unsigned;
                         }
-                        catch
+                        else
+                        {
+#if NETSTANDARD2_0
+                            var chars = reader.ValueChars.ToString();
+#else
+                            var chars = reader.ValueChars;
+#endif
+                            if (Int64.TryParse(chars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var signed))
+                                number = signed;
+                            else if (UInt64.TryParse(chars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var unsigned))
+                                number = unsigned;
+                        }
+                        if (number is null)
                         {
                             if (state.ErrorOnTypeMismatch)
                                 ThrowCannotConvert(ref reader);
-                            value = default;
+                            number = 0L;
                         }
-                        return true;
-                    }
-                    else
-                    {
-#if NETSTANDARD2_0
-                        if (!UInt64.TryParse(reader.ValueChars.ToString(), out var number) && state.ErrorOnTypeMismatch)
-#else
-                        if (!UInt64.TryParse(reader.ValueChars, out var number) && state.ErrorOnTypeMismatch)
-#endif
-                            ThrowCannotConvert(ref reader);
                         try
                         {
                             value = (TValue?)Enum.ToObject(TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, number);
@@ -165,8 +200,29 @@ namespace Zerra.Serialization.Json.Converters.General
             }
             else
             {
-                if (!writer.TryWriteQuoted(EnumName.GetName(TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, value), out state.SizeNeeded))
-                    return false;
+                if (!quotedNames.TryGetValue(value, out var quotedName))
+                {
+                    var escaped = StringHelper.EscapeString(EnumName.GetName(TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, value), false)!;
+                    var chars = new char[escaped.Length + 2];
+                    chars[0] = '"';
+                    escaped.CopyTo(chars, 1);
+                    chars[chars.Length - 1] = '"';
+                    quotedName = (chars, Encoding.UTF8.GetBytes(chars));
+
+                    //replaced instead of changed so concurrent reads need no lock
+                    quotedNames = new Dictionary<TValue, (char[], byte[])>(quotedNames) { [value] = quotedName };
+                }
+
+                if (writer.UseBytes)
+                {
+                    if (!writer.TryWriteNameSegment(quotedName.Bytes, false, out state.SizeNeeded))
+                        return false;
+                }
+                else
+                {
+                    if (!writer.TryWriteNameSegment(quotedName.Chars, false, out state.SizeNeeded))
+                        return false;
+                }
                 return true;
             }
         }

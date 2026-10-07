@@ -5,8 +5,9 @@
 using BenchmarkDotNet.Running;
 using Zerra.Benchmark.Benchmarks;
 
-//_ = BenchmarkRunner.Run<MapBenchmarks>();
-_ = BenchmarkRunner.Run<SerializerBenchmarks>();
+_ = BenchmarkRunner.Run<MapBenchmarks>(args: args);
+_ = BenchmarkRunner.Run<SerializerBenchmarks>(args: args);
+_ = BenchmarkRunner.Run<ModelSerializerBenchmarks>(args: args);
 //CompressionBenchmarkData.PrintSizes();
 //_ = BenchmarkRunner.Run<CompressorBenchmarks>();
 //_ = BenchmarkRunner.Run<CompressionTcpBenchmarks>();

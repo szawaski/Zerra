@@ -508,20 +508,24 @@ namespace Zerra.Serialization.Bytes.Converters
             return true;
         }
 
-        /// <inheritdoc/>
-        public override sealed bool TryReadFromParent(ref ByteReader reader, ref ReadState state, object? parent)
+        /// <summary>
+        /// Attempts to read a value for a collection, without a setter.
+        /// </summary>
+        /// <param name="reader">The byte reader to read from.</param>
+        /// <param name="state">The current read state.</param>
+        /// <param name="value">The deserialized value if successful; otherwise, the default value for <typeparamref name="TValue"/>.</param>
+        /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
+        public bool TryReadToValue(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
+            value = default;
+
             if (canBeNull && !state.Current.ChildHasNullChecked)
             {
                 if (!reader.TryReadIsNull(out var isNull, out state.SizeNeeded))
                     return false;
 
                 if (isNull)
-                {
-                    if (setter is not null && parent is not null)
-                        setter(parent, default);
                     return true;
-                }
             }
 
             if (state.UseTypes)
@@ -563,8 +567,7 @@ namespace Zerra.Serialization.Bytes.Converters
                             return false;
                         }
 
-                        if (setter is not null && parent is not null)
-                            setter(parent, (TValue?)valueObject);
+                        value = (TValue?)valueObject;
                         if (StackRequired)
                             state.EndFrame();
                         state.Current.ChildReadType = null;
@@ -596,8 +599,7 @@ namespace Zerra.Serialization.Bytes.Converters
                     return false;
                 }
 
-                if (setter is not null && parent is not null)
-                    setter(parent, (TValue?)valueObject);
+                value = (TValue?)valueObject;
                 if (StackRequired)
                     state.EndFrame();
                 if (state.UseTypes)
@@ -606,7 +608,7 @@ namespace Zerra.Serialization.Bytes.Converters
                 return true;
             }
 
-            if (!TryReadValue(ref reader, ref state, out var value))
+            if (!TryReadValue(ref reader, ref state, out value))
             {
                 if (StackRequired)
                     state.StashFrame();
@@ -614,8 +616,6 @@ namespace Zerra.Serialization.Bytes.Converters
                 return false;
             }
 
-            if (setter is not null && parent is not null)
-                setter(parent, value);
             if (StackRequired)
                 state.EndFrame();
             if (state.UseTypes)
@@ -623,13 +623,15 @@ namespace Zerra.Serialization.Bytes.Converters
             state.Current.ChildHasNullChecked = false;
             return true;
         }
-        /// <inheritdoc/>
-        public override sealed bool TryWriteFromParent(ref ByteWriter writer, ref WriteState state, object parent)
+        /// <summary>
+        /// Attempts to write a value held by a collection, without a getter.
+        /// </summary>
+        /// <param name="writer">The byte writer to write to.</param>
+        /// <param name="state">The current write state.</param>
+        /// <param name="value">The value to serialize.</param>
+        /// <returns><c>true</c> if the write operation completed successfully; <c>false</c> if more bytes are needed.</returns>
+        public bool TryWriteFromValue(ref ByteWriter writer, ref WriteState state, TValue? value)
         {
-            if (getter is null)
-                return true;
-            var value = getter(parent);
-
             if (canBeNull && !state.Current.ChildHasWrittenIsNull)
             {
                 if (value is null)

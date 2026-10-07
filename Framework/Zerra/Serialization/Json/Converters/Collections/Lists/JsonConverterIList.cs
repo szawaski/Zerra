@@ -11,15 +11,12 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 {
     internal sealed class JsonConverterIList : JsonConverter<IList>
     {
-        private JsonConverter converter = null!;
-
-        private static object Getter(object parent) => ((IEnumerator)parent).Current;
-        private static void Setter(object parent, object value) => ((IList)parent).Add(value);
+        private JsonConverter<object> converter = null!;
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
-            converter = JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterIList), Getter, Setter);
+            converter = (JsonConverter<object>)JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterIList), null, null);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out IList? value)
@@ -69,13 +66,14 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
                 if (!state.Current.HasReadValue)
                 {
-                    if (!converter.TryReadFromParent(ref reader, ref state, value))
+                    if (!converter.TryReadToValue(ref reader, ref state, out var item))
                     {
                         state.Current.HasCreated = true;
                         state.Current.HasReadFirstToken = true;
                         state.Current.Object = value;
                         return false;
                     }
+                    value.Add(item!);
                 }
 
                 if (!reader.TryReadToken(out state.SizeNeeded))
@@ -139,7 +137,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                     }
                 }
 
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, enumerator.Current, null))
                 {
                     state.Current.HasWrittenStart = true;
                     state.Current.HasWrittenSeperator = true;

@@ -25,8 +25,22 @@ namespace Zerra.Map.Converters
         private static readonly ConcurrentFactoryDictionary<TypePairKey, Func<MapConverter>> creators = new();
         private static readonly ConcurrentFactoryDictionary<TypePairKey, ConcurrentFactoryDictionary<string, MapConverter>> cache = new();
 
-        internal static MapConverter GetRoot(TypeDetail sourceTypeDetail, TypeDetail targetTypeDetail)
-            => Get(sourceTypeDetail, targetTypeDetail, "Root", null, null, null);
+        private static readonly ConcurrentFactoryDictionary<(Type, Type), MapConverter> rootCache = new();
+
+        internal static MapConverter GetRoot(Type sourceType, Type targetType)
+            => rootCache.GetOrAdd((sourceType, targetType), static (types) => Get(types.Item1.GetTypeDetail(), types.Item2.GetTypeDetail(), "Root", null, null, null));
+
+        /// <summary>
+        /// Holds the root <see cref="MapConverter{TSource, TTarget}"/> for a type pair so generic calls need no lookup.
+        /// </summary>
+        /// <typeparam name="TSource">The source type.</typeparam>
+        /// <typeparam name="TTarget">The target type.</typeparam>
+        internal static class RootConverter<TSource, TTarget>
+        {
+            //filled on first use rather than in a static constructor so a failure throws its own exception each call
+            private static MapConverter<TSource, TTarget>? converter;
+            public static MapConverter<TSource, TTarget> Converter => converter ??= (MapConverter<TSource, TTarget>)Get(TypeAnalyzer<TSource>.GetTypeDetail(), TypeAnalyzer<TTarget>.GetTypeDetail(), "Root", null, null, null);
+        }
 
         /// <summary>
         /// Gets or creates a map converter for the specified source and target types.

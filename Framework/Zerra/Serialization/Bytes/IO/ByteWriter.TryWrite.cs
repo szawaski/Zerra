@@ -2,7 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace Zerra.Serialization.Bytes.IO
 {
@@ -2147,7 +2149,8 @@ namespace Zerra.Serialization.Bytes.IO
             var byteLength = charBytes.Length;
 #else
 
-            var byteLength = encoding.GetBytes(value.AsSpan(), buffer.Slice(position + 4));
+            if (Ascii.FromUtf16(value, buffer.Slice(position + 4), out var byteLength) != OperationStatus.Done)
+                byteLength = encoding.GetBytes(value.AsSpan(), buffer.Slice(position + 4));
 #endif
 
             buffer[position++] = (byte)byteLength;
@@ -2190,7 +2193,8 @@ namespace Zerra.Serialization.Bytes.IO
                     var byteLength = charBytes.Length;
 #else
 
-                    var byteLength = encoding.GetBytes(value.AsSpan(), buffer.Slice(position + 5));
+                    if (Ascii.FromUtf16(value, buffer.Slice(position + 5), out var byteLength) != OperationStatus.Done)
+                        byteLength = encoding.GetBytes(value.AsSpan(), buffer.Slice(position + 5));
 #endif
                     buffer[position++] = notNullByte;
                     buffer[position++] = (byte)byteLength;

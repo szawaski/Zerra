@@ -20,12 +20,27 @@ namespace Zerra.Test.Serialization
 #endif
         }
 
+        [Theory]
+        [InlineData("")]
+        [InlineData("plain")]
+        [InlineData("ünïcödé café 日本語")]
+        [InlineData("😀 a\"b\\c")]
+        public void Strings_RoundTrip(string value)
+        {
+            Assert.Equal(value, ByteSerializer.Deserialize<string>(ByteSerializer.Serialize(value)));
+
+            var list = new List<string?>() { value, null, value + "x" };
+            Assert.Equal(list, ByteSerializer.Deserialize<List<string?>>(ByteSerializer.Serialize(list)));
+
+            var array = new string?[] { value, null };
+            Assert.Equal(array, ByteSerializer.Deserialize<string?[]>(ByteSerializer.Serialize(array)));
+        }
         [Fact]
         public void TypesBasic()
         {
             var model1 = TypesBasicModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.Equal(315, bytes.Length);
+            Assert.Equal(343, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesBasicModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -242,7 +257,7 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesDictionaryTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
-            Assert.Equal(249, bytes.Length);
+            Assert.Equal(698, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesDictionaryTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }

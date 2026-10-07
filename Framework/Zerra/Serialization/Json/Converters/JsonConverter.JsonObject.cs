@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Globalization;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 using System.Runtime.CompilerServices;
@@ -79,9 +80,9 @@ namespace Zerra.Serialization.Json.Converters
                     else
                     {
 #if NETSTANDARD2_0
-                        if (!Decimal.TryParse(reader.ValueChars.ToString(), out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(reader.ValueChars.ToString(), NumberStyles.Number, NumberFormatInfo.InvariantInfo, out number) && state.ErrorOnTypeMismatch)
 #else
-                        if (!Decimal.TryParse(reader.ValueChars, out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(reader.ValueChars, NumberStyles.Number, NumberFormatInfo.InvariantInfo, out number) && state.ErrorOnTypeMismatch)
 #endif
                             throw reader.CreateException($"Cannot convert number (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
                     }
@@ -162,9 +163,9 @@ namespace Zerra.Serialization.Json.Converters
                     else
                     {
 #if NETSTANDARD2_0
-                        if (!Decimal.TryParse(reader.ValueChars.ToString(), out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(reader.ValueChars.ToString(), NumberStyles.Number, NumberFormatInfo.InvariantInfo, out number) && state.ErrorOnTypeMismatch)
 #else
-                        if (!Decimal.TryParse(reader.ValueChars, out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(reader.ValueChars, NumberStyles.Number, NumberFormatInfo.InvariantInfo, out number) && state.ErrorOnTypeMismatch)
 #endif
                             throw reader.CreateException($"Cannot convert number (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
                     }
@@ -248,9 +249,9 @@ namespace Zerra.Serialization.Json.Converters
                     else
                     {
 #if NETSTANDARD2_0
-                        if (!Decimal.TryParse(reader.ValueChars.ToString(), out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(reader.ValueChars.ToString(), NumberStyles.Number, NumberFormatInfo.InvariantInfo, out number) && state.ErrorOnTypeMismatch)
 #else
-                        if (!Decimal.TryParse(reader.ValueChars, out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(reader.ValueChars, NumberStyles.Number, NumberFormatInfo.InvariantInfo, out number) && state.ErrorOnTypeMismatch)
 #endif
                             throw reader.CreateException($"Cannot convert number (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
                     }
@@ -303,9 +304,9 @@ namespace Zerra.Serialization.Json.Converters
                     else
                     {
 #if NETSTANDARD2_0
-                        if (!Decimal.TryParse(reader.ValueChars.ToString(), out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(reader.ValueChars.ToString(), NumberStyles.Number, NumberFormatInfo.InvariantInfo, out number) && state.ErrorOnTypeMismatch)
 #else
-                        if (!Decimal.TryParse(reader.ValueChars, out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(reader.ValueChars, NumberStyles.Number, NumberFormatInfo.InvariantInfo, out number) && state.ErrorOnTypeMismatch)
 #endif
                             throw reader.CreateException($"Cannot convert number (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
                     }
@@ -436,7 +437,7 @@ namespace Zerra.Serialization.Json.Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected static bool ReadJsonObjectArray(ref JsonReader reader, ref ReadState state, out JsonObject? value)
         {
-            ArrayOrListAccessor<JsonObject> accessor;
+            List<JsonObject> list;
             if (!state.Current.HasCreated)
             {
                 if (!reader.TryReadToken(out state.SizeNeeded))
@@ -452,11 +453,11 @@ namespace Zerra.Serialization.Json.Converters
                     return true;
                 }
 
-                accessor = new ArrayOrListAccessor<JsonObject>();
+                list = new List<JsonObject>();
             }
             else
             {
-                accessor = (ArrayOrListAccessor<JsonObject>)state.Current.Object!;
+                list = (List<JsonObject>)state.Current.Object!;
             }
 
             for (; ; )
@@ -465,7 +466,7 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     if (!reader.TryReadToken(out state.SizeNeeded))
                     {
-                        state.Current.Object = accessor;
+                        state.Current.Object = list;
                         state.Current.HasCreated = true;
                         value = default;
                         return false;
@@ -474,9 +475,9 @@ namespace Zerra.Serialization.Json.Converters
 
                 if (!state.Current.HasReadValue)
                 {
-                    if (!ReadJsonObjectFromParent(ref reader, ref state, accessor.Add))
+                    if (!ReadJsonObjectFromParent(ref reader, ref state, list.Add))
                     {
-                        state.Current.Object = accessor;
+                        state.Current.Object = list;
                         state.Current.HasCreated = true;
                         state.Current.HasReadFirstToken = true;
                         value = default;
@@ -486,7 +487,7 @@ namespace Zerra.Serialization.Json.Converters
 
                 if (!reader.TryReadToken(out state.SizeNeeded))
                 {
-                    state.Current.Object = accessor;
+                    state.Current.Object = list;
                     state.Current.HasCreated = true;
                     state.Current.HasReadFirstToken = true;
                     state.Current.HasReadValue = true;
@@ -496,7 +497,7 @@ namespace Zerra.Serialization.Json.Converters
 
                 if (reader.Token == JsonToken.ArrayEnd)
                 {
-                    value = new JsonObject(accessor.ToList());
+                    value = new JsonObject(list);
                     return true;
                 }
 

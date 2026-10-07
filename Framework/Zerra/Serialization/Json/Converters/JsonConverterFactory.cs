@@ -30,13 +30,26 @@ namespace Zerra.Serialization.Json.Converters
         private static readonly ConcurrentFactoryDictionary<Type, Func<JsonConverter>> creators = new();
         private static readonly ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<string, JsonConverter>> cache = new();
 
+        private static readonly ConcurrentFactoryDictionary<Type, JsonConverter> rootCache = new();
+
         /// <summary>
-        /// Gets or creates the root <see cref="JsonConverter"/> for the specified type detail.
+        /// Gets or creates the root <see cref="JsonConverter"/> for the specified type with a single lookup.
         /// </summary>
-        /// <param name="typeDetail">The type detail describing the type to create a converter for.</param>
+        /// <param name="type">The type to create a converter for.</param>
         /// <returns>A <see cref="JsonConverter"/> instance for the specified type.</returns>
-        internal static JsonConverter CreateRoot(TypeDetail typeDetail)
-             => Get(typeDetail, "Root", null, null);
+        internal static JsonConverter GetRoot(Type type)
+             => rootCache.GetOrAdd(type, static (type) => Get(type.GetTypeDetail(), "Root", null, null));
+
+        /// <summary>
+        /// Holds the root <see cref="JsonConverter{T}"/> for a type so generic calls need no lookup.
+        /// </summary>
+        /// <typeparam name="T">The type to convert.</typeparam>
+        internal static class RootConverter<T>
+        {
+            //filled on first use rather than in a static constructor so a failure throws its own exception each call
+            private static JsonConverter<T>? converter;
+            public static JsonConverter<T> Converter => converter ??= (JsonConverter<T>)Get(TypeAnalyzer<T>.GetTypeDetail(), "Root", null, null);
+        }
 
         /// <summary>
         /// Gets or creates a <see cref="JsonConverter"/> for the specified type detail and member information.

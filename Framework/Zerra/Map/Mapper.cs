@@ -4,7 +4,6 @@
 
 using Zerra.Collections;
 using Zerra.Map.Converters;
-using Zerra.Reflection;
 
 namespace Zerra.Map
 {
@@ -26,9 +25,7 @@ namespace Zerra.Map
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var sourceTypeDetail = source.GetType().GetTypeDetail();
-            var targetTypeDetail = TypeAnalyzer<TTarget>.GetTypeDetail();
-            var converter = MapConverterFactory.GetRoot(sourceTypeDetail, targetTypeDetail);
+            var converter = MapConverterFactory.GetRoot(source.GetType(), typeof(TTarget));
             var result = (TTarget?)converter.Map(source, default, graph);
             return result!;
         }
@@ -47,9 +44,7 @@ namespace Zerra.Map
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var sourceTypeDetail = sourceType.GetTypeDetail();
-            var targetTypeDetail = TypeAnalyzer<TTarget>.GetTypeDetail();
-            var converter = MapConverterFactory.GetRoot(sourceTypeDetail, targetTypeDetail);
+            var converter = MapConverterFactory.GetRoot(sourceType, typeof(TTarget));
             var result = (TTarget?)converter.Map(source, default, graph);
             return result!;
         }
@@ -68,9 +63,7 @@ namespace Zerra.Map
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var sourceTypeDetail = sourceType.GetTypeDetail();
-            var targetTypeDetail = targetType.GetTypeDetail();
-            var converter = MapConverterFactory.GetRoot(sourceTypeDetail, targetTypeDetail);
+            var converter = MapConverterFactory.GetRoot(sourceType, targetType);
             var result = converter.Map(source, default, graph);
             return result!;
         }
@@ -89,9 +82,7 @@ namespace Zerra.Map
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var sourceTypeDetail = TypeAnalyzer<TSource>.GetTypeDetail();
-            var targetTypeDetail = TypeAnalyzer<TTarget>.GetTypeDetail();
-            var converter = (MapConverter<TSource, TTarget>)MapConverterFactory.GetRoot(sourceTypeDetail, targetTypeDetail);
+            var converter = MapConverterFactory.RootConverter<TSource, TTarget>.Converter;
             var result = converter.Map(source, default, graph);
             return result!;
         }
@@ -112,9 +103,7 @@ namespace Zerra.Map
             if (target is null)
                 throw new ArgumentNullException(nameof(target));
 
-            var sourceTypeDetail = TypeAnalyzer<TSource>.GetTypeDetail();
-            var targetTypeDetail = TypeAnalyzer<TTarget>.GetTypeDetail();
-            var converter = (MapConverter<TSource, TTarget>)MapConverterFactory.GetRoot(sourceTypeDetail, targetTypeDetail);
+            var converter = MapConverterFactory.RootConverter<TSource, TTarget>.Converter;
             _ = converter.Map(source, target, graph);
         }
 
@@ -134,9 +123,7 @@ namespace Zerra.Map
             if (target is null)
                 throw new ArgumentNullException(nameof(target));
 
-            var sourceTypeDetail = sourceType.GetTypeDetail();
-            var targetTypeDetail = targetType.GetTypeDetail();
-            var converter = MapConverterFactory.GetRoot(sourceTypeDetail, targetTypeDetail);
+            var converter = MapConverterFactory.GetRoot(sourceType, targetType);
             _ = converter.Map(source, target, graph);
         }
 
@@ -153,8 +140,7 @@ namespace Zerra.Map
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var targetTypeDetail = TypeAnalyzer<TTarget>.GetTypeDetail();
-            var converter = (MapConverter<TTarget, TTarget>)MapConverterFactory.GetRoot(targetTypeDetail, targetTypeDetail);
+            var converter = MapConverterFactory.RootConverter<TTarget, TTarget>.Converter;
             var result = converter.Map(source, default, graph);
             return result!;
         }
@@ -172,8 +158,7 @@ namespace Zerra.Map
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var targetTypeDetail = TypeAnalyzer<TTarget>.GetTypeDetail();
-            var converter = MapConverterFactory.GetRoot(targetTypeDetail, targetTypeDetail);
+            var converter = MapConverterFactory.GetRoot(typeof(TTarget), typeof(TTarget));
             var result = (TTarget?)converter.Map(source, default, graph);
             return result!;
         }
@@ -191,8 +176,7 @@ namespace Zerra.Map
             if (source is null)
                 throw new ArgumentNullException(nameof(source));
 
-            var targetTypeDetail = sourceType.GetTypeDetail();
-            var converter = MapConverterFactory.GetRoot(targetTypeDetail, targetTypeDetail);
+            var converter = MapConverterFactory.GetRoot(sourceType, sourceType);
             var result = converter.Map(source, default, graph);
             return result!;
         }

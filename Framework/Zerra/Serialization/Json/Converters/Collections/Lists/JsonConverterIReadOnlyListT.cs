@@ -10,15 +10,12 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 {
     internal sealed class JsonConverterIReadOnlyListT<TValue> : JsonConverter<IReadOnlyList<TValue>>
     {
-        private JsonConverter converter = null!;
-
-        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
-        private static void Setter(object parent, TValue value) => ((List<TValue>)parent).Add(value);
+        private JsonConverter<TValue> converter = null!;
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            converter = JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterIReadOnlyListT<TValue>), Getter, Setter);
+            converter = (JsonConverter<TValue>)JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterIReadOnlyListT<TValue>), null, null);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out IReadOnlyList<TValue>? value)
@@ -71,7 +68,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
                 if (!state.Current.HasReadValue)
                 {
-                    if (!converter.TryReadFromParent(ref reader, ref state, list))
+                    if (!converter.TryReadToValue(ref reader, ref state, out var item))
                     {
                         state.Current.HasCreated = true;
                         state.Current.HasReadFirstToken = true;
@@ -79,6 +76,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                         value = default;
                         return false;
                     }
+                    list.Add(item!);
                 }
 
                 if (!reader.TryReadToken(out state.SizeNeeded))
@@ -144,7 +142,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                     }
                 }
 
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, enumerator.Current, null))
                 {
                     state.Current.HasWrittenStart = true;
                     state.Current.HasWrittenSeperator = true;

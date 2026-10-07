@@ -5,6 +5,7 @@
 #if !NETSTANDARD2_0
 
 using System.Buffers.Text;
+using System.Globalization;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
@@ -28,10 +29,16 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     }
                     else
                     {
+                        //TimeSpan has a much faster parse for the "c" format that is written
+                        if (TimeSpan.TryParseExact(reader.ValueChars, "c", CultureInfo.InvariantCulture, out var timeSpan) && timeSpan.Ticks >= 0 && timeSpan.Ticks < TimeSpan.TicksPerDay)
+                        {
+                            value = TimeOnly.FromTimeSpan(timeSpan);
+                            return true;
+                        }
 #if NETSTANDARD2_0
-                        if (!TimeOnly.TryParse(reader.ValueChars.ToString(), TimeOnly parsed) && state.ErrorOnTypeMismatch)
+                        if (!TimeOnly.TryParse(reader.ValueChars.ToString(), out TimeOnly parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!TimeOnly.TryParse(reader.ValueChars, out TimeOnly parsed) && state.ErrorOnTypeMismatch)
+                        if (!TimeOnly.TryParse(reader.ValueChars, CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;

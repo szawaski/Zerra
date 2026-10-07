@@ -11,15 +11,12 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
 {
     internal sealed class JsonConverterIEnumerableOfT<TEnumerable> : JsonConverter<TEnumerable>
     {
-        private JsonConverter converter = null!;
-
-        private static object Getter(object parent) => ((IEnumerator)parent).Current;
-        private static void Setter(object parent, object value) => ((ArrayOrListAccessor<object>)parent).Add(value);
+        private JsonConverter<object> converter = null!;
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
-            converter = JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterIEnumerableOfT<TEnumerable>), Getter, Setter);
+            converter = (JsonConverter<object>)JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterIEnumerableOfT<TEnumerable>), null, null);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out TEnumerable? value)
@@ -68,7 +65,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
                     }
                 }
 
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, enumerator.Current, null))
                 {
                     state.Current.HasWrittenStart = true;
                     state.Current.HasWrittenSeperator = true;

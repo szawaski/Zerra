@@ -10,16 +10,13 @@ namespace Zerra.Map.Converters.Collections.Dictionaries
         where TSourceKey : notnull
         where TTargetKey : notnull
     {
-        private MapConverter converter = null!;
-
-        private static KeyValuePair<TSourceKey, TSourceValue> SourceGetter(object parent) => ((IEnumerator<KeyValuePair<TSourceKey, TSourceValue>>)parent).Current;
-        private static void TargetSetter(object parent, KeyValuePair<TTargetKey, TTargetValue> value) => ((IDictionary<TTargetKey, TTargetValue>)parent)[value.Key] = value.Value;
+        private MapConverter<KeyValuePair<TSourceKey, TSourceValue>, KeyValuePair<TTargetKey, TTargetValue>> converter = null!;
 
         protected override sealed void Setup()
         {
             var sourceTypeDetail = TypeAnalyzer<KeyValuePair<TSourceKey, TSourceValue>>.GetTypeDetail();
             var targetTypeDetail = TypeAnalyzer<KeyValuePair<TTargetKey, TTargetValue>>.GetTypeDetail();
-            converter = MapConverterFactory.Get(sourceTypeDetail, targetTypeDetail, nameof(MapConverterIDictionaryT<TSource, TSourceKey, TSourceValue, TTargetKey, TTargetValue>), SourceGetter, null, TargetSetter);
+            converter = (MapConverter<KeyValuePair<TSourceKey, TSourceValue>, KeyValuePair<TTargetKey, TTargetValue>>)MapConverterFactory.Get(sourceTypeDetail, targetTypeDetail, nameof(MapConverterIDictionaryT<TSource, TSourceKey, TSourceValue, TTargetKey, TTargetValue>), null, null, null);
         }
 
         public override IDictionary<TTargetKey, TTargetValue>? Map(TSource? source, IDictionary<TTargetKey, TTargetValue>? target, Graph? graph)
@@ -43,7 +40,8 @@ namespace Zerra.Map.Converters.Collections.Dictionaries
             var sourceEnumerator = sourceEnumerable.GetEnumerator();
             while (sourceEnumerator.MoveNext())
             {
-                converter.MapFromParent(sourceEnumerator, target, graph);
+                var item = converter.Map(sourceEnumerator.Current, default, graph);
+                target[item.Key] = item.Value;
             }
 
             return target;

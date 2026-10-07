@@ -11,15 +11,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 {
     internal sealed class ByteConverterIList : ByteConverter<IList>
     {
-        private ByteConverter converter = null!;
-
-        private static object Getter(object parent) => ((IEnumerator)parent).Current;
-        private static void Setter(object parent, object value) => ((IList)parent).Add(value);
+        private ByteConverter<object> converter = null!;
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
-            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterIList), Getter, Setter);
+            converter = (ByteConverter<object>)ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterIList), null, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out IList? value)
@@ -56,11 +53,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
             for (; ; )
             {
-                if (!converter.TryReadFromParent(ref reader, ref state, value))
+                if (!converter.TryReadToValue(ref reader, ref state, out var item))
                 {
                     state.Current.Object = value;
                     return false;
                 }
+                value.Add(item!);
 
                 if (value.Count == state.Current.EnumerableLength!.Value)
                     return true;
@@ -91,7 +89,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, enumerator.Current))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

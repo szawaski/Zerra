@@ -5,7 +5,9 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Buffers.Text;
+using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace Zerra.Serialization.Json.IO
 {
@@ -34,7 +36,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
 #if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
 #endif
@@ -43,14 +45,14 @@ namespace Zerra.Serialization.Json.IO
             else
             {
 #if NETSTANDARD2_0
-                var str = value.ToString();
+                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
                 position += str.Length;
 #else
-                _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+                _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
 #endif
             }
@@ -80,7 +82,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
 #if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
 #endif
@@ -89,14 +91,14 @@ namespace Zerra.Serialization.Json.IO
             else
             {
 #if NETSTANDARD2_0
-                var str = value.ToString();
+                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
                 position += str.Length;
 #else
-                _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+                _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
 #endif
             }
@@ -126,7 +128,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
 #if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
 #endif
@@ -135,14 +137,14 @@ namespace Zerra.Serialization.Json.IO
             else
             {
 #if NETSTANDARD2_0
-                var str = value.ToString();
+                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
                 position += str.Length;
 #else
-                _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+                _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
 #endif
             }
@@ -172,7 +174,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
 #if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
 #endif
@@ -181,14 +183,14 @@ namespace Zerra.Serialization.Json.IO
             else
             {
 #if NETSTANDARD2_0
-                var str = value.ToString();
+                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
                 position += str.Length;
 #else
-                _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+                _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
 #endif
             }
@@ -218,7 +220,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
 #if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
 #endif
@@ -227,14 +229,14 @@ namespace Zerra.Serialization.Json.IO
             else
             {
 #if NETSTANDARD2_0
-                var str = value.ToString();
+                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
                 position += str.Length;
 #else
-                _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+                _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
 #endif
             }
@@ -264,7 +266,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
 #if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
 #endif
@@ -273,14 +275,14 @@ namespace Zerra.Serialization.Json.IO
             else
             {
 #if NETSTANDARD2_0
-                var str = value.ToString();
+                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
                 position += str.Length;
 #else
-                _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+                _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
 #endif
             }
@@ -303,7 +305,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
 #if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
 #endif
@@ -312,14 +314,14 @@ namespace Zerra.Serialization.Json.IO
             else
             {
 #if NETSTANDARD2_0
-                var str = value.ToString();
+                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
                 position += str.Length;
 #else
-                _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+                _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
 #endif
             }
@@ -349,7 +351,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
 #if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
 #endif
@@ -358,14 +360,14 @@ namespace Zerra.Serialization.Json.IO
             else
             {
 #if NETSTANDARD2_0
-                var str = value.ToString();
+                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
                 position += str.Length;
 #else
-                _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+                _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
 #endif
             }
@@ -395,7 +397,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
 #if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
 #endif
@@ -404,14 +406,14 @@ namespace Zerra.Serialization.Json.IO
             else
             {
 #if NETSTANDARD2_0
-                var str = value.ToString();
+                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
                 position += str.Length;
 #else
-                _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+                _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
 #endif
             }
@@ -442,7 +444,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
 #if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
 #endif
@@ -451,14 +453,14 @@ namespace Zerra.Serialization.Json.IO
             else
             {
 #if NETSTANDARD2_0
-                var str = value.ToString();
+                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
                 position += str.Length;
 #else
-                _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+                _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
 #endif
             }
@@ -489,7 +491,7 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
 #if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written);
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
 #else
                 _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
 #endif
@@ -498,14 +500,14 @@ namespace Zerra.Serialization.Json.IO
             else
             {
 #if NETSTANDARD2_0
-                var str = value.ToString();
+                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
                 position += str.Length;
 #else
-                _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+                _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
 #endif
             }
@@ -766,100 +768,25 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 bufferBytes[position++] = quoteByte;
-
-                if (value.Ticks < 0)
-                    bufferBytes[position++] = minusByte;
-
-                if (value.Days > 0)
-                {
-                    _ = Utf8Formatter.TryFormat(value.Days, bufferBytes.Slice(position), out var written);
-                    position += written;
-                    bufferBytes[position++] = dotByte;
-                }
-                else if (value.Days < 0)
-                {
-                    _ = Utf8Formatter.TryFormat(-value.Days, bufferBytes.Slice(position), out var written);
-                    position += written;
-                    bufferBytes[position++] = dotByte;
-                }
-
-                if (value.Hours > -1)
-                {
-                    if (value.Hours < 10)
-                        bufferBytes[position++] = zeroByte;
-                    _ = Utf8Formatter.TryFormat(value.Hours, bufferBytes.Slice(position), out var written);
-                    position += written;
-                    bufferBytes[position++] = colonByte;
-                }
-                else
-                {
-                    if (-value.Hours < 10)
-                        bufferBytes[position++] = zeroByte;
-                    _ = Utf8Formatter.TryFormat(-value.Hours, bufferBytes.Slice(position), out var written);
-                    position += written;
-                    bufferBytes[position++] = colonByte;
-                }
-
-                if (value.Minutes > -1)
-                {
-                    if (value.Minutes < 10)
-                        bufferBytes[position++] = zeroByte;
-                    _ = Utf8Formatter.TryFormat(value.Minutes, bufferBytes.Slice(position), out var written);
-                    position += written;
-                    bufferBytes[position++] = colonByte;
-                }
-                else
-                {
-                    if (-value.Minutes < 10)
-                        bufferBytes[position++] = zeroByte;
-                    _ = Utf8Formatter.TryFormat(-value.Minutes, bufferBytes.Slice(position), out var written);
-                    position += written;
-                    bufferBytes[position++] = colonByte;
-                }
-
-                if (value.Seconds > -1)
-                {
-                    if (value.Seconds < 10)
-                        bufferBytes[position++] = zeroByte;
-                    _ = Utf8Formatter.TryFormat(value.Seconds, bufferBytes.Slice(position), out var written);
-                    position += written;
-                }
-                else
-                {
-                    if (-value.Seconds < 10)
-                        bufferBytes[position++] = zeroByte;
-                    _ = Utf8Formatter.TryFormat(-value.Seconds, bufferBytes.Slice(position), out var written);
-                    position += written;
-                }
-
-                long fraction;
-                if (value.Ticks > -1)
-                    fraction = value.Ticks - (value.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
-                else
-                    fraction = -value.Ticks - (-value.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
-                if (fraction > 0)
-                {
-                    bufferBytes[position++] = dotByte;
-                    if (fraction < 10)
-                        bufferBytes[position++] = zeroByte;
-                    if (fraction < 100)
-                        bufferBytes[position++] = zeroByte;
-                    if (fraction < 1000)
-                        bufferBytes[position++] = zeroByte;
-                    if (fraction < 10000)
-                        bufferBytes[position++] = zeroByte;
-                    if (fraction < 100000)
-                        bufferBytes[position++] = zeroByte;
-                    if (fraction < 1000000)
-                        bufferBytes[position++] = zeroByte;
-                    _ = Utf8Formatter.TryFormat(fraction, bufferBytes.Slice(position), out var written);
-                    position += written;
-                }
-
+#if NETSTANDARD2_0
+                _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written, new StandardFormat('c'));
+#else
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, "c");
+#endif
+                position += written;
                 bufferBytes[position++] = quoteByte;
-
                 return true;
             }
+#if !NETSTANDARD2_0
+            else
+            {
+                bufferChars[position++] = '"';
+                _ = value.TryFormat(bufferChars.Slice(position), out var written, "c");
+                position += written;
+                bufferChars[position++] = '"';
+                return true;
+            }
+#else
             else
             {
                 bufferChars[position++] = '"';
@@ -950,6 +877,7 @@ namespace Zerra.Serialization.Json.IO
 
                 return true;
             }
+#endif
         }
 
 #if !NETSTANDARD2_0
@@ -979,56 +907,17 @@ namespace Zerra.Serialization.Json.IO
             if (useBytes)
             {
                 bufferBytes[position++] = quoteByte;
-
-                if (value.Year < 10)
-                    bufferBytes[position++] = zeroByte;
-                if (value.Year < 100)
-                    bufferBytes[position++] = zeroByte;
-                if (value.Year < 1000)
-                    bufferBytes[position++] = zeroByte;
-                _ = Utf8Formatter.TryFormat(value.Year, bufferBytes.Slice(position), out var written);
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, "O");
                 position += written;
-                bufferBytes[position++] = minusByte;
-
-                if (value.Month < 10)
-                    bufferBytes[position++] = zeroByte;
-                _ = Utf8Formatter.TryFormat(value.Month, bufferBytes.Slice(position), out written);
-                position += written;
-                bufferBytes[position++] = minusByte;
-
-                if (value.Day < 10)
-                    bufferBytes[position++] = zeroByte;
-                _ = Utf8Formatter.TryFormat(value.Day, bufferBytes.Slice(position), out written);
-                position += written;
-
                 bufferBytes[position++] = quoteByte;
-
                 return true;
             }
             else
             {
                 bufferChars[position++] = '"';
-
-                if (value.Year < 10)
-                    bufferChars[position++] = '0';
-                if (value.Year < 100)
-                    bufferChars[position++] = '0';
-                if (value.Year < 1000)
-                    bufferChars[position++] = '0';
-                WriteInt32Chars(value.Year);
-                bufferChars[position++] = '-';
-
-                if (value.Month < 10)
-                    bufferChars[position++] = '0';
-                WriteInt32Chars(value.Month);
-                bufferChars[position++] = '-';
-
-                if (value.Day < 10)
-                    bufferChars[position++] = '0';
-                WriteInt32Chars(value.Day);
-
+                _ = value.TryFormat(bufferChars.Slice(position), out var written, "O");
+                position += written;
                 bufferChars[position++] = '"';
-
                 return true;
             }
         }
@@ -1056,94 +945,21 @@ namespace Zerra.Serialization.Json.IO
 #endif
 
 
+            //same output as TimeSpan "c", which System.Text.Json uses
             if (useBytes)
             {
                 bufferBytes[position++] = quoteByte;
-
-                if (value.Hour < 10)
-                    bufferBytes[position++] = zeroByte;
-                _ = Utf8Formatter.TryFormat(value.Hour, bufferBytes.Slice(position), out var written);
+                _ = value.ToTimeSpan().TryFormat(bufferBytes.Slice(position), out var written, "c");
                 position += written;
-                bufferBytes[position++] = colonByte;
-
-                if (value.Minute < 10)
-                    bufferBytes[position++] = zeroByte;
-                _ = Utf8Formatter.TryFormat(value.Minute, bufferBytes.Slice(position), out written);
-                position += written;
-                bufferBytes[position++] = colonByte;
-
-                if (value.Second < 10)
-                    bufferBytes[position++] = zeroByte;
-                _ = Utf8Formatter.TryFormat(value.Second, bufferBytes.Slice(position), out written);
-                position += written;
-
-                var fraction = value.Ticks - (value.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
-                if (fraction > 0)
-                {
-                    bufferBytes[position++] = dotByte;
-                    if (fraction < 10)
-                        bufferBytes[position++] = zeroByte;
-                    if (fraction < 100)
-                        bufferBytes[position++] = zeroByte;
-                    if (fraction < 1000)
-                        bufferBytes[position++] = zeroByte;
-                    if (fraction < 10000)
-                        bufferBytes[position++] = zeroByte;
-                    if (fraction < 100000)
-                        bufferBytes[position++] = zeroByte;
-                    if (fraction < 1000000)
-                        bufferBytes[position++] = zeroByte;
-                    //while (fraction % 10 == 0)  System.Text.Json does all figures
-                    //    fraction /= 10;
-                    _ = Utf8Formatter.TryFormat(fraction, bufferBytes.Slice(position), out written);
-                    position += written;
-                }
-
                 bufferBytes[position++] = quoteByte;
-
                 return true;
             }
             else
             {
                 bufferChars[position++] = '"';
-
-                if (value.Hour < 10)
-                    bufferChars[position++] = '0';
-                WriteInt32Chars(value.Hour);
-                bufferChars[position++] = ':';
-
-                if (value.Minute < 10)
-                    bufferChars[position++] = '0';
-                WriteInt32Chars(value.Minute);
-                bufferChars[position++] = ':';
-
-                if (value.Second < 10)
-                    bufferChars[position++] = '0';
-                WriteInt32Chars(value.Second);
-
-                var fraction = value.Ticks - (value.Ticks / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
-                if (fraction > 0)
-                {
-                    bufferChars[position++] = '.';
-                    if (fraction < 10)
-                        bufferChars[position++] = '0';
-                    if (fraction < 100)
-                        bufferChars[position++] = '0';
-                    if (fraction < 1000)
-                        bufferChars[position++] = '0';
-                    if (fraction < 10000)
-                        bufferChars[position++] = '0';
-                    if (fraction < 100000)
-                        bufferChars[position++] = '0';
-                    if (fraction < 1000000)
-                        bufferChars[position++] = '0';
-                    //while (fraction % 10 == 0)  System.Text.Json does all figures
-                    //    fraction /= 10;
-                    WriteInt64Chars(fraction);
-                }
-
+                _ = value.ToTimeSpan().TryFormat(bufferChars.Slice(position), out var written, "c");
+                position += written;
                 bufferChars[position++] = '"';
-
                 return true;
             }
         }
@@ -1263,18 +1079,19 @@ namespace Zerra.Serialization.Json.IO
             }
         }
 
+#if NETSTANDARD2_0
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private unsafe void WriteInt32Chars(int value)
         {
 #if NETSTANDARD2_0
-            var str = value.ToString();
+            var str = value.ToString(CultureInfo.InvariantCulture);
             fixed (char* pSource = str, pBuffer = &bufferChars[position])
             {
                 Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
             }
             position += str.Length;
 #else
-            _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+            _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
 #endif
         }
@@ -1282,17 +1099,18 @@ namespace Zerra.Serialization.Json.IO
         private unsafe void WriteInt64Chars(long value)
         {
 #if NETSTANDARD2_0
-            var str = value.ToString();
+            var str = value.ToString(CultureInfo.InvariantCulture);
             fixed (char* pSource = str, pBuffer = &bufferChars[position])
             {
                 Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
             }
             position += str.Length;
 #else
-            _ = value.TryFormat(bufferChars.Slice(position), out var consumed);
+            _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
             position += consumed;
 #endif
         }
+#endif
 
         /// <summary>
         /// Attempts to write a null value to the buffer.
@@ -1735,35 +1553,142 @@ namespace Zerra.Serialization.Json.IO
         {
             //no fixed in this fast path, the JIT won't inline a method with pinned locals
 #if !NETSTANDARD2_0
-            if (value is not null && value.Length > 0 && value.AsSpan().IndexOfAny(escapeChars) < 0 && value.AsSpan().IndexOfAnyInRange(lowerSurrogate, upperSurrogate) < 0)
+            if (value is not null && value.Length > 0 && value.AsSpan().IndexOfAny(escapeChars) < 0)
             {
-                sizeNeeded = useBytes ? encoding.GetMaxByteCount(value.Length + 2) : value.Length + 2;
-                if (length - position < sizeNeeded)
-                {
-                    if (!Grow(sizeNeeded))
-                        return false;
-                }
-#if DEBUG
-                if (DebugShouldReturn())
-                    return false;
-#endif
                 if (useBytes)
                 {
-                    bufferBytes[position++] = quoteByte;
-                    position += encoding.GetBytes(value, bufferBytes.Slice(position));
-                    bufferBytes[position++] = quoteByte;
+                    sizeNeeded = encoding.GetMaxByteCount(value.Length + 2);
+                    if (length - position < sizeNeeded)
+                    {
+                        if (!Grow(sizeNeeded))
+                            return false;
+                    }
+                    //an ASCII string has no surrogates, so they are only searched for when it isn't
+                    if (Ascii.FromUtf16(value, bufferBytes.Slice(position + 1), out var written) == OperationStatus.Done)
+                    {
+#if DEBUG
+                        if (DebugShouldReturn())
+                            return false;
+#endif
+                        bufferBytes[position] = quoteByte;
+                        position += written + 1;
+                        bufferBytes[position++] = quoteByte;
+                        return true;
+                    }
+                    if (value.AsSpan().IndexOfAnyInRange(lowerSurrogate, upperSurrogate) < 0)
+                    {
+#if DEBUG
+                        if (DebugShouldReturn())
+                            return false;
+#endif
+                        bufferBytes[position++] = quoteByte;
+                        position += encoding.GetBytes(value, bufferBytes.Slice(position));
+                        bufferBytes[position++] = quoteByte;
+                        return true;
+                    }
                 }
-                else
+                else if (value.AsSpan().IndexOfAnyInRange(lowerSurrogate, upperSurrogate) < 0)
                 {
+                    sizeNeeded = value.Length + 2;
+                    if (length - position < sizeNeeded)
+                    {
+                        if (!Grow(sizeNeeded))
+                            return false;
+                    }
+#if DEBUG
+                    if (DebugShouldReturn())
+                        return false;
+#endif
                     bufferChars[position++] = '"';
                     value.AsSpan().CopyTo(bufferChars.Slice(position));
                     position += value.Length;
                     bufferChars[position++] = '"';
+                    return true;
                 }
-                return true;
             }
 #endif
             return TryWriteEscapedQuotedSlow(value, out sizeNeeded);
+        }
+
+        /// <summary>
+        /// Attempts to write a property name from a string to the buffer with escape character handling, optionally prefixed with a comma.
+        /// </summary>
+        /// <param name="value">The property name to write.</param>
+        /// <param name="startWithComma">Whether to prefix the property name with a comma.</param>
+        /// <param name="sizeNeeded">The number of bytes needed if the operation cannot complete.</param>
+        /// <returns><c>true</c> if the property name was successfully written; <c>false</c> if more bytes are needed.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryWritePropertyName(string? value, bool startWithComma, out int sizeNeeded)
+        {
+#if !NETSTANDARD2_0
+            if (value is not null && value.AsSpan().IndexOfAny(escapeChars) < 0)
+            {
+                if (useBytes)
+                {
+                    sizeNeeded = encoding.GetMaxByteCount(value.Length) + 4;
+                    if (length - position < sizeNeeded)
+                    {
+                        if (!Grow(sizeNeeded))
+                            return false;
+                    }
+                    var start = startWithComma ? 2 : 1;
+                    //an ASCII string has no surrogates, so they are only searched for when it isn't
+                    if (Ascii.FromUtf16(value, bufferBytes.Slice(position + start), out var written) == OperationStatus.Done)
+                    {
+#if DEBUG
+                        if (DebugShouldReturn())
+                            return false;
+#endif
+                        if (startWithComma)
+                            bufferBytes[position++] = commaByte;
+                        bufferBytes[position] = quoteByte;
+                        position += written + 1;
+                        bufferBytes[position++] = quoteByte;
+                        bufferBytes[position++] = colonByte;
+                        return true;
+                    }
+                    if (value.AsSpan().IndexOfAnyInRange(lowerSurrogate, upperSurrogate) < 0)
+                    {
+#if DEBUG
+                        if (DebugShouldReturn())
+                            return false;
+#endif
+                        if (startWithComma)
+                            bufferBytes[position++] = commaByte;
+                        bufferBytes[position++] = quoteByte;
+                        position += encoding.GetBytes(value, bufferBytes.Slice(position));
+                        bufferBytes[position++] = quoteByte;
+                        bufferBytes[position++] = colonByte;
+                        return true;
+                    }
+                }
+                else if (value.AsSpan().IndexOfAnyInRange(lowerSurrogate, upperSurrogate) < 0)
+                {
+                    sizeNeeded = value.Length + 4;
+                    if (length - position < sizeNeeded)
+                    {
+                        if (!Grow(sizeNeeded))
+                            return false;
+                    }
+#if DEBUG
+                    if (DebugShouldReturn())
+                        return false;
+#endif
+                    if (startWithComma)
+                        bufferChars[position++] = ',';
+                    bufferChars[position++] = '"';
+                    value.AsSpan().CopyTo(bufferChars.Slice(position));
+                    position += value.Length;
+                    bufferChars[position++] = '"';
+                    bufferChars[position++] = ':';
+                    return true;
+                }
+            }
+#endif
+            if (useBytes)
+                return TryWriteNameSegment(StringHelper.EscapeAndEncodeString(value, true), startWithComma, out sizeNeeded);
+            else
+                return TryWriteNameSegment(StringHelper.EscapeString(value, true), startWithComma, out sizeNeeded);
         }
 
         private unsafe bool TryWriteEscapedQuotedSlow(string? value, out int sizeNeeded)

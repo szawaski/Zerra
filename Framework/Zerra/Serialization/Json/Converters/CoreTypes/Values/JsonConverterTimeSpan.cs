@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Buffers.Text;
+using System.Globalization;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
@@ -26,9 +27,9 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     else
                     {
 #if NETSTANDARD2_0
-                        if (!TimeSpan.TryParse(reader.ValueChars.ToString(), out value) && state.ErrorOnTypeMismatch)
+                        if (!TimeSpan.TryParse(reader.ValueChars.ToString(), CultureInfo.InvariantCulture, out value) && state.ErrorOnTypeMismatch)
 #else
-                        if (!TimeSpan.TryParse(reader.ValueChars, out value) && state.ErrorOnTypeMismatch)
+                        if (!TimeSpan.TryParseExact(reader.ValueChars, "c", CultureInfo.InvariantCulture, out value) && !TimeSpan.TryParse(reader.ValueChars, CultureInfo.InvariantCulture, out value) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         return true;

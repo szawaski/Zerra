@@ -10,15 +10,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 {
     internal sealed class ByteConverterHashSetT<TValue> : ByteConverter<HashSet<TValue>>
     {
-        private ByteConverter converter = null!;
-
-        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
-        private static void Setter(object parent, TValue value) => ((ISet<TValue>)parent).Add(value);
+        private ByteConverter<TValue> converter = null!;
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterHashSetT<TValue>), Getter, Setter);
+            converter = (ByteConverter<TValue>)ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterHashSetT<TValue>), null, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out HashSet<TValue>? value)
@@ -63,11 +60,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
             for (; ; )
             {
-                if (!converter.TryReadFromParent(ref reader, ref state, value))
+                if (!converter.TryReadToValue(ref reader, ref state, out var item))
                 {
                     state.Current.Object = value;
                     return false;
                 }
+                value.Add(item!);
 
                 if (value.Count == state.Current.EnumerableLength!.Value)
                     return true;
@@ -76,7 +74,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in HashSet<TValue> value)
         {
-            IEnumerator<TValue> enumerator;
+            HashSet<TValue>.Enumerator enumerator;
 
             if (state.Current.Object is null)
             {
@@ -93,12 +91,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
             }
             else
             {
-                enumerator = (IEnumerator<TValue>)state.Current.Object!;
+                enumerator = (HashSet<TValue>.Enumerator)state.Current.Object!;
             }
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, enumerator.Current))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

@@ -11,15 +11,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 {
     internal sealed class ByteConverterIDictionaryOfT<TDictionary> : ByteConverter<TDictionary>
     {
-        private ByteConverter converter = null!;
-
-        private static DictionaryEntry Getter(object parent) => ((IDictionaryEnumerator)parent).Entry;
-        private static void Setter(object parent, DictionaryEntry value) => ((IDictionary)parent).Add(value.Key, value.Value);
+        private ByteConverter<DictionaryEntry> converter = null!;
 
         protected override sealed void Setup()
         {
             var dictionaryEntryTypeDetail = TypeAnalyzer<DictionaryEntry>.GetTypeDetail();
-            converter = ByteConverterFactory.Get(dictionaryEntryTypeDetail, nameof(ByteConverterIDictionaryOfT<TDictionary>), Getter, Setter);
+            converter = (ByteConverter<DictionaryEntry>)ByteConverterFactory.Get(dictionaryEntryTypeDetail, nameof(ByteConverterIDictionaryOfT<TDictionary>), null, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TDictionary? value)
@@ -67,11 +64,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
             for (; ; )
             {
-                if (!converter.TryReadFromParent(ref reader, ref state, dictionary))
+                if (!converter.TryReadToValue(ref reader, ref state, out var item))
                 {
                     state.Current.Object = value;
                     return false;
                 }
+                dictionary.Add(item.Key, item.Value);
 
                 if (dictionary.Count == state.Current.EnumerableLength!.Value)
                     return true;
@@ -103,7 +101,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, enumerator.Entry))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

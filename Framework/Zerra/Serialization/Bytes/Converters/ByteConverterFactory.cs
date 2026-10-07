@@ -42,13 +42,26 @@ namespace Zerra.Serialization.Bytes.Converters
         private static readonly ConcurrentFactoryDictionary<Type, ConcurrentFactoryDictionary<string, ByteConverter>> cache = new();
         private static ByteConverterTypeRequired? cacheByteConverterTypeInfo;
 
+        private static readonly ConcurrentFactoryDictionary<Type, ByteConverter> rootCache = new();
+
         /// <summary>
-        /// Gets or creates the root <see cref="ByteConverter"/> for the specified type detail.
+        /// Gets or creates the root <see cref="ByteConverter"/> for the specified type with a single lookup.
         /// </summary>
-        /// <param name="typeDetail">The type detail describing the type to create a converter for.</param>
+        /// <param name="type">The type to create a converter for.</param>
         /// <returns>A <see cref="ByteConverter"/> instance for the specified type.</returns>
-        internal static ByteConverter GetRoot(TypeDetail typeDetail)
-             => Get(typeDetail, "Root", null, null);
+        internal static ByteConverter GetRoot(Type type)
+             => rootCache.GetOrAdd(type, static (type) => Get(type.GetTypeDetail(), "Root", null, null));
+
+        /// <summary>
+        /// Holds the root <see cref="ByteConverter{T}"/> for a type so generic calls need no lookup.
+        /// </summary>
+        /// <typeparam name="T">The type to convert.</typeparam>
+        internal static class RootConverter<T>
+        {
+            //filled on first use rather than in a static constructor so a failure throws its own exception each call
+            private static ByteConverter<T>? converter;
+            public static ByteConverter<T> Converter => converter ??= (ByteConverter<T>)Get(TypeAnalyzer<T>.GetTypeDetail(), "Root", null, null);
+        }
 
         /// <summary>
         /// Gets or creates a <see cref="ByteConverter"/> for the specified type detail and member information.

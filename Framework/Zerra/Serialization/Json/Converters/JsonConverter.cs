@@ -54,24 +54,6 @@ namespace Zerra.Serialization.Json.Converters
         /// <param name="reader">The JSON reader to read from.</param>
         /// <param name="state">The current read state.</param>
         /// <param name="parent">The parent object to populate.</param>
-        /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>
-        public abstract bool TryReadFromParent(ref JsonReader reader, ref ReadState state, object? parent);
-
-        /// <summary>
-        /// Attempts to write a value from a parent object to JSON format.
-        /// </summary>
-        /// <param name="writer">The JSON writer to write to.</param>
-        /// <param name="state">The current write state.</param>
-        /// <param name="parent">The parent object to serialize.</param>
-        /// <returns><c>true</c> if the write operation completed successfully; <c>false</c> if more bytes are needed.</returns>
-        public abstract bool TryWriteFromParent(ref JsonWriter writer, ref WriteState state, object parent);
-
-        /// <summary>
-        /// Attempts to read a value from a parent object in JSON format.
-        /// </summary>
-        /// <param name="reader">The JSON reader to read from.</param>
-        /// <param name="state">The current read state.</param>
-        /// <param name="parent">The parent object to populate.</param>
         /// <param name="propertyName">The optional property name being deserialized.</param>
         /// <param name="readToken">Whether to read the next token before processing the value.</param>
         /// <returns><c>true</c> if the read operation completed successfully; <c>false</c> if more bytes are needed.</returns>

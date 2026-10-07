@@ -10,15 +10,12 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 {
     internal sealed class JsonConverterListT<TValue> : JsonConverter<List<TValue>>
     {
-        private JsonConverter converter = null!;
-
-        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
-        private static void Setter(object parent, TValue value) => ((List<TValue>)parent).Add(value);
+        private JsonConverter<TValue> valueConverter = null!;
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            converter = JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterListT<TValue>), Getter, Setter);
+            valueConverter = (JsonConverter<TValue>)JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterListT<TValue>), null, null);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out List<TValue>? value)
@@ -68,13 +65,14 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
                 if (!state.Current.HasReadValue)
                 {
-                    if (!converter.TryReadFromParent(ref reader, ref state, value))
+                    if (!valueConverter.TryReadToValue(ref reader, ref state, out var item))
                     {
                         state.Current.HasCreated = true;
                         state.Current.HasReadFirstToken = true;
                         state.Current.Object = value;
                         return false;
                     }
+                    value.Add(item!);
                 }
 
                 if (!reader.TryReadToken(out state.SizeNeeded))
@@ -101,8 +99,6 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in List<TValue> value)
         {
-            IEnumerator<TValue> enumerator;
-
             if (!state.Current.HasWrittenStart)
             {
                 if (value.Count == 0)
@@ -118,47 +114,37 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 {
                     return false;
                 }
-                enumerator = value.GetEnumerator();
-            }
-            else
-            {
-                enumerator = (IEnumerator<TValue>)state.Current.Object!;
             }
 
-            while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
+            var index = state.Current.EnumeratorIndex;
+            for (; index < value.Count; index++)
             {
-                if (state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
+                if (index > 0 && !state.Current.HasWrittenSeperator)
                 {
                     if (!writer.TryWriteComma(out state.SizeNeeded))
                     {
                         state.Current.HasWrittenStart = true;
-                        state.Current.EnumeratorInProgress = true;
-                        state.Current.Object = enumerator;
+                        state.Current.EnumeratorIndex = index;
                         return false;
                     }
                 }
 
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!valueConverter.TryWriteFromValue(ref writer, ref state, value[index], null))
                 {
                     state.Current.HasWrittenStart = true;
                     state.Current.HasWrittenSeperator = true;
-                    state.Current.EnumeratorInProgress = true;
-                    state.Current.Object = enumerator;
+                    state.Current.EnumeratorIndex = index;
                     return false;
                 }
 
-                if (!state.Current.HasWrittenFirst)
-                    state.Current.HasWrittenFirst = true;
                 if (state.Current.HasWrittenSeperator)
                     state.Current.HasWrittenSeperator = false;
-                if (state.Current.EnumeratorInProgress)
-                    state.Current.EnumeratorInProgress = false;
             }
 
             if (!writer.TryWriteCloseBracket(out state.SizeNeeded))
             {
                 state.Current.HasWrittenStart = true;
-                state.Current.Object = enumerator;
+                state.Current.EnumeratorIndex = index;
                 return false;
             }
             return true;

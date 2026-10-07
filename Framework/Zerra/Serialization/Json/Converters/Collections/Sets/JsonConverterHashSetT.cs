@@ -10,15 +10,12 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
 {
     internal sealed class JsonConverterHashSetT<TValue> : JsonConverter<HashSet<TValue>>
     {
-        private JsonConverter converter = null!;
-
-        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
-        private static void Setter(object parent, TValue value) => ((HashSet<TValue>)parent).Add(value);
+        private JsonConverter<TValue> converter = null!;
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            converter = JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterHashSetT<TValue>), Getter, Setter);
+            converter = (JsonConverter<TValue>)JsonConverterFactory.Get(valueTypeDetail, nameof(JsonConverterHashSetT<TValue>), null, null);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out HashSet<TValue>? value)
@@ -73,13 +70,14 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
 
                 if (!state.Current.HasReadValue)
                 {
-                    if (!converter.TryReadFromParent(ref reader, ref state, value))
+                    if (!converter.TryReadToValue(ref reader, ref state, out var item))
                     {
                         state.Current.HasCreated = true;
                         state.Current.HasReadFirstToken = true;
                         state.Current.Object = value;
                         return false;
                     }
+                    value.Add(item!);
                 }
 
                 if (!reader.TryReadToken(out state.SizeNeeded))
@@ -106,7 +104,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in HashSet<TValue> value)
         {
-            IEnumerator<TValue> enumerator;
+            HashSet<TValue>.Enumerator enumerator;
 
             if (!state.Current.HasWrittenStart)
             {
@@ -127,7 +125,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
             }
             else
             {
-                enumerator = (IEnumerator<TValue>)state.Current.Object!;
+                enumerator = (HashSet<TValue>.Enumerator)state.Current.Object!;
             }
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
@@ -143,7 +141,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Sets
                     }
                 }
 
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, enumerator.Current, null))
                 {
                     state.Current.HasWrittenStart = true;
                     state.Current.HasWrittenSeperator = true;

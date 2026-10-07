@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Buffers.Text;
+using System.Globalization;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
@@ -27,9 +28,9 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     else
                     {
 #if NETSTANDARD2_0
-                        if (!Double.TryParse(reader.ValueChars.ToString(), out double parsed) && state.ErrorOnTypeMismatch)
+                        if (!Double.TryParse(reader.ValueChars.ToString(), NumberStyles.Float | NumberStyles.AllowThousands, NumberFormatInfo.InvariantInfo, out double parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!Double.TryParse(reader.ValueChars, out double parsed) && state.ErrorOnTypeMismatch)
+                        if (!Double.TryParse(reader.ValueChars, NumberStyles.Float | NumberStyles.AllowThousands, NumberFormatInfo.InvariantInfo, out double parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;
@@ -60,9 +61,9 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             return true;
                         }
 #if NETSTANDARD2_0
-                        if (!Double.TryParse(reader.ValueChars.ToString(), out double parsed) && state.ErrorOnTypeMismatch)
+                        if (!Double.TryParse(reader.ValueChars.ToString(), NumberStyles.Float | NumberStyles.AllowThousands, NumberFormatInfo.InvariantInfo, out double parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!Double.TryParse(reader.ValueChars, out double parsed) && state.ErrorOnTypeMismatch)
+                        if (!Double.TryParse(reader.ValueChars, NumberStyles.Float | NumberStyles.AllowThousands, NumberFormatInfo.InvariantInfo, out double parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;

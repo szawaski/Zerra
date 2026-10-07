@@ -10,15 +10,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
 {
     internal sealed class ByteConverterICollectionTOfT<TCollection, TValue> : ByteConverter<TCollection>
     {
-        private ByteConverter converter = null!;
-
-        private static TValue Getter(object parent) => ((IEnumerator<TValue>)parent).Current;
-        private static void Setter(object parent, TValue value) => ((ICollection<TValue>)parent).Add(value);
+        private ByteConverter<TValue> converter = null!;
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<TValue>.GetTypeDetail();
-            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterICollectionTOfT<TCollection, TValue>), Getter, Setter);
+            converter = (ByteConverter<TValue>)ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterICollectionTOfT<TCollection, TValue>), null, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TCollection? value)
@@ -64,11 +61,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
 
             for (; ; )
             {
-                if (!converter.TryReadFromParent(ref reader, ref state, Collection))
+                if (!converter.TryReadToValue(ref reader, ref state, out var item))
                 {
                     state.Current.Object = Collection;
                     return false;
                 }
+                Collection.Add(item!);
 
                 if (Collection.Count == state.Current.EnumerableLength!.Value)
                     return true;
@@ -101,7 +99,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, enumerator.Current))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

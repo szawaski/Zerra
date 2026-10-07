@@ -11,15 +11,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 {
     internal sealed class ByteConverterIEnumerableOfT<TEnumerable> : ByteConverter<TEnumerable>
     {
-        private ByteConverter converter = null!;
-
-        private static object Getter(object parent) => ((IEnumerator)parent).Current;
-        private static void Setter(object parent, object value) => ((ArrayAccessor<object>)parent).Set(value);
+        private ByteConverter<object> converter = null!;
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
-            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterIEnumerableOfT<TEnumerable>), Getter, Setter);
+            converter = (ByteConverter<object>)ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterIEnumerableOfT<TEnumerable>), null, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TEnumerable? value)
@@ -71,7 +68,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, enumerator.Current))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

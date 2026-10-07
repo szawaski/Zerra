@@ -11,15 +11,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
     internal sealed class ByteConverterDictionaryT<TKey, TValue> : ByteConverter<Dictionary<TKey, TValue>>
         where TKey : notnull
     {
-        private ByteConverter converter = null!;
-
-        private static KeyValuePair<TKey, TValue> Getter(object parent) => ((IEnumerator<KeyValuePair<TKey, TValue>>)parent).Current;
-        private static void Setter(object parent, KeyValuePair<TKey, TValue> value) => ((Dictionary<TKey, TValue>)parent).Add(value.Key, value.Value);
+        private ByteConverter<KeyValuePair<TKey, TValue>> converter = null!;
 
         protected override sealed void Setup()
         {
             var keyValuePairTypeDetail = TypeAnalyzer<KeyValuePair<TKey, TValue>>.GetTypeDetail();
-            converter = ByteConverterFactory.Get(keyValuePairTypeDetail, nameof(ByteConverterDictionaryT<TKey, TValue>), Getter, Setter);
+            converter = (ByteConverter<KeyValuePair<TKey, TValue>>)ByteConverterFactory.Get(keyValuePairTypeDetail, nameof(ByteConverterDictionaryT<TKey, TValue>), null, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out Dictionary<TKey, TValue>? value)
@@ -55,11 +52,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
             for (; ; )
             {
-                if (!converter.TryReadFromParent(ref reader, ref state, value))
+                if (!converter.TryReadToValue(ref reader, ref state, out var item))
                 {
                     state.Current.Object = value;
                     return false;
                 }
+                value.Add(item.Key, item.Value);
 
                 if (value.Count == state.Current.EnumerableLength!.Value)
                     return true;
@@ -68,7 +66,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in Dictionary<TKey, TValue> value)
         {
-            IEnumerator<KeyValuePair<TKey, TValue>> enumerator;
+            Dictionary<TKey, TValue>.Enumerator enumerator;
 
             if (state.Current.Object is null)
             {
@@ -85,12 +83,12 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
             }
             else
             {
-                enumerator = (IEnumerator<KeyValuePair<TKey, TValue>>)state.Current.Object!;
+                enumerator = (Dictionary<TKey, TValue>.Enumerator)state.Current.Object!;
             }
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, enumerator.Current))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

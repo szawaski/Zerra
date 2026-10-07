@@ -58,10 +58,6 @@ namespace Zerra.Serialization.Json.IO
         private const byte sixByte = (byte)'6';
         private const byte sevenByte = (byte)'7';
         private const byte eightByte = (byte)'8';
-        private const byte nineByte = (byte)'9';
-        private const byte dotByte = (byte)'.';
-        private const byte minusByte = (byte)'-';
-        private const byte plusByte = (byte)'+';
         private const byte zUpperByte = (byte)'Z';
         private const byte tUpperByte = (byte)'T';
 

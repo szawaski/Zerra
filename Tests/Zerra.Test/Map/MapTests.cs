@@ -355,5 +355,76 @@ namespace Zerra.Test.Map
             _ = modelA.Copy<ModelA>();
             _ = ((object)modelA).Copy(typeof(ModelA));
         }
+
+        [Fact]
+        public void CollectionValues()
+        {
+            var source = new CollectionSource()
+            {
+                Array = [new() { Value = 1 }, new() { Value = 2 }],
+                List = [new() { Value = 3 }, new() { Value = 4 }],
+                Dictionary = new() { ["a"] = 5, ["b"] = 6 },
+                Set = [7, 8],
+            };
+
+            var target = source.Map<CollectionSource, CollectionTarget>();
+            Assert.Equal([1, 2], target.Array.Select(x => x.Value));
+            Assert.Equal([3, 4], target.List.Select(x => x.Value));
+            Assert.Equal(source.Dictionary, target.Dictionary);
+            Assert.Equal(source.Set, target.Set);
+        }
+
+        [Fact]
+        public void CollectionValuesIntoExisting()
+        {
+            var source = new CollectionSource()
+            {
+                Array = [new() { Value = 1 }, new() { Value = 2 }],
+                List = [new() { Value = 3 }, new() { Value = 4 }],
+            };
+            var existingArray = new CollectionItemTarget[] { new() { Note = "a0" }, new() { Note = "a1" } };
+            var existingList = new List<CollectionItemTarget>() { new() { Note = "l0" }, new() { Note = "l1" } };
+            var existingArrayItem = existingArray[0];
+            var existingListItem = existingList[1];
+            var target = new CollectionTarget() { Array = existingArray, List = existingList };
+
+            source.MapTo(target);
+
+            Assert.Same(existingArray, target.Array);
+            Assert.Same(existingArrayItem, target.Array[0]);
+            Assert.Equal([1, 2], target.Array.Select(x => x.Value));
+            Assert.Equal(["a0", "a1"], target.Array.Select(x => x.Note));
+            Assert.Same(existingList, target.List);
+            Assert.Same(existingListItem, target.List[1]);
+            Assert.Equal([3, 4], target.List.Select(x => x.Value));
+            Assert.Equal(["l0", "l1"], target.List.Select(x => x.Note));
+        }
+
+        public class CollectionItemSource
+        {
+            public int Value { get; set; }
+        }
+
+        public class CollectionItemTarget
+        {
+            public int Value { get; set; }
+            public string? Note { get; set; }
+        }
+
+        public class CollectionSource
+        {
+            public CollectionItemSource[] Array { get; set; } = null!;
+            public List<CollectionItemSource> List { get; set; } = null!;
+            public Dictionary<string, int> Dictionary { get; set; } = null!;
+            public HashSet<int> Set { get; set; } = null!;
+        }
+
+        public class CollectionTarget
+        {
+            public CollectionItemTarget[] Array { get; set; } = null!;
+            public IList<CollectionItemTarget> List { get; set; } = null!;
+            public IDictionary<string, int> Dictionary { get; set; } = null!;
+            public ISet<int> Set { get; set; } = null!;
+        }
     }
 }

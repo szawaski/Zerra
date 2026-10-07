@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Buffers.Text;
+using System.Globalization;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
@@ -25,10 +26,29 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     }
                     else
                     {
+                        //the common case of only digits, short enough not to overflow, is parsed here instead of with TryParse
+                        var chars = reader.ValueChars;
+                        if (chars.Length <= 4)
+                        {
+                            uint result = 0;
+                            var index = 0;
+                            for (; index < chars.Length; index++)
+                            {
+                                var digit = (uint)(chars[index] - '0');
+                                if (digit > 9)
+                                    break;
+                                result = result * 10 + digit;
+                            }
+                            if (index == chars.Length)
+                            {
+                                value = (ushort)result;
+                                return true;
+                            }
+                        }
 #if NETSTANDARD2_0
-                        if (!UInt16.TryParse(reader.ValueChars.ToString(), out value) && state.ErrorOnTypeMismatch)
+                        if (!UInt16.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt16.TryParse(reader.ValueChars, out value) && state.ErrorOnTypeMismatch)
+                        if (!UInt16.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         return true;
@@ -43,9 +63,9 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     else
                     {
 #if NETSTANDARD2_0
-                        if (!UInt16.TryParse(reader.ValueChars.ToString(), out value) && state.ErrorOnTypeMismatch)
+                        if (!UInt16.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt16.TryParse(reader.ValueChars, out value) && state.ErrorOnTypeMismatch)
+                        if (!UInt16.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         return true;

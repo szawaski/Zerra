@@ -63,14 +63,12 @@ namespace Zerra.Serialization.Json.IO
         private const byte rByte = (byte)'r';
 
         //Numbers
-        private const byte eByte = (byte)'e';
-        private const byte eUpperByte = (byte)'E';
 
-        private const byte plusByte = (byte)'+'; //43
         private const byte minusByte = (byte)'-'; //45
-        private const byte dotByte = (byte)'.'; //46
         private const byte zeroByte = (byte)'0'; //48
         private const byte nineByte = (byte)'9'; //57
+        //bit (c - '+') is set for each number character: + - . 0-9 E e
+        private const ulong numberCharacterMask = 0x0400000004007FED;
 
         //JSON whitespace
         private const byte spaceByte = (byte)' '; //32

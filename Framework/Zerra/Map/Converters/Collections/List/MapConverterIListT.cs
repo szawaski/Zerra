@@ -8,17 +8,13 @@ namespace Zerra.Map.Converters.Collections.List
 {
     internal sealed class MapConverterIListT<TSource, TSourceInner, TTargetInner> : MapConverter<TSource, IList<TTargetInner>>
     {
-        private MapConverter converter = null!;
-
-        private static TSourceInner? SourceGetter(object parent) => ((IEnumerator<TSourceInner>)parent).Current;
-        private static TTargetInner? TargetGetter(object parent) => ((ListAccessor<TTargetInner>)parent).Get();
-        private static void TargetSetter(object parent, TTargetInner value) => ((ListAccessor<TTargetInner>)parent).Add(value);
+        private MapConverter<TSourceInner, TTargetInner> converter = null!;
 
         protected override sealed void Setup()
         {
             var sourceTypeDetail = TypeAnalyzer<TSourceInner>.GetTypeDetail();
             var targetTypeDetail = TypeAnalyzer<TTargetInner>.GetTypeDetail();
-            converter = MapConverterFactory.Get(sourceTypeDetail, targetTypeDetail, nameof(MapConverterIListT<TSource, TSourceInner, TTargetInner>), SourceGetter, TargetGetter, TargetSetter);
+            converter = (MapConverter<TSourceInner, TTargetInner>)MapConverterFactory.Get(sourceTypeDetail, targetTypeDetail, nameof(MapConverterIListT<TSource, TSourceInner, TTargetInner>), null, null, null);
         }
 
         public override IList<TTargetInner>? Map(TSource? source, IList<TTargetInner>? target, Graph? graph)
@@ -37,13 +33,16 @@ namespace Zerra.Map.Converters.Collections.List
             if (target == null || sourceCount != target.Count)
                 target = new List<TTargetInner>(sourceCount);
 
-            var targetAccessor = new ListAccessor<TTargetInner>(target);
-
+            var hasExistingValues = target.Count > 0;
+            var index = 0;
             var sourceEnumerator = sourceEnumerable.GetEnumerator();
             while (sourceEnumerator.MoveNext())
             {
-                converter.MapFromParent(sourceEnumerator, targetAccessor, graph);
-                targetAccessor.Index++;
+                if (hasExistingValues)
+                    target[index] = converter.Map(sourceEnumerator.Current, target[index], graph)!;
+                else
+                    target.Add(converter.Map(sourceEnumerator.Current, default, graph)!);
+                index++;
             }
 
             return target;

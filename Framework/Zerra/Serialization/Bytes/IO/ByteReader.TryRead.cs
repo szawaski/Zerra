@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Runtime.CompilerServices;
+using System.Text;
 
 #pragma warning disable IDE0028 // Simplify collection initialization
 
@@ -6482,10 +6483,15 @@ namespace Zerra.Serialization.Bytes.IO
             }
 
             var bytesForString = buffer.Slice(position, sizeNeeded);
+#if NETSTANDARD2_0
             fixed (byte* p = bytesForString)
             {
                 value = encoding.GetString(p, sizeNeeded);
             }
+#else
+            //Latin1 maps each byte to the same char, the fastest decode once the bytes are known to be ASCII
+            value = Ascii.IsValid(bytesForString) ? Encoding.Latin1.GetString(bytesForString) : encoding.GetString(bytesForString);
+#endif
             position += sizeNeeded;
             return true;
         }

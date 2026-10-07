@@ -8,16 +8,13 @@ namespace Zerra.Map.Converters.Collections.Sets
 {
     internal sealed class MapConverterISetTOfT<TSource, TTarget, TSourceInner, TTargetInner> : MapConverter<TSource, TTarget>
     {
-        private MapConverter converter = null!;
-
-        private static TSourceInner? SourceGetter(object parent) => ((IEnumerator<TSourceInner>)parent).Current;
-        private static void TargetSetter(object parent, TTargetInner value) => ((ISet<TTargetInner>)parent).Add(value);
+        private MapConverter<TSourceInner, TTargetInner> converter = null!;
 
         protected override sealed void Setup()
         {
             var sourceTypeDetail = TypeAnalyzer<TSourceInner>.GetTypeDetail();
             var targetTypeDetail = TypeAnalyzer<TTargetInner>.GetTypeDetail();
-            converter = MapConverterFactory.Get(sourceTypeDetail, targetTypeDetail, nameof(MapConverterISetTOfT<TSource, TTarget, TSourceInner, TTargetInner>), SourceGetter, null, TargetSetter);
+            converter = (MapConverter<TSourceInner, TTargetInner>)MapConverterFactory.Get(sourceTypeDetail, targetTypeDetail, nameof(MapConverterISetTOfT<TSource, TTarget, TSourceInner, TTargetInner>), null, null, null);
         }
 
         public override TTarget? Map(TSource? source, TTarget? target, Graph? graph)
@@ -50,7 +47,8 @@ namespace Zerra.Map.Converters.Collections.Sets
             var sourceEnumerator = sourceEnumerable.GetEnumerator();
             while (sourceEnumerator.MoveNext())
             {
-                converter.MapFromParent(sourceEnumerator, targetSet, graph);
+                var item = converter.Map(sourceEnumerator.Current, default, graph);
+                targetSet.Add(item!);
             }
 
             return target;

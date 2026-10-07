@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Buffers.Text;
+using System.Globalization;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 
@@ -26,10 +27,29 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     }
                     else
                     {
+                        //the common case of only digits, short enough not to overflow, is parsed here instead of with TryParse
+                        var chars = reader.ValueChars;
+                        if (chars.Length <= 9)
+                        {
+                            uint result = 0;
+                            var index = 0;
+                            for (; index < chars.Length; index++)
+                            {
+                                var digit = (uint)(chars[index] - '0');
+                                if (digit > 9)
+                                    break;
+                                result = result * 10 + digit;
+                            }
+                            if (index == chars.Length)
+                            {
+                                value = result;
+                                return true;
+                            }
+                        }
 #if NETSTANDARD2_0
-                        if (!UInt32.TryParse(reader.ValueChars.ToString(), out uint parsed) && state.ErrorOnTypeMismatch)
+                        if (!UInt32.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out uint parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt32.TryParse(reader.ValueChars, out uint parsed) && state.ErrorOnTypeMismatch)
+                        if (!UInt32.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out uint parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;
@@ -60,9 +80,9 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             return true;
                         }
 #if NETSTANDARD2_0
-                        if (!UInt32.TryParse(reader.ValueChars.ToString(), out uint parsed) && state.ErrorOnTypeMismatch)
+                        if (!UInt32.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out uint parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt32.TryParse(reader.ValueChars, out uint parsed) && state.ErrorOnTypeMismatch)
+                        if (!UInt32.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out uint parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;

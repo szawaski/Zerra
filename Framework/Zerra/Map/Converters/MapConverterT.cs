@@ -49,6 +49,9 @@ namespace Zerra.Map.Converters
             if (targetSetterDelegate is not null)
             {
                 targetSetter = targetSetterDelegate as Action<object, TTarget?>;
+                //delegate variance doesn't cover value types, so an object setter for collected constructor values is wrapped
+                if (targetSetter == null && targetSetterDelegate is Action<object, object?> objectSetter)
+                    targetSetter = (parent, value) => objectSetter(parent, value);
                 if (targetSetter == null)
                     throw new InvalidOperationException($"{this.GetType().Name} target setter delegate is not of correct type Action<object, {typeof(TTarget).FullName}>");
             }

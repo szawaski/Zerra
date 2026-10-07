@@ -11,24 +11,22 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
 {
     internal sealed class ByteConverterICollection : ByteConverter<ICollection>
     {
-        private ByteConverter converter = null!;
-
-        private static object Getter(object parent) => ((IEnumerator)parent).Current;
-        private static void Setter(object parent, object value) => ((ArrayAccessor<object>)parent).Set(value);
+        private ByteConverter<object> converter = null!;
 
         protected override sealed void Setup()
         {
             var valueTypeDetail = TypeAnalyzer<object>.GetTypeDetail();
-            converter = ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterICollection), Getter, Setter);
+            converter = (ByteConverter<object>)ByteConverterFactory.Get(valueTypeDetail, nameof(ByteConverterICollection), null, null);
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out ICollection? value)
         {
-            ArrayAccessor<object> accessor;
+            object[]? array;
+            int length;
 
-            if (state.Current.Object is null)
+            if (!state.Current.HasCreated)
             {
-                if (!reader.TryRead(out int length, out state.SizeNeeded))
+                if (!reader.TryRead(out length, out state.SizeNeeded))
                 {
                     value = default;
                     return false;
@@ -38,8 +36,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
                 {
                     if (TypeDetail.Type.IsInterface)
                     {
-                        accessor = new ArrayAccessor<object>(new object[length]);
-                        value = accessor.Array;
+                        array = new object[length];
+                        value = array;
                     }
                     else
                     {
@@ -53,29 +51,31 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
                     value = default;
                     if (length == 0)
                         return true;
-                    accessor = new ArrayAccessor<object>(length);
+                    array = null;
                 }
             }
             else
             {
-                accessor = (ArrayAccessor<object>)state.Current.Object!;
-                value = accessor.Array;
+                array = (object[]?)state.Current.Object;
+                length = state.Current.EnumerableLength!.Value;
+                value = array;
             }
 
-            if (accessor.Index == accessor.Length)
-                return true;
-
-            for (; ; )
+            var index = state.Current.EnumeratorIndex;
+            for (; index < length; index++)
             {
-                if (!converter.TryReadFromParent(ref reader, ref state, accessor))
+                if (!converter.TryReadToValue(ref reader, ref state, out var item))
                 {
-                    state.Current.Object = accessor;
+                    state.Current.HasCreated = true;
+                    state.Current.Object = array;
+                    state.Current.EnumerableLength = length;
+                    state.Current.EnumeratorIndex = index;
                     return false;
                 }
-                accessor.Index++;
-                if (accessor.Index == accessor.Length)
-                    return true;
+                if (array is not null)
+                    array[index] = item!;
             }
+            return true;
         }
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in ICollection value)
@@ -102,7 +102,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
 
             while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
             {
-                if (!converter.TryWriteFromParent(ref writer, ref state, enumerator))
+                if (!converter.TryWriteFromValue(ref writer, ref state, enumerator.Current))
                 {
                     state.Current.Object = enumerator;
                     state.Current.EnumeratorInProgress = true;

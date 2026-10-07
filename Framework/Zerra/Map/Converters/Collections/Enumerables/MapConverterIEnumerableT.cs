@@ -8,16 +8,13 @@ namespace Zerra.Map.Converters.Collections.Enumerables
 {
     internal sealed class MapConverterIEnumerableT<TSource, TSourceInner, TTargetInner> : MapConverter<TSource, IEnumerable<TTargetInner>>
     {
-        private MapConverter converter = null!;
-
-        private static TSourceInner? SourceGetter(object parent) => ((IEnumerator<TSourceInner>)parent).Current;
-        private static void TargetSetter(object parent, TTargetInner value) => ((ArrayAccessor<TTargetInner>)parent).Set(value);
+        private MapConverter<TSourceInner, TTargetInner> converter = null!;
 
         protected override void Setup()
         {
             var sourceTypeDetail = TypeAnalyzer<TSourceInner>.GetTypeDetail();
             var targetTypeDetail = TypeAnalyzer<TTargetInner>.GetTypeDetail();
-            converter = MapConverterFactory.Get(sourceTypeDetail, targetTypeDetail, nameof(MapConverterIEnumerableT<TSource, TSourceInner, TTargetInner>), SourceGetter, null, TargetSetter);
+            converter = (MapConverter<TSourceInner, TTargetInner>)MapConverterFactory.Get(sourceTypeDetail, targetTypeDetail, nameof(MapConverterIEnumerableT<TSource, TSourceInner, TTargetInner>), null, null, null);
         }
         public override IEnumerable<TTargetInner>? Map(TSource? source, IEnumerable<TTargetInner>? target, Graph? graph)
         {
@@ -32,14 +29,15 @@ namespace Zerra.Map.Converters.Collections.Enumerables
             else
                 sourceCount = sourceEnumerable.Count();
 
-            var targetAccessor = new ArrayAccessor<TTargetInner>(new TTargetInner[sourceCount]);
-            target = targetAccessor.Array;
+            var targetArray = new TTargetInner[sourceCount];
+            target = targetArray;
 
+            var index = 0;
             var sourceEnumerator = sourceEnumerable.GetEnumerator();
             while (sourceEnumerator.MoveNext())
             {
-                converter.MapFromParent(sourceEnumerator, targetAccessor, graph);
-                targetAccessor.Index++;
+                targetArray[index] = converter.Map(sourceEnumerator.Current, default, graph)!;
+                index++;
             }
 
             return target;
