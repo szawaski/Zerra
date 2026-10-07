@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections.Concurrent;
 using Xunit;
 using System.Net;
 using Zerra.Serialization.Bytes;
@@ -20,6 +21,20 @@ namespace Zerra.Test.Serialization
 #endif
         }
 
+        [Fact]
+        public void DictionaryComplexKeys_RoundTrip()
+        {
+            var value = new Dictionary<SimpleModel, int?>() { [new() { Value1 = 1, Value2 = "A" }] = 1, [new() { Value1 = 2, Value2 = "B" }] = null };
+            var concurrent = new ConcurrentDictionary<SimpleModel, int?>(value);
+            IReadOnlyDictionary<SimpleModel, int?> readOnly = value;
+
+            static string[] Flatten(IEnumerable<KeyValuePair<SimpleModel, int?>> dictionary)
+                => dictionary.Select(x => $"{x.Key.Value1}|{x.Key.Value2}|{x.Value}").OrderBy(x => x).ToArray();
+
+            Assert.Equal(Flatten(value), Flatten(ByteSerializer.Deserialize<Dictionary<SimpleModel, int?>>(ByteSerializer.Serialize(value))!));
+            Assert.Equal(Flatten(value), Flatten(ByteSerializer.Deserialize<ConcurrentDictionary<SimpleModel, int?>>(ByteSerializer.Serialize(concurrent))!));
+            Assert.Equal(Flatten(value), Flatten(ByteSerializer.Deserialize<IReadOnlyDictionary<SimpleModel, int?>>(ByteSerializer.Serialize(readOnly))!));
+        }
         [Theory]
         [InlineData("")]
         [InlineData("plain")]
@@ -379,7 +394,7 @@ namespace Zerra.Test.Serialization
 
             var model1 = TypesAllModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
-            Assert.Equal(8393, bytes.Length);
+            Assert.Equal(9031, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesAllModel>(bytes, options);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -644,7 +659,7 @@ namespace Zerra.Test.Serialization
             using (var ms = new MemoryStream())
             {
                 await ByteSerializer.SerializeAsync(ms, model1, options, TestContext.Current.CancellationToken);
-                Assert.Equal(8393, ms.Length);
+                Assert.Equal(9031, ms.Length);
                 ms.Position = 0;
                 var model2 = await ByteSerializer.DeserializeAsync<TypesAllModel>(ms, options, TestContext.Current.CancellationToken);
                 AssertHelper.AreEqual(model1, model2);
@@ -704,7 +719,7 @@ namespace Zerra.Test.Serialization
 
             var model1 = TypesAllModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
-            Assert.Equal(199229, bytes.Length);
+            Assert.Equal(223478, bytes.Length);
             var model2 = ByteSerializer.Deserialize<TypesBasicModel>(bytes, options);
             AssertHelper.AreEqual(model1, model2);
         }

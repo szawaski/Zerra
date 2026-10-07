@@ -945,7 +945,6 @@ namespace Zerra.Serialization.Json.IO
 #endif
 
 
-            //same output as TimeSpan "c", which System.Text.Json uses
             if (useBytes)
             {
                 bufferBytes[position++] = quoteByte;
@@ -1563,7 +1562,6 @@ namespace Zerra.Serialization.Json.IO
                         if (!Grow(sizeNeeded))
                             return false;
                     }
-                    //an ASCII string has no surrogates, so they are only searched for when it isn't
                     if (Ascii.FromUtf16(value, bufferBytes.Slice(position + 1), out var written) == OperationStatus.Done)
                     {
 #if DEBUG
@@ -1632,7 +1630,6 @@ namespace Zerra.Serialization.Json.IO
                             return false;
                     }
                     var start = startWithComma ? 2 : 1;
-                    //an ASCII string has no surrogates, so they are only searched for when it isn't
                     if (Ascii.FromUtf16(value, bufferBytes.Slice(position + start), out var written) == OperationStatus.Done)
                     {
 #if DEBUG

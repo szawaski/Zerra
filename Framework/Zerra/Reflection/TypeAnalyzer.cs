@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.Reflection.Dynamic;
@@ -154,20 +155,20 @@ namespace Zerra.Reflection
             {
                 return coreType switch
                 {
-                    CoreType.Boolean => System.Convert.ToBoolean(obj),
-                    CoreType.Byte => System.Convert.ToByte(obj),
-                    CoreType.SByte => System.Convert.ToSByte(obj),
-                    CoreType.UInt16 => System.Convert.ToUInt16(obj),
-                    CoreType.Int16 => System.Convert.ToInt16(obj),
-                    CoreType.UInt32 => System.Convert.ToUInt32(obj),
-                    CoreType.Int32 => System.Convert.ToInt32(obj),
-                    CoreType.UInt64 => System.Convert.ToUInt64(obj),
-                    CoreType.Int64 => System.Convert.ToInt64(obj),
-                    CoreType.Single => System.Convert.ToSingle(obj),
-                    CoreType.Double => System.Convert.ToDouble(obj),
-                    CoreType.Decimal => System.Convert.ToDecimal(obj),
-                    CoreType.Char => System.Convert.ToChar(obj),
-                    CoreType.DateTime => System.Convert.ToDateTime(obj),
+                    CoreType.Boolean => System.Convert.ToBoolean(obj, CultureInfo.InvariantCulture),
+                    CoreType.Byte => System.Convert.ToByte(obj, CultureInfo.InvariantCulture),
+                    CoreType.SByte => System.Convert.ToSByte(obj, CultureInfo.InvariantCulture),
+                    CoreType.UInt16 => System.Convert.ToUInt16(obj, CultureInfo.InvariantCulture),
+                    CoreType.Int16 => System.Convert.ToInt16(obj, CultureInfo.InvariantCulture),
+                    CoreType.UInt32 => System.Convert.ToUInt32(obj, CultureInfo.InvariantCulture),
+                    CoreType.Int32 => System.Convert.ToInt32(obj, CultureInfo.InvariantCulture),
+                    CoreType.UInt64 => System.Convert.ToUInt64(obj, CultureInfo.InvariantCulture),
+                    CoreType.Int64 => System.Convert.ToInt64(obj, CultureInfo.InvariantCulture),
+                    CoreType.Single => System.Convert.ToSingle(obj, CultureInfo.InvariantCulture),
+                    CoreType.Double => System.Convert.ToDouble(obj, CultureInfo.InvariantCulture),
+                    CoreType.Decimal => System.Convert.ToDecimal(obj, CultureInfo.InvariantCulture),
+                    CoreType.Char => System.Convert.ToChar(obj, CultureInfo.InvariantCulture),
+                    CoreType.DateTime => ConvertToDateTime(obj),
                     CoreType.DateTimeOffset => ConvertToDateTimeOffset(obj),
                     CoreType.TimeSpan => ConvertToTimeSpan(obj),
 #if !NETSTANDARD2_0
@@ -175,22 +176,22 @@ namespace Zerra.Reflection
                     CoreType.TimeOnly => ConvertToTimeOnly(obj),
 #endif
                     CoreType.Guid => ConvertToGuid(obj),
-                    CoreType.String => System.Convert.ToString(obj),
-                    CoreType.BooleanNullable => System.Convert.ToBoolean(obj),
-                    CoreType.ByteNullable => System.Convert.ToByte(obj),
-                    CoreType.SByteNullable => System.Convert.ToSByte(obj),
-                    CoreType.UInt16Nullable => System.Convert.ToUInt16(obj),
-                    CoreType.Int16Nullable => System.Convert.ToInt16(obj),
-                    CoreType.UInt32Nullable => System.Convert.ToUInt32(obj),
-                    CoreType.Int32Nullable => System.Convert.ToInt32(obj),
-                    CoreType.UInt64Nullable => System.Convert.ToUInt64(obj),
-                    CoreType.Int64Nullable => System.Convert.ToInt64(obj),
-                    CoreType.SingleNullable => System.Convert.ToSingle(obj),
-                    CoreType.DoubleNullable => System.Convert.ToDouble(obj),
-                    CoreType.DecimalNullable => System.Convert.ToDecimal(obj),
-                    CoreType.CharNullable => System.Convert.ToChar(obj),
-                    CoreType.DateTimeNullable => System.Convert.ToDateTime(obj),
-                    CoreType.DateTimeOffsetNullable => System.Convert.ToDateTime(obj),
+                    CoreType.String => System.Convert.ToString(obj, CultureInfo.InvariantCulture),
+                    CoreType.BooleanNullable => System.Convert.ToBoolean(obj, CultureInfo.InvariantCulture),
+                    CoreType.ByteNullable => System.Convert.ToByte(obj, CultureInfo.InvariantCulture),
+                    CoreType.SByteNullable => System.Convert.ToSByte(obj, CultureInfo.InvariantCulture),
+                    CoreType.UInt16Nullable => System.Convert.ToUInt16(obj, CultureInfo.InvariantCulture),
+                    CoreType.Int16Nullable => System.Convert.ToInt16(obj, CultureInfo.InvariantCulture),
+                    CoreType.UInt32Nullable => System.Convert.ToUInt32(obj, CultureInfo.InvariantCulture),
+                    CoreType.Int32Nullable => System.Convert.ToInt32(obj, CultureInfo.InvariantCulture),
+                    CoreType.UInt64Nullable => System.Convert.ToUInt64(obj, CultureInfo.InvariantCulture),
+                    CoreType.Int64Nullable => System.Convert.ToInt64(obj, CultureInfo.InvariantCulture),
+                    CoreType.SingleNullable => System.Convert.ToSingle(obj, CultureInfo.InvariantCulture),
+                    CoreType.DoubleNullable => System.Convert.ToDouble(obj, CultureInfo.InvariantCulture),
+                    CoreType.DecimalNullable => System.Convert.ToDecimal(obj, CultureInfo.InvariantCulture),
+                    CoreType.CharNullable => System.Convert.ToChar(obj, CultureInfo.InvariantCulture),
+                    CoreType.DateTimeNullable => ConvertToDateTime(obj),
+                    CoreType.DateTimeOffsetNullable => ConvertToDateTimeOffset(obj),
                     CoreType.TimeSpanNullable => ConvertToTimeSpan(obj),
 #if !NETSTANDARD2_0
                     CoreType.DateOnlyNullable => ConvertToDateOnly(obj),
@@ -202,37 +203,48 @@ namespace Zerra.Reflection
             }
         }
 
-        private static Guid ConvertToGuid(object? obj)
-        {
-            if (obj is null)
-                return Guid.Empty;
-            return Guid.Parse(obj.ToString() ?? String.Empty);
-        }
-        private static TimeSpan ConvertToTimeSpan(object? obj)
-        {
-            if (obj is null)
-                return TimeSpan.MinValue;
-            return TimeSpan.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
-        }
+        private static string ToInvariantString(object obj)
+            => obj is IFormattable formattable ? formattable.ToString(null, CultureInfo.InvariantCulture) : obj.ToString() ?? String.Empty;
+        private static Guid ConvertToGuid(object obj)
+            => obj is Guid guid ? guid : Guid.Parse(ToInvariantString(obj));
+        private static DateTime ConvertToDateTime(object obj)
+            => obj switch
+            {
+                DateTime dateTime => dateTime,
+                DateTimeOffset dateTimeOffset => dateTimeOffset.DateTime,
 #if !NETSTANDARD2_0
-        private static DateOnly ConvertToDateOnly(object? obj)
-        {
-            if (obj is null)
-                return DateOnly.MinValue;
-            return DateOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
-        }
-        private static TimeOnly ConvertToTimeOnly(object? obj)
-        {
-            if (obj is null)
-                return TimeOnly.MinValue;
-            return TimeOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
-        }
+                DateOnly dateOnly => dateOnly.ToDateTime(TimeOnly.MinValue),
 #endif
-        private static DateTimeOffset ConvertToDateTimeOffset(object? obj)
-        {
-            if (obj is null)
-                return DateTimeOffset.MinValue;
-            return DateTimeOffset.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.CurrentCulture);
-        }
+                string str => DateTime.Parse(str, CultureInfo.InvariantCulture),
+                _ => System.Convert.ToDateTime(obj, CultureInfo.InvariantCulture),
+            };
+        private static TimeSpan ConvertToTimeSpan(object obj)
+            => obj is TimeSpan timeSpan ? timeSpan : TimeSpan.Parse(ToInvariantString(obj), CultureInfo.InvariantCulture);
+#if !NETSTANDARD2_0
+        private static DateOnly ConvertToDateOnly(object obj)
+            => obj switch
+            {
+                DateOnly dateOnly => dateOnly,
+                DateTime dateTime => DateOnly.FromDateTime(dateTime),
+                DateTimeOffset dateTimeOffset => DateOnly.FromDateTime(dateTimeOffset.DateTime),
+                _ => DateOnly.Parse(ToInvariantString(obj), CultureInfo.InvariantCulture),
+            };
+        private static TimeOnly ConvertToTimeOnly(object obj)
+            => obj switch
+            {
+                TimeOnly timeOnly => timeOnly,
+                TimeSpan timeSpan => TimeOnly.FromTimeSpan(timeSpan),
+                DateTime dateTime => TimeOnly.FromDateTime(dateTime),
+                DateTimeOffset dateTimeOffset => TimeOnly.FromDateTime(dateTimeOffset.DateTime),
+                _ => TimeOnly.Parse(ToInvariantString(obj), CultureInfo.InvariantCulture),
+            };
+#endif
+        private static DateTimeOffset ConvertToDateTimeOffset(object obj)
+            => obj switch
+            {
+                DateTimeOffset dateTimeOffset => dateTimeOffset,
+                DateTime dateTime => new DateTimeOffset(dateTime),
+                _ => DateTimeOffset.Parse(ToInvariantString(obj), CultureInfo.InvariantCulture),
+            };
     }
 }

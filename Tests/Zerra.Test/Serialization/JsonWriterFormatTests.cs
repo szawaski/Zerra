@@ -2,10 +2,12 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 using Xunit;
 using Zerra.Serialization.Json;
+using Zerra.Test.Helpers.Models;
 
 namespace Zerra.Test.Serialization
 {
@@ -130,6 +132,122 @@ namespace Zerra.Test.Serialization
             AssertKeyRoundTrips(new TimeOnly(13, 45, 30, 500));
             AssertKeyRoundTrips(new TimeOnly(13, 45, 30));
             AssertKeyRoundTrips(new TimeSpan(-1, 2, 3, 4, 500));
+        }
+
+        [Fact]
+        public void DictionaryKeys_Enums()
+        {
+            var value = new Dictionary<SignedEnum, int>() { [SignedEnum.Negative] = 1, [SignedEnum.Positive] = 2 };
+            var expected = System.Text.Json.JsonSerializer.Serialize(value);
+
+            Assert.Equal(expected, JsonSerializer.Serialize(value));
+            Assert.Equal(expected, Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(value)));
+            Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<SignedEnum, int>>(expected));
+            Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<SignedEnum, int>>(Encoding.UTF8.GetBytes(expected)));
+            Assert.Equal(value, JsonSerializer.Deserialize<IDictionary<SignedEnum, int>>(expected));
+            Assert.Equal(value, JsonSerializer.Deserialize<IReadOnlyDictionary<SignedEnum, int>>(expected));
+
+            var pairs = "[{\"Key\":\"Negative\",\"Value\":1},{\"Key\":\"Positive\",\"Value\":2}]";
+            Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<SignedEnum, int>>(pairs));
+            Assert.Equal(value, JsonSerializer.Deserialize<IDictionary<SignedEnum, int>>(pairs));
+
+            (var patched, var graph) = JsonSerializer.DeserializePatch<Dictionary<SignedEnum, int>>(expected);
+            Assert.Equal(value, patched);
+            Assert.True(graph.HasMember("Negative"));
+            Assert.True(graph.HasMember("Positive"));
+
+            var options = new JsonSerializerOptions() { EnumAsNumber = true };
+            var numbers = JsonSerializer.Serialize(value, options);
+            Assert.Equal("{\"-1\":1,\"5\":2}", numbers);
+            Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<SignedEnum, int>>(numbers, options));
+            (var patchedNumbers, var numbersGraph) = JsonSerializer.DeserializePatch<Dictionary<SignedEnum, int>>(numbers, options);
+            Assert.Equal(value, patchedNumbers);
+            Assert.True(numbersGraph.HasMember("-1"));
+            Assert.True(numbersGraph.HasMember("5"));
+        }
+
+        [Fact]
+        public void DictionaryComplexKeys_RoundTrip()
+        {
+            var value = new ComplexKeyDictionaries()
+            {
+                Dictionary = new Dictionary<SimpleModel, int?>() { [new() { Value1 = 1, Value2 = "A" }] = 1, [new() { Value1 = 2, Value2 = "B" }] = null },
+                IDictionary = new Dictionary<SimpleModel, int?>() { [new() { Value1 = 3, Value2 = "C" }] = 3 },
+                IReadOnlyDictionary = new Dictionary<SimpleModel, int?>() { [new() { Value1 = 4, Value2 = "D" }] = 4 },
+                ConcurrentDictionary = new ConcurrentDictionary<SimpleModel, int?>(new Dictionary<SimpleModel, int?>() { [new() { Value1 = 5, Value2 = "E" }] = 5, [new() { Value1 = 6, Value2 = "F" }] = 6 }),
+            };
+
+            foreach (var result in new[] { JsonSerializer.Deserialize<ComplexKeyDictionaries>(JsonSerializer.Serialize(value))!, JsonSerializer.Deserialize<ComplexKeyDictionaries>(JsonSerializer.SerializeBytes(value))! })
+            {
+                Assert.Equal(Flatten(value.Dictionary), Flatten(result.Dictionary));
+                Assert.Equal(Flatten(value.IDictionary), Flatten(result.IDictionary));
+                Assert.Equal(Flatten(value.IReadOnlyDictionary), Flatten(result.IReadOnlyDictionary));
+                Assert.Equal(Flatten(value.ConcurrentDictionary), Flatten(result.ConcurrentDictionary));
+            }
+        }
+
+        private static string[] Flatten(IEnumerable<KeyValuePair<SimpleModel, int?>> dictionary)
+            => dictionary.Select(x => $"{x.Key.Value1}|{x.Key.Value2}|{x.Value}").OrderBy(x => x).ToArray();
+
+        public class ComplexKeyDictionaries
+        {
+            public Dictionary<SimpleModel, int?> Dictionary { get; set; } = null!;
+            public IDictionary<SimpleModel, int?> IDictionary { get; set; } = null!;
+            public IReadOnlyDictionary<SimpleModel, int?> IReadOnlyDictionary { get; set; } = null!;
+            public ConcurrentDictionary<SimpleModel, int?> ConcurrentDictionary { get; set; } = null!;
+        }
+
+        [Fact]
+        public void DictionaryKeys_PatchGraphNamesMatchWrittenNames()
+        {
+            var dates = new Dictionary<DateTime, int>() { [new DateTime(2026, 10, 6, 13, 45, 30, DateTimeKind.Utc)] = 1 };
+            (var datesResult, var datesGraph) = JsonSerializer.DeserializePatch<Dictionary<DateTime, int>>(JsonSerializer.Serialize(dates));
+            Assert.Equal(dates, datesResult);
+            Assert.True(datesGraph.HasMember("2026-10-06T13:45:30Z"));
+
+            var original = CultureInfo.CurrentCulture;
+            var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+            culture.NumberFormat.NumberDecimalSeparator = ",";
+            CultureInfo.CurrentCulture = culture;
+            try
+            {
+                var numbers = new Dictionary<double, int>() { [1.5] = 1 };
+                (var numbersResult, var numbersGraph) = JsonSerializer.DeserializePatch<Dictionary<double, int>>(JsonSerializer.Serialize(numbers));
+                Assert.Equal(numbers, numbersResult);
+                Assert.True(numbersGraph.HasMember("1.5"));
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = original;
+            }
+        }
+
+        [Theory]
+        [InlineData("1.5e3", 1500.0)]
+        [InlineData("-2E-2", -0.02)]
+        [InlineData("1E+2", 100.0)]
+        [InlineData("0.5", 0.5)]
+        public void Numbers_ParseExponents(string json, double expected)
+        {
+            Assert.Equal(expected, JsonSerializer.Deserialize<double>(json));
+            Assert.Equal(expected, JsonSerializer.Deserialize<double>(Encoding.UTF8.GetBytes(json)));
+            Assert.Equal((float)expected, JsonSerializer.Deserialize<float>(json));
+            Assert.Equal([expected, 3.0], JsonSerializer.Deserialize<List<double>>($"[{json},3]"));
+            Assert.Equal([expected, 3.0], JsonSerializer.Deserialize<List<double>>(Encoding.UTF8.GetBytes($"[{json},3]")));
+        }
+
+        [Fact]
+        public void DateOnlyTimeOnly_MatchSystemTextJson()
+        {
+            DateOnly[] dates = [DateOnly.MinValue, new DateOnly(5, 6, 7), new DateOnly(2026, 10, 6), DateOnly.MaxValue];
+            TimeOnly[] times = [TimeOnly.MinValue, new TimeOnly(13, 45, 30), new TimeOnly(13, 45, 30, 123), new TimeOnly(1, 2, 3).Add(TimeSpan.FromTicks(1)), TimeOnly.MaxValue];
+
+            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(dates), JsonSerializer.Serialize(dates));
+            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(dates), Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(dates)));
+            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(times), JsonSerializer.Serialize(times));
+            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(times), Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(times)));
+            Assert.Equal(dates, JsonSerializer.Deserialize<DateOnly[]>(JsonSerializer.Serialize(dates)));
+            Assert.Equal(times, JsonSerializer.Deserialize<TimeOnly[]>(JsonSerializer.SerializeBytes(times)));
         }
 
         private static void AssertKeyRoundTrips<TKey>(TKey key) where TKey : notnull
@@ -298,6 +416,21 @@ namespace Zerra.Test.Serialization
         public enum SignedEnum { Negative = -1, Zero = 0, Positive = 5 }
 
         public enum UnsignedLongEnum : ulong { Zero = 0, Max = ulong.MaxValue }
+
+        [Fact]
+        public void Enum_NumberOutOfUnderlyingRange_Throws()
+        {
+            var options = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            foreach (var json in new[] { "300", "-1", "\"300\"", "\"-1\"" })
+            {
+                Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<EnumModel>(json, options));
+                Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<EnumModel>(Encoding.UTF8.GetBytes(json), options));
+            }
+
+            Assert.Equal(EnumModel.EnumItem2, JsonSerializer.Deserialize<EnumModel>("2", options));
+            Assert.Equal(EnumModel.EnumItem2, JsonSerializer.Deserialize<EnumModel?>("\"2\"", options));
+            Assert.Equal(SignedEnum.Negative, JsonSerializer.Deserialize<SignedEnum?>(Encoding.UTF8.GetBytes("-1"), options));
+        }
 
         [Fact]
         public void Enum_ParsesName()

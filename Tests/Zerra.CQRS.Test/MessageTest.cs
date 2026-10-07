@@ -212,9 +212,9 @@ namespace Zerra.CQRS.Test
         public static async Task TestSustainedLoad<TConsumer>(ICommandProducer commandProducer, IEventProducer eventProducer, TConsumer replica1, TConsumer replica2, string commandTopic, string eventTopic, CancellationToken cancellationToken)
             where TConsumer : ICommandConsumer, IEventConsumer
         {
-            const int commandCount = 1000;
+            const int commandCount = 500;
             const int commandWithResultCount = 200;
-            const int eventCount = 500;
+            const int eventCount = 1000;
             var loadTimeout = TimeSpan.FromMinutes(3);
 
             TypeFinder.Register(typeof(TestCommand));

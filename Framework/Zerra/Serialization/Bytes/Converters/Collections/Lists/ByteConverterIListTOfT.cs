@@ -33,7 +33,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
                 if (!state.Current.DrainBytes)
                 {
                     if (!TypeDetail.HasCreator)
-                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a public parameterless constructor.");
                     value = TypeDetail.Creator!();
                     list = (IList<TValue>)value!;
                     if (state.Current.EnumerableLength!.Value == 0)

@@ -26,7 +26,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
             var keyDetail = TypeAnalyzer<TKey>.GetTypeDetail();
             var valueDetail = TypeAnalyzer<TValue>.GetTypeDetail();
 
-            canWriteAsProperties = keyDetail.CoreType.HasValue;
+            canWriteAsProperties = keyDetail.CoreType.HasValue || keyDetail.EnumUnderlyingType.HasValue;
 
             if (canWriteAsProperties)
             {
@@ -34,7 +34,8 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 keyConverter = (JsonConverter<TKey>)JsonConverterFactory.Get(keyDetail, $"{thisName}_Key", null, null);
                 valueConverter = (JsonConverter<TValue>)JsonConverterFactory.Get(valueDetail, $"{thisName}_Value", null, ValueSetter);
             }
-            else
+
+            if (!keyDetail.CoreType.HasValue)
             {
                 var keyValuePairTypeDetail = TypeAnalyzer<KeyValuePair<TKey, TValue>>.GetTypeDetail();
                 converter = (JsonConverter<KeyValuePair<TKey, TValue>>)JsonConverterFactory.Get(keyValuePairTypeDetail, nameof(JsonConverterDictionaryT<TKey, TValue>), null, null);
@@ -116,7 +117,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     {
                         if (state.IncludeReturnGraph)
                         {
-                            if (!valueConverter.TryReadFromParentMember(ref reader, ref state, accessor, accessor.CurrentKeyString, true))
+                            if (!valueConverter.TryReadFromParentMember(ref reader, ref state, accessor, accessor.GetCurrentKeyString(state.EnumAsNumber), true))
                             {
                                 state.Current.HasReadFirstToken = true;
                                 state.Current.HasReadProperty = true;
@@ -282,19 +283,26 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
                 {
                     var current = enumerator.Current;
-                    var name = current.Key switch
-                    {
-                        string str => str,
-                        //dates use the ISO 8601 formats they are read with instead of their culture formats
-                        DateTime dateTime => dateTime.ToString("O", CultureInfo.InvariantCulture),
-                        DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+                    var currentKey = current.Key;
+                    string name;
+                    if (typeof(TKey) == typeof(string))
+                        name = (string)(object)currentKey;
+                    else if (typeof(TKey) == typeof(DateTime))
+                        name = ((DateTime)(object)currentKey).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture);
+                    else if (typeof(TKey) == typeof(DateTimeOffset))
+                        name = ((DateTimeOffset)(object)currentKey).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture);
 #if !NETSTANDARD2_0
-                        DateOnly dateOnly => dateOnly.ToString("O", CultureInfo.InvariantCulture),
-                        TimeOnly timeOnly => timeOnly.ToTimeSpan().ToString("c", CultureInfo.InvariantCulture),
+                    else if (typeof(TKey) == typeof(DateOnly))
+                        name = ((DateOnly)(object)currentKey).ToString("O", CultureInfo.InvariantCulture);
+                    else if (typeof(TKey) == typeof(TimeOnly))
+                        name = ((TimeOnly)(object)currentKey).ToTimeSpan().ToString("c", CultureInfo.InvariantCulture);
 #endif
-                        IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
-                        _ => current.Key.ToString(),
-                    };
+                    else if (typeof(TKey).IsEnum)
+                        name = state.EnumAsNumber ? ((Enum)(object)currentKey).ToString("D") : EnumName.GetName(typeof(TKey), currentKey);
+                    else if (currentKey is IFormattable formattable)
+                        name = formattable.ToString(null, CultureInfo.InvariantCulture);
+                    else
+                        name = currentKey.ToString()!;
                     if (!state.Current.HasWrittenPropertyName)
                     {
                         if (!writer.TryWritePropertyName(name, state.Current.HasWrittenFirst, out state.SizeNeeded))

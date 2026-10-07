@@ -4,6 +4,7 @@
 
 using System.Buffers.Text;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
@@ -29,7 +30,6 @@ namespace Zerra.Serialization.Json.Converters.General
             {
                 case JsonToken.String:
 #if !NETSTANDARD2_0
-                    //names already seen are found without allocating a string
                     if (reader.PositionOfFirstEscape == -1)
                     {
                         if (reader.UseBytes)
@@ -61,7 +61,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         if (valuesByName.Count < maxCachedNames)
                             valuesByName = new Dictionary<string, TValue?>(valuesByName) { [str] = value };
                     }
-                    else
+                    else if (!TryParseNumber(str.AsSpan(), out value))
                     {
                         if (state.ErrorOnTypeMismatch)
                             ThrowCannotConvert(ref reader);
@@ -69,46 +69,12 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     return true;
                 case JsonToken.Number:
-                    {
-                        //enum values can be negative or above long.MaxValue for ulong enums
-                        object? number = null;
-                        if (reader.UseBytes)
-                        {
-                            if (Utf8Parser.TryParse(reader.ValueBytes, out long signed, out var consumed) && consumed == reader.ValueBytes.Length)
-                                number = signed;
-                            else if (Utf8Parser.TryParse(reader.ValueBytes, out ulong unsigned, out consumed) && consumed == reader.ValueBytes.Length)
-                                number = unsigned;
-                        }
-                        else
-                        {
-#if NETSTANDARD2_0
-                            var chars = reader.ValueChars.ToString();
-#else
-                            var chars = reader.ValueChars;
-#endif
-                            if (Int64.TryParse(chars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var signed))
-                                number = signed;
-                            else if (UInt64.TryParse(chars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var unsigned))
-                                number = unsigned;
-                        }
-                        if (number is null)
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                ThrowCannotConvert(ref reader);
-                            number = 0L;
-                        }
-                        try
-                        {
-                            value = (TValue?)Enum.ToObject(TypeDetail.IsNullable ? TypeDetail.InnerType! : TypeDetail.Type, number);
-                        }
-                        catch
-                        {
-                            if (state.ErrorOnTypeMismatch)
-                                ThrowCannotConvert(ref reader);
-                            value = default;
-                        }
+                    if (reader.UseBytes ? TryParseNumber(reader.ValueBytes, out value) : TryParseNumber(reader.ValueChars, out value))
                         return true;
-                    }
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = default;
+                    return true;
                 case JsonToken.Null:
                     if (!TypeDetail.IsNullable && state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
@@ -157,42 +123,42 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     case CoreEnumType.Byte:
                     case CoreEnumType.ByteNullable:
-                        if (!writer.TryWrite((byte)(object)value, out state.SizeNeeded))
+                        if (!writer.TryWrite(TypeDetail.IsNullable ? (byte)(object)value! : Unsafe.As<TValue, byte>(ref Unsafe.AsRef(in value)), out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.SByte:
                     case CoreEnumType.SByteNullable:
-                        if (!writer.TryWrite((sbyte)(object)value, out state.SizeNeeded))
+                        if (!writer.TryWrite(TypeDetail.IsNullable ? (sbyte)(object)value! : Unsafe.As<TValue, sbyte>(ref Unsafe.AsRef(in value)), out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.Int16:
                     case CoreEnumType.Int16Nullable:
-                        if (!writer.TryWrite((short)(object)value, out state.SizeNeeded))
+                        if (!writer.TryWrite(TypeDetail.IsNullable ? (short)(object)value! : Unsafe.As<TValue, short>(ref Unsafe.AsRef(in value)), out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.UInt16:
                     case CoreEnumType.UInt16Nullable:
-                        if (!writer.TryWrite((ushort)(object)value, out state.SizeNeeded))
+                        if (!writer.TryWrite(TypeDetail.IsNullable ? (ushort)(object)value! : Unsafe.As<TValue, ushort>(ref Unsafe.AsRef(in value)), out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.Int32:
                     case CoreEnumType.Int32Nullable:
-                        if (!writer.TryWrite((int)(object)value, out state.SizeNeeded))
+                        if (!writer.TryWrite(TypeDetail.IsNullable ? (int)(object)value! : Unsafe.As<TValue, int>(ref Unsafe.AsRef(in value)), out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.UInt32:
                     case CoreEnumType.UInt32Nullable:
-                        if (!writer.TryWrite((uint)(object)value, out state.SizeNeeded))
+                        if (!writer.TryWrite(TypeDetail.IsNullable ? (uint)(object)value! : Unsafe.As<TValue, uint>(ref Unsafe.AsRef(in value)), out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.Int64:
                     case CoreEnumType.Int64Nullable:
-                        if (!writer.TryWrite((long)(object)value, out state.SizeNeeded))
+                        if (!writer.TryWrite(TypeDetail.IsNullable ? (long)(object)value! : Unsafe.As<TValue, long>(ref Unsafe.AsRef(in value)), out state.SizeNeeded))
                             return false;
                         return true;
                     case CoreEnumType.UInt64:
                     case CoreEnumType.UInt64Nullable:
-                        if (!writer.TryWrite((ulong)(object)value, out state.SizeNeeded))
+                        if (!writer.TryWrite(TypeDetail.IsNullable ? (ulong)(object)value! : Unsafe.As<TValue, ulong>(ref Unsafe.AsRef(in value)), out state.SizeNeeded))
                             return false;
                         return true;
                     default: throw new NotSupportedException();
@@ -225,6 +191,158 @@ namespace Zerra.Serialization.Json.Converters.General
                 }
                 return true;
             }
+        }
+
+        private bool TryParseNumber(ReadOnlySpan<byte> bytes, out TValue? value)
+        {
+            int consumed;
+            switch (TypeDetail.EnumUnderlyingType!.Value)
+            {
+                case CoreEnumType.Byte:
+                case CoreEnumType.ByteNullable:
+                    if (Utf8Parser.TryParse(bytes, out byte byteNumber, out consumed) && consumed == bytes.Length)
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, byteNumber) : Unsafe.As<byte, TValue>(ref byteNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.SByte:
+                case CoreEnumType.SByteNullable:
+                    if (Utf8Parser.TryParse(bytes, out sbyte sbyteNumber, out consumed) && consumed == bytes.Length)
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, sbyteNumber) : Unsafe.As<sbyte, TValue>(ref sbyteNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.Int16:
+                case CoreEnumType.Int16Nullable:
+                    if (Utf8Parser.TryParse(bytes, out short shortNumber, out consumed) && consumed == bytes.Length)
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, shortNumber) : Unsafe.As<short, TValue>(ref shortNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.UInt16:
+                case CoreEnumType.UInt16Nullable:
+                    if (Utf8Parser.TryParse(bytes, out ushort ushortNumber, out consumed) && consumed == bytes.Length)
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, ushortNumber) : Unsafe.As<ushort, TValue>(ref ushortNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.Int32:
+                case CoreEnumType.Int32Nullable:
+                    if (Utf8Parser.TryParse(bytes, out int intNumber, out consumed) && consumed == bytes.Length)
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, intNumber) : Unsafe.As<int, TValue>(ref intNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.UInt32:
+                case CoreEnumType.UInt32Nullable:
+                    if (Utf8Parser.TryParse(bytes, out uint uintNumber, out consumed) && consumed == bytes.Length)
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, uintNumber) : Unsafe.As<uint, TValue>(ref uintNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.Int64:
+                case CoreEnumType.Int64Nullable:
+                    if (Utf8Parser.TryParse(bytes, out long longNumber, out consumed) && consumed == bytes.Length)
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, longNumber) : Unsafe.As<long, TValue>(ref longNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.UInt64:
+                case CoreEnumType.UInt64Nullable:
+                    if (Utf8Parser.TryParse(bytes, out ulong ulongNumber, out consumed) && consumed == bytes.Length)
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, ulongNumber) : Unsafe.As<ulong, TValue>(ref ulongNumber);
+                        return true;
+                    }
+                    break;
+            }
+            value = default;
+            return false;
+        }
+
+        private bool TryParseNumber(ReadOnlySpan<char> chars, out TValue? value)
+        {
+#if NETSTANDARD2_0
+            var text = chars.ToString();
+#else
+            var text = chars;
+#endif
+            switch (TypeDetail.EnumUnderlyingType!.Value)
+            {
+                case CoreEnumType.Byte:
+                case CoreEnumType.ByteNullable:
+                    if (Byte.TryParse(text, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var byteNumber))
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, byteNumber) : Unsafe.As<byte, TValue>(ref byteNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.SByte:
+                case CoreEnumType.SByteNullable:
+                    if (SByte.TryParse(text, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var sbyteNumber))
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, sbyteNumber) : Unsafe.As<sbyte, TValue>(ref sbyteNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.Int16:
+                case CoreEnumType.Int16Nullable:
+                    if (Int16.TryParse(text, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var shortNumber))
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, shortNumber) : Unsafe.As<short, TValue>(ref shortNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.UInt16:
+                case CoreEnumType.UInt16Nullable:
+                    if (UInt16.TryParse(text, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var ushortNumber))
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, ushortNumber) : Unsafe.As<ushort, TValue>(ref ushortNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.Int32:
+                case CoreEnumType.Int32Nullable:
+                    if (Int32.TryParse(text, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var intNumber))
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, intNumber) : Unsafe.As<int, TValue>(ref intNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.UInt32:
+                case CoreEnumType.UInt32Nullable:
+                    if (UInt32.TryParse(text, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var uintNumber))
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, uintNumber) : Unsafe.As<uint, TValue>(ref uintNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.Int64:
+                case CoreEnumType.Int64Nullable:
+                    if (Int64.TryParse(text, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var longNumber))
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, longNumber) : Unsafe.As<long, TValue>(ref longNumber);
+                        return true;
+                    }
+                    break;
+                case CoreEnumType.UInt64:
+                case CoreEnumType.UInt64Nullable:
+                    if (UInt64.TryParse(text, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out var ulongNumber))
+                    {
+                        value = TypeDetail.IsNullable ? (TValue?)Enum.ToObject(TypeDetail.InnerType!, ulongNumber) : Unsafe.As<ulong, TValue>(ref ulongNumber);
+                        return true;
+                    }
+                    break;
+            }
+            value = default;
+            return false;
         }
     }
 }

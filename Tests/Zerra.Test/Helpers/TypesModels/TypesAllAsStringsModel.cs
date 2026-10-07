@@ -86,6 +86,10 @@ namespace Zerra.Test.Helpers.TypesModels
         public string EnumThing { get; set; }
         public string EnumThingNullable { get; set; }
         public string EnumThingNullableNull { get; set; }
+        public string EnumSignedThing { get; set; }
+        public string EnumSignedThingNullable { get; set; }
+        public string EnumULongThing { get; set; }
+        public string EnumULongThingNullable { get; set; }
 
         public string[] BooleanArray { get; set; }
         public string ByteArray { get; set; } //special conversion
@@ -1276,6 +1280,21 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyDictionary<int, SimpleModel> DictionaryThing6 { get; set; }
         public ConcurrentDictionary<int, string> DictionaryThing7 { get; set; }
         public ConcurrentDictionary<int, SimpleModel> DictionaryThing8 { get; set; }
+        public Dictionary<string, int> DictionaryDateTimeKey { get; set; }
+        public Dictionary<string, int> DictionaryDateTimeOffsetKey { get; set; }
+        public Dictionary<string, int> DictionaryDateOnlyKey { get; set; }
+        public Dictionary<string, int> DictionaryTimeOnlyKey { get; set; }
+        public Dictionary<string, int> DictionaryTimeSpanKey { get; set; }
+        public Dictionary<string, int> DictionaryGuidKey { get; set; }
+        public Dictionary<string, int> DictionaryDoubleKey { get; set; }
+        public Dictionary<string, int> DictionaryDecimalKey { get; set; }
+        public Dictionary<string, int> DictionaryLongKey { get; set; }
+        public Dictionary<string, int> DictionaryULongKey { get; set; }
+        public Dictionary<string, int> DictionaryBoolKey { get; set; }
+        public Dictionary<string, int> DictionaryCharKey { get; set; }
+        public Dictionary<string, int> DictionaryEnumKey { get; set; }
+        public Dictionary<string, string> IDictionaryEnumKey { get; set; }
+        public Dictionary<string, string> IReadOnlyDictionaryDateTimeKey { get; set; }
 
         public string[][] StringArrayOfArrayThing { get; set; }
 
@@ -1353,6 +1372,12 @@ namespace Zerra.Test.Helpers.TypesModels
             Assert.Equal(model1.EnumThing.ToString(), model2.EnumThing);
             Assert.Equal(model1.EnumThingNullable?.ToString(), model2.EnumThingNullable);
             Assert.Equal(model1.EnumThingNullableNull?.ToString(), model2.EnumThingNullableNull);
+            Assert.Equal(model1.EnumSignedThing.ToString(), model2.EnumSignedThing);
+            Assert.Equal(model1.EnumSignedThingNullable?.ToString(), model2.EnumSignedThingNullable);
+            Assert.Equal(model1.EnumULongThing.ToString(), model2.EnumULongThing);
+            Assert.Equal(model1.EnumULongThingNullable?.ToString(), model2.EnumULongThingNullable);
+            Assert.Equal(model1.DictionaryEnumKey.Count, model2.DictionaryEnumKey.Count);
+            Assert.Equal(model1.DictionaryDateTimeKey.Count, model2.DictionaryDateTimeKey.Count);
 
             Assert.Equal(model1.StringThing, model2.StringThing);
 

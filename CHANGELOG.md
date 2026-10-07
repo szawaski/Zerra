@@ -34,13 +34,16 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Fixed `ZerraJsonSerializer` writing dictionary keys that need escaping: they threw when serializing to UTF-8 and were corrupted when serializing to a string.
 - Fixed `ZerraJsonSerializer` writing a negative UTC offset of 10 hours or more, or with minutes, on `DateTimeOffset` and local `DateTime` values.
 - Fixed `ZerraJsonSerializer` using the current culture for numbers and numeric dictionary keys: in cultures with a different decimal separator or minus sign it wrote invalid JSON and misread numbers.
-- Fixed `ZerraJsonSerializer` reading enum numbers: negative values failed from a string, and `ulong` values above `long.MaxValue` failed from a string or UTF-8.
+- Fixed `ZerraJsonSerializer` reading enum numbers: negative values failed from a string, and `ulong` values above `long.MaxValue` failed from a string or UTF-8, and values outside the enum's underlying type were truncated instead of rejected.
 - Fixed `ZerraJsonSerializer` writing `DateTime`, `DateTimeOffset`, `DateOnly`, and `TimeOnly` dictionary keys in a culture format that dropped fractions and read back as default values; they are written in ISO 8601.
+- `ZerraJsonSerializer` writes dictionaries with enum keys as JSON objects keyed by the enum name, the same as System.Text.Json, or by the number with `EnumAsNumber`, instead of an array of key and value pairs. The array form is still read, and enums are also read from numeric strings.
 
 ### Mapping
 
 - `Mapper` maps arrays, lists, sets, and dictionaries element by element without per-item delegates or accessor allocations, and finds the converter for each call with one cached lookup, or none for generic calls.
 - Fixed `Mapper` throwing when mapping a dictionary, or another type built through its constructor, with value-type members such as `Dictionary<string, int>`.
+- Fixed `Mapper` throwing when mapping to a custom dictionary type such as `SortedDictionary<TKey, TValue>`.
+- Fixed `TypeAnalyzer.Convert`, used by `Mapper` for core types and by the repository for generated identities: numbers, dates, and strings used the current culture, `DateTimeOffset?` targets returned a `DateTime`, and converting between date types such as `DateTime` to `DateOnly` failed.
 
 ### Platform
 

@@ -1,7 +1,8 @@
+using System.Globalization;
 using Xunit;
 using Zerra.Reflection;
 
-namespace Zerra.Test.Reflection.Dynamic
+namespace Zerra.Test.Reflection
 {
     public class TypeAnalyzerTests
     {
@@ -153,6 +154,54 @@ namespace Zerra.Test.Reflection.Dynamic
             var result = TypeAnalyzer.Convert<TimeSpan>(ts.ToString());
 
             Assert.Equal(ts, result);
+        }
+
+        [Fact]
+        public void ConvertGeneric_IgnoresCurrentCulture()
+        {
+            var original = CultureInfo.CurrentCulture;
+            var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+            culture.NumberFormat.NumberDecimalSeparator = ",";
+            culture.NumberFormat.NumberGroupSeparator = ".";
+            culture.NumberFormat.NegativeSign = "−";
+            CultureInfo.CurrentCulture = culture;
+            try
+            {
+                Assert.Equal(1.5, TypeAnalyzer.Convert<double>("1.5"));
+                Assert.Equal(1.5f, TypeAnalyzer.Convert<float>("1.5"));
+                Assert.Equal(-1.5m, TypeAnalyzer.Convert<decimal>("-1.5"));
+                Assert.Equal(-42, TypeAnalyzer.Convert<int>("-42"));
+                Assert.Equal("-1.5", TypeAnalyzer.Convert<string>(-1.5));
+                Assert.Equal("-42", TypeAnalyzer.Convert<string>(-42));
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = original;
+            }
+        }
+
+        [Fact]
+        public void ConvertGeneric_DateTimeOffsetNullable_ReturnsDateTimeOffset()
+        {
+            var value = new DateTimeOffset(2026, 10, 6, 13, 45, 30, TimeSpan.FromHours(-5));
+
+            Assert.Equal(value, TypeAnalyzer.Convert<DateTimeOffset?>(value.ToString("O")));
+            Assert.Equal(value, TypeAnalyzer.Convert<DateTimeOffset?>(value));
+        }
+
+        [Fact]
+        public void ConvertGeneric_DatesFromOtherDateTypes()
+        {
+            var dateTime = new DateTime(2026, 10, 6, 13, 45, 30);
+
+            Assert.Equal(new DateOnly(2026, 10, 6), TypeAnalyzer.Convert<DateOnly>(dateTime));
+            Assert.Equal(new TimeOnly(13, 45, 30), TypeAnalyzer.Convert<TimeOnly>(dateTime));
+            Assert.Equal(new TimeOnly(1, 2, 3), TypeAnalyzer.Convert<TimeOnly>(new TimeSpan(1, 2, 3)));
+            Assert.Equal(new DateTimeOffset(dateTime), TypeAnalyzer.Convert<DateTimeOffset>(dateTime));
+            Assert.Equal(new DateOnly(2026, 10, 6), TypeAnalyzer.Convert<DateOnly?>("2026-10-06"));
+            Assert.Equal(dateTime, TypeAnalyzer.Convert<DateTime>("2026-10-06T13:45:30"));
+            Assert.Equal(dateTime, TypeAnalyzer.Convert<DateTime>(new DateTimeOffset(dateTime, TimeSpan.FromHours(-5))));
+            Assert.Equal(dateTime.Date, TypeAnalyzer.Convert<DateTime?>(new DateOnly(2026, 10, 6)));
         }
 
         #endregion

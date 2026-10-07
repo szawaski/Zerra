@@ -26,7 +26,6 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     }
                     else
                     {
-                        //the common case of only digits, short enough not to overflow, is parsed here instead of with TryParse
                         var chars = reader.ValueChars;
                         if (chars.Length <= 2)
                         {

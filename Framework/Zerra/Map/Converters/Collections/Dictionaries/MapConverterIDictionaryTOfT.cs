@@ -36,8 +36,10 @@ namespace Zerra.Map.Converters.Collections.Dictionaries
 
             if (targetDictionary == null || sourceCount != targetDictionary.Count)
             {
-                targetDictionary = new Dictionary<TTargetKey, TTargetValue>(sourceCount);
-                target = (TTarget)targetDictionary;
+                if (!targetTypeDetail.HasCreator)
+                    throw new NotSupportedException($"{targetTypeDetail.Type} has no public parameterless constructor.");
+                target = targetTypeDetail.Creator!()!;
+                targetDictionary = (IDictionary<TTargetKey, TTargetValue>)target;
             }
             else
             {

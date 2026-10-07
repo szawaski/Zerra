@@ -85,6 +85,10 @@ namespace Zerra.Test.Helpers.TypesModels
         public EnumModel EnumThing { get; set; }
         public EnumModel? EnumThingNullable { get; set; }
         public EnumModel? EnumThingNullableNull { get; set; }
+        public EnumSignedModel EnumSignedThing { get; set; }
+        public EnumSignedModel? EnumSignedThingNullable { get; set; }
+        public EnumULongModel EnumULongThing { get; set; }
+        public EnumULongModel? EnumULongThingNullable { get; set; }
 
         #endregion
 
@@ -1019,6 +1023,23 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyDictionary<int, SimpleModel> DictionaryThing6 { get; set; }
         public ConcurrentDictionary<int, string> DictionaryThing7 { get; set; }
         public ConcurrentDictionary<int, SimpleModel> DictionaryThing8 { get; set; }
+        public Dictionary<DateTime, int> DictionaryDateTimeKey { get; set; }
+        public Dictionary<DateTimeOffset, int> DictionaryDateTimeOffsetKey { get; set; }
+#if NET6_0_OR_GREATER
+        public Dictionary<DateOnly, int> DictionaryDateOnlyKey { get; set; }
+        public Dictionary<TimeOnly, int> DictionaryTimeOnlyKey { get; set; }
+#endif
+        public Dictionary<TimeSpan, int> DictionaryTimeSpanKey { get; set; }
+        public Dictionary<Guid, int> DictionaryGuidKey { get; set; }
+        public Dictionary<double, int> DictionaryDoubleKey { get; set; }
+        public Dictionary<decimal, int> DictionaryDecimalKey { get; set; }
+        public Dictionary<long, int> DictionaryLongKey { get; set; }
+        public Dictionary<ulong, int> DictionaryULongKey { get; set; }
+        public Dictionary<bool, int> DictionaryBoolKey { get; set; }
+        public Dictionary<char, int> DictionaryCharKey { get; set; }
+        public Dictionary<EnumModel, int> DictionaryEnumKey { get; set; }
+        public IDictionary<EnumSignedModel, string> IDictionaryEnumKey { get; set; }
+        public IReadOnlyDictionary<DateTime, string> IReadOnlyDictionaryDateTimeKey { get; set; }
 
         #endregion
 
@@ -1103,6 +1124,10 @@ namespace Zerra.Test.Helpers.TypesModels
                 EnumThing = EnumModel.EnumItem1,
                 EnumThingNullable = EnumModel.EnumItem2,
                 EnumThingNullableNull = null,
+                EnumSignedThing = EnumSignedModel.Negative,
+                EnumSignedThingNullable = EnumSignedModel.Negative,
+                EnumULongThing = EnumULongModel.Max,
+                EnumULongThingNullable = EnumULongModel.Max,
 
                 #endregion
 
@@ -2037,6 +2062,23 @@ namespace Zerra.Test.Helpers.TypesModels
                 DictionaryThing6 = new Dictionary<int, SimpleModel>() { { 1, new() { Value1 = 1, Value2 = "A" } }, { 2, new() { Value1 = 2, Value2 = "B" } }, { 3, new() { Value1 = 3, Value2 = "C" } }, { 4, null } },
                 DictionaryThing7 = new ConcurrentDictionary<int, string>(new Dictionary<int, string>() { { 1, "A" }, { 2, "B" }, { 3, "C" }, { 4, null } }),
                 DictionaryThing8 = new ConcurrentDictionary<int, SimpleModel>(new Dictionary<int, SimpleModel>() { { 1, new() { Value1 = 1, Value2 = "A" } }, { 2, new() { Value1 = 2, Value2 = "B" } }, { 3, new() { Value1 = 3, Value2 = "C" } }, { 4, null } }),
+                DictionaryDateTimeKey = new() { { new DateTime(2026, 10, 6, 13, 45, 30, DateTimeKind.Utc).AddTicks(1234567), 1 }, { new DateTime(2026, 10, 6, 13, 45, 30, DateTimeKind.Utc), 2 }, { new DateTime(2026, 10, 6, 13, 45, 30, 500, DateTimeKind.Unspecified), 3 } },
+                DictionaryDateTimeOffsetKey = new() { { new DateTimeOffset(2026, 10, 6, 13, 45, 30, TimeSpan.FromHours(-5)), 1 }, { new DateTimeOffset(2026, 10, 6, 13, 45, 30, 123, TimeSpan.FromMinutes(330)), 2 } },
+#if NET6_0_OR_GREATER
+                DictionaryDateOnlyKey = new() { { new DateOnly(2026, 10, 6), 1 }, { DateOnly.MinValue, 2 } },
+                DictionaryTimeOnlyKey = new() { { new TimeOnly(13, 45, 30, 500), 1 }, { new TimeOnly(0, 0), 2 } },
+#endif
+                DictionaryTimeSpanKey = new() { { new TimeSpan(-1, 2, 3, 4, 500), 1 }, { TimeSpan.Zero, 2 } },
+                DictionaryGuidKey = new() { { Guid.Parse("b755b826-d5cb-4d53-9879-2dca1b24dfa0"), 1 }, { Guid.Empty, 2 } },
+                DictionaryDoubleKey = new() { { -1.5, 1 }, { 1234567.125, 2 } },
+                DictionaryDecimalKey = new() { { -1.5m, 1 }, { 79228162514264337593543950335m, 2 } },
+                DictionaryLongKey = new() { { long.MinValue, 1 }, { long.MaxValue, 2 } },
+                DictionaryULongKey = new() { { 0, 1 }, { ulong.MaxValue, 2 } },
+                DictionaryBoolKey = new() { { true, 1 }, { false, 2 } },
+                DictionaryCharKey = new() { { 'Z', 1 }, { 'a', 2 } },
+                DictionaryEnumKey = new() { { EnumModel.EnumItem1, 1 }, { EnumModel.EnumItem3, 2 } },
+                IDictionaryEnumKey = new Dictionary<EnumSignedModel, string>() { { EnumSignedModel.Negative, "A" }, { EnumSignedModel.Positive, null } },
+                IReadOnlyDictionaryDateTimeKey = new Dictionary<DateTime, string>() { { new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc), "A" } },
 
                 #endregion
 

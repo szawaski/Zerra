@@ -29,7 +29,6 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     }
                     else
                     {
-                        //TimeSpan has a much faster parse for the "c" format that is written
                         if (TimeSpan.TryParseExact(reader.ValueChars, "c", CultureInfo.InvariantCulture, out var timeSpan) && timeSpan.Ticks >= 0 && timeSpan.Ticks < TimeSpan.TicksPerDay)
                         {
                             value = TimeOnly.FromTimeSpan(timeSpan);

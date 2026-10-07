@@ -375,6 +375,22 @@ namespace Zerra.Test.Map
         }
 
         [Fact]
+        public void CustomCollectionTargets()
+        {
+            var source = new int[] { 3, 1, 2 };
+
+            Assert.Equal(source, source.Map<int[], System.Collections.ObjectModel.Collection<int>>());
+            Assert.Equal(source, source.Map<int[], System.Collections.ObjectModel.ObservableCollection<int>>());
+            Assert.Equal(source, source.Map<int[], LinkedList<int>>());
+            Assert.Equal([1, 2, 3], source.Map<int[], SortedSet<int>>());
+
+            var dictionary = new Dictionary<string, int>() { ["b"] = 2, ["a"] = 1 };
+            var sorted = dictionary.Map<Dictionary<string, int>, SortedDictionary<string, int>>();
+            Assert.Equal(["a", "b"], sorted.Keys);
+            Assert.Equal([1, 2], sorted.Values);
+        }
+
+        [Fact]
         public void CollectionValuesIntoExisting()
         {
             var source = new CollectionSource()

@@ -9,20 +9,28 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
         public Dictionary<TKey, TValue> Dictionary => dictionary;
 
         private TKey? key;
-        //the same names the dictionary converters write
-        public string? CurrentKeyString => key switch
+        public string? GetCurrentKeyString(bool enumAsNumber)
         {
-            null => null,
-            string str => str,
-            DateTime dateTime => dateTime.ToString("O", CultureInfo.InvariantCulture),
-            DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+            if (key is null)
+                return null;
+            if (typeof(TKey) == typeof(string))
+                return (string)(object)key;
+            if (typeof(TKey) == typeof(DateTime))
+                return ((DateTime)(object)key).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture);
+            if (typeof(TKey) == typeof(DateTimeOffset))
+                return ((DateTimeOffset)(object)key).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture);
 #if !NETSTANDARD2_0
-            DateOnly dateOnly => dateOnly.ToString("O", CultureInfo.InvariantCulture),
-            TimeOnly timeOnly => timeOnly.ToTimeSpan().ToString("c", CultureInfo.InvariantCulture),
+            if (typeof(TKey) == typeof(DateOnly))
+                return ((DateOnly)(object)key).ToString("O", CultureInfo.InvariantCulture);
+            if (typeof(TKey) == typeof(TimeOnly))
+                return ((TimeOnly)(object)key).ToTimeSpan().ToString("c", CultureInfo.InvariantCulture);
 #endif
-            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
-            _ => key.ToString(),
-        };
+            if (typeof(TKey).IsEnum)
+                return enumAsNumber ? ((Enum)(object)key).ToString("D") : EnumName.GetName(typeof(TKey), key);
+            if (key is IFormattable formattable)
+                return formattable.ToString(null, CultureInfo.InvariantCulture);
+            return key.ToString();
+        }
 
         public DictionaryAccessor(Dictionary<TKey, TValue> dictionary)
         {

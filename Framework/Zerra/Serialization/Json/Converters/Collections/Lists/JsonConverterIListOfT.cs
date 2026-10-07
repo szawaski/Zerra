@@ -44,13 +44,13 @@ namespace Zerra.Serialization.Json.Converters.Collections.Lists
                 if (reader.Token == JsonToken.ArrayEnd)
                 {
                     if (!TypeDetail.HasCreator)
-                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a public parameterless constructor.");
                     value = TypeDetail.Creator!();
                     return true;
                 }
 
                 if (!TypeDetail.HasCreator)
-                    throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                    throw new InvalidOperationException($"{TypeDetail.Type} does not have a public parameterless constructor.");
                 value = TypeDetail.Creator!();
                 list = (IList)value!;
             }

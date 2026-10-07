@@ -23,7 +23,6 @@ namespace Zerra.Benchmark.Benchmarks
             public string Notes { get; set; }
         }
 
-        //enums as names, the same as ZerraJsonSerializer
         private static readonly System.Text.Json.JsonSerializerOptions systemTextJsonOptions = new() { Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } };
 
         [Params("Small", "TypesBasic", "TypesList", "Orders100", "SimpleArray1000", "Dictionary100")]

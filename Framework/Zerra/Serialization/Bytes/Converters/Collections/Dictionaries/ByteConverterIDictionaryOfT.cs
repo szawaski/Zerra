@@ -34,7 +34,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
                 if (!state.Current.DrainBytes)
                 {
                     if (!TypeDetail.HasCreator)
-                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a public parameterless constructor.");
                     value = TypeDetail.Creator!();
                     dictionary = (IDictionary)value!;
                     if (state.Current.EnumerableLength!.Value == 0)
@@ -43,7 +43,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
                 else
                 {
                     if (!TypeDetail.HasCreator)
-                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a parameterless constructor.");
+                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a public parameterless constructor.");
                     value = TypeDetail.Creator!();
                     dictionary = (IDictionary)value!;
                     if (state.Current.EnumerableLength!.Value == 0)
