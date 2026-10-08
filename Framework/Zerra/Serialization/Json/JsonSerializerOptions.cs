@@ -30,9 +30,9 @@ namespace Zerra.Serialization.Json
         /// </summary>
         public bool EnumAsNumber { get; init; }
         /// <summary>
-        /// When the JSON cannot be converted to the type given an error will be thrown.  Normally it will use the default value.
+        /// Throws when valid JSON doesn't fit the type, such as <c>1.5</c> for an <c>int</c>, an unparseable date, or an unknown enum name. When off, the default, the type's default value is used instead. Invalid JSON always throws.
         /// </summary>
-        public bool ErrorOnTypeMismatch { get; init; }
+        public bool ErrorOnReadMismatchedData { get; init; }
         /// <summary>
         /// Object members do not need match the case of the JSON when reading. This performs more slowly.
         /// </summary>

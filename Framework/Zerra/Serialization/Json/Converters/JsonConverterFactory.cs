@@ -99,8 +99,15 @@ namespace Zerra.Serialization.Json.Converters
 
             var findCreatorMethod = findCreatorMethodDefinition.MakeGenericMethod(type, enumerableType, dictionaryKeyType, dictionaryValueType);
 
-            var creator = (Func<JsonConverter>)findCreatorMethod.Invoke(null, [typeDetail])!;
-            return creator;
+            try
+            {
+                return (Func<JsonConverter>)findCreatorMethod.Invoke(null, [typeDetail])!;
+            }
+            catch (System.Reflection.TargetInvocationException ex) when (ex.InnerException is not null)
+            {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                throw;
+            }
         }
 
         internal static void RegisterCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>()
@@ -163,6 +170,9 @@ namespace Zerra.Serialization.Json.Converters
                     case CoreType.String: return static () => new JsonConverterString();
                 }
             }
+
+            if (typeDetail.Type == typeof(JsonObject))
+                return static () => new JsonConverterJsonObject();
 
             if (typeDetail.HasIEnumerableGeneric && typeDetail.IEnumerableGenericInnerTypeDetail!.CoreType.HasValue)
             {

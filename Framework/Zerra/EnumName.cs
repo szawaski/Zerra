@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -68,47 +69,41 @@ public sealed class EnumName : Attribute
 
         if (enumInfo.HasFlagsAttribute)
         {
-            lock (enumInfo.NamesByValue)
+            var sb = new StringBuilder();
+            foreach (var enumField in enumInfo.Fields)
             {
-                if (enumInfo.NamesByValue.TryGetValue(longValue, out name))
-                    return name;
-
-                var sb = new StringBuilder();
-                foreach (var enumField in enumInfo.Fields)
+                long longEnumValue;
+                unchecked
                 {
-                    long longEnumValue;
-                    unchecked
+                    longEnumValue = enumInfo.UnderlyingType switch
                     {
-                        longEnumValue = enumInfo.UnderlyingType switch
-                        {
-                            CoreEnumType.Byte => (long)(byte)enumField.Value,
-                            CoreEnumType.SByte => (long)(sbyte)enumField.Value,
-                            CoreEnumType.Int16 => (long)(short)enumField.Value,
-                            CoreEnumType.UInt16 => (long)(ushort)enumField.Value,
-                            CoreEnumType.Int32 => (long)(int)enumField.Value,
-                            CoreEnumType.UInt32 => (long)(uint)enumField.Value,
-                            CoreEnumType.Int64 => (long)enumField.Value,
-                            CoreEnumType.UInt64 => (long)(ulong)enumField.Value,
-                            _ => throw new NotImplementedException(),
-                        };
-                    }
-
-                    if (longEnumValue == 0)
-                        continue;
-
-                    var hasFlag = (longValue & longEnumValue) == longEnumValue;
-                    if (!hasFlag)
-                        continue;
-
-                    if (sb.Length > 0)
-                        _ = sb.Append(seperator);
-                    _ = sb.Append(enumField.Text ?? enumField.Name);
+                        CoreEnumType.Byte => (long)(byte)enumField.Value,
+                        CoreEnumType.SByte => (long)(sbyte)enumField.Value,
+                        CoreEnumType.Int16 => (long)(short)enumField.Value,
+                        CoreEnumType.UInt16 => (long)(ushort)enumField.Value,
+                        CoreEnumType.Int32 => (long)(int)enumField.Value,
+                        CoreEnumType.UInt32 => (long)(uint)enumField.Value,
+                        CoreEnumType.Int64 => (long)enumField.Value,
+                        CoreEnumType.UInt64 => (long)(ulong)enumField.Value,
+                        _ => throw new NotImplementedException(),
+                    };
                 }
 
-                name = sb.ToString();
-                enumInfo.NamesByValue.Add(longValue, name);
-                return name;
+                if (longEnumValue == 0)
+                    continue;
+
+                var hasFlag = (longValue & longEnumValue) == longEnumValue;
+                if (!hasFlag)
+                    continue;
+
+                if (sb.Length > 0)
+                    _ = sb.Append(seperator);
+                _ = sb.Append(enumField.Text ?? enumField.Name);
             }
+
+            name = sb.ToString();
+            _ = enumInfo.NamesByValue.TryAdd(longValue, name);
+            return name;
         }
 
         throw new InvalidOperationException($"Value {value.ToString()} is not found in enum {type.Name}");
@@ -340,7 +335,7 @@ public sealed class EnumName : Attribute
         public readonly Func<object, object, object> BitOr;
 
         public readonly Dictionary<string, object> ValuesByName;
-        public readonly Dictionary<long, string> NamesByValue;
+        public readonly ConcurrentDictionary<long, string> NamesByValue;
 
         public EnumInfo(CoreEnumType underlyingType, bool hasFlagsAttribute, EnumFieldInfo[] fields, Func<object> creator, Func<object, object, object> bitOr)
         {
@@ -351,7 +346,7 @@ public sealed class EnumName : Attribute
             this.BitOr = bitOr;
 
             this.ValuesByName = new Dictionary<string, object>();
-            this.NamesByValue = new Dictionary<long, string>();
+            this.NamesByValue = new ConcurrentDictionary<long, string>();
 
             foreach (var field in fields)
             {

@@ -982,6 +982,7 @@ namespace Zerra.Test.Linq
         [Fact]
         public void RebindCompiles_Statements()
         {
+            //in the expression being rebound
             var x = Expression.Parameter(typeof(Model), "x");
             var v = Expression.Variable(typeof(int), "v");
             var e = Expression.Variable(typeof(Exception), "e");
@@ -1116,6 +1117,103 @@ namespace Zerra.Test.Linq
             var tryBlock = Expression.TryCatch(block, Expression.Catch(typeof(Exception), Expression.Property(w, nameof(Wrapper.Model))));
             var switchBlock = Expression.Switch(Expression.Property(w, nameof(Wrapper.Index)), Expression.Property(w, nameof(Wrapper.Model)), Expression.SwitchCase(tryBlock, Expression.Constant(1)));
             AssertReplacement(Expression.Lambda<Func<Wrapper, Model>>(switchBlock, w), wrapper);
+        }
+
+        //every statement and operator node, the assignments cancel out so the block returns the value it started with
+        private static BlockExpression AllStatements(Expression source)
+        {
+            var v = Expression.Variable(typeof(int), "v");
+            var d = Expression.Variable(typeof(double), "d");
+            var label = Expression.Label("label");
+            var one = Expression.Constant(1);
+            var zero = Expression.Constant(0);
+            var boxed = Expression.Convert(v, typeof(object));
+            return Expression.Block(
+                [v, d],
+                Expression.Assign(v, source),
+                Expression.AddAssignChecked(v, one),
+                Expression.SubtractAssignChecked(v, one),
+                Expression.MultiplyAssign(v, one),
+                Expression.MultiplyAssignChecked(v, one),
+                Expression.DivideAssign(v, one),
+                Expression.ModuloAssign(v, Expression.Constant(int.MaxValue)),
+                Expression.AndAssign(v, Expression.Constant(-1)),
+                Expression.OrAssign(v, zero),
+                Expression.ExclusiveOrAssign(v, zero),
+                Expression.LeftShiftAssign(v, zero),
+                Expression.RightShiftAssign(v, zero),
+                Expression.PostIncrementAssign(v),
+                Expression.PreDecrementAssign(v),
+                Expression.Assign(v, Expression.Decrement(Expression.Increment(v))),
+                Expression.Assign(v, Expression.Negate(Expression.Negate(Expression.UnaryPlus(v)))),
+                Expression.Assign(v, Expression.OnesComplement(Expression.OnesComplement(v))),
+                Expression.Assign(v, Expression.ConvertChecked(Expression.ConvertChecked(v, typeof(long)), typeof(int))),
+                Expression.Assign(v, Expression.Add(v, Expression.Default(typeof(int)))),
+                Expression.Assign(v, Expression.Divide(v, one)),
+                Expression.Assign(d, Expression.Power(Expression.Convert(v, typeof(double)), Expression.Constant(1.0))),
+                Expression.PowerAssign(d, Expression.Constant(1.0)),
+                Expression.Assign(v, Expression.Condition(Expression.IsTrue(Expression.GreaterThanOrEqual(v, zero)), v, v)),
+                Expression.Assign(v, Expression.Condition(Expression.IsFalse(Expression.TypeEqual(boxed, typeof(int))), zero, Expression.Unbox(boxed, typeof(int)))),
+                Expression.Assign(v, Expression.SubtractChecked(v, zero)),
+                Expression.Assign(v, Expression.Label(Expression.Label(typeof(int), "valued"), v)),
+                Expression.Assign(v, Expression.Add(v, Expression.New(typeof(int)))),
+                Expression.Assign(v, Expression.Add(v, Expression.Multiply(Expression.Property(null, typeof(Environment).GetProperty(nameof(Environment.ProcessorCount))!), zero))),
+                Expression.Assign(v, Expression.Add(v, new ZeroExtension())),
+                Expression.Assign(v, Expression.Convert(Expression.Dynamic(new PassThroughBinder(), typeof(object), boxed), typeof(int))),
+                Expression.IfThen(Expression.LessThan(v, Expression.Constant(int.MinValue)), Expression.Throw(Expression.New(typeof(InvalidOperationException).GetConstructor([typeof(string)])!, Expression.Call(boxed, typeof(object).GetMethod(nameof(ToString))!)))),
+                Expression.TryFinally(Expression.Assign(v, v), Expression.Assign(v, v)),
+                Expression.TryFault(Expression.Assign(v, v), Expression.Assign(v, v)),
+                Expression.TryCatch(Expression.Assign(v, v), Expression.Catch(Expression.Parameter(typeof(Exception), "ex"), Expression.Assign(v, zero), Expression.Equal(v, zero))),
+                Expression.RuntimeVariables(v),
+                Expression.Label(label),
+                Expression.DebugInfo(Expression.SymbolDocument("rebinder"), 1, 1, 1, 2),
+                Expression.ClearDebugInfo(Expression.SymbolDocument("rebinder")),
+                Expression.Convert(d, typeof(int)));
+        }
+
+        [Fact]
+        public void RebindCompiles_EveryStatement()
+        {
+            //each returns a different value, before or after the change, so a mixed up kind changes the result
+            var x = Expression.Parameter(typeof(Model), "x");
+            AssertRebinds(Expression.Lambda<Func<Model, int>>(AllStatements(Expression.Property(x, nameof(Model.Int))), x));
+
+            //and in the replacement, whose parameters are found by walking it
+            var model = CreateModel();
+            var wrapper = new Wrapper() { Model = model, Other = model, Models = [model, model], Flag = true, Index = 1, Obj = model };
+            var w = Expression.Parameter(typeof(Wrapper), "w");
+            var index = Expression.Property(w, nameof(Wrapper.Index));
+            AssertReplacement(Expression.Lambda<Func<Wrapper, Model>>(Expression.ArrayIndex(Expression.Property(w, nameof(Wrapper.Models)), Expression.Subtract(AllStatements(index), index)), w), wrapper);
+        }
+
+        [Fact]
+        public void RebindCompiles_IncrementsAndDecrements()
+        {
+            var x = Expression.Parameter(typeof(Model), "x");
+            var v = Expression.Variable(typeof(int), "v");
+            Expression<Func<Model, int>> Lambda(Func<ParameterExpression, Expression> change) => Expression.Lambda<Func<Model, int>>(
+                Expression.Block([v], Expression.Assign(v, Expression.Property(x, nameof(Model.Int))), Expression.Add(Expression.Multiply(change(v), Expression.Constant(100)), v)), x);
+
+            AssertRebinds(Lambda(Expression.PreIncrementAssign));
+            AssertRebinds(Lambda(Expression.PostIncrementAssign));
+            AssertRebinds(Lambda(Expression.PreDecrementAssign));
+            AssertRebinds(Lambda(Expression.PostDecrementAssign));
+        }
+
+        //reduces to 0, rebinding leaves it as it is
+        private sealed class ZeroExtension : Expression
+        {
+            public override ExpressionType NodeType => ExpressionType.Extension;
+            public override Type Type => typeof(int);
+            public override bool CanReduce => true;
+            public override Expression Reduce() => Constant(0);
+        }
+
+        //a dynamic call that returns its argument
+        private sealed class PassThroughBinder : System.Runtime.CompilerServices.CallSiteBinder
+        {
+            public override Expression Bind(object[] args, System.Collections.ObjectModel.ReadOnlyCollection<ParameterExpression> parameters, LabelTarget returnLabel)
+                => Expression.Return(returnLabel, parameters[0]);
         }
     }
 }

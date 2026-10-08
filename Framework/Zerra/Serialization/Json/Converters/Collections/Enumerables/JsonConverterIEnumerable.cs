@@ -23,7 +23,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Enumerables
         {
             if (token != JsonToken.ArrayStart)
             {
-                if (state.ErrorOnTypeMismatch)
+                if (state.ErrorOnReadMismatchedData)
                     ThrowCannotConvert(ref reader);
 
                 value = default;

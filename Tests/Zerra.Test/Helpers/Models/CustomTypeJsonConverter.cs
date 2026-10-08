@@ -31,27 +31,27 @@ namespace Zerra.Test.Helpers.Models
                     value = null;
                     return true;
                 case JsonToken.Number:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = null;
                     return true;
                 case JsonToken.False:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = null;
                     return true;
                 case JsonToken.True:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = null;
                     return true;
                 case JsonToken.ObjectStart:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = null;
                     return DrainObject(ref reader, ref state);
                 case JsonToken.ArrayStart:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = null;
                     return DrainArray(ref reader, ref state);

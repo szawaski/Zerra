@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Collections;
+using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
@@ -58,6 +59,9 @@ namespace Zerra.Linq
                     break;
                 case ExpressionType.ArrayLength:
                     ConvertToStringUnary(null, ".Length", exp, context);
+                    break;
+                case ExpressionType.ArrayIndex:
+                    ConvertToStringArrayIndex(exp, context);
                     break;
                 case ExpressionType.Assign:
                     ConvertToStringBinary("=", exp, context);
@@ -200,7 +204,7 @@ namespace Zerra.Linq
                     ConvertToStringNewArray(exp, context);
                     break;
                 case ExpressionType.Not:
-                    ConvertToStringUnary("!", null, exp, context);
+                    ConvertToStringUnary(exp.Type == typeof(bool) || exp.Type == typeof(bool?) ? "!" : "~", null, exp, context);
                     break;
                 case ExpressionType.NotEqual:
                     ConvertToStringBinary("!=", exp, context);
@@ -271,7 +275,7 @@ namespace Zerra.Linq
                     ConvertToStringTry(exp, context);
                     break;
                 case ExpressionType.TypeAs:
-                    ConvertToStringTypeBinaryExpression(" as ", exp, context);
+                    ConvertToStringUnary(null, $" as {exp.Type.Name}", exp, context);
                     break;
                 case ExpressionType.TypeEqual:
                     ConvertToStringTypeBinaryExpression("==", exp, context);
@@ -309,8 +313,30 @@ namespace Zerra.Linq
         {
             var unary = (UnaryExpression)exp;
             _ = context.Builder.Append(prefixOperation);
-            ConvertToString(unary.Operand, context);
+            ConvertToStringOperand(unary.Operand, context);
             _ = context.Builder.Append(suffixOperation);
+        }
+        //a nested operation is grouped so the text reads in the order it's evaluated
+        private static void ConvertToStringOperand(Expression exp, ConvertContext context)
+        {
+            if (exp is BinaryExpression && exp.NodeType != ExpressionType.ArrayIndex)
+            {
+                _ = context.Builder.Append('(');
+                ConvertToString(exp, context);
+                _ = context.Builder.Append(')');
+            }
+            else
+            {
+                ConvertToString(exp, context);
+            }
+        }
+        private static void ConvertToStringArrayIndex(Expression exp, ConvertContext context)
+        {
+            var binary = (BinaryExpression)exp;
+            ConvertToStringOperand(binary.Left, context);
+            _ = context.Builder.Append('[');
+            ConvertToString(binary.Right, context);
+            _ = context.Builder.Append(']');
         }
         private static void ConvertToStringBox(Expression exp, ConvertContext context)
         {
@@ -321,13 +347,9 @@ namespace Zerra.Linq
         private static void ConvertToStringBinary(string operation, Expression exp, ConvertContext context)
         {
             var binary = (BinaryExpression)exp;
-            //context.Builder.Append('(');
-            ConvertToString(binary.Left, context);
-            //context.Builder.Append(')');
+            ConvertToStringOperand(binary.Left, context);
             _ = context.Builder.Append(operation);
-            //context.Builder.Append('(');
-            ConvertToString(binary.Right, context);
-            //context.Builder.Append(')');
+            ConvertToStringOperand(binary.Right, context);
         }
         private static void ConvertToStringMember(Expression exp, ConvertContext context)
         {
@@ -357,7 +379,7 @@ namespace Zerra.Linq
         }
         private static void ConvertToStringConstantStack(Type type, object? value, ConvertContext context)
         {
-            if (context.MemberAccessStack.Count > 0)
+            if (context.MemberAccessStack.Count > 0 && value is not null)
             {
                 var memberProperty = context.MemberAccessStack.Pop();
 
@@ -429,14 +451,15 @@ namespace Zerra.Linq
         {
             var newExp = (NewArrayExpression)exp;
 
-            _ = context.Builder.Append("new ").Append(newExp.Type.Name).Append("[] {");
+            var bounds = exp.NodeType == ExpressionType.NewArrayBounds;
+            _ = context.Builder.Append("new ").Append(newExp.Type.GetElementType()!.Name).Append(bounds ? "[" : "[] {");
             for (var i = 0; i < newExp.Expressions.Count; i++)
             {
                 if (i > 0)
                     _ = context.Builder.Append(", ");
                 ConvertToString(newExp.Expressions[i], context);
             }
-            _ = context.Builder.Append('}');
+            _ = context.Builder.Append(bounds ? ']' : '}');
         }
         private static void ConvertToStringLabel(Expression exp, ConvertContext context)
         {
@@ -497,7 +520,10 @@ namespace Zerra.Linq
         private static void ConvertToStringIndex(Expression exp, ConvertContext context)
         {
             var index = (IndexExpression)exp;
-            _ = context.Builder.Append(index.Type.Name);
+            if (index.Object is null)
+                _ = context.Builder.Append(index.Indexer?.DeclaringType?.Name);
+            else
+                ConvertToStringOperand(index.Object, context);
             _ = context.Builder.Append('[');
             for (var i = 0; i < index.Arguments.Count; i++)
             {
@@ -595,7 +621,7 @@ namespace Zerra.Linq
         private static void ConvertToStringInvoke(Expression exp, ConvertContext context)
         {
             var invocation = (InvocationExpression)exp;
-            ConvertToString(invocation, context);
+            ConvertToStringOperand(invocation.Expression, context);
             _ = context.Builder.Append('(');
             for (var i = 0; i < invocation.Arguments.Count; i++)
             {
@@ -660,7 +686,6 @@ namespace Zerra.Linq
             if (value is null)
             {
                 _ = context.Builder.Append("null");
-                ConvertToStringValueStack(context);
                 return;
             }
 
@@ -674,6 +699,35 @@ namespace Zerra.Linq
             {
                 _ = context.Builder.Append(type.Name).Append('.').Append(value);
                 return;
+            }
+
+            if (TypeLookup.GetCoreType(type, out var coreType))
+            {
+                switch (coreType)
+                {
+                    case CoreType.Boolean: _ = context.Builder.Append((bool)value ? "true" : "false"); return;
+                    case CoreType.Byte: _ = context.Builder.Append(((byte)value).ToString(CultureInfo.InvariantCulture)); return;
+                    case CoreType.SByte: _ = context.Builder.Append(((sbyte)value).ToString(CultureInfo.InvariantCulture)); return;
+                    case CoreType.Int16: _ = context.Builder.Append(((short)value).ToString(CultureInfo.InvariantCulture)); return;
+                    case CoreType.UInt16: _ = context.Builder.Append(((ushort)value).ToString(CultureInfo.InvariantCulture)); return;
+                    case CoreType.Int32: _ = context.Builder.Append(((int)value).ToString(CultureInfo.InvariantCulture)); return;
+                    case CoreType.UInt32: _ = context.Builder.Append(((uint)value).ToString(CultureInfo.InvariantCulture)); return;
+                    case CoreType.Int64: _ = context.Builder.Append(((long)value).ToString(CultureInfo.InvariantCulture)); return;
+                    case CoreType.UInt64: _ = context.Builder.Append(((ulong)value).ToString(CultureInfo.InvariantCulture)); return;
+                    case CoreType.Single: _ = context.Builder.Append(((float)value).ToString(CultureInfo.InvariantCulture)); return;
+                    case CoreType.Double: _ = context.Builder.Append(((double)value).ToString(CultureInfo.InvariantCulture)); return;
+                    case CoreType.Decimal: _ = context.Builder.Append(((decimal)value).ToString(CultureInfo.InvariantCulture)); return;
+                    case CoreType.Char: _ = context.Builder.Append('\"').Append(value).Append('\"'); return;
+                    case CoreType.DateTime: _ = context.Builder.Append("DateTime.Parse(\"").Append(((DateTime)value).ToString("O", CultureInfo.InvariantCulture)).Append("\")"); return;
+                    case CoreType.DateTimeOffset: _ = context.Builder.Append("DateTimeOffset.Parse(\"").Append(((DateTimeOffset)value).ToString("O", CultureInfo.InvariantCulture)).Append("\")"); return;
+                    case CoreType.TimeSpan: _ = context.Builder.Append("TimeSpan.Parse(\"").Append(((TimeSpan)value).ToString("c", CultureInfo.InvariantCulture)).Append("\")"); return;
+#if NET6_0_OR_GREATER
+                    case CoreType.DateOnly: _ = context.Builder.Append("DateOnly.Parse(\"").Append(((DateOnly)value).ToString("O", CultureInfo.InvariantCulture)).Append("\")"); return;
+                    case CoreType.TimeOnly: _ = context.Builder.Append("TimeOnly.Parse(\"").Append(((TimeOnly)value).ToString("O", CultureInfo.InvariantCulture)).Append("\")"); return;
+#endif
+                    case CoreType.Guid: _ = context.Builder.Append('\"').Append(value.ToString()).Append('\"'); return;
+                    case CoreType.String: _ = context.Builder.Append('\"').Append(((string)value).Replace("\"", "\"\"")).Append('\"'); return;
+                }
             }
 
             if (type.IsArray)
@@ -707,42 +761,8 @@ namespace Zerra.Linq
                 return;
             }
 
-            if (TypeLookup.GetCoreType(type, out var coreType))
-            {
-                switch (coreType)
-                {
-                    case CoreType.Boolean: _ = context.Builder.Append((bool)value); return;
-                    case CoreType.Byte: _ = context.Builder.Append((byte)value); return;
-                    case CoreType.SByte: _ = context.Builder.Append((sbyte)value); return;
-                    case CoreType.Int16: _ = context.Builder.Append((short)value); return;
-                    case CoreType.UInt16: _ = context.Builder.Append((ushort)value); return;
-                    case CoreType.Int32: _ = context.Builder.Append((int)value); return;
-                    case CoreType.UInt32: _ = context.Builder.Append((uint)value); return;
-                    case CoreType.Int64: _ = context.Builder.Append((long)value); return;
-                    case CoreType.UInt64: _ = context.Builder.Append((ulong)value); return;
-                    case CoreType.Single: _ = context.Builder.Append((float)value); return;
-                    case CoreType.Double: _ = context.Builder.Append((double)value); return;
-                    case CoreType.Decimal: _ = context.Builder.Append((decimal)value); return;
-                    case CoreType.Char: _ = context.Builder.Append('\"').Append(value).Append('\"'); return;
-                    case CoreType.DateTime: _ = context.Builder.Append("DateTime.Parse(\"").Append(value).Append("\")"); return;
-                    case CoreType.DateTimeOffset: _ = context.Builder.Append("DateTimeOffset.Parse(\"").Append(value).Append("\")"); return;
-                    case CoreType.TimeSpan: _ = context.Builder.Append("TimeSpan.Parse(\"").Append(value).Append("\")"); return;
-#if NET6_0_OR_GREATER
-                    case CoreType.DateOnly: _ = context.Builder.Append("DateOnly.Parse(\"").Append(value).Append("\")"); return;
-                    case CoreType.TimeOnly: _ = context.Builder.Append("TimeOnly.Parse(\"").Append(value).Append("\")"); return;
-#endif
-                    case CoreType.Guid: _ = context.Builder.Append('\"').Append(value.ToString()).Append('\"'); return;
-                    case CoreType.String: _ = context.Builder.Append('\"').Append(((string)value).Replace("\"", "\"\"")).Append('\"'); return;
-                }
-            }
-
-            if (type == typeof(object))
-            {
-                _ = context.Builder.Append('\"').Append(value?.ToString()?.Replace("\"", "\"\"")).Append('\"');
-                return;
-            }
-
-            throw new NotImplementedException($"{type.Name} value {value?.ToString()} not converted");
+            //anything else, such as an object, is shown by its ToString
+            _ = context.Builder.Append('\"').Append(value.ToString()?.Replace("\"", "\"\"")).Append('\"');
         }
         private static void ConvertToStringValueStack(ConvertContext context)
         {

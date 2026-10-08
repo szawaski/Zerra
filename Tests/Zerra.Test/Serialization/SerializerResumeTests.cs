@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Text;
 using Xunit;
 using Zerra.Serialization.Bytes;
 using Zerra.Serialization.Bytes.IO;
@@ -78,6 +79,52 @@ namespace Zerra.Test.Serialization
                     JsonWriter.Testing = false;
                     JsonReader.Testing = false;
                 }
+            }
+        }
+
+        [Fact]
+        public async Task Json_ResumesObjectsAndNonGenericDictionaries()
+        {
+            var token = TestContext.Current.CancellationToken;
+            var custom = new TypesIDictionaryOfTModel.CustomIDictionary();
+            custom[1] = "one";
+            var model = new JsonSerializerDataTests.ObjectsModel()
+            {
+                Value = JsonSerializer.Deserialize<object>("{\"a\":[1,{\"b\":\"c\"},null,true],\"d\":{\"e\":-1.5e3},\"\":\"empty\"}"),
+                Dictionary = new System.Collections.Hashtable() { ["a"] = 1, ["b"] = new SimpleModel() { Value1 = 2, Value2 = "two" }, ["c"] = new List<object?>() { 1, null } },
+                Custom = custom,
+                Json = JsonSerializer.DeserializeJsonObject("{\"x\":[1,2,{\"y\":\"z\"}]}"),
+                After = 7,
+            };
+            var expected = JsonSerializer.Serialize(model);
+            var expectedBytes = Encoding.UTF8.GetBytes(expected);
+
+            JsonWriter.Testing = true;
+            JsonReader.Testing = true;
+            try
+            {
+                Assert.Equal(expected, JsonSerializer.Serialize(model));
+                Assert.Equal(expectedBytes, JsonSerializer.SerializeBytes(model));
+                using (var stream = new MemoryStream())
+                {
+                    await JsonSerializer.SerializeAsync(stream, model, cancellationToken: token);
+                    Assert.Equal(expectedBytes, stream.ToArray());
+                }
+
+                var results = new[]
+                {
+                    JsonSerializer.Deserialize<JsonSerializerDataTests.ObjectsModel>(expected)!,
+                    JsonSerializer.Deserialize<JsonSerializerDataTests.ObjectsModel>(expectedBytes)!,
+                    (await JsonSerializer.DeserializeAsync<JsonSerializerDataTests.ObjectsModel>(new MemoryStream(expectedBytes), cancellationToken: token))!,
+                };
+                JsonWriter.Testing = false;
+                foreach (var result in results)
+                    Assert.Equal(expected, JsonSerializer.Serialize(result));
+            }
+            finally
+            {
+                JsonWriter.Testing = false;
+                JsonReader.Testing = false;
             }
         }
 

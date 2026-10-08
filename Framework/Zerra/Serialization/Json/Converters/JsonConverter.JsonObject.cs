@@ -381,13 +381,13 @@ namespace Zerra.Serialization.Json.Converters
                         }
                     }
 
+                    if (reader.Token != JsonToken.String)
+                        throw reader.CreateException();
+
                     if (reader.UseBytes)
                         property = reader.UnescapeStringBytes();
                     else
-                        property = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars(); ;
-
-                    if (String.IsNullOrWhiteSpace(property))
-                        throw reader.CreateException();
+                        property = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
                 }
                 else
                 {

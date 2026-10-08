@@ -257,7 +257,7 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 var typeFromValue = value!.GetType();
 
-                if (typeFromValue != TypeDetail.Type)
+                if (state.UseTypes && typeFromValue != TypeDetail.Type)
                 {
                     var newConverter = ByteConverterFactory.Get(typeFromValue.GetTypeDetail(), memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
@@ -486,7 +486,7 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 var typeFromValue = value!.GetType();
 
-                if (typeFromValue != TypeDetail.Type)
+                if (state.UseTypes && typeFromValue != TypeDetail.Type)
                 {
                     var newConverter = ByteConverterFactory.Get(typeFromValue.GetTypeDetail(), memberKey, getter, setter);
                     if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
@@ -711,7 +711,7 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 var typeFromValue = value!.GetType();
 
-                if (typeFromValue != TypeDetail.Type)
+                if (state.UseTypes && typeFromValue != TypeDetail.Type)
                 {
                     var newConverter = ByteConverterFactory.Get(typeFromValue.GetTypeDetail(), memberKey, getter, setter);
 
@@ -943,7 +943,7 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 var typeFromValue = value!.GetType();
 
-                if (typeFromValue != TypeDetail.Type)
+                if (state.UseTypes && typeFromValue != TypeDetail.Type)
                 {
                     var newConverter = ByteConverterFactory.Get(typeFromValue.GetTypeDetail(), memberKey, getter, setter);
 

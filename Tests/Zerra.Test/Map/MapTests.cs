@@ -536,5 +536,59 @@ namespace Zerra.Test.Map
             _ = Assert.Throws<ArgumentNullException>(() => nothing.Copy<SimpleModel>());
             _ = Assert.Throws<ArgumentNullException>(() => nothing.Copy(typeof(SimpleModel)));
         }
+
+        private sealed class MergeSource { public int Value { get; set; } }
+        private sealed class MergeTarget { public string? Text { get; set; } public string? Other { get; set; } }
+        private sealed class MergeTextMap : IMapDefinition<MergeSource, MergeTarget>
+        {
+            public void Define(IMapSetup<MergeSource, MergeTarget> map) => map.Define(x => x.Text, x => $"text {x.Value}");
+        }
+        private sealed class MergeOtherMap : IMapDefinition<MergeSource, MergeTarget>
+        {
+            public void Define(IMapSetup<MergeSource, MergeTarget> map) => map.Define(x => x.Other, x => $"other {x.Value}");
+        }
+        private sealed class EmptySource { public int Value { get; set; } }
+        private sealed class EmptyTarget { public int Value { get; set; } }
+        private sealed class EmptyMap : IMapDefinition<EmptySource, EmptyTarget>
+        {
+            public void Define(IMapSetup<EmptySource, EmptyTarget> map) { }
+        }
+
+        [Fact]
+        public void Definitions_ForTheSamePair_Merge()
+        {
+            MapDefinition.Register(new MergeTextMap());
+            MapDefinition.Register(new MergeOtherMap());
+            var target = new MergeSource() { Value = 3 }.Map<MergeSource, MergeTarget>();
+            Assert.Equal("text 3", target.Text);
+            Assert.Equal("other 3", target.Other);
+
+            //a definition with nothing in it maps by name
+            MapDefinition.Register(new EmptyMap());
+            Assert.Equal(5, new EmptySource() { Value = 5 }.Map<EmptySource, EmptyTarget>().Value);
+        }
+
+        [Fact]
+        public void NullArguments_Throw()
+        {
+            ModelA? nullModel = null;
+            _ = Assert.Throws<ArgumentNullException>(() => nullModel!.Map<ModelA, ModelB>());
+            _ = Assert.Throws<ArgumentNullException>(() => nullModel!.MapTo(new ModelB()));
+            _ = Assert.Throws<ArgumentNullException>(() => ModelA.GetModelA().MapTo<ModelA, ModelB>(null!));
+            _ = Assert.Throws<ArgumentNullException>(() => ((object)ModelA.GetModelA()).MapTo(typeof(ModelA), null!, typeof(ModelB)));
+            _ = Assert.Throws<ArgumentNullException>(() => nullModel!.Copy());
+        }
+
+        [Fact]
+        public void ToExistingCollection_SameCountRefills()
+        {
+            var target = new LinkedList<int>([7, 8, 9]);
+            new List<int>() { 1, 2, 3 }.MapTo<List<int>, LinkedList<int>>(target);
+            Assert.Equal([1, 2, 3], target);
+
+            //a source that isn't a collection is counted
+            var counted = Enumerable.Range(4, 3).Select(x => x).Map<IEnumerable<int>, LinkedList<int>>();
+            Assert.Equal([4, 5, 6], counted);
+        }
     }
 }

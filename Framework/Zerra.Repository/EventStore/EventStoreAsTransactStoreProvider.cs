@@ -15,10 +15,12 @@ namespace Zerra.Repository
     public class EventStoreAsTransactStoreProvider<TModel> : RootTransactStoreProvider<TModel>
         where TModel : class, new()
     {
+        private readonly ulong saveStateEvery;
+
         /// <summary>
-        /// Gets the number of events after which a state snapshot is saved to accelerate future reads. Defaults to 100.
+        /// Gets the number of events after which the model's state is saved so reads replay from it instead of from the first event. Defaults to 100, 0 never saves the state.
         /// </summary>
-        protected virtual ulong SaveStateEvery => 100;
+        protected virtual ulong SaveStateEvery => saveStateEvery;
 
         /// <summary>
         /// Gets the underlying event store engine used for reading and appending events.
@@ -29,11 +31,13 @@ namespace Zerra.Repository
         /// Initializes a new instance on <paramref name="engine"/>.
         /// </summary>
         /// <param name="engine">The engine to use, such as one from a data context's GetEngine. Providers given the same in-memory engine share its store.</param>
-        public EventStoreAsTransactStoreProvider(IEventStoreEngine engine)
+        /// <param name="saveStateEvery">The number of events after which the model's state is saved so reads replay from it instead of from the first event, 0 never saves the state.</param>
+        public EventStoreAsTransactStoreProvider(IEventStoreEngine engine, ulong saveStateEvery = 100)
         {
             if (engine is null)
                 throw new ArgumentNullException(nameof(engine));
             this.Engine = engine;
+            this.saveStateEvery = saveStateEvery;
         }
 
         /// <inheritdoc/>
@@ -308,9 +312,9 @@ namespace Zerra.Repository
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var (modelState, modelEventNumber) = ReadModelState(id, query.TemporalOrder, query.TemporalDateFrom, query.TemporalNumberFrom);
+                var (modelState, modelEventNumber) = ReadModelState(id, query, many);
 
-                var eventDatas = Engine.ReadBackwards(streamName, null, null, modelEventNumber + 1, null, query.TemporalDateTo);
+                var eventDatas = Engine.ReadBackwards(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
 
                 var items = LoadModelsFromEventDatas(eventDatas, modelState, many, query);
 
@@ -328,9 +332,9 @@ namespace Zerra.Repository
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query.TemporalOrder, query.TemporalDateFrom, query.TemporalNumberFrom);
+                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query, many);
 
-                var eventDatas = await Engine.ReadBackwardsAsync(streamName, null, null, modelEventNumber + 1, null, query.TemporalDateTo);
+                var eventDatas = await Engine.ReadBackwardsAsync(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
 
                 var items = LoadModelsFromEventDatas(eventDatas, modelState, many, query);
 
@@ -349,9 +353,9 @@ namespace Zerra.Repository
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var (modelState, modelEventNumber) = ReadModelState(id, query.TemporalOrder, query.TemporalDateFrom, query.TemporalNumberFrom);
+                var (modelState, modelEventNumber) = ReadModelState(id, query, many);
 
-                var eventDatas = Engine.ReadBackwards(streamName, null, null, modelEventNumber + 1 ?? query.TemporalNumberTo, null, query.TemporalDateTo);
+                var eventDatas = Engine.ReadBackwards(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
 
                 var items = LoadEventModelsFromEventDatas(eventDatas, modelState, many, query);
 
@@ -369,9 +373,9 @@ namespace Zerra.Repository
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query.TemporalOrder, query.TemporalDateFrom, query.TemporalNumberFrom);
+                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query, many);
 
-                var eventDatas = await Engine.ReadBackwardsAsync(streamName, null, null, modelEventNumber + 1 ?? query.TemporalNumberTo, null, query.TemporalDateTo);
+                var eventDatas = await Engine.ReadBackwardsAsync(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
 
                 var items = LoadEventModelsFromEventDatas(eventDatas, modelState, many, query);
 
@@ -498,7 +502,7 @@ namespace Zerra.Repository
 
                                 if (query.TemporalDateTo.HasValue && query.TemporalDateTo.Value < eventData.Date)
                                     break;
-                                if (query.TemporalNumberTo.HasValue && eventData.Number < query.TemporalNumberTo.Value)
+                                if (query.TemporalNumberTo.HasValue && query.TemporalNumberTo.Value < eventData.Number)
                                     break;
                             }
                             return [modelState];
@@ -517,9 +521,7 @@ namespace Zerra.Repository
 
                                 Mapper.MapTo(eventModel.Model, modelState, eventModel.Graph);
 
-                                if (query.TemporalDateFrom.HasValue && eventData.Date >= query.TemporalDateFrom.Value)
-                                    break;
-                                if (query.TemporalNumberFrom.HasValue && eventData.Number >= query.TemporalNumberFrom.Value)
+                                if ((!query.TemporalDateFrom.HasValue && !query.TemporalNumberFrom.HasValue) || (query.TemporalDateFrom.HasValue && eventData.Date >= query.TemporalDateFrom.Value) || (query.TemporalNumberFrom.HasValue && eventData.Number >= query.TemporalNumberFrom.Value))
                                     break;
                             }
                             return [modelState];
@@ -641,6 +643,8 @@ namespace Zerra.Repository
                                             SourceType = eventModelData.SourceType
                                         };
                                         eventModels.Add(eventModel);
+                                        if (query.TemporalTake.HasValue && query.TemporalTake.Value == eventModels.Count)
+                                            break;
                                     }
                                     else
                                     {
@@ -677,7 +681,7 @@ namespace Zerra.Repository
 
                                 if (query.TemporalDateTo.HasValue && query.TemporalDateTo.Value < eventData.Date)
                                     break;
-                                if (query.TemporalNumberTo.HasValue && eventData.Number < query.TemporalNumberTo.Value)
+                                if (query.TemporalNumberTo.HasValue && query.TemporalNumberTo.Value < eventData.Number)
                                     break;
                             }
 
@@ -718,9 +722,7 @@ namespace Zerra.Repository
 
                                 Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
 
-                                if (!query.TemporalDateFrom.HasValue || eventData.Date >= query.TemporalDateFrom)
-                                    break;
-                                if (!query.TemporalNumberFrom.HasValue || eventData.Number >= query.TemporalNumberFrom.Value)
+                                if ((!query.TemporalDateFrom.HasValue && !query.TemporalNumberFrom.HasValue) || (query.TemporalDateFrom.HasValue && eventData.Date >= query.TemporalDateFrom.Value) || (query.TemporalNumberFrom.HasValue && eventData.Number >= query.TemporalNumberFrom.Value))
                                     break;
                             }
 
@@ -750,65 +752,91 @@ namespace Zerra.Repository
             }
         }
 
-        private (TModel?, ulong?) ReadModelState(object id, TemporalOrder? temporalOrder, DateTime? temporalDateFrom, ulong? temporalNumberFrom)
+        //the newest saved state from before what the query reads, the events are replayed from the event it was saved at
+        private (TModel?, ulong?) ReadModelState(object id, Query query, bool many)
         {
-            if (temporalOrder != TemporalOrder.Newest && !temporalDateFrom.HasValue && !temporalNumberFrom.HasValue)
-                return (null, null);
-
-            var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
-
-            TModel? model = null;
-            ulong? modelEventNumber = null;
-
-            long? count = null;
-            if (temporalOrder == TemporalOrder.Newest)
-                count = 1;
-
-            if (temporalOrder == TemporalOrder.Newest || temporalDateFrom.HasValue || temporalNumberFrom.HasValue)
+            ulong? numberAtOrBefore;
+            DateTime? dateBefore = null;
+            DateTime? dateAtOrBefore = null;
+            if (many || query.TemporalOrder == TemporalOrder.Oldest)
             {
-                var eventData = (Engine.ReadBackwards(streamName, null, count, temporalNumberFrom, null, temporalDateFrom)).LastOrDefault();
-                if (eventData is not null)
-                {
-                    var eventState = EventStoreCommon.Deserialize<EvenStoreStateData<TModel>>(eventData.Data.Span);
-                    if (eventState is null)
-                        throw new Exception("Failed to deserialize Model");
-
-                    modelEventNumber = eventState.Number;
-                    model = eventState.Model;
-                }
+                //the states from the From bound on are read, the replay starts before it
+                if (!query.TemporalNumberFrom.HasValue && !query.TemporalDateFrom.HasValue)
+                    return (null, null);
+                numberAtOrBefore = query.TemporalNumberFrom;
+                dateBefore = query.TemporalDateFrom;
+            }
+            else
+            {
+                numberAtOrBefore = query.TemporalNumberTo;
+                dateAtOrBefore = query.TemporalDateTo;
             }
 
-            return (model, modelEventNumber);
+            var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
+            var bounded = numberAtOrBefore.HasValue || dateBefore.HasValue || dateAtOrBefore.HasValue;
+            var eventDatas = Engine.ReadBackwards(streamName, null, bounded ? null : 1, null, null, null);
+
+            foreach (var eventData in eventDatas)
+            {
+                var eventState = EventStoreCommon.Deserialize<EvenStoreStateData<TModel>>(eventData.Data.Span);
+                if (eventState is null)
+                    throw new Exception("Failed to deserialize Model");
+
+                if (!eventState.Number.HasValue)
+                    continue;
+                if (numberAtOrBefore.HasValue && eventState.Number.Value > numberAtOrBefore.Value)
+                    continue;
+                if (dateBefore.HasValue && (!eventState.Date.HasValue || eventState.Date.Value >= dateBefore.Value))
+                    continue;
+                if (dateAtOrBefore.HasValue && (!eventState.Date.HasValue || eventState.Date.Value > dateAtOrBefore.Value))
+                    continue;
+
+                return (eventState.Model, eventState.Number);
+            }
+
+            return (null, null);
         }
-        private async Task<(TModel?, ulong?)> ReadModelStateAsync(object id, TemporalOrder? temporalOrder, DateTime? temporalDateFrom, ulong? temporalNumberFrom)
+        private async Task<(TModel?, ulong?)> ReadModelStateAsync(object id, Query query, bool many)
         {
-            if (temporalOrder != TemporalOrder.Newest && !temporalDateFrom.HasValue && !temporalNumberFrom.HasValue)
-                return (null, null);
-
-            var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
-
-            TModel? model = null;
-            ulong? modelEventNumber = null;
-
-            long? count = null;
-            if (temporalOrder == TemporalOrder.Newest)
-                count = 1;
-
-            if (temporalOrder == TemporalOrder.Newest || temporalDateFrom.HasValue || temporalNumberFrom.HasValue)
+            ulong? numberAtOrBefore;
+            DateTime? dateBefore = null;
+            DateTime? dateAtOrBefore = null;
+            if (many || query.TemporalOrder == TemporalOrder.Oldest)
             {
-                var eventData = (await Engine.ReadBackwardsAsync(streamName, null, count, temporalNumberFrom, null, temporalDateFrom)).LastOrDefault();
-                if (eventData is not null)
-                {
-                    var eventState = EventStoreCommon.Deserialize<EvenStoreStateData<TModel>>(eventData.Data.Span);
-                    if (eventState is null)
-                        throw new Exception("Failed to deserialize Model");
-
-                    modelEventNumber = eventState.Number;
-                    model = eventState.Model;
-                }
+                if (!query.TemporalNumberFrom.HasValue && !query.TemporalDateFrom.HasValue)
+                    return (null, null);
+                numberAtOrBefore = query.TemporalNumberFrom;
+                dateBefore = query.TemporalDateFrom;
+            }
+            else
+            {
+                numberAtOrBefore = query.TemporalNumberTo;
+                dateAtOrBefore = query.TemporalDateTo;
             }
 
-            return (model, modelEventNumber);
+            var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
+            var bounded = numberAtOrBefore.HasValue || dateBefore.HasValue || dateAtOrBefore.HasValue;
+            var eventDatas = await Engine.ReadBackwardsAsync(streamName, null, bounded ? null : 1, null, null, null);
+
+            foreach (var eventData in eventDatas)
+            {
+                var eventState = EventStoreCommon.Deserialize<EvenStoreStateData<TModel>>(eventData.Data.Span);
+                if (eventState is null)
+                    throw new Exception("Failed to deserialize Model");
+
+                if (!eventState.Number.HasValue)
+                    continue;
+                if (numberAtOrBefore.HasValue && eventState.Number.Value > numberAtOrBefore.Value)
+                    continue;
+                if (dateBefore.HasValue && (!eventState.Date.HasValue || eventState.Date.Value >= dateBefore.Value))
+                    continue;
+                if (dateAtOrBefore.HasValue && (!eventState.Date.HasValue || eventState.Date.Value > dateAtOrBefore.Value))
+                    continue;
+
+                return (eventState.Model, eventState.Number);
+            }
+
+            return (null, null);
         }
 
         private static object[] GetIDs(Query query)
@@ -844,43 +872,30 @@ namespace Zerra.Repository
         }
         private static object[] CalculatePermutations(object[][] sets)
         {
-            var list = new List<object?[]>();
+            var list = new List<object>();
+            foreach (var set in sets)
+            {
+                if (set.Length == 0)
+                    return [];
+            }
 
-            var indexer = 0;
             var indexes = new int[sets.Length];
             while (true)
             {
                 var permutation = new object[sets.Length];
                 for (var i = 0; i < sets.Length; i++)
-                {
-                    var index = indexes[i];
-                    var value = sets[i][index];
-                    permutation[i] = value;
-                }
+                    permutation[i] = sets[i][indexes[i]];
                 list.Add(permutation);
 
-                while (true)
+                var indexer = 0;
+                while (indexer < indexes.Length && ++indexes[indexer] == sets[indexer].Length)
                 {
-                    if (indexes[indexer] < sets[indexer].Length)
-                    {
-                        indexes[indexer]++;
-                        indexer = 0;
-                        break;
-                    }
-                    else
-                    {
-                        indexes[indexer] = 0;
-                        indexer++;
-                        if (indexer >= indexes.Length)
-                            break;
-                    }
+                    indexes[indexer] = 0;
+                    indexer++;
                 }
-
-                if (indexer >= indexes.Length)
-                    break;
+                if (indexer == indexes.Length)
+                    return list.ToArray();
             }
-
-            return list.ToArray();
         }
 
         /// <inheritdoc/>
@@ -904,16 +919,17 @@ namespace Zerra.Repository
 
             var eventNumber = Engine.Append(@event.ID, @event.Name, streamName, null, create ? EventStoreState.NotExisting : EventStoreState.Existing, data);
 
-            if (eventNumber > 0 && eventNumber % SaveStateEvery == 0)
+            var saveStateEvery = SaveStateEvery;
+            if (saveStateEvery > 0 && eventNumber > 0 && eventNumber % saveStateEvery == 0)
             {
                 var thisEventData = Engine.ReadBackwards(streamName, eventNumber, 1, null, null, null)[0];
 
+                //read from this provider, the state is saved as stored and not as the layers above it change it
                 var where = ModelAnalyzer.GetIdentityExpression<TModel>(id);
+                var stateQuery = new Query(QueryOperation.Single, modelType, TemporalOrder.Newest, null, null, null, eventNumber, null, null, where, null, null, null, null);
+                var modelState = ReadModels(stateQuery).Single();
 
-                var eventStates = Repo.EventMany<TModel>(TemporalOrder.Newest, thisEventData.Date, thisEventData.Date, null, null, where);
-                var eventState = eventStates.Where(x => x.Number == eventNumber).Single();
-
-                SaveModelState(id, eventState.Model, eventState.Number);
+                SaveModelState(id, modelState, eventNumber, thisEventData.Date);
             }
         }
         /// <inheritdoc/>
@@ -925,7 +941,7 @@ namespace Zerra.Repository
 
                 var eventNumber = Engine.Terminate(@event.ID, "Delete", streamName, null, EventStoreState.Existing);
 
-                SaveModelState(id, null, eventNumber);
+                SaveModelState(id, null, eventNumber, null);
             }
         }
 
@@ -933,6 +949,9 @@ namespace Zerra.Repository
         protected override sealed async Task PersistModelAsync(PersistEvent @event, object model, Graph? graph, bool create)
         {
             var id = ModelAnalyzer.GetIdentity(modelType, model);
+            if (id is null)
+                throw new NotSupportedException("No identity on model. These are required for event stores.");
+
             var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
             var eventStoreModel = new EventStoreEventModelData<TModel>()
@@ -947,16 +966,16 @@ namespace Zerra.Repository
 
             var eventNumber = await Engine.AppendAsync(@event.ID, @event.Name, streamName, null, create ? EventStoreState.NotExisting : EventStoreState.Existing, data);
 
-            if (eventNumber > 0 && eventNumber % SaveStateEvery == 0)
+            var saveStateEvery = SaveStateEvery;
+            if (saveStateEvery > 0 && eventNumber > 0 && eventNumber % saveStateEvery == 0)
             {
                 var thisEventData = (await Engine.ReadBackwardsAsync(streamName, eventNumber, 1, null, null, null))[0];
 
                 var where = ModelAnalyzer.GetIdentityExpression<TModel>(id);
+                var stateQuery = new Query(QueryOperation.Single, modelType, TemporalOrder.Newest, null, null, null, eventNumber, null, null, where, null, null, null, null);
+                var modelState = (await ReadModelsAsync(stateQuery)).Single();
 
-                var eventStates = await Repo.EventManyAsync<TModel>(TemporalOrder.Newest, thisEventData.Date, thisEventData.Date, null, null, where);
-                var eventState = eventStates.Where(x => x.Number == eventNumber).Single();
-
-                await SaveModelStateAsync(id, eventState.Model, eventState.Number);
+                await SaveModelStateAsync(id, modelState, eventNumber, thisEventData.Date);
             }
         }
         /// <inheritdoc/>
@@ -968,11 +987,11 @@ namespace Zerra.Repository
 
                 var eventNumber = await Engine.TerminateAsync(@event.ID, "Delete", streamName, null, EventStoreState.Existing);
 
-                await SaveModelStateAsync(id, null, eventNumber);
+                await SaveModelStateAsync(id, null, eventNumber, null);
             }
         }
 
-        private void SaveModelState(object id, TModel? model, ulong eventNumber)
+        private void SaveModelState(object id, TModel? model, ulong eventNumber, DateTime? date)
         {
             var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
 
@@ -980,13 +999,14 @@ namespace Zerra.Repository
             {
                 Model = model,
                 Number = eventNumber,
+                Date = date,
                 Deleted = model is null
             };
             var data = EventStoreCommon.Serialize(eventState);
 
             _ = Engine.Append(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
         }
-        private async Task SaveModelStateAsync(object id, TModel? model, ulong eventNumber)
+        private async Task SaveModelStateAsync(object id, TModel? model, ulong eventNumber, DateTime? date)
         {
             var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
 
@@ -994,6 +1014,7 @@ namespace Zerra.Repository
             {
                 Model = model,
                 Number = eventNumber,
+                Date = date,
                 Deleted = model is null
             };
             var data = EventStoreCommon.Serialize(eventState);

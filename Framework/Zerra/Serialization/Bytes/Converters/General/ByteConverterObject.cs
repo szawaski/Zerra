@@ -40,6 +40,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
         private readonly Dictionary<string, ByteConverterObjectMember> membersByName = new();
 
         private bool indexSizeUInt16Only;
+        private bool isObjectType;
 
         private bool collectValues;
         private ConstructorDetail<TValue>? parameterConstructor = null;
@@ -47,8 +48,14 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
         protected override sealed void Setup()
         {
+            isObjectType = TypeDetail.Type == typeof(object);
+
+            //an interface is read as its empty implementation, so it's written with that layout and the values come from the interface
+            var isInterface = TypeDetail.Type.IsInterface;
+            var layoutMembers = isInterface ? EmptyImplementations.GetType(TypeDetail.Type).GetTypeDetail().SerializableMembers : TypeDetail.SerializableMembers;
+
             var validMembers = new List<MemberDetail>();
-            foreach (var member in TypeDetail.SerializableMembers)
+            foreach (var member in layoutMembers)
             {
                 if (member.Attributes.Any(x => x is NonSerializedAttribute))
                     continue;
@@ -71,7 +78,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 if (index > ushort.MaxValue)
                     throw new NotSupportedException($"{TypeDetail.Type.Name} has an {nameof(SerializerIndexAttribute)} index too high");
 
-                var detail = new ByteConverterObjectMember(TypeDetail, member, index);
+                var detail = new ByteConverterObjectMember(TypeDetail, isInterface && TypeDetail.TryGetMember(member.Name, out var interfaceMember) ? interfaceMember : member, index);
                 membersByIndex.Add(index, detail);
             }
 
@@ -87,7 +94,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 if (index > ushort.MaxValue)
                     throw new NotSupportedException($"{TypeDetail.Type.Name} has too many members to serialize");
 
-                var detail = new ByteConverterObjectMember(TypeDetail, member, index);
+                var detail = new ByteConverterObjectMember(TypeDetail, isInterface && TypeDetail.TryGetMember(member.Name, out var interfaceMember) ? interfaceMember : member, index);
                 if (!hasAttributes)
                 {
                     membersByIndex.Add(index, detail);
@@ -432,6 +439,9 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TValue value)
         {
+            if (isObjectType && !state.UseTypes)
+                throw new NotSupportedException($"{nameof(ByteSerializer)} cannot write a {value!.GetType().Name} declared as object without {nameof(ByteSerializerOptions.UseTypes)}");
+
             if (indexSizeUInt16Only && !state.UseIndexSizeUInt16 && !state.UseMemberNames)
                 throw new NotSupportedException($"{TypeDetail.Type.Name} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
 

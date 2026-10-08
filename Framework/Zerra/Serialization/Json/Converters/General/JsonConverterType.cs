@@ -17,12 +17,12 @@ namespace Zerra.Serialization.Json.Converters.General
             switch (token)
             {
                 case JsonToken.ObjectStart:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainObject(ref reader, ref state);
                 case JsonToken.ArrayStart:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainArray(ref reader, ref state);
@@ -35,12 +35,13 @@ namespace Zerra.Serialization.Json.Converters.General
 
                     if (String.IsNullOrWhiteSpace(str) || !TypeFinder.TryGetTypeFromName(str, out value))
                     {
-                        ThrowInvalidValue(ref reader);
+                        if (state.ErrorOnReadMismatchedData)
+                            ThrowInvalidValue(ref reader);
                         value = default;
                     }
                     return true;
                 case JsonToken.Number:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
@@ -48,12 +49,12 @@ namespace Zerra.Serialization.Json.Converters.General
                     value = default;
                     return true;
                 case JsonToken.False:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
                 case JsonToken.True:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;

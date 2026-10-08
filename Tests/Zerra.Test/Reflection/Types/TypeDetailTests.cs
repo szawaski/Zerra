@@ -420,6 +420,7 @@ namespace Zerra.Test.Reflection.Types
         [Fact]
         public void Lookups_DoNotShareCacheEntries()
         {
+            //each lookup again with its own array gets the cached result
             var a = typeof(LookupModelA).GetTypeDetail();
             Assert.Empty(a.GetConstructor().Parameters);
             Assert.Single(a.GetConstructor([typeof(int)]).Parameters);
@@ -486,6 +487,72 @@ namespace Zerra.Test.Reflection.Types
             Assert.False(span.HasIEnumerable);
             Assert.Equal(typeof(int), span.InnerType);
             Assert.Empty(span.Constructors);
+        }
+
+        public class LookupMembersModel
+        {
+            public int Value { get; set; }
+            public int Field;
+            public int M(int a) => a;
+        }
+
+        [Fact]
+        public void Lookups_RepeatedAreCached()
+        {
+            var a = typeof(LookupModelA).GetTypeDetail();
+            Assert.Same(a.GetConstructor([typeof(int)]), a.GetConstructor([typeof(int)]));
+            Assert.Same(a.GetConstructor(2), a.GetConstructor(2));
+            Assert.Same(a.GetConstructor(), a.GetConstructor());
+            Assert.Same(a.GetMethod("M", [typeof(int)]), a.GetMethod("M", [typeof(int)]));
+            Assert.Same(a.GetMethod("M", 1, 1), a.GetMethod("M", 1, 1));
+            Assert.Same(a.GetMethod("M", 2), a.GetMethod("M", 2));
+            Assert.Same(a.GetMethod("M", 0, [typeof(int)]), a.GetMethod("M", 0, [typeof(int)]));
+            Assert.NotSame(a.GetMethod("M", 0, 1), a.GetMethod("M", 1, 1));
+        }
+
+        [Fact]
+        public void Lookups_ByName_AndNotFound()
+        {
+            var detail = typeof(LookupMembersModel).GetTypeDetail();
+            Assert.True(detail.TryGetMember(nameof(LookupMembersModel.Value), out var member));
+            Assert.Equal(nameof(LookupMembersModel.Value), member.Name);
+            Assert.Equal(nameof(LookupMembersModel.Field), detail.GetMember(nameof(LookupMembersModel.Field)).Name);
+            Assert.False(detail.TryGetMember("Missing", out _));
+            _ = Assert.Throws<ArgumentException>(() => detail.GetMember("Missing"));
+
+            Assert.True(detail.TryGetMethod(nameof(LookupMembersModel.M), out var method));
+            Assert.Equal(nameof(LookupMembersModel.M), method.Name);
+            Assert.False(detail.TryGetMethod("Missing", out _));
+
+            var a = typeof(LookupModelA).GetTypeDetail();
+            _ = Assert.Throws<MissingMethodException>(() => a.GetMethod("M", 5));
+            _ = Assert.Throws<MissingMethodException>(() => a.GetMethod("M", 3, 1));
+            _ = Assert.Throws<MissingMethodException>(() => a.GetMethod("M", [typeof(double)]));
+            _ = Assert.Throws<MissingMethodException>(() => a.GetMethod("M", 1, [typeof(int), typeof(int)]));
+            _ = Assert.Throws<MissingMethodException>(() => a.GetConstructor(5));
+            _ = Assert.Throws<MissingMethodException>(() => typeof(LookupStaticModel).GetTypeDetail().GetConstructor());
+            _ = Assert.Throws<InvalidOperationException>(() => a.GetConstructor(1));
+        }
+
+        public static class LookupStaticModel { }
+
+        [Fact]
+        public void TypeKey_EqualsAndToString()
+        {
+            var key = new TypeKey("M", 1, 2, [typeof(int), typeof(string)]);
+            var same = new TypeKey("M", 1, 2, [typeof(int), typeof(string)]);
+            Assert.Equal(key, same);
+            Assert.Equal(key.GetHashCode(), same.GetHashCode());
+            Assert.NotEqual(key, new TypeKey("M", 1, 2, [typeof(int), typeof(int)]));
+            Assert.NotEqual(key, new TypeKey("N", 1, 2, [typeof(int), typeof(string)]));
+            Assert.NotEqual(key, new TypeKey("M", 1, 2, null));
+            Assert.Equal(new TypeKey(null, null, null, null), new TypeKey(null, null, null, null));
+            Assert.False(key.Equals("M"));
+
+            Assert.Equal("M, 1, 2, [Int32, String]", key.ToString());
+            Assert.Equal("2", new TypeKey(null, null, 2, null).ToString());
+            Assert.Equal("[Int32]", new TypeKey(null, null, null, [typeof(int)]).ToString());
+            Assert.Equal("", new TypeKey(null, null, null, null).ToString());
         }
     }
 }

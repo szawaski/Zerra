@@ -162,17 +162,6 @@ namespace Zerra.SourceGeneration
                     if (isExplicitFromInterface)
                         continue;
 
-                    //try backing field pattern <{property.Name}>k__BackingField or <{property.Name}>i__Field
-                    var backingName = $"<{property.Name}>";
-                    var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName));
-                    //try same name without underscores case insensitive
-                    if (backingField == null)
-                    {
-                        var propertyNameLower = property.Name.Replace("_", "").ToLowerInvariant();
-                        backingField ??= fields.FirstOrDefault(x => x.Name.Replace("_", "").ToLowerInvariant() == propertyNameLower);
-                    }
-                    var isBacked = backingField != null;
-
                     if (hasFirst)
                         _ = sb.Append(", ");
                     else
@@ -222,7 +211,6 @@ namespace Zerra.SourceGeneration
 
                     GenerateAttributes(sb, property);
 
-                    _ = sb.Append(", ").Append(Helper.BoolString(isBacked));
                     _ = sb.Append(", ").Append(Helper.BoolString(property.IsStatic));
                     _ = sb.Append(", ").Append(Helper.BoolString(isExplicitFromInterface)).Append(")");
                 }
@@ -276,7 +264,6 @@ namespace Zerra.SourceGeneration
 
                     GenerateAttributes(sb, @field);
 
-                    _ = sb.Append(", true");
                     _ = sb.Append(", ").Append(Helper.BoolString(@field.IsStatic));
                     _ = sb.Append(", false)");
                 }
@@ -594,7 +581,6 @@ namespace Zerra.SourceGeneration
                     {
                         if (!TypeLookup.CoreEnumTypeLookup(innerType.EnumUnderlyingType.Name, out var enumTypeParsed))
                             throw new InvalidOperationException($"Failed to get enum underlying type for {Helper.GetFullName(typeSymbol)} {innerType.EnumUnderlyingType.Name}");
-                        //the same as TypeDetailGenerator, a nullable enum has the nullable underlying type
                         enumType = enumTypeParsed switch
                         {
                             CoreEnumType.Byte => CoreEnumType.ByteNullable,

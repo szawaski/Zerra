@@ -204,5 +204,25 @@ namespace Zerra.Test.CQRS.Network
             Assert.Equal(originalContentType, header.ContentType);
             Assert.True(header.IsError);
         }
+
+        [Theory]
+        [InlineData("RAW|Provider|x~")]
+        [InlineData("RAW|Provider~")]
+        [InlineData("RAW|Provider|1|extra~")]
+        [InlineData("BAD|Provider|1~")]
+        public void ReadHeader_Invalid_Throws(string header)
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(header);
+            _ = Assert.Throws<CqrsNetworkException>(() => TcpCommon.ReadHeader(bytes, bytes.Length));
+        }
+
+        [Fact]
+        public void ReadHeader_UploadAndNullProvider()
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes("UPL|*|1~");
+            var header = TcpCommon.ReadHeader(bytes, bytes.Length);
+            Assert.True(header.IsUpload);
+            Assert.Null(header.ProviderType);
+        }
     }
 }

@@ -96,5 +96,17 @@ namespace Zerra.Test.Encryption
                 bytes[i] = (byte)i;
             return bytes;
         }
+
+        [Fact]
+        public void Verify_InvalidHashes_AreFalse()
+        {
+            foreach (var hash in new[] { "", " ", "not base64!", "AAAA" })
+            {
+                Assert.False(Hasher.VerifyHash(HashAlgoritmType.SHA256, "plain", hash));
+                Assert.False(Hasher.PBKDF2VerifyHash("plain", hash));
+            }
+            Assert.False(Hasher.VerifyHash(HashAlgoritmType.SHA256, [1], [1, 2]));
+            Assert.False(Hasher.PBKDF2VerifyHash([1], [1, 2]));
+        }
     }
 }

@@ -13,7 +13,7 @@ namespace Zerra.Serialization.Json.Converters.Special
         {
             if (token != JsonToken.String)
             {
-                if (state.ErrorOnTypeMismatch)
+                if (state.ErrorOnReadMismatchedData)
                     ThrowCannotConvert(ref reader);
 
                 value = default;
@@ -63,7 +63,8 @@ namespace Zerra.Serialization.Json.Converters.Special
             }
 #endif
 
-            ThrowInvalidValue(ref reader);
+            if (state.ErrorOnReadMismatchedData)
+                ThrowInvalidValue(ref reader);
             value = default;
             return true;
         }

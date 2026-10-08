@@ -435,7 +435,7 @@ namespace Zerra.Test.CQRS
             }
         }
 
-        public static async Task SustainedLoad(IBus busClient, LoadHandler handler, int maxHandling, CancellationToken cancellationToken)
+        internal static async Task SustainedLoad(IBus busClient, LoadHandler handler, int maxHandling, CancellationToken cancellationToken)
         {
             var commands = Enumerable.Range(0, 1000).Select(x => new LoadCommand() { ID = Guid.NewGuid() }).ToArray();
             var commandsWithResult = Enumerable.Range(0, 200).Select(x => new LoadCommandWithResult() { ID = Guid.NewGuid(), Value = x }).ToArray();

@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
 
@@ -241,22 +242,29 @@ namespace Zerra
         /// Reads the <see cref="Signature"/> string representation of a graph into a new graph.
         /// </summary>
         /// <param name="signature">The signature of a graph.</param>
-        /// <returns>A graph with the members of the signature.</returns>
-        public static Graph ParseSignature(string signature)
+        /// <param name="graph">When this returns <c>true</c>, a graph with the members of the signature; otherwise, <c>null</c>.</param>
+        /// <returns><c>true</c> if the signature is valid; otherwise, <c>false</c>.</returns>
+        public static bool TryParseSignature(string? signature,
+#if !NETSTANDARD2_0
+            [NotNullWhen(true)]
+#endif
+            out Graph? graph)
         {
-            var graph = new Graph();
-            ParseSignature(signature, graph);
-            return graph;
+            graph = new Graph();
+            if (TryParseSignature(signature, graph))
+                return true;
+            graph = null;
+            return false;
         }
         /// <summary>
         /// Reads the <see cref="Signature"/> string representation of a graph into an existing graph, replacing any members it has.
+        /// If the signature isn't valid the graph is left empty.
         /// </summary>
         /// <param name="signature">The signature of a graph.</param>
         /// <param name="graph">The graph to read the members into.</param>
-        public static unsafe void ParseSignature(string signature, Graph graph)
+        /// <returns><c>true</c> if the signature is valid; otherwise, <c>false</c>.</returns>
+        public static unsafe bool TryParseSignature(string? signature, Graph graph)
         {
-            if (signature is null)
-                throw new ArgumentNullException(nameof(signature));
             if (graph is null)
                 throw new ArgumentNullException(nameof(graph));
 
@@ -265,10 +273,13 @@ namespace Zerra
             graph.removedMembers = null;
             graph.childGraphs = null;
 
+            if (signature is null)
+                return false;
+
             if (signature.Length == 0)
             {
                 graph.signature = String.Empty;
-                return;
+                return true;
             }
 
             graph.signature = null;
@@ -277,21 +288,26 @@ namespace Zerra
             {
                 var end = pFixed + signature.Length;
                 var p = pFixed;
-                ParseSignature(graph, ref p, end, signature);
-                if (p != end)
-                    throw new FormatException($"Invalid graph signature {signature}");
+                if (TryParseSignature(graph, ref p, end) && p == end)
+                    return true;
             }
+
+            graph.includeAllMembers = false;
+            graph.addedMembers = null;
+            graph.removedMembers = null;
+            graph.childGraphs = null;
+            return false;
         }
         //a signature is a run of tokens: A: for all members, P:member for added, R:member for removed, G:member:(tokens) for a child graph
         //member names cannot contain a colon so a name ends at the colon of the next token, at a closing parenthesis, or at the end
-        private static unsafe void ParseSignature(Graph graph, ref char* p, char* end, string signature)
+        private static unsafe bool TryParseSignature(Graph graph, ref char* p, char* end)
         {
             while (p < end)
             {
                 if (*p == ')')
-                    return;
+                    return true;
                 if (p + 1 >= end || *(p + 1) != ':')
-                    throw new FormatException($"Invalid graph signature {signature}");
+                    return false;
 
                 var token = *p;
                 p += 2;
@@ -328,24 +344,28 @@ namespace Zerra
                             while (p < end && *p != ':')
                                 p++;
                             if (p + 1 >= end || *(p + 1) != '(')
-                                throw new FormatException($"Invalid graph signature {signature}");
+                                return false;
                             var member = new string(start, 0, (int)(p - start));
                             p += 2;
 
                             var childGraph = new Graph();
-                            ParseSignature(childGraph, ref p, end, signature);
+                            if (!TryParseSignature(childGraph, ref p, end))
+                                return false;
                             if (p >= end || *p != ')')
-                                throw new FormatException($"Invalid graph signature {signature}");
+                                return false;
                             p++;
 
                             graph.childGraphs ??= new();
+                            if (graph.childGraphs.ContainsKey(member))
+                                return false;
                             graph.childGraphs.Add(member, childGraph);
                             break;
                         }
                     default:
-                        throw new FormatException($"Invalid graph signature {signature}");
+                        return false;
                 }
             }
+            return true;
         }
 
         /// <summary>
@@ -451,8 +471,14 @@ namespace Zerra
                 }
                 if (graph.instanceGraphs is not null)
                 {
+                    existingGraph.instanceGraphs ??= new();
                     foreach (var instanceGraph in graph.instanceGraphs)
-                        existingGraph.AddInstanceGraph(instanceGraph.Key, instanceGraph.Value);
+                    {
+                        existingGraph.instanceGraphs[instanceGraph.Key] = instanceGraph.Value;
+                        instanceGraph.Value.instanceGraphs = existingGraph.instanceGraphs;
+                        instanceGraph.Value.signature = null;
+                    }
+                    existingGraph.signature = null;
                 }
             }
             else

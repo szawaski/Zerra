@@ -105,6 +105,8 @@ public sealed class OrdersStoreProvider<TModel> : TransactStoreProvider<TModel>
 
 Each in-memory engine is its own store, so a test can start from an empty one with `new MemoryEngine()`. Providers for related models must share an engine.
 
+`EventStoreAsTransactStoreProvider<TModel>` stores a model in an event store (KurrentDB or `MemoryEngine`) instead of a table. Each change is an event, so the model's history can be read with the `Temporal` and `Event` queries, and queries must name the model's identity. Every 100 events it saves the model's state so reads don't replay the whole stream; pass `saveStateEvery` to change that, or 0 to never save it.
+
 ### 3. Register the Repo
 
 ```csharp
@@ -174,7 +176,7 @@ Every method has an `Async` version. Use the async ones in handlers. Pass collec
 - **Dates and times:** parts such as `.Year`, `.Date`, and `.DayOfWeek` on `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, and `TimeSpan`, including `TotalHours` and the other totals.
 - **Related collections:** `Any`, `All`, `Count`/`LongCount`, and `Sum`/`Min`/`Max`/`Average` with a selector.
 
-Anything that doesn't use the model, such as `DateTime.Now.Date`, is evaluated before the query. Case sensitivity of `==`, `Contains`, `StartsWith`, and `EndsWith` follows the database collation, and `Trim`/`IsNullOrWhiteSpace` only trim spaces.
+Anything that doesn't use the model, such as `DateTime.Now.Date`, is evaluated before the query. Comparisons with null columns give the same results as C#, so `x.Maybe != 4` includes rows where `Maybe` is null on every engine. Case sensitivity of `==`, `Contains`, `StartsWith`, and `EndsWith` follows the database collation, and `Trim`/`IsNullOrWhiteSpace` only trim spaces.
 
 ### Relations and Partial Updates
 

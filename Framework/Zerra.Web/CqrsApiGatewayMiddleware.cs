@@ -168,7 +168,7 @@ namespace Zerra.Web
                         DoNotWriteNullProperties = zerraJsonSerializer.Options?.DoNotWriteNullProperties ?? default,
                         DoNotWriteDefaultProperties = zerraJsonSerializer.Options?.DoNotWriteDefaultProperties ?? default,
                         EnumAsNumber = zerraJsonSerializer.Options?.EnumAsNumber ?? default,
-                        ErrorOnTypeMismatch = zerraJsonSerializer.Options?.ErrorOnTypeMismatch ?? default,
+                        ErrorOnReadMismatchedData = zerraJsonSerializer.Options?.ErrorOnReadMismatchedData ?? default,
                         IgnoreCase = zerraJsonSerializer.Options?.IgnoreCase ?? default,
                     });
                     acceptSerializer = namelessSerializer;

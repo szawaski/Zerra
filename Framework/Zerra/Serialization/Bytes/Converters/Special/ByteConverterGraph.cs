@@ -25,8 +25,9 @@ namespace Zerra.Serialization.Bytes.Converters.Special
                 return true;
             }
 
-            var graph = TypeDetail.Creator!();
-            Graph.ParseSignature(signature, (Graph)(object)graph!);
+            var graph = TypeDetail.Creator!(); //graph may be typed so has to create here
+            if (!Graph.TryParseSignature(signature, (Graph)(object)graph!))
+                throw new FormatException($"Invalid graph signature {signature}");
             value = graph;
             return true;
         }

@@ -72,7 +72,7 @@ dotnet add package Zerra
 - **[Store demo](Demo/Store/README.md)**: seven services, five data stores, three message brokers, a browser gateway, and an event-sourced aggregate
 - **[Documentation Index](docs/Index.md)**: every guide, from queries and events to serializers and AOT
 - **[Running in Production](docs/Production.md)**: delivery, security, versioning, and observability
-- **[Testing](docs/Testing.md)**: what the ~1,700 tests cover, including transport tests against real brokers and databases
+- **[Testing](docs/Testing.md)**: line coverage per library and what the tests cover, including transport tests against real brokers and databases
 
 ## When to Use Zerra
 

@@ -214,6 +214,87 @@ namespace Zerra.Test.Web
             Assert.Equal(7, ((TestEvent)serializer.Deserialize(request.Data.MessageData!, typeof(TestEvent))!).Value);
         }
 
+        private sealed class SyncAsyncAuthorizer : ICqrsAuthorizer
+        {
+            public void Authorize(Dictionary<string, List<string?>> headers) { }
+            public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken = default)
+                => ValueTask.FromResult(new Dictionary<string, List<string?>>() { ["Authorization"] = ["Bearer async"] });
+            public Dictionary<string, List<string?>> GetAuthorizationHeaders(CancellationToken cancellationToken = default)
+                => new() { ["Authorization"] = ["Bearer sync"] };
+        }
+
+        [Theory(Timeout = timeout)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task JsonSerializerRouteAndAuthorizer_SentWithEachRequest(bool nameless)
+        {
+            var json = new ZerraJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = nameless });
+            using var listener = Zerra.Test.CQRS.TestNetwork.StartHttpListener("", out var baseUrl);
+            var requests = new ConcurrentQueue<(string Path, string? ContentType, string? Authorization)>();
+            var serving = Task.Run(async () =>
+            {
+                for (var i = 0; i < 2; i++)
+                {
+                    var context = await listener.GetContextAsync();
+                    requests.Enqueue((context.Request.Url!.AbsolutePath, context.Request.ContentType, context.Request.Headers["Authorization"]));
+                    var body = json.SerializeBytes(42);
+                    context.Response.ContentLength64 = body.Length;
+                    await context.Response.OutputStream.WriteAsync(body);
+                    context.Response.Close();
+                }
+            }, TestContext.Current.CancellationToken);
+            using var client = new KestrelCqrsClient(baseUrl, json, null, null, null, new SyncAsyncAuthorizer(), "cqrs");
+            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+            Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken));
+            await serving;
+
+            var contentType = nameless ? HttpCommon.ContentTypeJsonNameless : HttpCommon.ContentTypeJson;
+            Assert.Equal([("/cqrs", contentType, "Bearer async"), ("/cqrs", contentType, "Bearer sync")], requests.ToArray());
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task PrincipalClaims_SentWithEachRequest()
+        {
+            //the server makes the claims the handler's principal when it has no authorizer
+            using var server = new FakeServer(null, request => request.Data.MessageResult || request.Data.ProviderType is not null ? FakeResponse.Model(42) : new FakeResponse(200, []));
+            using var client = CreateClient(server, null);
+            var previous = Thread.CurrentPrincipal;
+            Thread.CurrentPrincipal = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity([new System.Security.Claims.Claim("name", "tester")], "test"));
+            try
+            {
+                var cancellationToken = TestContext.Current.CancellationToken;
+                _ = ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source);
+                _ = await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, cancellationToken);
+                await ((ICommandProducer)client).DispatchAsync(new TestCommand { Value = 1 }, source, cancellationToken);
+                _ = await ((ICommandProducer)client).DispatchAwaitAsync(new TestCommandWithResult { Value = 1 }, source, cancellationToken);
+                await ((IEventProducer)client).DispatchAsync(new TestEvent { Value = 1 }, source, cancellationToken);
+            }
+            finally
+            {
+                Thread.CurrentPrincipal = previous;
+            }
+
+            Assert.Equal(5, server.Requests.Count);
+            foreach (var request in server.Requests)
+            {
+                var claim = Assert.Single(request.Data.Claims!);
+                Assert.Equal(["name", "tester"], claim);
+            }
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task TwoStreamArguments_Throws()
+        {
+            using var server = new FakeServer(null, _ => FakeResponse.Model(42));
+            using var client = CreateClient(server, null);
+
+            _ = Assert.Throws<ArgumentException>(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.TwoStreams), [typeof(Stream), typeof(Stream)], [new MemoryStream(), new MemoryStream()], source));
+            _ = await Assert.ThrowsAsync<ArgumentException>(() => ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.TwoStreams), [typeof(Stream), typeof(Stream)], [new MemoryStream(), new MemoryStream()], source, TestContext.Current.CancellationToken));
+            Assert.Empty(server.Requests);
+        }
+
         private static KestrelCqrsClient CreateClient(FakeServer server, IEncryptor? encryptor)
         {
             var client = new KestrelCqrsClient(server.Url, serializer, encryptor, null, null, null, null);
@@ -247,17 +328,8 @@ namespace Zerra.Test.Web
                 this.encryptor = encryptor;
                 this.Respond = respond;
 
-                int port;
-                using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
-                {
-                    socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
-                    port = ((IPEndPoint)socket.LocalEndPoint!).Port;
-                }
-                Url = $"http://localhost:{port}/";
-
-                listener = new HttpListener();
-                listener.Prefixes.Add(Url);
-                listener.Start();
+                listener = Zerra.Test.CQRS.TestNetwork.StartHttpListener("", out var baseUrl);
+                Url = baseUrl;
                 _ = HandleRequests();
             }
 
@@ -303,6 +375,7 @@ namespace Zerra.Test.Web
         {
             int GetThings(int value);
             Stream GetStream();
+            int TwoStreams(Stream first, Stream second);
         }
 
         public sealed class TestCommand : ICommand

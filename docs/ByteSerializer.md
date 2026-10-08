@@ -76,7 +76,7 @@ Derive from `ByteConverter<T>` (in `Zerra.Serialization.Bytes.Converters`) and r
 ## Troubleshooting
 
 - **Deserialization fails or produces wrong values:** check both sides use the same options and the same type definitions, or version the type with `[SerializerIndex]`. When encryption is used, also check both sides use the same key.
-- **A type isn't supported:** give it a parameterless constructor, or one whose parameter names match its members, and use public properties. For members typed as `object` or an interface, set `UseTypes`. Without it, a value typed as `object`, including the items of a non-generic collection such as `ArrayList`, comes back as a plain `object`.
+- **A type isn't supported:** give it a parameterless constructor, or one whose parameter names match its members, and use public properties. For members typed as `object` or an interface, set `UseTypes`. Without it, serializing a value typed as `object`, including the items of a non-generic collection such as `ArrayList`, throws a `NotSupportedException`.
 - **A type fails under Native AOT:** check the project declaring it references the `Zerra` package, or mark it `[GenerateTypeDetail]`. See [AOT](AOT.md).
 
 ## See Also

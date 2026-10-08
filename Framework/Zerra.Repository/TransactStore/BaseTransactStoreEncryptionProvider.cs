@@ -295,12 +295,11 @@ namespace Zerra.Repository
                 return eventModels;
 
             var encryptedModels = eventModels.Select(x => x.Model).ToArray();
-            var models = DecryptModels(encryptedModels, query.Graph, true);
-            var i = 0;
+            var models = DecryptModels(encryptedModels, query.Graph, true).GetEnumerator();
             foreach (var eventModel in eventModels)
             {
-                eventModel.Model = encryptedModels[i];
-                i++;
+                _ = models.MoveNext();
+                eventModel.Model = (TModel)models.Current;
             }
 
             return eventModels;
@@ -452,12 +451,11 @@ namespace Zerra.Repository
                 return eventModels;
 
             var encryptedModels = eventModels.Select(x => x.Model).ToArray();
-            var models = DecryptModels(encryptedModels, query.Graph, true);
-            var i = 0;
+            var models = DecryptModels(encryptedModels, query.Graph, true).GetEnumerator();
             foreach (var eventModel in eventModels)
             {
-                eventModel.Model = encryptedModels[i];
-                i++;
+                _ = models.MoveNext();
+                eventModel.Model = (TModel)models.Current;
             }
 
             return eventModels;
@@ -553,6 +551,7 @@ namespace Zerra.Repository
                         copy[i] = model.Copy(modelType);
                     }
                 }
+                models = copy;
             }
 
             foreach (var model in models)
@@ -568,8 +567,7 @@ namespace Zerra.Repository
                             {
                                 if (plain.Length <= encryptionPrefix.Length || plain.Substring(0, encryptionPrefix.Length) != encryptionPrefix)
                                 {
-                                    plain = encryptionPrefix + plain;
-                                    var encrypted = SymmetricEncryptor.Encrypt(EncryptionAlgorithm, EncryptionKey, plain);
+                                    var encrypted = encryptionPrefix + SymmetricEncryptor.Encrypt(EncryptionAlgorithm, EncryptionKey, plain);
                                     property.SetterBoxed!(model, encrypted);
                                 }
                             }

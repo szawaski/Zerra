@@ -117,17 +117,8 @@ namespace Zerra.Test.CQRS.Network
             {
                 this.statusCode = statusCode;
                 this.setCookies = setCookies.Length > 0 ? setCookies : ["session=abc; Path=/"];
-                int port;
-                using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
-                {
-                    socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
-                    port = ((IPEndPoint)socket.LocalEndPoint!).Port;
-                }
-                Url = $"http://localhost:{port}/login/";
-
-                listener = new HttpListener();
-                listener.Prefixes.Add(Url);
-                listener.Start();
+                listener = Zerra.Test.CQRS.TestNetwork.StartHttpListener("login/", out var baseUrl);
+                Url = $"{baseUrl}login/";
                 _ = HandleRequests();
             }
 

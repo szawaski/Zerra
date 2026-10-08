@@ -5,6 +5,7 @@
 using System.Reflection;
 using System.Reflection.Emit;
 using Xunit;
+using Zerra.Map;
 using Zerra.Reflection.Dynamic;
 
 namespace Zerra.Test.Reflection.Dynamic
@@ -44,7 +45,22 @@ namespace Zerra.Test.Reflection.Dynamic
             var openDerivedParameters = openDerived.DefineGenericParameters("TOther");
             openDerived.SetParent(genericBase.MakeGenericType(openDerivedParameters[0]));
 
-            foreach (var type in new[] { service, unused, single, generic, serviceBase, genericBase, serviceA, serviceB, genericImplementation, closedDerived, openDerived })
+            var discoveredMap = module.DefineType("DiscoveryTestTypes.DiscoveredMap", TypeAttributes.Public | TypeAttributes.Class, typeof(object));
+            discoveredMap.AddInterfaceImplementation(typeof(IMapDefinition<DiscoveredMapSource, DiscoveredMapTarget>));
+            _ = discoveredMap.DefineDefaultConstructor(MethodAttributes.Public);
+            var define = discoveredMap.DefineMethod("Define", MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.NewSlot, typeof(void), [typeof(IMapSetup<DiscoveredMapSource, DiscoveredMapTarget>)]);
+            var il = define.GetILGenerator();
+            il.Emit(OpCodes.Ldarg_1);
+            il.Emit(OpCodes.Call, typeof(DiscoveredMapSource).GetMethod(nameof(DiscoveredMapSource.Define))!);
+            il.Emit(OpCodes.Ret);
+
+            var openMap = module.DefineType("DiscoveryTestTypes.OpenMap`1", TypeAttributes.Public | TypeAttributes.Class, typeof(object));
+            var openMapParameters = openMap.DefineGenericParameters("TItem");
+            openMap.AddInterfaceImplementation(typeof(IMapDefinition<,>).MakeGenericType(openMapParameters[0], openMapParameters[0]));
+            var openDefine = openMap.DefineMethod("Define", MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.Final | MethodAttributes.HideBySig | MethodAttributes.NewSlot, typeof(void), [typeof(IMapSetup<,>).MakeGenericType(openMapParameters[0], openMapParameters[0])]);
+            openDefine.GetILGenerator().Emit(OpCodes.Ret);
+
+            foreach (var type in new[] { service, unused, single, generic, serviceBase, genericBase, serviceA, serviceB, genericImplementation, closedDerived, openDerived, discoveredMap, openMap })
                 _ = type.CreateType();
 
             var path = Path.Combine(Path.GetTempPath(), $"DiscoveryTestTypes_{Guid.NewGuid():N}.dll");
@@ -69,8 +85,9 @@ namespace Zerra.Test.Reflection.Dynamic
             var closedDerived = Get("ClosedDerived");
             var openDerived = Get("OpenDerived`1");
 
+            Discovery.Initialize(true);
             Discovery.Initialize(false);
-            Discovery.Initialize(false);
+
 
             //interfaces, the abstract base is a type with the interface but not a class
             Assert.True(Discovery.HasTypeByInterface(service));
@@ -149,7 +166,17 @@ namespace Zerra.Test.Reflection.Dynamic
             _ = Assert.Throws<ArgumentException>(() => Discovery.GetClassByInterface(serviceA));
             _ = Assert.Throws<ArgumentException>(() => Discovery.GetTypesByInterface(serviceA));
             _ = Assert.Throws<ArgumentException>(() => Discovery.GetClassesByInterface(serviceA));
+            //maps found by discovery are registered
+            MapDiscovery.Initialize();
+            Assert.Equal("discovered 7", new DiscoveredMapSource() { Value = 7 }.Map<DiscoveredMapSource, DiscoveredMapTarget>().Text);
         }
+
+        public sealed class DiscoveredMapSource
+        {
+            public int Value { get; set; }
+            public static void Define(IMapSetup<DiscoveredMapSource, DiscoveredMapTarget> map) => map.Define(x => x.Text, x => $"discovered {x.Value}");
+        }
+        public sealed class DiscoveredMapTarget { public string? Text { get; set; } }
     }
 
     [AttributeUsage(AttributeTargets.Class)]

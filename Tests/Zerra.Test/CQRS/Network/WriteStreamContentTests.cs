@@ -289,5 +289,18 @@ namespace Zerra.Test.CQRS.Network
             //an async delegate isn't run synchronously
             _ = Assert.Throws<NotSupportedException>(() => asyncContent.CopyTo(new MemoryStream(), null, TestContext.Current.CancellationToken));
         }
+
+        [Fact]
+        public async Task SerializeToStreamAsync_WithoutToken_WritesThroughEitherDelegate()
+        {
+            //the overload without a cancellation token that HttpClient no longer calls
+            var method = typeof(WriteStreamContent).GetMethod("SerializeToStreamAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, [typeof(Stream), typeof(System.Net.TransportContext)])!;
+            foreach (var content in new[] { new WriteStreamContent(stream => stream.Write([1, 2, 3])), new WriteStreamContent(stream => stream.WriteAsync(new byte[] { 1, 2, 3 }).AsTask()) })
+            {
+                using var target = new MemoryStream();
+                await (Task)method.Invoke(content, [target, null])!;
+                Assert.Equal([1, 2, 3], target.ToArray());
+            }
+        }
     }
 }

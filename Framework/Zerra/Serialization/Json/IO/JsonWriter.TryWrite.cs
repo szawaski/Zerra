@@ -68,7 +68,7 @@ namespace Zerra.Serialization.Json.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool TryWrite(sbyte value, out int sizeNeeded)
         {
-            sizeNeeded = 3;
+            sizeNeeded = 4;
             if (length - position < sizeNeeded)
             {
                 if (!Grow(sizeNeeded))

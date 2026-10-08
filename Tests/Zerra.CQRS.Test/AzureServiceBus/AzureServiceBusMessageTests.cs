@@ -314,5 +314,121 @@ namespace Zerra.CQRS.Test.AzureServiceBus
                 await AzureServiceBusCommon.DeleteQueue(host, updatedQueue);
             }
         }
+        [Fact(Timeout = 120000)]
+        public async Task TestRegistrationRules()
+        {
+            var commandTopic = MessageTest.NewTopic("Rules");
+            var eventTopic = MessageTest.NewTopic("RulesEvent");
+            var serializer = new ZerraByteSerializer();
+            try
+            {
+                await using var consumer = new AzureServiceBusConsumer(host, serializer, null, null, new TestLogger(), null);
+                await using var producer = new AzureServiceBusProducer(host, serializer, null, null, new TestLogger(), null);
+                await MessageEdgeTest.TestRegistrationRules(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+                await AzureServiceBusCommon.DeleteTopic(host, eventTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestEnvironmentRoundTrip()
+        {
+            const string environment = "ZerraEdge";
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            try
+            {
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, environment))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, environment))
+                {
+                    await MessageEdgeTest.TestRoundTrip(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, $"{environment}_{commandTopic}");
+                await AzureServiceBusCommon.DeleteTopic(host, $"{environment}_{eventTopic}");
+            }
+            Assert.Equal(0, log.Errors);
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestReceiveLimitAwaited()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            try
+            {
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                {
+                    await MessageEdgeTest.TestReceiveLimitAwaited(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestMalformedMessages()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            await using var client = new Azure.Messaging.ServiceBus.ServiceBusClient(host);
+            async Task Send(string queueOrTopic, byte[] body)
+            {
+                await using var sender = client.CreateSender(queueOrTopic);
+                await sender.SendMessageAsync(new Azure.Messaging.ServiceBus.ServiceBusMessage(body));
+            }
+            try
+            {
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                {
+                    await MessageEdgeTest.TestMalformedMessages(producer, producer, consumer, consumer, commandTopic, eventTopic, serializer, log,
+                        (type, data, source) => serializer.SerializeBytes(new AzureServiceBusMessage { MessageType = type, MessageData = data, Source = source }),
+                        body => Send(commandTopic, body),
+                        body => Send(eventTopic, body),
+                        null,
+                        TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+                await AzureServiceBusCommon.DeleteTopic(host, eventTopic);
+            }
+        }
+
+        [Fact(Timeout = 120000)]
+        public async Task TestLongNamesTruncated()
+        {
+            //nothing is created until a consumer opens or a producer sends
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            var environment = new string('e', 300);
+            await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, environment))
+            await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, environment))
+            {
+                ((ICommandProducer)producer).RegisterCommandType(1, "topic", typeof(TestCommand));
+                ((IEventProducer)producer).RegisterEventType(1, "topic", typeof(TestEvent));
+                ((ICommandConsumer)consumer).Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null));
+                ((IEventConsumer)consumer).Setup("EdgeService", (_, _) => Task.CompletedTask);
+                ((ICommandConsumer)consumer).RegisterCommandType(1, "topic", typeof(TestCommand));
+                ((IEventConsumer)consumer).RegisterEventType(1, "topic", typeof(TestEvent), EventConsumerMode.PerService);
+            }
+            //the producer's command queue and event topic, and the consumer's
+            Assert.True(log.Warnings >= 4, $"{log.Warnings} warnings");
+        }
     }
 }

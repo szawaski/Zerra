@@ -910,7 +910,10 @@ namespace Zerra.Repository.MsSql
 
             sb.Write("CASE WHEN(");
 
+            //the test is a condition, a bit column alone isn't one
+            context.MemberContext.OperatorStack.Push(Operator.And);
             ConvertToSql(conditional.Test, ref sb, context);
+            _ = context.MemberContext.OperatorStack.Pop();
 
             sb.Write(")THEN(");
 
@@ -1636,7 +1639,7 @@ namespace Zerra.Repository.MsSql
         }
 
         /// <inheritdoc/>
-        protected override string? OperatorToString(Operator operation)
+        protected override string? OperatorToString(Operator operation, Type type)
         {
             return operation switch
             {

@@ -391,7 +391,7 @@ Class
         [Fact]
         public void ParseSignatureEmpty()
         {
-            var graph = Graph.ParseSignature(String.Empty);
+            Assert.True(Graph.TryParseSignature(String.Empty, out var graph));
             Assert.True(graph.IsEmpty);
             Assert.Equal(String.Empty, graph.Signature);
             Assert.Equal(new Graph(), graph);
@@ -403,7 +403,7 @@ Class
             var graph = new Graph(true);
             Assert.Equal("A:", graph.Signature);
 
-            var parsed = Graph.ParseSignature(graph.Signature);
+            Assert.True(Graph.TryParseSignature(graph.Signature, out var parsed));
             Assert.True(parsed.IncludeAllMembers);
             Assert.Equal(graph, parsed);
         }
@@ -414,7 +414,7 @@ Class
             var graph = new Graph("Prop1", "Prop2");
             graph.RemoveMember("Prop3");
 
-            var parsed = Graph.ParseSignature(graph.Signature);
+            Assert.True(Graph.TryParseSignature(graph.Signature, out var parsed));
 
             Assert.Equal(graph, parsed);
             Assert.True(parsed.HasMember("Prop1"));
@@ -433,7 +433,7 @@ Class
                 x => x.Class.Value1
             );
 
-            var parsed = Graph.ParseSignature(graph.Signature);
+            Assert.True(Graph.TryParseSignature(graph.Signature, out var parsed));
 
             Assert.Equal(graph.Signature, parsed.Signature);
             TestBasic(parsed);
@@ -448,7 +448,7 @@ Class
             );
             graph.RemoveMember("Prop1");
 
-            var parsed = Graph.ParseSignature(graph.Signature);
+            Assert.True(Graph.TryParseSignature(graph.Signature, out var parsed));
 
             Assert.Equal(graph.Signature, parsed.Signature);
             var nested = parsed.GetChildGraph("Nested");
@@ -464,7 +464,7 @@ Class
         public void ParseSignatureIntoExistingGraph()
         {
             var graph = new Graph<GraphModel>(x => x.Prop2);
-            Graph.ParseSignature(new Graph<GraphModel>(x => x.Prop1).Signature, graph);
+            Assert.True(Graph.TryParseSignature(new Graph<GraphModel>(x => x.Prop1).Signature, graph));
 
             //the members it had are replaced, not merged
             Assert.True(graph.HasMember("Prop1"));
@@ -477,9 +477,16 @@ Class
         [InlineData("P:Prop1:")]
         [InlineData("G:Child")]
         [InlineData("G:Child:(P:Value1")]
+        [InlineData("G:Child:()G:Child:()")]
         public void ParseSignatureInvalid(string signature)
         {
-            _ = Assert.Throws<FormatException>(() => Graph.ParseSignature(signature));
+            Assert.False(Graph.TryParseSignature(signature, out var parsed));
+            Assert.Null(parsed);
+
+            //an existing graph is left empty
+            var graph = new Graph<GraphModel>(x => x.Prop1);
+            Assert.False(Graph.TryParseSignature(signature, graph));
+            Assert.True(graph.IsEmpty);
         }
 
         private void TestBasic(Graph graph)
@@ -591,8 +598,117 @@ Class
             _ = Assert.Throws<ArgumentNullException>(() => graph.RemoveMembers((IEnumerable<string>)null!));
             _ = Assert.Throws<InvalidOperationException>(() => graph.AddChildGraph("", new Graph()));
             _ = Assert.Throws<InvalidOperationException>(() => graph.AddOrReplaceChildGraph("", new Graph()));
-            _ = Assert.Throws<ArgumentNullException>(() => Graph.ParseSignature(null!, graph));
-            _ = Assert.Throws<ArgumentNullException>(() => Graph.ParseSignature("A:", null!));
+            Assert.False(Graph.TryParseSignature(null, out _));
+            _ = Assert.Throws<ArgumentNullException>(() => Graph.TryParseSignature("A:", (Graph)null!));
+        }
+
+        [Fact]
+        public void AddChildGraph_Again_Merges()
+        {
+            var graph = new Graph();
+            graph.AddChildGraph("Child", new Graph("A", "B"));
+
+            var more = new Graph(true, ["C"]);
+            more.RemoveMember("B");
+            more.AddChildGraph("Inner", new Graph("X"));
+            var instance = new object();
+            more.AddInstanceGraph(instance, new Graph("Y"));
+            graph.AddChildGraph("Child", more);
+
+            var child = graph.GetChildGraph("Child")!;
+            Assert.True(child.IncludeAllMembers);
+            Assert.True(child.HasMember("A"));
+            Assert.True(child.HasMember("C"));
+            Assert.False(child.HasMember("B"));
+            Assert.True(child.GetChildGraph("Inner")!.HasMember("X"));
+            Assert.True(child.GetInstanceGraph(instance).HasMember("Y"));
+
+            //a member added plainly becomes the whole child when it's given a child graph
+            var replaced = new Graph("Child");
+            replaced.AddOrReplaceChildGraph("Child", new Graph("A"));
+            Assert.True(replaced.GetChildGraph("Child")!.IncludeAllMembers);
+        }
+
+        [Fact]
+        public void GetChildInstanceGraph_Generic()
+        {
+            var graph = new Graph<GraphModel>(x => x.Class.Value1);
+            Assert.Null(new Graph<GraphModel>().GetChildInstanceGraph<SimpleModel>(nameof(GraphModel.Class), new object()));
+            Assert.Null(new Graph<GraphModel>().GetChildInstanceGraph(nameof(GraphModel.Class), new object()));
+            Assert.Null(new Graph<GraphModel>().GetChildGraph<SimpleModel>(nameof(GraphModel.Class)));
+            Assert.Null(graph.GetChildInstanceGraph<SimpleModel>("Missing", new object()));
+            Assert.Null(graph.GetChildInstanceGraph("Missing", new object()));
+
+            //without an instance graph it is the child graph
+            var child = graph.GetChildInstanceGraph<SimpleModel>(nameof(GraphModel.Class), new object())!;
+            Assert.True(child.HasMember(x => x.Value1));
+
+            //an untyped child is converted
+            var untyped = new Graph<GraphModel>();
+            untyped.AddChildGraph(nameof(GraphModel.Class), new Graph(nameof(SimpleModel.Value2)));
+            Assert.True(untyped.GetChildInstanceGraph<SimpleModel>(nameof(GraphModel.Class), new object())!.HasMember(x => x.Value2));
+
+            //an instance graph is used for its instance, typed or not
+            var instance = new SimpleModel();
+            graph.GetChildGraph(nameof(GraphModel.Class))!.AddInstanceGraph(instance, new Graph<SimpleModel>(x => x.Value2));
+            Assert.True(graph.GetChildInstanceGraph<SimpleModel>(nameof(GraphModel.Class), instance)!.HasMember(x => x.Value2));
+            var other = new SimpleModel();
+            graph.GetChildGraph(nameof(GraphModel.Class))!.AddInstanceGraph(other, new Graph(nameof(SimpleModel.Value1)));
+            Assert.True(graph.GetChildInstanceGraph<SimpleModel>(nameof(GraphModel.Class), other)!.HasMember(x => x.Value1));
+        }
+
+        [Fact]
+        public void ToString_AllMembersNestedAndInstances()
+        {
+            var graph = new Graph<GraphModel>(true, x => x.Nested.Class.Value1);
+            var nl = Environment.NewLine;
+            Assert.Equal($"[ALL]{nl}Nested{nl}  Class{nl}    Value1", graph.ToString());
+
+            graph.AddInstanceGraph(new object(), new Graph());
+            Assert.Equal("Graph has instances", graph.ToString());
+        }
+
+        [Fact]
+        public void InvalidMemberExpressions_Throw()
+        {
+            _ = Assert.Throws<ArgumentException>(() => new Graph<GraphModel>(x => 5));
+            _ = Assert.Throws<ArgumentException>(() => new Graph<GraphModel>(x => x.Class.ToString()));
+            _ = Assert.Throws<ArgumentException>(() => new Graph<GraphModel>(x => x.Array.Select(y => y.Value1).ToArray()));
+            _ = Assert.Throws<ArgumentException>(() => new Graph<GraphModel>(x => DateTime.Now));
+            _ = Assert.Throws<ArgumentException>(() => new Graph<GraphModel>(x => x.Array.Select(y => 5)));
+        }
+
+        [Fact]
+        public void Typed_RemovedChildAndNullArguments()
+        {
+            //once a child is removed, members under it are left out instead of bringing it back
+            var graph = new Graph<GraphModel>(true);
+            graph.RemoveMember(x => x.Class);
+            graph.AddMembers(x => x.Class.Value1);
+            graph.AddMember(x => x.Class.Value2);
+            graph.RemoveMembers(x => x.Class.Value1);
+            graph.RemoveMember(x => x.Class.Value2);
+            graph.AddChildGraph(x => x.Class.Value1, new Graph());
+            graph.AddOrReplaceChildGraph(x => x.Class.Value1, new Graph());
+            Assert.False(graph.HasMember(x => x.Class));
+            Assert.False(graph.HasMember(x => x.Class.Value1));
+            Assert.False(graph.HasMemberExplicitly(x => x.Class.Value1));
+            Assert.True(graph.HasMember(x => x.Prop1));
+
+            graph.AddOrReplaceChildGraph(x => x.Nested, new Graph<GraphModel>(x => x.Prop2));
+            Assert.True(graph.GetChildGraph<GraphModel>(x => x.Nested)!.HasMember(x => x.Prop2));
+            graph.AddOrReplaceChildGraph(x => x.Nested, new Graph<GraphModel>(x => x.Prop1));
+            Assert.False(graph.GetChildGraph<GraphModel>(x => x.Nested)!.HasMember(x => x.Prop2));
+            Assert.Null(new Graph<GraphModel>().GetChildGraph(x => x.Class));
+
+            _ = Assert.Throws<ArgumentNullException>(() => graph.AddMembers((IEnumerable<System.Linq.Expressions.Expression<Func<GraphModel, object?>>>)null!));
+            _ = Assert.Throws<ArgumentNullException>(() => graph.RemoveMembers((IEnumerable<System.Linq.Expressions.Expression<Func<GraphModel, object?>>>)null!));
+            _ = Assert.Throws<ArgumentNullException>(() => graph.AddMember((System.Linq.Expressions.Expression<Func<GraphModel, object?>>)null!));
+            _ = Assert.Throws<ArgumentNullException>(() => graph.RemoveMember((System.Linq.Expressions.Expression<Func<GraphModel, object?>>)null!));
+            _ = Assert.Throws<ArgumentNullException>(() => graph.AddChildGraph((System.Linq.Expressions.Expression<Func<GraphModel, object?>>)null!, new Graph()));
+            _ = Assert.Throws<ArgumentNullException>(() => graph.AddOrReplaceChildGraph((System.Linq.Expressions.Expression<Func<GraphModel, object?>>)null!, new Graph()));
+            _ = Assert.Throws<ArgumentNullException>(() => graph.HasMember((System.Linq.Expressions.Expression<Func<GraphModel, object?>>)null!));
+            _ = Assert.Throws<ArgumentNullException>(() => graph.HasMemberExplicitly((System.Linq.Expressions.Expression<Func<GraphModel, object?>>)null!));
         }
     }
 }

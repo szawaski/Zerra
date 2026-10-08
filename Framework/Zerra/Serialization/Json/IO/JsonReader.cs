@@ -180,6 +180,74 @@ namespace Zerra.Serialization.Json.IO
         }
 
         /// <summary>
+        /// Determines whether the current number token follows the JSON number grammar, such as <c>-1.5e3</c>.
+        /// </summary>
+        /// <returns><c>true</c> if the number is valid JSON; otherwise, <c>false</c>.</returns>
+        public readonly bool IsNumberValid()
+        {
+            if (useBytes)
+            {
+                var number = ValueBytes;
+                var i = 0;
+                if (i < number.Length && number[i] == '-')
+                    i++;
+                if (i == number.Length)
+                    return false;
+                if (number[i] == '0')
+                    i++;
+                else if (number[i] >= '1' && number[i] <= '9')
+                    while (++i < number.Length && number[i] >= '0' && number[i] <= '9') { }
+                else
+                    return false;
+                if (i < number.Length && number[i] == '.')
+                {
+                    if (++i == number.Length || number[i] < '0' || number[i] > '9')
+                        return false;
+                    while (++i < number.Length && number[i] >= '0' && number[i] <= '9') { }
+                }
+                if (i < number.Length && (number[i] == 'e' || number[i] == 'E'))
+                {
+                    if (++i < number.Length && (number[i] == '+' || number[i] == '-'))
+                        i++;
+                    if (i == number.Length || number[i] < '0' || number[i] > '9')
+                        return false;
+                    while (++i < number.Length && number[i] >= '0' && number[i] <= '9') { }
+                }
+                return i == number.Length;
+            }
+            else
+            {
+                var number = ValueChars;
+                var i = 0;
+                if (i < number.Length && number[i] == '-')
+                    i++;
+                if (i == number.Length)
+                    return false;
+                if (number[i] == '0')
+                    i++;
+                else if (number[i] >= '1' && number[i] <= '9')
+                    while (++i < number.Length && number[i] >= '0' && number[i] <= '9') { }
+                else
+                    return false;
+                if (i < number.Length && number[i] == '.')
+                {
+                    if (++i == number.Length || number[i] < '0' || number[i] > '9')
+                        return false;
+                    while (++i < number.Length && number[i] >= '0' && number[i] <= '9') { }
+                }
+                if (i < number.Length && (number[i] == 'e' || number[i] == 'E'))
+                {
+                    if (++i < number.Length && (number[i] == '+' || number[i] == '-'))
+                        i++;
+                    if (i == number.Length || number[i] < '0' || number[i] > '9')
+                        return false;
+                    while (++i < number.Length && number[i] >= '0' && number[i] <= '9') { }
+                }
+                return i == number.Length;
+            }
+        }
+
+        /// <summary>
         /// Creates a <see cref="FormatException"/> with a default error message and context information.
         /// </summary>
         /// <returns>A format exception with details about the current position and surrounding content.</returns>

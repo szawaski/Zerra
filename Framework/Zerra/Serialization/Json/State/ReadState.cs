@@ -59,9 +59,9 @@ namespace Zerra.Serialization.Json.State
         public bool EnumAsNumber { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to throw an error on type mismatch.
+        /// Gets or sets a value indicating whether to throw when valid JSON doesn't fit the type.
         /// </summary>
-        public bool ErrorOnTypeMismatch { get; set; }
+        public bool ErrorOnReadMismatchedData { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether comparison should be case-insensitive.
@@ -166,7 +166,7 @@ namespace Zerra.Serialization.Json.State
         {
             Nameless = options.Nameless;
             EnumAsNumber = options.EnumAsNumber;
-            ErrorOnTypeMismatch = options.ErrorOnTypeMismatch;
+            ErrorOnReadMismatchedData = options.ErrorOnReadMismatchedData;
             Graph = graph;
             IsFinalBlock = isFinalBlock;
             IncludeReturnGraph = hasReturnGraph;

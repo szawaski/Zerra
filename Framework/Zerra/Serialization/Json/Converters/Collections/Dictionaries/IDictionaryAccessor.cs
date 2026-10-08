@@ -9,6 +9,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
         public IDictionary<TKey, TValue> Dictionary => dictionary;
 
         private TKey? key;
+        private readonly bool errorOnDuplicate;
         public string? GetCurrentKeyString(bool enumAsNumber)
         {
             if (key is null)
@@ -48,9 +49,10 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
             return key.ToString();
         }
 
-        public IDictionaryAccessor(IDictionary<TKey, TValue> dictionary)
+        public IDictionaryAccessor(IDictionary<TKey, TValue> dictionary, bool errorOnDuplicate)
         {
             this.dictionary = dictionary;
+            this.errorOnDuplicate = errorOnDuplicate;
         }
 
         public void SetKey(TKey key)
@@ -60,7 +62,10 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
         public void Add(TValue value)
         {
-            dictionary.Add(key!, value);
+            if (errorOnDuplicate)
+                dictionary.Add(key!, value);
+            else
+                dictionary[key!] = value;
         }
     }
 }

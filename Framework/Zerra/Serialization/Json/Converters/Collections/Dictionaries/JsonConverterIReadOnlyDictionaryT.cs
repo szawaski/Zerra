@@ -54,7 +54,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     }
                     state.Current.HasReadFirstToken = true;
 
-                    accessor = new DictionaryAccessor<TKey, TValue>(new Dictionary<TKey, TValue>());
+                    accessor = new DictionaryAccessor<TKey, TValue>(new Dictionary<TKey, TValue>(), state.ErrorOnReadMismatchedData);
 
                     if (reader.Token == JsonToken.ObjectEnd)
                     {
@@ -215,15 +215,35 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
                     if (!state.Current.HasReadValue)
                     {
-                        if (!converter.TryReadToValue(ref reader, ref state, out var pair))
+                        if (state.Current.ChildJsonToken == JsonToken.NotDetermined && reader.Token != JsonToken.ObjectStart && reader.Token != JsonToken.ArrayStart)
                         {
-                            state.Current.HasReadFirstToken = true;
-                            state.Current.HasCreated = true;
-                            state.Current.Object = dictionary;
-                            value = default;
-                            return false;
+                            if (state.ErrorOnReadMismatchedData)
+                                ThrowCannotConvert(ref reader);
                         }
-                        dictionary.Add(pair.Key, pair.Value);
+                        else
+                        {
+                            if (!converter.TryReadToValue(ref reader, ref state, out var pair))
+                            {
+                                state.Current.HasReadFirstToken = true;
+                                state.Current.HasCreated = true;
+                                state.Current.Object = dictionary;
+                                value = default;
+                                return false;
+                            }
+                            if (pair.Key is null)
+                            {
+                                if (state.ErrorOnReadMismatchedData)
+                                    ThrowCannotConvert(ref reader);
+                            }
+                            else if (state.ErrorOnReadMismatchedData)
+                            {
+                                dictionary.Add(pair.Key, pair.Value);
+                            }
+                            else
+                            {
+                                dictionary[pair.Key] = pair.Value;
+                            }
+                        }
                     }
 
                     if (!reader.TryReadToken(out state.SizeNeeded))
@@ -251,7 +271,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
             }
             else
             {
-                if (state.ErrorOnTypeMismatch)
+                if (state.ErrorOnReadMismatchedData)
                     ThrowCannotConvert(ref reader);
 
                 value = default;

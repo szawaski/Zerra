@@ -197,5 +197,64 @@ namespace Zerra.Test
             Assert.Null("Missing".ToEnumNullable<TestEnum>());
             Assert.Null(((string?)null).ToEnumNullable<TestEnum>());
         }
+
+        [Flags]
+        public enum ShortFlagsEnum : short { None = 0, A = 1, B = 2, High = 0x4000 }
+        [Flags]
+        public enum UShortFlagsEnum : ushort { None = 0, A = 1, Top = 0x8000 }
+        [Flags]
+        public enum UIntFlagsEnum : uint { None = 0, A = 1, Top = 0x80000000 }
+        [Flags]
+        public enum LongFlagsEnum : long { None = 0, A = 1, High = 1L << 40 }
+        [Flags]
+        public enum ManyFlagsEnum
+        {
+            None = 0, F0 = 1 << 0, F1 = 1 << 1, F2 = 1 << 2, F3 = 1 << 3, F4 = 1 << 4, F5 = 1 << 5, F6 = 1 << 6, F7 = 1 << 7,
+            F8 = 1 << 8, F9 = 1 << 9, F10 = 1 << 10, F11 = 1 << 11, F12 = 1 << 12, F13 = 1 << 13,
+        }
+
+        [Fact]
+        public void Flags_EveryUnderlyingType()
+        {
+            Assert.Equal("A|High", EnumName.GetName(ShortFlagsEnum.A | ShortFlagsEnum.High));
+            Assert.Equal(ShortFlagsEnum.A | ShortFlagsEnum.High, EnumName.Parse<ShortFlagsEnum>("A|High"));
+            Assert.Equal("A|Top", EnumName.GetName(UShortFlagsEnum.A | UShortFlagsEnum.Top));
+            Assert.Equal("A|Top", EnumName.GetName(UIntFlagsEnum.A | UIntFlagsEnum.Top));
+            Assert.Equal("A|High", EnumName.GetName(LongFlagsEnum.A | LongFlagsEnum.High));
+            Assert.Equal(LongFlagsEnum.A | LongFlagsEnum.High, EnumName.Parse<LongFlagsEnum>("A|High"));
+
+            //a combination is cached after the first time
+            Assert.Equal("A|B", EnumName.GetName(ShortFlagsEnum.A | ShortFlagsEnum.B));
+            Assert.Equal("A|B", EnumName.GetName(ShortFlagsEnum.A | ShortFlagsEnum.B));
+
+            //a part that isn't a name is skipped
+            Assert.Equal(ShortFlagsEnum.A | ShortFlagsEnum.B, EnumName.Parse<ShortFlagsEnum>("A|Missing|B"));
+        }
+
+        [Fact]
+        public void Flags_ConcurrentCombinations()
+        {
+            //new combinations are added while other threads read the names
+            var errors = 0;
+            _ = Parallel.For(0, 8, thread =>
+            {
+                for (var i = 0; i < 1 << 14; i++)
+                {
+                    var value = (ManyFlagsEnum)((i * 7919 + thread * 104729) & ((1 << 14) - 1));
+                    var expected = value == ManyFlagsEnum.None ? "None" : string.Join("|", Enum.GetValues<ManyFlagsEnum>().Where(x => x != ManyFlagsEnum.None && value.HasFlag(x)).Select(x => x.ToString()));
+                    if (EnumName.GetName(value) != expected)
+                        _ = Interlocked.Increment(ref errors);
+                }
+            });
+            Assert.Equal(0, errors);
+        }
+
+        [Fact]
+        public void GetName_Invalid()
+        {
+            _ = Assert.Throws<ArgumentException>(() => EnumName.GetName(typeof(int), 1));
+            _ = Assert.Throws<InvalidOperationException>(() => EnumName.GetName((TestEnum)99));
+            Assert.Equal("Thing 2", EnumName.GetName<Enum>(TestEnum.Thing2));
+        }
     }
 }

@@ -4,6 +4,7 @@
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
 using Xunit;
@@ -407,6 +408,264 @@ namespace Zerra.Test.Web
             Assert.Null(bus.QueryInterfaceType);
         }
 
+        [Fact(Timeout = timeout)]
+        public async Task NamelessServer_JsonNamelessRequest_RespondsNameless()
+        {
+            var namelessSerializer = new ZerraJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = true });
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(new TestModel { Id = 3, Name = "Three" }) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, namelessSerializer);
+            var context = CreateContext(namelessSerializer, new ApiRequestData() { ProviderType = nameof(ITestQueryHandler), ProviderMethod = nameof(ITestQueryHandler.GetModel), ProviderArguments = [], Source = source }, HttpCommon.ContentTypeJsonNameless, TestContext.Current.CancellationToken);
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal("application/jsonnameless; charset=utf-8", context.Response.ContentType);
+            var result = namelessSerializer.Deserialize<TestModel>(ReadResponse(context));
+            Assert.Equal(3, result!.Id);
+            Assert.Equal("Three", result.Name);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task JsonServer_RespondsJson()
+        {
+            var jsonSerializer = new ZerraJsonSerializer();
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(new TestModel { Id = 4 }) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, jsonSerializer);
+            var context = CreateContext(jsonSerializer, new ApiRequestData() { ProviderType = nameof(ITestQueryHandler), ProviderMethod = nameof(ITestQueryHandler.GetModel), ProviderArguments = [], Source = source }, HttpCommon.ContentTypeJson, TestContext.Current.CancellationToken);
+            context.Request.Headers.Accept = "application/json";
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal("application/json; charset=utf-8", context.Response.ContentType);
+            Assert.Equal(4, jsonSerializer.Deserialize<TestModel>(ReadResponse(context))!.Id);
+        }
+
+        [Theory(Timeout = timeout)]
+        [InlineData("application/octet-stream")]
+        [InlineData("text/html")]
+        [InlineData("*/*")]
+        public async Task Accept_MatchingOrUnknown_UsesTheSerializer(string accept)
+        {
+            //an accept the gateway doesn't know is ignored, like a browser's */*
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+            context.Request.Headers.Accept = accept;
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal(42, serializer.Deserialize<int>(ReadResponse(context)));
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task AcceptJsonNameless_ByteServer_RespondsBadRequest()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+            context.Request.Headers.Accept = "application/jsonnameless";
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(400, context.Response.StatusCode);
+            Assert.Null(bus.QueryInterfaceType);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Authorizer_ReceivesTheRequestHeaders()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var authorizer = new RecordingAuthorizer();
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer, authorizer: authorizer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+            context.Request.Headers.Authorization = "Bearer token";
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal(["Bearer token"], authorizer.Headers!["Authorization"]);
+        }
+
+        private static MemoryStream UploadBody(byte[] dataBytes, byte[] streamBytes)
+        {
+            var body = new MemoryStream();
+            body.Write(BitConverter.GetBytes(dataBytes.Length));
+            body.Write(dataBytes);
+            body.Write(BitConverter.GetBytes(0));
+            body.Write(streamBytes);
+            body.Position = 0;
+            return body;
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Upload_LiftsTheBodySizeLimit()
+        {
+            //the stream's length is up to the uploader
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+            var feature = new MaxRequestBodySizeFeature();
+            context.Features.Set<IHttpMaxRequestBodySizeFeature>(feature);
+            context.Request.Body = UploadBody(((MemoryStream)context.Request.Body).ToArray(), [1, 2]);
+            context.Request.Headers[HttpCommon.UploadStreamHeader] = HttpCommon.UploadStreamValue;
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Null(feature.MaxRequestBodySize);
+            Assert.Equal([1, 2], bus.QueryArgumentStreamBytes);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Upload_WithoutProviderType_RespondsWithError()
+        {
+            //only queries take a stream
+            var bus = new MockBus();
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(new ApiRequestData() { MessageType = nameof(TestCommand), MessageData = "{}", Source = source }, TestContext.Current.CancellationToken);
+            context.Request.Body = UploadBody(((MemoryStream)context.Request.Body).ToArray(), [1, 2]);
+            context.Request.Headers[HttpCommon.UploadStreamHeader] = HttpCommon.UploadStreamValue;
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(500, context.Response.StatusCode);
+            Assert.Equal("Invalid Request", ExceptionSerializer.Deserialize(source, serializer, ReadResponse(context)).Message);
+            Assert.Null(bus.Command);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task EmptyBody_RespondsWithError()
+        {
+            var bus = new MockBus();
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+            context.Request.Body = new MemoryStream();
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(500, context.Response.StatusCode);
+            Assert.Null(bus.QueryInterfaceType);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task NoProviderOrMessage_RespondsBadRequest()
+        {
+            var bus = new MockBus();
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(new ApiRequestData() { Source = source }, TestContext.Current.CancellationToken);
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(400, context.Response.StatusCode);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Query_NullResult_RespondsEmpty()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(null) };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetModel)), TestContext.Current.CancellationToken);
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Empty(ReadResponse(context));
+        }
+
+        [Theory(Timeout = timeout)]
+        [InlineData(false, "dispatch")]
+        [InlineData(true, "await")]
+        public async Task Command_Dispatches(bool messageAwait, string dispatch)
+        {
+            var bus = new MockBus();
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(new ApiRequestData() { MessageType = nameof(TestCommand), MessageData = "{\"Value\":5}", MessageAwait = messageAwait, Source = source }, TestContext.Current.CancellationToken);
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal(dispatch, bus.CommandDispatch);
+            Assert.Equal(5, Assert.IsType<TestCommand>(bus.Command).Value);
+            Assert.Empty(ReadResponse(context));
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Command_WithResult_RespondsWithTheResult()
+        {
+            var bus = new MockBus();
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(new ApiRequestData() { MessageType = nameof(TestResultCommand), MessageData = "{\"Value\":5}", MessageResult = true, Source = source }, TestContext.Current.CancellationToken);
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Equal("result", bus.CommandDispatch);
+            Assert.Equal(10, serializer.Deserialize<int>(ReadResponse(context)));
+        }
+
+        [Theory(Timeout = timeout)]
+        [InlineData("Missing", "{}", false)]
+        [InlineData(nameof(TestModel), "{}", false)]
+        [InlineData(nameof(TestCommand), "null", false)]
+        [InlineData("Missing", "{}", true)]
+        [InlineData(nameof(TestModel), "{}", true)]
+        [InlineData(nameof(TestResultCommand), "null", true)]
+        public async Task Command_Invalid_RespondsWithError(string messageType, string messageData, bool messageResult)
+        {
+            //not registered, not a command, or no command in the data
+            var bus = new MockBus();
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(new ApiRequestData() { MessageType = messageType, MessageData = messageData, MessageResult = messageResult, Source = source }, TestContext.Current.CancellationToken);
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(500, context.Response.StatusCode);
+            Assert.Null(bus.Command);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Canceled_RespondsWithoutAnError()
+        {
+            var bus = new MockBus { QueryException = new OperationCanceledException() };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(200, context.Response.StatusCode);
+            Assert.Empty(ReadResponse(context));
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task ErrorAfterResponseStarted_AbortsTheConnection()
+        {
+            //the status can't change once the response started, the client sees a failed request instead of a cut off body
+            var bus = new MockBus { QueryException = new InvalidOperationException("query failed") };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+            context.Features.Set<IHttpResponseFeature>(new StartedResponseFeature());
+            var lifetime = new AbortRecordingLifetimeFeature();
+            context.Features.Set<IHttpRequestLifetimeFeature>(lifetime);
+
+            await middleware.Invoke(context);
+
+            Assert.True(lifetime.Aborted);
+            Assert.Empty(ReadResponse(context));
+        }
+
+        private static DefaultHttpContext CreateContext(ISerializer requestSerializer, ApiRequestData data, string contentType, CancellationToken cancellationToken)
+        {
+            var context = new DefaultHttpContext();
+            context.RequestAborted = cancellationToken;
+            context.Request.Method = "POST";
+            context.Request.ContentType = contentType;
+            context.Request.Body = new MemoryStream(requestSerializer.SerializeBytes(data));
+            context.Response.Body = new MemoryStream();
+            return context;
+        }
+
         private static ApiRequestData QueryRequest(string methodName, params object[] arguments) => new()
         {
             ProviderType = typeof(ITestQueryHandler).Name,
@@ -466,11 +725,36 @@ namespace Zerra.Test.Web
                 return Task.FromResult(QueryResponse ?? new RemoteQueryCallResponse(null));
             }
 
-            public Task RemoteHandleCommandDispatchAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();
-            public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();
-            public Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken) => throw new NotImplementedException();
+            public ICommand? Command { get; private set; }
+            public string? CommandDispatch { get; private set; }
+
+            public Task RemoteHandleCommandDispatchAsync(ICommand command, string source, CancellationToken cancellationToken)
+            {
+                Command = command;
+                CommandDispatch = "dispatch";
+                return Task.CompletedTask;
+            }
+            public Task RemoteHandleCommandDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
+            {
+                Command = command;
+                CommandDispatch = "await";
+                return Task.CompletedTask;
+            }
+            public Task<object?> RemoteHandleCommandWithResultDispatchAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)
+            {
+                Command = command;
+                CommandDispatch = "result";
+                return Task.FromResult<object?>(((TestResultCommand)command).Value * 2);
+            }
             public Task RemoteHandleEventDispatchAsync(IEvent @event, string source) => throw new NotImplementedException();
-            public Type? GetTypeByName(string name) => name == nameof(ITestQueryHandler) ? typeof(ITestQueryHandler) : null;
+            public Type? GetTypeByName(string name) => name switch
+            {
+                nameof(ITestQueryHandler) => typeof(ITestQueryHandler),
+                nameof(TestCommand) => typeof(TestCommand),
+                nameof(TestResultCommand) => typeof(TestResultCommand),
+                nameof(TestModel) => typeof(TestModel),
+                _ => null
+            };
 
             public void AddHandler<TInterface>(TInterface handler) where TInterface : notnull => throw new NotImplementedException();
             public void AddCommandProducer<TInterface>(ICommandProducer commandProducer) => throw new NotImplementedException();
@@ -501,6 +785,42 @@ namespace Zerra.Test.Web
             public void Authorize(Dictionary<string, List<string?>> headers) => throw new System.Security.SecurityException("not allowed");
             public Dictionary<string, List<string?>> GetAuthorizationHeaders(CancellationToken cancellationToken = default) => new();
             public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken = default) => new(new Dictionary<string, List<string?>>());
+        }
+
+        public sealed class TestCommand : ICommand
+        {
+            public int Value { get; set; }
+        }
+
+        public sealed class TestResultCommand : ICommand<int>
+        {
+            public int Value { get; set; }
+        }
+
+        private sealed class RecordingAuthorizer : ICqrsAuthorizer
+        {
+            public Dictionary<string, List<string?>>? Headers { get; private set; }
+            public void Authorize(Dictionary<string, List<string?>> headers) => Headers = headers;
+            public Dictionary<string, List<string?>> GetAuthorizationHeaders(CancellationToken cancellationToken = default) => new();
+            public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken = default) => new(new Dictionary<string, List<string?>>());
+        }
+
+        private sealed class MaxRequestBodySizeFeature : IHttpMaxRequestBodySizeFeature
+        {
+            public bool IsReadOnly => false;
+            public long? MaxRequestBodySize { get; set; } = 100;
+        }
+
+        private sealed class StartedResponseFeature : HttpResponseFeature
+        {
+            public override bool HasStarted => true;
+        }
+
+        private sealed class AbortRecordingLifetimeFeature : IHttpRequestLifetimeFeature
+        {
+            public bool Aborted { get; private set; }
+            public CancellationToken RequestAborted { get; set; }
+            public void Abort() => Aborted = true;
         }
 
         public sealed class TestModel

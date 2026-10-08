@@ -346,8 +346,11 @@ namespace Zerra.Test.Collections
         public void Contains_Values()
         {
             var list = new ConcurrentReadWriteList<int>() { 1, 2 };
-            Assert.True(list.Contains(2));
-            Assert.False(list.Contains(3));
+            //the list's own Contains rather than enumerating it
+            var hasTwo = list.Contains(2);
+            var hasThree = list.Contains(3);
+            Assert.True(hasTwo);
+            Assert.False(hasThree);
         }
     }
 }

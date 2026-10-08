@@ -458,5 +458,91 @@ namespace Zerra.Test.Reflection
             Assert.Equal(guid, TypeAnalyzer.Convert(guid, CoreType.Guid));
             Assert.Equal("5", TypeAnalyzer.Convert(5, CoreType.String));
         }
+
+        [Fact]
+        public void RuntimeTypes_InterfaceMembersAndMethods()
+        {
+            //types that aren't generated get their details at runtime, explicit interface implementations included
+            var dictionaryDetail = typeof(Dictionary<int, string>).GetTypeDetail();
+            var explicitAdd = Assert.Single(dictionaryDetail.Methods, x => x.IsExplicitFromInterface && x.Name == "System.Collections.IDictionary.Add");
+            var dictionary = new Dictionary<int, string>();
+            _ = explicitAdd.CallerBoxed!(dictionary, [1, "a"]);
+            Assert.Equal("a", dictionary[1]);
+            var explicitReadOnly = Assert.Single(dictionaryDetail.Members, x => x.IsExplicitFromInterface && x.Name.EndsWith(".IsReadOnly") && x.Name.Contains("Generic"));
+            Assert.Equal(false, explicitReadOnly.GetterBoxed!(dictionary));
+            Assert.Contains(dictionaryDetail.Methods, x => x.Name == "Add" && !x.IsExplicitFromInterface);
+
+            //an interface gets the members and methods of the interfaces it extends
+            var listDetail = typeof(IList<int>).GetTypeDetail();
+            Assert.Contains(listDetail.Methods, x => x.Name == "Add");
+            Assert.Contains(listDetail.Methods, x => x.Name == "GetEnumerator");
+            Assert.Contains(listDetail.Members, x => x.Name == "Count");
+            Assert.DoesNotContain(listDetail.Members, x => x.Name == "Item");
+
+            //a span property can't be boxed but is still a member
+            var readerDetail = typeof(System.Text.Json.Utf8JsonReader).GetTypeDetail();
+            var valueSpan = Assert.Single(readerDetail.Members, x => x.Name == nameof(System.Text.Json.Utf8JsonReader.ValueSpan));
+            Assert.Equal(typeof(ReadOnlySpan<byte>), valueSpan.Type);
+
+            Assert.Empty(typeof(List<>).GetTypeDetail().Members);
+        }
+
+
+        [Fact]
+        public void RuntimeTypes_PropertyGettersReturnThePropertyValue()
+        {
+            //Count is computed from more than its same named field, the getter must be the property's
+            var dictionary = new Dictionary<int, string>() { { 1, "a" }, { 2, "b" }, { 3, "c" } };
+            _ = dictionary.Remove(2);
+            var count = typeof(Dictionary<int, string>).GetTypeDetail().GetMember(nameof(Dictionary<int, string>.Count));
+            Assert.Equal(2, count.GetterBoxed!(dictionary));
+            Assert.False(count.HasSetter);
+
+            //an auto property still goes through its compiler backing field, so a get only one can be set
+            var exception = typeof(System.Text.Json.JsonException).GetTypeDetail().GetMember(nameof(System.Text.Json.JsonException.Path));
+            var instance = new System.Text.Json.JsonException();
+            exception.SetterBoxed!(instance, "$.a");
+            Assert.Equal("$.a", exception.GetterBoxed!(instance));
+        }
+
+        public unsafe interface IUnusualMembers
+        {
+            int* Pointer { get; }
+            ref int Reference { get; }
+            protected int Hidden => 1;
+        }
+        public sealed unsafe class UnusualMembersModel : IUnusualMembers
+        {
+            private int value = 5;
+            public int* PointerField;
+            public int* PointerProperty { get => null; set { } }
+            int* IUnusualMembers.Pointer => null;
+            ref int IUnusualMembers.Reference => ref value;
+            public int Value => value;
+        }
+
+        [Fact]
+        public void RuntimeTypes_PointerAndRefMembers()
+        {
+            //pointers and refs can't be read or written through a delegate, pointer properties are left out
+            var detail = typeof(UnusualMembersModel).GetTypeDetail();
+
+            var pointerField = detail.GetMember(nameof(UnusualMembersModel.PointerField));
+            Assert.Equal(typeof(int*), pointerField.Type);
+            Assert.False(pointerField.HasGetter);
+            Assert.Null(pointerField.GetterBoxed);
+            Assert.False(pointerField.HasSetter);
+
+            Assert.DoesNotContain(detail.Members, x => x.Name == nameof(UnusualMembersModel.PointerProperty));
+            Assert.DoesNotContain(detail.Members, x => x.Name.EndsWith(".Pointer"));
+            Assert.DoesNotContain(detail.Members, x => x.Name.EndsWith("Hidden"));
+
+            var reference = Assert.Single(detail.Members, x => x.Name.EndsWith(".Reference"));
+            Assert.True(reference.IsExplicitFromInterface);
+            Assert.Equal(typeof(int).MakeByRefType(), reference.Type);
+            Assert.False(reference.HasGetter);
+
+            Assert.Equal(5, detail.GetMember(nameof(UnusualMembersModel.Value)).GetterBoxed!(new UnusualMembersModel()));
+        }
     }
 }

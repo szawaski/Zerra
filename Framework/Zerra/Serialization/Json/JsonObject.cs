@@ -63,7 +63,6 @@ namespace Zerra.Serialization.Json
             valueString = text;
         }
 
-        //a number too large or precise for decimal keeps its text so it isn't lost
         internal static JsonObject FromNumberText(string text) => new(JsonObjectType.Number, text);
 
         private decimal NumberValue => valueString is null ? valueNumber : Decimal.Parse(valueString, NumberStyles.Float, CultureInfo.InvariantCulture);

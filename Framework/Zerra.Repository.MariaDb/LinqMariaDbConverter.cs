@@ -1640,8 +1640,10 @@ namespace Zerra.Repository.MariaDb
         }
 
         /// <inheritdoc/>
-        protected override string? OperatorToString(Operator operation)
+        protected override string? OperatorToString(Operator operation, Type type)
         {
+            //integers divide with DIV, / gives a decimal
+            var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
             return operation switch
             {
                 Operator.Null => null,
@@ -1660,7 +1662,7 @@ namespace Zerra.Repository.MariaDb
                 Operator.GreaterThanOrEquals => ">=",
                 Operator.LessThan => "<",
                 Operator.GreaterThan => ">",
-                Operator.Divide => "/",
+                Operator.Divide => underlyingType == typeof(int) || underlyingType == typeof(long) || underlyingType == typeof(short) || underlyingType == typeof(byte) || underlyingType == typeof(sbyte) || underlyingType == typeof(uint) || underlyingType == typeof(ulong) || underlyingType == typeof(ushort) ? " DIV " : "/",
                 Operator.Subtract => "-",
                 Operator.Add => "+",
                 Operator.Multiply => "*",

@@ -16,5 +16,7 @@ namespace Zerra.Repository
         public bool Deleted { get; set; }
         /// <summary>The reconstructed model instance, or <see langword="null"/> if no state has been built yet.</summary>
         public TModel? Model { get; set; }
+        /// <summary>The date of the most recently applied event, or <see langword="null"/> if it isn't known.</summary>
+        public DateTime? Date { get; set; }
     }
 }

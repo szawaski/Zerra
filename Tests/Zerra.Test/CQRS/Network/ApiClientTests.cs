@@ -253,15 +253,7 @@ namespace Zerra.Test.CQRS.Network
             ISerializer jsonSerializer = new ZerraJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = contentType == ContentType.JsonNameless });
             Assert.Equal(contentType, jsonSerializer.ContentType);
             string? received = null;
-            using var listener = new HttpListener();
-            int port;
-            using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
-            {
-                socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
-                port = ((IPEndPoint)socket.LocalEndPoint!).Port;
-            }
-            listener.Prefixes.Add($"http://localhost:{port}/");
-            listener.Start();
+            using var listener = Zerra.Test.CQRS.TestNetwork.StartHttpListener("", out var listenerUrl);
             var serving = Task.Run(async () =>
             {
                 var context = await listener.GetContextAsync();
@@ -272,7 +264,7 @@ namespace Zerra.Test.CQRS.Network
                 context.Response.Close();
             }, TestContext.Current.CancellationToken);
 
-            using var client = new ApiClient($"http://localhost:{port}/", jsonSerializer, null, null);
+            using var client = new ApiClient(listenerUrl, jsonSerializer, null, null);
             ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
             Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
             await serving;
@@ -328,17 +320,8 @@ namespace Zerra.Test.CQRS.Network
                 this.respond = respond;
                 this.statusCode = statusCode;
 
-                int port;
-                using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
-                {
-                    socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
-                    port = ((IPEndPoint)socket.LocalEndPoint!).Port;
-                }
-                Url = $"http://localhost:{port}/";
-
-                listener = new HttpListener();
-                listener.Prefixes.Add(route is null ? Url : $"{Url}{route}/");
-                listener.Start();
+                listener = Zerra.Test.CQRS.TestNetwork.StartHttpListener(route is null ? "" : $"{route}/", out var baseUrl);
+                Url = baseUrl;
                 _ = HandleRequests();
             }
 

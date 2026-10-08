@@ -82,7 +82,7 @@ namespace Zerra.Serialization.Json.Converters
                 }
                 if (reader.Token == JsonToken.Null)
                 {
-                    if (!canBeNull && state.ErrorOnTypeMismatch)
+                    if (!canBeNull && state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
@@ -98,14 +98,14 @@ namespace Zerra.Serialization.Json.Converters
                 state.PushFrame(state.Graph);
             }
 
-            if (isObject && state.EntryToken != JsonToken.ObjectStart)
+            if (isObject)
             {
                 TypeDetail newTypeDetail = state.EntryToken switch
                 {
-                    JsonToken.ObjectStart => TypeAnalyzer<object>.GetTypeDetail(),
+                    JsonToken.ObjectStart => TypeAnalyzer<JsonObject>.GetTypeDetail(),
                     JsonToken.ArrayStart => TypeAnalyzer<object[]>.GetTypeDetail(),
                     JsonToken.String => TypeAnalyzer<string>.GetTypeDetail(),
-                    JsonToken.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
+                    JsonToken.Number => TypeAnalyzer<double>.GetTypeDetail(),
                     JsonToken.True or JsonToken.False => TypeAnalyzer<bool>.GetTypeDetail(),
                     _ => throw reader.CreateException(),
                 };
@@ -232,7 +232,7 @@ namespace Zerra.Serialization.Json.Converters
                 }
                 if (reader.Token == JsonToken.Null)
                 {
-                    if (!canBeNull && state.ErrorOnTypeMismatch)
+                    if (!canBeNull && state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     returnValue = default;
                     return true;
@@ -247,14 +247,14 @@ namespace Zerra.Serialization.Json.Converters
                 state.PushFrame(state.Graph);
             }
 
-            if (isObject && state.EntryToken != JsonToken.ObjectStart)
+            if (isObject)
             {
                 TypeDetail newTypeDetail = state.EntryToken switch
                 {
-                    JsonToken.ObjectStart => TypeAnalyzer<object>.GetTypeDetail(),
+                    JsonToken.ObjectStart => TypeAnalyzer<JsonObject>.GetTypeDetail(),
                     JsonToken.ArrayStart => TypeAnalyzer<object[]>.GetTypeDetail(),
                     JsonToken.String => TypeAnalyzer<string>.GetTypeDetail(),
-                    JsonToken.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
+                    JsonToken.Number => TypeAnalyzer<double>.GetTypeDetail(),
                     JsonToken.True or JsonToken.False => TypeAnalyzer<bool>.GetTypeDetail(),
                     _ => throw reader.CreateException(),
                 };
@@ -383,7 +383,7 @@ namespace Zerra.Serialization.Json.Converters
                 token = reader.Token;
                 if (token == JsonToken.Null)
                 {
-                    if (!canBeNull && state.ErrorOnTypeMismatch)
+                    if (!canBeNull && state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
@@ -401,7 +401,7 @@ namespace Zerra.Serialization.Json.Converters
                 state.PushFrame(null);
             }
 
-            if ((isObject && token != JsonToken.ObjectStart) || isInterfacedObject)
+            if (isObject || isInterfacedObject)
             {
                 TypeDetail newTypeDetail;
                 if (isInterfacedObject)
@@ -412,9 +412,10 @@ namespace Zerra.Serialization.Json.Converters
                 {
                     newTypeDetail = token switch
                     {
+                        JsonToken.ObjectStart => TypeAnalyzer<JsonObject>.GetTypeDetail(),
                         JsonToken.ArrayStart => TypeAnalyzer<object[]>.GetTypeDetail(),
                         JsonToken.String => TypeAnalyzer<string>.GetTypeDetail(),
-                        JsonToken.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
+                        JsonToken.Number => TypeAnalyzer<double>.GetTypeDetail(),
                         JsonToken.True or JsonToken.False => TypeAnalyzer<bool>.GetTypeDetail(),
                         _ => throw reader.CreateException(),
                     };
@@ -528,7 +529,7 @@ namespace Zerra.Serialization.Json.Converters
                 }
                 if (reader.Token == JsonToken.Null)
                 {
-                    if (!canBeNull && state.ErrorOnTypeMismatch)
+                    if (!canBeNull && state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     if (setter is not null && parent is not null)
                         setter(parent, default);
@@ -558,14 +559,14 @@ namespace Zerra.Serialization.Json.Converters
                 }
             }
 
-            if (isObject && token != JsonToken.ObjectStart)
+            if (isObject)
             {
                 TypeDetail newTypeDetail = token switch
                 {
-                    JsonToken.ObjectStart => TypeAnalyzer<object>.GetTypeDetail(),
+                    JsonToken.ObjectStart => TypeAnalyzer<JsonObject>.GetTypeDetail(),
                     JsonToken.ArrayStart => TypeAnalyzer<object[]>.GetTypeDetail(),
                     JsonToken.String => TypeAnalyzer<string>.GetTypeDetail(),
-                    JsonToken.Number => TypeAnalyzer<decimal>.GetTypeDetail(),
+                    JsonToken.Number => TypeAnalyzer<double>.GetTypeDetail(),
                     JsonToken.True or JsonToken.False => TypeAnalyzer<bool>.GetTypeDetail(),
                     _ => throw reader.CreateException(),
                 };
@@ -826,15 +827,15 @@ namespace Zerra.Serialization.Json.Converters
         }
 
         /// <summary>
-        /// Throws an exception indicating that the JSON value is the wrong kind for the target type. Call only when <see cref="ReadState.ErrorOnTypeMismatch"/> is set.
+        /// Throws an exception indicating that the JSON value is the wrong kind for the target type. Call only when <see cref="ReadState.ErrorOnReadMismatchedData"/> is set.
         /// </summary>
         /// <param name="reader">The JSON reader from which the exception context is derived.</param>
         /// <exception cref="FormatException">Always thrown with a message indicating the conversion failure.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void ThrowCannotConvert(ref JsonReader reader) => throw reader.CreateException($"Cannot convert to {TypeDetail.Type.Name} (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
+        protected void ThrowCannotConvert(ref JsonReader reader) => throw reader.CreateException($"Cannot convert to {TypeDetail.Type.Name} (disable {nameof(ReadState.ErrorOnReadMismatchedData)} to prevent this exception)");
 
         /// <summary>
-        /// Throws an exception indicating that the JSON value is the right kind for the target type but its content is invalid, such as an unparseable date. Thrown regardless of <see cref="ReadState.ErrorOnTypeMismatch"/>.
+        /// Throws an exception indicating that the JSON value is the right kind for the target type but its content doesn't fit, such as an unparseable date. Call it when <see cref="ReadState.ErrorOnReadMismatchedData"/> is on, or for a number that isn't valid JSON.
         /// </summary>
         /// <param name="reader">The JSON reader from which the exception context is derived.</param>
         /// <exception cref="FormatException">Always thrown with a message indicating the invalid value.</exception>

@@ -270,5 +270,155 @@ namespace Zerra.Test.Encryption
 #pragma warning restore CS0612 // Type or member is obsolete
             _ = Assert.Throws<ArgumentException>(() => new CryptoPrefixStream(new MemoryStream(), 100, CryptoStreamMode.Read, false, false));
         }
+
+        //returns one byte per read, so the prefix arrives in pieces
+        private sealed class OneByteStream(byte[] data) : MemoryStream(data)
+        {
+            public override int Read(byte[] buffer, int offset, int count) => base.Read(buffer, offset, Math.Min(count, 1));
+            public override int Read(Span<byte> buffer) => base.Read(buffer.Slice(0, Math.Min(buffer.Length, 1)));
+            public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) => base.ReadAsync(buffer.Slice(0, Math.Min(buffer.Length, 1)), cancellationToken);
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) => base.ReadAsync(buffer, offset, Math.Min(count, 1), cancellationToken);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TransformStreams_SourceInPieces(bool shift)
+        {
+            var data = Enumerable.Range(0, 1000).Select(x => (byte)(x * 31)).ToArray();
+            var encoded = Transform(shift, data, CryptoStreamMode.Write, false, 100);
+
+            using (var transform = CreateTransform(shift, new OneByteStream(encoded), CryptoStreamMode.Read, true))
+            using (var output = new MemoryStream())
+            {
+                transform.CopyTo(output);
+                Assert.Equal(data, output.ToArray());
+            }
+            await using (var transform = CreateTransform(shift, new OneByteStream(encoded), CryptoStreamMode.Read, true))
+            using (var output = new MemoryStream())
+            {
+                await transform.CopyToAsync(output, TestContext.Current.CancellationToken);
+                Assert.Equal(data, output.ToArray());
+            }
+        }
+
+        [Fact]
+        public async Task FlushFinalBlockAsync_WritesTheEnd()
+        {
+            var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithPrefix);
+            var data = Enumerable.Range(0, 1000).Select(x => (byte)x).ToArray();
+            foreach (var algorithm in new[] { SymmetricAlgorithmType.AES, SymmetricAlgorithmType.AESwithPrefix })
+            {
+                using var output = new MemoryStream();
+                var encrypt = SymmetricEncryptor.Encrypt(algorithm, key, output, true);
+                await encrypt.WriteAsync(data, TestContext.Current.CancellationToken);
+                await encrypt.FlushFinalBlockAsync(TestContext.Current.CancellationToken);
+                await encrypt.DisposeAsync();
+                Assert.Equal(data, SymmetricEncryptor.Decrypt(algorithm, key, output.ToArray()));
+            }
+#pragma warning disable CS0612 // Type or member is obsolete
+            foreach (var shift in new[] { false, true })
+            {
+                using var output = new MemoryStream();
+                var transform = CreateTransform(shift, output, CryptoStreamMode.Write, false);
+                await transform.WriteAsync(data, TestContext.Current.CancellationToken);
+                if (transform is CryptoPrefixStream prefix)
+                    await prefix.FlushFinalBlockAsync(TestContext.Current.CancellationToken);
+                else
+                    await ((CryptoShiftStream)transform).FlushFinalBlockAsync(TestContext.Current.CancellationToken);
+                Assert.Equal(data.Length + 16, output.Length);
+            }
+#pragma warning restore CS0612 // Type or member is obsolete
+        }
+
+        //finishes each async write later, so a flush that isn't awaited hasn't written yet
+        private sealed class DelayedWriteStream : MemoryStream
+        {
+            public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+            {
+                await Task.Delay(20, cancellationToken);
+                Write(buffer.Span);
+            }
+            public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+                => WriteAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
+        }
+
+        [Fact]
+        public async Task FlushFinalBlockAsync_WaitsForTheEnd()
+        {
+            var data = Enumerable.Range(0, 1000).Select(x => (byte)x).ToArray();
+#pragma warning disable CS0612 // Type or member is obsolete
+            foreach (var algorithm in new[] { SymmetricAlgorithmType.AES, SymmetricAlgorithmType.AESwithPrefix, SymmetricAlgorithmType.AESwithShift })
+#pragma warning restore CS0612 // Type or member is obsolete
+            {
+                var key = SymmetricEncryptor.GenerateKey(algorithm);
+                using var output = new DelayedWriteStream();
+                var encrypt = SymmetricEncryptor.Encrypt(algorithm, key, output, true, true);
+                await encrypt.WriteAsync(data, TestContext.Current.CancellationToken);
+                await encrypt.FlushFinalBlockAsync(TestContext.Current.CancellationToken);
+
+                //the whole value is written once the flush completes, before the stream is disposed
+                Assert.Equal(data, SymmetricEncryptor.Decrypt(algorithm, key, output.ToArray()));
+                await encrypt.DisposeAsync();
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TransformStreams_KeyBlockCutShort_Throws(bool shift)
+        {
+            //the stream ends partway through the 16 byte key block
+            using (var transform = CreateTransform(shift, new MemoryStream(new byte[5]), CryptoStreamMode.Read, true))
+                _ = Assert.Throws<InvalidOperationException>(() => transform.Read(new byte[32], 0, 32));
+            using (var transform = CreateTransform(shift, new MemoryStream(new byte[5]), CryptoStreamMode.Read, true))
+                _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await transform.ReadExactlyAsync(new byte[32], TestContext.Current.CancellationToken));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TransformStreams_WrongDirection_Throws(bool shift)
+        {
+            using (var reader = CreateTransform(shift, new MemoryStream(new byte[32]), CryptoStreamMode.Read, true))
+            {
+                _ = Assert.Throws<InvalidOperationException>(() => reader.Write(new byte[1], 0, 1));
+                _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await reader.WriteAsync(new byte[1], TestContext.Current.CancellationToken));
+            }
+            using (var writer = CreateTransform(shift, new MemoryStream(), CryptoStreamMode.Write, false))
+            {
+                _ = Assert.Throws<InvalidOperationException>(() => writer.Read(new byte[1], 0, 1));
+                _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await writer.ReadExactlyAsync(new byte[1], TestContext.Current.CancellationToken));
+            }
+        }
+
+        [Fact]
+        public void SymmetricEncryptor_NullArguments()
+        {
+            var key = SymmetricEncryptor.GenerateKey(SymmetricAlgorithmType.AESwithPrefix);
+            const SymmetricAlgorithmType algorithm = SymmetricAlgorithmType.AESwithPrefix;
+            _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Encrypt(algorithm, null!, "text"));
+            _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Encrypt(algorithm, null!, new byte[1]));
+            _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Encrypt(algorithm, key, (byte[])null!));
+            _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Encrypt(algorithm, null!, new ReadOnlySpan<byte>(new byte[1])));
+            _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Encrypt(algorithm, null!, new MemoryStream(), true));
+            _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Encrypt(algorithm, key, (Stream)null!, true));
+            _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Decrypt(algorithm, null!, "text"));
+            _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Decrypt(algorithm, null!, new byte[1]));
+            _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Decrypt(algorithm, key, (byte[])null!));
+            _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Decrypt(algorithm, null!, new ReadOnlySpan<byte>(new byte[1])));
+            _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Decrypt(algorithm, null!, new MemoryStream(), true));
+            _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Decrypt(algorithm, key, (Stream)null!, true));
+        }
+
+        [Fact]
+        public void ZerraEncryptor_BytesAndSpans()
+        {
+            var encryptor = new ZerraEncryptor("secret", SymmetricAlgorithmType.AESwithPrefix);
+            var data = Enumerable.Range(0, 100).Select(x => (byte)x).ToArray();
+            Assert.Equal(data, encryptor.Decrypt(encryptor.Encrypt(data)));
+            Assert.Equal(data, encryptor.Decrypt(encryptor.Encrypt(data.AsSpan())).ToArray());
+            Assert.NotEqual(data, encryptor.Encrypt(data));
+        }
     }
 }

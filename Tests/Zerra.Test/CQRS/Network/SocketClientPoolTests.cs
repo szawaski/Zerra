@@ -414,5 +414,42 @@ namespace Zerra.Test.CQRS.Network
             Assert.Equal(0, read);
             second.Dispose();
         }
+
+        [Fact(Timeout = 10000)]
+        public async Task BeginStream_ReusesOrReplacesPooledConnections()
+        {
+            using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            listener.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
+            listener.Listen();
+            var port = ((System.Net.IPEndPoint)listener.LocalEndPoint!).Port;
+            using var pool = new SocketClientPool() { MaxConnectionsPerHost = 1 };
+
+            var first = pool.BeginStream("127.0.0.1", port, ProtocolType.Tcp, new byte[] { 1 }, false, TestContext.Current.CancellationToken);
+            var firstServer = await listener.AcceptAsync(TestContext.Current.CancellationToken);
+            Assert.True(first.IsNewConnection);
+            first.Dispose();
+
+            var reused = pool.BeginStream("127.0.0.1", port, ProtocolType.Tcp, new byte[] { 1 }, false, TestContext.Current.CancellationToken);
+            Assert.False(reused.IsNewConnection);
+            reused.Dispose();
+
+            //a pooled socket the server closed is replaced
+            firstServer.Dispose();
+            await Task.Delay(50, TestContext.Current.CancellationToken);
+            var replaced = pool.BeginStream("127.0.0.1", port, ProtocolType.Tcp, new byte[] { 1 }, false, TestContext.Current.CancellationToken);
+            using var replacedServer = await listener.AcceptAsync(TestContext.Current.CancellationToken);
+            Assert.True(replaced.IsNewConnection);
+            replaced.Dispose(); //the pool is full with one idle socket
+
+            //a new connection when the pool is full closes the idle one
+            var required = pool.BeginStream("127.0.0.1", port, ProtocolType.Tcp, ReadOnlySpan<byte>.Empty, true, TestContext.Current.CancellationToken);
+            using var requiredServer = await listener.AcceptAsync(TestContext.Current.CancellationToken);
+            Assert.True(required.IsNewConnection);
+            var read = await replacedServer.ReceiveAsync(new byte[1], SocketFlags.None, TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            Assert.Equal(1, read); //the byte written when it was reused
+            read = await replacedServer.ReceiveAsync(new byte[1], SocketFlags.None, TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            Assert.Equal(0, read);
+            required.Dispose();
+        }
     }
 }

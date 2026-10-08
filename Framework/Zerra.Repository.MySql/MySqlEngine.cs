@@ -59,7 +59,7 @@ namespace Zerra.Repository.MySql
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var property = reader.GetName(i);
-                if (modelDetail.TryGetProperty(property, out var propertyInfo))
+                if (modelDetail.TryGetPropertyBySourceName(property, out var propertyInfo))
                     columnProperties[i] = propertyInfo;
             }
             return columnProperties;
@@ -1767,37 +1767,37 @@ namespace Zerra.Repository.MySql
             {
                 switch (property.CoreType.Value)
                 {
-                    case CoreType.Boolean: return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == false;
-                    case CoreType.Byte: return sqlColumn.DataType == "tinyint" && sqlColumn.IsNullable == false;
-                    case CoreType.Int16: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == false;
-                    case CoreType.Int32: return sqlColumn.DataType == "int" && sqlColumn.IsNullable == false;
-                    case CoreType.Int64: return sqlColumn.DataType == "bigint" && sqlColumn.IsNullable == false;
-                    case CoreType.Single: return sqlColumn.DataType == "float" && sqlColumn.IsNullable == false;
-                    case CoreType.Double: return sqlColumn.DataType == "double" && sqlColumn.IsNullable == false;
-                    case CoreType.Decimal: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == false && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
-                    case CoreType.Char: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTime: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == false;
-                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.TimeSpan: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.DateOnly: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == false;
-                    case CoreType.TimeOnly: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.Guid: return sqlColumn.DataType == "binary" && sqlColumn.IsNullable == false;
+                    case CoreType.Boolean: return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Byte: return sqlColumn.DataType == "tinyint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int16: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int32: return sqlColumn.DataType == "int" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int64: return sqlColumn.DataType == "bigint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Single: return sqlColumn.DataType == "float" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Double: return sqlColumn.DataType == "double" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Decimal: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
+                    case CoreType.Char: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
+                    case CoreType.DateTime: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.TimeSpan: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.DateOnly: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.TimeOnly: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.Guid: return sqlColumn.DataType == "binary" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
 
-                    case CoreType.BooleanNullable: return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == true;
-                    case CoreType.ByteNullable: return sqlColumn.DataType == "tinyint" && sqlColumn.IsNullable == true;
-                    case CoreType.Int16Nullable: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == true;
-                    case CoreType.Int32Nullable: return sqlColumn.DataType == "int" && sqlColumn.IsNullable == true;
-                    case CoreType.Int64Nullable: return sqlColumn.DataType == "bigint" && sqlColumn.IsNullable == true;
-                    case CoreType.SingleNullable: return sqlColumn.DataType == "float" && sqlColumn.IsNullable == true;
-                    case CoreType.DoubleNullable: return sqlColumn.DataType == "double" && sqlColumn.IsNullable == true;
-                    case CoreType.DecimalNullable: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == true && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
-                    case CoreType.CharNullable: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTimeNullable: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == true;
-                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.DateOnlyNullable: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == true;
-                    case CoreType.TimeOnlyNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.GuidNullable: return sqlColumn.DataType == "binary" && sqlColumn.IsNullable == true;
+                    case CoreType.BooleanNullable: return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.ByteNullable: return sqlColumn.DataType == "tinyint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int16Nullable: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int32Nullable: return sqlColumn.DataType == "int" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int64Nullable: return sqlColumn.DataType == "bigint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.SingleNullable: return sqlColumn.DataType == "float" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.DoubleNullable: return sqlColumn.DataType == "double" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.DecimalNullable: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
+                    case CoreType.CharNullable: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
+                    case CoreType.DateTimeNullable: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.DateOnlyNullable: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.TimeOnlyNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.GuidNullable: return sqlColumn.DataType == "binary" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
 
                     case CoreType.String:
                         //decided by the length the model asks for, the existing column only has a length when it is already varchar

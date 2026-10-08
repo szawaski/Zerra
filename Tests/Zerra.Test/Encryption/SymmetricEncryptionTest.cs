@@ -164,5 +164,24 @@ namespace Zerra.Test.Encryption
             var encrypted = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithPrefix, key1, "text");
             Assert.Equal("text", SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithPrefix, key2, encrypted));
         }
+
+        [Fact]
+        public void SymmetricKey_EqualsAndHashCode()
+        {
+            var key = new SymmetricKey([1, 2, 3, 4], [5, 6]);
+            var same = new SymmetricKey([1, 2, 3, 4], [5, 6]);
+            Assert.Equal(key, same);
+            Assert.Equal(key.GetHashCode(), same.GetHashCode());
+            Assert.Single(new HashSet<SymmetricKey>() { key, same });
+
+            Assert.NotEqual(key, new SymmetricKey([1, 2, 3, 9], [5, 6]));
+            Assert.NotEqual(key, new SymmetricKey([1, 2, 3, 4], [5, 9]));
+            Assert.NotEqual(key, new SymmetricKey([1, 2, 3], [5, 6]));
+            Assert.NotEqual(key, new SymmetricKey([1, 2, 3, 4], [5]));
+            Assert.False(key.Equals("key"));
+            Assert.False(key.Equals(null));
+            _ = Assert.Throws<ArgumentNullException>(() => new SymmetricKey(null!, [1]));
+            _ = Assert.Throws<ArgumentNullException>(() => new SymmetricKey([1], null!));
+        }
     }
 }

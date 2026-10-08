@@ -282,6 +282,25 @@ namespace Zerra.Test.Serialization
         }
 
         [Fact]
+        public async Task RootScalars()
+        {
+            foreach (var useBytes in new[] { false, true })
+            {
+                JsonObject Read(string json) => (useBytes ? JsonSerializer.DeserializeJsonObject(Encoding.UTF8.GetBytes(json)) : JsonSerializer.DeserializeJsonObject(json))!;
+
+                Assert.True(Read("null").IsNull);
+                Assert.True((bool)Read("true"));
+                Assert.False((bool)Read("false"));
+                Assert.Equal("a\nb", (string?)Read("\"a\nb\""));
+                Assert.Equal("ab", (string?)Read("\"ab\""));
+                Assert.Equal(5m, (decimal)Read("5"));
+            }
+
+            var streamed = await JsonSerializer.DeserializeJsonObjectAsync(new MemoryStream(Encoding.UTF8.GetBytes("\"a\nb\"")), cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal("a\nb", (string?)streamed!);
+        }
+
+        [Fact]
         public void Numbers_OutsideDecimalRange()
         {
             foreach (var json in new[] { "1e400", "[1e400]", "{\"a\":1e400}" })

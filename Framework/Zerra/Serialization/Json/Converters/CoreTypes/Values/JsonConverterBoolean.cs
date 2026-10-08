@@ -23,7 +23,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     value = true;
                     return true;
                 case JsonToken.Null:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
@@ -32,7 +32,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     {
                         if (!Utf8Parser.TryParse(reader.ValueBytes, out value, out var consumed) || reader.ValueBytes.Length != consumed)
                         {
-                            if (state.ErrorOnTypeMismatch)
+                            if (state.ErrorOnReadMismatchedData)
                                 ThrowCannotConvert(ref reader);
                             value = default;
                             return true;
@@ -47,7 +47,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                         if (!Boolean.TryParse(reader.ValueChars, out value))
 #endif
                         {
-                            if (state.ErrorOnTypeMismatch)
+                            if (state.ErrorOnReadMismatchedData)
                                 ThrowCannotConvert(ref reader);
                             value = default;
                             return true;
@@ -55,17 +55,17 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                         return true;
                     }
                 case JsonToken.Number:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
                 case JsonToken.ObjectStart:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainObject(ref reader, ref state);
                 case JsonToken.ArrayStart:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainArray(ref reader, ref state);

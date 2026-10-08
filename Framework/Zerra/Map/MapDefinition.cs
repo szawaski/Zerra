@@ -83,8 +83,8 @@ namespace Zerra.Map
                     delegatesReverse.Add(result);
             }
 
-            _ = customMapsByPair.TryAdd(keyNormal, delegatesNormal.ToArray());
-            _ = customMapsByPair.TryAdd(keyReverse, delegatesReverse.ToArray());
+            customMapsByPair[keyNormal] = delegatesNormal.ToArray();
+            customMapsByPair[keyReverse] = delegatesReverse.ToArray();
         }
     }
 }

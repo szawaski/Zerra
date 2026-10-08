@@ -734,6 +734,74 @@ namespace Zerra.Test.CQRS.Network
         }
 
         //returns each byte array from a separate read, and throws if read past the last one
+        private static async Task<byte[]> ReadAll(Stream stream, int chunk, bool async)
+        {
+            using var output = new MemoryStream();
+            var buffer = new byte[chunk];
+            int read;
+            while ((read = async ? await stream.ReadAsync(buffer, TestContext.Current.CancellationToken) : stream.Read(buffer, 0, buffer.Length)) > 0)
+                output.Write(buffer, 0, read);
+            return output.ToArray();
+        }
+
+        //the bytes read with the header are the start of the body, the rest comes from the stream, every split and read size has to give back the same body
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Read_StartBufferAndStreamSplitAnywhere(bool async)
+        {
+            var body = Enumerable.Range(0, 120).Select(x => (byte)x).ToArray();
+
+            var encoded = new MemoryStream();
+            var writer = new HttpProtocolBodyStream(null, encoded, null, writeMode: true, leaveOpen: true);
+            writer.Write(body, 0, 50);
+            writer.Write(body, 50, 70);
+            writer.Flush();
+            var chunked = encoded.ToArray();
+
+            foreach (var chunk in new[] { 1, 7, 1000 })
+            {
+                for (var split = 0; split <= body.Length; split++)
+                {
+                    var stream = new HttpProtocolBodyStream(body.Length, new MemoryStream(body[split..]), body[..split], writeMode: false, leaveOpen: true);
+                    Assert.Equal(body, await ReadAll(stream, chunk, async));
+                }
+                for (var split = 0; split <= chunked.Length; split++)
+                {
+                    var stream = new HttpProtocolBodyStream(null, new NoReadPastEndStream(chunked[split..]), chunked[..split], writeMode: false, leaveOpen: true);
+                    Assert.Equal(body, await ReadAll(stream, chunk, async));
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ReadChunked_BadSegments_Throw(bool async)
+        {
+            //a length that overflows to negative
+            var negative = new HttpProtocolBodyStream(null, new MemoryStream(Encoding.UTF8.GetBytes("FFFFFFFF\r\nabc")), null, writeMode: false, leaveOpen: true);
+            _ = await Assert.ThrowsAsync<CqrsNetworkException>(() => ReadAll(negative, 10, async));
+
+            //the stream ends in the segment length
+            var cut = new HttpProtocolBodyStream(null, new MemoryStream(Encoding.UTF8.GetBytes("5")), null, writeMode: false, leaveOpen: true);
+            _ = await Assert.ThrowsAsync<ConnectionAbortedException>(() => ReadAll(cut, 10, async));
+
+            //a content length longer than the stream
+            var shortBody = new HttpProtocolBodyStream(10, new MemoryStream(new byte[3]), null, writeMode: false, leaveOpen: true);
+            _ = await Assert.ThrowsAsync<ConnectionAbortedException>(() => ReadAll(shortBody, 10, async));
+        }
+
+        [Fact]
+        public async Task FinishAndDiscard_InWriteMode_Throw()
+        {
+            var stream = new HttpProtocolBodyStream(null, new MemoryStream(), null, writeMode: true, leaveOpen: true);
+            _ = Assert.Throws<InvalidOperationException>(() => stream.FinishRead());
+            _ = Assert.Throws<InvalidOperationException>(() => stream.DiscardRead());
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.FinishReadAsync(TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.DiscardReadAsync(TestContext.Current.CancellationToken));
+        }
+
         private sealed class NoReadPastEndStream : Stream
         {
             private readonly byte[][] reads;

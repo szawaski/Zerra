@@ -59,7 +59,7 @@ var options = new JsonSerializerOptions
     DoNotWriteNullProperties = true,     // omit properties whose value is null
     DoNotWriteDefaultProperties = false, // omit properties whose value is the type's default
     EnumAsNumber = false,                // write enums as numbers instead of names
-    ErrorOnTypeMismatch = false,         // throw when a JSON value doesn't match the target type
+    ErrorOnReadMismatchedData = false,   // throw when valid JSON doesn't fit the target type
     IgnoreCase = true                    // match property names case-insensitively (slower)
 };
 
@@ -73,9 +73,12 @@ Output is always compact; there is no indented option.
 
 Each type has an expected kind of JSON value: a number for numbers, `true` or `false` for `bool`, and a string for strings, `char`, dates, times, and GUIDs. Enums accept a name or a number.
 
-- **Invalid content always throws.** A value of the expected kind that isn't valid for the type, such as `1.5` for an `int`, `300` for a `byte`, or `"tomorrow"` for a `DateTime`, throws whatever the options.
-- **Another kind that converts is read.** For example, `"5"` reads into an `int` and `"true"` into a `bool`. Numbers and `true`/`false` read into a `string` as text when `ErrorOnTypeMismatch` is off.
-- **Any other kind is a mismatch.** With `ErrorOnTypeMismatch = false` (the default) it becomes the type's default, `null` for nullable and reference types. With `ErrorOnTypeMismatch = true` it throws. `null` is a mismatch only for non-nullable value types.
+- **Invalid JSON always throws**, whatever the options, such as a missing comma or a number like `1.2.3`.
+- **Valid JSON that doesn't fit is a mismatch.** That includes a value that isn't valid for the type, such as `1.5` for an `int`, `300` for a `byte`, or `"tomorrow"` for a `DateTime`, an unknown enum name, a dictionary array item that isn't a key and value pair, a repeated dictionary key, and extra values in a nameless array.
+- **Another kind that converts is read.** For example, `"5"` reads into an `int` and `"true"` into a `bool`. Numbers and `true`/`false` read into a `string` as text when `ErrorOnReadMismatchedData` is off.
+- **Any other kind is a mismatch too.** `null` is a mismatch only for non-nullable value types.
+
+With `ErrorOnReadMismatchedData = false` (the default) a mismatch becomes the type's default, `null` for nullable and reference types. Dictionary items that aren't pairs and extra nameless values are skipped, and a repeated key keeps the last value. With `ErrorOnReadMismatchedData = true` a mismatch throws.
 
 Anything after the value other than whitespace throws in both modes.
 
@@ -102,6 +105,8 @@ Payloads are smaller, but the reader has to know the member order, and nameless 
 Numbers and dates don't depend on the machine's culture.
 
 Dictionaries are JSON objects when the keys are strings, numbers, `bool`, `char`, `Guid`, dates, or enums, like System.Text.Json. Other keys, such as objects, are written as an array of `{"Key":…,"Value":…}` pairs.
+
+A value typed as `object` is read as a `double` (JSON numbers are floating point, like in JavaScript), `string`, `bool`, `object[]`, or, for a JSON object, a `JsonObject`, which can be indexed by property name, like the result of `DeserializeJsonObject`. A non-generic `IDictionary` such as `Hashtable` is written as a JSON object and read back with `string` keys and `object` values.
 
 ## Custom Converters
 

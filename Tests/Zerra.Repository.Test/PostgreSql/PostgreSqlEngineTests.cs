@@ -53,13 +53,17 @@ namespace Zerra.Repository.Test.PostgreSql
 
             DropDatabase(connectionString);
 
-            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) };
+            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).ToArray();
 
             CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
             RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
 
             RepoTest.TestSequenceTransactStore(engine);
             await RepoTest.TestSequenceTransactStoreAsync(engine);
+            RelationPersistTests.TestSequence(engine);
+            await RelationPersistTests.TestSequenceAsync(engine);
+            QueryParityTests.TestSequence(engine);
+            await QueryParityTests.TestSequenceAsync(engine);
 
             const string changeColumn = "ALTER TABLE testtypes ALTER COLUMN int32thing TYPE bigint; ALTER TABLE testtypes ALTER COLUMN int32thing DROP NOT NULL;";
             const string addColumn = "ALTER TABLE testtypes ADD dummytomakenullable int NOT NULL";

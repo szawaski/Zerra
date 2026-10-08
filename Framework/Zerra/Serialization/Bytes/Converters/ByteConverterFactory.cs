@@ -132,8 +132,15 @@ namespace Zerra.Serialization.Bytes.Converters
 
             var findCreatorMethod = findCreatorMethodDefinition.MakeGenericMethod(type, enumerableType, dictionaryKeyType, dictionaryValueType);
 
-            var creator = (Func<ByteConverter>)findCreatorMethod.Invoke(null, [typeDetail])!;
-            return creator;
+            try
+            {
+                return (Func<ByteConverter>)findCreatorMethod.Invoke(null, [typeDetail])!;
+            }
+            catch (System.Reflection.TargetInvocationException ex) when (ex.InnerException is not null)
+            {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                throw;
+            }
         }
 
         internal static void RegisterCreator<TType, TEnumerableType, TDictionaryKey, TDictionaryValue>()

@@ -1643,7 +1643,7 @@ namespace Zerra.Repository.PostgreSql
         }
 
         /// <inheritdoc/>
-        protected override string? OperatorToString(Operator operation)
+        protected override string? OperatorToString(Operator operation, Type type)
         {
             return operation switch
             {

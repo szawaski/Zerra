@@ -17,12 +17,12 @@ namespace Zerra.Serialization.Json.Converters.Special
             switch (token)
             {
                 case JsonToken.ObjectStart:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainObject(ref reader, ref state);
                 case JsonToken.ArrayStart:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return DrainArray(ref reader, ref state);
@@ -33,12 +33,18 @@ namespace Zerra.Serialization.Json.Converters.Special
                     else
                         signature = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
 
-                    var graph = TypeDetail.Creator!();
-                    Graph.ParseSignature(signature, (Graph)(object)graph!);
+                    var graph = TypeDetail.Creator!(); //graph may be typed so has to create here
+                    if (!Graph.TryParseSignature(signature, (Graph)(object)graph!))
+                    {
+                        if (state.ErrorOnReadMismatchedData)
+                            ThrowInvalidValue(ref reader);
+                        value = default;
+                        return true;
+                    }
                     value = graph;
                     return true;
                 case JsonToken.Number:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
@@ -46,12 +52,12 @@ namespace Zerra.Serialization.Json.Converters.Special
                     value = default;
                     return true;
                 case JsonToken.False:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
                 case JsonToken.True:
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
                     value = default;
                     return true;

@@ -114,11 +114,10 @@ namespace Zerra.Test.Reflection.Types
             Delegate? setter,
             Action<object, object?>? setterBoxed,
             IReadOnlyList<Attribute>? attributes = null,
-            bool isBacked = true,
             bool isStatic = false,
             bool isExplicitFromInterface = false)
             => new(parentType, memberType, name, isField, getter, getterBoxed, setter, setterBoxed,
-                attributes ?? Array.Empty<Attribute>(), isBacked, isStatic, isExplicitFromInterface);
+                attributes ?? Array.Empty<Attribute>(), isStatic, isExplicitFromInterface);
 
         public static Zerra.Reflection.MemberDetail<T> MakeMemberDetailT<T>(
             Type parentType,
@@ -129,11 +128,10 @@ namespace Zerra.Test.Reflection.Types
             Action<object, T?>? setter,
             Action<object, object?>? setterBoxed,
             IReadOnlyList<Attribute>? attributes = null,
-            bool isBacked = true,
             bool isStatic = false,
             bool isExplicitFromInterface = false)
             => new(parentType, name, isField, getter, getterBoxed, setter, setterBoxed,
-                attributes ?? Array.Empty<Attribute>(), isBacked, isStatic, isExplicitFromInterface);
+                attributes ?? Array.Empty<Attribute>(), isStatic, isExplicitFromInterface);
 
         public static Zerra.Reflection.ConstructorDetail MakeConstructorDetail(
             Type parentType,

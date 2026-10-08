@@ -228,7 +228,6 @@ namespace Zerra.Reflection.Dynamic
                 var classByBaseList = classByBaseType.GetOrAdd(baseType, static (key) => new());
                 classByBaseList.Add(typeInAssembly);
 
-                //by the generic name too, the same as interfaces, so the open generic finds a class deriving from a closed one
                 if (baseType.IsGenericType)
                 {
                     var baseTypeName = TypeNames.GetFullGenericName(baseType);

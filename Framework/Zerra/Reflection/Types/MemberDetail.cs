@@ -40,8 +40,6 @@ namespace Zerra.Reflection
         /// <summary>Collection of all custom attributes applied to this member.</summary>
         public readonly IReadOnlyList<Attribute> Attributes;
 
-        /// <summary>Indicates whether this member is property or field backed (has an actual storage location).</summary>
-        public readonly bool IsBacked;
         /// <summary>Indicates whether this member is static.</summary>
         public readonly bool IsStatic;
         /// <summary>Indicates whether this member is an explicit interface implementation.</summary>
@@ -59,10 +57,9 @@ namespace Zerra.Reflection
         /// <param name="setter">Strongly-typed setter delegate.</param>
         /// <param name="setterBoxed">Boxed setter delegate.</param>
         /// <param name="attributes">Custom attributes applied to the method.</param>
-        /// <param name="isBacked">Whether the member has actual storage (is property or field backed).</param>
         /// <param name="isStatic">Whether the member is static.</param>
         /// <param name="isExplicitFromInterface">Whether the member is an explicit interface implementation.</param>
-        public MemberDetail(Type parentType, Type type, string name, bool isField, Delegate? getter, Func<object, object?>? getterBoxed, Delegate? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isBacked, bool isStatic, bool isExplicitFromInterface)
+        public MemberDetail(Type parentType, Type type, string name, bool isField, Delegate? getter, Func<object, object?>? getterBoxed, Delegate? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
         {
             this.ParentType = parentType;
             this.Type = type;
@@ -75,7 +72,6 @@ namespace Zerra.Reflection
             this.Getter = getter;
             this.Setter = setter;
             this.Attributes = attributes;
-            this.IsBacked = isBacked;
             this.IsStatic = isStatic;
             this.IsExplicitFromInterface = isExplicitFromInterface;
         }

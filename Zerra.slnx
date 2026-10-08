@@ -27,28 +27,28 @@
     <Project Path="Demo/Store/Store.Web/Store.Web.csproj" />
   </Folder>
   <Folder Name="/Demo/Store/Carts/">
-    <Project Path="Demo/Store/Store.Carts/Store.Carts.csproj" />
     <Project Path="Demo/Store/Store.Carts.Test/Store.Carts.Test.csproj" />
+    <Project Path="Demo/Store/Store.Carts/Store.Carts.csproj" />
   </Folder>
   <Folder Name="/Demo/Store/Catalog/">
-    <Project Path="Demo/Store/Store.Catalog/Store.Catalog.csproj" />
     <Project Path="Demo/Store/Store.Catalog.Test/Store.Catalog.Test.csproj" />
+    <Project Path="Demo/Store/Store.Catalog/Store.Catalog.csproj" />
   </Folder>
   <Folder Name="/Demo/Store/Inventory/">
-    <Project Path="Demo/Store/Store.Inventory/Store.Inventory.csproj" />
     <Project Path="Demo/Store/Store.Inventory.Test/Store.Inventory.Test.csproj" />
+    <Project Path="Demo/Store/Store.Inventory/Store.Inventory.csproj" />
   </Folder>
   <Folder Name="/Demo/Store/Orders/">
-    <Project Path="Demo/Store/Store.Orders/Store.Orders.csproj" />
     <Project Path="Demo/Store/Store.Orders.Test/Store.Orders.Test.csproj" />
+    <Project Path="Demo/Store/Store.Orders/Store.Orders.csproj" />
   </Folder>
   <Folder Name="/Demo/Store/Reviews/">
-    <Project Path="Demo/Store/Store.Reviews/Store.Reviews.csproj" />
     <Project Path="Demo/Store/Store.Reviews.Test/Store.Reviews.Test.csproj" />
+    <Project Path="Demo/Store/Store.Reviews/Store.Reviews.csproj" />
   </Folder>
   <Folder Name="/Demo/Store/Shipping/">
-    <Project Path="Demo/Store/Store.Shipping/Store.Shipping.csproj" />
     <Project Path="Demo/Store/Store.Shipping.Test/Store.Shipping.Test.csproj" />
+    <Project Path="Demo/Store/Store.Shipping/Store.Shipping.csproj" />
   </Folder>
   <Folder Name="/Framework/">
     <Project Path="Framework/Zerra.CQRS.AzureServiceBus/Zerra.CQRS.AzureServiceBus.csproj" />
@@ -96,6 +96,7 @@
     <File Path="docs/Agents.md" />
     <File Path="docs/AOT.md" />
     <File Path="docs/AzureServiceBusSetup.md" />
+    <File Path="docs/Benchmarks.md" />
     <File Path="docs/ByteSerializer.md" />
     <File Path="docs/ClientSetup.md" />
     <File Path="docs/Collections.md" />
@@ -120,6 +121,7 @@
     <File Path="docs/ServiceInjection.md" />
     <File Path="docs/StreamWrappers.md" />
     <File Path="docs/StringExtensions.md" />
+    <File Path="docs/Testing.md" />
     <File Path="docs/UpgradeV5ToV6.md" />
     <File Path="docs/ZerraWeb.md" />
     <File Path="README.md" />

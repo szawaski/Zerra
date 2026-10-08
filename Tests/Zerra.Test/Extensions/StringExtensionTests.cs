@@ -836,13 +836,50 @@ namespace Zerra.Test.Extensions
 
             Assert.True("test123".MatchWildcard("test?", '?'));
             Assert.True("test123".MatchWildcard("test%", '%'));
-            Assert.False("test".MatchWildcard("test?", '?'));
+            Assert.True("test".MatchWildcard("test?", '?'));
 
             Assert.False("Test".MatchWildcard("test"));
             Assert.False("TEST".MatchWildcard("test*"));
 
             Assert.True("test-123.456".MatchWildcard("test*"));
             Assert.True("file.txt".MatchWildcard("*.txt"));
+        }
+
+        [Fact]
+        public void MatchWildcard_MatchesRegex()
+        {
+            //every short text and pattern against the regex the pattern means, the wildcard matching zero or more characters
+            var texts = new List<string>() { "" };
+            for (var length = 1; length <= 5; length++)
+                texts.AddRange(Combinations("ab", length));
+            var patterns = new List<string>();
+            for (var length = 1; length <= 4; length++)
+                patterns.AddRange(Combinations("ab*", length));
+
+            var failures = new List<string>();
+            foreach (var pattern in patterns)
+            {
+                var regex = new System.Text.RegularExpressions.Regex("^" + string.Concat(pattern.Select(c => c == '*' ? ".*" : System.Text.RegularExpressions.Regex.Escape(c.ToString()))) + "$");
+                foreach (var text in texts)
+                {
+                    if (text.MatchWildcard(pattern) != regex.IsMatch(text))
+                        failures.Add($"\"{text}\" \"{pattern}\"");
+                }
+            }
+            Assert.True(failures.Count == 0, $"{failures.Count} wrong: {string.Join(", ", failures.Take(10))}");
+
+            static IEnumerable<string> Combinations(string chars, int length)
+                => length == 0 ? [""] : Combinations(chars, length - 1).SelectMany(x => chars.Select(c => x + c));
+        }
+
+        [Fact]
+        public void Join_TruncatesTheLongerFirst()
+        {
+            Assert.Equal("abcdef-xy", StringExtensions.Join(9, "-", "abcdefghij", "xy", out var truncated));
+            Assert.True(truncated);
+            Assert.Equal("xy-abcdef", StringExtensions.Join(9, "-", "xy", "abcdefghij"));
+            Assert.Equal("abc-xyz", StringExtensions.Join(7, "-", "abcde", "xyzw"));
+            Assert.Equal("abc", "abcdef".Truncate(3));
         }
     }
 }

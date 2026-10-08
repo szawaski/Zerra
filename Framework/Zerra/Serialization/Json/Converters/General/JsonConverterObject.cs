@@ -128,7 +128,7 @@ namespace Zerra.Serialization.Json.Converters.General
             {
                 if (token != JsonToken.ArrayStart)
                 {
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
 
                     value = default;
@@ -193,10 +193,21 @@ namespace Zerra.Serialization.Json.Converters.General
 
                 for (; ; )
                 {
-                    if (state.Current.EnumeratorIndex == members.Count)
-                        throw reader.CreateException("Unexpected value");
+                    if (state.Current.EnumeratorIndex >= members.Count)
+                    {
+                        if (state.ErrorOnReadMismatchedData)
+                            throw reader.CreateException("Unexpected value");
 
-                    if (!state.Current.HasReadFirstToken)
+                        if (!state.Current.HasReadValue && !(state.Current.HasReadFirstToken ? DrainFromParent(ref reader, ref state) : DrainFromParentMember(ref reader, ref state)))
+                        {
+                            if (collectValues)
+                                state.Current.Object = collectedValues;
+                            else
+                                state.Current.Object = value;
+                            return false;
+                        }
+                    }
+                    else if (!state.Current.HasReadFirstToken)
                     {
                         if (!reader.TryReadToken(out state.SizeNeeded))
                         {
@@ -208,9 +219,9 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                     }
 
-                    var current = members[state.Current.EnumeratorIndex];
+                    var current = state.Current.EnumeratorIndex < members.Count ? members[state.Current.EnumeratorIndex] : null;
 
-                    if (!state.Current.HasReadValue)
+                    if (current is not null && !state.Current.HasReadValue)
                     {
                         if (collectValues)
                         {
@@ -272,7 +283,7 @@ namespace Zerra.Serialization.Json.Converters.General
             {
                 if (token != JsonToken.ObjectStart)
                 {
-                    if (state.ErrorOnTypeMismatch)
+                    if (state.ErrorOnReadMismatchedData)
                         ThrowCannotConvert(ref reader);
 
                     value = default;

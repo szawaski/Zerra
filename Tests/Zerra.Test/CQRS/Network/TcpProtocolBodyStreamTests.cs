@@ -508,5 +508,59 @@ namespace Zerra.Test.CQRS.Network
             public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
             public override void SetLength(long value) => throw new NotSupportedException();
         }
+
+        private static async Task<byte[]> ReadAll(Stream stream, int chunk, bool async)
+        {
+            using var output = new MemoryStream();
+            var buffer = new byte[chunk];
+            int read;
+            while ((read = async ? await stream.ReadAsync(buffer, TestContext.Current.CancellationToken) : stream.Read(buffer, 0, buffer.Length)) > 0)
+                output.Write(buffer, 0, read);
+            return output.ToArray();
+        }
+
+        //the bytes read with the header are the start of the body, the rest comes from the stream, every split and read size has to give back the same body
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Read_StartBufferAndStreamSplitAnywhere(bool async)
+        {
+            var body = Enumerable.Range(0, 120).Select(x => (byte)x).ToArray();
+
+            var encoded = new MemoryStream();
+            var writer = new TcpProtocolBodyStream(encoded, null, writeMode: true, leaveOpen: true);
+            writer.Write(body, 0, 50);
+            writer.Write(body, 50, 70);
+            writer.Flush();
+            var segments = encoded.ToArray();
+
+            foreach (var chunk in new[] { 1, 7, 1000 })
+            {
+                for (var split = 0; split <= segments.Length; split++)
+                {
+                    var stream = new TcpProtocolBodyStream(new MemoryStream(segments[split..]), segments[..split], writeMode: false, leaveOpen: true);
+                    Assert.Equal(body, await ReadAll(stream, chunk, async));
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Read_NegativeSegmentLength_Throws(bool async)
+        {
+            var stream = new TcpProtocolBodyStream(new MemoryStream([0xFF, 0xFF, 0xFF, 0xFF, 1, 2]), null, writeMode: false, leaveOpen: true);
+            _ = await Assert.ThrowsAsync<CqrsNetworkException>(() => ReadAll(stream, 10, async));
+        }
+
+        [Fact]
+        public async Task FinishAndDiscard_InWriteMode_Throw()
+        {
+            var stream = new TcpProtocolBodyStream(new MemoryStream(), null, writeMode: true, leaveOpen: true);
+            _ = Assert.Throws<InvalidOperationException>(() => stream.FinishRead());
+            _ = Assert.Throws<InvalidOperationException>(() => stream.DiscardRead());
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.FinishReadAsync(TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(async () => await stream.DiscardReadAsync(TestContext.Current.CancellationToken));
+        }
     }
 }

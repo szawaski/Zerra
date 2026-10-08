@@ -64,7 +64,7 @@ namespace Zerra.Encryption
             if (cryptoStream is not null)
                 return cryptoStream.FlushFinalBlockAsync(cancellationToken);
             else if (cryptoPrefixStream is not null)
-                _ = cryptoPrefixStream.FlushFinalBlockAsync(cancellationToken);
+                return cryptoPrefixStream.FlushFinalBlockAsync(cancellationToken);
             else if (cryptoShiftStream is not null)
                 return cryptoShiftStream.FlushFinalBlockAsync(cancellationToken);
             return ValueTask.CompletedTask;

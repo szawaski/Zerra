@@ -369,7 +369,7 @@ namespace Zerra.Repository
             context.MemberContext.OperatorStack.Push(prefixOperation);
 
             var unary = (UnaryExpression)exp;
-            var prefix = OperatorToString(prefixOperation);
+            var prefix = OperatorToString(prefixOperation, unary.Type);
 
             if (prefix is null)
             {
@@ -417,6 +417,89 @@ namespace Zerra.Repository
                 }
             }
 
+            //SQL comparisons with NULL are unknown, C# gives true or false, the null cases C# counts as true are added
+            if (binaryRight is not null && (operation == Operator.Equals || operation == Operator.NotEquals || operation == Operator.LessThan || operation == Operator.LessThanOrEquals || operation == Operator.GreaterThan || operation == Operator.GreaterThanOrEquals))
+            {
+                var leftCanBeNull = CanBeNull(binaryLeft);
+                var rightCanBeNull = CanBeNull(binaryRight);
+                var addNulls = operation switch
+                {
+                    Operator.Equals => leftCanBeNull && rightCanBeNull,
+                    Operator.NotEquals => leftCanBeNull || rightCanBeNull,
+                    _ => context.Inverted && (leftCanBeNull || rightCanBeNull),
+                };
+                if (addNulls)
+                {
+                    sb.Write("((");
+                    ConvertToSql(binaryLeft, ref sb, context);
+                    sb.Write(')');
+                    sb.Write(OperatorToString(operation, binary.Type));
+                    sb.Write('(');
+                    ConvertToSql(binaryRight, ref sb, context);
+                    sb.Write(')');
+
+                    if (operation == Operator.Equals)
+                    {
+                        //both null are equal
+                        sb.Write(" OR ((");
+                        ConvertToSql(binaryLeft, ref sb, context);
+                        sb.Write(") IS NULL AND (");
+                        ConvertToSql(binaryRight, ref sb, context);
+                        sb.Write(") IS NULL)");
+                    }
+                    else if (operation == Operator.NotEquals)
+                    {
+                        //one null is not equal, both null is equal
+                        if (leftCanBeNull)
+                        {
+                            sb.Write(" OR ((");
+                            ConvertToSql(binaryLeft, ref sb, context);
+                            sb.Write(") IS NULL");
+                            if (rightCanBeNull)
+                            {
+                                sb.Write(" AND (");
+                                ConvertToSql(binaryRight, ref sb, context);
+                                sb.Write(") IS NOT NULL");
+                            }
+                            sb.Write(')');
+                        }
+                        if (rightCanBeNull)
+                        {
+                            sb.Write(" OR ((");
+                            ConvertToSql(binaryRight, ref sb, context);
+                            sb.Write(") IS NULL");
+                            if (leftCanBeNull)
+                            {
+                                sb.Write(" AND (");
+                                ConvertToSql(binaryLeft, ref sb, context);
+                                sb.Write(") IS NOT NULL");
+                            }
+                            sb.Write(')');
+                        }
+                    }
+                    else
+                    {
+                        //a negated comparison is true when a side is null
+                        if (leftCanBeNull)
+                        {
+                            sb.Write(" OR (");
+                            ConvertToSql(binaryLeft, ref sb, context);
+                            sb.Write(") IS NULL");
+                        }
+                        if (rightCanBeNull)
+                        {
+                            sb.Write(" OR (");
+                            ConvertToSql(binaryRight, ref sb, context);
+                            sb.Write(") IS NULL");
+                        }
+                    }
+
+                    sb.Write(')');
+                    _ = context.MemberContext.OperatorStack.Pop();
+                    return;
+                }
+            }
+
             var castSigned = BitwiseResultUnsigned && (operation == Operator.BitwiseAnd || operation == Operator.BitwiseOr || operation == Operator.BitwiseXor);
             if (castSigned)
                 sb.Write("CAST(");
@@ -425,7 +508,7 @@ namespace Zerra.Repository
             ConvertToSql(binaryLeft, ref sb, context);
             sb.Write(')');
 
-            sb.Write(OperatorToString(operation));
+            sb.Write(OperatorToString(operation, binary.Type));
 
             if (binaryRight is not null)
             {
@@ -447,6 +530,13 @@ namespace Zerra.Repository
         /// Whether bitwise operators give an unsigned 64 bit result, such as in MySQL, so the result is cast back to a signed number to match .NET.
         /// </summary>
         protected virtual bool BitwiseResultUnsigned => false;
+        private bool CanBeNull(Expression exp)
+        {
+            if (exp.Type.IsValueType && Nullable.GetUnderlyingType(exp.Type) is null)
+                return false;
+            //a value is known, a null value is written as IS NULL instead
+            return !IsEvaluatable(exp);
+        }
         private void ConvertToSqlArrayIndex(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             var array = (BinaryExpression)exp;
@@ -1268,7 +1358,8 @@ namespace Zerra.Repository
         /// Returns the SQL string representation of the given <see cref="Operator"/>.
         /// </summary>
         /// <param name="operation">The operator to convert.</param>
+        /// <param name="type">The type the operation results in.</param>
         /// <returns>The SQL operator string, or <see langword="null"/> if not applicable.</returns>
-        protected abstract string? OperatorToString(Operator operation);
+        protected abstract string? OperatorToString(Operator operation, Type type);
     }
 }

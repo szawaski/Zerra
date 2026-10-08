@@ -17,6 +17,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (propertyInfo.ReflectedType is null)
                 return null;
+            if (propertyInfo.ReflectedType.IsByRefLike || propertyInfo.PropertyType.IsByRefLike || propertyInfo.PropertyType.IsPointer || propertyInfo.PropertyType.IsByRef)
+                return null;
 
             if (!propertyInfo.CanRead)
                 return null;
@@ -56,6 +58,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (propertyInfo.ReflectedType is null)
                 return null;
+            if (propertyInfo.ReflectedType.IsByRefLike || propertyInfo.PropertyType.IsByRefLike || propertyInfo.PropertyType.IsPointer || propertyInfo.PropertyType.IsByRef)
+                return null;
 
             if (!propertyInfo.CanRead)
                 return null;
@@ -90,6 +94,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (propertyInfo.ReflectedType is null)
                 return null;
+            if (propertyInfo.ReflectedType.IsByRefLike || propertyInfo.PropertyType.IsByRefLike || propertyInfo.PropertyType.IsPointer || propertyInfo.PropertyType.IsByRef)
+                return null;
 
             if (!propertyInfo.CanRead)
                 return null;
@@ -122,6 +128,8 @@ namespace Zerra.Reflection.Dynamic
         public static Delegate? GenerateGetter(PropertyInfo propertyInfo, Type valueType)
         {
             if (propertyInfo.ReflectedType is null)
+                return null;
+            if (propertyInfo.ReflectedType.IsByRefLike || propertyInfo.PropertyType.IsByRefLike || propertyInfo.PropertyType.IsPointer || propertyInfo.PropertyType.IsByRef)
                 return null;
 
             if (!propertyInfo.CanRead)
@@ -157,6 +165,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (propertyInfo.ReflectedType is null)
                 return null;
+            if (propertyInfo.ReflectedType.IsByRefLike || propertyInfo.PropertyType.IsByRefLike || propertyInfo.PropertyType.IsPointer || propertyInfo.PropertyType.IsByRef)
+                return null;
 
             if (!propertyInfo.CanRead)
                 return null;
@@ -190,6 +200,8 @@ namespace Zerra.Reflection.Dynamic
         public static Action<object, object?>? GenerateSetter(PropertyInfo propertyInfo)
         {
             if (propertyInfo.ReflectedType is null)
+                return null;
+            if (propertyInfo.ReflectedType.IsByRefLike || propertyInfo.PropertyType.IsByRefLike || propertyInfo.PropertyType.IsPointer || propertyInfo.PropertyType.IsByRef)
                 return null;
 
             if (!propertyInfo.CanWrite)
@@ -231,6 +243,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (propertyInfo.ReflectedType is null)
                 return null;
+            if (propertyInfo.ReflectedType.IsByRefLike || propertyInfo.PropertyType.IsByRefLike || propertyInfo.PropertyType.IsPointer || propertyInfo.PropertyType.IsByRef)
+                return null;
 
             if (!propertyInfo.CanWrite)
                 return null;
@@ -267,6 +281,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (propertyInfo.ReflectedType is null)
                 return null;
+            if (propertyInfo.ReflectedType.IsByRefLike || propertyInfo.PropertyType.IsByRefLike || propertyInfo.PropertyType.IsPointer || propertyInfo.PropertyType.IsByRef)
+                return null;
 
             if (!propertyInfo.CanWrite)
                 return null;
@@ -300,6 +316,8 @@ namespace Zerra.Reflection.Dynamic
         public static Delegate? GenerateSetter(PropertyInfo propertyInfo, Type valueType)
         {
             if (propertyInfo.ReflectedType is null)
+                return null;
+            if (propertyInfo.ReflectedType.IsByRefLike || propertyInfo.PropertyType.IsByRefLike || propertyInfo.PropertyType.IsPointer || propertyInfo.PropertyType.IsByRef)
                 return null;
 
             if (!propertyInfo.CanWrite)
@@ -336,6 +354,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (propertyInfo.ReflectedType is null)
                 return null;
+            if (propertyInfo.ReflectedType.IsByRefLike || propertyInfo.PropertyType.IsByRefLike || propertyInfo.PropertyType.IsPointer || propertyInfo.PropertyType.IsByRef)
+                return null;
 
             if (!propertyInfo.CanWrite)
                 return null;
@@ -371,6 +391,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (fieldInfo.ReflectedType is null)
                 return null;
+            if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
+                return null;
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter", typeof(object), [typeof(object)], true);
             var il = dynamicMethod.GetILGenerator();
@@ -403,6 +425,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (fieldInfo.ReflectedType is null || fieldInfo.DeclaringType is null)
                 return null;
+            if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
+                return null;
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter`2", fieldInfo.FieldType, [typeof(object)], true);
             var il = dynamicMethod.GetILGenerator();
@@ -430,6 +454,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (fieldInfo.ReflectedType is null || fieldInfo.DeclaringType is null)
                 return null;
+            if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
+                return null;
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter`2", fieldInfo.FieldType, [fieldInfo.ReflectedType], true);
             var il = dynamicMethod.GetILGenerator();
@@ -455,6 +481,8 @@ namespace Zerra.Reflection.Dynamic
         public static Delegate? GenerateGetter(FieldInfo fieldInfo, Type valueType)
         {
             if (fieldInfo.ReflectedType is null || fieldInfo.DeclaringType is null)
+                return null;
+            if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
                 return null;
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter`2", fieldInfo.FieldType, [typeof(object)], true);
@@ -483,6 +511,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (fieldInfo.ReflectedType is null || fieldInfo.DeclaringType is null)
                 return null;
+            if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
+                return null;
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Getter`2", fieldInfo.FieldType, [fieldInfo.ReflectedType], true);
             var il = dynamicMethod.GetILGenerator();
@@ -509,6 +539,8 @@ namespace Zerra.Reflection.Dynamic
         public static Action<object, object?>? GenerateSetter(FieldInfo fieldInfo)
         {
             if (fieldInfo.ReflectedType is null)
+                return null;
+            if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
                 return null;
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter", null, [typeof(object), typeof(object)], true);
@@ -543,6 +575,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (fieldInfo.ReflectedType is null)
                 return null;
+            if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
+                return null;
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [typeof(object), fieldInfo.FieldType], true);
             var il = dynamicMethod.GetILGenerator();
@@ -571,6 +605,8 @@ namespace Zerra.Reflection.Dynamic
         {
             if (fieldInfo.ReflectedType is null)
                 return null;
+            if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
+                return null;
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [fieldInfo.ReflectedType, fieldInfo.FieldType], true);
             var il = dynamicMethod.GetILGenerator();
@@ -597,6 +633,8 @@ namespace Zerra.Reflection.Dynamic
         public static Delegate? GenerateSetter(FieldInfo fieldInfo, Type valueType)
         {
             if (fieldInfo.ReflectedType is null)
+                return null;
+            if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
                 return null;
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [typeof(object), fieldInfo.FieldType], true);
@@ -625,6 +663,8 @@ namespace Zerra.Reflection.Dynamic
         public static Delegate? GenerateSetter(FieldInfo fieldInfo, Type objectType, Type valueType)
         {
             if (fieldInfo.ReflectedType is null)
+                return null;
+            if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
                 return null;
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [fieldInfo.ReflectedType, fieldInfo.FieldType], true);

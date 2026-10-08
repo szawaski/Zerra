@@ -276,6 +276,126 @@ namespace Zerra.CQRS.Test.RabbitMQ
         }
 
         //a message sent before the queue is declared again is dropped, so keep sending until one of each arrives
+        [Fact(Timeout = 120000)]
+        public async Task TestRegistrationRules()
+        {
+            var commandTopic = MessageTest.NewTopic("Rules");
+            var eventTopic = MessageTest.NewTopic("RulesEvent");
+            var serializer = new ZerraByteSerializer();
+            try
+            {
+                using var consumer = new RabbitMQConsumer(host, serializer, null, null, new TestLogger(), null);
+                using var producer = new RabbitMQProducer(host, serializer, null, null, new TestLogger(), null);
+                await MessageEdgeTest.TestRegistrationRules(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+            }
+            finally
+            {
+                DeleteExchanges(commandTopic, eventTopic);
+                DeleteQueues(commandTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestEnvironmentRoundTrip()
+        {
+            const string environment = "ZerraEdge";
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            try
+            {
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, environment))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, environment))
+                {
+                    await MessageEdgeTest.TestRoundTrip(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                DeleteExchanges($"{environment}_{commandTopic}", $"{environment}_{eventTopic}");
+                DeleteQueues($"{environment}_{commandTopic}");
+            }
+            Assert.Equal(0, log.Errors);
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestReceiveLimitAwaited()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            try
+            {
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                {
+                    await MessageEdgeTest.TestReceiveLimitAwaited(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                DeleteExchanges(commandTopic);
+                DeleteQueues(commandTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestMalformedMessages()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            using var connection = RabbitMQCommon.CreateConnectionFactory(host).CreateConnection();
+            using var channel = connection.CreateModel();
+            Task Send(string exchange, byte[] body)
+            {
+                channel.BasicPublish(exchange, String.Empty, channel.CreateBasicProperties(), body);
+                return Task.CompletedTask;
+            }
+            try
+            {
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                {
+                    await MessageEdgeTest.TestMalformedMessages(producer, producer, consumer, consumer, commandTopic, eventTopic, serializer, log,
+                        (type, data, source) => serializer.SerializeBytes(new RabbitMQMessage { MessageType = type, MessageData = data, Source = source }),
+                        body => Send(commandTopic, body),
+                        body => Send(eventTopic, body),
+                        null,
+                        TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                channel.Close();
+                DeleteExchanges(commandTopic, eventTopic);
+                DeleteQueues(commandTopic);
+            }
+        }
+
+        [Fact(Timeout = 120000)]
+        public void TestLongNamesTruncated()
+        {
+            //nothing is created until a consumer opens or a producer sends
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            var environment = new string('e', 300);
+            using (var producer = new RabbitMQProducer(host, serializer, null, null, log, environment))
+            using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, environment))
+            {
+                ((ICommandProducer)producer).RegisterCommandType(1, "topic", typeof(TestCommand));
+                ((IEventProducer)producer).RegisterEventType(1, "topic", typeof(TestEvent));
+                ((ICommandConsumer)consumer).Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null));
+                ((IEventConsumer)consumer).Setup("EdgeService", (_, _) => Task.CompletedTask);
+                ((ICommandConsumer)consumer).RegisterCommandType(1, "topic", typeof(TestCommand));
+                ((IEventConsumer)consumer).RegisterEventType(1, "topic", typeof(TestEvent), EventConsumerMode.PerService);
+            }
+            //the producer's command and event exchanges, and the consumer's
+            Assert.True(log.Warnings >= 4, $"{log.Warnings} warnings");
+        }
+
         private static async Task WaitUntilReceived(ICommandProducer commandProducer, IEventProducer eventProducer, ConcurrentDictionary<Guid, bool> commands, ConcurrentDictionary<Guid, bool> events, CancellationToken cancellationToken)
         {
             var timer = System.Diagnostics.Stopwatch.StartNew();

@@ -280,12 +280,11 @@ namespace Zerra.Repository
                 return eventModels;
 
             var compressedModels = eventModels.Select(x => x.Model).ToArray();
-            var models = DecompressModels(compressedModels, query.Graph, true);
-            var i = 0;
+            var models = DecompressModels(compressedModels, query.Graph, true).GetEnumerator();
             foreach (var eventModel in eventModels)
             {
-                eventModel.Model = compressedModels[i];
-                i++;
+                _ = models.MoveNext();
+                eventModel.Model = (TModel)models.Current;
             }
 
             return eventModels;
@@ -437,12 +436,11 @@ namespace Zerra.Repository
                 return eventModels;
 
             var compressedModels = eventModels.Select(x => x.Model).ToArray();
-            var models = DecompressModels(compressedModels, query.Graph, true);
-            var i = 0;
+            var models = DecompressModels(compressedModels, query.Graph, true).GetEnumerator();
             foreach (var eventModel in eventModels)
             {
-                eventModel.Model = compressedModels[i];
-                i++;
+                _ = models.MoveNext();
+                eventModel.Model = (TModel)models.Current;
             }
 
             return eventModels;
@@ -533,6 +531,7 @@ namespace Zerra.Repository
                         copy[i] = model.Copy(modelType);
                     }
                 }
+                models = copy;
             }
 
             foreach (var model in models)
@@ -602,7 +601,7 @@ namespace Zerra.Repository
                 return;
 
             var compressedModels = CompressModels(persist.Models, persist.Graph, true);
-            NextProvider.Persist(new Persist(persist.Operation, persist.Event, persist.ModelType, compressedModels, null, persist.Graph));
+            await NextProvider.PersistAsync(new Persist(persist.Operation, persist.Event, persist.ModelType, compressedModels, null, persist.Graph));
 
             for (var i = 0; i < persist.Models.Length; i++)
             {

@@ -986,76 +986,40 @@ public static class StringExtensions
     /// <param name="wildcard">The character used as a wildcard. Defaults to '*'. The wildcard matches zero or more characters.</param>
     /// <returns>True if the string matches the pattern; otherwise, false.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="pattern"/> is null or empty.</exception>
-    public static unsafe bool MatchWildcard(this string? it, string pattern, char wildcard = '*')
+    public static bool MatchWildcard(this string? it, string pattern, char wildcard = '*')
     {
         if (String.IsNullOrEmpty(pattern))
             throw new ArgumentException(nameof(pattern));
 
-        fixed (char* pPattern = pattern)
+        var text = it.AsSpan();
+        var iText = 0;
+        var iPattern = 0;
+        var iWildcard = -1;
+        var iTextAtWildcard = 0;
+        while (iText < text.Length)
         {
-            if (it is null || it.Length == 0)
+            if (iPattern < pattern.Length && pattern[iPattern] == wildcard)
             {
-                if (pattern.Length == 1 && pPattern[0] == wildcard)
-                    return true;
-                else
-                    return false;
+                iWildcard = iPattern++;
+                iTextAtWildcard = iText;
             }
-
-            fixed (char* pText = it)
+            else if (iPattern < pattern.Length && pattern[iPattern] == text[iText])
             {
-                var i = 0;
-                var iPattern = 0;
-                int? iWildcard = null;
-
-                var charPattern = pPattern[iPattern];
-                for (; i < it.Length; i++)
-                {
-                    var charText = it[i];
-
-                    if (charPattern == wildcard)
-                    {
-                        iWildcard = iPattern;
-                        if (iPattern == pattern.Length - 1)
-                            return true;
-                        iPattern++;
-                        charPattern = pPattern[iPattern];
-                    }
-
-                    if (iWildcard.HasValue)
-                    {
-                        if (charPattern != charText)
-                        {
-                            if (iPattern != iWildcard.Value + 1)
-                            {
-                                iPattern = iWildcard.Value + 1;
-                                charPattern = pPattern[iPattern];
-                            }
-                        }
-                        else
-                        {
-                            if (iPattern == pattern.Length - 1)
-                                break;
-                            iPattern++;
-                            charPattern = pPattern[iPattern];
-                        }
-                    }
-                    else
-                    {
-                        if (charPattern != charText)
-                            return false;
-                        if (iPattern == pattern.Length - 1)
-                            break;
-                        iPattern++;
-                        charPattern = pPattern[iPattern];
-                    }
-                }
-
-                if (iPattern != pattern.Length - 1)
-                    return false;
-                if (i != it.Length - 1)
-                    return false;
-                return true;
+                iPattern++;
+                iText++;
+            }
+            else if (iWildcard >= 0)
+            {
+                iPattern = iWildcard + 1;
+                iText = ++iTextAtWildcard;
+            }
+            else
+            {
+                return false;
             }
         }
+        while (iPattern < pattern.Length && pattern[iPattern] == wildcard)
+            iPattern++;
+        return iPattern == pattern.Length;
     }
 }

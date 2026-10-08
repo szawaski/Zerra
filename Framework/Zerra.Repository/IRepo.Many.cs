@@ -82,7 +82,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A read-only collection of models.</returns>
         IReadOnlyCollection<TModel> Many<TModel>(QueryOrder<TModel>? order, int? skip, int? take, Graph<TModel>? graph) where TModel : class, new()
-            => (IReadOnlyCollection<TModel>)Query(new Query<TModel>(QueryOperation.Many, null, order, skip, take, null))!;
+            => (IReadOnlyCollection<TModel>)Query(new Query<TModel>(QueryOperation.Many, null, order, skip, take, graph))!;
 
         /// <summary>
         /// Retrieves a collection of models matching the specified filter criteria with eager loading of related data.

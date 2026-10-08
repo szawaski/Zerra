@@ -483,7 +483,7 @@ namespace Zerra.Test.CQRS.Network
             Thread.CurrentPrincipal = new ClaimsPrincipal(new ClaimsIdentity([new Claim("name", "tester")], "test"));
             try
             {
-                await RunAsync(client, operation);
+                await RunAsync(client, operation, token: TestContext.Current.CancellationToken);
             }
             finally
             {
@@ -501,10 +501,25 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeServer(null, Respond);
             using var client = CreateClient(server, null, new TestAuthorizer());
 
-            await RunAsync(client, operation);
+            await RunAsync(client, operation, token: TestContext.Current.CancellationToken);
 
             var request = Assert.Single(server.Requests);
             Assert.Equal([operation == Operation.Call ? "Bearer sync" : "Bearer async"], request.Header.Headers!["Authorization"]);
+        }
+
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(Operations))]
+        public async Task Operation_PooledConnectionResetWhileSending_SendsOnNewConnection(Operation operation)
+        {
+            //the second request reuses the first connection, which the server resets while the body is still being written
+            using var server = new FakeServer(null, Respond, resetAtHeader: 2);
+            using var client = CreateClient(server, null);
+
+            await RunAsync(client, operation, [1], TestContext.Current.CancellationToken);
+            await RunAsync(client, operation, new byte[16 * 1024 * 1024], TestContext.Current.CancellationToken);
+
+            Assert.Equal(2, server.Requests.Count);
+            Assert.Equal(2, server.ConnectionCount);
         }
 
         [Theory(Timeout = timeout)]
@@ -518,8 +533,8 @@ namespace Zerra.Test.CQRS.Network
                 : Respond(request));
             using var client = CreateClient(server, null);
 
-            await RunAsync(client, operation);
-            await RunAsync(client, operation);
+            await RunAsync(client, operation, token: TestContext.Current.CancellationToken);
+            await RunAsync(client, operation, token: TestContext.Current.CancellationToken);
 
             Assert.Equal(3, server.Requests.Count);
             Assert.Equal(2, server.ConnectionCount);
@@ -549,7 +564,7 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeServer(null, request => request.CloseAsync());
             using var client = CreateClient(server, null, null, null, log);
 
-            _ = await Assert.ThrowsAnyAsync<Exception>(() => RunAsync(client, operation));
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => RunAsync(client, operation, token: TestContext.Current.CancellationToken));
 
             //a new connection isn't retried
             Assert.Single(server.Requests);
@@ -563,7 +578,7 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeServer(null, request => request.WriteRawAsync(Enumerable.Repeat((byte)'a', HttpCommon.BufferLength).ToArray()));
             using var client = CreateClient(server, null);
 
-            var exception = await Assert.ThrowsAnyAsync<Exception>(() => RunAsync(client, operation));
+            var exception = await Assert.ThrowsAnyAsync<Exception>(() => RunAsync(client, operation, token: TestContext.Current.CancellationToken));
             Assert.Contains("Header Too Long", exception.Message);
         }
 
@@ -577,7 +592,7 @@ namespace Zerra.Test.CQRS.Network
             var data = new byte[16 * 1024 * 1024];
             new Random(1).NextBytes(data);
 
-            _ = await Assert.ThrowsAnyAsync<Exception>(() => RunAsync(client, operation, data));
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => RunAsync(client, operation, data, TestContext.Current.CancellationToken));
             Assert.Empty(server.Requests);
         }
 
@@ -589,7 +604,7 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeServer(enc, request => request.WriteErrorAsync("failed remotely"));
             using var client = CreateClient(server, enc);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => RunAsync(client, operation));
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => RunAsync(client, operation, token: TestContext.Current.CancellationToken));
             Assert.Equal("failed remotely", exception.Message);
         }
 
@@ -600,7 +615,7 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeServer(null, request => request.WriteLengthFramedAsync("HTTP/1.1 401 Unauthorized"));
             using var client = CreateClient(server, null);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => RunAsync(client, operation));
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => RunAsync(client, operation, token: TestContext.Current.CancellationToken));
             Assert.Contains("401", exception.Message);
         }
 
@@ -715,9 +730,13 @@ namespace Zerra.Test.CQRS.Network
             public string Url { get; }
 
             private readonly bool closeOnAccept;
+            private readonly int resetAtHeader;
+            private int headersRead;
 
-            public FakeServer(IEncryptor? encryptor, Func<FakeRequest, Task> respond, bool closeOnAccept = false)
+            //resetAtHeader drops that request's connection as soon as its header arrives, while a large body is still being sent
+            public FakeServer(IEncryptor? encryptor, Func<FakeRequest, Task> respond, bool closeOnAccept = false, int resetAtHeader = 0)
             {
+                this.resetAtHeader = resetAtHeader;
                 this.closeOnAccept = closeOnAccept;
                 this.encryptor = encryptor;
                 this.respond = respond;
@@ -761,6 +780,11 @@ namespace Zerra.Test.CQRS.Network
                         var header = await ReadHeaderAsync(stream);
                         if (header is null)
                             return;
+                        if (Interlocked.Increment(ref headersRead) == resetAtHeader)
+                        {
+                            socket.LingerState = new LingerOption(true, 0);
+                            return;
+                        }
 
                         Stream body = new HttpProtocolBodyStream(header.ContentLength, stream, header.BodyStartBuffer, false, true);
                         if (encryptor is not null)

@@ -17,5 +17,25 @@ namespace Zerra.Test.CQRS
             socket.Bind(new IPEndPoint(IPAddress.IPv6Any, 0));
             return $"http://localhost:{((IPEndPoint)socket.LocalEndPoint!).Port}";
         }
+
+        //the port can be taken by another test between finding it free and the listener starting, so another one is tried
+        public static HttpListener StartHttpListener(string path, out string baseUrl)
+        {
+            for (var attempt = 1; ; attempt++)
+            {
+                baseUrl = $"{NewUrl()}/";
+                var listener = new HttpListener();
+                listener.Prefixes.Add(baseUrl + path);
+                try
+                {
+                    listener.Start();
+                    return listener;
+                }
+                catch (HttpListenerException) when (attempt < 10)
+                {
+                    listener.Close();
+                }
+            }
+        }
     }
 }

@@ -547,7 +547,7 @@ namespace Zerra.Linq
                 case ExpressionType.PostIncrementAssign:
                     {
                         var cast = (UnaryExpression)exp;
-                        return Expression.PostDecrementAssign(Rebind(cast.Operand, context));
+                        return Expression.PostIncrementAssign(Rebind(cast.Operand, context));
                     }
                 case ExpressionType.Power:
                     {
@@ -562,7 +562,7 @@ namespace Zerra.Linq
                 case ExpressionType.PreDecrementAssign:
                     {
                         var cast = (UnaryExpression)exp;
-                        return Expression.PostDecrementAssign(Rebind(cast.Operand, context));
+                        return Expression.PreDecrementAssign(Rebind(cast.Operand, context));
                     }
                 case ExpressionType.PreIncrementAssign:
                     {

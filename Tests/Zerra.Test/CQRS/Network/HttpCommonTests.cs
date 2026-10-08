@@ -470,5 +470,55 @@ namespace Zerra.Test.CQRS.Network
                 Assert.True(length < HttpCommon.BufferLength);
             }
         }
+
+        private static HttpRequestHeader Read(string text)
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(text);
+            return HttpCommon.ReadHeader(bytes, bytes.Length);
+        }
+
+        [Fact]
+        public void ReadHeader_RelayHeaders()
+        {
+            var add = Read("POST / HTTP/1.1\r\nRelay-Service: add\r\nRelay-Key: key1\r\nRelay-Key: key2\r\n\r\n");
+            Assert.True(add.RelayServiceAddRemove);
+            Assert.Equal("key1", add.RelayKey);
+            Assert.False(Read("POST / HTTP/1.1\r\nrelay-service: remove\r\n\r\n").RelayServiceAddRemove);
+            Assert.Null(Read("POST / HTTP/1.1\r\nRelay-Service: other\r\n\r\n").RelayServiceAddRemove);
+        }
+
+        [Fact]
+        public void ReadHeader_StatusLines()
+        {
+            var error = Read("HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n");
+            Assert.True(error.IsError);
+            Assert.Equal("503 Service Unavailable", error.ErrorStatus);
+            Assert.False(Read("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n").IsError);
+            Assert.False(Read("HTTP/1.1\r\nContent-Length: 0\r\n\r\n").IsError);
+            Assert.False(Read("HTTP/1.1 \r\nContent-Length: 0\r\n\r\n").IsError);
+        }
+
+        [Fact]
+        public void ReadHeader_UnknownContentType_Throws()
+        {
+            _ = Assert.Throws<CqrsNetworkException>(() => Read("POST / HTTP/1.1\r\nContent-Type: text/plain\r\n\r\n"));
+        }
+
+        [Fact]
+        public void BufferHeaders_SkipNullAuthorizationValues()
+        {
+            var authHeaders = new Dictionary<string, List<string?>>() { ["Authorization"] = [null, "Bearer token"] };
+            var buffer = new byte[HttpCommon.BufferLength];
+
+            var length = HttpCommon.BufferPostRequestHeader(buffer, new Uri("http://localhost:1234/"), "Provider", ContentType.Json, authHeaders);
+            var request = System.Text.Encoding.UTF8.GetString(buffer, 0, length);
+            Assert.Single(request.Split("\r\n"), x => x.StartsWith("Authorization"));
+            Assert.Contains("Authorization: Bearer token", request);
+
+            length = HttpCommon.BufferOkResponseHeader(buffer, null, "Provider", ContentType.Json, authHeaders);
+            var response = System.Text.Encoding.UTF8.GetString(buffer, 0, length);
+            Assert.Single(response.Split("\r\n"), x => x.StartsWith("Authorization"));
+            Assert.Contains("Authorization: Bearer token", response);
+        }
     }
 }

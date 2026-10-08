@@ -372,7 +372,7 @@ namespace Zerra.Test.Serialization
             AssertIntegerParses<uint>(0, 7, 999999999, uint.MaxValue);
             AssertIntegerParses<ulong>(0, 7, 9999999999999999999, ulong.MaxValue);
 
-            var options = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            var options = new JsonSerializerOptions() { ErrorOnReadMismatchedData = true };
             Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<sbyte>("128", options));
             Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<byte>("256", options));
             Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<byte>("-1", options));
@@ -397,7 +397,7 @@ namespace Zerra.Test.Serialization
         [Fact]
         public void Int32_InvalidNumber_Throws()
         {
-            var options = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            var options = new JsonSerializerOptions() { ErrorOnReadMismatchedData = true };
             Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<int>("12.5", options));
             Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<int>("12345678901", options));
         }
@@ -450,7 +450,7 @@ namespace Zerra.Test.Serialization
         [Fact]
         public void Enum_NumberOutOfUnderlyingRange_Throws()
         {
-            var options = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            var options = new JsonSerializerOptions() { ErrorOnReadMismatchedData = true };
             foreach (var json in new[] { "300", "-1", "\"300\"", "\"-1\"" })
             {
                 Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<EnumModel>(json, options));
@@ -460,6 +460,38 @@ namespace Zerra.Test.Serialization
             Assert.Equal(EnumModel.EnumItem2, JsonSerializer.Deserialize<EnumModel>("2", options));
             Assert.Equal(EnumModel.EnumItem2, JsonSerializer.Deserialize<EnumModel?>("\"2\"", options));
             Assert.Equal(SignedEnum.Negative, JsonSerializer.Deserialize<SignedEnum?>(Encoding.UTF8.GetBytes("-1"), options));
+        }
+
+        [Fact]
+        public void Enum_NumberOutOfEachUnderlyingRange()
+        {
+            AssertEnumOutOfRange<SByteEnum>("128", "-129");
+            AssertEnumOutOfRange<ByteEnum>("256", "-1");
+            AssertEnumOutOfRange<Int16Enum>("32768", "-32769");
+            AssertEnumOutOfRange<UInt16Enum>("65536", "-1");
+            AssertEnumOutOfRange<Int32Enum>("2147483648", "-2147483649");
+            AssertEnumOutOfRange<UInt32Enum>("4294967296", "-1");
+            AssertEnumOutOfRange<Int64Enum>("9223372036854775808", "-9223372036854775809");
+            AssertEnumOutOfRange<UInt64Enum>("18446744073709551616", "-1");
+        }
+
+        private static void AssertEnumOutOfRange<T>(params string[] numbers) where T : struct, Enum
+        {
+            var strict = new JsonSerializerOptions() { ErrorOnReadMismatchedData = true };
+            foreach (var number in numbers)
+            {
+                foreach (var json in new[] { number, $"\"{number}\"" })
+                {
+                    Assert.Equal(default, JsonSerializer.Deserialize<T>(json));
+                    Assert.Equal(default, JsonSerializer.Deserialize<T>(Encoding.UTF8.GetBytes(json)));
+                    Assert.Null(JsonSerializer.Deserialize<T?>(json));
+                    Assert.Null(JsonSerializer.Deserialize<T?>(Encoding.UTF8.GetBytes(json)));
+                    _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<T>(json, strict));
+                    _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<T>(Encoding.UTF8.GetBytes(json), strict));
+                    _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<T?>(json, strict));
+                    _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<T?>(Encoding.UTF8.GetBytes(json), strict));
+                }
+            }
         }
 
         [Fact]
@@ -474,7 +506,7 @@ namespace Zerra.Test.Serialization
                 Assert.Equal(SignedEnum.Positive, JsonSerializer.Deserialize<SignedEnum>(Encoding.UTF8.GetBytes("\"Posit\\u0069ve\"")));
             }
 
-            var options = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            var options = new JsonSerializerOptions() { ErrorOnReadMismatchedData = true };
             Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<SignedEnum>("\"Missing\"", options));
             Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<SignedEnum>(Encoding.UTF8.GetBytes("\"Missing\""), options));
         }

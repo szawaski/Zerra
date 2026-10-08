@@ -337,6 +337,148 @@ namespace Zerra.CQRS.Test.Kafka
             }
         }
 
+        [Fact(Timeout = 120000)]
+        public async Task TestRegistrationRules()
+        {
+            var commandTopic = MessageTest.NewTopic("Rules");
+            var eventTopic = MessageTest.NewTopic("RulesEvent");
+            var serializer = new ZerraByteSerializer();
+            string? ackTopic = null;
+            try
+            {
+                await using var consumer = new KafkaConsumer(host, serializer, null, null, new TestLogger(), null, null, null);
+                await using var producer = new KafkaProducer(host, serializer, null, null, new TestLogger(), null, null, null);
+                ackTopic = AckTopic(producer);
+                await MessageEdgeTest.TestRegistrationRules(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+            }
+            finally
+            {
+                await Cleanup(commandTopic, eventTopic, ackTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestEnvironmentRoundTrip()
+        {
+            const string environment = "ZerraEdge";
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            string? ackTopic = null;
+            try
+            {
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, environment, null, null))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, environment, null, null))
+                {
+                    ackTopic = AckTopic(producer);
+                    await MessageEdgeTest.TestRoundTrip(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await Cleanup($"{environment}_{commandTopic}", $"{environment}_{eventTopic}", ackTopic);
+            }
+            Assert.Equal(0, log.Errors);
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestReceiveLimitAwaited()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            string? ackTopic = null;
+            try
+            {
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                {
+                    ackTopic = AckTopic(producer);
+                    await MessageEdgeTest.TestReceiveLimitAwaited(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await KafkaCommon.DeleteTopic(host, null, null, commandTopic);
+                await DeleteConsumerGroup(commandTopic);
+                if (ackTopic is not null)
+                    await KafkaCommon.DeleteTopic(host, null, null, ackTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestMalformedMessages()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            string? ackTopic = null;
+            using var raw = new ProducerBuilder<string, byte[]>(new ProducerConfig { BootstrapServers = host }).Build();
+            async Task Send(string topic, string key, byte[] body) => _ = await raw.ProduceAsync(topic, new Message<string, byte[]> { Key = key, Value = body });
+            try
+            {
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                {
+                    ackTopic = AckTopic(producer);
+                    await MessageEdgeTest.TestMalformedMessages(producer, producer, consumer, consumer, commandTopic, eventTopic, serializer, log,
+                        (type, data, source) => serializer.SerializeBytes(new KafkaMessage { MessageType = type, MessageData = data, Source = source }),
+                        body => Send(commandTopic, KafkaCommon.MessageKey, body),
+                        body => Send(eventTopic, KafkaCommon.MessageKey, body),
+                        async () =>
+                        {
+                            //a key that isn't a message
+                            await Send(commandTopic, "Unknown", [1]);
+                            await Send(eventTopic, "Unknown", [1]);
+                            return 2;
+                        },
+                        TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await Cleanup(commandTopic, eventTopic, ackTopic);
+            }
+        }
+
+        [Fact(Timeout = 120000)]
+        public async Task TestLongNamesTruncated()
+        {
+            //nothing is created until a consumer opens or a producer sends
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            var environment = new string('e', 300);
+            await using (var producer = new KafkaProducer(host, serializer, null, null, log, environment, null, null))
+            await using (var consumer = new KafkaConsumer(host, serializer, null, null, log, environment, null, null))
+            {
+                ((ICommandProducer)producer).RegisterCommandType(1, "topic", typeof(TestCommand));
+                ((IEventProducer)producer).RegisterEventType(1, "topic", typeof(TestEvent));
+                ((ICommandConsumer)consumer).Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null));
+                ((IEventConsumer)consumer).Setup("EdgeService", (_, _) => Task.CompletedTask);
+                ((ICommandConsumer)consumer).RegisterCommandType(1, "topic", typeof(TestCommand));
+                ((IEventConsumer)consumer).RegisterEventType(1, "topic", typeof(TestEvent), EventConsumerMode.PerService);
+            }
+            //the client ID, the producer's command and event topics, and the consumer's
+            Assert.True(log.Warnings >= 5, $"{log.Warnings} warnings");
+        }
+
+        [Fact(Timeout = 120000)]
+        public async Task TestCredentialsConfigure()
+        {
+            //a user name and password set up SASL, plain or over TLS, nothing connects until a message is sent
+            var serializer = new ZerraByteSerializer();
+            await using (var producer = new KafkaProducer(host, serializer, null, null, null, null, "user", "password"))
+            await using (var tlsProducer = new KafkaProducer(host, serializer, null, null, null, null, "user", "password", useTls: true))
+            {
+                Assert.Equal("[Host has Secrets]", ((ICommandProducer)producer).MessageHost);
+            }
+            var commonHost = KafkaCommon.GetHost(host, "user", "password");
+            Assert.Equal("user", commonHost.UserName);
+            Assert.Same(commonHost, KafkaCommon.GetHost(host, "user", "password"));
+        }
+
         private static async Task Cleanup(string commandTopic, string eventTopic, string? ackTopic)
         {
             await KafkaCommon.DeleteTopic(host, null, null, commandTopic);

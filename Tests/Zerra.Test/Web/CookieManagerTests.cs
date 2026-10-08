@@ -145,6 +145,38 @@ namespace Zerra.Test.Web
         }
 
         [Fact]
+        public void Add_ThreeByteCharacters_RoundTripsAcrossParts()
+        {
+            //each part is measured URL escaped, a three byte character is nine
+            var value = String.Concat(Enumerable.Repeat("中a€é😀", 2_000));
+
+            var context = new DefaultHttpContext();
+            new CookieManager(context).Add("test", value);
+
+            var cookies = SetCookieHeaderValue.ParseList(context.Response.Headers.SetCookie.ToArray()).Where(x => x.Expires is null || x.Expires > DateTimeOffset.UtcNow).ToArray();
+            Assert.True(cookies.Length > 1);
+            Assert.All(cookies, x => Assert.True(x.Value.Length <= maxCookieSizeBytes));
+
+            var requestContext = new DefaultHttpContext();
+            requestContext.Request.Headers.Cookie = String.Join("; ", cookies.Select(x => $"{x.Name}={x.Value}"));
+            Assert.Equal(value, new CookieManager(requestContext).Get("test"));
+        }
+
+        [Fact]
+        public void Secure_EmptyValue_IsNull()
+        {
+            var provider = new EphemeralDataProtectionProvider();
+            var context = new DefaultHttpContext();
+            new CookieManager(context, provider).AddSecure("test", "");
+            var cookie = SetCookieHeaderValue.ParseList(context.Response.Headers.SetCookie.ToArray()).Last(x => x.Name == "test");
+            Assert.Equal("", cookie.Value.ToString());
+
+            var requestContext = new DefaultHttpContext();
+            requestContext.Request.Headers.Cookie = "test=";
+            Assert.Null(new CookieManager(requestContext, provider).GetSecure("test"));
+        }
+
+        [Fact]
         public void GetSecure_TamperedOrOtherKey_ReturnsNull()
         {
             var context = new DefaultHttpContext();

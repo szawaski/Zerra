@@ -82,7 +82,7 @@ graph.AddInstanceGraph(adminUser, new Graph<User>(includeAllMembers: true));
 
 ## Signatures
 
-`Signature` is a string describing the graph's members, and two graphs with the same members have the same signature, so it works as a cache key. `Graph.ParseSignature` rebuilds a graph from one. Graphs also compare equal with `==` when their members are the same.
+`Signature` is a string describing the graph's members, and two graphs with the same members have the same signature, so it works as a cache key. `Graph.TryParseSignature` rebuilds a graph from one, returning `false` if the signature isn't valid. Graphs also compare equal with `==` when their members are the same.
 
 ## Examples
 

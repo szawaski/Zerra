@@ -94,8 +94,15 @@ namespace Zerra.Map.Converters
 
             var findCreatorMethod = findCreatorMethodDefinition.MakeGenericMethod(sourceType, targetType, sourceEnumerableType, targetEnumerableType, sourceDicionaryKeyType, sourceDicionaryValueType, targetDicionaryKeyType, targetDicionaryValueType);
 
-            var creator = (Func<MapConverter>)findCreatorMethod.Invoke(null, [sourceTypeDetail, targetTypeDetail])!;
-            return creator;
+            try
+            {
+                return (Func<MapConverter>)findCreatorMethod.Invoke(null, [sourceTypeDetail, targetTypeDetail])!;
+            }
+            catch (System.Reflection.TargetInvocationException ex) when (ex.InnerException is not null)
+            {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                throw;
+            }
         }
 
         /// <summary>

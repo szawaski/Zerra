@@ -592,7 +592,7 @@ namespace Zerra.Repository
                 throw new Exception($"Invalid {nameof(Persist)} for {nameof(DeleteAsync)}");
             }
 
-            NextProvider.Persist(new Persist<TModel>(PersistOperation.Delete, persist.Event, null, returnIds.Cast<object>().ToArray(), null));
+            NextProvider.Persist(new Persist<TModel>(PersistOperation.Delete, persist.Event, null, returnIds.Cast<object>().ToArray(), persist.Graph));
             OnDeleteComplete(returnIds);
         }
 
@@ -646,7 +646,7 @@ namespace Zerra.Repository
                 throw new Exception($"Invalid {nameof(Persist)} for {nameof(DeleteAsync)}");
             }
 
-            await NextProvider.PersistAsync(new Persist<TModel>(PersistOperation.Delete, persist.Event, null, returnIds.Cast<object>().ToArray(), null));
+            await NextProvider.PersistAsync(new Persist<TModel>(PersistOperation.Delete, persist.Event, null, returnIds.Cast<object>().ToArray(), persist.Graph));
             OnDeleteComplete(returnIds);
         }
     }

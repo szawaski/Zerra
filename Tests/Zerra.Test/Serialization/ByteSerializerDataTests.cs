@@ -582,24 +582,6 @@ namespace Zerra.Test.Serialization
         }
 
         [Fact]
-        public void ExceptionObject()
-        {
-            var options = new ByteSerializerOptions()
-            {
-                UseTypes = true
-            };
-
-            var model1 = new Exception("bad things happened");
-            model1.Data.Add("stuff", "things");
-
-            var bytes = ByteSerializer.Serialize(model1, options);
-            var model2 = ByteSerializer.Deserialize<Exception>(bytes, options);
-            Assert.Equal(model1.Message, model2.Message);
-            _ = Assert.Single(model2.Data);
-            Assert.Equal(model1.Data["stuff"], model2.Data["stuff"]);
-        }
-
-        [Fact]
         public void Interface()
         {
             ITestInterface model1 = new TestInterfaceImplemented()
@@ -1096,6 +1078,7 @@ namespace Zerra.Test.Serialization
             public System.Collections.IList? DeclaredList { get; set; }
             public System.Collections.IDictionary? DeclaredDictionary { get; set; }
             public System.Collections.IEnumerable? DeclaredEnumerable { get; set; }
+            public System.Collections.ICollection? DeclaredCollection { get; set; }
             public int After { get; set; }
         }
 
@@ -1114,6 +1097,7 @@ namespace Zerra.Test.Serialization
                 DeclaredList = list,
                 DeclaredDictionary = dictionary,
                 DeclaredEnumerable = new List<object?> { 4, "five" },
+                DeclaredCollection = new object?[] { 6, "seven" },
             };
 
             var result = ByteSerializer.Deserialize<MixedCollectionsModel>(ByteSerializer.Serialize(model, types), types)!;
@@ -1133,6 +1117,7 @@ namespace Zerra.Test.Serialization
                 Assert.Equal("c", Assert.IsType<SimpleModel>(resultDictionary[3L]).Value2);
             }
             Assert.Equal(new object?[] { 4, "five" }, result.DeclaredEnumerable!.Cast<object?>());
+            Assert.Equal(new object?[] { 6, "seven" }, result.DeclaredCollection!.Cast<object?>());
 
             //a type that's only IEnumerable can be written but not read, there's nothing to add the items to
             var enumerableBytes = ByteSerializer.Serialize(new MixedEnumerable(1, "two", simple), types);
@@ -1142,87 +1127,66 @@ namespace Zerra.Test.Serialization
         }
 
         [Fact]
-        public void NonGenericCollections_WithoutUseTypes_ItemsAreObjects()
+        public void NonGenericCollections_WithoutUseTypes_Throw()
         {
-            //like the JSON serializer the items without a type come back as objects, without the types the bytes can't say which
-            var model = new MixedCollectionsModel()
+            //without the types the bytes can't say what an item declared as object is
+            foreach (var model in new[]
             {
-                List = new MixedList { 1, null, "two" },
-                Dictionary = new MixedDictionary { { "a", 1 } },
-                DeclaredList = new MixedList { 1, null },
-                DeclaredDictionary = new MixedDictionary { { "a", 1 }, { "b", null } },
-                DeclaredEnumerable = new object?[] { 1, null },
-                After = 7,
-            };
-
-            var result = ByteSerializer.Deserialize<MixedCollectionsModel>(ByteSerializer.Serialize(model))!;
-            Assert.Equal(7, result.After);
-            AssertObjects(result.List!, true, false, true);
-            AssertObjects(result.DeclaredList!, true, false);
-            AssertObjects(result.DeclaredEnumerable!, true, false);
-            Assert.IsType<MixedDictionary>(result.Dictionary);
-            Assert.Single(result.Dictionary!);
-            Assert.Equal(2, result.DeclaredDictionary!.Count);
-            Assert.All(result.DeclaredDictionary.Keys.Cast<object>(), x => Assert.Equal(typeof(object), x.GetType()));
-            Assert.Single(result.DeclaredDictionary.Values.Cast<object?>(), x => x is null);
-
-            var empty = ByteSerializer.Deserialize<MixedCollectionsModel>(ByteSerializer.Serialize(new MixedCollectionsModel() { List = new MixedList(), DeclaredDictionary = new MixedDictionary(), DeclaredEnumerable = Array.Empty<object>(), After = 8 }))!;
-            Assert.Empty(empty.List!);
-            Assert.Empty(empty.DeclaredDictionary!);
-            Assert.Empty(empty.DeclaredEnumerable!);
-            Assert.Equal(8, empty.After);
-
-            //a type that's only IEnumerable can be written but not read, the same as with the types
-            var enumerableBytes = ByteSerializer.Serialize(new MixedEnumerable(1, "two"));
-            _ = Assert.ThrowsAny<Exception>(() => ByteSerializer.Deserialize<MixedEnumerable>(enumerableBytes));
-
-            static void AssertObjects(System.Collections.IEnumerable items, params bool[] notNull)
+                new MixedCollectionsModel() { List = new MixedList { 1 } },
+                new MixedCollectionsModel() { Dictionary = new MixedDictionary { { "a", 1 } } },
+                new MixedCollectionsModel() { DeclaredList = new MixedList { 1 } },
+                new MixedCollectionsModel() { DeclaredDictionary = new MixedDictionary { { "a", 1 } } },
+                new MixedCollectionsModel() { DeclaredEnumerable = new object?[] { 1 } },
+                new MixedCollectionsModel() { DeclaredCollection = new List<object?> { 1 } },
+            })
             {
-                var list = items.Cast<object?>().ToArray();
-                Assert.Equal(notNull.Length, list.Length);
-                for (var i = 0; i < list.Length; i++)
-                {
-                    if (notNull[i])
-                        Assert.Equal(typeof(object), list[i]!.GetType());
-                    else
-                        Assert.Null(list[i]);
-                }
+                _ = Assert.Throws<NotSupportedException>(() => ByteSerializer.Serialize(model));
             }
+            _ = Assert.Throws<NotSupportedException>(() => ByteSerializer.Serialize(new MixedEnumerable(1, "two")));
+
+            //nulls and empty collections have nothing to lose
+            var result = ByteSerializer.Deserialize<MixedCollectionsModel>(ByteSerializer.Serialize(new MixedCollectionsModel()
+            {
+                List = new MixedList { null, null },
+                DeclaredList = new MixedList(),
+                DeclaredDictionary = new MixedDictionary(),
+                DeclaredEnumerable = new object?[] { null },
+                DeclaredCollection = new List<object?>(),
+                After = 8,
+            }))!;
+            Assert.Equal(new object?[] { null, null }, result.List!.Cast<object?>());
+            Assert.Empty(result.DeclaredList!);
+            Assert.Empty(result.DeclaredDictionary!);
+            Assert.Equal(new object?[] { null }, result.DeclaredEnumerable!.Cast<object?>());
+            Assert.Empty(result.DeclaredCollection!);
+            Assert.Equal(8, result.After);
         }
 
         [Fact]
-        public void ObjectValues_WithoutUseTypes_AreObjects()
+        public async Task ObjectValues_WithoutUseTypes_Throw()
         {
             var types = new ByteSerializerOptions() { UseTypes = true };
 
-            //without the types only that there's a value is kept, with them the value is
-            Assert.Equal(typeof(object), ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object>(5))!.GetType());
-            Assert.Equal(typeof(object), ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object>("text"))!.GetType());
-            Assert.Equal(typeof(object), ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object>(new SimpleModel() { Value1 = 1 }))!.GetType());
-            Assert.NotNull(ByteSerializer.Deserialize<object>(ByteSerializer.Serialize(new object())));
+            _ = Assert.Throws<NotSupportedException>(() => ByteSerializer.Serialize<object>(5));
+            _ = Assert.Throws<NotSupportedException>(() => ByteSerializer.Serialize<object>("text"));
+            _ = Assert.Throws<NotSupportedException>(() => ByteSerializer.Serialize(new object()));
+            _ = Assert.Throws<NotSupportedException>(() => ByteSerializer.Serialize(new List<object?>() { 1 }));
+            _ = Assert.Throws<NotSupportedException>(() => ByteSerializer.Serialize(new object?[] { "two" }));
+            _ = Assert.Throws<NotSupportedException>(() => ByteSerializer.Serialize(new Dictionary<string, object?>() { { "a", 1 } }));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => ByteSerializer.SerializeAsync<object>(new MemoryStream(), 5, cancellationToken: TestContext.Current.CancellationToken));
 
-            //a collection of objects keeps how many there are and which are null
-            object?[] items = [1, "two", null, new SimpleModel() { Value1 = 1 }, 5.5m];
-            foreach (var result in new System.Collections.IEnumerable[]
-            {
-                ByteSerializer.Deserialize<List<object?>>(ByteSerializer.Serialize(items.ToList()))!,
-                ByteSerializer.Deserialize<object?[]>(ByteSerializer.Serialize(items))!,
-                ByteSerializer.Deserialize<IEnumerable<object?>>(ByteSerializer.Serialize<IEnumerable<object?>>(items))!,
-                ByteSerializer.Deserialize<HashSet<object?>>(ByteSerializer.Serialize(new HashSet<object?>(items)))!,
-            })
-            {
-                var list = result.Cast<object?>().ToArray();
-                Assert.Equal(5, list.Length);
-                Assert.Equal(4, list.Count(x => x is not null && x.GetType() == typeof(object)));
-                Assert.Single(list, x => x is null);
-            }
-            var dictionary = ByteSerializer.Deserialize<Dictionary<string, object?>>(ByteSerializer.Serialize(new Dictionary<string, object?>() { { "a", 1 }, { "b", null }, { "c", "three" } }))!;
-            Assert.Equal(["a", "b", "c"], dictionary.Keys.OrderBy(x => x));
-            Assert.Null(dictionary["b"]);
-            Assert.Equal(typeof(object), dictionary["c"]!.GetType());
+            //nulls have nothing to lose
+            Assert.Null(ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object?>(null)));
+            Assert.Equal(new object?[] { null, null }, ByteSerializer.Deserialize<List<object?>>(ByteSerializer.Serialize(new List<object?>() { null, null })));
+            var nullValues = ByteSerializer.Deserialize<Dictionary<string, object?>>(ByteSerializer.Serialize(new Dictionary<string, object?>() { { "a", null } }))!;
+            Assert.Null(Assert.Single(nullValues).Value);
 
-            Assert.Equal(5,ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object>(5, types), types));
+            //with the types every value comes back
+            Assert.Equal(5, ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object>(5, types), types));
             Assert.Equal("text", ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object>("text", types), types));
+            object?[] items = [1, "two", null, 5.5m];
+            Assert.Equal(items, ByteSerializer.Deserialize<List<object?>>(ByteSerializer.Serialize(items.ToList(), types), types));
+            Assert.NotNull(ByteSerializer.Deserialize<object>(ByteSerializer.Serialize(new object(), types), types));
         }
     }
 }
