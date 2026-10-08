@@ -80,7 +80,7 @@ namespace Zerra.Repository.Test.MsSql
                     continue;
                 if (modelDetails.Members.Any(x => x.ForeignIdentity == property.Name))
                     continue;
-                _ = sb.Append("ALTER TABLE [TestTypes] DROP COLUMN [").Append(property.PropertySourceName).Append("]\r\n");
+                _ = sb.Append("ALTER TABLE [TestTypes] DROP COLUMN [").Append(property.StoreName).Append("]\r\n");
             }
             var dropAllColumns = sb.ToString();
 
@@ -98,7 +98,7 @@ namespace Zerra.Repository.Test.MsSql
                     continue;
                 if (property.IsNullable)
                 {
-                    _ = sb.Append("ALTER TABLE [TestTypes] ADD [Junk").Append(property.PropertySourceName).Append("] ");
+                    _ = sb.Append("ALTER TABLE [TestTypes] ADD [Junk").Append(property.StoreName).Append("] ");
                     MsSqlEngine.WriteSqlTypeFromModel(sb, property);
                     _ = sb.Insert(sb.Length - 4, "NOT ");
                     _ = sb.Append("\r\n");

@@ -59,7 +59,7 @@ namespace Zerra.Repository.MsSql
                 sb.Write('[');
                 sb.Write(callingModel.DataSourceEntityName);
                 sb.Write("].[");
-                sb.Write(callingModelIdentity.PropertySourceName);
+                sb.Write(callingModelIdentity.StoreName);
                 sb.Write("]=");
                 sb.Write('[');
                 sb.Write(modelDetail.DataSourceEntityName);
@@ -246,7 +246,7 @@ namespace Zerra.Repository.MsSql
                                 sb.Write("WHERE[");
                                 sb.Write(subMemberModel.DataSourceEntityName);
                                 sb.Write("].[");
-                                sb.Write(subMemberModelIdentity.PropertySourceName);
+                                sb.Write(subMemberModelIdentity.StoreName);
                                 sb.Write("]=[");
                                 sb.Write(subModelInfo.DataSourceEntityName);
                                 sb.Write("].[");
@@ -363,7 +363,7 @@ namespace Zerra.Repository.MsSql
                                 sb.Write("WHERE[");
                                 sb.Write(subMemberModel.DataSourceEntityName);
                                 sb.Write("].[");
-                                sb.Write(subMemberModelIdentity.PropertySourceName);
+                                sb.Write(subMemberModelIdentity.StoreName);
                                 sb.Write("]=[");
                                 sb.Write(subModelInfo.DataSourceEntityName);
                                 sb.Write("].[");
@@ -868,7 +868,7 @@ namespace Zerra.Repository.MsSql
                 sb.Write('[');
                 sb.Write(modelDetail.DataSourceEntityName);
                 sb.Write("].[");
-                sb.Write(modelIdentity.PropertySourceName);
+                sb.Write(modelIdentity.StoreName);
                 sb.Write("]");
             }
             else
@@ -885,7 +885,7 @@ namespace Zerra.Repository.MsSql
                 sb.Write(']');
                 sb.Write('.');
                 sb.Write('[');
-                sb.Write(modelProperty.PropertySourceName);
+                sb.Write(modelProperty.StoreName);
                 sb.Write(']');
                 var lastOperator = context.MemberContext.OperatorStack.Peek();
                 if ((modelProperty.ActualType == typeof(bool) || modelProperty.ActualType == typeof(bool?)) && (lastOperator == Operator.And || lastOperator == Operator.Or || lastOperator == Operator.Not || (lastOperator == Operator.Lambda && !context.IsOrderBy)))
@@ -1572,7 +1572,7 @@ namespace Zerra.Repository.MsSql
                     if (graph is not null && !graph.HasMember(member.Name))
                         continue;
 
-                    if (member.PropertySourceName is not null && member.ForeignIdentity is null)
+                    if (member.StoreName is not null && member.ForeignIdentity is null)
                     {
                         if (passedfirst)
                             sb.Write(',');
@@ -1618,7 +1618,7 @@ namespace Zerra.Repository.MsSql
                 sb.Write("]=[");
                 sb.Write(child.ModelDetail.DataSourceEntityName);
                 sb.Write("].[");
-                sb.Write(dependantIdentity.PropertySourceName);
+                sb.Write(dependantIdentity.StoreName);
                 sb.Write(']');
 
                 AppendLineBreak(ref sb);

@@ -338,7 +338,7 @@ namespace Zerra.Repository.MariaDb
 
                         if (value is not null)
                         {
-                            var property = modelPropertyDetail.PropertySourceName;
+                            var property = modelPropertyDetail.StoreName;
 
                             if (sbColumns.Length > 0)
                                 sbColumns.Write(',');
@@ -372,7 +372,7 @@ namespace Zerra.Repository.MariaDb
 
                                 if (value is not null)
                                 {
-                                    var property = modelPropertyDetail.PropertySourceName;
+                                    var property = modelPropertyDetail.StoreName;
 
                                     if (sbReturns.Length > 0)
                                         sbReturns.Write(',');
@@ -424,7 +424,7 @@ namespace Zerra.Repository.MariaDb
                     if (graph is null || graph.HasMember(modelPropertyInfo.Name))
                     {
                         var value = modelPropertyInfo.GetterBoxed(model);
-                        var property = modelPropertyInfo.PropertySourceName;
+                        var property = modelPropertyInfo.StoreName;
 
                         if (first)
                             first = false;
@@ -446,7 +446,7 @@ namespace Zerra.Repository.MariaDb
                 foreach (var modelPropertyInfo in modelDetail.IdentityMembers)
                 {
                     var value = modelPropertyInfo.GetterBoxed(model);
-                    var property = modelPropertyInfo.PropertySourceName;
+                    var property = modelPropertyInfo.StoreName;
 
                     if (first)
                         first = false;
@@ -479,7 +479,7 @@ namespace Zerra.Repository.MariaDb
                 {
                     var modelPropertyInfo = modelDetail.IdentityMembers[0];
                     sbWhere.Write('`');
-                    sbWhere.Write(modelPropertyInfo.PropertySourceName);
+                    sbWhere.Write(modelPropertyInfo.StoreName);
                     sbWhere.Write("` IN (");
 
                     var first = true;
@@ -515,7 +515,7 @@ namespace Zerra.Repository.MariaDb
                             if (i > 0)
                                 sbWhere.Write(" AND ");
                             sbWhere.Write('`');
-                            sbWhere.Write(modelPropertyInfo.PropertySourceName);
+                            sbWhere.Write(modelPropertyInfo.StoreName);
                             sbWhere.Write('`');
                             AppendSqlValue(ref sbWhere, modelPropertyInfo, value, false, true);
                             i++;
@@ -1324,7 +1324,7 @@ namespace Zerra.Repository.MariaDb
                     var property = identityColumns[i];
                     if (i > 0)
                         _ = sb.Append(",\r\n");
-                    _ = sb.Append("\t`").Append(property.PropertySourceName).Append("` ");
+                    _ = sb.Append("\t`").Append(property.StoreName).Append("` ");
                     WriteSqlTypeFromModel(sb, property);
                 }
                 for (var i = 0; i < nonIdentityColumns.Length; i++)
@@ -1332,7 +1332,7 @@ namespace Zerra.Repository.MariaDb
                     var property = nonIdentityColumns[i];
                     if (i > 0 || identityColumns.Length > 0)
                         _ = sb.Append(",\r\n");
-                    _ = sb.Append("\t`").Append(property.PropertySourceName).Append("` ");
+                    _ = sb.Append("\t`").Append(property.StoreName).Append("` ");
                     WriteSqlTypeFromModel(sb, property);
                 }
 
@@ -1349,7 +1349,7 @@ namespace Zerra.Repository.MariaDb
                         var property = identityColumns[i];
                         if (i > 0)
                             _ = sb.Append(",\r\n");
-                        _ = sb.Append("\t\t`").Append(property.PropertySourceName).Append('`');
+                        _ = sb.Append("\t\t`").Append(property.StoreName).Append('`');
                     }
                     _ = sb.Append("\r\n\t)\r\n");
                 }
@@ -1368,7 +1368,7 @@ namespace Zerra.Repository.MariaDb
 
             foreach (var column in columns)
             {
-                var sqlColumn = sqlColumns.FirstOrDefault(x => String.Equals(x.Table, model.DataSourceEntityName, StringComparison.OrdinalIgnoreCase) && x.Column == column.PropertySourceName);
+                var sqlColumn = sqlColumns.FirstOrDefault(x => String.Equals(x.Table, model.DataSourceEntityName, StringComparison.OrdinalIgnoreCase) && x.Column == column.StoreName);
                 if (sqlColumn is null)
                 {
                     if (create)
@@ -1416,7 +1416,7 @@ namespace Zerra.Repository.MariaDb
                 //columns not in model
                 foreach (var sqlColumn in sqlColumns.Where(x => String.Equals(x.Table, model.DataSourceEntityName, StringComparison.OrdinalIgnoreCase)))
                 {
-                    var column = columns.FirstOrDefault(x => x.PropertySourceName == sqlColumn.Column);
+                    var column = columns.FirstOrDefault(x => x.StoreName == sqlColumn.Column);
                     if (column is null)
                     {
                         var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == sqlColumn.Table && x.PK_Column == sqlColumn.Column) || (x.FK_Table == sqlColumn.Table && x.FK_Column == sqlColumn.Column)).ToArray();

@@ -83,7 +83,7 @@ namespace Zerra.Repository.Test.PostgreSql
                     continue;
                 if (modelDetails.Members.Any(x => x.ForeignIdentity == property.Name))
                     continue;
-                _ = sb.Append("ALTER TABLE testtypes DROP COLUMN ").Append(property.PropertySourceName.ToLower()).Append(";\r\n");
+                _ = sb.Append("ALTER TABLE testtypes DROP COLUMN ").Append(property.StoreName.ToLower()).Append(";\r\n");
             }
             var dropAllColumns = sb.ToString();
 
@@ -101,7 +101,7 @@ namespace Zerra.Repository.Test.PostgreSql
                     continue;
                 if (property.IsNullable)
                 {
-                    _ = sb.Append("ALTER TABLE testtypes ADD Junk").Append(property.PropertySourceName).Append(' ');
+                    _ = sb.Append("ALTER TABLE testtypes ADD Junk").Append(property.StoreName).Append(' ');
                     PostgreSqlEngine.WriteSqlTypeFromModel(sb, property);
                     PostgreSqlEngine.WriteTypeEndingFromModel(sb, property);
                     _ = sb.Insert(sb.Length - 4, "NOT ");

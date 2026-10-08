@@ -40,7 +40,7 @@ namespace Zerra.Repository.Reflection
         /// <summary>
         /// The column or store name for this member, as specified by <see cref="StoreNameAttribute"/> or defaulting to <see cref="Name"/>.
         /// </summary>
-        public string PropertySourceName { get; }
+        public string StoreName { get; }
         /// <summary>
         /// Gets a value indicating whether this member is marked with <see cref="IdentityAttribute"/>; typically maps to a database primary key.
         /// </summary>
@@ -184,7 +184,7 @@ namespace Zerra.Repository.Reflection
                 storeName = memberDetail.Name;
             if (!storeName.All(x => Char.IsLetterOrDigit(x) || x == '_' || x == '`'))
                 throw new ArgumentException($"{nameof(StoreNameAttribute)}.{nameof(StoreNameAttribute.StoreName)}={storeName}");
-            this.PropertySourceName = storeName;
+            this.StoreName = storeName;
 
             this.IsIdentity = identityAttribute is not null;
             this.ForeignIdentity = foreignIdentityAttribute?.ForeignIdentity;

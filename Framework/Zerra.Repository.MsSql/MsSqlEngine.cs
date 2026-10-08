@@ -323,7 +323,7 @@ namespace Zerra.Repository.MsSql
 
                         if (value is not null)
                         {
-                            var property = modelPropertyDetail.PropertySourceName;
+                            var property = modelPropertyDetail.StoreName;
 
                             if (sbColumns.Length > 0)
                                 sbColumns.Write(',');
@@ -357,7 +357,7 @@ namespace Zerra.Repository.MsSql
 
                                 if (value is not null)
                                 {
-                                    var property = modelPropertyDetail.PropertySourceName;
+                                    var property = modelPropertyDetail.StoreName;
 
                                     if (sbOutput.Length > 0)
                                         sbOutput.Write(',');
@@ -410,7 +410,7 @@ namespace Zerra.Repository.MsSql
                     if (graph is null || graph.HasMember(modelPropertyInfo.Name))
                     {
                         var value = modelPropertyInfo.GetterBoxed(model);
-                        var property = modelPropertyInfo.PropertySourceName;
+                        var property = modelPropertyInfo.StoreName;
 
                         if (first)
                             first = false;
@@ -432,7 +432,7 @@ namespace Zerra.Repository.MsSql
                 foreach (var modelPropertyInfo in modelDetail.IdentityMembers)
                 {
                     var value = modelPropertyInfo.GetterBoxed(model);
-                    var property = modelPropertyInfo.PropertySourceName;
+                    var property = modelPropertyInfo.StoreName;
 
                     if (first)
                         first = false;
@@ -465,7 +465,7 @@ namespace Zerra.Repository.MsSql
                 {
                     var modelPropertyInfo = modelDetail.IdentityMembers[0];
                     sbWhere.Write('[');
-                    sbWhere.Write(modelPropertyInfo.PropertySourceName);
+                    sbWhere.Write(modelPropertyInfo.StoreName);
                     sbWhere.Write("] IN (");
 
                     var first = true;
@@ -501,7 +501,7 @@ namespace Zerra.Repository.MsSql
                             if (i > 0)
                                 sbWhere.Write(" AND ");
                             sbWhere.Write('[');
-                            sbWhere.Write(modelPropertyInfo.PropertySourceName);
+                            sbWhere.Write(modelPropertyInfo.StoreName);
                             sbWhere.Write(']');
                             AppendSqlValue(ref sbWhere, modelPropertyInfo, value, false, true);
                             i++;
@@ -1308,7 +1308,7 @@ namespace Zerra.Repository.MsSql
                     var property = identityColumns[i];
                     if (i > 0)
                         _ = sb.Append(",\r\n");
-                    _ = sb.Append("\t[").Append(property.PropertySourceName).Append("] ");
+                    _ = sb.Append("\t[").Append(property.StoreName).Append("] ");
                     WriteSqlTypeFromModel(sb, property);
                 }
                 for (var i = 0; i < nonIdentityColumns.Length; i++)
@@ -1316,7 +1316,7 @@ namespace Zerra.Repository.MsSql
                     var property = nonIdentityColumns[i];
                     if (i > 0 || identityColumns.Length > 0)
                         _ = sb.Append(",\r\n");
-                    _ = sb.Append("\t[").Append(property.PropertySourceName).Append("] ");
+                    _ = sb.Append("\t[").Append(property.StoreName).Append("] ");
                     WriteSqlTypeFromModel(sb, property);
                 }
                 if (identityColumns.Length > 0)
@@ -1328,7 +1328,7 @@ namespace Zerra.Repository.MsSql
                         var property = identityColumns[i];
                         if (i > 0)
                             _ = sb.Append(",\r\n");
-                        _ = sb.Append("\t\t[").Append(property.PropertySourceName).Append("] ASC");
+                        _ = sb.Append("\t\t[").Append(property.StoreName).Append("] ASC");
                     }
                     _ = sb.Append("\r\n\t)\r\n");
                 }
@@ -1350,7 +1350,7 @@ namespace Zerra.Repository.MsSql
 
             foreach (var column in columns)
             {
-                var sqlColumn = sqlColumns.FirstOrDefault(x => x.Table == model.DataSourceEntityName && x.Column == column.PropertySourceName);
+                var sqlColumn = sqlColumns.FirstOrDefault(x => x.Table == model.DataSourceEntityName && x.Column == column.StoreName);
                 if (sqlColumn is null)
                 {
                     if (create)
@@ -1402,7 +1402,7 @@ namespace Zerra.Repository.MsSql
                 //columns not in model
                 foreach (var sqlColumn in sqlColumns.Where(x => x.Table == model.DataSourceEntityName))
                 {
-                    var column = columns.FirstOrDefault(x => x.PropertySourceName == sqlColumn.Column);
+                    var column = columns.FirstOrDefault(x => x.StoreName == sqlColumn.Column);
                     if (column is null)
                     {
                         var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == sqlColumn.Table && x.PK_Column == sqlColumn.Column) || (x.FK_Table == sqlColumn.Table && x.FK_Column == sqlColumn.Column)).ToArray();

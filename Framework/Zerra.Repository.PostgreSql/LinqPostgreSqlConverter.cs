@@ -62,7 +62,7 @@ namespace Zerra.Repository.PostgreSql
                 sb.Write(' ');
                 sb.Write(callingModel.DataSourceEntityName.ToLower());
                 sb.Write('.');
-                sb.Write(callingModelIdentity.PropertySourceName.ToLower());
+                sb.Write(callingModelIdentity.StoreName.ToLower());
                 sb.Write('=');
                 sb.Write(modelDetail.DataSourceEntityName.ToLower());
                 sb.Write('.');
@@ -250,7 +250,7 @@ namespace Zerra.Repository.PostgreSql
                                 sb.Write("WHERE ");
                                 sb.Write(subMemberModel.DataSourceEntityName.ToLower());
                                 sb.Write('.');
-                                sb.Write(subMemberModelIdentity.PropertySourceName.ToLower());
+                                sb.Write(subMemberModelIdentity.StoreName.ToLower());
                                 sb.Write('=');
                                 sb.Write(subModelInfo.DataSourceEntityName.ToLower());
                                 sb.Write('.');
@@ -352,7 +352,7 @@ namespace Zerra.Repository.PostgreSql
                                 sb.Write("WHERE ");
                                 sb.Write(subMemberModel.DataSourceEntityName.ToLower());
                                 sb.Write('.');
-                                sb.Write(subMemberModelIdentity.PropertySourceName.ToLower());
+                                sb.Write(subMemberModelIdentity.StoreName.ToLower());
                                 sb.Write('=');
                                 sb.Write(subModelInfo.DataSourceEntityName.ToLower());
                                 sb.Write('.');
@@ -839,7 +839,7 @@ namespace Zerra.Repository.PostgreSql
 
                 sb.Write(modelDetail.DataSourceEntityName.ToLower());
                 sb.Write('.');
-                sb.Write(modelIdentity.PropertySourceName.ToLower());
+                sb.Write(modelIdentity.StoreName.ToLower());
             }
             else
             {
@@ -852,7 +852,7 @@ namespace Zerra.Repository.PostgreSql
 
                 sb.Write(modelDetail.DataSourceEntityName.ToLower());
                 sb.Write('.');
-                sb.Write(modelProperty.PropertySourceName.ToLower());
+                sb.Write(modelProperty.StoreName.ToLower());
                 var lastOperator = context.MemberContext.OperatorStack.Peek();
                 if ((modelProperty.ActualType == typeof(bool) || modelProperty.ActualType == typeof(bool?)) && (lastOperator == Operator.And || lastOperator == Operator.Or || lastOperator == Operator.Not || (lastOperator == Operator.Lambda && !context.IsOrderBy)))
                 {
@@ -1559,7 +1559,7 @@ namespace Zerra.Repository.PostgreSql
                     if (graph is not null && !graph.HasMember(member.Name))
                         continue;
 
-                    if (member.PropertySourceName is not null && member.ForeignIdentity is null)
+                    if (member.StoreName is not null && member.ForeignIdentity is null)
                     {
                         if (passedfirst)
                             sb.Write(',');
@@ -1608,7 +1608,7 @@ namespace Zerra.Repository.PostgreSql
                 sb.Write('=');
                 sb.Write(child.ModelDetail.DataSourceEntityName.ToLower());
                 sb.Write('.');
-                sb.Write(dependantIdentity.PropertySourceName.ToLower());
+                sb.Write(dependantIdentity.StoreName.ToLower());
 
                 AppendLineBreak(ref sb);
 
