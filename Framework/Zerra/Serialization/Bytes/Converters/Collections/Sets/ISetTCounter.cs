@@ -32,7 +32,11 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
         public bool SetEquals(IEnumerable<T> other) => throw new NotImplementedException();
         public void SymmetricExceptWith(IEnumerable<T> other) => throw new NotImplementedException();
         public void UnionWith(IEnumerable<T> other) => throw new NotImplementedException();
-        bool ISet<T>.Add(T item) => throw new NotImplementedException();
+        bool ISet<T>.Add(T item)
+        {
+            count++;
+            return true;
+        }
         IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
     }
 }

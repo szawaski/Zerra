@@ -10,7 +10,7 @@ namespace Zerra.Encryption
     /// <summary>
     /// Performs asymmetric encryption and decryption.
     /// </summary>
-    public static class AsynmmetricEncryptor
+    public static class AsymmetricEncryptor
     {
         /// <summary>
         /// Generates a new asymmetric key pair for encryption and decryption.

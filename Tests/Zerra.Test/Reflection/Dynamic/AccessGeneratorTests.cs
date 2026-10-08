@@ -1065,5 +1065,64 @@ namespace Zerra.Test.Reflection.Dynamic
         }
 
         #endregion
+
+        [Fact]
+        public void Struct_AllOverloads()
+        {
+            var property = typeof(TestAccessorStruct).GetProperty(nameof(TestAccessorStruct.IntProperty))!;
+            var field = typeof(TestAccessorStruct).GetField(nameof(TestAccessorStruct.IntField))!;
+            object boxed = new TestAccessorStruct { IntProperty = 5, IntField = 6 };
+            var value = (TestAccessorStruct)boxed;
+
+            Assert.Equal(5, AccessorGenerator.GenerateGetter(property)!(boxed));
+            Assert.Equal(5, AccessorGenerator.GenerateGetter<int>(property)!(boxed));
+            Assert.Equal(5, AccessorGenerator.GenerateGetter<TestAccessorStruct, int>(property)!(value));
+            Assert.Equal(5, ((Func<object, int>)AccessorGenerator.GenerateGetter(property, typeof(int))!)(boxed));
+            Assert.Equal(5, ((Func<TestAccessorStruct, int>)AccessorGenerator.GenerateGetter(property, typeof(TestAccessorStruct), typeof(int))!)(value));
+
+            Assert.Equal(6, AccessorGenerator.GenerateGetter(field)!(boxed));
+            Assert.Equal(6, AccessorGenerator.GenerateGetter<int>(field)!(boxed));
+            Assert.Equal(6, AccessorGenerator.GenerateGetter<TestAccessorStruct, int>(field)!(value));
+            Assert.Equal(6, ((Func<object, int>)AccessorGenerator.GenerateGetter(field, typeof(int))!)(boxed));
+            Assert.Equal(6, ((Func<TestAccessorStruct, int>)AccessorGenerator.GenerateGetter(field, typeof(TestAccessorStruct), typeof(int))!)(value));
+
+            AccessorGenerator.GenerateSetter(property)!(boxed, 10);
+            Assert.Equal(10, ((TestAccessorStruct)boxed).IntProperty);
+            AccessorGenerator.GenerateSetter<int>(property)!(boxed, 11);
+            Assert.Equal(11, ((TestAccessorStruct)boxed).IntProperty);
+            ((Action<object, int>)AccessorGenerator.GenerateSetter(property, typeof(int))!)(boxed, 12);
+            Assert.Equal(12, ((TestAccessorStruct)boxed).IntProperty);
+            AccessorGenerator.GenerateSetter<TestAccessorStruct, int>(property)!(value, 13);
+            ((Action<TestAccessorStruct, int>)AccessorGenerator.GenerateSetter(property, typeof(TestAccessorStruct), typeof(int))!)(value, 13);
+
+            AccessorGenerator.GenerateSetter(field)!(boxed, 20);
+            Assert.Equal(20, ((TestAccessorStruct)boxed).IntField);
+            AccessorGenerator.GenerateSetter<int>(field)!(boxed, 21);
+            Assert.Equal(21, ((TestAccessorStruct)boxed).IntField);
+            ((Action<object, int>)AccessorGenerator.GenerateSetter(field, typeof(int))!)(boxed, 22);
+            Assert.Equal(22, ((TestAccessorStruct)boxed).IntField);
+            AccessorGenerator.GenerateSetter<TestAccessorStruct, int>(field)!(value, 23);
+            ((Action<TestAccessorStruct, int>)AccessorGenerator.GenerateSetter(field, typeof(TestAccessorStruct), typeof(int))!)(value, 23);
+
+            var sum = typeof(TestAccessorStruct).GetMethod(nameof(TestAccessorStruct.Sum))!;
+            var current = (TestAccessorStruct)boxed;
+            Assert.Equal(12 + 22 + 1, AccessorGenerator.GenerateCaller(sum)!(boxed, [1]));
+            Assert.Equal(12 + 22 + 1, AccessorGenerator.GenerateCaller<int>(sum)!(boxed, [1]));
+            Assert.Equal(12 + 22 + 1, AccessorGenerator.GenerateCaller<TestAccessorStruct, int>(sum)!(current, [1]));
+            Assert.Equal(12 + 22 + 1, ((Func<TestAccessorStruct, object?[]?, int>)AccessorGenerator.GenerateCaller(sum, typeof(TestAccessorStruct), typeof(int))!)(current, [1]));
+        }
+
+        [Fact]
+        public void ReadOnlyProperty_SetterOverloadsReturnNull()
+        {
+            var property = typeof(TestAccessorModel).GetProperty(nameof(TestAccessorModel.StringProperty))!;
+            var getOnly = typeof(string).GetProperty(nameof(string.Length))!;
+            Assert.NotNull(AccessorGenerator.GenerateSetter(property));
+            Assert.Null(AccessorGenerator.GenerateSetter(getOnly));
+            Assert.Null(AccessorGenerator.GenerateSetter<int>(getOnly));
+            Assert.Null(AccessorGenerator.GenerateSetter<string, int>(getOnly));
+            Assert.Null(AccessorGenerator.GenerateSetter(getOnly, typeof(int)));
+            Assert.Null(AccessorGenerator.GenerateSetter(getOnly, typeof(string), typeof(int)));
+        }
     }
 }

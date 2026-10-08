@@ -31,22 +31,13 @@ namespace Zerra.Collections
             {
                 lock (locker)
                 {
-                    if (index < 0 || index > list.Count - 1)
-                    {
-                        throw new ArgumentOutOfRangeException(nameof(index));
-                    }
-                    var value = list[index];
-                    return value;
+                    return list[index];
                 }
             }
             set
             {
                 lock (locker)
                 {
-                    if (index < 0 || index > list.Count - 1)
-                    {
-                        throw new ArgumentOutOfRangeException(nameof(index));
-                    }
                     list[index] = value;
                 }
             }
@@ -61,8 +52,7 @@ namespace Zerra.Collections
             {
                 lock (locker)
                 {
-                    var count = list.Count;
-                    return count;
+                    return list.Count;
                 }
             }
         }
@@ -72,38 +62,33 @@ namespace Zerra.Collections
         /// </summary>
         public bool IsReadOnly => false;
 
-        int ICollection.Count => list.Count;
-        bool ICollection.IsSynchronized => ((ICollection)list).IsSynchronized;
-        object ICollection.SyncRoot => ((ICollection)list).IsSynchronized;
-        void ICollection.CopyTo(Array array, int index) => ((ICollection)list).CopyTo(array, index);
+        int ICollection.Count => Count;
+        bool ICollection.IsSynchronized => false;
+        object ICollection.SyncRoot => throw new NotSupportedException($"{nameof(ICollection.SyncRoot)} is not supported, the list locks internally");
+        void ICollection.CopyTo(Array array, int index)
+        {
+            lock (locker)
+            {
+                ((ICollection)list).CopyTo(array, index);
+            }
+        }
 
-        bool IList.IsFixedSize => ((IList)list).IsFixedSize;
-        bool IList.IsReadOnly => ((IList)list).IsReadOnly;
+        bool IList.IsFixedSize => false;
+        bool IList.IsReadOnly => false;
         object? IList.this[int index]
         {
             get
             {
                 lock (locker)
                 {
-                    if (index < 0 || index > list.Count - 1)
-                    {
-                        throw new ArgumentOutOfRangeException(nameof(index));
-                    }
-                    var value = list[index];
-                    return value;
+                    return list[index];
                 }
             }
             set
             {
                 lock (locker)
                 {
-                    if (index < 0 || index > list.Count - 1)
-                    {
-                        throw new ArgumentOutOfRangeException(nameof(index));
-                    }
-                    if (value is not T casted)
-                        throw new InvalidOperationException("value cannot be casted to the List type");
-                    list[index] = casted;
+                    ((IList)list)[index] = value;
                 }
             }
         }
@@ -112,34 +97,37 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                var result = ((IList)list).Add(value);
-                return result;
+                return ((IList)list).Add(value);
             }
         }
         void IList.Clear() => Clear();
         bool IList.Contains(object? value)
         {
-            if (value is not T casted)
-                throw new InvalidOperationException("value cannot be casted to the List type");
-            return Contains(casted);
+            lock (locker)
+            {
+                return ((IList)list).Contains(value);
+            }
         }
         int IList.IndexOf(object? value)
         {
-            if (value is not T casted)
-                throw new InvalidOperationException("value cannot be casted to the List type");
-            return IndexOf(casted);
+            lock (locker)
+            {
+                return ((IList)list).IndexOf(value);
+            }
         }
         void IList.Insert(int index, object? value)
         {
-            if (value is not T casted)
-                throw new InvalidOperationException("value cannot be casted to the List type");
-            Insert(index, casted);
+            lock (locker)
+            {
+                ((IList)list).Insert(index, value);
+            }
         }
         void IList.Remove(object? value)
         {
-            if (value is not T casted)
-                throw new InvalidOperationException("value cannot be casted to the List type");
-            _ = Remove(casted);
+            lock (locker)
+            {
+                ((IList)list).Remove(value);
+            }
         }
         void IList.RemoveAt(int index) => RemoveAt(index);
 
@@ -163,8 +151,7 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                foreach (var item in items)
-                    list.Add(item);
+                list.AddRange(items);
             }
         }
 
@@ -188,8 +175,7 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                var contains = list.Contains(item);
-                return contains;
+                return list.Contains(item);
             }
         }
 
@@ -199,11 +185,9 @@ namespace Zerra.Collections
         /// <param name="array">The destination array.</param>
         /// <param name="arrayIndex">The zero-based index at which copying begins.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when arrayIndex is out of range.</exception>
+        /// <exception cref="ArgumentException">Thrown when the array is too small.</exception>
         public void CopyTo(T[] array, int arrayIndex)
         {
-            if (arrayIndex < 0 || arrayIndex > array.Length - 1)
-                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
-
             lock (locker)
             {
                 list.CopyTo(array, arrayIndex);
@@ -218,22 +202,22 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                var items = list.ToArray();
-                return items;
+                return list.ToArray();
             }
         }
 
         /// <summary>
-        /// Returns an enumerator that iterates through the list.
+        /// Returns an enumerator that iterates through a snapshot of the list.
         /// </summary>
         /// <returns>An enumerator for the list.</returns>
         public IEnumerator<T> GetEnumerator()
         {
+            IEnumerable<T> items;
             lock (locker)
             {
-                IEnumerable<T> items = list.ToArray();
-                return items.GetEnumerator();
+                items = list.ToArray();
             }
+            return items.GetEnumerator();
         }
 
         /// <summary>
@@ -245,25 +229,20 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                var index = list.IndexOf(item);
-                return index;
+                return list.IndexOf(item);
             }
         }
 
         /// <summary>
         /// Inserts an element at the specified index.
         /// </summary>
-        /// <param name="index">The zero-based index at which the element should be inserted.</param>
+        /// <param name="index">The zero-based index at which the element should be inserted. Equal to the count adds to the end.</param>
         /// <param name="item">The element to insert.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is out of range.</exception>
         public void Insert(int index, T item)
         {
             lock (locker)
             {
-                if (index < 0 || index > list.Count - 1)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(index));
-                }
                 list.Insert(index, item);
             }
         }
@@ -277,8 +256,7 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                var removed = list.Remove(item);
-                return removed;
+                return list.Remove(item);
             }
         }
 
@@ -291,10 +269,6 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                if (index < 0 || index > list.Count - 1)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(index));
-                }
                 list.RemoveAt(index);
             }
         }

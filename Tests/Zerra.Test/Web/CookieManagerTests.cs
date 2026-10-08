@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
 using Xunit;
@@ -58,6 +59,115 @@ namespace Zerra.Test.Web
             var setCookies = Add(new string('a', maxCookieSizeBytes - 256));
 
             Assert.Equal(["test"], setCookies.Keys);
+        }
+
+        [Fact]
+        public void Add_SetsOptions()
+        {
+            var context = new DefaultHttpContext();
+            new CookieManager(context).Add("test", "value", TimeSpan.FromMinutes(5), Microsoft.AspNetCore.Http.SameSiteMode.Lax, httpOnly: true, secure: true);
+
+            var cookie = SetCookieHeaderValue.ParseList(context.Response.Headers.SetCookie.ToArray()).Last();
+            Assert.Equal("value", cookie.Value.ToString());
+            Assert.Equal("/", cookie.Path.ToString());
+            Assert.Equal(TimeSpan.FromMinutes(5), cookie.MaxAge);
+            Assert.True(cookie.Expires > DateTimeOffset.UtcNow);
+            Assert.Equal(Microsoft.Net.Http.Headers.SameSiteMode.Lax, cookie.SameSite);
+            Assert.True(cookie.HttpOnly);
+            Assert.True(cookie.Secure);
+        }
+
+        [Fact]
+        public void Add_ShorterValue_ExpiresLeftoverParts()
+        {
+            var context = new DefaultHttpContext();
+            context.Request.Headers.Cookie = "test=a; test-1=b; test-2=c; other=d";
+
+            new CookieManager(context).Add("test", "value");
+
+            var cookies = SetCookieHeaderValue.ParseList(context.Response.Headers.SetCookie.ToArray());
+            Assert.Equal("value", cookies.Last(x => x.Name == "test").Value.ToString());
+            Assert.True(cookies.Last(x => x.Name == "test-1").Expires < DateTimeOffset.UtcNow);
+            Assert.True(cookies.Last(x => x.Name == "test-2").Expires < DateTimeOffset.UtcNow);
+            Assert.DoesNotContain(cookies, x => x.Name == "test-3" || x.Name == "other");
+        }
+
+        [Fact]
+        public void Add_TooLarge_Throws()
+        {
+            var context = new DefaultHttpContext();
+            _ = Assert.Throws<Exception>(() => new CookieManager(context).Add("test", new string('a', 21 * maxCookieSizeBytes)));
+        }
+
+        [Fact]
+        public void Get_Missing_ReturnsNull()
+        {
+            var context = new DefaultHttpContext();
+            context.Request.Headers.Cookie = "other=value";
+            var manager = new CookieManager(context, new EphemeralDataProtectionProvider());
+            Assert.Null(manager.Get("test"));
+            Assert.Null(manager.GetSecure("test"));
+        }
+
+        [Fact]
+        public void Remove_ExpiresEveryPart()
+        {
+            var context = new DefaultHttpContext();
+            context.Request.Headers.Cookie = "test=a; test-1=b; other=c";
+
+            new CookieManager(context).Remove("test");
+
+            var cookies = SetCookieHeaderValue.ParseList(context.Response.Headers.SetCookie.ToArray());
+            Assert.True(cookies.Last(x => x.Name == "test").Expires < DateTimeOffset.UtcNow);
+            Assert.True(cookies.Last(x => x.Name == "test-1").Expires < DateTimeOffset.UtcNow);
+            Assert.DoesNotContain(cookies, x => x.Name == "other");
+        }
+
+        [Fact]
+        public void AddSecure_RoundTripsEncrypted()
+        {
+            var provider = new EphemeralDataProtectionProvider();
+            var value = new string('a', 10_000);
+
+            var context = new DefaultHttpContext();
+            new CookieManager(context, provider).AddSecure("test", value);
+
+            var cookies = SetCookieHeaderValue.ParseList(context.Response.Headers.SetCookie.ToArray()).Where(x => x.Expires is null || x.Expires > DateTimeOffset.UtcNow).ToArray();
+            Assert.True(cookies.Length > 1);
+            Assert.All(cookies, x => Assert.True(x.HttpOnly && x.Secure));
+            Assert.DoesNotContain(cookies, x => x.Value.ToString().Contains("aaaa"));
+
+            var requestContext = new DefaultHttpContext();
+            requestContext.Request.Headers.Cookie = String.Join("; ", cookies.Select(x => $"{x.Name}={x.Value}"));
+            var manager = new CookieManager(requestContext, provider);
+            Assert.Equal(value, manager.GetSecure("test"));
+            Assert.NotEqual(value, manager.Get("test"));
+        }
+
+        [Fact]
+        public void GetSecure_TamperedOrOtherKey_ReturnsNull()
+        {
+            var context = new DefaultHttpContext();
+            new CookieManager(context, new EphemeralDataProtectionProvider()).AddSecure("test", "value");
+            var cookie = SetCookieHeaderValue.ParseList(context.Response.Headers.SetCookie.ToArray()).Last();
+
+            var tampered = new DefaultHttpContext();
+            tampered.Request.Headers.Cookie = $"test={cookie.Value}x";
+            Assert.Null(new CookieManager(tampered, new EphemeralDataProtectionProvider()).GetSecure("test"));
+
+            var otherKey = new DefaultHttpContext();
+            otherKey.Request.Headers.Cookie = $"test={cookie.Value}";
+            Assert.Null(new CookieManager(otherKey, new EphemeralDataProtectionProvider()).GetSecure("test"));
+        }
+
+        [Fact]
+        public void Secure_WithoutDataProtection_Throws()
+        {
+            var context = new DefaultHttpContext();
+            context.Request.Headers.Cookie = "test=value";
+            var manager = new CookieManager(context);
+            _ = Assert.Throws<Exception>(() => manager.AddSecure("test", "value"));
+            _ = Assert.Throws<Exception>(() => manager.GetSecure("test"));
         }
 
         //the last Set-Cookie for each name, as the browser would keep it, skipping the deletes that come first

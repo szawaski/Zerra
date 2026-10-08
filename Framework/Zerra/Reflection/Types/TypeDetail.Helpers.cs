@@ -5,7 +5,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Zerra.Collections;
 using Zerra.Reflection;
-using Zerra.Reflection.Dynamic;
 
 namespace Zerra.Reflection
 {
@@ -157,7 +156,7 @@ namespace Zerra.Reflection
             if (parameterCount is not null && parameterTypes is not null && parameterTypes.Length != parameterCount)
                 throw new InvalidOperationException($"Number of parameters does not match the specified count");
 
-            var key = new TypeKey(name, parameterCount, parameterTypes);
+            var key = new TypeKey(name, genericArgumentCount, parameterCount, parameterTypes);
             methodLookups ??= new();
             var method = methodLookups.GetOrAdd(key, Methods, name, genericArgumentCount, parameterCount, parameterTypes, static (Methods, name, genericArgumentCount, parameterCount, parameterTypes) =>
             {
@@ -250,7 +249,7 @@ namespace Zerra.Reflection
         private ConcurrentFactoryDictionary<TypeKey, ConstructorDetail?>? constructorLookups = null;
         private ConstructorDetail? GetConstructorInternal(int? parameterCount, Type[]? parameterTypes)
         {
-            var key = new TypeKey(parameterTypes);
+            var key = new TypeKey(null, parameterCount, null, parameterTypes);
             constructorLookups ??= new();
             var constructor = constructorLookups.GetOrAdd(key, Constructors, parameterCount, parameterTypes, static (Constructors, parameterCount, parameterTypes) =>
             {
@@ -275,7 +274,7 @@ namespace Zerra.Reflection
         /// <exception cref="MissingMethodException">Thrown when no parameterless constructor is found.</exception>
         public ConstructorDetail GetConstructor()
         {
-            var constructor = GetConstructorInternal(null, null);
+            var constructor = GetConstructorInternal(0, null);
             if (constructor is null)
                 throw new MissingMethodException($"{Type.Name} constructor not found");
             return constructor;

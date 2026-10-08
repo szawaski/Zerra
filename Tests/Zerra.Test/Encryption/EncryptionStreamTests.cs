@@ -161,5 +161,114 @@ namespace Zerra.Test.Encryption
                 bytes[i] = (byte)i;
             return bytes;
         }
+
+#pragma warning disable CS0612 // Type or member is obsolete
+        private static Stream CreateTransform(bool shift, Stream stream, CryptoStreamMode mode, bool decode)
+            => shift
+                ? new CryptoShiftStream(stream, 128, mode, decode, true)
+                : new CryptoPrefixStream(stream, 128, mode, decode, true);
+#pragma warning restore CS0612 // Type or member is obsolete
+
+        private static byte[] Transform(bool shift, byte[] data, CryptoStreamMode mode, bool decode, int chunk)
+        {
+            using var source = new MemoryStream(data);
+            using var output = new MemoryStream();
+            if (mode == CryptoStreamMode.Read)
+            {
+                using var transform = CreateTransform(shift, source, mode, decode);
+                var buffer = new byte[chunk];
+                int read;
+                while ((read = transform.Read(buffer, 0, buffer.Length)) > 0)
+                    output.Write(buffer, 0, read);
+            }
+            else
+            {
+                using (var transform = CreateTransform(shift, output, mode, decode))
+                {
+                    for (var i = 0; i < data.Length; i += chunk)
+                        transform.Write(data, i, Math.Min(chunk, data.Length - i));
+                }
+            }
+            return output.ToArray();
+        }
+
+        private static async Task<byte[]> TransformAsync(bool shift, byte[] data, CryptoStreamMode mode, bool decode, int chunk)
+        {
+            using var source = new MemoryStream(data);
+            using var output = new MemoryStream();
+            if (mode == CryptoStreamMode.Read)
+            {
+                await using var transform = CreateTransform(shift, source, mode, decode);
+                var buffer = new byte[chunk];
+                int read;
+                while ((read = await transform.ReadAsync(buffer, TestContext.Current.CancellationToken)) > 0)
+                    output.Write(buffer, 0, read);
+            }
+            else
+            {
+                await using (var transform = CreateTransform(shift, output, mode, decode))
+                {
+                    for (var i = 0; i < data.Length; i += chunk)
+                        await transform.WriteAsync(data.AsMemory(i, Math.Min(chunk, data.Length - i)), TestContext.Current.CancellationToken);
+                }
+            }
+            return output.ToArray();
+        }
+
+        [Theory]
+        [InlineData(false, 1)]
+        [InlineData(false, 7)]
+        [InlineData(false, 100)]
+        [InlineData(false, 9_000)]
+        [InlineData(true, 1)]
+        [InlineData(true, 7)]
+        [InlineData(true, 100)]
+        [InlineData(true, 9_000)]
+        public async Task TransformStreams_RoundTrip(bool shift, int chunk)
+        {
+            var data = Enumerable.Range(0, 20_000).Select(x => (byte)(x * 31)).ToArray();
+
+            foreach (var encodeMode in new[] { CryptoStreamMode.Read, CryptoStreamMode.Write })
+            {
+                foreach (var decodeMode in new[] { CryptoStreamMode.Read, CryptoStreamMode.Write })
+                {
+                    var encoded = Transform(shift, data, encodeMode, false, chunk);
+                    Assert.Equal(data.Length + 16, encoded.Length);
+                    if (shift)
+                        Assert.NotEqual(data, encoded.Skip(16).ToArray());
+                    Assert.Equal(data, Transform(shift, encoded, decodeMode, true, chunk));
+
+                    var encodedAsync = await TransformAsync(shift, data, encodeMode, false, chunk);
+                    Assert.Equal(data, await TransformAsync(shift, encodedAsync, decodeMode, true, chunk));
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TransformStreams_Properties(bool shift)
+        {
+            using var reader = CreateTransform(shift, new MemoryStream(), CryptoStreamMode.Read, false);
+            Assert.True(reader.CanRead);
+            Assert.False(reader.CanWrite);
+            Assert.False(reader.CanSeek);
+            Assert.Equal(0, reader.Position);
+            _ = Assert.Throws<NotSupportedException>(() => reader.Length);
+            _ = Assert.Throws<NotSupportedException>(() => reader.Position = 1);
+            _ = Assert.Throws<NotSupportedException>(() => reader.Seek(0, SeekOrigin.Begin));
+            _ = Assert.Throws<NotSupportedException>(() => reader.SetLength(1));
+            _ = Assert.ThrowsAny<Exception>(() => reader.Write([1], 0, 1));
+
+            using var writer = CreateTransform(shift, new MemoryStream(), CryptoStreamMode.Write, false);
+            Assert.False(writer.CanRead);
+            Assert.True(writer.CanWrite);
+            _ = Assert.ThrowsAny<Exception>(() => writer.Read(new byte[1], 0, 1));
+
+#pragma warning disable CS0612 // Type or member is obsolete
+            _ = Assert.Throws<ArgumentException>(() => new CryptoShiftStream(new MemoryStream(), 12, CryptoStreamMode.Read, false, false));
+#pragma warning restore CS0612 // Type or member is obsolete
+            _ = Assert.Throws<ArgumentException>(() => new CryptoPrefixStream(new MemoryStream(), 100, CryptoStreamMode.Read, false, false));
+        }
     }
 }

@@ -468,5 +468,73 @@ namespace Zerra.Test.Map
             public IDictionary<string, int> Dictionary { get; set; } = null!;
             public ISet<int> Set { get; set; } = null!;
         }
+
+        public sealed record PositionalTarget(int Value1, string? Value2)
+        {
+            public int Extra { get; set; }
+        }
+
+        public readonly struct StructTarget
+        {
+            public int Value1 { get; }
+            public string? Value2 { get; }
+            public StructTarget(int value1, string? value2)
+            {
+                Value1 = value1;
+                Value2 = value2;
+            }
+        }
+
+        public class ExtraSource
+        {
+            public int Value1 { get; set; }
+            public string? Value2 { get; set; }
+            public int Extra { get; set; }
+        }
+
+        [Fact]
+        public void ConstructorTargets()
+        {
+            var source = new ExtraSource() { Value1 = 1, Value2 = "a", Extra = 9 };
+
+            var record = source.Map<ExtraSource, PositionalTarget>();
+            Assert.Equal(1, record.Value1);
+            Assert.Equal("a", record.Value2);
+            Assert.Equal(9, record.Extra);
+
+            var value = source.Map<ExtraSource, StructTarget>();
+            Assert.Equal(1, value.Value1);
+            Assert.Equal("a", value.Value2);
+        }
+
+        [Fact]
+        public void NonGenericOverloads()
+        {
+            var source = new SimpleModel() { Value1 = 1, Value2 = "a" };
+            object boxed = source;
+
+            Assert.Equal(1, boxed.Map<SimpleModel>().Value1);
+            Assert.Equal(1, boxed.Map<SimpleModel>(typeof(SimpleModel)).Value1);
+            Assert.Equal(1, ((SimpleModel)boxed.Map(typeof(SimpleModel), typeof(SimpleModel))).Value1);
+
+            var target = new SimpleModel();
+            boxed.MapTo(typeof(SimpleModel), target, typeof(SimpleModel));
+            Assert.Equal("a", target.Value2);
+
+            var copy1 = boxed.Copy<SimpleModel>();
+            Assert.NotSame(source, copy1);
+            Assert.Equal("a", copy1.Value2);
+            var copy2 = (SimpleModel)boxed.Copy(typeof(SimpleModel));
+            Assert.NotSame(source, copy2);
+            Assert.Equal("a", copy2.Value2);
+
+            object nothing = null!;
+            _ = Assert.Throws<ArgumentNullException>(() => nothing.Map<SimpleModel>());
+            _ = Assert.Throws<ArgumentNullException>(() => nothing.Map<SimpleModel>(typeof(SimpleModel)));
+            _ = Assert.Throws<ArgumentNullException>(() => nothing.Map(typeof(SimpleModel), typeof(SimpleModel)));
+            _ = Assert.Throws<ArgumentNullException>(() => nothing.MapTo(typeof(SimpleModel), new SimpleModel(), typeof(SimpleModel)));
+            _ = Assert.Throws<ArgumentNullException>(() => nothing.Copy<SimpleModel>());
+            _ = Assert.Throws<ArgumentNullException>(() => nothing.Copy(typeof(SimpleModel)));
+        }
     }
 }

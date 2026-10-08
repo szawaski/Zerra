@@ -25,6 +25,8 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     value = null;
                     return true;
                 case JsonToken.Number:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
                     if (reader.UseBytes)
 #if NETSTANDARD2_0
                         value = System.Text.Encoding.UTF8.GetString(reader.ValueBytes.ToArray());
@@ -35,15 +37,19 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                         value = reader.ValueChars.ToString();
                     return true;
                 case JsonToken.False:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
                     value = "false";
                     return true;
                 case JsonToken.True:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
                     value = "true";
                     return true;
                 case JsonToken.ObjectStart:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
-                    value = String.Empty;
+                    value = default;
                     return DrainObject(ref reader, ref state);
                 case JsonToken.ArrayStart:
                     if (state.ErrorOnTypeMismatch)

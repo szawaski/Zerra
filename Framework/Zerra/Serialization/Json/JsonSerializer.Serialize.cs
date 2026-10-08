@@ -194,7 +194,7 @@ namespace Zerra.Serialization.Json
         /// </summary>
         /// <typeparam name="T">The type of the object to serialize.</typeparam>
         /// <param name="stream">The stream to write the JSON to. Must not be null.</param>
-        /// <param name="obj">The object to serialize. If null, no data is written.</param>
+        /// <param name="obj">The object to serialize. If null, writes "null" to the stream.</param>
         /// <param name="options">Optional serialization options. If null, uses default options.</param>
         /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
         /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
@@ -203,7 +203,14 @@ namespace Zerra.Serialization.Json
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
             if (obj is null)
+            {
+#if NETSTANDARD2_0
+                stream.Write(nullBytes.ToArray(), 0, nullBytes.Length);
+#else
+                stream.Write(nullBytes.Span);
+#endif
                 return;
+            }
 
             options ??= defaultOptions;
 
@@ -244,7 +251,7 @@ namespace Zerra.Serialization.Json
         /// Serializes an object to a stream as JSON using its runtime type and the default or provided serialization options.
         /// </summary>
         /// <param name="stream">The stream to write the JSON to. Must not be null.</param>
-        /// <param name="obj">The object to serialize. If null, no data is written.</param>
+        /// <param name="obj">The object to serialize. If null, writes "null" to the stream.</param>
         /// <param name="options">Optional serialization options. If null, uses default options.</param>
         /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
         /// <exception cref="ArgumentNullException">Thrown if stream is null.</exception>
@@ -253,7 +260,14 @@ namespace Zerra.Serialization.Json
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
             if (obj is null)
+            {
+#if NETSTANDARD2_0
+                stream.Write(nullBytes.ToArray(), 0, nullBytes.Length);
+#else
+                stream.Write(nullBytes.Span);
+#endif
                 return;
+            }
 
             options ??= defaultOptions;
 
@@ -294,7 +308,7 @@ namespace Zerra.Serialization.Json
         /// Serializes an object to a stream as JSON using the specified type and the default or provided serialization options.
         /// </summary>
         /// <param name="stream">The stream to write the JSON to. Must not be null.</param>
-        /// <param name="obj">The object to serialize. If null, no data is written.</param>
+        /// <param name="obj">The object to serialize. If null, writes "null" to the stream.</param>
         /// <param name="type">The type to use for serialization. Must not be null.</param>
         /// <param name="options">Optional serialization options. If null, uses default options.</param>
         /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
@@ -306,7 +320,14 @@ namespace Zerra.Serialization.Json
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
             if (obj is null)
+            {
+#if NETSTANDARD2_0
+                stream.Write(nullBytes.ToArray(), 0, nullBytes.Length);
+#else
+                stream.Write(nullBytes.Span);
+#endif
                 return;
+            }
 
             options ??= defaultOptions;
 
@@ -361,9 +382,9 @@ namespace Zerra.Serialization.Json
             if (obj is null)
             {
 #if NETSTANDARD2_0
-                await stream.WriteAsync(nullBytes.ToArray(), 0, nullBytes.Length);
+                await stream.WriteAsync(nullBytes.ToArray(), 0, nullBytes.Length, cancellationToken);
 #else
-                await stream.WriteAsync(nullBytes);
+                await stream.WriteAsync(nullBytes, cancellationToken);
 #endif
                 return;
             }
@@ -420,9 +441,9 @@ namespace Zerra.Serialization.Json
             if (obj is null)
             {
 #if NETSTANDARD2_0
-                await stream.WriteAsync(nullBytes.ToArray(), 0, nullBytes.Length);
+                await stream.WriteAsync(nullBytes.ToArray(), 0, nullBytes.Length, cancellationToken);
 #else
-                await stream.WriteAsync(nullBytes);
+                await stream.WriteAsync(nullBytes, cancellationToken);
 #endif
                 return;
             }
@@ -482,9 +503,9 @@ namespace Zerra.Serialization.Json
             if (obj is null)
             {
 #if NETSTANDARD2_0
-                await stream.WriteAsync(nullBytes.ToArray(), 0, nullBytes.Length);
+                await stream.WriteAsync(nullBytes.ToArray(), 0, nullBytes.Length, cancellationToken);
 #else
-                await stream.WriteAsync(nullBytes);
+                await stream.WriteAsync(nullBytes, cancellationToken);
 #endif
                 return;
             }

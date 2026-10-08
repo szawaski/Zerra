@@ -42,12 +42,10 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
                 }
                 else
                 {
-                    if (!TypeDetail.HasCreator)
-                        throw new InvalidOperationException($"{TypeDetail.Type} does not have a public parameterless constructor.");
-                    value = TypeDetail.Creator!();
-                    dictionary = (IDictionary)value!;
+                    value = default;
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
+                    dictionary = new IDictionaryCounter();
                 }
             }
             else
@@ -66,7 +64,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
             {
                 if (!converter.TryReadToValue(ref reader, ref state, out var item))
                 {
-                    state.Current.Object = value;
+                    state.Current.Object = dictionary;
                     return false;
                 }
                 dictionary.Add(item.Key, item.Value);

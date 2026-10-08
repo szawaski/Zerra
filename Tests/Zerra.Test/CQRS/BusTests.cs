@@ -510,6 +510,23 @@ namespace Zerra.Test.CQRS
                 {
                     await lateBusClient.StopServicesAsync();
                 }
+
+                var syncUrl = TestNetwork.NewUrl();
+                var syncBusServer = Bus.New("sync-exit-server", null, null, null);
+                syncBusServer.AddHandler<ILoadCommandHandler>(new LoadHandler());
+                syncBusServer.AddCommandConsumer<ILoadCommandHandler>(new TcpCqrsServer(syncUrl, serializer, null, null, null));
+                var syncBusClient = Bus.New("sync-exit-client", null, null, null);
+                syncBusClient.AddCommandProducer<ILoadCommandHandler>(new TcpCqrsClient(syncUrl, serializer, null, null, null));
+                try
+                {
+                    await syncBusClient.DispatchAwaitAsync(new LoadCommand() { ID = Guid.NewGuid() });
+                    syncBusServer.WaitForExit(TestContext.Current.CancellationToken);
+                    _ = await Assert.ThrowsAnyAsync<Exception>(() => syncBusClient.DispatchAwaitAsync(new LoadCommand() { ID = Guid.NewGuid() }, TimeSpan.FromSeconds(1)));
+                }
+                finally
+                {
+                    await syncBusClient.StopServicesAsync();
+                }
             }
             finally
             {

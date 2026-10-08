@@ -357,5 +357,62 @@ namespace Zerra.Test.CQRS.Network
             Assert.True(second.IsNewConnection);
             second.Dispose();
         }
+
+        [Fact(Timeout = 10000)]
+        public async Task IdleSocket_ClosedAfterItsLifetime()
+        {
+            using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            listener.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
+            listener.Listen();
+            var port = ((System.Net.IPEndPoint)listener.LocalEndPoint!).Port;
+            using var pool = new SocketClientPool(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(100));
+
+            var stream = await pool.BeginStreamAsync("127.0.0.1", port, ProtocolType.Tcp, Memory<byte>.Empty, false, TestContext.Current.CancellationToken);
+            using var server = await listener.AcceptAsync(TestContext.Current.CancellationToken);
+            stream.Dispose(); //back to the pool
+
+            //the idle check closes it once it's been idle longer than its lifetime
+            var read = await server.ReceiveAsync(new byte[1], SocketFlags.None, TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            Assert.Equal(0, read);
+        }
+
+        [Fact(Timeout = 10000)]
+        public async Task ReturnedAfterDispose_IsClosed()
+        {
+            using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            listener.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
+            listener.Listen();
+            var port = ((System.Net.IPEndPoint)listener.LocalEndPoint!).Port;
+            var pool = new SocketClientPool();
+
+            var stream = await pool.BeginStreamAsync("127.0.0.1", port, ProtocolType.Tcp, Memory<byte>.Empty, false, TestContext.Current.CancellationToken);
+            using var server = await listener.AcceptAsync(TestContext.Current.CancellationToken);
+            pool.Dispose();
+            stream.Dispose();
+
+            var read = await server.ReceiveAsync(new byte[1], SocketFlags.None, TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            Assert.Equal(0, read);
+        }
+
+        [Fact(Timeout = 10000)]
+        public async Task RequireNewConnection_WithPoolFull_ClosesAnIdleSocket()
+        {
+            using var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            listener.Bind(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0));
+            listener.Listen();
+            var port = ((System.Net.IPEndPoint)listener.LocalEndPoint!).Port;
+            using var pool = new SocketClientPool() { MaxConnectionsPerHost = 1 };
+
+            var first = await pool.BeginStreamAsync("127.0.0.1", port, ProtocolType.Tcp, Memory<byte>.Empty, false, TestContext.Current.CancellationToken);
+            using var firstServer = await listener.AcceptAsync(TestContext.Current.CancellationToken);
+            first.Dispose(); //the pool is full with one idle socket
+
+            var second = await pool.BeginStreamAsync("127.0.0.1", port, ProtocolType.Tcp, Memory<byte>.Empty, true, TestContext.Current.CancellationToken);
+            using var secondServer = await listener.AcceptAsync(TestContext.Current.CancellationToken);
+
+            var read = await firstServer.ReceiveAsync(new byte[1], SocketFlags.None, TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            Assert.Equal(0, read);
+            second.Dispose();
+        }
     }
 }

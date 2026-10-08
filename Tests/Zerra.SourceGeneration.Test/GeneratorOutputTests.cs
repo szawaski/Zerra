@@ -174,6 +174,31 @@ namespace Zerra.SourceGeneration.Test
         }
 
         [Fact]
+        public void NullableEnums_HaveNullableUnderlyingType()
+        {
+            //the same as the runtime TypeDetail, a nullable enum's underlying type is the nullable one
+            var output = GeneratorRunner.Run("""
+                using Zerra.Reflection;
+
+                namespace TestApp
+                {
+                    public enum ByteEnum : byte { A, B }
+                    public enum LongEnum : long { A, B }
+
+                    [GenerateTypeDetail]
+                    public class Model
+                    {
+                        public ByteEnum? ByteValue { get; set; }
+                        public LongEnum? LongValue { get; set; }
+                    }
+                }
+                """);
+
+            output.AssertInitializerContains("global::Zerra.Reflection.CoreEnumType.ByteNullable");
+            output.AssertInitializerContains("global::Zerra.Reflection.CoreEnumType.Int64Nullable");
+        }
+
+        [Fact]
         public void TypeDetailModels()
         {
             var output = GeneratorRunner.Run("""

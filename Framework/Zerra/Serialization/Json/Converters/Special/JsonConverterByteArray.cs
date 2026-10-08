@@ -20,6 +20,7 @@ namespace Zerra.Serialization.Json.Converters.Special
                 return Drain(ref reader, ref state, token);
             }
 
+            string str;
             if (reader.UseBytes)
             {
                 if (reader.ValueBytes.Length == 0)
@@ -27,7 +28,7 @@ namespace Zerra.Serialization.Json.Converters.Special
                     value = Array.Empty<byte>();
                     return true;
                 }
-                value = Convert.FromBase64String(reader.UnescapeStringBytes());
+                str = reader.UnescapeStringBytes();
             }
             else
             {
@@ -36,8 +37,34 @@ namespace Zerra.Serialization.Json.Converters.Special
                     value = Array.Empty<byte>();
                     return true;
                 }
-                value = Convert.FromBase64String(reader.ValueChars.ToString());
+                str = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
             }
+
+#if NETSTANDARD2_0
+            try
+            {
+                value = Convert.FromBase64String(str);
+                return true;
+            }
+            catch (FormatException)
+            {
+            }
+#else
+            var size = str.Length / 4 * 3;
+            if (str.Length > 0 && str[str.Length - 1] == '=')
+                size--;
+            if (str.Length > 1 && str[str.Length - 2] == '=')
+                size--;
+            var buffer = new byte[Math.Max(size, 0)];
+            if (Convert.TryFromBase64String(str, buffer, out var written))
+            {
+                value = written == buffer.Length ? buffer : buffer.AsSpan(0, written).ToArray();
+                return true;
+            }
+#endif
+
+            ThrowInvalidValue(ref reader);
+            value = default;
             return true;
         }
 

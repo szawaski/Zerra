@@ -33,39 +33,33 @@ namespace Zerra.Serialization.Json.Converters.General
 
         private bool collectValues;
         private ConstructorDetail<TValue>? parameterConstructor = null;
+        private object?[] parameterDefaults = null!;
 
         protected override sealed void Setup()
         {
             foreach (var member in TypeDetail.SerializableMembers)
             {
-                var found = false;
+                string? name = null;
                 var ignoreCondition = JsonIgnoreCondition.Never;
                 foreach (var attribute in member.Attributes)
                 {
                     if (attribute is JsonIgnoreAttribute jsonIgnore)
                     {
-                        ignoreCondition = jsonIgnore.Condition;
+                        if (ignoreCondition != JsonIgnoreCondition.Always)
+                            ignoreCondition = jsonIgnore.Condition;
                     }
                     else if (attribute is System.Text.Json.Serialization.JsonIgnoreAttribute jsonIgnore2)
                     {
 #if !NETSTANDARD2_0
-                        switch (jsonIgnore2.Condition)
+                        if (ignoreCondition != JsonIgnoreCondition.Always)
                         {
-                            case System.Text.Json.Serialization.JsonIgnoreCondition.Never:
-                                ignoreCondition = JsonIgnoreCondition.Never;
-                                break;
-                            case System.Text.Json.Serialization.JsonIgnoreCondition.Always:
-                                ignoreCondition = JsonIgnoreCondition.Always;
-                                break;
-                            case System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault:
-                                ignoreCondition = JsonIgnoreCondition.WhenWritingDefault;
-                                break;
-                            case System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull:
-                                ignoreCondition = JsonIgnoreCondition.WhenWritingNull;
-                                break;
-                            default:
-                                ignoreCondition = JsonIgnoreCondition.Always;
-                                break;
+                            ignoreCondition = jsonIgnore2.Condition switch
+                            {
+                                System.Text.Json.Serialization.JsonIgnoreCondition.Never => JsonIgnoreCondition.Never,
+                                System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault => JsonIgnoreCondition.WhenWritingDefault,
+                                System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull => JsonIgnoreCondition.WhenWritingNull,
+                                _ => JsonIgnoreCondition.Always,
+                            };
                         }
 #else
                         ignoreCondition = JsonIgnoreCondition.Always;
@@ -75,39 +69,24 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         ignoreCondition = JsonIgnoreCondition.Always;
                     }
-
-                    if (ignoreCondition == JsonIgnoreCondition.Always)
-                        break;
-
-                    if (attribute is JsonPropertyNameAttribute jsonPropertyName)
+                    else if (attribute is JsonPropertyNameAttribute jsonPropertyName)
                     {
-                        var detail = new JsonConverterObjectMember(TypeDetail, member, jsonPropertyName.Name, ignoreCondition);
-                        membersByName.Add(jsonPropertyName.Name, detail);
-                        members.Add(detail);
-                        found = true;
-                        break;
+                        name ??= jsonPropertyName.Name;
                     }
                     else if (attribute is System.Text.Json.Serialization.JsonPropertyNameAttribute jsonPropertyName2)
                     {
-                        var detail = new JsonConverterObjectMember(TypeDetail, member, jsonPropertyName2.Name, ignoreCondition);
-                        membersByName.Add(jsonPropertyName2.Name, detail);
-                        members.Add(detail);
-                        found = true;
-                        break;
+                        name ??= jsonPropertyName2.Name;
                     }
                 }
                 if (ignoreCondition == JsonIgnoreCondition.Always)
                     continue;
 
-                if (!found)
-                {
-                    var detail = new JsonConverterObjectMember(TypeDetail, member, member.Name, ignoreCondition);
-                    membersByName.Add(member.Name, detail);
-                    members.Add(detail);
-                }
-
-                membersKeyed = members.Select(x => new MemberKey(x)).ToArray();
+                name ??= member.Name;
+                var detail = new JsonConverterObjectMember(TypeDetail, member, name, ignoreCondition);
+                membersByName.Add(name, detail);
+                members.Add(detail);
             }
+            membersKeyed = members.Select(x => new MemberKey(x)).ToArray();
 
             if (TypeDetail.Type.IsValueType || !TypeDetail.HasCreator)
             {
@@ -136,6 +115,8 @@ namespace Zerra.Serialization.Json.Converters.General
                     break;
                 }
                 collectValues = parameterConstructor is not null;
+                if (parameterConstructor is not null)
+                    parameterDefaults = parameterConstructor.Parameters.Select(x => x.Type.IsValueType && !x.TypeDetail.IsNullable ? x.TypeDetail.CreatorBoxed?.Invoke() : null).ToArray();
             }
         }
 
@@ -185,11 +166,11 @@ namespace Zerra.Serialization.Json.Converters.General
                         if (collectValues)
                         {
                             ReturnCollectedValues(collectedValues!);
-                            var emptyArgs = new object?[parameterConstructor!.Parameters.Count];
+                            var emptyArgs = (object?[])parameterDefaults.Clone();
                             if (TypeDetail.Type.IsValueType)
-                                value = (TValue?)parameterConstructor.CreatorBoxed(emptyArgs);
+                                value = (TValue?)parameterConstructor!.CreatorBoxed(emptyArgs);
                             else
-                                value = parameterConstructor.Creator(emptyArgs);
+                                value = parameterConstructor!.Creator(emptyArgs);
                         }
                         return true;
                     }
@@ -329,11 +310,11 @@ namespace Zerra.Serialization.Json.Converters.General
                         if (collectValues)
                         {
                             ReturnCollectedValues(collectedValues!);
-                            var emptyArgs = new object?[parameterConstructor!.Parameters.Count];
+                            var emptyArgs = (object?[])parameterDefaults.Clone();
                             if (TypeDetail.Type.IsValueType)
-                                value = (TValue?)parameterConstructor.CreatorBoxed(emptyArgs);
+                                value = (TValue?)parameterConstructor!.CreatorBoxed(emptyArgs);
                             else
-                                value = parameterConstructor.Creator(emptyArgs);
+                                value = parameterConstructor!.Creator(emptyArgs);
                         }
                         return true;
                     }
@@ -387,9 +368,6 @@ namespace Zerra.Serialization.Json.Converters.General
                             if (state.IgnoreCase || collectValues)
                             {
                                 //slow path
-                                if (reader.ValueBytes.Length == 0)
-                                    throw reader.CreateException();
-
 #if NETSTANDARD2_0
                                 var name = System.Text.Encoding.UTF8.GetString(reader.ValueBytes.ToArray());
 #else
@@ -470,17 +448,11 @@ namespace Zerra.Serialization.Json.Converters.General
                             if (state.IgnoreCase || collectValues)
                             {
                                 //slow path
-                                if (reader.ValueChars.Length == 0)
-                                    throw reader.CreateException();
-
                                 if (!membersByName.TryGetValue(reader.ValueChars.ToString(), out member))
                                     member = null;
                             }
                             else
                             {
-                                if (reader.ValueChars.Length == 0)
-                                    throw reader.CreateException();
-
                                 var nameKey = MemberKey.GetHashCode(reader.ValueChars);
 
                                 for (; ; )
@@ -644,25 +616,25 @@ namespace Zerra.Serialization.Json.Converters.General
 
             if (collectValues)
             {
-                var args = new object?[parameterConstructor!.Parameters.Count];
+                var args = (object?[])parameterDefaults.Clone();
                 for (var i = 0; i < args.Length; i++)
                 {
 #if NETSTANDARD2_0
-                    if (collectedValues!.TryGetValue(parameterConstructor.Parameters[i].Name!, out var parameter))
+                    if (collectedValues!.TryGetValue(parameterConstructor!.Parameters[i].Name!, out var parameter))
                     {
-                        collectedValues.Remove(parameterConstructor.Parameters[i].Name!);
+                        collectedValues.Remove(parameterConstructor!.Parameters[i].Name!);
                         args[i] = parameter;
                     }
 #else
-                    if (collectedValues!.Remove(parameterConstructor.Parameters[i].Name!, out var parameter))
+                    if (collectedValues!.Remove(parameterConstructor!.Parameters[i].Name!, out var parameter))
                         args[i] = parameter;
 #endif
                 }
 
                 if (TypeDetail.Type.IsValueType)
-                    value = (TValue?)parameterConstructor.CreatorBoxed(args);
+                    value = (TValue?)parameterConstructor!.CreatorBoxed(args);
                 else
-                    value = parameterConstructor.Creator(args);
+                    value = parameterConstructor!.Creator(args);
 
                 foreach (var remaining in collectedValues!)
                 {

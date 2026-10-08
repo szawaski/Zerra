@@ -32,10 +32,12 @@ namespace Zerra.Serialization.Bytes
             var state = new ReadState(options);
             T? result;
 
-            _ = Read(converter, bytes, ref state, out result);
+            var bytesUsed = Read(converter, bytes, ref state, out result);
 
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
+            if (bytesUsed < bytes.Length)
+                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)}, there is data after the value");
 
             return result;
         }
@@ -61,10 +63,12 @@ namespace Zerra.Serialization.Bytes
             var state = new ReadState(options);
             object? result;
 
-            _ = ReadBoxed(converter, bytes, ref state, out result);
+            var bytesUsed = ReadBoxed(converter, bytes, ref state, out result);
 
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
+            if (bytesUsed < bytes.Length)
+                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)}, there is data after the value");
 
             return result;
         }
@@ -123,6 +127,8 @@ namespace Zerra.Serialization.Bytes
 
                     if (state.SizeNeeded == 0)
                     {
+                        if (bytesUsed < length)
+                            throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)}, there is data after the value");
                         if (!isFinalBlock)
                         {
                             BufferShift(buffer, bytesUsed);
@@ -133,7 +139,7 @@ namespace Zerra.Serialization.Bytes
                             read = stream.Read(buffer.AsSpan(length));
 #endif
                             if (read != 0)
-                                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
+                                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)}, there is data after the value");
                         }
                         break;
                     }
@@ -234,6 +240,8 @@ namespace Zerra.Serialization.Bytes
 
                     if (state.SizeNeeded == 0)
                     {
+                        if (bytesUsed < length)
+                            throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)}, there is data after the value");
                         if (!isFinalBlock)
                         {
                             BufferShift(buffer, bytesUsed);
@@ -244,7 +252,7 @@ namespace Zerra.Serialization.Bytes
                             read = stream.Read(buffer.AsSpan(length));
 #endif
                             if (read != 0)
-                                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
+                                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)}, there is data after the value");
                         }
                         break;
                     }
@@ -345,6 +353,8 @@ namespace Zerra.Serialization.Bytes
 
                     if (state.SizeNeeded == 0)
                     {
+                        if (bytesUsed < length)
+                            throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)}, there is data after the value");
                         if (!isFinalBlock)
                         {
                             BufferShift(buffer, bytesUsed);
@@ -355,7 +365,7 @@ namespace Zerra.Serialization.Bytes
                             read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
 #endif
                             if (read != 0)
-                                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
+                                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)}, there is data after the value");
                         }
                         break;
                     }
@@ -459,6 +469,8 @@ namespace Zerra.Serialization.Bytes
 
                     if (state.SizeNeeded == 0)
                     {
+                        if (bytesUsed < length)
+                            throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)}, there is data after the value");
                         if (!isFinalBlock)
                         {
                             BufferShift(buffer, bytesUsed);
@@ -469,7 +481,7 @@ namespace Zerra.Serialization.Bytes
                             read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
 #endif
                             if (read != 0)
-                                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
+                                throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)}, there is data after the value");
                         }
                         break;
                     }

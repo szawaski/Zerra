@@ -418,5 +418,45 @@ namespace Zerra.Test.Reflection
     {
         public int Id { get; set; }
         public string? Name { get; set; }
+
+        [Fact]
+        public void Convert_NullToEveryCoreType()
+        {
+            foreach (var coreType in Enum.GetValues<CoreType>())
+            {
+                var result = TypeAnalyzer.Convert(null, coreType);
+                if (coreType == CoreType.String || coreType.ToString().EndsWith("Nullable"))
+                    Assert.Null(result);
+                else
+                    Assert.NotNull(result);
+            }
+        }
+
+        [Fact]
+        public void Convert_ValuesToNullableCoreTypes()
+        {
+            Assert.Equal(true, TypeAnalyzer.Convert("true", CoreType.BooleanNullable));
+            Assert.Equal((byte)5, TypeAnalyzer.Convert("5", CoreType.ByteNullable));
+            Assert.Equal((sbyte)-5, TypeAnalyzer.Convert("-5", CoreType.SByteNullable));
+            Assert.Equal((ushort)5, TypeAnalyzer.Convert(5, CoreType.UInt16Nullable));
+            Assert.Equal((short)-5, TypeAnalyzer.Convert(-5L, CoreType.Int16Nullable));
+            Assert.Equal(5u, TypeAnalyzer.Convert("5", CoreType.UInt32Nullable));
+            Assert.Equal(-5, TypeAnalyzer.Convert("-5", CoreType.Int32Nullable));
+            Assert.Equal(5UL, TypeAnalyzer.Convert("5", CoreType.UInt64Nullable));
+            Assert.Equal(-5L, TypeAnalyzer.Convert("-5", CoreType.Int64Nullable));
+            Assert.Equal(1.5f, TypeAnalyzer.Convert("1.5", CoreType.SingleNullable));
+            Assert.Equal(1.5d, TypeAnalyzer.Convert("1.5", CoreType.DoubleNullable));
+            Assert.Equal(1.5m, TypeAnalyzer.Convert("1.5", CoreType.DecimalNullable));
+            Assert.Equal('c', TypeAnalyzer.Convert("c", CoreType.CharNullable));
+            Assert.Equal(new DateTime(2024, 1, 2), TypeAnalyzer.Convert("2024-01-02", CoreType.DateTimeNullable));
+            Assert.Equal(new DateTimeOffset(2024, 1, 2, 0, 0, 0, TimeSpan.Zero), TypeAnalyzer.Convert("2024-01-02T00:00:00+00:00", CoreType.DateTimeOffsetNullable));
+            Assert.Equal(TimeSpan.FromMinutes(90), TypeAnalyzer.Convert("01:30:00", CoreType.TimeSpanNullable));
+            Assert.Equal(new DateOnly(2024, 1, 2), TypeAnalyzer.Convert("2024-01-02", CoreType.DateOnlyNullable));
+            Assert.Equal(new TimeOnly(1, 30), TypeAnalyzer.Convert("01:30:00", CoreType.TimeOnlyNullable));
+            var guid = Guid.NewGuid();
+            Assert.Equal(guid, TypeAnalyzer.Convert(guid.ToString(), CoreType.GuidNullable));
+            Assert.Equal(guid, TypeAnalyzer.Convert(guid, CoreType.Guid));
+            Assert.Equal("5", TypeAnalyzer.Convert(5, CoreType.String));
+        }
     }
 }

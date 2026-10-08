@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
 using Xunit;
 using Zerra.Collections;
 
@@ -306,6 +307,159 @@ namespace Zerra.Test.Collections
             await Task.WhenAll(tasks);
             Assert.Equal(60, dict.Count);
             Assert.Equal(10, readCount);
+        }
+
+        [Fact]
+        public void GenericInterfaces()
+        {
+            using var dict = new ConcurrentSortedReadWriteDictionary<string, int?>();
+            IDictionary<string, int?> dictionary = dict;
+            var collection = (ICollection<KeyValuePair<string, int?>>)dict;
+
+            dictionary.Add("a", 1);
+            _ = Assert.Throws<ArgumentException>(() => dictionary.Add("a", 2));
+            _ = Assert.Throws<ArgumentException>(() => collection.Add(new("a", 3)));
+            Assert.Equal(1, dictionary["a"]);
+
+            Assert.True(collection.Contains(new("a", 1)));
+            Assert.False(collection.Contains(new("a", 2)));
+            Assert.False(collection.Remove(new("a", 2)));
+            Assert.True(dictionary.ContainsKey("a"));
+            Assert.True(collection.Remove(new("a", 1)));
+            Assert.False(dictionary.ContainsKey("a"));
+            Assert.False(collection.IsReadOnly);
+
+            collection.Add(new("b", 2));
+            var array = new KeyValuePair<string, int?>[2];
+            collection.CopyTo(array, 1);
+            Assert.Equal(new KeyValuePair<string, int?>("b", 2), array[1]);
+            _ = Assert.ThrowsAny<ArgumentException>(() => collection.CopyTo(new KeyValuePair<string, int?>[0], 0));
+
+            var readOnly = (IReadOnlyDictionary<string, int?>)dict;
+            Assert.Equal(["b"], readOnly.Keys);
+            Assert.Equal([2], readOnly.Values);
+
+            Assert.True(dictionary.Remove("b"));
+            Assert.False(dictionary.Remove("b"));
+        }
+
+        [Fact]
+        public void NonGenericInterfaces()
+        {
+            using var dict = new ConcurrentSortedReadWriteDictionary<string, int?>();
+            IDictionary dictionary = dict;
+
+            dictionary.Add("a", null);
+            Assert.True(dictionary.Contains("a"));
+            Assert.Null(dictionary["a"]);
+            _ = Assert.Throws<ArgumentException>(() => dictionary.Add("a", 1));
+            _ = Assert.Throws<ArgumentException>(() => dictionary.Add(5, 1));
+            _ = Assert.Throws<ArgumentException>(() => dictionary.Add("b", "text"));
+
+            Assert.Null(dictionary["missing"]);
+            Assert.Null(dictionary[5]);
+            Assert.False(dictionary.Contains("missing"));
+            Assert.False(dictionary.Contains(5));
+
+            dictionary["b"] = 2;
+            Assert.Equal(2, dictionary["b"]);
+            _ = Assert.Throws<ArgumentException>(() => dictionary["b"] = "text");
+
+            dictionary.Remove("missing");
+            dictionary.Remove(5);
+            Assert.Equal(2, dictionary.Count);
+
+            Assert.Equal(2, dictionary.Keys.Count);
+            Assert.Equal(2, dictionary.Values.Count);
+            var keys = new List<object>();
+            var enumerator = dictionary.GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                Assert.Equal(enumerator.Key, enumerator.Entry.Key);
+                keys.Add(enumerator.Key);
+            }
+            Assert.Equal(["a", "b"], keys.OrderBy(x => x));
+
+            var array = new KeyValuePair<string, int?>[2];
+            ((ICollection)dictionary).CopyTo(array, 0);
+            Assert.Equal(["a", "b"], array.Select(x => x.Key).OrderBy(x => x));
+
+            Assert.False(dictionary.IsFixedSize);
+            Assert.False(dictionary.IsReadOnly);
+            Assert.False(((ICollection)dictionary).IsSynchronized);
+            _ = Assert.Throws<NotSupportedException>(() => ((ICollection)dictionary).SyncRoot);
+
+            dictionary.Remove("a");
+            Assert.False(dictionary.Contains("a"));
+            dictionary.Clear();
+            Assert.Empty(dictionary);
+        }
+
+        [Fact]
+        public void GetOrAdd_AddsMissingKeys()
+        {
+            using var dictionary = new ConcurrentSortedReadWriteDictionary<string, int>();
+            Assert.Equal(1, dictionary.GetOrAdd("a", 1));
+            Assert.Equal(1, dictionary.GetOrAdd("a", 2));
+            Assert.Equal(3, dictionary.GetOrAdd("b", _ => 3));
+            Assert.Equal(3, dictionary.GetOrAdd("b", _ => 4));
+        }
+
+        [Fact]
+        public async Task ReleasesLockOnException()
+        {
+            using var dictionary = new ConcurrentSortedReadWriteDictionary<string, int>();
+            dictionary["a"] = 1;
+
+            _ = Assert.Throws<InvalidOperationException>(() => dictionary.GetOrAdd("b", _ => throw new InvalidOperationException()));
+            await AssertCompletes(() => dictionary["c"] = 1);
+
+            _ = Assert.Throws<InvalidOperationException>(() => dictionary.AddOrUpdate("a", _ => 1, (_, _) => throw new InvalidOperationException()));
+            await AssertCompletes(() => dictionary["c"] = 2);
+
+            _ = Assert.ThrowsAny<ArgumentException>(() => ((ICollection<KeyValuePair<string, int>>)dictionary).CopyTo([], 0));
+            await AssertCompletes(() => dictionary["c"] = 3);
+
+            _ = Assert.Throws<KeyNotFoundException>(() => dictionary["missing"]);
+            await AssertCompletes(() => dictionary["c"] = 4);
+
+            Assert.Equal(4, dictionary["c"]);
+        }
+
+        //a leaked lock blocks writers on other threads forever
+        private static Task AssertCompletes(Action action)
+            => Task.Run(action).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        [Fact]
+        public void TryUpdate_ComparesNullsLikeConcurrentDictionary()
+        {
+            var dict = new ConcurrentSortedReadWriteDictionary<string, string?>();
+            dict["a"] = null;
+
+            Assert.False(dict.TryUpdate("a", "x", "b"));
+            Assert.Null(dict["a"]);
+            Assert.True(dict.TryUpdate("a", "x", null));
+            Assert.Equal("x", dict["a"]);
+            Assert.False(dict.TryUpdate("a", "y", null));
+            Assert.Equal("x", dict["a"]);
+            Assert.True(dict.TryUpdate("a", null, "x"));
+            Assert.Null(dict["a"]);
+            Assert.False(dict.TryUpdate("missing", "x", null));
+        }
+
+        [Fact]
+        public void TryRemove_ContainsKey_GetOrAdd_Enumerate()
+        {
+            var dict = new ConcurrentSortedReadWriteDictionary<string, int>();
+            Assert.False(dict.TryRemove("a", out _));
+            Assert.Equal(1, dict.GetOrAdd("a", 1));
+            Assert.Equal(1, dict.GetOrAdd("a", 2));
+            Assert.Equal(1, dict.GetOrAdd("a", _ => 3));
+            Assert.True(dict.ContainsKey("a"));
+            Assert.Single(((IEnumerable)dict).Cast<object>());
+            Assert.True(dict.TryRemove("a", out var removed));
+            Assert.Equal(1, removed);
+            Assert.False(dict.ContainsKey("a"));
         }
     }
 }

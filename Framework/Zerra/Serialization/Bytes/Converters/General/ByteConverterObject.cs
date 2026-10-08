@@ -43,6 +43,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
         private bool collectValues;
         private ConstructorDetail<TValue>? parameterConstructor = null;
+        private object?[] parameterDefaults = null!;
 
         protected override sealed void Setup()
         {
@@ -127,6 +128,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     break;
                 }
                 collectValues = parameterConstructor is not null;
+                if (parameterConstructor is not null)
+                    parameterDefaults = parameterConstructor.Parameters.Select(x => x.Type.IsValueType && !x.TypeDetail.IsNullable ? x.TypeDetail.CreatorBoxed?.Invoke() : null).ToArray();
             }
         }
 
@@ -342,8 +345,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
 
                 if (member is null)
                 {
-                    if (!state.UseMemberNames && !state.UseTypes)
-                        throw new Exception($"Cannot deserialize with property undefined and no types.");
+                    if (!state.UseTypes)
+                        throw new NotSupportedException($"Cannot skip a member missing from {TypeDetail.Type.Name} without {nameof(ByteSerializerOptions.UseTypes)}");
 
                     //consume bytes but object does not have property
                     var converter = ByteConverterFactory.GetDrainBytes();
@@ -362,7 +365,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 {
                     if (collectValues)
                     {
-                        if (!member.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, collectedValues, false))
+                        if (!member.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, collectedValues, state.Current.DrainBytes))
                         {
                             state.Current.HasReadProperty = true;
                             state.Current.Property = member;
@@ -375,7 +378,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     }
                     else
                     {
-                        if (!member.Converter.TryReadFromParentMember(ref reader, ref state, value, false))
+                        if (!member.Converter.TryReadFromParentMember(ref reader, ref state, value, state.Current.DrainBytes))
                         {
                             state.Current.HasReadProperty = true;
                             state.Current.Property = member;
@@ -391,27 +394,27 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 state.Current.HasReadProperty = false;
             }
 
-            if (collectValues)
+            if (collectedValues is not null)
             {
-                var args = new object?[parameterConstructor!.Parameters.Count];
+                var args = (object?[])parameterDefaults.Clone();
                 for (var i = 0; i < args.Length; i++)
                 {
 #if NETSTANDARD2_0
-                    if (collectedValues!.TryGetValue(parameterConstructor.Parameters[i].Name!, out var parameter))
+                    if (collectedValues!.TryGetValue(parameterConstructor!.Parameters[i].Name!, out var parameter))
                     {
-                        collectedValues.Remove(parameterConstructor.Parameters[i].Name!);
+                        collectedValues.Remove(parameterConstructor!.Parameters[i].Name!);
                         args[i] = parameter;
                     }
 #else
-                    if (collectedValues!.Remove(parameterConstructor.Parameters[i].Name!, out var parameter))
+                    if (collectedValues!.Remove(parameterConstructor!.Parameters[i].Name!, out var parameter))
                         args[i] = parameter;
 #endif
                 }
 
                 if (TypeDetail.Type.IsValueType)
-                    value = (TValue?)parameterConstructor.CreatorBoxed(args);
+                    value = (TValue?)parameterConstructor!.CreatorBoxed(args);
                 else
-                    value = parameterConstructor.Creator(args);
+                    value = parameterConstructor!.Creator(args);
 
                 foreach (var remaining in collectedValues!)
                 {

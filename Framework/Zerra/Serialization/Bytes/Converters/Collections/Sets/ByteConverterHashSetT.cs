@@ -20,6 +20,24 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out HashSet<TValue>? value)
         {
+            if (state.Current.DrainBytes)
+            {
+                value = default;
+                if (!state.Current.EnumerableLength.HasValue)
+                {
+                    if (!reader.TryRead(out state.Current.EnumerableLength, out state.SizeNeeded))
+                        return false;
+                }
+
+                var length = state.Current.EnumerableLength!.Value;
+                for (; state.Current.EnumeratorIndex < length; state.Current.EnumeratorIndex++)
+                {
+                    if (!converter.TryReadToValue(ref reader, ref state, out _))
+                        return false;
+                }
+                return true;
+            }
+
             if (!state.Current.EnumerableLength.HasValue)
             {
                 if (!reader.TryRead(out state.Current.EnumerableLength, out state.SizeNeeded))
@@ -28,27 +46,13 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
                     return false;
                 }
 
-                if (!state.Current.DrainBytes)
-                {
 #if NETSTANDARD2_0
-                    value = new HashSet<TValue>();
+                value = new HashSet<TValue>();
 #else
-                    value = new HashSet<TValue>(state.Current.EnumerableLength!.Value);
+                value = new HashSet<TValue>(state.Current.EnumerableLength!.Value);
 #endif
-                    if (state.Current.EnumerableLength!.Value == 0)
-                        return true;
-                }
-                else
-                {
-                    value = default;
-                    if (state.Current.EnumerableLength!.Value == 0)
-                        return true;
-#if NETSTANDARD2_0
-                    value = new HashSet<TValue>();
-#else
-                    value = new HashSet<TValue>(state.Current.EnumerableLength!.Value);
-#endif
-                }
+                if (state.Current.EnumerableLength!.Value == 0)
+                    return true;
             }
             else
             {

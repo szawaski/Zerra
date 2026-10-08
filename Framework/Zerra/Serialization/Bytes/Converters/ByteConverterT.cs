@@ -206,6 +206,9 @@ namespace Zerra.Serialization.Bytes.Converters
                 if (state.EntryWriteType is null)
                 {
                     var writeType = value!.GetType();
+                    //a Type is a RuntimeType, which only the Type converter writes
+                    if (writeType != TypeDetail.Type && value is Type)
+                        writeType = typeof(Type);
                     var typeName = writeType.AssemblyQualifiedName ?? throw new InvalidOperationException($"Type {writeType} does not have {nameof(writeType.AssemblyQualifiedName)}");
 
                     if (!writer.TryWrite(typeName, out state.SizeNeeded))
@@ -433,6 +436,9 @@ namespace Zerra.Serialization.Bytes.Converters
                 if (state.EntryWriteType is null)
                 {
                     var writeType = value!.GetType();
+                    //a Type is a RuntimeType, which only the Type converter writes
+                    if (writeType != TypeDetail.Type && value is Type)
+                        writeType = typeof(Type);
                     var typeName = writeType.AssemblyQualifiedName ?? throw new InvalidOperationException($"Type {writeType} does not have {nameof(writeType.AssemblyQualifiedName)}");
 
                     if (!writer.TryWrite(typeName, out state.SizeNeeded))
@@ -557,7 +563,7 @@ namespace Zerra.Serialization.Bytes.Converters
                         {
                             if (state.StackSize >= MaxStackDepth)
                                 throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
-                            state.PushFrame(false);
+                            state.PushFrame(state.Current.DrainBytes);
                         }
 
                         if (!newConverter.TryReadValueBoxed(ref reader, ref state, out var valueObject))
@@ -581,7 +587,7 @@ namespace Zerra.Serialization.Bytes.Converters
             {
                 if (state.StackSize >= MaxStackDepth)
                     throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
-                state.PushFrame(false);
+                state.PushFrame(state.Current.DrainBytes);
             }
 
             if (isInterfacedObject)
@@ -652,6 +658,9 @@ namespace Zerra.Serialization.Bytes.Converters
                 if (state.Current.ChildWriteType is null)
                 {
                     var writeType = value!.GetType();
+                    //a Type is a RuntimeType, which only the Type converter writes
+                    if (writeType != TypeDetail.Type && value is Type)
+                        writeType = typeof(Type);
                     var typeName = writeType.AssemblyQualifiedName ?? throw new InvalidOperationException($"Type {writeType} does not have {nameof(writeType.AssemblyQualifiedName)}");
 
                     if (!writer.TryWrite(typeName, out state.SizeNeeded))
@@ -880,6 +889,9 @@ namespace Zerra.Serialization.Bytes.Converters
                 if (state.Current.ChildWriteType is null)
                 {
                     var writeType = value!.GetType();
+                    //a Type is a RuntimeType, which only the Type converter writes
+                    if (writeType != TypeDetail.Type && value is Type)
+                        writeType = typeof(Type);
                     var typeName = writeType.AssemblyQualifiedName ?? throw new InvalidOperationException($"Type {writeType} does not have {nameof(writeType.AssemblyQualifiedName)}");
 
                     if (!writer.TryWrite(typeName, out state.SizeNeeded))

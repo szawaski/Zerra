@@ -576,6 +576,175 @@ namespace Zerra.Test.CQRS.Network
             Assert.Equal(0, await client.ReceiveAsync(new byte[1], SocketFlags.None, TestContext.Current.CancellationToken));
         }
 
+        [Fact(Timeout = timeout)]
+        public async Task RequestHeaderTooLong_ClosesConnection()
+        {
+            using var server = StartMessageServer(out var port, null);
+
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendRawAsync(new string('a', HttpCommon.BufferLength), TestContext.Current.CancellationToken);
+
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
+            Assert.True(header is null || header.IsError);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task RequestWithoutContentType_ClosesConnection()
+        {
+            using var server = StartMessageServer(out var port, null);
+
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendRawAsync($"POST / HTTP/1.1\r\nHost: 127.0.0.1\r\n{HttpCommon.ProviderTypeHeader}: {nameof(TestCommand)}\r\nContent-Length: 0\r\n\r\n", TestContext.Current.CancellationToken);
+
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
+            Assert.True(header is null || header.IsError);
+        }
+
+        public static TheoryData<string> InvalidRequests => new()
+        {
+            "EmptyBody",
+            "NoProviderOrMessage",
+            "UnregisteredMessage",
+            "NullCommand",
+            "NullEvent",
+        };
+
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(InvalidRequests))]
+        public async Task InvalidRequest_RespondsWithError(string kind)
+        {
+            var handled = false;
+            using var server = StartMessageServer(out var port, null,
+                command: (_, _, _) => { handled = true; return Task.CompletedTask; },
+                @event: (_, _) => { handled = true; return Task.CompletedTask; });
+
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            var token = TestContext.Current.CancellationToken;
+            switch (kind)
+            {
+                case "EmptyBody":
+                    await connection.SendBodyAsync<CqrsRequestData>(nameof(TestCommand), null, token);
+                    break;
+                case "NoProviderOrMessage":
+                    await connection.SendBodyAsync(nameof(TestCommand), new CqrsRequestData() { Source = source }, token);
+                    break;
+                case "UnregisteredMessage":
+                    await connection.SendAsync(MessageRequest(new OtherCommand(), false, false), null, cancellationToken: token);
+                    break;
+                case "NullCommand":
+                    await connection.SendBodyAsync(nameof(TestCommand), new CqrsRequestData() { MessageType = nameof(TestCommand), MessageData = serializer.SerializeBytes<TestCommand>(null), Source = source }, token);
+                    break;
+                case "NullEvent":
+                    await connection.SendBodyAsync(nameof(TestEvent), new CqrsRequestData() { MessageType = nameof(TestEvent), MessageData = serializer.SerializeBytes<TestEvent>(null), Source = source }, token);
+                    break;
+            }
+
+            var header = await connection.ReadHeaderAsync(token);
+            if (kind == "EmptyBody")
+            {
+                //an unreadable request closes the connection
+                Assert.Null(header);
+            }
+            else
+            {
+                Assert.NotNull(header);
+                Assert.True(header.IsError);
+                _ = await connection.ReadErrorAsync(header, null, token);
+            }
+            Assert.False(handled);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Command_WithLimit_CountsCompleteAfterTheHandler()
+        {
+            var exited = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var server = StartMessageServer(out var port, null, command: (_, _, _) => Task.CompletedTask, commandCounter: new CommandCounter(1, exited.SetResult));
+
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(MessageRequest(new TestCommand { Value = 1 }, false, false), null, cancellationToken: TestContext.Current.CancellationToken);
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
+            Assert.NotNull(header);
+            Assert.False(header.IsError);
+
+            await exited.Task.WaitAsync(TestContext.Current.CancellationToken);
+        }
+
+        [Theory(Timeout = timeout)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task AbortedWhileHandling_SkipsTheResponseAndKeepsTheConnection(bool query)
+        {
+            //the client gave up, the handler still finishes but its response isn't sent, the connection takes the next request
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var calls = 0;
+            async Task Wait()
+            {
+                if (Interlocked.Increment(ref calls) > 1)
+                    return;
+                started.SetResult();
+                await release.Task;
+            }
+            using var server = query
+                ? StartQueryServer(out var port, null, async (_, _, _, _, _, _, _) =>
+                {
+                    await Wait();
+                    return new RemoteQueryCallResponse(1);
+                })
+                : StartMessageServer(out port, null, commandAwait: async (_, _, _) => await Wait());
+
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            var request = query ? QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 1) : MessageRequest(new TestCommand { Value = 1 }, true, false);
+            await connection.SendAsync(request, null, cancellationToken: TestContext.Current.CancellationToken);
+            await started.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+            Assert.True(await connection.AbortAsync(TestContext.Current.CancellationToken));
+            release.SetResult();
+
+            await connection.SendAsync(request, null, cancellationToken: TestContext.Current.CancellationToken);
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
+            Assert.NotNull(header);
+            Assert.False(header.IsError);
+            Assert.Equal(2, calls);
+        }
+
+
+        [Theory(Timeout = timeout)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Dispose_WhileOpen_WaitsForAFailingHandler(bool async)
+        {
+            //disposing without closing first stops listening, waits for the handler, and isn't thrown its failure
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var server = StartMessageServer(out var port, null, command: async (_, _, _) =>
+            {
+                started.SetResult();
+                await Task.Delay(200);
+                throw new InvalidOperationException("handler failed");
+            });
+
+            await using (var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken))
+            {
+                await connection.SendAsync(MessageRequest(new TestCommand { Value = 1 }, false, false), null, cancellationToken: TestContext.Current.CancellationToken);
+                _ = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
+            }
+            await started.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+            if (async)
+            {
+                await server.DisposeAsync();
+                await server.DisposeAsync();
+            }
+            else
+            {
+                server.Dispose();
+                server.Dispose();
+            }
+
+            using var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _ = await Assert.ThrowsAsync<SocketException>(() => client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, port), TestContext.Current.CancellationToken).AsTask());
+        }
+
         private static HttpCqrsServer StartQueryServer(out int port, IEncryptor? encryptor, QueryHandlerDelegate handler, ICqrsAuthorizer? authorizer = null, string[]? allowOrigins = null)
         {
             return OpenOnFreePort(out port, (freePort) => new HttpCqrsServer($"127.0.0.1:{freePort}", serializer, encryptor, null, authorizer, allowOrigins), (server) =>
@@ -732,6 +901,27 @@ namespace Zerra.Test.CQRS.Network
                 await stream.WriteAsync(Encoding.UTF8.GetBytes(request), cancellationToken);
             }
 
+            //any body under a header for the provider type, such as null or a request missing its fields
+            public async Task SendBodyAsync<T>(string providerType, T? data, CancellationToken cancellationToken = default)
+            {
+                var buffer = new byte[HttpCommon.BufferLength];
+                var headerLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, providerType, serializer.ContentType, null);
+                await stream.WriteAsync(buffer.AsMemory(0, headerLength), cancellationToken);
+
+                var body = new HttpProtocolBodyStream(null, stream, null, true, true);
+                await serializer.SerializeAsync(body, data, cancellationToken);
+                await body.FlushAsync(cancellationToken);
+                await body.DisposeAsync();
+            }
+
+            //the client side of SocketAbortMonitor, true when the server acknowledges
+            public async Task<bool> AbortAsync(CancellationToken cancellationToken = default)
+            {
+                await stream.WriteAsync(new byte[1], cancellationToken);
+                var buffer = new byte[2];
+                return await stream.ReadAsync(buffer, cancellationToken) == 1 && buffer[0] == 0;
+            }
+
             public async Task<string> ReadRawAsync(CancellationToken cancellationToken = default)
             {
                 var buffer = new byte[HttpCommon.BufferLength];
@@ -818,6 +1008,11 @@ namespace Zerra.Test.CQRS.Network
         }
 
         public sealed class TestEvent : IEvent
+        {
+            public int Value { get; set; }
+        }
+
+        public sealed class OtherCommand : ICommand
         {
             public int Value { get; set; }
         }

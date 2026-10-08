@@ -18,35 +18,48 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.String:
                     string str;
                     if (reader.UseBytes)
+                    {
+                        if (reader.ValueBytes.Length == 1 && reader.ValueBytes[0] < 0x80)
+                        {
+                            value = (char)reader.ValueBytes[0];
+                            return true;
+                        }
                         str = reader.UnescapeStringBytes();
+                    }
                     else
+                    {
+                        if (reader.ValueChars.Length == 1)
+                        {
+                            value = reader.ValueChars[0];
+                            return true;
+                        }
                         str = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
-                    if (state.ErrorOnTypeMismatch && str.Length != 1)
-                        ThrowCannotConvert(ref reader);
-                    if (str.Length > 0)
-                        value = (char)str[0];
-                    else
-                        value = default;
+                    }
+                    if (str.Length != 1)
+                        ThrowInvalidValue(ref reader);
+                    value = str[0];
                     return true;
                 case JsonToken.Null:
                     value = default;
                     return true;
                 case JsonToken.Number:
-                    if (reader.UseBytes)
-                        str = reader.UnescapeStringBytes();
-                    else
-                        str = reader.ValueChars.ToString();
-                    if (state.ErrorOnTypeMismatch && str.Length != 1)
+                    if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
-                    if (str.Length > 0)
-                        value = (char)str[0];
-                    else
+                    if (reader.UseBytes ? reader.ValueBytes.Length != 1 : reader.ValueChars.Length != 1)
+                    {
                         value = default;
+                        return true;
+                    }
+                    value = reader.UseBytes ? (char)reader.ValueBytes[0] : reader.ValueChars[0];
                     return true;
                 case JsonToken.False:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
                 case JsonToken.True:
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
                     value = default;
                     return true;
                 case JsonToken.ObjectStart:

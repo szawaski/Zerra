@@ -103,5 +103,66 @@ namespace Zerra.Test.Encryption
                 bytes[i] = (byte)i;
             return bytes;
         }
+
+        [Fact]
+        public void SymmetricEncryptorOverloads()
+        {
+            var plain = Enumerable.Range(0, 5_000).Select(x => (byte)(x * 13)).ToArray();
+            foreach (var algorithm in Enum.GetValues<SymmetricAlgorithmType>())
+            {
+                foreach (var minimum in new[] { false, true })
+                {
+                    var key = SymmetricEncryptor.GenerateKey(algorithm, minimum, minimum);
+                    var config = new SymmetricConfig(algorithm, key);
+
+                    Assert.Equal(plain, SymmetricEncryptor.Decrypt(algorithm, key, SymmetricEncryptor.Encrypt(algorithm, key, plain.AsSpan())).ToArray());
+                    Assert.Equal(plain, SymmetricEncryptor.Decrypt(config, SymmetricEncryptor.Encrypt(config, plain)));
+                    Assert.Equal(plain, SymmetricEncryptor.Decrypt(config, SymmetricEncryptor.Encrypt(config, plain.AsSpan())).ToArray());
+                    Assert.Equal("text", SymmetricEncryptor.Decrypt(config, SymmetricEncryptor.Encrypt(config, "text")));
+
+                    Assert.Null(SymmetricEncryptor.Encrypt(algorithm, key, (string?)null));
+                    Assert.Null(SymmetricEncryptor.Decrypt(algorithm, key, (string?)null));
+                    Assert.Equal("", SymmetricEncryptor.Encrypt(algorithm, key, ""));
+                    Assert.Equal("", SymmetricEncryptor.Decrypt(algorithm, key, ""));
+                    Assert.Empty(SymmetricEncryptor.Encrypt(algorithm, key, Array.Empty<byte>()));
+                    Assert.Empty(SymmetricEncryptor.Decrypt(algorithm, key, Array.Empty<byte>()));
+                    Assert.True(SymmetricEncryptor.Encrypt(algorithm, key, ReadOnlySpan<byte>.Empty).IsEmpty);
+                    Assert.True(SymmetricEncryptor.Decrypt(algorithm, key, ReadOnlySpan<byte>.Empty).IsEmpty);
+
+                    byte[] encrypted;
+                    using (var source = new MemoryStream(plain))
+                    using (var reader = SymmetricEncryptor.Encrypt(config, source, false))
+                    using (var output = new MemoryStream())
+                    {
+                        reader.CopyTo(output);
+                        encrypted = output.ToArray();
+                    }
+                    using (var output = new MemoryStream())
+                    {
+                        using (var writer = SymmetricEncryptor.Decrypt(config, output, true, true))
+                        {
+                            writer.Write(encrypted, 0, encrypted.Length);
+                            writer.FlushFinalBlock();
+                        }
+                        Assert.Equal(plain, output.ToArray());
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public void SymmetricEncryptorGetKey()
+        {
+            var key1 = SymmetricEncryptor.GetKey("password", "salt");
+            var key2 = SymmetricEncryptor.GetKey("password", "salt");
+            Assert.Equal(key1.Key, key2.Key);
+            Assert.Equal(key1.IV, key2.IV);
+            Assert.NotEqual(key1.Key, SymmetricEncryptor.GetKey("other", "salt").Key);
+            Assert.NotEqual(key1.Key, SymmetricEncryptor.GetKey("password", "pepper").Key);
+            Assert.NotEqual(key1.Key, SymmetricEncryptor.GetKey("password").Key);
+
+            var encrypted = SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AESwithPrefix, key1, "text");
+            Assert.Equal("text", SymmetricEncryptor.Decrypt(SymmetricAlgorithmType.AESwithPrefix, key2, encrypted));
+        }
     }
 }

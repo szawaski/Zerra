@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Claims;
 using Xunit;
+using Zerra.Compression;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
@@ -448,12 +449,219 @@ namespace Zerra.Test.CQRS.Network
             Assert.Equal("http://127.0.0.1:9999", ((IEventProducer)client).MessageHost);
         }
 
-        private static HttpCqrsClient CreateClient(FakeServer server, IEncryptor? encryptor, ICqrsAuthorizer? authorizer = null)
+        public enum Operation { Call, CallTask, CallTaskGeneric, Dispatch, DispatchAwait, DispatchAwaitResult, Event }
+        public static TheoryData<Operation> Operations => new(Enum.GetValues<Operation>());
+        public static TheoryData<Operation, bool> OperationsWithFlag()
         {
-            var client = new HttpCqrsClient(server.Url, serializer, encryptor, null, authorizer, null);
+            var data = new TheoryData<Operation, bool>();
+            foreach (var operation in Enum.GetValues<Operation>())
+            {
+                data.Add(operation, false);
+                data.Add(operation, true);
+            }
+            return data;
+        }
+        public static TheoryData<Operation, bool> AsyncOperationsWithFlag()
+        {
+            var data = new TheoryData<Operation, bool>();
+            foreach (var operation in Enum.GetValues<Operation>().Where(x => x != Operation.Call))
+            {
+                data.Add(operation, false);
+                data.Add(operation, true);
+            }
+            return data;
+        }
+
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(Operations))]
+        public async Task Operation_SendsThreadPrincipalClaims(Operation operation)
+        {
+            using var server = new FakeServer(null, Respond);
+            using var client = CreateClient(server, null);
+
+            var originalPrincipal = Thread.CurrentPrincipal;
+            Thread.CurrentPrincipal = new ClaimsPrincipal(new ClaimsIdentity([new Claim("name", "tester")], "test"));
+            try
+            {
+                await RunAsync(client, operation);
+            }
+            finally
+            {
+                Thread.CurrentPrincipal = originalPrincipal;
+            }
+
+            var request = Assert.Single(server.Requests);
+            Assert.Equal(["name", "tester"], Assert.Single(request.Data.Claims!));
+        }
+
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(Operations))]
+        public async Task Operation_WithAuthorizer_SendsAuthorizationHeaders(Operation operation)
+        {
+            using var server = new FakeServer(null, Respond);
+            using var client = CreateClient(server, null, new TestAuthorizer());
+
+            await RunAsync(client, operation);
+
+            var request = Assert.Single(server.Requests);
+            Assert.Equal([operation == Operation.Call ? "Bearer sync" : "Bearer async"], request.Header.Headers!["Authorization"]);
+        }
+
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(OperationsWithFlag))]
+        public async Task Operation_PooledConnectionDropped_SendsOnNewConnection(Operation operation, bool reset)
+        {
+            //the second request reuses the first connection, which the server drops without responding, so it's sent again on a new connection
+            var requests = 0;
+            using var server = new FakeServer(null, request => Interlocked.Increment(ref requests) == 2
+                ? (reset ? request.ResetAsync() : request.CloseAsync())
+                : Respond(request));
+            using var client = CreateClient(server, null);
+
+            await RunAsync(client, operation);
+            await RunAsync(client, operation);
+
+            Assert.Equal(3, server.Requests.Count);
+            Assert.Equal(2, server.ConnectionCount);
+        }
+
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(AsyncOperationsWithFlag))]
+        public async Task Operation_CanceledWaitingForResponse_SendsAbort(Operation operation, bool acknowledge)
+        {
+            //the server has the whole request and hasn't responded, so the client asks it to abort
+            var log = new Zerra.Test.Helpers.RecordingLogger();
+            using var server = new FakeServer(null, request => acknowledge ? request.AcknowledgeAbortAsync() : request.ReadUntilClosedAsync());
+            using var client = CreateClient(server, null, null, null, log);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            cts.CancelAfter(200);
+
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => RunAsync(client, operation, null, cts.Token));
+            Assert.Single(server.Requests);
+            Assert.Contains(log.Entries, x => x.Level == "Error");
+        }
+
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(Operations))]
+        public async Task Operation_NewConnectionClosed_ThrowsAndLogs(Operation operation)
+        {
+            var log = new Zerra.Test.Helpers.RecordingLogger();
+            using var server = new FakeServer(null, request => request.CloseAsync());
+            using var client = CreateClient(server, null, null, null, log);
+
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => RunAsync(client, operation));
+
+            //a new connection isn't retried
+            Assert.Single(server.Requests);
+            Assert.Contains(log.Entries, x => x.Level == "Error");
+        }
+
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(Operations))]
+        public async Task Operation_ResponseHeaderTooLong_Throws(Operation operation)
+        {
+            using var server = new FakeServer(null, request => request.WriteRawAsync(Enumerable.Repeat((byte)'a', HttpCommon.BufferLength).ToArray()));
+            using var client = CreateClient(server, null);
+
+            var exception = await Assert.ThrowsAnyAsync<Exception>(() => RunAsync(client, operation));
+            Assert.Contains("Header Too Long", exception.Message);
+        }
+
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(OperationsWithFlag))]
+        public async Task Operation_ConnectionClosedDuringRequest_Throws(Operation operation, bool encryptAndCompress)
+        {
+            //the request is too large for the socket buffers so the write fails partway once the server drops the connection
+            using var server = new FakeServer(null, Respond, closeOnAccept: true);
+            using var client = CreateClient(server, encryptAndCompress ? encryptor : null, null, encryptAndCompress ? new ZerraCompressor(CompressionAlgorithmType.GZip) : null);
+            var data = new byte[16 * 1024 * 1024];
+            new Random(1).NextBytes(data);
+
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => RunAsync(client, operation, data));
+            Assert.Empty(server.Requests);
+        }
+
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(OperationsWithFlag))]
+        public async Task Operation_ErrorResponse_ThrowsRemoteServiceException(Operation operation, bool encrypt)
+        {
+            var enc = encrypt ? encryptor : null;
+            using var server = new FakeServer(enc, request => request.WriteErrorAsync("failed remotely"));
+            using var client = CreateClient(server, enc);
+
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => RunAsync(client, operation));
+            Assert.Equal("failed remotely", exception.Message);
+        }
+
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(Operations))]
+        public async Task Operation_EmptyErrorResponse_ThrowsWithStatus(Operation operation)
+        {
+            using var server = new FakeServer(null, request => request.WriteLengthFramedAsync("HTTP/1.1 401 Unauthorized"));
+            using var client = CreateClient(server, null);
+
+            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => RunAsync(client, operation));
+            Assert.Contains("401", exception.Message);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task DispatchAwaitAsync_StreamResult_ReturnsStream()
+        {
+            using var server = new FakeServer(null, request => request.WriteStreamAsync([1, 2, 3]));
+            using var client = CreateClient(server, null);
+
+            await using var stream = await ((ICommandProducer)client).DispatchAwaitAsync(new TestCommandWithStream { Value = 1 }, source, TestContext.Current.CancellationToken);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms, TestContext.Current.CancellationToken);
+            Assert.Equal([1, 2, 3], ms.ToArray());
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Call_TwoStreamArguments_Throws()
+        {
+            using var server = new FakeServer(null, Respond);
+            using var client = CreateClient(server, null);
+            var queryClient = (IQueryClient)client;
+            object[] arguments = [new MemoryStream(), new MemoryStream()];
+
+            _ = Assert.ThrowsAny<ArgumentException>(() => queryClient.Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStreams), [typeof(Stream), typeof(Stream)], arguments, source));
+            _ = await Assert.ThrowsAnyAsync<ArgumentException>(() => queryClient.CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStreams), [typeof(Stream), typeof(Stream)], arguments, source, TestContext.Current.CancellationToken));
+            Assert.Empty(server.Requests);
+        }
+
+        private static Task RunAsync(HttpCqrsClient client, Operation operation, byte[]? data = null, CancellationToken? token = null)
+        {
+            var cancellationToken = token ?? TestContext.Current.CancellationToken;
+            return operation switch
+            {
+                Operation.Call => Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetData), [typeof(byte[])], [data!], source), cancellationToken),
+                Operation.CallTask => ((IQueryClient)client).CallTask(typeof(ITestQueryHandler), nameof(ITestQueryHandler.RunData), [typeof(byte[])], [data!], source, cancellationToken),
+                Operation.CallTaskGeneric => ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetData), [typeof(byte[])], [data!], source, cancellationToken),
+                Operation.Dispatch => ((ICommandProducer)client).DispatchAsync(new TestCommand { Value = 1, Data = data }, source, cancellationToken),
+                Operation.DispatchAwait => ((ICommandProducer)client).DispatchAwaitAsync(new TestCommand { Value = 1, Data = data }, source, cancellationToken),
+                Operation.DispatchAwaitResult => ((ICommandProducer)client).DispatchAwaitAsync(new TestCommandWithResult { Value = 1, Data = data }, source, cancellationToken),
+                Operation.Event => ((IEventProducer)client).DispatchAsync(new TestEvent { Value = 1, Data = data }, source, cancellationToken),
+                _ => throw new NotImplementedException()
+            };
+        }
+
+        //what HttpCqrsServer sends back: a model for queries and awaited results, nothing for a void query or a message without a result
+        private static Task Respond(FakeRequest request)
+        {
+            if (request.Data.ProviderMethod == nameof(ITestQueryHandler.RunData))
+                return request.WriteModelAsync(null);
+            if (request.Data.ProviderMethod is not null || request.Data.MessageResult)
+                return request.WriteModelAsync(42);
+            return request.WriteEmptyAsync();
+        }
+
+        private static HttpCqrsClient CreateClient(FakeServer server, IEncryptor? encryptor, ICqrsAuthorizer? authorizer = null, ICompressor? compressor = null, Zerra.Logging.ILogger? log = null)
+        {
+            var client = new HttpCqrsClient(server.Url, serializer, encryptor, compressor, authorizer, log);
             ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
             ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommand));
             ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));
+            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithStream));
             ((IEventProducer)client).RegisterEventType(10, "test", typeof(TestEvent));
             return client;
         }
@@ -506,8 +714,11 @@ namespace Zerra.Test.CQRS.Network
             public int ConnectionCount => connectionCount;
             public string Url { get; }
 
-            public FakeServer(IEncryptor? encryptor, Func<FakeRequest, Task> respond)
+            private readonly bool closeOnAccept;
+
+            public FakeServer(IEncryptor? encryptor, Func<FakeRequest, Task> respond, bool closeOnAccept = false)
             {
+                this.closeOnAccept = closeOnAccept;
                 this.encryptor = encryptor;
                 this.respond = respond;
                 this.canceller = new();
@@ -529,6 +740,11 @@ namespace Zerra.Test.CQRS.Network
                     {
                         var socket = await listener.AcceptAsync(canceller.Token);
                         _ = Interlocked.Increment(ref connectionCount);
+                        if (closeOnAccept)
+                        {
+                            socket.Dispose();
+                            continue;
+                        }
                         _ = Task.Run(() => HandleConnection(socket));
                     }
                 }
@@ -655,6 +871,29 @@ namespace Zerra.Test.CQRS.Network
                 return Task.CompletedTask;
             }
 
+            public Task ResetAsync()
+            {
+                ((NetworkStream)stream).Socket.LingerState = new LingerOption(true, 0);
+                stream.Dispose();
+                return Task.CompletedTask;
+            }
+
+            //the server side of SocketAbortMonitor: waits for the abort byte and acknowledges it
+            public async Task AcknowledgeAbortAsync()
+            {
+                var buffer = new byte[2];
+                if (await stream.ReadAsync(buffer) == 1 && buffer[0] == 0)
+                    await stream.WriteAsync(new byte[1]);
+            }
+
+            public async Task ReadUntilClosedAsync()
+            {
+                var buffer = new byte[16];
+                while (await stream.ReadAsync(buffer) > 0) { }
+            }
+
+            public async Task WriteRawAsync(byte[] bytes) => await stream.WriteAsync(bytes);
+
             private async Task WriteHeaderAsync(bool isError, bool splitHeader = false)
             {
                 var buffer = new byte[HttpCommon.BufferLength];
@@ -697,14 +936,24 @@ namespace Zerra.Test.CQRS.Network
         {
             int GetThings(int value);
             Stream GetStream();
+            int GetData(byte[]? data);
+            Task RunData(byte[]? data);
+            int GetStreams(Stream first, Stream second);
         }
 
         public sealed class TestCommand : ICommand
         {
             public int Value { get; set; }
+            public byte[]? Data { get; set; }
         }
 
         public sealed class TestCommandWithResult : ICommand<int>
+        {
+            public int Value { get; set; }
+            public byte[]? Data { get; set; }
+        }
+
+        public sealed class TestCommandWithStream : ICommand<Stream>
         {
             public int Value { get; set; }
         }
@@ -712,6 +961,7 @@ namespace Zerra.Test.CQRS.Network
         public sealed class TestEvent : IEvent
         {
             public int Value { get; set; }
+            public byte[]? Data { get; set; }
         }
     }
 }

@@ -594,7 +594,19 @@ namespace Zerra.SourceGeneration
                     {
                         if (!TypeLookup.CoreEnumTypeLookup(innerType.EnumUnderlyingType.Name, out var enumTypeParsed))
                             throw new InvalidOperationException($"Failed to get enum underlying type for {Helper.GetFullName(typeSymbol)} {innerType.EnumUnderlyingType.Name}");
-                        enumType = enumTypeParsed;
+                        //the same as TypeDetailGenerator, a nullable enum has the nullable underlying type
+                        enumType = enumTypeParsed switch
+                        {
+                            CoreEnumType.Byte => CoreEnumType.ByteNullable,
+                            CoreEnumType.SByte => CoreEnumType.SByteNullable,
+                            CoreEnumType.Int16 => CoreEnumType.Int16Nullable,
+                            CoreEnumType.UInt16 => CoreEnumType.UInt16Nullable,
+                            CoreEnumType.Int32 => CoreEnumType.Int32Nullable,
+                            CoreEnumType.UInt32 => CoreEnumType.UInt32Nullable,
+                            CoreEnumType.Int64 => CoreEnumType.Int64Nullable,
+                            CoreEnumType.UInt64 => CoreEnumType.UInt64Nullable,
+                            _ => throw new InvalidOperationException($"Unknown enum underlying type for {Helper.GetFullName(typeSymbol)} {innerType.EnumUnderlyingType.Name}"),
+                        };
                     }
                 }
                 else

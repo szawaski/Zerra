@@ -136,5 +136,29 @@ namespace Zerra.Test.CQRS
             Assert.Same(foo, retrievedFoo);
             Assert.Same(bar, retrievedBar);
         }
+
+        [ServiceLog]
+        public interface ILoggedDefault { }
+        [ServiceLog(BusLogging.HandlerOnly)]
+        public interface ILoggedHandler { }
+        public interface INotLogged { }
+
+        [Fact]
+        public void ServiceLogMetadata()
+        {
+            Assert.Equal(BusLogging.SenderAndHandler, Zerra.CQRS.Reflection.BusMetadata.GetByType(typeof(ILoggedDefault)).BusLogging);
+            Assert.Equal(BusLogging.HandlerOnly, Zerra.CQRS.Reflection.BusMetadata.GetByType(typeof(ILoggedHandler)).BusLogging);
+            Assert.Equal(default, Zerra.CQRS.Reflection.BusMetadata.GetByType(typeof(INotLogged)).BusLogging);
+        }
+
+        [Fact]
+        public void AddServiceByType_Validates()
+        {
+            var services = new BusServices();
+            _ = Assert.Throws<ArgumentNullException>(() => services.AddService(typeof(IFoo), null!));
+            _ = Assert.Throws<ArgumentException>(() => services.AddService(typeof(Foo), new Foo()));
+            _ = Assert.Throws<ArgumentException>(() => services.AddService(typeof(IBar), new Foo()));
+            services.AddService(typeof(IFoo), new Foo());
+        }
     }
 }

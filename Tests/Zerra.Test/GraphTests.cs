@@ -508,5 +508,91 @@ Class
             Assert.NotNull(childGraph3);
             Assert.True(childGraph3.HasMember(nameof(SimpleModel.Value1)));
         }
+
+        [Fact]
+        public void RemoveThenAdd_MatchesAdd()
+        {
+            var added = new Graph("A");
+            var readded = new Graph();
+            readded.RemoveMember("A");
+            Assert.True(readded.HasRemovedMembers);
+            readded.AddMember("A");
+
+            Assert.False(readded.HasRemovedMembers);
+            Assert.True(readded.HasMember("A"));
+            Assert.Equal(added.Signature, readded.Signature);
+            Assert.Equal(added, readded);
+            Assert.Equal(added.GetHashCode(), readded.GetHashCode());
+        }
+
+        [Fact]
+        public void State()
+        {
+            var graph = new Graph();
+            Assert.True(graph.IsEmpty);
+            Assert.False(graph.HasAddedMembers);
+            Assert.False(graph.HasRemovedMembers);
+            Assert.Equal("", graph.Signature);
+
+            graph.IncludeAllMembers = true;
+            Assert.False(graph.IsEmpty);
+            Assert.True(graph.HasMember("Anything"));
+            Assert.Equal("A:", graph.Signature);
+
+            graph.RemoveMembers("B", "C");
+            Assert.True(graph.HasRemovedMembers);
+            Assert.False(graph.HasMember("B"));
+            Assert.True(graph.HasMember("D"));
+            Assert.False(graph.HasMemberExplicitly("D"));
+
+            graph.IncludeAllMembers = false;
+            graph.AddMembers(["D"]);
+            Assert.True(graph.HasAddedMembers);
+            Assert.True(graph.HasMemberExplicitly("D"));
+            Assert.False(graph.HasMember("E"));
+
+            Assert.False(graph.Equals("not a graph"));
+            Assert.NotEqual(new Graph("X"), new Graph("Y"));
+        }
+
+        [Fact]
+        public void ChildGraphsAndInstances()
+        {
+            var graph = new Graph("Child");
+            graph.AddChildGraph("Child", new Graph("Inner"));
+            Assert.True(graph.GetChildGraph("Child")!.IncludeAllMembers);
+            Assert.Null(graph.GetChildGraph("Missing"));
+
+            graph.AddOrReplaceChildGraph("Child", new Graph("Other"));
+            Assert.True(graph.GetChildGraph("Child")!.HasMember("Other"));
+            Assert.False(graph.GetChildGraph("Child")!.HasMember("Inner"));
+
+            graph.RemoveMember("Child");
+            Assert.Null(graph.GetChildGraph("Child"));
+            Assert.False(graph.HasMember("Child"));
+
+            var instance = new object();
+            graph.AddInstanceGraph(instance, new Graph("X"));
+            _ = Assert.Throws<InvalidOperationException>(() => graph.Signature);
+            var shared = new Graph("Y");
+            graph.AddInstanceGraph(new object(), shared);
+            _ = Assert.Throws<InvalidOperationException>(() => new Graph().AddInstanceGraph(new object(), shared));
+            graph.RemoveInstanceGraph(instance);
+            new Graph().RemoveInstanceGraph(instance);
+        }
+
+        [Fact]
+        public void InvalidArguments()
+        {
+            var graph = new Graph();
+            _ = Assert.Throws<ArgumentNullException>(() => graph.AddMember(""));
+            _ = Assert.Throws<ArgumentNullException>(() => graph.RemoveMember(" "));
+            _ = Assert.Throws<ArgumentNullException>(() => graph.AddMembers((IEnumerable<string>)null!));
+            _ = Assert.Throws<ArgumentNullException>(() => graph.RemoveMembers((IEnumerable<string>)null!));
+            _ = Assert.Throws<InvalidOperationException>(() => graph.AddChildGraph("", new Graph()));
+            _ = Assert.Throws<InvalidOperationException>(() => graph.AddOrReplaceChildGraph("", new Graph()));
+            _ = Assert.Throws<ArgumentNullException>(() => Graph.ParseSignature(null!, graph));
+            _ = Assert.Throws<ArgumentNullException>(() => Graph.ParseSignature("A:", null!));
+        }
     }
 }

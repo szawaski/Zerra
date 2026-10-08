@@ -177,7 +177,6 @@ namespace Zerra.Reflection.Dynamic
 
             TypeFinder.Register(typeInAssembly);
 
-            var test = typeInAssembly.Name;
             if (interfaceTypes.Length > 0)
             {
                 var interfaceByTypeList = interfaceByType.GetOrAdd(typeInAssembly, static (key) => new());
@@ -229,11 +228,13 @@ namespace Zerra.Reflection.Dynamic
                 var classByBaseList = classByBaseType.GetOrAdd(baseType, static (key) => new());
                 classByBaseList.Add(typeInAssembly);
 
-                if (baseType.ContainsGenericParameters)
+                //by the generic name too, the same as interfaces, so the open generic finds a class deriving from a closed one
+                if (baseType.IsGenericType)
                 {
-                    var baseTypeName = TypeNames.GetFullName(baseType);
+                    var baseTypeName = TypeNames.GetFullGenericName(baseType);
                     var classByBaseNameList = classByBaseTypeName.GetOrAdd(baseTypeName, static (key) => new());
-                    classByBaseNameList.Add(typeInAssembly);
+                    if (!classByBaseNameList.Contains(typeInAssembly))
+                        classByBaseNameList.Add(typeInAssembly);
                 }
 
                 baseType = baseType.BaseType;

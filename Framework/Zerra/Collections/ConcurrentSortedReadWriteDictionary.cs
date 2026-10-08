@@ -54,17 +54,78 @@ namespace Zerra.Collections
             this.dictionary = new SortedDictionary<TKey, TValue>(dictionary, comparer);
         }
 
-        void IDictionary<TKey, TValue>.Add(TKey key, TValue value) { _ = TryAdd(key, value); }
-        bool IDictionary<TKey, TValue>.Remove(TKey key) { return TryRemove(key, out _); }
-        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item) { _ = TryAdd(item.Key, item.Value); }
-        bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item) { return TryRemove(item.Key, out _); }
-        bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item) { return ContainsKey(item.Key); }
-        bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).IsReadOnly;
+        void IDictionary<TKey, TValue>.Add(TKey key, TValue value)
+        {
+            locker.EnterWriteLock();
+            try
+            {
+                dictionary.Add(key, value);
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
+        }
+        bool IDictionary<TKey, TValue>.Remove(TKey key)
+        {
+            locker.EnterWriteLock();
+            try
+            {
+                return dictionary.Remove(key);
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
+        }
+        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
+        {
+            locker.EnterWriteLock();
+            try
+            {
+                dictionary.Add(item.Key, item.Value);
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
+        }
+        bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
+        {
+            locker.EnterWriteLock();
+            try
+            {
+                return ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).Remove(item);
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
+        }
+        bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+        {
+            locker.EnterReadLock();
+            try
+            {
+                return ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).Contains(item);
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
+        }
+        bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => false;
         void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
             locker.EnterReadLock();
-            ((IDictionary<TKey, TValue>)dictionary).CopyTo(array, arrayIndex);
-            locker.ExitReadLock();
+            try
+            {
+                ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).CopyTo(array, arrayIndex);
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
         IEnumerator IEnumerable.GetEnumerator() { return GetEnumerator(); }
         IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys
@@ -72,9 +133,14 @@ namespace Zerra.Collections
             get
             {
                 locker.EnterReadLock();
-                var keys = dictionary.Keys.ToArray();
-                locker.ExitReadLock();
-                return keys;
+                try
+                {
+                    return dictionary.Keys.ToArray();
+                }
+                finally
+                {
+                    locker.ExitReadLock();
+                }
             }
         }
         IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values
@@ -82,33 +148,34 @@ namespace Zerra.Collections
             get
             {
                 locker.EnterReadLock();
-                var values = dictionary.Values.ToArray();
-                locker.ExitReadLock();
-                return values;
+                try
+                {
+                    return dictionary.Values.ToArray();
+                }
+                finally
+                {
+                    locker.ExitReadLock();
+                }
             }
         }
-        int ICollection.Count
-        {
-            get
-            {
-                locker.EnterReadLock();
-                var count = dictionary.Count;
-                locker.ExitReadLock();
-                return count;
-            }
-        }
-        bool ICollection.IsSynchronized => ((ICollection)dictionary).IsSynchronized;
-        object ICollection.SyncRoot => ((ICollection)dictionary).SyncRoot;
-        bool IDictionary.IsFixedSize => ((IDictionary)dictionary).IsFixedSize;
-        bool IDictionary.IsReadOnly => ((IDictionary)dictionary).IsReadOnly;
+        int ICollection.Count => Count;
+        bool ICollection.IsSynchronized => false;
+        object ICollection.SyncRoot => throw new NotSupportedException($"{nameof(ICollection.SyncRoot)} is not supported, the dictionary locks internally");
+        bool IDictionary.IsFixedSize => false;
+        bool IDictionary.IsReadOnly => false;
         ICollection IDictionary.Keys
         {
             get
             {
                 locker.EnterReadLock();
-                var keys = dictionary.Keys.ToArray();
-                locker.ExitReadLock();
-                return keys;
+                try
+                {
+                    return dictionary.Keys.ToArray();
+                }
+                finally
+                {
+                    locker.ExitReadLock();
+                }
             }
         }
         ICollection IDictionary.Values
@@ -116,96 +183,116 @@ namespace Zerra.Collections
             get
             {
                 locker.EnterReadLock();
-                var values = dictionary.Values.ToArray();
-                locker.ExitReadLock();
-                return values;
+                try
+                {
+                    return dictionary.Values.ToArray();
+                }
+                finally
+                {
+                    locker.ExitReadLock();
+                }
             }
         }
         void ICollection.CopyTo(Array array, int index)
         {
             locker.EnterReadLock();
-            ((ICollection)dictionary).CopyTo(array, index);
-            locker.ExitReadLock();
+            try
+            {
+                ((ICollection)dictionary).CopyTo(array, index);
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
         object? IDictionary.this[object key]
         {
             get
             {
-                if (key is not TKey keycasted)
-                    throw new ArgumentException("Key is not the correct type");
-
                 locker.EnterReadLock();
-                if (!dictionary.TryGetValue(keycasted, out var value))
+                try
+                {
+                    return ((IDictionary)dictionary)[key];
+                }
+                finally
                 {
                     locker.ExitReadLock();
-                    throw new KeyNotFoundException();
                 }
-                
-                locker.ExitReadLock();
-                return value;
             }
             set
             {
-                if (key is not TKey keycasted)
-                    throw new ArgumentException("Key is not the correct type");
-                if (value is not TValue valuecasted)
-                    throw new ArgumentException("Value is not the correct type");
-
                 locker.EnterWriteLock();
-                dictionary[keycasted] = valuecasted;
-                locker.ExitWriteLock();
+                try
+                {
+                    ((IDictionary)dictionary)[key] = value;
+                }
+                finally
+                {
+                    locker.ExitWriteLock();
+                }
             }
         }
         void IDictionary.Add(object key, object? value)
         {
-            if (key is not TKey keycasted)
-                throw new ArgumentException("Key is not the correct type");
-            if (value is not TValue valuecasted)
-                throw new ArgumentException("Value is not the correct type");
-
             locker.EnterWriteLock();
-            if (dictionary.ContainsKey(keycasted))
+            try
+            {
+                ((IDictionary)dictionary).Add(key, value);
+            }
+            finally
             {
                 locker.ExitWriteLock();
-                throw new ArgumentException("An element with the same key already exists");
             }
-            dictionary.Add(keycasted, valuecasted);
-            locker.ExitWriteLock();
         }
         void IDictionary.Clear()
         {
             locker.EnterWriteLock();
-            dictionary.Clear();
-            locker.ExitWriteLock();
+            try
+            {
+                dictionary.Clear();
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
         bool IDictionary.Contains(object key)
         {
-            if (key is not TKey casted)
-                return false;
             locker.EnterReadLock();
-            var contains = dictionary.ContainsKey(casted);
-            locker.ExitReadLock();
-            return contains;
+            try
+            {
+                return ((IDictionary)dictionary).Contains(key);
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
         IDictionaryEnumerator IDictionary.GetEnumerator()
         {
+            KeyValuePair<TKey, TValue>[] items;
             locker.EnterReadLock();
-            var enumerator = new ConcurrentSortedReadWriteDictionaryEnumerator(dictionary.ToArray().AsEnumerable().GetEnumerator());
-            locker.ExitReadLock();
-            return enumerator;
+            try
+            {
+                items = dictionary.ToArray();
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
+            return new ConcurrentSortedReadWriteDictionaryEnumerator(items.AsEnumerable().GetEnumerator());
         }
         void IDictionary.Remove(object key)
         {
-            if (key is not TKey casted)
-                throw new KeyNotFoundException();
             locker.EnterWriteLock();
-            if (!dictionary.ContainsKey(casted))
+            try
+            {
+                ((IDictionary)dictionary).Remove(key);
+            }
+            finally
             {
                 locker.ExitWriteLock();
-                throw new KeyNotFoundException();
             }
-            _ = dictionary.Remove(casted);
-            locker.ExitWriteLock();
         }
 
         /// <summary>
@@ -219,19 +306,30 @@ namespace Zerra.Collections
             get
             {
                 locker.EnterReadLock();
-                if (!dictionary.TryGetValue(key, out var value))
+                try
+                {
+                    if (!dictionary.TryGetValue(key, out var value))
+                    {
+                        throw new KeyNotFoundException();
+                    }
+                    return value;
+                }
+                finally
                 {
                     locker.ExitReadLock();
-                    throw new KeyNotFoundException();
                 }
-                locker.ExitReadLock();
-                return value;
             }
             set
             {
                 locker.EnterWriteLock();
-                dictionary[key] = value;
-                locker.ExitWriteLock();
+                try
+                {
+                    dictionary[key] = value;
+                }
+                finally
+                {
+                    locker.ExitWriteLock();
+                }
             }
         }
 
@@ -243,9 +341,15 @@ namespace Zerra.Collections
             get
             {
                 locker.EnterReadLock();
-                var isempty = dictionary.Count == 0;
-                locker.ExitReadLock();
-                return isempty;
+                try
+                {
+                    var isempty = dictionary.Count == 0;
+                    return isempty;
+                }
+                finally
+                {
+                    locker.ExitReadLock();
+                }
             }
         }
 
@@ -257,9 +361,15 @@ namespace Zerra.Collections
             get
             {
                 locker.EnterReadLock();
-                var keys = dictionary.Keys.ToArray();
-                locker.ExitReadLock();
-                return keys;
+                try
+                {
+                    var keys = dictionary.Keys.ToArray();
+                    return keys;
+                }
+                finally
+                {
+                    locker.ExitReadLock();
+                }
             }
         }
 
@@ -271,9 +381,15 @@ namespace Zerra.Collections
             get
             {
                 locker.EnterReadLock();
-                var values = dictionary.Values.ToArray();
-                locker.ExitReadLock();
-                return values;
+                try
+                {
+                    var values = dictionary.Values.ToArray();
+                    return values;
+                }
+                finally
+                {
+                    locker.ExitReadLock();
+                }
             }
         }
 
@@ -285,9 +401,15 @@ namespace Zerra.Collections
             get
             {
                 locker.EnterReadLock();
-                var count = dictionary.Count;
-                locker.ExitReadLock();
-                return count;
+                try
+                {
+                    var count = dictionary.Count;
+                    return count;
+                }
+                finally
+                {
+                    locker.ExitReadLock();
+                }
             }
         }
 
@@ -301,17 +423,22 @@ namespace Zerra.Collections
         public TValue AddOrUpdate(TKey key, Func<TKey, TValue> addValueFactory, Func<TKey, TValue, TValue> updateValueFactory)
         {
             locker.EnterWriteLock();
-            if (!dictionary.TryGetValue(key, out var existing))
+            try
             {
-                var addValue = addValueFactory(key);
-                dictionary.Add(key, addValue);
-                locker.ExitWriteLock();
-                return addValue;
+                if (!dictionary.TryGetValue(key, out var existing))
+                {
+                    var addValue = addValueFactory(key);
+                    dictionary.Add(key, addValue);
+                    return addValue;
+                }
+                var updatevalue = updateValueFactory(key, existing);
+                dictionary[key] = updatevalue;
+                return updatevalue;
             }
-            var updatevalue = updateValueFactory(key, existing);
-            dictionary[key] = updatevalue;
-            locker.ExitWriteLock();
-            return updatevalue;
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 
         /// <summary>
@@ -324,16 +451,21 @@ namespace Zerra.Collections
         public TValue AddOrUpdate(TKey key, TValue addValue, Func<TKey, TValue, TValue> updateValueFactory)
         {
             locker.EnterWriteLock();
-            if (!dictionary.TryGetValue(key, out var existing))
+            try
             {
-                dictionary.Add(key, addValue);
-                locker.ExitWriteLock();
-                return addValue;
+                if (!dictionary.TryGetValue(key, out var existing))
+                {
+                    dictionary.Add(key, addValue);
+                    return addValue;
+                }
+                var updatevalue = updateValueFactory(key, existing);
+                dictionary[key] = updatevalue;
+                return updatevalue;
             }
-            var updatevalue = updateValueFactory(key, existing);
-            dictionary[key] = updatevalue;
-            locker.ExitWriteLock();
-            return updatevalue;
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 
         /// <summary>
@@ -342,8 +474,14 @@ namespace Zerra.Collections
         public void Clear()
         {
             locker.EnterWriteLock();
-            dictionary.Clear();
-            locker.ExitWriteLock();
+            try
+            {
+                dictionary.Clear();
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 
         /// <summary>
@@ -356,9 +494,15 @@ namespace Zerra.Collections
             if (key is not TKey casted)
                 return false;
             locker.EnterReadLock();
-            var contains = dictionary.ContainsKey(casted);
-            locker.ExitReadLock();
-            return contains;
+            try
+            {
+                var contains = dictionary.ContainsKey(casted);
+                return contains;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -367,10 +511,16 @@ namespace Zerra.Collections
         /// <returns>An enumerator for the key-value pairs in the dictionary.</returns>
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
-            locker.EnterWriteLock();
-            var items = dictionary.ToArray();
-            locker.ExitWriteLock();
-            return items.AsEnumerable().GetEnumerator();
+            locker.EnterReadLock();
+            try
+            {
+                var items = dictionary.ToArray();
+                return items.AsEnumerable().GetEnumerator();
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -382,16 +532,28 @@ namespace Zerra.Collections
         public TValue GetOrAdd(TKey key, TValue value)
         {
             locker.EnterReadLock();
-            if (!dictionary.TryGetValue(key, out var currentvalue))
+            try
+            {
+                if (dictionary.TryGetValue(key, out var currentvalue))
+                    return currentvalue;
+            }
+            finally
             {
                 locker.ExitReadLock();
-                locker.EnterWriteLock();
+            }
+
+            locker.EnterWriteLock();
+            try
+            {
+                if (dictionary.TryGetValue(key, out var currentvalue))
+                    return currentvalue;
                 dictionary.Add(key, value);
-                locker.ExitWriteLock();
                 return value;
             }
-            locker.ExitReadLock();
-            return currentvalue;
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 
         /// <summary>
@@ -402,16 +564,30 @@ namespace Zerra.Collections
         /// <returns>The value associated with the key, either new or existing.</returns>
         public TValue GetOrAdd(TKey key, Func<TKey, TValue> valueFactory)
         {
-            locker.EnterWriteLock();
-            if (!dictionary.TryGetValue(key, out var currentvalue))
+            locker.EnterReadLock();
+            try
             {
+                if (dictionary.TryGetValue(key, out var currentvalue))
+                    return currentvalue;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
+
+            locker.EnterWriteLock();
+            try
+            {
+                if (dictionary.TryGetValue(key, out var currentvalue))
+                    return currentvalue;
                 var value = valueFactory(key);
                 dictionary.Add(key, value);
-                locker.ExitWriteLock();
                 return value;
             }
-            locker.ExitWriteLock();
-            return currentvalue;
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 
         /// <summary>
@@ -420,10 +596,16 @@ namespace Zerra.Collections
         /// <returns>An array of key-value pairs in the dictionary.</returns>
         public KeyValuePair<TKey, TValue>[] ToArray()
         {
-            locker.EnterWriteLock();
-            var items = dictionary.ToArray();
-            locker.ExitWriteLock();
-            return items;
+            locker.EnterReadLock();
+            try
+            {
+                var items = dictionary.ToArray();
+                return items;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -435,14 +617,19 @@ namespace Zerra.Collections
         public bool TryAdd(TKey key, TValue value)
         {
             locker.EnterWriteLock();
-            if (dictionary.ContainsKey(key))
+            try
+            {
+                if (dictionary.ContainsKey(key))
+                {
+                    return false;
+                }
+                dictionary.Add(key, value);
+                return true;
+            }
+            finally
             {
                 locker.ExitWriteLock();
-                return false;
             }
-            dictionary.Add(key, value);
-            locker.ExitWriteLock();
-            return true;
         }
 
         /// <summary>
@@ -458,9 +645,15 @@ namespace Zerra.Collections
         out TValue value)
         {
             locker.EnterReadLock();
-            var trygetvalue = dictionary.TryGetValue(key, out value);
-            locker.ExitReadLock();
-            return trygetvalue;
+            try
+            {
+                var trygetvalue = dictionary.TryGetValue(key, out value);
+                return trygetvalue;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -473,19 +666,23 @@ namespace Zerra.Collections
         public bool TryUpdate(TKey key, TValue value, TValue comparisonValue)
         {
             locker.EnterWriteLock();
-            if (!dictionary.TryGetValue(key, out var currentvalue))
+            try
+            {
+                if (!dictionary.TryGetValue(key, out var currentvalue))
+                {
+                    return false;
+                }
+                if (!EqualityComparer<TValue>.Default.Equals(currentvalue, comparisonValue))
+                {
+                    return false;
+                }
+                dictionary[key] = value;
+                return true;
+            }
+            finally
             {
                 locker.ExitWriteLock();
-                return false;
             }
-            if (currentvalue is not null && comparisonValue is not null && !currentvalue.Equals(comparisonValue))
-            {
-                locker.ExitWriteLock();
-                return false;
-            }
-            dictionary[key] = value;
-            locker.ExitWriteLock();
-            return true;
         }
 
         /// <summary>
@@ -501,19 +698,23 @@ namespace Zerra.Collections
         out TValue value)
         {
             locker.EnterWriteLock();
-            if (!dictionary.TryGetValue(key, out value))
+            try
+            {
+                if (!dictionary.TryGetValue(key, out value))
+                {
+                    return false;
+                }
+                
+                if (!dictionary.Remove(key))
+                {
+                    return false;
+                }
+                return true;
+            }
+            finally
             {
                 locker.ExitWriteLock();
-                return false;
             }
-            
-            if (!dictionary.Remove(key))
-            {
-                locker.ExitWriteLock();
-                return false;
-            }
-            locker.ExitWriteLock();
-            return true;
         }
 
         /// <summary>

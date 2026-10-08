@@ -51,7 +51,7 @@ namespace Zerra.CQRS.Network
         protected override void SerializeToStream(Stream stream, TransportContext? context, CancellationToken cancellationToken)
         {
             if (streamAsyncDelegate is not null)
-                Task.Run(() => streamAsyncDelegate(stream)).Wait();
+                throw new NotSupportedException($"A {nameof(WriteStreamContent)} created with an async delegate can only be sent asynchronously, create it with a synchronous delegate for a synchronous send");
             else if (streamDelegate is not null)
                 streamDelegate(stream);
             else

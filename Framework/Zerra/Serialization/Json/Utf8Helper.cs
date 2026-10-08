@@ -23,7 +23,7 @@ namespace Zerra.Serialization.Json
         {
             var length = source.Length;
 
-            if (length > 33 || length < 10)
+            if (length > 42 || length < 10)
             {
                 value = default;
                 return false;
@@ -74,8 +74,7 @@ namespace Zerra.Serialization.Json
 
                 if (length == 10)
                 {
-                    value = CreateDateTimeOffset(year, month, day, 0, 0, 0, 0, 0, 0);
-                    return true;
+                    return TryCreateDateTimeOffset(year, month, day, 0, 0, 0, 0, 0, 0, out value);
                 }
                 if (length < 19)
                 {
@@ -130,8 +129,7 @@ namespace Zerra.Serialization.Json
 
                 if (length == 19)
                 {
-                    value = CreateDateTimeOffset(year, month, day, hours, minutes, seconds, 0, 0, 0);
-                    return true;
+                    return TryCreateDateTimeOffset(year, month, day, hours, minutes, seconds, 0, 0, 0, out value);
                 }
                 if (length < 20)
                 {
@@ -145,6 +143,11 @@ namespace Zerra.Serialization.Json
                 var offsetNegative = false;
                 if (afterTime == dotByte)
                 {
+                    if (length == 20 || (uint)(source[20] - '0') > 9)
+                    {
+                        value = default;
+                        return false;
+                    }
                     for (; i < 27 && i < length; i++)
                     {
                         d1 = source[i];
@@ -156,8 +159,7 @@ namespace Zerra.Serialization.Json
                                 return false;
                             }
                             fractionTicks *= (int)Math.Pow(10, 27 - i);
-                            value = CreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0);
-                            return true;
+                            return TryCreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0, out value);
                         }
                         if (d1 == plusByte)
                         {
@@ -181,12 +183,13 @@ namespace Zerra.Serialization.Json
                         }
                         fractionTicks = fractionTicks * 10 + (int)d1;
                     }
+                    while (i < length && (uint)(source[i] - '0') <= 9)
+                        i++;
                     if (length == i)
                     {
                         for (; i < 27; i++)
                             fractionTicks *= 10;
-                        value = CreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0);
-                        return true;
+                        return TryCreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0, out value);
                     }
 
                     afterTime = pSource[i++];
@@ -199,8 +202,7 @@ namespace Zerra.Serialization.Json
                         value = default;
                         return false;
                     }
-                    value = CreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0);
-                    return true;
+                    return TryCreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0, out value);
                 }
                 else if (afterTime == plusByte)
                 {
@@ -257,8 +259,7 @@ namespace Zerra.Serialization.Json
                 else
                     offsetMinutes = (int)(d1 * 10 + d2);
 
-                value = CreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, offsetHours, offsetMinutes);
-                return true;
+                return TryCreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, offsetHours, offsetMinutes, out value);
             }
         }
 
@@ -290,7 +291,7 @@ namespace Zerra.Serialization.Json
         {
             var length = source.Length;
 
-            if (length > 33 || length < 10)
+            if (length > 42 || length < 10)
             {
                 value = default;
                 return false;
@@ -341,8 +342,7 @@ namespace Zerra.Serialization.Json
 
                 if (length == 10)
                 {
-                    value = CreateDateTimeOffset(year, month, day, 0, 0, 0, 0, 0, 0);
-                    return true;
+                    return TryCreateDateTimeOffset(year, month, day, 0, 0, 0, 0, 0, 0, out value);
                 }
                 if (length < 19)
                 {
@@ -397,8 +397,7 @@ namespace Zerra.Serialization.Json
 
                 if (length == 19)
                 {
-                    value = CreateDateTimeOffset(year, month, day, hours, minutes, seconds, 0, 0, 0);
-                    return true;
+                    return TryCreateDateTimeOffset(year, month, day, hours, minutes, seconds, 0, 0, 0, out value);
                 }
                 if (length < 20)
                 {
@@ -412,6 +411,11 @@ namespace Zerra.Serialization.Json
                 var offsetNegative = false;
                 if (afterTime == dotByte)
                 {
+                    if (length == 20 || (uint)(source[20] - '0') > 9)
+                    {
+                        value = default;
+                        return false;
+                    }
                     for (; i < 27 && i < length; i++)
                     {
                         d1 = source[i];
@@ -423,8 +427,7 @@ namespace Zerra.Serialization.Json
                                 return false;
                             }
                             fractionTicks *= (int)Math.Pow(10, 27 - i);
-                            value = CreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0);
-                            return true;
+                            return TryCreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0, out value);
                         }
                         if (d1 == '+')
                         {
@@ -448,12 +451,13 @@ namespace Zerra.Serialization.Json
                         }
                         fractionTicks = fractionTicks * 10 + (int)d1;
                     }
+                    while (i < length && (uint)(source[i] - '0') <= 9)
+                        i++;
                     if (length == i)
                     {
                         for (; i < 27; i++)
                             fractionTicks *= 10;
-                        value = CreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0);
-                        return true;
+                        return TryCreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0, out value);
                     }
 
                     afterTime = pSource[i++];
@@ -466,8 +470,7 @@ namespace Zerra.Serialization.Json
                         value = default;
                         return false;
                     }
-                    value = CreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0);
-                    return true;
+                    return TryCreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, 0, 0, out value);
                 }
                 else if (afterTime == '+')
                 {
@@ -524,8 +527,7 @@ namespace Zerra.Serialization.Json
                 else
                     offsetMinutes = (int)(d1 * 10 + d2);
 
-                value = CreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, offsetHours, offsetMinutes);
-                return true;
+                return TryCreateDateTimeOffset(year, month, day, hours, minutes, seconds, fractionTicks, offsetHours, offsetMinutes, out value);
             }
         }
 
@@ -554,17 +556,41 @@ namespace Zerra.Serialization.Json
 #endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static DateTimeOffset CreateDateTimeOffset(int year, int month, int day, int hours, int minutes, int seconds, int fractionTicks, int offsetHours, int offsetMinutes)
+        private static bool TryCreateDateTimeOffset(int year, int month, int day, int hours, int minutes, int seconds, int fractionTicks, int offsetHours, int offsetMinutes, out DateTimeOffset value)
         {
-            ReadOnlySpan<int> days = DateTime.IsLeapYear(year) ? daysToMonth366 : daysToMonth365;
+            if (year < 1 || month < 1 || month > 12 || hours > 23 || minutes > 59 || seconds > 59 || offsetMinutes > 59 || offsetMinutes < -59)
+            {
+                value = default;
+                return false;
+            }
+
+            var days = DateTime.IsLeapYear(year) ? daysToMonth366 : daysToMonth365;
+            if (day < 1 || day > days[month] - days[month - 1])
+            {
+                value = default;
+                return false;
+            }
+
+            var offsetTicks = (offsetHours * 60L + offsetMinutes) * TimeSpan.TicksPerMinute;
+            if (offsetTicks > 14 * TimeSpan.TicksPerHour || offsetTicks < -14 * TimeSpan.TicksPerHour)
+            {
+                value = default;
+                return false;
+            }
+
             var yearMinusOne = year - 1;
-            int totalDays = (yearMinusOne * 365) + (yearMinusOne / 4) - (yearMinusOne / 100) + (yearMinusOne / 400) + days[month - 1] + day - 1;
+            long totalDays = (yearMinusOne * 365) + (yearMinusOne / 4) - (yearMinusOne / 100) + (yearMinusOne / 400) + days[month - 1] + day - 1;
+            var ticks = (totalDays * TimeSpan.TicksPerDay) + (((hours * 3600L) + (minutes * 60L) + seconds) * TimeSpan.TicksPerSecond) + fractionTicks;
 
-            var ticks = (totalDays * TimeSpan.TicksPerDay) + (((hours * 3600) + (minutes * 60) + seconds) * TimeSpan.TicksPerSecond) + fractionTicks;
+            var utcTicks = ticks - offsetTicks;
+            if (utcTicks < 0 || utcTicks > DateTime.MaxValue.Ticks)
+            {
+                value = default;
+                return false;
+            }
 
-            var offset = new TimeSpan(offsetHours, offsetMinutes, 0);
-
-            return new DateTimeOffset(ticks, offset);
+            value = new DateTimeOffset(ticks, new TimeSpan(offsetTicks));
+            return true;
         }
     }
 }

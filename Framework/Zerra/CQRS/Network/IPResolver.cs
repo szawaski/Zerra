@@ -9,39 +9,6 @@ namespace Zerra.CQRS.Network
     internal static class IPResolver
     {
         private static readonly char[] anyhosts = ['+', '*'];
-        public static IList<IPEndPoint> GetIPEndPoints(string url)
-        {
-            var endpoints = new List<IPEndPoint>();
-
-            url = String.Join("anyhost", url.Split(anyhosts));
-
-            Uri uri;
-            if (!url.Contains("://"))
-                uri = new Uri("any://" + url); //hacky way to make it parse without scheme.
-            else
-                uri = new Uri(url);
-
-            var port = uri.Port >= 0 ? uri.Port : (uri.Scheme == "https" ? 443 : 80);
-
-            if (uri.DnsSafeHost == "anyhost")
-            {
-                endpoints.Add(new IPEndPoint(IPAddress.Any, port));
-                endpoints.Add(new IPEndPoint(IPAddress.IPv6Any, port));
-            }
-            else
-            {
-                var ipAddresses = Dns.GetHostAddresses(uri.DnsSafeHost);
-                foreach (var ip in ipAddresses)
-                {
-                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                        endpoints.Add(new IPEndPoint(ip, port));
-                }
-                if (endpoints.Count == 0)
-                    throw new InvalidOperationException($"{uri.DnsSafeHost} did not resolve to an IP address");
-            }
-
-            return endpoints;
-        }
         public static IList<IPEndPoint> GetIPEndPoints(IEnumerable<string> urls)
         {
             var endpoints = new List<IPEndPoint>();

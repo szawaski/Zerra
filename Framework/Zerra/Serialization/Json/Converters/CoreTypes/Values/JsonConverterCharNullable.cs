@@ -16,23 +16,38 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
             switch (token)
             {
                 case JsonToken.String:
+                    string str;
                     if (reader.UseBytes)
                     {
-                        if (state.ErrorOnTypeMismatch && reader.ValueBytes.Length != 1)
-                            ThrowCannotConvert(ref reader);
-                        value = (char)reader.ValueBytes[0];
+                        if (reader.ValueBytes.Length == 1 && reader.ValueBytes[0] < 0x80)
+                        {
+                            value = (char)reader.ValueBytes[0];
+                            return true;
+                        }
+                        str = reader.UnescapeStringBytes();
                     }
                     else
                     {
-                        if (state.ErrorOnTypeMismatch && reader.ValueChars.Length != 1)
-                            ThrowCannotConvert(ref reader);
-                        value = reader.ValueChars[0];
+                        if (reader.ValueChars.Length == 1)
+                        {
+                            value = reader.ValueChars[0];
+                            return true;
+                        }
+                        str = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
                     }
+                    if (str.Length != 1)
+                        ThrowInvalidValue(ref reader);
+                    value = str[0];
                     return true;
                 case JsonToken.Number:
                     if (state.ErrorOnTypeMismatch)
                         ThrowCannotConvert(ref reader);
-                    value = default;
+                    if (reader.UseBytes ? reader.ValueBytes.Length != 1 : reader.ValueChars.Length != 1)
+                    {
+                        value = default;
+                        return true;
+                    }
+                    value = reader.UseBytes ? (char)reader.ValueBytes[0] : reader.ValueChars[0];
                     return true;
                 case JsonToken.Null:
                     value = null;

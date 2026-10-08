@@ -53,7 +53,7 @@ public static class EnumNameExtensions
     /// <param name="it">The string representation of the enum value.</param>
     /// <returns>The parsed enum value, or null if parsing fails or the input is null.</returns>
     public static T? ToEnumNullable<T>(this string? it)
-        where T : Enum
+        where T : struct, Enum
     {
         if (global::EnumName.TryParse<T>(it, out var value))
             return value;

@@ -58,17 +58,47 @@ namespace Zerra.Collections
             this.dictionary = new SortedDictionary<TKey, TValue>(dictionary, comparer);
         }
 
-        void IDictionary<TKey, TValue>.Add(TKey key, TValue value) { _ = TryAdd(key, value); }
-        bool IDictionary<TKey, TValue>.Remove(TKey key) { return TryRemove(key, out _); }
-        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item) { _ = TryAdd(item.Key, item.Value); }
-        bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item) { return TryRemove(item.Key, out _); }
-        bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item) { return ContainsKey(item.Key); }
-        bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).IsReadOnly;
+        void IDictionary<TKey, TValue>.Add(TKey key, TValue value)
+        {
+            lock (locker)
+            {
+                dictionary.Add(key, value);
+            }
+        }
+        bool IDictionary<TKey, TValue>.Remove(TKey key)
+        {
+            lock (locker)
+            {
+                return dictionary.Remove(key);
+            }
+        }
+        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
+        {
+            lock (locker)
+            {
+                dictionary.Add(item.Key, item.Value);
+            }
+        }
+        bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
+        {
+            lock (locker)
+            {
+                return ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).Remove(item);
+            }
+        }
+        bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+        {
+            lock (locker)
+            {
+                return ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).Contains(item);
+            }
+        }
+        bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => false;
         void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
             lock (locker)
             {
-                ((IDictionary<TKey, TValue>)dictionary).CopyTo(array, arrayIndex);
+                ((ICollection<KeyValuePair<TKey, TValue>>)dictionary).CopyTo(array, arrayIndex);
             }
         }
         IEnumerator IEnumerable.GetEnumerator() { return GetEnumerator(); }
@@ -78,8 +108,7 @@ namespace Zerra.Collections
             {
                 lock (locker)
                 {
-                    var keys = dictionary.Keys.ToArray();
-                    return keys;
+                    return dictionary.Keys.ToArray();
                 }
             }
         }
@@ -89,34 +118,22 @@ namespace Zerra.Collections
             {
                 lock (locker)
                 {
-                    var values = dictionary.Values.ToArray();
-                    return values;
+                    return dictionary.Values.ToArray();
                 }
             }
         }
-        int ICollection.Count
-        {
-            get
-            {
-                lock (locker)
-                {
-                    var count = dictionary.Count;
-                    return count;
-                }
-            }
-        }
-        bool ICollection.IsSynchronized => ((ICollection)dictionary).IsSynchronized;
-        object ICollection.SyncRoot => ((ICollection)dictionary).SyncRoot;
-        bool IDictionary.IsFixedSize => ((IDictionary)dictionary).IsFixedSize;
-        bool IDictionary.IsReadOnly => ((IDictionary)dictionary).IsReadOnly;
+        int ICollection.Count => Count;
+        bool ICollection.IsSynchronized => false;
+        object ICollection.SyncRoot => throw new NotSupportedException($"{nameof(ICollection.SyncRoot)} is not supported, the dictionary locks internally");
+        bool IDictionary.IsFixedSize => false;
+        bool IDictionary.IsReadOnly => false;
         ICollection IDictionary.Keys
         {
             get
             {
                 lock (locker)
                 {
-                    var keys = dictionary.Keys.ToArray();
-                    return keys;
+                    return dictionary.Keys.ToArray();
                 }
             }
         }
@@ -126,8 +143,7 @@ namespace Zerra.Collections
             {
                 lock (locker)
                 {
-                    var values = dictionary.Values.ToArray();
-                    return values;
+                    return dictionary.Values.ToArray();
                 }
             }
         }
@@ -142,43 +158,24 @@ namespace Zerra.Collections
         {
             get
             {
-                if (key is not TKey keycasted)
-                    throw new ArgumentException("Key is not the correct type");
-
                 lock (locker)
                 {
-                    if (!dictionary.TryGetValue(keycasted, out var value))
-                        throw new KeyNotFoundException();
-                    return value;
+                    return ((IDictionary)dictionary)[key];
                 }
             }
             set
             {
-                if (key is not TKey keycasted)
-                    throw new ArgumentException("Key is not the correct type");
-                if (value is not TValue valuecasted)
-                    throw new ArgumentException("Value is not the correct type");
-
                 lock (locker)
                 {
-                    dictionary[keycasted] = valuecasted;
+                    ((IDictionary)dictionary)[key] = value;
                 }
             }
         }
         void IDictionary.Add(object key, object? value)
         {
-            if (key is not TKey keycasted)
-                throw new ArgumentException("Key is not the correct type");
-            if (value is not TValue valuecasted)
-                throw new ArgumentException("Value is not the correct type");
-
             lock (locker)
             {
-                if (dictionary.ContainsKey(keycasted))
-                {
-                    throw new ArgumentException("An element with the same key already exists");
-                }
-                dictionary.Add(keycasted, valuecasted);
+                ((IDictionary)dictionary).Add(key, value);
             }
         }
         void IDictionary.Clear()
@@ -190,33 +187,25 @@ namespace Zerra.Collections
         }
         bool IDictionary.Contains(object key)
         {
-            if (key is not TKey casted)
-                return false;
             lock (locker)
             {
-                var contains = dictionary.ContainsKey(casted);
-                return contains;
+                return ((IDictionary)dictionary).Contains(key);
             }
         }
         IDictionaryEnumerator IDictionary.GetEnumerator()
         {
+            KeyValuePair<TKey, TValue>[] items;
             lock (locker)
             {
-                var enumerator = new ConcurrentSortedDictionaryEnumerator(dictionary.ToArray().AsEnumerable().GetEnumerator());
-                return enumerator;
+                items = dictionary.ToArray();
             }
+            return new ConcurrentSortedDictionaryEnumerator(items.AsEnumerable().GetEnumerator());
         }
         void IDictionary.Remove(object key)
         {
-            if (key is not TKey casted)
-                throw new KeyNotFoundException();
             lock (locker)
             {
-                if (!dictionary.ContainsKey(casted))
-                {
-                    throw new KeyNotFoundException();
-                }
-                _ = dictionary.Remove(casted);
+                ((IDictionary)dictionary).Remove(key);
             }
         }
 
@@ -392,19 +381,19 @@ namespace Zerra.Collections
         }
 
         /// <summary>
-        /// Gets the value associated with the specified key. This method throws an exception if the key does not exist.
+        /// Gets the value associated with the specified key, or adds the value to the dictionary if the key does not exist.
         /// </summary>
-        /// <param name="key">The key of the value to get.</param>
-        /// <param name="value">The value associated with the key if found; otherwise, the default value.</param>
-        /// <returns>True if the key is found; otherwise, false.</returns>
-        /// <remarks>This method is marked as obsolete because it throws an exception instead of returning false when the key is not found. Use TryGetValue instead.</remarks>
+        /// <param name="key">The key to get or add.</param>
+        /// <param name="value">The value to be added for a new key.</param>
+        /// <returns>The value associated with the key, either new or existing.</returns>
         public TValue GetOrAdd(TKey key, TValue value)
         {
             lock (locker)
             {
-                if (!dictionary.TryGetValue(key, out var currentvalue))
-                    throw new KeyNotFoundException();
-                return currentvalue;
+                if (dictionary.TryGetValue(key, out var currentvalue))
+                    return currentvalue;
+                dictionary.Add(key, value);
+                return value;
             }
         }
 
@@ -492,7 +481,7 @@ namespace Zerra.Collections
                 if (!dictionary.TryGetValue(key, out var currentvalue))
                     return false;
                 
-                if (currentvalue is not null && comparisonValue is not null && !currentvalue.Equals(comparisonValue))
+                if (!EqualityComparer<TValue>.Default.Equals(currentvalue, comparisonValue))
                     return false;
                 dictionary[key] = value;
                 return true;

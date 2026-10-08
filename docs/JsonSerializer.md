@@ -69,6 +69,16 @@ var serializer = new ZerraJsonSerializer(options); // the same options for the b
 
 Output is always compact; there is no indented option.
 
+### Mismatched Values
+
+Each type has an expected kind of JSON value: a number for numbers, `true` or `false` for `bool`, and a string for strings, `char`, dates, times, and GUIDs. Enums accept a name or a number.
+
+- **Invalid content always throws.** A value of the expected kind that isn't valid for the type, such as `1.5` for an `int`, `300` for a `byte`, or `"tomorrow"` for a `DateTime`, throws whatever the options.
+- **Another kind that converts is read.** For example, `"5"` reads into an `int` and `"true"` into a `bool`. Numbers and `true`/`false` read into a `string` as text when `ErrorOnTypeMismatch` is off.
+- **Any other kind is a mismatch.** With `ErrorOnTypeMismatch = false` (the default) it becomes the type's default, `null` for nullable and reference types. With `ErrorOnTypeMismatch = true` it throws. `null` is a mismatch only for non-nullable value types.
+
+Anything after the value other than whitespace throws in both modes.
+
 Per member, use `[JsonPropertyName("name")]`, and `[JsonIgnore]` with a `JsonIgnoreCondition` of `Always`, `WhenReading`, `WhenWriting`, `WhenWritingDefault`, or `WhenWritingNull`, both from `Zerra.Serialization.Json`.
 
 ## Nameless JSON

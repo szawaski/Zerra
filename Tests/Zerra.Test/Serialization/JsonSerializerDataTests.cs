@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 using Xunit;
@@ -526,7 +527,7 @@ namespace Zerra.Test.Serialization
             Assert.Equal(String.Empty, model3);
 
             var model4 = JsonSerializer.Deserialize<string>("{}");
-            Assert.Equal(String.Empty, model4);
+            Assert.Null(model4);
 
             var model5 = JsonSerializer.Deserialize<object>("null");
             Assert.Null(model5);
@@ -1051,7 +1052,7 @@ namespace Zerra.Test.Serialization
             var json = @"{""key"":{""value"":""True""}}";
             var model = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
             Assert.NotNull(model);
-            Assert.Equal(String.Empty, model["key"]);
+            Assert.Null(model["key"]);
         }
 
         [Fact]
@@ -1710,7 +1711,7 @@ namespace Zerra.Test.Serialization
             Assert.Equal(String.Empty, model3);
 
             var model4 = await JsonSerializer.DeserializeAsync<string>(new MemoryStream(Encoding.UTF8.GetBytes("{}")), null, null, TestContext.Current.CancellationToken);
-            Assert.Equal(String.Empty, model4);
+            Assert.Null(model4);
 
             var model5 = await JsonSerializer.DeserializeAsync<object>(new MemoryStream(Encoding.UTF8.GetBytes("null")), null, null, TestContext.Current.CancellationToken);
             Assert.Null(model5);
@@ -2317,7 +2318,7 @@ namespace Zerra.Test.Serialization
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
             var model = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(stream, null, null, TestContext.Current.CancellationToken);
             Assert.NotNull(model);
-            Assert.Equal(String.Empty, model["key"]);
+            Assert.Null(model["key"]);
         }
 
         [Fact]
@@ -2395,6 +2396,771 @@ namespace Zerra.Test.Serialization
             Assert.Equal("null", json);
 
             Assert.Null(JsonSerializer.Deserialize<Graph>(json));
+        }
+
+        [Fact]
+        public void TypeMismatch_CoreTypes()
+        {
+            string[] none = [];
+            string[] fraction = ["5.5"];
+            string[] unsignedNumber = ["-5", "5.5"];
+            string[] text = ["\"xyz\"", "\"\""];
+            string[] enumValue = ["-5", "5.5", "\"xyz\"", "\"\""];
+            string[] base64 = ["\"xyz\""];
+
+            AssertTypeMismatch<bool>(none);
+            AssertTypeMismatch<byte>(unsignedNumber);
+            AssertTypeMismatch<sbyte>(fraction);
+            AssertTypeMismatch<short>(fraction);
+            AssertTypeMismatch<ushort>(unsignedNumber);
+            AssertTypeMismatch<int>(fraction);
+            AssertTypeMismatch<uint>(unsignedNumber);
+            AssertTypeMismatch<long>(fraction);
+            AssertTypeMismatch<ulong>(unsignedNumber);
+            AssertTypeMismatch<float>(none);
+            AssertTypeMismatch<double>(none);
+            AssertTypeMismatch<decimal>(none);
+            AssertTypeMismatch<char>(text);
+            AssertTypeMismatch<DateTime>(text);
+            AssertTypeMismatch<DateTimeOffset>(text);
+            AssertTypeMismatch<TimeSpan>(text);
+            AssertTypeMismatch<DateOnly>(text);
+            AssertTypeMismatch<TimeOnly>(text);
+            AssertTypeMismatch<Guid>(text);
+            AssertTypeMismatch<string>(none);
+
+            AssertTypeMismatch<bool?>(none);
+            AssertTypeMismatch<byte?>(unsignedNumber);
+            AssertTypeMismatch<sbyte?>(fraction);
+            AssertTypeMismatch<short?>(fraction);
+            AssertTypeMismatch<ushort?>(unsignedNumber);
+            AssertTypeMismatch<int?>(fraction);
+            AssertTypeMismatch<uint?>(unsignedNumber);
+            AssertTypeMismatch<long?>(fraction);
+            AssertTypeMismatch<ulong?>(unsignedNumber);
+            AssertTypeMismatch<float?>(none);
+            AssertTypeMismatch<double?>(none);
+            AssertTypeMismatch<decimal?>(none);
+            AssertTypeMismatch<char?>(text);
+            AssertTypeMismatch<DateTime?>(text);
+            AssertTypeMismatch<DateTimeOffset?>(text);
+            AssertTypeMismatch<TimeSpan?>(text);
+            AssertTypeMismatch<DateOnly?>(text);
+            AssertTypeMismatch<TimeOnly?>(text);
+            AssertTypeMismatch<Guid?>(text);
+            AssertTypeMismatch<EnumModel>(enumValue);
+            AssertTypeMismatch<EnumModel?>(enumValue);
+
+            AssertTypeMismatch<Type>(text, false);
+            AssertTypeMismatch<byte[]>(base64, false);
+            AssertTypeMismatch<CancellationToken>(none, false);
+            AssertTypeMismatch<CancellationToken?>(none, false);
+        }
+
+        private static void AssertTypeMismatch<T>(string[] formatErrors, bool strictMismatches = true)
+        {
+            var strict = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            string[] tokens = ["null", "5", "-5", "5.5", "true", "false", "\"xyz\"", "\"\"", "{\"a\":[1,{\"b\":\"c\"}],\"d\":null}", "[1,\"two\",{\"three\":[3]},[],null,true]"];
+
+            foreach (var token in tokens)
+            {
+                var json = $"{{\"Value\":{token},\"After\":7}}";
+                if (formatErrors.Contains(token))
+                {
+                    _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<MismatchModel<T>>(json));
+                    _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<MismatchModel<T>>(Encoding.UTF8.GetBytes(json)));
+                    continue;
+                }
+                Assert.Equal(7, JsonSerializer.Deserialize<MismatchModel<T>>(json)!.After);
+                Assert.Equal(7, JsonSerializer.Deserialize<MismatchModel<T>>(Encoding.UTF8.GetBytes(json))!.After);
+            }
+
+            if (!strictMismatches)
+                return;
+
+            string[] mismatches = typeof(T) == typeof(string) ? tokens[8..] : Nullable.GetUnderlyingType(typeof(T)) is not null ? [tokens[6], .. tokens[8..]] : tokens[6..];
+            foreach (var token in mismatches)
+            {
+                var json = $"{{\"Value\":{token},\"After\":7}}";
+                Assert.True(Record.Exception(() => JsonSerializer.Deserialize<MismatchModel<T>>(json, strict)) is not null, $"{typeof(T).Name} {token} chars");
+                Assert.True(Record.Exception(() => JsonSerializer.Deserialize<MismatchModel<T>>(Encoding.UTF8.GetBytes(json), strict)) is not null, $"{typeof(T).Name} {token} bytes");
+            }
+
+            if (default(T) is null)
+            {
+                var json = "{\"Value\":null,\"After\":7}";
+                Assert.Null(JsonSerializer.Deserialize<MismatchModel<T>>(json, strict)!.Value);
+                Assert.Null(JsonSerializer.Deserialize<MismatchModel<T>>(Encoding.UTF8.GetBytes(json), strict)!.Value);
+            }
+        }
+
+        [Theory]
+        [InlineData("\"a\"", 'a')]
+        [InlineData("\"\\n\"", '\n')]
+        [InlineData("\"\\\"\"", '"')]
+        [InlineData("\"\\u00e9\"", 'é')]
+        [InlineData("\"é\"", 'é')]
+        [InlineData("5", '5')]
+        public void Char_Decodes(string json, char expected)
+        {
+            var strict = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            var bytes = Encoding.UTF8.GetBytes(json);
+
+            Assert.Equal(expected, JsonSerializer.Deserialize<char>(json));
+            Assert.Equal(expected, JsonSerializer.Deserialize<char>(bytes));
+            Assert.Equal(expected, JsonSerializer.Deserialize<char?>(json));
+            Assert.Equal(expected, JsonSerializer.Deserialize<char?>(bytes));
+
+            if (json[0] == '"')
+            {
+                Assert.Equal(expected, JsonSerializer.Deserialize<char>(json, strict));
+                Assert.Equal(expected, JsonSerializer.Deserialize<char>(bytes, strict));
+                Assert.Equal(expected, JsonSerializer.Deserialize<char?>(json, strict));
+                Assert.Equal(expected, JsonSerializer.Deserialize<char?>(bytes, strict));
+            }
+        }
+
+        [Theory]
+        [InlineData("\"\"")]
+        [InlineData("\"ab\"")]
+        [InlineData("\"😀\"")]
+        public void Char_InvalidString(string json)
+        {
+            var strict = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            var bytes = Encoding.UTF8.GetBytes(json);
+            foreach (var options in new[] { null, strict })
+            {
+                _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<char>(json, options));
+                _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<char>(bytes, options));
+                _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<char?>(json, options));
+                _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<char?>(bytes, options));
+            }
+        }
+
+        [Theory]
+        [InlineData("55")]
+        [InlineData("true")]
+        public void Char_Mismatch(string json)
+        {
+            var strict = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            var bytes = Encoding.UTF8.GetBytes(json);
+
+            Assert.Equal(default, JsonSerializer.Deserialize<char>(json));
+            Assert.Equal(default, JsonSerializer.Deserialize<char>(bytes));
+            Assert.Null(JsonSerializer.Deserialize<char?>(json));
+            Assert.Null(JsonSerializer.Deserialize<char?>(bytes));
+
+            _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<char>(json, strict));
+            _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<char>(bytes, strict));
+            _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<char?>(json, strict));
+            _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<char?>(bytes, strict));
+        }
+
+        [Fact]
+        public async Task StreamLargerThanBuffer_AllTypes()
+        {
+            await AssertStreamRoundTrip(Enumerable.Range(0, 8).Select(_ => TypesAllModel.Create()).ToArray());
+            await AssertStreamRoundTrip(SpecialTypesModel.CreateArray(2000));
+        }
+
+        private static async Task AssertStreamRoundTrip<T>(T value)
+        {
+            var token = TestContext.Current.CancellationToken;
+            var expected = JsonSerializer.Serialize(value);
+            Assert.True(expected.Length > 3 * 16 * 1024, typeof(T).Name);
+
+            using (var stream = new MemoryStream())
+            {
+                JsonSerializer.Serialize(stream, value);
+                Assert.Equal(expected, Encoding.UTF8.GetString(stream.ToArray()));
+            }
+            using (var stream = new MemoryStream())
+            {
+                JsonSerializer.Serialize(stream, (object?)value, typeof(T));
+                Assert.Equal(expected, Encoding.UTF8.GetString(stream.ToArray()));
+            }
+            using (var stream = new MemoryStream())
+            {
+                await JsonSerializer.SerializeAsync(stream, value, cancellationToken: token);
+                Assert.Equal(expected, Encoding.UTF8.GetString(stream.ToArray()));
+            }
+            using (var stream = new MemoryStream())
+            {
+                await JsonSerializer.SerializeAsync(stream, (object?)value, typeof(T), cancellationToken: token);
+                Assert.Equal(expected, Encoding.UTF8.GetString(stream.ToArray()));
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(expected);
+            var reread = JsonSerializer.Serialize(JsonSerializer.Deserialize<T>(expected));
+            Assert.Equal(reread, JsonSerializer.Serialize(JsonSerializer.Deserialize<T>(new MemoryStream(bytes))));
+            Assert.Equal(reread, JsonSerializer.Serialize((T?)JsonSerializer.Deserialize(new MemoryStream(bytes), typeof(T))));
+            Assert.Equal(reread, JsonSerializer.Serialize(await JsonSerializer.DeserializeAsync<T>(new MemoryStream(bytes), cancellationToken: token)));
+            Assert.Equal(reread, JsonSerializer.Serialize((T?)await JsonSerializer.DeserializeAsync(new MemoryStream(bytes), typeof(T), cancellationToken: token)));
+        }
+
+        [Fact]
+        public void ByteArray_ReadsEscapedBase64()
+        {
+            var value = Enumerable.Range(0, 300).Select(x => (byte)(x * 37)).ToArray();
+            var plain = System.Text.Json.JsonSerializer.Serialize(value);
+            Assert.Contains("+", plain);
+            Assert.Contains("/", plain);
+            var json = plain.Replace("+", "\\u002B").Replace("/", "\\/");
+
+            Assert.Equal(value, JsonSerializer.Deserialize<byte[]>(plain));
+            Assert.Equal(value, JsonSerializer.Deserialize<byte[]>(Encoding.UTF8.GetBytes(plain)));
+            Assert.Equal(value, JsonSerializer.Deserialize<byte[]>(json));
+            Assert.Equal(value, JsonSerializer.Deserialize<byte[]>(Encoding.UTF8.GetBytes(json)));
+            Assert.Equal(value, JsonSerializer.Deserialize<byte[]>(JsonSerializer.Serialize(value)));
+        }
+
+        [Theory]
+        [InlineData("\"not base64!\"")]
+        [InlineData("\"=\"")]
+        [InlineData("\"QUJD=\"")]
+        public void ByteArray_Invalid(string json)
+        {
+            var strict = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<byte[]>(json));
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<byte[]>(Encoding.UTF8.GetBytes(json)));
+            _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<byte[]>(json, strict));
+            _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<byte[]>(Encoding.UTF8.GetBytes(json), strict));
+        }
+
+        [Theory]
+        [InlineData("2024-01-0")]
+        [InlineData("2024-01-01T10:00:00.0000000+00:00:00:00")]
+        [InlineData("x024-01-01")]
+        [InlineData("2024x01-01")]
+        [InlineData("2024-x1-01")]
+        [InlineData("2024-01x01")]
+        [InlineData("2024-01-x1")]
+        [InlineData("2024-01-01T10")]
+        [InlineData("2024-01-01x10:00:00")]
+        [InlineData("2024-01-01Tx0:00:00")]
+        [InlineData("2024-01-01T10x00:00")]
+        [InlineData("2024-01-01T10:x0:00")]
+        [InlineData("2024-01-01T10:00x00")]
+        [InlineData("2024-01-01T10:00:x0")]
+        [InlineData("2024-01-01T10:00:00.")]
+        [InlineData("2024-01-01T10:00:00.x")]
+        [InlineData("2024-01-01T10:00:00.1x")]
+        [InlineData("2024-01-01T10:00:00Zx")]
+        [InlineData("2024-01-01T10:00:00.1Zx")]
+        [InlineData("2024-01-01T10:00:00x")]
+        [InlineData("2024-01-01T10:00:00+05")]
+        [InlineData("2024-01-01T10:00:00+x5:00")]
+        [InlineData("2024-01-01T10:00:00+05x00")]
+        [InlineData("2024-01-01T10:00:00+05:x0")]
+        [InlineData("2024-01-01T10:00:00.1+05:00x")]
+        [InlineData("2024-13-01")]
+        [InlineData("2024-02-30")]
+        [InlineData("2024-01-01T25:00:00")]
+        [InlineData("2024-01-01T10:60:00")]
+        [InlineData("2024-01-01T10:00:00+15:00")]
+        [InlineData("2024-00-01")]
+        [InlineData("0000-01-01")]
+        [InlineData("0001-01-01T00:00:00+01:00")]
+        [InlineData("9999-12-31T23:59:59-01:00")]
+        public void Dates_Invalid(string text)
+        {
+            var json = $"\"{text}\"";
+            var bytes = Encoding.UTF8.GetBytes(json);
+            var strict = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<DateTime>(json));
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<DateTime>(bytes));
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<DateTimeOffset>(json));
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<DateTimeOffset>(bytes));
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<DateOnly>(json));
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<DateOnly>(bytes));
+
+            _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<DateTime>(json, strict));
+            _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<DateTime>(bytes, strict));
+            _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<DateTimeOffset>(json, strict));
+            _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<DateTimeOffset>(bytes, strict));
+        }
+
+        [Theory]
+        [InlineData("2024-01-02")]
+        [InlineData("2024-01-02T03:04:05")]
+        [InlineData("2024-01-02T03:04:05Z")]
+        [InlineData("2024-01-02T03:04:05.1Z")]
+        [InlineData("2024-01-02T03:04:05.12")]
+        [InlineData("2024-01-02T03:04:05.1234567")]
+        [InlineData("2024-01-02T03:04:05.12345678")]
+        [InlineData("2024-01-02T03:04:05.1234567Z")]
+        [InlineData("2024-01-02T03:04:05+05:30")]
+        [InlineData("2024-01-02T03:04:05-08:00")]
+        [InlineData("2024-01-02T03:04:05.123-08:00")]
+        [InlineData("2024-01-02T03:04:05.1234567890123456+05:30")]
+        public void Dates_Valid(string text)
+        {
+            var json = $"\"{text}\"";
+            var bytes = Encoding.UTF8.GetBytes(json);
+            var hasOffset = text.Length > 19 && (text.EndsWith('Z') || text[^6] is '+' or '-');
+            var expected = hasOffset
+                ? DateTimeOffset.Parse(text, CultureInfo.InvariantCulture)
+                : new DateTimeOffset(DateTime.Parse(text, CultureInfo.InvariantCulture), TimeSpan.Zero);
+            var expectedTicks = expected.Ticks - expected.Ticks % 10;
+
+            Assert.Equal(expected.UtcDateTime.Ticks - expected.UtcDateTime.Ticks % 10, JsonSerializer.Deserialize<DateTime>(json).Ticks - JsonSerializer.Deserialize<DateTime>(json).Ticks % 10);
+            Assert.Equal(expected.UtcDateTime.Ticks - expected.UtcDateTime.Ticks % 10, JsonSerializer.Deserialize<DateTime>(bytes).Ticks - JsonSerializer.Deserialize<DateTime>(bytes).Ticks % 10);
+            Assert.Equal(expected.Offset, JsonSerializer.Deserialize<DateTimeOffset>(json).Offset);
+            Assert.Equal(expected.Offset, JsonSerializer.Deserialize<DateTimeOffset>(bytes).Offset);
+            Assert.Equal(expectedTicks, JsonSerializer.Deserialize<DateTimeOffset>(json).Ticks - JsonSerializer.Deserialize<DateTimeOffset>(json).Ticks % 10);
+            Assert.Equal(expectedTicks, JsonSerializer.Deserialize<DateTimeOffset>(bytes).Ticks - JsonSerializer.Deserialize<DateTimeOffset>(bytes).Ticks % 10);
+        }
+
+        [Fact]
+        public void AttributeCombinations()
+        {
+            var model = new JsonAttributeCombinationsModel()
+            {
+                NameThenIgnore = 1,
+                IgnoreThenName = 2,
+                NameThenWhenNull = null,
+                StjName = 3,
+                StjIgnore = 4,
+                StjWhenNull = null,
+                StjNever = 5,
+                StjWhenDefault = 0,
+                Kept = 7,
+                NonSerializedField = 6
+            };
+            Assert.Equal("{\"stj\":3,\"StjNever\":5,\"Kept\":7}", JsonSerializer.Serialize(model));
+
+            model.NameThenWhenNull = "n";
+            model.StjWhenNull = "s";
+            model.StjWhenDefault = 8;
+            Assert.Equal("{\"named\":\"n\",\"stj\":3,\"StjWhenNull\":\"s\",\"StjNever\":5,\"StjWhenDefault\":8,\"Kept\":7}", JsonSerializer.Serialize(model));
+
+            const string json = "{\"renamed\":9,\"x\":9,\"NameThenIgnore\":9,\"IgnoreThenName\":9,\"named\":\"n\",\"stj\":8,\"StjIgnore\":8,\"StjWhenNull\":\"s\",\"StjNever\":8,\"StjWhenDefault\":8,\"NonSerializedField\":8,\"Kept\":8}";
+            var result = JsonSerializer.Deserialize<JsonAttributeCombinationsModel>(json)!;
+            Assert.Equal(0, result.NameThenIgnore);
+            Assert.Equal(0, result.IgnoreThenName);
+            Assert.Equal("n", result.NameThenWhenNull);
+            Assert.Equal(8, result.StjName);
+            Assert.Equal(0, result.StjIgnore);
+            Assert.Equal("s", result.StjWhenNull);
+            Assert.Equal(8, result.StjNever);
+            Assert.Equal(8, result.StjWhenDefault);
+            Assert.Equal(0, result.NonSerializedField);
+            Assert.Equal(8, result.Kept);
+        }
+
+        [Fact]
+        public async Task ObjectValues()
+        {
+            var token = TestContext.Current.CancellationToken;
+            foreach (var (json, check) in new (string, Action<object?>)[]
+            {
+                ("\"text\"", x => Assert.Equal("text", x)),
+                ("5.5", x => Assert.Equal(5.5m, x)),
+                ("true", x => Assert.Equal(true, x)),
+                ("false", x => Assert.Equal(false, x)),
+                ("null", Assert.Null),
+                ("[1,\"a\",true,[2],null]", x =>
+                {
+                    var array = Assert.IsType<object[]>(x);
+                    Assert.Equal(1m, array[0]);
+                    Assert.Equal("a", array[1]);
+                    Assert.Equal(true, array[2]);
+                    Assert.Equal(2m, Assert.IsType<object[]>(array[3])[0]);
+                    Assert.Null(array[4]);
+                }),
+            })
+            {
+                var bytes = Encoding.UTF8.GetBytes(json);
+                check(JsonSerializer.Deserialize<object>(json));
+                check(JsonSerializer.Deserialize<object>(bytes));
+                check(JsonSerializer.Deserialize(json, typeof(object)));
+                check(JsonSerializer.Deserialize(bytes, typeof(object)));
+                check(JsonSerializer.Deserialize<object>(new MemoryStream(bytes)));
+                check(await JsonSerializer.DeserializeAsync<object>(new MemoryStream(bytes), cancellationToken: token));
+                check(await JsonSerializer.DeserializeAsync(new MemoryStream(bytes), typeof(object), cancellationToken: token));
+
+                var member = $"{{\"Value\":{json},\"After\":7}}";
+                var model = JsonSerializer.Deserialize<MismatchModel<object>>(member)!;
+                check(model.Value);
+                Assert.Equal(7, model.After);
+                model = JsonSerializer.Deserialize<MismatchModel<object>>(Encoding.UTF8.GetBytes(member))!;
+                check(model.Value);
+                Assert.Equal(7, model.After);
+            }
+        }
+
+        [Fact]
+        public void InterfaceValues()
+        {
+            const string json = "{\"Value1\":42,\"Value2\":\"Hello\"}";
+            Assert.NotNull(JsonSerializer.Deserialize<IBasicModel>(json));
+            Assert.NotNull(JsonSerializer.Deserialize<IBasicModel>(Encoding.UTF8.GetBytes(json)));
+            Assert.NotNull(JsonSerializer.Deserialize(json, typeof(IBasicModel)));
+            Assert.NotNull(JsonSerializer.Deserialize<MismatchModel<IBasicModel>>($"{{\"Value\":{json},\"After\":7}}")!.Value);
+        }
+
+        [Theory]
+        [InlineData("nulx")]
+        [InlineData("trux")]
+        [InlineData("falsx")]
+        [InlineData("[nul]")]
+        [InlineData("[tru]")]
+        [InlineData("[fals]")]
+        [InlineData("[1,]x")]
+        [InlineData("{\"a\"}")]
+        [InlineData("{\"a\":1,}x")]
+        [InlineData("\"abc")]
+        [InlineData("\"ab\\")]
+        [InlineData("\"ab\\u00")]
+        [InlineData("[\"a\\u0")]
+        [InlineData("[1")]
+        [InlineData("{\"a\":")]
+        [InlineData("@")]
+        [InlineData("[,1]")]
+        [InlineData("[1,,2]")]
+        [InlineData("{\"a\":,1}")]
+        [InlineData("{\"a\"::1}")]
+        [InlineData(",")]
+        [InlineData(":")]
+        public async Task InvalidJson_Throws(string json)
+        {
+            //malformed JSON is a FormatException, JSON that ends early is an EndOfStreamException
+            var truncated = json is "\"abc" or "\"ab\\" or "\"ab\\u00" or "[\"a\\u0" or "[1" or "{\"a\":";
+            void AssertInvalid(Action action) { if (truncated) _ = Assert.Throws<EndOfStreamException>(action); else _ = Assert.Throws<FormatException>(action); }
+            async Task AssertInvalidAsync(Func<Task> action) { if (truncated) _ = await Assert.ThrowsAsync<EndOfStreamException>(action); else _ = await Assert.ThrowsAsync<FormatException>(action); }
+            var bytes = Encoding.UTF8.GetBytes(json);
+            AssertInvalid(() => JsonSerializer.Deserialize<object>(json));
+            AssertInvalid(() => JsonSerializer.Deserialize<object>(bytes));
+            AssertInvalid(() => JsonSerializer.Deserialize<object>(new MemoryStream(bytes)));
+            await AssertInvalidAsync(() => JsonSerializer.DeserializeAsync<object>(new MemoryStream(bytes), cancellationToken: TestContext.Current.CancellationToken));
+            AssertInvalid(() => JsonSerializer.DeserializeJsonObject(json));
+            AssertInvalid(() => JsonSerializer.DeserializeJsonObject(bytes));
+            AssertInvalid(() => JsonSerializer.Deserialize<SimpleModel[]>(json));
+            AssertInvalid(() => JsonSerializer.Deserialize<SimpleModel[]>(bytes));
+        }
+
+        [Fact]
+        public async Task EscapedStringsAcrossStreamBuffer()
+        {
+            var sb = new StringBuilder();
+            for (var i = 0; i < 12_000; i++)
+                sb.Append((i % 5) switch { 0 => '"', 1 => '\\', 2 => '\n', 3 => '\u0001', _ => 'é' });
+            var value = new[] { sb.ToString(), "plain", sb.ToString(0, 7_001) };
+
+            var json = JsonSerializer.Serialize(value);
+            Assert.True(json.Length > 3 * 16 * 1024);
+            Assert.Equal(value, JsonSerializer.Deserialize<string[]>(json));
+            Assert.Equal(value, JsonSerializer.Deserialize<string[]>(Encoding.UTF8.GetBytes(json)));
+            Assert.Equal(value, JsonSerializer.Deserialize<string[]>(new MemoryStream(Encoding.UTF8.GetBytes(json))));
+            Assert.Equal(value, await JsonSerializer.DeserializeAsync<string[]>(new MemoryStream(Encoding.UTF8.GetBytes(json)), cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Equal(json, JsonSerializer.DeserializeJsonObject(new MemoryStream(Encoding.UTF8.GetBytes(json)))!.ToString());
+        }
+
+        [Fact]
+        public void EscapedMemberNames()
+        {
+            var model = new JsonEscapedNamesModel() { Escaped = 1, Long = "value", Plain = 3 };
+
+            var json = JsonSerializer.Serialize(model);
+            Assert.Equal(json, Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(model)));
+
+            using var document = System.Text.Json.JsonDocument.Parse(json);
+            Assert.Equal(1, document.RootElement.GetProperty(JsonEscapedNamesModel.EscapedName).GetInt32());
+            Assert.Equal("value", document.RootElement.GetProperty(JsonEscapedNamesModel.LongName).GetString());
+
+            foreach (var result in new[] { JsonSerializer.Deserialize<JsonEscapedNamesModel>(json)!, JsonSerializer.Deserialize<JsonEscapedNamesModel>(Encoding.UTF8.GetBytes(json))! })
+            {
+                Assert.Equal(1, result.Escaped);
+                Assert.Equal("value", result.Long);
+                Assert.Equal(3, result.Plain);
+            }
+        }
+
+        [Fact]
+        public void DictionaryForms()
+        {
+            AssertDictionaryForms<Dictionary<string, int>>();
+            AssertDictionaryForms<SortedDictionary<string, int>>();
+            AssertDictionaryForms<IDictionary<string, int>>();
+            AssertDictionaryForms<IReadOnlyDictionary<string, int>>();
+        }
+
+        private static void AssertDictionaryForms<T>() where T : IEnumerable<KeyValuePair<string, int>>
+        {
+            foreach (var json in new[] { "{}", "[]" })
+            {
+                Assert.Empty(JsonSerializer.Deserialize<T>(json)!);
+                Assert.Empty(JsonSerializer.Deserialize<T>(Encoding.UTF8.GetBytes(json))!);
+            }
+            foreach (var json in new[] { "{\"a\":1,\"b\":2}", "[{\"Key\":\"a\",\"Value\":1},{\"Key\":\"b\",\"Value\":2}]" })
+            {
+                Assert.Equal([new("a", 1), new("b", 2)], JsonSerializer.Deserialize<T>(json)!.OrderBy(x => x.Key));
+                Assert.Equal([new("a", 1), new("b", 2)], JsonSerializer.Deserialize<T>(Encoding.UTF8.GetBytes(json))!.OrderBy(x => x.Key));
+                Assert.Equal([new("a", 1), new("b", 2)], JsonSerializer.Deserialize<T>(new MemoryStream(Encoding.UTF8.GetBytes(json)))!.OrderBy(x => x.Key));
+            }
+            foreach (var json in new[] { "{\"a\" 1}", "{\"a\":1 \"b\":2}", "{1}", "[{\"Key\":\"a\",\"Value\":1} 2]" })
+            {
+                _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<T>(json));
+                _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<T>(Encoding.UTF8.GetBytes(json)));
+            }
+        }
+
+        [Fact]
+        public void InvalidValueVersusMismatch()
+        {
+            var strict = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+
+            Assert.Contains("Invalid value for Int32", Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<int>("1.5")).Message);
+            Assert.Contains("Invalid value for Byte", Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<byte>(Encoding.UTF8.GetBytes("300"))).Message);
+            Assert.Contains("Invalid value for Guid", Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<Guid>("\"xyz\"")).Message);
+
+            Assert.Equal(0, JsonSerializer.Deserialize<int>("true"));
+            Assert.Contains("Cannot convert to Int32", Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<int>("true", strict)).Message);
+            Assert.Equal(0, JsonSerializer.Deserialize<int>("\"xyz\""));
+            Assert.Contains("Cannot convert to Int32", Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<int>("\"xyz\"", strict)).Message);
+        }
+
+        [Fact]
+        public void GraphRoot()
+        {
+            var strict = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            var graph = new Graph<SimpleModel>(x => x.Value1);
+
+            var json = JsonSerializer.Serialize(graph);
+            Assert.Equal($"\"{graph.Signature}\"", json);
+            foreach (var result in new[] { JsonSerializer.Deserialize<Graph<SimpleModel>>(json)!, JsonSerializer.Deserialize<Graph<SimpleModel>>(Encoding.UTF8.GetBytes(json))! })
+            {
+                Assert.True(result.HasMember(nameof(SimpleModel.Value1)));
+                Assert.False(result.HasMember(nameof(SimpleModel.Value2)));
+            }
+            Assert.True(JsonSerializer.Deserialize<Graph>("\"A:\"")!.IncludeAllMembers);
+            Assert.Equal("null", JsonSerializer.Serialize<Graph?>(null));
+            Assert.Null(JsonSerializer.Deserialize<Graph>("null"));
+
+            _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<Graph>("\"Q:bad\""));
+            foreach (var token in new[] { "5", "true", "false", "{\"a\":1}", "[1]" })
+            {
+                Assert.Null(JsonSerializer.Deserialize<Graph>(token));
+                _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<Graph>(token, strict));
+            }
+        }
+
+#pragma warning disable xUnit1051 // the token is the value being serialized, not a cancellation signal
+        [Fact]
+        public void CancellationTokenRoot()
+        {
+            var strict = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            Assert.Equal("{}", JsonSerializer.Serialize(CancellationToken.None));
+            Assert.Equal("{}", JsonSerializer.Serialize<CancellationToken?>(CancellationToken.None));
+            Assert.Equal("null", JsonSerializer.Serialize<CancellationToken?>(null));
+
+            Assert.Equal(default, JsonSerializer.Deserialize<CancellationToken>("{}"));
+            Assert.Equal(default, JsonSerializer.Deserialize<CancellationToken>("{}", strict));
+            Assert.Equal(default(CancellationToken), JsonSerializer.Deserialize<CancellationToken?>("{\"a\":1}", strict));
+            Assert.Null(JsonSerializer.Deserialize<CancellationToken?>("null", strict));
+
+            foreach (var token in new[] { "5", "true", "false", "\"x\"", "[1]" })
+            {
+                Assert.Equal(default, JsonSerializer.Deserialize<CancellationToken>(token));
+                Assert.Null(JsonSerializer.Deserialize<CancellationToken?>(token));
+                _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<CancellationToken>(token, strict));
+                _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<CancellationToken?>(token, strict));
+            }
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<CancellationToken>("null", strict));
+        }
+#pragma warning restore xUnit1051
+
+        [Fact]
+        public async Task NamelessRecords()
+        {
+            var nameless = new JsonSerializerOptions() { Nameless = true };
+            var strictNameless = new JsonSerializerOptions() { Nameless = true, ErrorOnTypeMismatch = true };
+            var model = new RecordModel(true) { Property2 = 42, Property3 = "moo" };
+
+            var json = JsonSerializer.Serialize(model, nameless);
+            Assert.Equal("[true,42,\"moo\"]", json);
+            foreach (var result in new[]
+            {
+                JsonSerializer.Deserialize<RecordModel>(json, nameless)!,
+                JsonSerializer.Deserialize<RecordModel>(Encoding.UTF8.GetBytes(json), nameless)!,
+                (await JsonSerializer.DeserializeAsync<RecordModel>(new MemoryStream(Encoding.UTF8.GetBytes(json)), nameless, cancellationToken: TestContext.Current.CancellationToken))!,
+            })
+            {
+                Assert.True(result.Property1);
+                Assert.Equal(42, result.Property2);
+                Assert.Equal("moo", result.Property3);
+            }
+
+            var empty = JsonSerializer.Deserialize<RecordModel>("[]", nameless)!;
+            Assert.False(empty.Property1);
+            Assert.Equal(0, empty.Property2);
+
+            var partial = JsonSerializer.Deserialize<RecordModel>("[true]", nameless)!;
+            Assert.True(partial.Property1);
+
+            Assert.Equal([model, model], JsonSerializer.Deserialize<RecordModel[]>(JsonSerializer.Serialize(new[] { model, model }, nameless), nameless));
+
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<RecordModel>("[true,42,\"moo\",1]", nameless));
+            Assert.Null(JsonSerializer.Deserialize<RecordModel>("{\"Property1\":true}", nameless));
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<RecordModel>("{\"Property1\":true}", strictNameless));
+            Assert.Null(JsonSerializer.Deserialize<RecordModel>("5", nameless));
+        }
+
+        public sealed class UnmatchedConstructorModel
+        {
+            public int Value { get; }
+            public UnmatchedConstructorModel(int other) { Value = other; }
+            public UnmatchedConstructorModel(UnmatchedConstructorModel copy) { Value = copy.Value; }
+        }
+
+        [Fact]
+        public void ConstructorWithoutMatchingMembers()
+        {
+            Assert.Null(JsonSerializer.Deserialize<UnmatchedConstructorModel>("{\"Value\":5}"));
+        }
+
+        [Fact]
+        public void ConstructorArgumentMissing()
+        {
+            var result = JsonSerializer.Deserialize<RecordModel>("{\"Property2\":5}")!;
+            Assert.False(result.Property1);
+            Assert.Equal(5, result.Property2);
+            Assert.False(JsonSerializer.Deserialize<RecordModel>(Encoding.UTF8.GetBytes("{}"))!.Property1);
+        }
+
+        public class DirectionalIgnoreModel
+        {
+            public int First { get; set; }
+            [JsonIgnore(JsonIgnoreCondition.WhenReading)]
+            public int WriteOnly { get; set; }
+            [JsonIgnore(JsonIgnoreCondition.WhenWriting)]
+            public int ReadOnly { get; set; }
+            public int Last { get; set; }
+        }
+
+        public class NoMembersModel { }
+
+        public readonly struct PointStruct
+        {
+            public int X { get; }
+            public int Y { get; }
+            public PointStruct(int x, int y) { X = x; Y = y; }
+        }
+
+        [Fact]
+        public void Object_PropertiesInAnyOrder()
+        {
+            //the members are found searching back from where the last one was
+            const string reversed = "{\"Last\":4,\"ReadOnly\":3,\"WriteOnly\":2,\"First\":1}";
+            foreach (var result in new[] { JsonSerializer.Deserialize<DirectionalIgnoreModel>(reversed)!, JsonSerializer.Deserialize<DirectionalIgnoreModel>(Encoding.UTF8.GetBytes(reversed))! })
+            {
+                Assert.Equal(1, result.First);
+                Assert.Equal(0, result.WriteOnly);
+                Assert.Equal(3, result.ReadOnly);
+                Assert.Equal(4, result.Last);
+            }
+
+            //a graph leaves out a member both ways
+            var graph = new Graph<DirectionalIgnoreModel>(x => x.First, x => x.ReadOnly);
+            foreach (var result in new[] { JsonSerializer.Deserialize<DirectionalIgnoreModel>(reversed, null, graph)!, JsonSerializer.Deserialize<DirectionalIgnoreModel>(Encoding.UTF8.GetBytes(reversed), null, graph)! })
+            {
+                Assert.Equal(1, result.First);
+                Assert.Equal(3, result.ReadOnly);
+                Assert.Equal(0, result.Last);
+            }
+
+            var model = new DirectionalIgnoreModel() { First = 1, WriteOnly = 2, ReadOnly = 3, Last = 4 };
+            Assert.Equal("{\"First\":1,\"WriteOnly\":2,\"Last\":4}", JsonSerializer.Serialize(model));
+            Assert.Equal("[1,2,4]", JsonSerializer.Serialize(model, new JsonSerializerOptions() { Nameless = true }));
+            Assert.Equal("{\"First\":1}", JsonSerializer.Serialize(model, null, new Graph<DirectionalIgnoreModel>(x => x.First)));
+            Assert.Equal("[1]", JsonSerializer.Serialize(model, new JsonSerializerOptions() { Nameless = true }, new Graph<DirectionalIgnoreModel>(x => x.First)));
+        }
+
+        [Fact]
+        public void Object_InvalidPropertyNames()
+        {
+            var ignoreCase = new JsonSerializerOptions() { IgnoreCase = true };
+            foreach (var options in new[] { null, ignoreCase })
+            {
+                //an empty name is valid JSON and matches no member
+                Assert.Equal(2, JsonSerializer.Deserialize<DirectionalIgnoreModel>("{\"\":1,\"Last\":2}", options)!.Last);
+                Assert.Equal(2, JsonSerializer.Deserialize<DirectionalIgnoreModel>(Encoding.UTF8.GetBytes("{\"\":1,\"Last\":2}"), options)!.Last);
+                _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<DirectionalIgnoreModel>("{\"First\":1 \"Last\":2}", options));
+            }
+
+            //an unknown name is skipped, with or without case
+            Assert.Equal(2, JsonSerializer.Deserialize<DirectionalIgnoreModel>("{\"Unknown\":1,\"last\":2}", ignoreCase)!.Last);
+            Assert.Equal(2, JsonSerializer.Deserialize<DirectionalIgnoreModel>(Encoding.UTF8.GetBytes("{\"Unknown\":1,\"last\":2}"), ignoreCase)!.Last);
+        }
+
+        [Fact]
+        public void Object_Nameless_EdgeCases()
+        {
+            var nameless = new JsonSerializerOptions() { Nameless = true };
+            var strictNameless = new JsonSerializerOptions() { Nameless = true, ErrorOnTypeMismatch = true };
+
+            Assert.Equal("[]", JsonSerializer.Serialize(new NoMembersModel(), nameless));
+            Assert.Equal("{}", JsonSerializer.Serialize(new NoMembersModel()));
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<DirectionalIgnoreModel>("[1 2]", nameless));
+            Assert.Null(JsonSerializer.Deserialize<DirectionalIgnoreModel>("\"text\"", nameless));
+            _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<DirectionalIgnoreModel>("\"text\"", strictNameless));
+        }
+
+        [Fact]
+        public void Struct_ConstructorWithEveryArgumentMissing()
+        {
+            Assert.Equal(new PointStruct(0, 0), JsonSerializer.Deserialize<PointStruct>("{}"));
+            Assert.Equal(new PointStruct(0, 0), JsonSerializer.Deserialize<PointStruct>("[]", new JsonSerializerOptions() { Nameless = true }));
+            Assert.Equal(new PointStruct(3, 4), JsonSerializer.Deserialize<PointStruct>("{\"X\":3,\"Y\":4}"));
+        }
+
+        [Fact]
+        public void DictionaryInterfaces_EveryKeyKind()
+        {
+            AssertDictionaryKinds(new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc), new DateTime(2026, 1, 2, 3, 4, 5, 500, DateTimeKind.Utc));
+            AssertDictionaryKinds(new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(2)), new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero));
+            AssertDictionaryKinds(new DateOnly(2026, 1, 2), new DateOnly(1, 1, 1));
+            AssertDictionaryKinds(new TimeOnly(3, 4, 5), new TimeOnly(23, 59));
+            AssertDictionaryKinds(true, false);
+            AssertDictionaryKinds(Guid.Parse("11111111-2222-3333-4444-555555555555"), Guid.Empty);
+            AssertDictionaryKinds(DayOfWeek.Monday, DayOfWeek.Friday);
+            AssertDictionaryKinds("a", "b");
+            //an object key can't be a property name, it's written as key-value pairs
+            AssertDictionaryKinds(new SimpleModel() { Value1 = 1, Value2 = "a" }, new SimpleModel() { Value1 = 2, Value2 = "b" });
+        }
+
+        private static void AssertDictionaryKinds<TKey>(TKey key1, TKey key2) where TKey : notnull
+        {
+            var strict = new JsonSerializerOptions() { ErrorOnTypeMismatch = true };
+            var source = new Dictionary<TKey, int>() { { key1, 1 }, { key2, 2 } };
+
+            AssertSame(JsonSerializer.Deserialize<IDictionary<TKey, int>>(JsonSerializer.Serialize<IDictionary<TKey, int>>(source)));
+            AssertSame(JsonSerializer.Deserialize<IReadOnlyDictionary<TKey, int>>(JsonSerializer.Serialize<IReadOnlyDictionary<TKey, int>>(source)));
+            AssertSame(JsonSerializer.Deserialize<System.Collections.Concurrent.ConcurrentDictionary<TKey, int>>(JsonSerializer.Serialize(new System.Collections.Concurrent.ConcurrentDictionary<TKey, int>(source))));
+
+            Assert.Empty(JsonSerializer.Deserialize<IDictionary<TKey, int>>(JsonSerializer.Serialize<IDictionary<TKey, int>>(new Dictionary<TKey, int>()))!);
+            Assert.Empty(JsonSerializer.Deserialize<IReadOnlyDictionary<TKey, int>>(JsonSerializer.Serialize<IReadOnlyDictionary<TKey, int>>(new Dictionary<TKey, int>()))!);
+            Assert.Empty(JsonSerializer.Deserialize<System.Collections.Concurrent.ConcurrentDictionary<TKey, int>>(JsonSerializer.Serialize(new System.Collections.Concurrent.ConcurrentDictionary<TKey, int>()))!);
+
+            foreach (var token in new[] { "5", "\"x\"", "true" })
+            {
+                Assert.Null(JsonSerializer.Deserialize<IDictionary<TKey, int>>(token));
+                Assert.Null(JsonSerializer.Deserialize<IReadOnlyDictionary<TKey, int>>(token));
+                Assert.Null(JsonSerializer.Deserialize<System.Collections.Concurrent.ConcurrentDictionary<TKey, int>>(token));
+                _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<IDictionary<TKey, int>>(token, strict));
+                _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<IReadOnlyDictionary<TKey, int>>(token, strict));
+                _ = Assert.Throws<FormatException>(() => JsonSerializer.Deserialize<System.Collections.Concurrent.ConcurrentDictionary<TKey, int>>(token, strict));
+            }
+
+            void AssertSame(IEnumerable<KeyValuePair<TKey, int>>? result)
+            {
+                Assert.NotNull(result);
+                var values = result.ToDictionary(x => JsonSerializer.Serialize(x.Key), x => x.Value);
+                Assert.Equal(2, values.Count);
+                Assert.Equal(1, values[JsonSerializer.Serialize(key1)]);
+                Assert.Equal(2, values[JsonSerializer.Serialize(key2)]);
+            }
         }
     }
 }

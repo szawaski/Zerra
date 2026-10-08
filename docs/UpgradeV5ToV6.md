@@ -445,6 +445,7 @@ A solution that relies heavily on a removed helper can keep it. Examples are `Co
 | `EnumName.Parse`, `EnumName.TryParse`, `ToEnum`, `ToEnumNullable` | Unchanged API, but names are now matched case-sensitively; v5 ignored case. `TryParse` returns false and `Parse` throws for a name that differs only in case. Values the application wrote itself with `EnumName()` still match. Check calls that parse text from outside the application (provider data, user input, files), and match case-insensitively there yourself where needed |
 | `StreamExtensions` (`stream.ToArray()`, `stream.ToArrayAsync()`, ...) | Moved from `namespace System.IO` to `Zerra.IO`. Add `using Zerra.IO;`. Without it, `ToArrayAsync()` on a `Stream` binds to `System.Linq.AsyncEnumerable` and fails with CS0411 |
 | `SymmetricConfig`, `SymmetricEncryptor` with `AESwithShift` for stored data | Still available for data at rest. Keep `AESwithShift` for existing data (suppress CS0612); use `AESwithPrefix` for data that only lives in memory |
+| `AsynmmetricEncryptor` | Renamed `AsymmetricEncryptor`, fixing the spelling |
 
 ### Reflection
 
@@ -477,7 +478,8 @@ Other changes:
 - **`Mapper.Copy` and `Map`** create a target only through a public parameterless constructor or one whose parameters match public members. Otherwise they throw `Cannot create instance of X`, including for a member of the object being copied; v5 left such members uncopied instead. Register a converter for the type with `Mapper.AddConverter(typeof(X), typeof(X), () => new XConverter())`, deriving from `MapConverter<X, X>`. To keep v5's behaviour, return `null` from `Map`. Returning the source instance copies it by sharing, which only suits immutable types and changes behaviour for code that expects such members to come back empty.
 - **The JSON serializer creates objects the same way**: through a public parameterless constructor or a public one whose parameters match members. A type with get-only properties and an `internal` constructor deserializes with those properties left null, without an error. Make that constructor public.
 - `Mapper.Copy(object source, Type sourceType)` replaces generic `Copy<T>` calls made through reflection.
-- **JSON output.** Numbers and dates no longer depend on the machine's culture. Dictionaries with enum keys are written as objects (`{"Friday":1}`); the old array form is still read. `IEnumerable<T>`, `IReadOnlyCollection<T>`, `IEnumerable`, and `ICollection` members deserialize as a `List`, so casts to an array must change.
+- **JSON output.** Numbers and dates no longer depend on the machine's culture. Dictionaries with enum keys are written as objects (`{"Friday":1}`); the old array form is still read. `IEnumerable<T>`, `IReadOnlyCollection<T>`, `IEnumerable`, and `ICollection` members deserialize as a `List`, so casts to an array must change. Reading is stricter: anything after the JSON value other than whitespace throws, values of the right kind with invalid content (an unparseable date, `1.5` for an `int`) throw whatever the options, `true`/`false` no longer read into numbers or numbers into `bool`, and an object read into a `string` gives `null` instead of `""`. With `ErrorOnTypeMismatch`, `null` for a non-nullable value type throws.
+- **Byte reading.** `ZerraByteSerializer` throws `EndOfStreamException` on bytes after the value.
 
 ### Remote Exceptions
 

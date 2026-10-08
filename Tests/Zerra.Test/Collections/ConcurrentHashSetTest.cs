@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
 using Xunit;
 using Zerra.Collections;
 
@@ -251,6 +252,27 @@ namespace Zerra.Test.Collections
 
             await Task.WhenAll(tasks);
             Assert.Equal(20, set.Count);
+        }
+
+        [Fact]
+        public void CopyTo_Empty()
+        {
+            var set = new ConcurrentHashSet<int>();
+            set.CopyTo([], 0);
+            set.CopyTo([], 0, 0);
+        }
+
+        [Fact]
+        public void EnsureCapacity_TryGetValue_Add_Enumerate()
+        {
+            var set = new ConcurrentHashSet<string>();
+            Assert.True(set.EnsureCapacity(10) >= 10);
+            ((ICollection<string>)set).Add("Value");
+            Assert.Single(set);
+            Assert.True(set.TryGetValue("Value", out var actual));
+            Assert.Equal("Value", actual);
+            Assert.False(set.TryGetValue("other", out _));
+            Assert.Equal(["Value"], ((IEnumerable)set).Cast<string>());
         }
     }
 }

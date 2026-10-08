@@ -41,12 +41,12 @@ One `NormalJsonModel` from `Tests/Zerra.Test` (41 properties: strings, decimals,
 
 | Model | Serialize to string | Serialize to bytes | Deserialize from string | Deserialize from bytes |
 |---|---:|---:|---:|---:|
-| Small: one object with an int and a string (40–80 ns) | −38% | −35% | −22% | −22% |
-| TypesBasic: every core type, nullable and null, enums, a child object | −7% | −11% | −19% | −17% |
-| TypesList: a `List<T>` of every core type | −9% | −16% | −42% | −44% |
-| Orders100: a list of 100 orders with a Guid, strings, a date, a decimal, an int, and a bool | −17% | −31% | −13% | −15% |
-| SimpleArray1000: an array of 1,000 objects with an int and a string | −15% | −23% | −24% | −23% |
-| Dictionary100: a `Dictionary<string, string>` of 100 entries | −7% | −11% | −2% | −8% |
+| Small: one object with an int and a string (40–80 ns) | −39% | −37% | −24% | −12% |
+| TypesBasic: every core type, nullable and null, enums, a child object | −10% | −12% | −17% | −19% |
+| TypesList: a `List<T>` of every core type | −14% | −14% | −42% | −44% |
+| Orders100: a list of 100 orders with a Guid, strings, a date, a decimal, an int, and a bool | −18% | −31% | −15% | −17% |
+| SimpleArray1000: an array of 1,000 objects with an int and a string | −16% | −24% | −21% | −22% |
+| Dictionary100: a `Dictionary<string, string>` of 100 entries | −5% | −16% | −4% | −7% |
 
 ## Mapper
 

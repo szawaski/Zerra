@@ -20,15 +20,15 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.String:
                     if (reader.UseBytes)
                     {
-                        if (!Utf8Helper.TryParse(reader.ValueBytes, out DateOnly parsed) && state.ErrorOnTypeMismatch)
-                            ThrowCannotConvert(ref reader);
+                        if (!Utf8Helper.TryParse(reader.ValueBytes, out DateOnly parsed))
+                            ThrowInvalidValue(ref reader);
                         value = parsed;
                         return true;
                     }
                     else
                     {
-                        if (!Utf8Helper.TryParse(reader.ValueChars, out DateOnly parsed) && state.ErrorOnTypeMismatch)
-                            ThrowCannotConvert(ref reader);
+                        if (!Utf8Helper.TryParse(reader.ValueChars, out DateOnly parsed))
+                            ThrowInvalidValue(ref reader);
                         value = parsed;
                         return true;
                     }

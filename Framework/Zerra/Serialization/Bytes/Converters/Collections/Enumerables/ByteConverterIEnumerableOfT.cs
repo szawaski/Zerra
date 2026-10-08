@@ -20,7 +20,37 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
         }
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TEnumerable? value)
-            => throw new NotSupportedException($"Cannot deserialize {TypeDetail.Type.Name} because no interface to populate the collection");
+        {
+            if (!state.Current.DrainBytes)
+                throw new NotSupportedException($"Cannot deserialize {TypeDetail.Type.Name} because no interface to populate the collection");
+
+            value = default;
+            int length;
+            if (!state.Current.HasCreated)
+            {
+                if (!reader.TryRead(out length, out state.SizeNeeded))
+                    return false;
+                if (length == 0)
+                    return true;
+            }
+            else
+            {
+                length = state.Current.EnumerableLength!.Value;
+            }
+
+            var index = state.Current.EnumeratorIndex;
+            for (; index < length; index++)
+            {
+                if (!converter.TryReadToValue(ref reader, ref state, out _))
+                {
+                    state.Current.HasCreated = true;
+                    state.Current.EnumerableLength = length;
+                    state.Current.EnumeratorIndex = index;
+                    return false;
+                }
+            }
+            return true;
+        }
 
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TEnumerable value)
         {

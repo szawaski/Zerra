@@ -20,6 +20,24 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out List<TValue>? value)
         {
+            if (state.Current.DrainBytes)
+            {
+                value = default;
+                if (!state.Current.EnumerableLength.HasValue)
+                {
+                    if (!reader.TryRead(out state.Current.EnumerableLength, out state.SizeNeeded))
+                        return false;
+                }
+
+                var length = state.Current.EnumerableLength!.Value;
+                for (; state.Current.EnumeratorIndex < length; state.Current.EnumeratorIndex++)
+                {
+                    if (!converter.TryReadToValue(ref reader, ref state, out _))
+                        return false;
+                }
+                return true;
+            }
+
             if (!state.Current.EnumerableLength.HasValue)
             {
                 if (!reader.TryRead(out state.Current.EnumerableLength, out state.SizeNeeded))
@@ -28,19 +46,9 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
                     return false;
                 }
 
-                if (!state.Current.DrainBytes)
-                {
-                    value = new List<TValue>(state.Current.EnumerableLength!.Value);
-                    if (state.Current.EnumerableLength!.Value == 0)
-                        return true;
-                }
-                else
-                {
-                    value = default;
-                    if (state.Current.EnumerableLength!.Value == 0)
-                        return true;
-                    value = new List<TValue>(state.Current.EnumerableLength!.Value);
-                }
+                value = new List<TValue>(state.Current.EnumerableLength!.Value);
+                if (state.Current.EnumerableLength!.Value == 0)
+                    return true;
             }
             else
             {

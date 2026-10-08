@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
 using Xunit;
 using Zerra.Collections;
 
@@ -303,6 +304,53 @@ namespace Zerra.Test.Collections
             await Task.WhenAll(tasks);
             Assert.Equal(110, set.Count);
             Assert.Equal(10, readerCount);
+        }
+
+        [Fact]
+        public void CopyTo_Empty()
+        {
+            using var set = new ConcurrentReadWriteHashSet<int>();
+            set.CopyTo([], 0);
+            set.CopyTo([], 0, 0);
+        }
+
+        [Fact]
+        public async Task ReleasesLockOnException()
+        {
+            using var set = new ConcurrentReadWriteHashSet<int>();
+            _ = set.Add(1);
+
+            _ = Assert.Throws<InvalidOperationException>(() => set.RemoveWhere(_ => throw new InvalidOperationException()));
+            await AssertCompletes(() => set.Add(2));
+
+            _ = Assert.Throws<InvalidOperationException>(() => set.UnionWith(ThrowingItems()));
+            await AssertCompletes(() => set.Add(3));
+
+            _ = Assert.ThrowsAny<ArgumentException>(() => set.CopyTo([], 0, 1));
+            await AssertCompletes(() => set.Add(4));
+        }
+
+        private static IEnumerable<int> ThrowingItems()
+        {
+            yield return 100;
+            throw new InvalidOperationException();
+        }
+
+        //a leaked lock blocks writers on other threads forever
+        private static Task AssertCompletes(Action action)
+            => Task.Run(action).WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        [Fact]
+        public void EnsureCapacity_TryGetValue_Add_Enumerate()
+        {
+            var set = new ConcurrentReadWriteHashSet<string>();
+            Assert.True(set.EnsureCapacity(10) >= 10);
+            ((ICollection<string>)set).Add("Value");
+            Assert.Single(set);
+            Assert.True(set.TryGetValue("Value", out var actual));
+            Assert.Equal("Value", actual);
+            Assert.False(set.TryGetValue("other", out _));
+            Assert.Equal(["Value"], ((IEnumerable)set).Cast<string>());
         }
     }
 }

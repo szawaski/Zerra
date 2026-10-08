@@ -20,19 +20,19 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.String:
                     if (reader.UseBytes)
                     {
-                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out TimeSpan parsed, out var consumed) || reader.ValueBytes.Length != consumed) && state.ErrorOnTypeMismatch)
-                            ThrowCannotConvert(ref reader);
+                        if (!Utf8Parser.TryParse(reader.ValueBytes, out TimeSpan parsed, out var consumed) || reader.ValueBytes.Length != consumed)
+                            ThrowInvalidValue(ref reader);
                         value = parsed;
                         return true;
                     }
                     else
                     {
 #if NETSTANDARD2_0
-                        if (!TimeSpan.TryParse(reader.ValueChars.ToString(), CultureInfo.InvariantCulture, out TimeSpan parsed) && state.ErrorOnTypeMismatch)
+                        if (!TimeSpan.TryParse(reader.ValueChars.ToString(), CultureInfo.InvariantCulture, out TimeSpan parsed))
 #else
-                        if (!TimeSpan.TryParseExact(reader.ValueChars, "c", CultureInfo.InvariantCulture, out TimeSpan parsed) && !TimeSpan.TryParse(reader.ValueChars, CultureInfo.InvariantCulture, out parsed) && state.ErrorOnTypeMismatch)
+                        if (!TimeSpan.TryParseExact(reader.ValueChars, "c", CultureInfo.InvariantCulture, out TimeSpan parsed) && !TimeSpan.TryParse(reader.ValueChars, CultureInfo.InvariantCulture, out parsed))
 #endif
-                            ThrowCannotConvert(ref reader);
+                            ThrowInvalidValue(ref reader);
                         value = parsed;
                         return true;
                     }

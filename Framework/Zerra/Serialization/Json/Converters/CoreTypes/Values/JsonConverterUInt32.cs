@@ -20,8 +20,8 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.Number:
                     if (reader.UseBytes)
                     {
-                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out value, out var consumed) || consumed != reader.ValueBytes.Length) && state.ErrorOnTypeMismatch)
-                            ThrowCannotConvert(ref reader);
+                        if (!Utf8Parser.TryParse(reader.ValueBytes, out value, out var consumed) || consumed != reader.ValueBytes.Length)
+                            ThrowInvalidValue(ref reader);
                         return true;
                     }
                     else
@@ -45,28 +45,38 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             }
                         }
 #if NETSTANDARD2_0
-                        if (!UInt32.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value) && state.ErrorOnTypeMismatch)
+                        if (!UInt32.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value))
 #else
-                        if (!UInt32.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value) && state.ErrorOnTypeMismatch)
+                        if (!UInt32.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value))
 #endif
-                            ThrowCannotConvert(ref reader);
+                            ThrowInvalidValue(ref reader);
                         return true;
                     }
                 case JsonToken.String:
                     if (reader.UseBytes)
                     {
-                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out value, out var consumed) || reader.ValueBytes.Length != consumed) && state.ErrorOnTypeMismatch)
-                            ThrowCannotConvert(ref reader);
+                        if (!Utf8Parser.TryParse(reader.ValueBytes, out value, out var consumed) || reader.ValueBytes.Length != consumed)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                ThrowCannotConvert(ref reader);
+                            value = default;
+                            return true;
+                        }
                         return true;
                     }
                     else
                     {
 #if NETSTANDARD2_0
-                        if (!UInt32.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value) && state.ErrorOnTypeMismatch)
+                        if (!UInt32.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value))
 #else
-                        if (!UInt32.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value) && state.ErrorOnTypeMismatch)
+                        if (!UInt32.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out value))
 #endif
-                            ThrowCannotConvert(ref reader);
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                ThrowCannotConvert(ref reader);
+                            value = default;
+                            return true;
+                        }
                         return true;
                     }
                 case JsonToken.Null:
@@ -75,10 +85,14 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     value = default;
                     return true;
                 case JsonToken.False:
-                    value = 0U;
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = default;
                     return true;
                 case JsonToken.True:
-                    value = 1U;
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = default;
                     return true;
                 case JsonToken.ObjectStart:
                     if (state.ErrorOnTypeMismatch)

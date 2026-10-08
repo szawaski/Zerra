@@ -99,9 +99,6 @@ namespace Zerra.Collections
         /// <exception cref="ArgumentOutOfRangeException">Thrown when arrayIndex is out of range.</exception>
         public void CopyTo(T[] array, int arrayIndex)
         {
-            if (arrayIndex < 0 || arrayIndex > array.Length - 1)
-                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
-
             lock (locker)
             {
                 hashSet.CopyTo(array, arrayIndex);
@@ -117,12 +114,6 @@ namespace Zerra.Collections
         /// <exception cref="ArgumentOutOfRangeException">Thrown when arrayIndex or count is out of range.</exception>
         public void CopyTo(T[] array, int arrayIndex, int count)
         {
-            if (arrayIndex < 0 || arrayIndex > array.Length - 1)
-                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
-
-            if (count < 0 || arrayIndex + count > array.Length)
-                throw new ArgumentOutOfRangeException(nameof(count));
-
             lock (locker)
             {
                 hashSet.CopyTo(array, arrayIndex, count);
@@ -315,12 +306,7 @@ namespace Zerra.Collections
         {
             lock (locker)
             {
-                var result = hashSet.TryGetValue(equalValue, out var tryActualValue);
-                if (result)
-                    actualValue = tryActualValue;
-                else
-                    actualValue = default;
-                return result;
+                return hashSet.TryGetValue(equalValue, out actualValue);
             }
         }
 #endif

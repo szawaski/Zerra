@@ -267,5 +267,27 @@ namespace Zerra.Test.CQRS.Network
             Assert.NotNull(content);
             _ = Assert.IsType<WriteStreamContent>(content);
         }
+
+        [Fact]
+        public async Task CopyTo_WritesThroughEitherDelegate()
+        {
+            var asyncContent = new WriteStreamContent(async stream => await stream.WriteAsync(new byte[] { 1, 2 }));
+            var syncContent = new WriteStreamContent(stream => stream.Write([3, 4]));
+
+            using var asyncTarget = new MemoryStream();
+            await asyncContent.CopyToAsync(asyncTarget, TestContext.Current.CancellationToken);
+            Assert.Equal([1, 2], asyncTarget.ToArray());
+
+            using var syncTarget = new MemoryStream();
+            await syncContent.CopyToAsync(syncTarget, TestContext.Current.CancellationToken);
+            Assert.Equal([3, 4], syncTarget.ToArray());
+
+            using var syncCopy = new MemoryStream();
+            syncContent.CopyTo(syncCopy, null, TestContext.Current.CancellationToken);
+            Assert.Equal([3, 4], syncCopy.ToArray());
+
+            //an async delegate isn't run synchronously
+            _ = Assert.Throws<NotSupportedException>(() => asyncContent.CopyTo(new MemoryStream(), null, TestContext.Current.CancellationToken));
+        }
     }
 }

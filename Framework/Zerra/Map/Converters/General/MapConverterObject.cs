@@ -32,6 +32,7 @@ namespace Zerra.Map
         private Dictionary<string, MapConverterObjectMember>? membersByName = null!;
         private bool collectValues;
         private ConstructorDetail<TTarget>? parameterConstructor = null;
+        private object?[] parameterDefaults = null!;
 
         protected override sealed void Setup()
         {
@@ -93,6 +94,8 @@ namespace Zerra.Map
                     break;
                 }
                 collectValues = parameterConstructor is not null;
+                if (parameterConstructor is not null)
+                    parameterDefaults = parameterConstructor.Parameters.Select(x => x.Type.IsValueType && !x.TypeDetail.IsNullable ? x.TypeDetail.CreatorBoxed?.Invoke() : null).ToArray();
             }
         }
 
@@ -128,25 +131,25 @@ namespace Zerra.Map
 
             if (collectValues)
             {
-                var args = new object?[parameterConstructor!.Parameters.Count];
+                var args = (object?[])parameterDefaults.Clone();
                 for (var i = 0; i < args.Length; i++)
                 {
 #if NETSTANDARD2_0
-                    if (collectedValues!.TryGetValue(parameterConstructor.Parameters[i].Name!, out var parameter))
+                    if (collectedValues!.TryGetValue(parameterConstructor!.Parameters[i].Name!, out var parameter))
                     {
-                        collectedValues.Remove(parameterConstructor.Parameters[i].Name!);
+                        collectedValues.Remove(parameterConstructor!.Parameters[i].Name!);
                         args[i] = parameter;
                     }
 #else
-                    if (collectedValues!.Remove(parameterConstructor.Parameters[i].Name!, out var parameter))
+                    if (collectedValues!.Remove(parameterConstructor!.Parameters[i].Name!, out var parameter))
                         args[i] = parameter;
 #endif
                 }
 
                 if (targetTypeDetail.Type.IsValueType)
-                    target = (TTarget?)parameterConstructor.CreatorBoxed(args);
+                    target = (TTarget?)parameterConstructor!.CreatorBoxed(args);
                 else
-                    target = parameterConstructor.Creator(args);
+                    target = parameterConstructor!.Creator(args);
 
                 foreach (var remaining in collectedValues!)
                 {

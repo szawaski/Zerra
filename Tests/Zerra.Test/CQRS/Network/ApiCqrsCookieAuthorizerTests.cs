@@ -45,6 +45,54 @@ namespace Zerra.Test.CQRS.Network
             _ = Assert.Single(server.ReceivedBodies);
         }
 
+        [Fact]
+        public void Constructor_Validates()
+        {
+            _ = Assert.Throws<ArgumentException>(() => new ApiCqrsCookieAuthorizer(new ZerraByteSerializer(), "http://localhost/login", loginBody, "application/json"));
+
+            //without a scheme the endpoint is http
+            var authorizer = new ApiCqrsCookieAuthorizer(new ZerraJsonSerializer(), "localhost:9999/login", loginBody, "application/json");
+            _ = Assert.Throws<NotImplementedException>(() => authorizer.Authorize(new Dictionary<string, List<string?>>()));
+        }
+
+        [Fact]
+        public void CookiesFromString_KeepsEqualsAndSpacesInValues()
+        {
+            var cookies = ApiCqrsCookieAuthorizer.CookiesFromString("token=a=b; name=two words;  last=x");
+            Assert.Equal("a=b", cookies["token"]);
+            Assert.Equal("two words", cookies["name"]);
+            Assert.Equal("x", cookies["last"]);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task GetAuthorizationHeaders_Sync_LogsInAndJoinsCookies()
+        {
+            using var server = new FakeLoginServer(200, "session=abc; Path=/", "theme=dark; Path=/");
+            var authorizer = new TestCookieAuthorizer(server.Url);
+
+            var headers = await Task.Run(() => authorizer.GetAuthorizationHeaders(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+            var cookie = Assert.Single(headers["Cookie"]);
+            Assert.Contains("session=abc", cookie);
+            Assert.Contains("; ", cookie);
+            Assert.Contains("theme=dark", cookie);
+
+            var asyncHeaders = await authorizer.GetAuthorizationHeadersAsync(TestContext.Current.CancellationToken);
+            Assert.Equal(headers["Cookie"], asyncHeaders["Cookie"]);
+            _ = Assert.Single(server.ReceivedBodies);
+            Assert.Equal(loginBody, server.ReceivedBodies[0]);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Login_Failure_Throws()
+        {
+            using var server = new FakeLoginServer(401);
+            var authorizer = new TestCookieAuthorizer(server.Url);
+
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => authorizer.Login(TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => Task.Run(() => authorizer.GetAuthorizationHeaders(TestContext.Current.CancellationToken), TestContext.Current.CancellationToken));
+            Assert.Null(authorizer.Cookies);
+        }
+
         private sealed class TestCookieAuthorizer : ApiCqrsCookieAuthorizer
         {
             public Dictionary<string, string>? ReceivedCookies { get; private set; }
@@ -62,8 +110,13 @@ namespace Zerra.Test.CQRS.Network
             public List<string> ReceivedBodies { get; } = new();
             public string Url { get; }
 
-            public FakeLoginServer()
+            private readonly int statusCode;
+            private readonly string[] setCookies;
+
+            public FakeLoginServer(int statusCode = 200, params string[] setCookies)
             {
+                this.statusCode = statusCode;
+                this.setCookies = setCookies.Length > 0 ? setCookies : ["session=abc; Path=/"];
                 int port;
                 using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
                 {
@@ -88,8 +141,9 @@ namespace Zerra.Test.CQRS.Network
                         using (var reader = new StreamReader(context.Request.InputStream))
                             ReceivedBodies.Add(await reader.ReadToEndAsync());
 
-                        context.Response.StatusCode = 200;
-                        context.Response.AppendHeader("Set-Cookie", "session=abc; Path=/");
+                        context.Response.StatusCode = statusCode;
+                        foreach (var setCookie in setCookies)
+                            context.Response.AppendHeader("Set-Cookie", setCookie);
                         context.Response.ContentLength64 = 0;
                         context.Response.Close();
                     }

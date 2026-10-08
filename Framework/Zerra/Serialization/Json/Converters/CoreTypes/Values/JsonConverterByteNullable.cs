@@ -20,8 +20,8 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.Number:
                     if (reader.UseBytes)
                     {
-                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out byte parsed, out var consumed) || consumed != reader.ValueBytes.Length) && state.ErrorOnTypeMismatch)
-                            ThrowCannotConvert(ref reader);
+                        if (!Utf8Parser.TryParse(reader.ValueBytes, out byte parsed, out var consumed) || consumed != reader.ValueBytes.Length)
+                            ThrowInvalidValue(ref reader);
                         value = parsed;
                         return true;
                     }
@@ -46,11 +46,11 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             }
                         }
 #if NETSTANDARD2_0
-                        if (!Byte.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out byte parsed) && state.ErrorOnTypeMismatch)
+                        if (!Byte.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out byte parsed))
 #else
-                        if (!Byte.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out byte parsed) && state.ErrorOnTypeMismatch)
+                        if (!Byte.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out byte parsed))
 #endif
-                            ThrowCannotConvert(ref reader);
+                            ThrowInvalidValue(ref reader);
                         value = parsed;
                         return true;
                     }
@@ -59,11 +59,18 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     {
                         if (reader.ValueBytes.Length == 0)
                         {
+                            if (state.ErrorOnTypeMismatch)
+                                ThrowCannotConvert(ref reader);
                             value = null;
                             return true;
                         }
-                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out byte parsed, out var consumed) || reader.ValueBytes.Length != consumed) && state.ErrorOnTypeMismatch)
-                            ThrowCannotConvert(ref reader);
+                        if (!Utf8Parser.TryParse(reader.ValueBytes, out byte parsed, out var consumed) || reader.ValueBytes.Length != consumed)
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                ThrowCannotConvert(ref reader);
+                            value = default;
+                            return true;
+                        }
                         value = parsed;
                         return true;
                     }
@@ -71,15 +78,22 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     {
                         if (reader.ValueChars.Length == 0)
                         {
+                            if (state.ErrorOnTypeMismatch)
+                                ThrowCannotConvert(ref reader);
                             value = null;
                             return true;
                         }
 #if NETSTANDARD2_0
-                        if (!Byte.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out byte parsed) && state.ErrorOnTypeMismatch)
+                        if (!Byte.TryParse(reader.ValueChars.ToString(), NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out byte parsed))
 #else
-                        if (!Byte.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out byte parsed) && state.ErrorOnTypeMismatch)
+                        if (!Byte.TryParse(reader.ValueChars, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out byte parsed))
 #endif
-                            ThrowCannotConvert(ref reader);
+                        {
+                            if (state.ErrorOnTypeMismatch)
+                                ThrowCannotConvert(ref reader);
+                            value = default;
+                            return true;
+                        }
                         value = parsed;
                         return true;
                     }
@@ -87,10 +101,14 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     value = null;
                     return true;
                 case JsonToken.False:
-                    value = (byte)0;
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = default;
                     return true;
                 case JsonToken.True:
-                    value = (byte)1;
+                    if (state.ErrorOnTypeMismatch)
+                        ThrowCannotConvert(ref reader);
+                    value = default;
                     return true;
                 case JsonToken.ObjectStart:
                     if (state.ErrorOnTypeMismatch)

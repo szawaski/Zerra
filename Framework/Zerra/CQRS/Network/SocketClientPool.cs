@@ -15,8 +15,8 @@ namespace Zerra.CQRS.Network
 
         public static readonly SocketClientPool Shared = new();
 
-        private readonly TimeSpan pooledConnectionIdleLifetime = TimeSpan.FromMinutes(10);
-        private readonly TimeSpan idleLifetimeTimeoutCheckInterval = TimeSpan.FromMinutes(2);
+        private readonly TimeSpan pooledConnectionIdleLifetime;
+        private readonly TimeSpan idleLifetimeTimeoutCheckInterval;
 
         private int maxConnectionsPerHost = Environment.ProcessorCount * 16;
         public int MaxConnectionsPerHost
@@ -31,8 +31,11 @@ namespace Zerra.CQRS.Network
         }
 
         private readonly CancellationTokenSource canceller;
-        public SocketClientPool()
+        public SocketClientPool() : this(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(2)) { }
+        internal SocketClientPool(TimeSpan pooledConnectionIdleLifetime, TimeSpan idleLifetimeTimeoutCheckInterval)
         {
+            this.pooledConnectionIdleLifetime = pooledConnectionIdleLifetime;
+            this.idleLifetimeTimeoutCheckInterval = idleLifetimeTimeoutCheckInterval;
             this.canceller = new();
             _ = LifetimeTimeout(canceller.Token);
         }

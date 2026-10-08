@@ -35,11 +35,8 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 valueConverter = (JsonConverter<TValue>)JsonConverterFactory.Get(valueDetail, $"{thisName}_Value", null, ValueSetter);
             }
 
-            if (!keyDetail.CoreType.HasValue)
-            {
-                var keyValuePairTypeDetail = TypeAnalyzer<KeyValuePair<TKey, TValue>>.GetTypeDetail();
-                converter = (JsonConverter<KeyValuePair<TKey, TValue>>)JsonConverterFactory.Get(keyValuePairTypeDetail, nameof(JsonConverterDictionaryT<TKey, TValue>), null, null);
-            }
+            var keyValuePairTypeDetail = TypeAnalyzer<KeyValuePair<TKey, TValue>>.GetTypeDetail();
+            converter = (JsonConverter<KeyValuePair<TKey, TValue>>)JsonConverterFactory.Get(keyValuePairTypeDetail, nameof(JsonConverterDictionaryT<TKey, TValue>), null, null);
         }
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out Dictionary<TKey, TValue>? value)
@@ -280,9 +277,6 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     enumerator = (Dictionary<TKey, TValue>.Enumerator)state.Current.Object!;
                 }
 
-#if !NETSTANDARD2_0
-                Span<char> dateChars = typeof(TKey) == typeof(DateTime) || typeof(TKey) == typeof(DateTimeOffset) ? stackalloc char[33] : default;
-#endif
                 while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
                 {
                     var current = enumerator.Current;
@@ -291,24 +285,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                     if (typeof(TKey) == typeof(string))
                         name = (string)(object)currentKey;
                     else if (typeof(TKey) == typeof(DateTime) || typeof(TKey) == typeof(DateTimeOffset))
-                    {
-#if NETSTANDARD2_0
-                        name = typeof(TKey) == typeof(DateTime) ? ((DateTime)(object)currentKey).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture) : ((DateTimeOffset)(object)currentKey).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture);
-#else
-                        int dateLength;
-                        if (typeof(TKey) == typeof(DateTime))
-                            _ = ((DateTime)(object)currentKey).TryFormat(dateChars, out dateLength, "O", CultureInfo.InvariantCulture);
-                        else
-                            _ = ((DateTimeOffset)(object)currentKey).TryFormat(dateChars, out dateLength, "O", CultureInfo.InvariantCulture);
-                        var fractionEnd = 27;
-                        while (fractionEnd > 20 && dateChars[fractionEnd - 1] == '0')
-                            fractionEnd--;
-                        if (fractionEnd == 20)
-                            fractionEnd = 19;
-                        dateChars.Slice(27, dateLength - 27).CopyTo(dateChars.Slice(fractionEnd));
-                        name = new string(dateChars.Slice(0, fractionEnd + dateLength - 27));
-#endif
-                    }
+                        name = GetDateKeyName(currentKey);
 #if !NETSTANDARD2_0
                     else if (typeof(TKey) == typeof(DateOnly))
                         name = ((DateOnly)(object)currentKey).ToString("O", CultureInfo.InvariantCulture);
@@ -417,6 +394,28 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 }
                 return true;
             }
+        }
+
+        // Separate method because stackalloc blocks inlining, which slows every dictionary write when it is in TryWriteValue
+        private static string GetDateKeyName(TKey key)
+        {
+#if NETSTANDARD2_0
+            return typeof(TKey) == typeof(DateTime) ? ((DateTime)(object)key).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture) : ((DateTimeOffset)(object)key).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture);
+#else
+            Span<char> dateChars = stackalloc char[33];
+            int dateLength;
+            if (typeof(TKey) == typeof(DateTime))
+                _ = ((DateTime)(object)key).TryFormat(dateChars, out dateLength, "O", CultureInfo.InvariantCulture);
+            else
+                _ = ((DateTimeOffset)(object)key).TryFormat(dateChars, out dateLength, "O", CultureInfo.InvariantCulture);
+            var fractionEnd = 27;
+            while (fractionEnd > 20 && dateChars[fractionEnd - 1] == '0')
+                fractionEnd--;
+            if (fractionEnd == 20)
+                fractionEnd = 19;
+            dateChars.Slice(27, dateLength - 27).CopyTo(dateChars.Slice(fractionEnd));
+            return new string(dateChars.Slice(0, fractionEnd + dateLength - 27));
+#endif
         }
     }
 }

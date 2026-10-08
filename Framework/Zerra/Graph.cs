@@ -403,6 +403,7 @@ namespace Zerra
                 addedMembers ??= new();
                 _ = addedMembers.Add(member);
             }
+            _ = removedMembers?.Remove(member);
 
             signature = null;
         }

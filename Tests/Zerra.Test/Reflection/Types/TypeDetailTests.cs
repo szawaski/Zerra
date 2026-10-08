@@ -396,5 +396,96 @@ namespace Zerra.Test.Reflection.Types
             Assert.False(td.IsIReadOnlyDictionaryGeneric);
             Assert.False(td.IsDictionaryGeneric);
         }
+
+        public class LookupModelA
+        {
+            public LookupModelA() { }
+            public LookupModelA(int a) { }
+            public LookupModelA(string a) { }
+            public LookupModelA(int a, int b) { }
+            public int M(int a) => a;
+            public T M<T>(T a) => a;
+            public int M(int a, int b) => a + b;
+        }
+
+        public class LookupModelB
+        {
+            public LookupModelB() { }
+            public LookupModelB(int a) { }
+            public LookupModelB(int a, int b) { }
+            public int M(int a) => a;
+            public T M<T>(T a) => a;
+        }
+
+        [Fact]
+        public void Lookups_DoNotShareCacheEntries()
+        {
+            var a = typeof(LookupModelA).GetTypeDetail();
+            Assert.Empty(a.GetConstructor().Parameters);
+            Assert.Single(a.GetConstructor([typeof(int)]).Parameters);
+            Assert.Equal(typeof(string), a.GetConstructor([typeof(string)]).Parameters[0].Type);
+            Assert.Equal(2, a.GetConstructor(2).Parameters.Count);
+            Assert.Empty(a.GetMethod("M", 0, 1).GenericArguments);
+            Assert.Single(a.GetMethod("M", 1, 1).GenericArguments);
+            Assert.Equal(2, a.GetMethod("M", 2).Parameters.Count);
+            _ = Assert.Throws<MissingMethodException>(() => a.GetMethod("Missing"));
+            _ = Assert.Throws<MissingMethodException>(() => a.GetConstructor([typeof(double)]));
+            _ = Assert.Throws<InvalidOperationException>(() => a.GetMethod("M", 1));
+
+            var b = typeof(LookupModelB).GetTypeDetail();
+            Assert.Equal(2, b.GetConstructor(2).Parameters.Count);
+            Assert.Single(b.GetConstructor(1).Parameters);
+            Assert.Empty(b.GetConstructor().Parameters);
+            Assert.Single(b.GetMethod("M", 1, 1).GenericArguments);
+            Assert.Empty(b.GetMethod("M", 0, 1).GenericArguments);
+            Assert.Single(b.GetMethod("M", [typeof(int)]).Parameters);
+        }
+
+        [Fact]
+        public void IncompleteTypes()
+        {
+            var list = TypeAnalyzer.GetTypeDetail(typeof(List<>));
+            Assert.True(list.IsListGeneric);
+            Assert.True(list.HasIListGeneric);
+            Assert.True(list.HasIEnumerableGeneric);
+            Assert.True(list.HasIReadOnlyListGeneric);
+            Assert.True(list.HasIList);
+            Assert.True(list.HasICollection);
+            Assert.Equal(typeof(List<>).GetGenericArguments()[0], list.InnerType);
+            Assert.NotNull(list.IEnumerableGenericInnerType);
+            Assert.Empty(list.Constructors);
+            Assert.Null(list.CoreType);
+
+            var enumerable = TypeAnalyzer.GetTypeDetail(typeof(IEnumerable<>));
+            Assert.True(enumerable.IsIEnumerableGeneric);
+            Assert.Equal(enumerable.InnerType, enumerable.IEnumerableGenericInnerType);
+
+            var dictionary = TypeAnalyzer.GetTypeDetail(typeof(Dictionary<,>));
+            Assert.True(dictionary.IsDictionaryGeneric);
+            Assert.True(dictionary.HasIDictionaryGeneric);
+            Assert.True(dictionary.HasIReadOnlyDictionaryGeneric);
+            Assert.True(dictionary.HasIDictionary);
+            Assert.Equal(typeof(KeyValuePair<,>), dictionary.DictionaryInnerType!.GetGenericTypeDefinition());
+            Assert.Equal(2, dictionary.InnerTypes.Count);
+            Assert.Null(dictionary.InnerType);
+
+            var readOnlyDictionary = TypeAnalyzer.GetTypeDetail(typeof(IReadOnlyDictionary<,>));
+            Assert.True(readOnlyDictionary.IsIReadOnlyDictionaryGeneric);
+            Assert.Equal(typeof(KeyValuePair<,>), readOnlyDictionary.DictionaryInnerType!.GetGenericTypeDefinition());
+
+            var set = TypeAnalyzer.GetTypeDetail(typeof(HashSet<>));
+            Assert.True(set.IsHashSetGeneric);
+            Assert.True(set.HasISetGeneric);
+            Assert.True(set.HasIReadOnlySetGeneric);
+
+            var nullable = TypeAnalyzer.GetTypeDetail(typeof(Nullable<>));
+            Assert.True(nullable.IsNullable);
+            Assert.Null(nullable.EnumUnderlyingType);
+
+            var span = TypeAnalyzer.GetTypeDetail(typeof(Span<int>));
+            Assert.False(span.HasIEnumerable);
+            Assert.Equal(typeof(int), span.InnerType);
+            Assert.Empty(span.Constructors);
+        }
     }
 }

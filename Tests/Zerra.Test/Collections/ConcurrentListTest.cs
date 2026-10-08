@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
 using Xunit;
 using Zerra.Collections;
 
@@ -159,7 +160,9 @@ namespace Zerra.Test.Collections
             var list = new ConcurrentList<int>();
             list.Add(1);
             _ = Assert.Throws<ArgumentOutOfRangeException>(() => list.Insert(-1, 2));
-            _ = Assert.Throws<ArgumentOutOfRangeException>(() => list.Insert(1, 2));
+            _ = Assert.Throws<ArgumentOutOfRangeException>(() => list.Insert(2, 2));
+            list.Insert(1, 2);
+            Assert.Equal([1, 2], list);
         }
 
         [Fact]
@@ -228,6 +231,68 @@ namespace Zerra.Test.Collections
 
             await Task.WhenAll(tasks);
             Assert.Equal(20, list.Count);
+        }
+
+        [Fact]
+        public void GenericInterfaces()
+        {
+            var concurrentList = new ConcurrentList<int?>();
+            IList<int?> list = concurrentList;
+
+            list.CopyTo([], 0);
+
+            list.Add(1);
+            list.Insert(1, 3);
+            list.Insert(1, 2);
+            Assert.Equal([1, 2, 3], list);
+            _ = Assert.Throws<ArgumentOutOfRangeException>(() => list.Insert(5, 4));
+            _ = Assert.Throws<ArgumentOutOfRangeException>(() => list[3]);
+            _ = Assert.Throws<ArgumentOutOfRangeException>(() => list[-1] = 0);
+            _ = Assert.Throws<ArgumentOutOfRangeException>(() => list.RemoveAt(3));
+
+            var array = new int?[4];
+            list.CopyTo(array, 1);
+            Assert.Equal([null, 1, 2, 3], array);
+            _ = Assert.ThrowsAny<ArgumentException>(() => list.CopyTo(new int?[2], 0));
+        }
+
+        [Fact]
+        public void NonGenericInterfaces()
+        {
+            var concurrentList = new ConcurrentList<int?>();
+            IList list = concurrentList;
+
+            Assert.Equal(0, list.Add(null));
+            Assert.Equal(1, list.Add(2));
+            Assert.True(list.Contains(null));
+            Assert.False(list.Contains("text"));
+            Assert.Equal(1, list.IndexOf(2));
+            Assert.Equal(-1, list.IndexOf("text"));
+            list.Remove("text");
+            Assert.Equal(2, list.Count);
+
+            _ = Assert.Throws<ArgumentException>(() => list.Add("text"));
+            _ = Assert.Throws<ArgumentException>(() => list[0] = "text");
+            _ = Assert.Throws<ArgumentException>(() => list.Insert(0, "text"));
+
+            list[1] = null;
+            Assert.Null(list[1]);
+            list.Insert(2, 3);
+            list.Remove(null);
+            Assert.Equal([null, 3], list.Cast<int?>());
+
+            var array = new object[2];
+            list.CopyTo(array, 0);
+            Assert.Equal([null, 3], array);
+
+            Assert.False(list.IsFixedSize);
+            Assert.False(list.IsReadOnly);
+            Assert.False(list.IsSynchronized);
+            _ = Assert.Throws<NotSupportedException>(() => list.SyncRoot);
+
+            list.RemoveAt(0);
+            list.Clear();
+            Assert.Empty(list);
         }
     }
 }

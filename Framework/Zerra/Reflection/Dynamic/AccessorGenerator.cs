@@ -102,7 +102,12 @@ namespace Zerra.Reflection.Dynamic
                 return null;
 
             if (!getMethod.IsStatic)
-                il.Emit(OpCodes.Ldarg_0);
+            {
+                if (propertyInfo.ReflectedType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
+            }
 
             if (getMethod.IsFinal || !getMethod.IsVirtual)
                 il.Emit(OpCodes.Call, getMethod);
@@ -164,7 +169,12 @@ namespace Zerra.Reflection.Dynamic
                 return null;
 
             if (!getMethod.IsStatic)
-                il.Emit(OpCodes.Ldarg_0);
+            {
+                if (propertyInfo.ReflectedType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
+            }
 
             if (getMethod.IsFinal || !getMethod.IsVirtual)
                 il.Emit(OpCodes.Call, getMethod);
@@ -269,7 +279,12 @@ namespace Zerra.Reflection.Dynamic
                 return null;
 
             if (!setMethod.IsStatic)
-                il.Emit(OpCodes.Ldarg_0);
+            {
+                if (propertyInfo.ReflectedType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
+            }
 
             il.Emit(OpCodes.Ldarg_1);
             if (setMethod.IsFinal || !setMethod.IsVirtual)
@@ -333,7 +348,12 @@ namespace Zerra.Reflection.Dynamic
                 return null;
 
             if (!setMethod.IsStatic)
-                il.Emit(OpCodes.Ldarg_0);
+            {
+                if (propertyInfo.ReflectedType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
+            }
 
             il.Emit(OpCodes.Ldarg_1);
             if (setMethod.IsFinal || !setMethod.IsVirtual)
@@ -415,7 +435,12 @@ namespace Zerra.Reflection.Dynamic
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
-                il.Emit(OpCodes.Ldarg_0);
+            {
+                if (fieldInfo.ReflectedType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
+            }
 
             if (!fieldInfo.IsStatic)
                 il.Emit(OpCodes.Ldfld, fieldInfo);
@@ -463,7 +488,12 @@ namespace Zerra.Reflection.Dynamic
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
-                il.Emit(OpCodes.Ldarg_0);
+            {
+                if (fieldInfo.ReflectedType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
+            }
 
             if (!fieldInfo.IsStatic)
                 il.Emit(OpCodes.Ldfld, fieldInfo);
@@ -546,7 +576,12 @@ namespace Zerra.Reflection.Dynamic
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
-                il.Emit(OpCodes.Ldarg_0);
+            {
+                if (fieldInfo.ReflectedType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
+            }
 
             il.Emit(OpCodes.Ldarg_1);
             if (!fieldInfo.IsStatic)
@@ -596,7 +631,12 @@ namespace Zerra.Reflection.Dynamic
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
-                il.Emit(OpCodes.Ldarg_0);
+            {
+                if (fieldInfo.ReflectedType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
+            }
 
             il.Emit(OpCodes.Ldarg_1);
             if (!fieldInfo.IsStatic)
@@ -716,7 +756,7 @@ namespace Zerra.Reflection.Dynamic
             var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType.Name == "Void" ? typeof(object) : methodInfo.ReturnType, [methodInfo.ReflectedType, typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod(il, methodInfo, false);
+            var success = GenerateMethod(il, methodInfo, false, true);
             if (!success)
                 return null;
 
@@ -750,7 +790,7 @@ namespace Zerra.Reflection.Dynamic
             var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType.Name == "Void" ? typeof(object) : methodInfo.ReturnType, [methodInfo.ReflectedType, typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
-            var success = GenerateMethod(il, methodInfo, false);
+            var success = GenerateMethod(il, methodInfo, false, true);
             if (!success)
                 return null;
 
@@ -758,7 +798,7 @@ namespace Zerra.Reflection.Dynamic
             return caller;
         }
 
-        private static bool GenerateMethod(ILGenerator il, MethodBase methodBase, bool convertReturn)
+        private static bool GenerateMethod(ILGenerator il, MethodBase methodBase, bool convertReturn, bool typedInstance = false)
         {
             if (methodBase.ContainsGenericParameters)
                 return false;
@@ -773,12 +813,21 @@ namespace Zerra.Reflection.Dynamic
                 if (methodBase.DeclaringType is null)
                     return false;
 
-                il.Emit(OpCodes.Ldarg_0);
-
-                if (methodBase.DeclaringType.IsValueType)
-                    il.Emit(OpCodes.Unbox, methodBase.DeclaringType);
+                if (typedInstance)
+                {
+                    if (methodBase.DeclaringType.IsValueType)
+                        il.Emit(OpCodes.Ldarga_S, (byte)0);
+                    else
+                        il.Emit(OpCodes.Ldarg_0);
+                }
                 else
-                    il.Emit(OpCodes.Castclass, methodBase.DeclaringType);
+                {
+                    il.Emit(OpCodes.Ldarg_0);
+                    if (methodBase.DeclaringType.IsValueType)
+                        il.Emit(OpCodes.Unbox, methodBase.DeclaringType);
+                    else
+                        il.Emit(OpCodes.Castclass, methodBase.DeclaringType);
+                }
             }
 
             if (parameters.Length > 0)

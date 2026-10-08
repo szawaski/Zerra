@@ -67,6 +67,8 @@ namespace Zerra.Test.Reflection.Dynamic
     {
         public int IntProperty { get; set; }
         public string StringProperty { get; set; }
+        public int IntField;
+        public readonly int Sum(int extra) => IntProperty + IntField + extra;
     }
 
     public class TestAccessorVirtualModel

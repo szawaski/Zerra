@@ -791,5 +791,331 @@ namespace Zerra.Test.Linq
             var binaryResult = Assert.IsAssignableFrom<BinaryExpression>(result);
             Assert.IsAssignableFrom<BinaryExpression>(binaryResult.Left);
         }
+
+        public readonly struct Money
+        {
+            public readonly decimal Amount;
+            public Money(decimal amount) => Amount = amount;
+            public static Money operator +(Money a, Money b) => new(a.Amount + b.Amount);
+            public static Money operator -(Money a) => new(-a.Amount);
+            public static bool operator ==(Money a, Money b) => a.Amount == b.Amount;
+            public static bool operator !=(Money a, Money b) => a.Amount != b.Amount;
+            public static explicit operator decimal(Money a) => a.Amount;
+            public override bool Equals(object? obj) => obj is Money m && m.Amount == Amount;
+            public override int GetHashCode() => Amount.GetHashCode();
+        }
+
+        public class Model
+        {
+            public int Int { get; set; }
+            public int? NullableInt { get; set; }
+            public int? NullInt { get; set; }
+            public long Long { get; set; }
+            public bool Flag { get; set; }
+            public string? Text { get; set; }
+            public string? NullText { get; set; }
+            public object? Obj { get; set; }
+            public int[] Array { get; set; } = [];
+            public List<int> List { get; set; } = [];
+            public Model? Child { get; set; }
+            public Money Money { get; set; }
+            public Money? NullableMoney { get; set; }
+            public Settings Options { get; set; } = new();
+        }
+
+        public class Settings
+        {
+            public int Value { get; set; }
+        }
+
+        public class Wrapper
+        {
+            public Model Model { get; set; } = null!;
+            public Model? Other { get; set; }
+            public Model[] Models { get; set; } = [];
+            public bool Flag { get; set; }
+            public int Index { get; set; }
+            public object? Obj { get; set; }
+
+            public static Model Identity(Model model) => model;
+        }
+
+        private static Model CreateModel() => new()
+        {
+            Int = 7,
+            NullableInt = 3,
+            Long = 1L << 40,
+            Flag = true,
+            Text = "text",
+            Obj = "object",
+            Array = [4, 5, 6],
+            List = [1, 5, 9, 12],
+            Child = new() { Int = 11, Child = new() { Int = 13 } },
+            Money = new(2.5m),
+            NullableMoney = new(1.5m)
+        };
+
+        private static void AssertRebinds<T>(Expression<Func<Model, T>> lambda)
+        {
+            var model = CreateModel();
+            var expected = System.Text.Json.JsonSerializer.Serialize(lambda.Compile()(model));
+
+            var parameter = Expression.Parameter(typeof(Model), "y");
+            var rebound = (LambdaExpression)LinqRebinder.RebindExpression(lambda, lambda.Parameters[0], parameter);
+            Assert.Equal(lambda.Body.Type, rebound.Body.Type);
+            Assert.Equal(lambda.Type, rebound.Type);
+            Assert.Equal(expected, System.Text.Json.JsonSerializer.Serialize(rebound.Compile().DynamicInvoke(model)));
+
+            var wrapper = Expression.Parameter(typeof(Wrapper), "w");
+            var wrapped = (LambdaExpression)LinqRebinder.RebindExpression(lambda, lambda.Parameters[0], Expression.Property(wrapper, nameof(Wrapper.Model)));
+            Assert.Equal(wrapper, Assert.Single(wrapped.Parameters));
+            Assert.Equal(expected, System.Text.Json.JsonSerializer.Serialize(wrapped.Compile().DynamicInvoke(new Wrapper() { Model = model })));
+        }
+
+        [Fact]
+        public void RebindCompiles_Arithmetic()
+        {
+            AssertRebinds(x => x.Int + 1);
+            AssertRebinds(x => checked(x.Int + 1));
+            AssertRebinds(x => x.Int - 1);
+            AssertRebinds(x => checked(x.Int - 1));
+            AssertRebinds(x => x.Int * 3);
+            AssertRebinds(x => checked(x.Int * 3));
+            AssertRebinds(x => x.Int / 2);
+            AssertRebinds(x => x.Int % 4);
+            AssertRebinds(x => -x.Int);
+            AssertRebinds(x => checked(-x.Int));
+            AssertRebinds(x => ~x.Int);
+            AssertRebinds(x => x.Int & 3);
+            AssertRebinds(x => x.Int | 8);
+            AssertRebinds(x => x.Int ^ 5);
+            AssertRebinds(x => x.Long << 2);
+            AssertRebinds(x => x.Long >> 3);
+        }
+
+        [Fact]
+        public void RebindCompiles_Logic()
+        {
+            AssertRebinds(x => !x.Flag);
+            AssertRebinds(x => x.Flag && x.Int > 5);
+            AssertRebinds(x => x.Flag || x.Int > 5);
+            AssertRebinds(x => x.Flag & x.Int > 5);
+            AssertRebinds(x => x.Flag ^ x.Int > 5);
+            AssertRebinds(x => x.Int == 7);
+            AssertRebinds(x => x.Int != 7);
+            AssertRebinds(x => x.Int < 7);
+            AssertRebinds(x => x.Int <= 7);
+            AssertRebinds(x => x.Int > 7);
+            AssertRebinds(x => x.Int >= 7);
+            AssertRebinds(x => x.Flag ? x.Int : -1);
+            AssertRebinds(x => x.Child == null);
+        }
+
+        [Fact]
+        public void RebindCompiles_Nullable()
+        {
+            AssertRebinds(x => x.NullableInt + 1);
+            AssertRebinds(x => x.NullInt + 1);
+            AssertRebinds(x => x.NullableInt == 3);
+            AssertRebinds(x => x.NullInt < 3);
+            AssertRebinds(x => x.NullInt ?? -1);
+            AssertRebinds(x => x.NullText ?? x.Text);
+            AssertRebinds(x => (int?)x.Int);
+            AssertRebinds(x => x.NullableInt!.Value);
+            AssertRebinds(x => x.NullableInt.HasValue);
+        }
+
+        [Fact]
+        public void RebindCompiles_UserDefinedOperators()
+        {
+            AssertRebinds(x => (x.Money + x.Money).Amount);
+            AssertRebinds(x => (-x.Money).Amount);
+            AssertRebinds(x => x.Money == x.Money);
+            AssertRebinds(x => x.Money != new Money(1));
+            AssertRebinds(x => (decimal)x.Money);
+            AssertRebinds(x => x.NullableMoney == x.Money);
+            AssertRebinds(x => (x.NullableMoney + x.Money)!.Value.Amount);
+        }
+
+        [Fact]
+        public void RebindCompiles_Conversions()
+        {
+            AssertRebinds(x => (long)x.Int);
+            AssertRebinds(x => checked((byte)x.Int));
+            AssertRebinds(x => (object)x.Int);
+            AssertRebinds(x => x.Obj as string);
+            AssertRebinds(x => x.Obj is string);
+            AssertRebinds(x => (string)x.Obj!);
+        }
+
+        [Fact]
+        public void RebindCompiles_MembersAndCalls()
+        {
+            AssertRebinds(x => x.Child!.Child!.Int);
+            AssertRebinds(x => x.Text!.Length);
+            AssertRebinds(x => x.Text!.ToUpperInvariant());
+            AssertRebinds(x => x.Text!.Substring(1, 2));
+            AssertRebinds(x => string.Concat(x.Text, x.Int));
+            AssertRebinds(x => x.List[2]);
+            AssertRebinds(x => x.Array[1]);
+            AssertRebinds(x => x.Array.Length);
+            AssertRebinds(x => x.List.Count(i => i > x.Int));
+            AssertRebinds(x => x.List.Where(i => i > x.Int).Select(i => i * x.Child!.Int).ToArray());
+            AssertRebinds(x => x.List.AsQueryable().Where(i => i > x.Int).Count());
+            AssertRebinds(x => ((Func<int, int>)(i => i + x.Int))(5));
+        }
+
+        [Fact]
+        public void RebindCompiles_New()
+        {
+            AssertRebinds(x => new { x.Int, x.Text });
+            AssertRebinds(x => new Money(x.Int));
+            AssertRebinds(x => new Model { Int = x.Int, Text = x.Text, List = { x.Int, 2 }, Options = { Value = x.Int } }.Options.Value + x.List.Count);
+            AssertRebinds(x => new Model { Int = x.Int, Child = new Model { Int = x.Long > 0 ? 1 : 2 } }.Child!.Int);
+            AssertRebinds(x => new List<int> { x.Int, x.Child!.Int });
+            AssertRebinds(x => new Dictionary<string, int> { { x.Text!, x.Int } });
+            AssertRebinds(x => new[] { x.Int, 2 });
+            AssertRebinds(x => new int[x.Int].Length);
+            AssertRebinds(x => new int[x.Int, 2].Length);
+        }
+
+        [Fact]
+        public void RebindCompiles_Statements()
+        {
+            var x = Expression.Parameter(typeof(Model), "x");
+            var v = Expression.Variable(typeof(int), "v");
+            var e = Expression.Variable(typeof(Exception), "e");
+            var exit = Expression.Label("exit");
+            var skip = Expression.Label("skip");
+            var result = Expression.Label(typeof(int), "result");
+            var array = Expression.Variable(typeof(int[]), "array");
+
+            var body = Expression.Block(
+                [v, array],
+                Expression.Assign(v, Expression.Property(x, nameof(Model.Int))),
+                Expression.AddAssign(v, Expression.Constant(1)),
+                Expression.AddAssignChecked(v, Expression.Constant(1)),
+                Expression.SubtractAssign(v, Expression.Constant(1)),
+                Expression.SubtractAssignChecked(v, Expression.Constant(1)),
+                Expression.MultiplyAssign(v, Expression.Constant(2)),
+                Expression.MultiplyAssignChecked(v, Expression.Constant(1)),
+                Expression.DivideAssign(v, Expression.Constant(2)),
+                Expression.ModuloAssign(v, Expression.Constant(100)),
+                Expression.AndAssign(v, Expression.Constant(0xFF)),
+                Expression.OrAssign(v, Expression.Constant(0)),
+                Expression.ExclusiveOrAssign(v, Expression.Constant(0)),
+                Expression.LeftShiftAssign(v, Expression.Constant(1)),
+                Expression.RightShiftAssign(v, Expression.Constant(1)),
+                Expression.PreIncrementAssign(v),
+                Expression.PostIncrementAssign(v),
+                Expression.PreDecrementAssign(v),
+                Expression.PostDecrementAssign(v),
+                Expression.Increment(v),
+                Expression.Decrement(v),
+                Expression.Loop(
+                    Expression.IfThenElse(
+                        Expression.GreaterThan(v, Expression.Constant(20)),
+                        Expression.Break(exit),
+                        Expression.PreIncrementAssign(v)),
+                    exit),
+                Expression.Goto(skip),
+                Expression.Assign(v, Expression.Constant(-1)),
+                Expression.Label(skip),
+                Expression.TryCatchFinally(
+                    Expression.Throw(Expression.New(typeof(InvalidOperationException))),
+                    Expression.Block(typeof(void), Expression.AddAssign(v, Expression.Constant(100))),
+                    Expression.Catch(e, Expression.Block(typeof(void), Expression.AddAssign(v, Expression.Constant(10))))),
+                Expression.TryFault(Expression.Empty(), Expression.Empty()),
+                Expression.Switch(
+                    Expression.Property(x, nameof(Model.Int)),
+                    Expression.Empty(),
+                    Expression.SwitchCase(Expression.Block(typeof(void), Expression.AddAssign(v, Expression.Constant(1000))), Expression.Constant(7))),
+                Expression.Assign(array, Expression.NewArrayInit(typeof(int), v)),
+                Expression.Assign(Expression.ArrayAccess(array, Expression.Constant(0)), Expression.Add(Expression.ArrayAccess(array, Expression.Constant(0)), Expression.Default(typeof(int)))),
+                Expression.Return(result, Expression.ArrayIndex(array, Expression.Constant(0))),
+                Expression.Label(result, Expression.Constant(0)));
+
+            var lambda = Expression.Lambda<Func<Model, int>>(body, x);
+            var model = CreateModel();
+            var expected = lambda.Compile()(model);
+            Assert.Equal(1131, expected);
+
+            var y = Expression.Parameter(typeof(Model), "y");
+            var rebound = (Expression<Func<Model, int>>)LinqRebinder.RebindExpression(lambda, x, y);
+            Assert.Equal(expected, rebound.Compile()(model));
+        }
+
+        [Fact]
+        public void RebindCompiles_Dictionaries()
+        {
+            Expression<Func<Model, int>> lambda = x => x.Int + x.Child!.Int;
+            var y = Expression.Parameter(typeof(Model), "y");
+            var model = CreateModel();
+
+            var byExpression = (LambdaExpression)LinqRebinder.Rebind(lambda, new Dictionary<Expression, Expression>() { { lambda.Parameters[0], y } });
+            Assert.Equal(18, byExpression.Compile().DynamicInvoke(model));
+
+            var byString = (LambdaExpression)LinqRebinder.Rebind(lambda, new Dictionary<string, Expression>() { { "x.Child.Int", Expression.Constant(100) } });
+            Assert.Equal(107, byString.Compile().DynamicInvoke(model));
+        }
+
+        private static void AssertReplacement(Expression<Func<Wrapper, Model>> replacement, Wrapper wrapper)
+        {
+            Expression<Func<Model, int>> lambda = x => x.Int + x.Child!.Int;
+            var expected = lambda.Compile()(replacement.Compile()(wrapper));
+
+            var rebound = (LambdaExpression)LinqRebinder.RebindExpression(lambda, lambda.Parameters[0], replacement.Body);
+            Assert.Equal(replacement.Parameters[0], Assert.Single(rebound.Parameters));
+            Assert.Equal(expected, rebound.Compile().DynamicInvoke(wrapper));
+        }
+
+        [Fact]
+        public void RebindCompiles_ComplexReplacements()
+        {
+            var model = CreateModel();
+            var wrapper = new Wrapper() { Model = model, Other = model, Models = [model, model], Flag = true, Index = 1, Obj = model };
+
+            AssertReplacement(w => w.Model, wrapper);
+            AssertReplacement(w => w.Flag ? w.Model : w.Other!, wrapper);
+            AssertReplacement(w => w.Other ?? w.Model, wrapper);
+            AssertReplacement(w => Wrapper.Identity(w.Model), wrapper);
+            AssertReplacement(w => ((Func<Wrapper, Model>)(y => y.Model))(w), wrapper);
+            AssertReplacement(w => (Model)w.Obj!, wrapper);
+            AssertReplacement(w => (w.Obj as Model)!, wrapper);
+            AssertReplacement(w => w.Obj is Model ? w.Model : w.Other!, wrapper);
+            AssertReplacement(w => w.Models[w.Index * 2 - 1 + w.Index % 1 - (w.Index & 0) + (w.Index | 0) - (w.Index ^ w.Index) - w.Index + (w.Index << 1 >> 1) - w.Index], wrapper);
+            AssertReplacement(w => w.Models[checked(-(-w.Index) + 0 * w.Index)], wrapper);
+            AssertReplacement(w => w.Models[w.Models.Length - 1], wrapper);
+            AssertReplacement(w => w.Models[w.Flag && !(w.Index > 5) || w.Index < 0 ? 0 : 1], wrapper);
+            AssertReplacement(w => w.Models[w.Index >= 1 && w.Index <= 1 && w.Index != 2 && w.Index == 1 ? 0 : 1], wrapper);
+            AssertReplacement(w => new Model() { Int = w.Model.Int, Child = w.Model.Child, List = { w.Index }, Options = { Value = w.Index } }, wrapper);
+            AssertReplacement(w => new List<Model>() { w.Model, w.Other! }[0], wrapper);
+            AssertReplacement(w => new Dictionary<int, Model>() { { w.Index, w.Model } }[w.Index], wrapper);
+            AssertReplacement(w => new[] { w.Model, w.Other! }[0], wrapper);
+            AssertReplacement(w => w.Models.Where(m => m.Int == w.Model.Int).First(), wrapper);
+            AssertReplacement(w => w.Models.AsQueryable().Where(m => m.Int == w.Index * 7).First(), wrapper);
+            AssertReplacement(w => new Model[w.Index + 1].Length > 0 ? w.Model : w.Other!, wrapper);
+
+            var w = Expression.Parameter(typeof(Wrapper), "w");
+            var v = Expression.Variable(typeof(int), "v");
+            var exit = Expression.Label(typeof(Model), "exit");
+            var models = Expression.Property(w, nameof(Wrapper.Models));
+            var block = Expression.Block(
+                [v],
+                Expression.Assign(v, Expression.Property(w, nameof(Wrapper.Index))),
+                Expression.AddAssign(v, Expression.Constant(1)),
+                Expression.SubtractAssign(v, Expression.Constant(1)),
+                Expression.PreIncrementAssign(v),
+                Expression.PostDecrementAssign(v),
+                Expression.Loop(
+                    Expression.IfThenElse(
+                        Expression.GreaterThanOrEqual(v, Expression.Constant(0)),
+                        Expression.Break(exit, Expression.ArrayAccess(models, v)),
+                        Expression.PreIncrementAssign(v)),
+                    exit));
+            var tryBlock = Expression.TryCatch(block, Expression.Catch(typeof(Exception), Expression.Property(w, nameof(Wrapper.Model))));
+            var switchBlock = Expression.Switch(Expression.Property(w, nameof(Wrapper.Index)), Expression.Property(w, nameof(Wrapper.Model)), Expression.SwitchCase(tryBlock, Expression.Constant(1)));
+            AssertReplacement(Expression.Lambda<Func<Wrapper, Model>>(switchBlock, w), wrapper);
+        }
     }
 }

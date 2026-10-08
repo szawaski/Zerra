@@ -19,18 +19,18 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.String:
                     if (reader.UseBytes)
                     {
-                        if ((!Utf8Parser.TryParse(reader.ValueBytes, out value, out var consumed) || reader.ValueBytes.Length != consumed) && state.ErrorOnTypeMismatch)
-                            ThrowCannotConvert(ref reader);
+                        if (!Utf8Parser.TryParse(reader.ValueBytes, out value, out var consumed) || reader.ValueBytes.Length != consumed)
+                            ThrowInvalidValue(ref reader);
                         return true;
                     }
                     else
                     {
 #if NETSTANDARD2_0
-                        if (!Guid.TryParse(reader.ValueChars.ToString(), out value) && state.ErrorOnTypeMismatch)
+                        if (!Guid.TryParse(reader.ValueChars.ToString(), out value))
 #else
-                        if (!Guid.TryParse(reader.ValueChars, out value) && state.ErrorOnTypeMismatch)
+                        if (!Guid.TryParse(reader.ValueChars, out value))
 #endif
-                            ThrowCannotConvert(ref reader);
+                            ThrowInvalidValue(ref reader);
                         return true;
                     }
                 case JsonToken.Null:

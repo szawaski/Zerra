@@ -40,22 +40,15 @@ namespace Zerra.Serialization.Json
 
             options ??= defaultOptions;
 
-            var state = new ReadState()
-            {
-                Nameless = options.Nameless,
-                EnumAsNumber = options.EnumAsNumber,
-                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
-                Graph = graph,
-
-                IsFinalBlock = true
-            };
+            var state = new ReadState(options, graph, true, false);
 
             JsonObject? result;
 
-            _ = Read(chars, ref state, out result);
+            var used = Read(chars, ref state, out result);
 
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+            ThrowIfNotWhitespace(chars.Slice(used));
 
             return result;
         }
@@ -75,22 +68,15 @@ namespace Zerra.Serialization.Json
 
             options ??= defaultOptions;
 
-            var state = new ReadState()
-            {
-                Nameless = options.Nameless,
-                EnumAsNumber = options.EnumAsNumber,
-                ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
-                Graph = graph,
-
-                IsFinalBlock = true
-            };
+            var state = new ReadState(options, graph, true, false);
 
             JsonObject? result;
 
-            _ = Read(bytes, ref state, out result);
+            var used = Read(bytes, ref state, out result);
 
             if (state.SizeNeeded > 0)
                 throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+            ThrowIfNotWhitespace(bytes.Slice(used));
 
             return result;
         }
@@ -116,60 +102,50 @@ namespace Zerra.Serialization.Json
 
             try
             {
-                var position = 0;
                 var length = 0;
                 var read = -1;
-                while (position < buffer.Length)
+                while (length < buffer.Length)
                 {
 #if NETSTANDARD2_0
-                    read = stream.Read(buffer, position, buffer.Length - position);
+                    read = stream.Read(buffer, length, buffer.Length - length);
 #else
-                    read = stream.Read(buffer.AsSpan(position));
+                    read = stream.Read(buffer.AsSpan(length));
 #endif
                     if (read == 0)
                     {
                         isFinalBlock = true;
                         break;
                     }
-                    position += read;
-                    length = position;
+                    length += read;
                 }
 
-                if (position == 0)
-                {
+                if (length == 0)
                     return new JsonObject();
-                }
 
-                var state = new ReadState()
-                {
-                    Nameless = options.Nameless,
-                    EnumAsNumber = options.EnumAsNumber,
-                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
-                    Graph = graph,
-
-                    IsFinalBlock = isFinalBlock
-                };
+                var state = new ReadState(options, graph, isFinalBlock, false);
 
                 JsonObject? result;
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, out result);
+                    var bytesUsed = Read(buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.SizeNeeded == 0)
                     {
+                        ThrowIfNotWhitespace(buffer.AsSpan(bytesUsed, length - bytesUsed));
                         if (!state.IsFinalBlock)
                         {
-
-                            BufferShift(buffer, bytesUsed);
-                            length -= bytesUsed;
+                            for (; ; )
+                            {
 #if NETSTANDARD2_0
-                            read = stream.Read(buffer, position, buffer.Length - position);
+                                read = stream.Read(buffer, 0, buffer.Length);
 #else
-                            read = stream.Read(buffer.AsSpan(position));
+                                read = stream.Read(buffer.AsSpan());
 #endif
-                            if (read != 0)
-                                throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+                                if (read == 0)
+                                    break;
+                                ThrowIfNotWhitespace(buffer.AsSpan(0, read));
+                            }
                         }
                         break;
                     }
@@ -177,19 +153,19 @@ namespace Zerra.Serialization.Json
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
-                    Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
-                    position = length - position;
+                    BufferShift(buffer, bytesUsed);
+                    length -= bytesUsed;
 
-                    var neededSize = position + state.SizeNeeded;
-                    if (neededSize > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, neededSize);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
-                    while (position < buffer.Length)
+                    while (length < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                        read = stream.Read(buffer, position, buffer.Length - position);
+                        read = stream.Read(buffer, length, buffer.Length - length);
 #else
-                        read = stream.Read(buffer.AsSpan(position));
+                        read = stream.Read(buffer.AsSpan(length));
 #endif
 
                         if (read == 0)
@@ -197,11 +173,10 @@ namespace Zerra.Serialization.Json
                             state.IsFinalBlock = true;
                             break;
                         }
-                        position += read;
-                        length = position;
+                        length += read;
                     }
 
-                    if (position < state.SizeNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -211,6 +186,7 @@ namespace Zerra.Serialization.Json
             }
             finally
             {
+                Array.Clear(buffer, 0, buffer.Length);
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }
@@ -237,39 +213,27 @@ namespace Zerra.Serialization.Json
 
             try
             {
-                var position = 0;
                 var length = 0;
                 var read = -1;
-                while (position < buffer.Length)
+                while (length < buffer.Length)
                 {
 #if NETSTANDARD2_0
-                    read = await stream.ReadAsync(buffer, position, buffer.Length - position, cancellationToken);
+                    read = await stream.ReadAsync(buffer, length, buffer.Length - length, cancellationToken);
 #else
-                    read = await stream.ReadAsync(buffer.AsMemory(position), cancellationToken);
+                    read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
 #endif
                     if (read == 0)
                     {
                         isFinalBlock = true;
                         break;
                     }
-                    position += read;
-                    length = position;
+                    length += read;
                 }
 
-                if (position == 0)
-                {
+                if (length == 0)
                     return new JsonObject();
-                }
 
-                var state = new ReadState()
-                {
-                    Nameless = options.Nameless,
-                    EnumAsNumber = options.EnumAsNumber,
-                    ErrorOnTypeMismatch = options.ErrorOnTypeMismatch,
-                    Graph = graph,
-
-                    IsFinalBlock = isFinalBlock
-                };
+                var state = new ReadState(options, graph, isFinalBlock, false);
 
                 JsonObject? result;
 
@@ -279,18 +243,20 @@ namespace Zerra.Serialization.Json
 
                     if (state.SizeNeeded == 0)
                     {
+                        ThrowIfNotWhitespace(buffer.AsSpan(bytesUsed, length - bytesUsed));
                         if (!state.IsFinalBlock)
                         {
-
-                            BufferShift(buffer, bytesUsed);
-                            length -= bytesUsed;
+                            for (; ; )
+                            {
 #if NETSTANDARD2_0
-                            read = stream.Read(buffer, position, buffer.Length - position);
+                                read = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
 #else
-                            read = stream.Read(buffer.AsSpan(position));
+                                read = await stream.ReadAsync(buffer.AsMemory(), cancellationToken);
 #endif
-                            if (read != 0)
-                                throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
+                                if (read == 0)
+                                    break;
+                                ThrowIfNotWhitespace(buffer.AsSpan(0, read));
+                            }
                         }
                         break;
                     }
@@ -298,18 +264,19 @@ namespace Zerra.Serialization.Json
                     if (state.IsFinalBlock)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
-                    Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
-                    position = length - bytesUsed;
+                    BufferShift(buffer, bytesUsed);
+                    length -= bytesUsed;
 
-                    if (position + state.SizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, position + state.SizeNeeded);
+                    var totalSizeNeeded = length + state.SizeNeeded;
+                    if (totalSizeNeeded > buffer.Length)
+                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
 
-                    while (position < buffer.Length)
+                    while (length < buffer.Length)
                     {
 #if NETSTANDARD2_0
-                        read = await stream.ReadAsync(buffer, position, buffer.Length - position, cancellationToken);
+                        read = await stream.ReadAsync(buffer, length, buffer.Length - length, cancellationToken);
 #else
-                        read = await stream.ReadAsync(buffer.AsMemory(position), cancellationToken);
+                        read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken);
 #endif
 
                         if (read == 0)
@@ -317,11 +284,10 @@ namespace Zerra.Serialization.Json
                             state.IsFinalBlock = true;
                             break;
                         }
-                        position += read;
-                        length = position;
+                        length += read;
                     }
 
-                    if (position < state.SizeNeeded)
+                    if (length < state.SizeNeeded)
                         throw new EndOfStreamException($"Invalid data for {nameof(JsonSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
@@ -331,6 +297,7 @@ namespace Zerra.Serialization.Json
             }
             finally
             {
+                Array.Clear(buffer, 0, buffer.Length);
                 ArrayPoolHelper<byte>.Return(buffer);
             }
         }

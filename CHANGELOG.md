@@ -22,6 +22,8 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Connection tests for each broker (`KafkaConnectionTest`, `RabbitMQConnectionTest`, `AzureServiceBusConnectionTest`) to fall back to direct TCP or HTTP.
 - RabbitMQ accepts AMQP URIs, including TLS with `amqps://`. Kafka connects with TLS through `useTls`.
 - `Zerra.CQRS.AzureEventHub` is removed; use Kafka, RabbitMQ, or Azure Service Bus.
+- Fixed `HttpCqrsClient` leaving the cause out of the error when sending a command with a result fails.
+- `WriteStreamContent` made with an async delegate throws `NotSupportedException` when sent synchronously, instead of blocking a thread on the delegate. Use the synchronous delegate constructor for synchronous sends.
 
 ### Serialization
 
@@ -34,6 +36,24 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Fixed `ZerraJsonSerializer` dictionary keys that need escaping.
 - Fixed `ZerraJsonSerializer` writing some negative UTC offsets.
 - Fixed `ZerraJsonSerializer` enum numbers: negative and large `ulong` values failed, and out-of-range values weren't rejected.
+- Fixed `ZerraJsonSerializer` `DeserializeJsonObject` failing on streams.
+- Fixed `JsonObject` using the current culture for numbers and dates, and casting a JSON null to `string` throwing instead of returning null.
+- Fixed `JsonObject` reading numbers with exponents, such as `1e5`, and numbers too large or too small for `decimal` as 0. They keep their value and convert with the `double` cast.
+- `ZerraByteSerializer` throws on bytes after the value, like `ZerraJsonSerializer`. Before, they were ignored or rejected depending on where the stream's read buffer ended.
+- Fixed `ZerraByteSerializer` losing `Type` values with `UseTypes` on.
+- Fixed `ZerraByteSerializer` failing to skip members missing from the target type when they hold custom collections, hash sets, or records.
+- Fixed `ZerraJsonSerializer` dates: out-of-range values such as month 13 or February 30 rolled over instead of failing, offsets past 14 hours, month 0, and year 0 threw, and more than 7 fraction digits weren't read.
+- Fixed `ZerraJsonSerializer` `char?`, which failed on empty strings and didn't decode escapes or non-ASCII characters.
+- Fixed `ZerraJsonSerializer` `byte[]` failing on escaped base64.
+- Fixed `ZerraJsonSerializer` throwing `ArgumentOutOfRangeException` instead of a `FormatException` for some invalid JSON at the end of the input.
+- Fixed `ZerraJsonSerializer` throwing `NotSupportedException` or `NotImplementedException` instead of a `FormatException` for a `,` or `:` where a value belongs, such as `[,1]`.
+- Fixed `ZerraJsonSerializer` rejecting streams with long trailing whitespace.
+- Fixed the synchronous `ZerraJsonSerializer.Serialize` stream overloads writing nothing for a null value. They write `null`, like the async overloads and the string and byte overloads.
+- Fixed `ZerraJsonSerializer` ignoring `[JsonIgnore]` placed after `[JsonPropertyName]` on the same member.
+- Fixed `ZerraJsonSerializer` throwing on an empty property name (`{"":1}`), which is valid JSON. It's skipped like any unknown member.
+- Fixed `ZerraJsonSerializer` failing on dictionaries with `string` or number keys written as an array of key-value pairs.
+- Fixed `ZerraJsonSerializer` and `ZerraByteSerializer` throwing when a record or other type built through its constructor is missing a value-type constructor argument, such as an empty nameless array.
+- `ZerraJsonSerializer` throws on anything after the JSON value other than whitespace, and every type follows one rule for values that don't match it ([Mismatched Values](docs/JsonSerializer.md#mismatched-values)).
 
 ### Mapping
 
@@ -47,6 +67,17 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Source generation for every CQRS type, model, and enum, and Native AOT compatibility throughout.
 - No external dependencies on .NET 10.
 - `StringExtensions` parses numbers and dates with the invariant culture, with an optional `provider` for other cultures.
+- Fixed `ToEnumNullable` returning the enum's zero value instead of `null` for a missing or unknown name.
+- Fixed `TypeDetail.GetConstructor()` failing on types with several constructors, and `GetMethod` and `GetConstructor` returning a cached result from an earlier lookup with a different generic argument or parameter count.
+- Fixed the runtime accessor generator crashing the process for typed getters, setters, and method callers on structs.
+- Fixed a `Graph` member that was removed and then added again still showing in the signature as removed.
+- Fixed `Discovery` not finding a class that derives from a closed generic base, such as `Base<int>`, when looking up the open one, `Base<>`.
+- `AsynmmetricEncryptor` is renamed `AsymmetricEncryptor`.
+- Fixed the read-write collections (`ConcurrentReadWriteList`, `ConcurrentReadWriteHashSet`, `ConcurrentSortedReadWriteDictionary`) locking up for good after an exception inside them, and `ConcurrentSortedReadWriteDictionary.GetOrAdd` throwing when adding.
+- The concurrent collections follow the standard `IList` and `IDictionary` rules, like `List<T>` and `ConcurrentDictionary`. For example, `Add` throws on a duplicate key and `Insert` at the end works.
+- Fixed `ConcurrentSortedDictionary.GetOrAdd(key, value)` throwing `KeyNotFoundException` instead of adding the value, and `TryUpdate` on both sorted dictionaries updating when only one of the current and comparison values was null.
+- Fixed `LinqRebinder` breaking `is` type checks and array creation (`new[] { ... }`, `new T[n]`) in the expressions it rebinds.
+- Fixed `LinqRebinder` failing when a parameter is replaced with an expression containing a nested lambda, block, `catch`, assignment, array index, or negation.
 
 ### Repository (Experimental)
 

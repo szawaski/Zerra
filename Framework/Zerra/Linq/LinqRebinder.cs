@@ -469,7 +469,7 @@ namespace Zerra.Linq
                             replacementExpressions[i] = replacementExpression;
                         }
 
-                        return Expression.NewArrayBounds(cast.Type, replacementExpressions);
+                        return Expression.NewArrayBounds(cast.Type.GetElementType()!, replacementExpressions);
                     }
                 case ExpressionType.NewArrayInit:
                     {
@@ -487,7 +487,7 @@ namespace Zerra.Linq
                             replacementExpressions[i] = replacementExpression;
                         }
 
-                        return Expression.NewArrayInit(cast.Type, replacementExpressions);
+                        return Expression.NewArrayInit(cast.Type.GetElementType()!, replacementExpressions);
                     }
                 case ExpressionType.Not:
                     {
@@ -669,13 +669,13 @@ namespace Zerra.Linq
                     }
                 case ExpressionType.TypeEqual:
                     {
-                        var cast = (UnaryExpression)exp;
-                        return Expression.TypeEqual(Rebind(cast.Operand, context), cast.Type);
+                        var cast = (TypeBinaryExpression)exp;
+                        return Expression.TypeEqual(Rebind(cast.Expression, context), cast.TypeOperand);
                     }
                 case ExpressionType.TypeIs:
                     {
                         var cast = (TypeBinaryExpression)exp;
-                        return Expression.TypeIs(Rebind(cast.Expression, context), cast.Type);
+                        return Expression.TypeIs(Rebind(cast.Expression, context), cast.TypeOperand);
                     }
                 case ExpressionType.UnaryPlus:
                     {
@@ -788,6 +788,13 @@ namespace Zerra.Linq
                         ExtractParametersExpressionInternal(cast.Right, parameters);
                         return;
                     }
+                case ExpressionType.ArrayIndex:
+                    {
+                        var cast = (BinaryExpression)exp;
+                        ExtractParametersExpressionInternal(cast.Left, parameters);
+                        ExtractParametersExpressionInternal(cast.Right, parameters);
+                        return;
+                    }
                 case ExpressionType.ArrayLength:
                     {
                         var cast = (UnaryExpression)exp;
@@ -795,14 +802,23 @@ namespace Zerra.Linq
                         return;
                     }
                 case ExpressionType.Assign:
-                    throw new NotImplementedException();
+                    {
+                        var cast = (BinaryExpression)exp;
+                        ExtractParametersExpressionInternal(cast.Left, parameters);
+                        ExtractParametersExpressionInternal(cast.Right, parameters);
+                        return;
+                    }
                 case ExpressionType.Block:
                     {
                         var cast = (BlockExpression)exp;
+                        var inner = new List<ParameterExpression>();
                         foreach (var item in cast.Expressions)
-                            ExtractParametersExpressionInternal(item, parameters);
-                        foreach (var item in cast.Variables)
-                            ExtractParametersExpressionInternal(item, parameters);
+                            ExtractParametersExpressionInternal(item, inner);
+                        foreach (var item in inner)
+                        {
+                            if (!cast.Variables.Contains(item))
+                                parameters.Add(item);
+                        }
                         return;
                     }
                 case ExpressionType.Call:
@@ -941,7 +957,6 @@ namespace Zerra.Linq
                             ExtractParametersExpressionInternal(arg, parameters);
                         return;
                     }
-                    throw new NotImplementedException();
                 case ExpressionType.Invoke:
                     {
                         var cast = (InvocationExpression)exp;
@@ -972,7 +987,13 @@ namespace Zerra.Linq
                 case ExpressionType.Lambda:
                     {
                         var cast = (LambdaExpression)exp;
-                        ExtractParametersExpressionInternal(cast.Body, parameters);
+                        var inner = new List<ParameterExpression>();
+                        ExtractParametersExpressionInternal(cast.Body, inner);
+                        foreach (var item in inner)
+                        {
+                            if (!cast.Parameters.Contains(item))
+                                parameters.Add(item);
+                        }
                         return;
                     }
                 case ExpressionType.LeftShift:
@@ -1080,16 +1101,14 @@ namespace Zerra.Linq
                     }
                 case ExpressionType.Negate:
                     {
-                        var cast = (BinaryExpression)exp;
-                        ExtractParametersExpressionInternal(cast.Left, parameters);
-                        ExtractParametersExpressionInternal(cast.Right, parameters);
+                        var cast = (UnaryExpression)exp;
+                        ExtractParametersExpressionInternal(cast.Operand, parameters);
                         return;
                     }
                 case ExpressionType.NegateChecked:
                     {
-                        var cast = (BinaryExpression)exp;
-                        ExtractParametersExpressionInternal(cast.Left, parameters);
-                        ExtractParametersExpressionInternal(cast.Right, parameters);
+                        var cast = (UnaryExpression)exp;
+                        ExtractParametersExpressionInternal(cast.Operand, parameters);
                         return;
                     }
                 case ExpressionType.New:
@@ -1282,9 +1301,15 @@ namespace Zerra.Linq
                             ExtractParametersExpressionInternal(cast.Finally, parameters);
                         foreach (var item in cast.Handlers)
                         {
-                            ExtractParametersExpressionInternal(item.Body, parameters);
-                            if (item.Variable is not null)
-                                ExtractParametersExpressionInternal(item.Variable, parameters);
+                            var inner = new List<ParameterExpression>();
+                            ExtractParametersExpressionInternal(item.Body, inner);
+                            if (item.Filter is not null)
+                                ExtractParametersExpressionInternal(item.Filter, inner);
+                            foreach (var innerItem in inner)
+                            {
+                                if (innerItem != item.Variable)
+                                    parameters.Add(innerItem);
+                            }
                         }
                         return;
                     }
@@ -1296,14 +1321,14 @@ namespace Zerra.Linq
                     }
                 case ExpressionType.TypeEqual:
                     {
-                        var cast = (UnaryExpression)exp;
-                        ExtractParametersExpressionInternal(cast.Operand, parameters);
+                        var cast = (TypeBinaryExpression)exp;
+                        ExtractParametersExpressionInternal(cast.Expression, parameters);
                         return;
                     }
                 case ExpressionType.TypeIs:
                     {
-                        var cast = (UnaryExpression)exp;
-                        ExtractParametersExpressionInternal(cast.Operand, parameters);
+                        var cast = (TypeBinaryExpression)exp;
+                        ExtractParametersExpressionInternal(cast.Expression, parameters);
                         return;
                     }
                 case ExpressionType.UnaryPlus:

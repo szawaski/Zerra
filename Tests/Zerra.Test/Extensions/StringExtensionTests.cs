@@ -120,8 +120,8 @@ namespace Zerra.Test.Extensions
                 Assert.Equal(date, "06.10.2026".ToDateTimeNullable(culture));
                 Assert.Equal(offset, "06.10.2026 13:45:30 -05:00".ToDateTimeOffset(provider: culture));
                 Assert.Equal(offset, "06.10.2026 13:45:30 -05:00".ToDateTimeOffsetNullable(culture));
-                Assert.Equal(new TimeSpan(0, 1, 2, 3, 500), "1:02:03,5".ToTimeSpan(provider: culture));
-                Assert.Equal(new TimeSpan(0, 1, 2, 3, 500), "1:02:03,5".ToTimeSpanNullable(culture));
+                Assert.Equal(new TimeSpan(0, 1, 2, 3, 500), "01:02:03.5".ToTimeSpan(provider: culture));
+                Assert.Equal(new TimeSpan(0, 1, 2, 3, 500), "01:02:03.5".ToTimeSpanNullable(culture));
                 Assert.Equal(new DateOnly(2026, 10, 6), "06.10.2026".ToDateOnly(provider: culture));
                 Assert.Equal(new DateOnly(2026, 10, 6), "06.10.2026".ToDateOnlyNullable(culture));
                 Assert.Equal(new TimeOnly(13, 45, 30), "13:45:30".ToTimeOnly(provider: culture));

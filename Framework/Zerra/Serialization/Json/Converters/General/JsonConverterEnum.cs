@@ -16,7 +16,9 @@ namespace Zerra.Serialization.Json.Converters.General
     {
         protected override bool StackRequired => false;
 
+#pragma warning disable CS8714 // TValue may be a nullable enum, null is written before the cache
         private Dictionary<TValue, (char[] Chars, byte[] Bytes)> quotedNames = new();
+#pragma warning restore CS8714
         private Dictionary<string, TValue?> valuesByName = new();
         private const int maxCachedNames = 256;
         private const int maxStackNameLength = 128;
@@ -63,17 +65,13 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     else if (!TryParseNumber(str.AsSpan(), out value))
                     {
-                        if (state.ErrorOnTypeMismatch)
-                            ThrowCannotConvert(ref reader);
-                        value = default;
+                        ThrowInvalidValue(ref reader);
                     }
                     return true;
                 case JsonToken.Number:
                     if (reader.UseBytes ? TryParseNumber(reader.ValueBytes, out value) : TryParseNumber(reader.ValueChars, out value))
                         return true;
-                    if (state.ErrorOnTypeMismatch)
-                        ThrowCannotConvert(ref reader);
-                    value = default;
+                    ThrowInvalidValue(ref reader);
                     return true;
                 case JsonToken.Null:
                     if (!TypeDetail.IsNullable && state.ErrorOnTypeMismatch)
@@ -176,7 +174,9 @@ namespace Zerra.Serialization.Json.Converters.General
                     quotedName = (chars, Encoding.UTF8.GetBytes(chars));
 
                     //replaced instead of changed so concurrent reads need no lock
+#pragma warning disable CS8714
                     quotedNames = new Dictionary<TValue, (char[], byte[])>(quotedNames) { [value] = quotedName };
+#pragma warning restore CS8714
                 }
 
                 if (writer.UseBytes)

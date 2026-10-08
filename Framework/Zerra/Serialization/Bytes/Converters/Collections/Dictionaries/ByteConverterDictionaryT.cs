@@ -21,6 +21,24 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
 
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out Dictionary<TKey, TValue>? value)
         {
+            if (state.Current.DrainBytes)
+            {
+                value = default;
+                if (!state.Current.EnumerableLength.HasValue)
+                {
+                    if (!reader.TryRead(out state.Current.EnumerableLength, out state.SizeNeeded))
+                        return false;
+                }
+
+                var length = state.Current.EnumerableLength!.Value;
+                for (; state.Current.EnumeratorIndex < length; state.Current.EnumeratorIndex++)
+                {
+                    if (!converter.TryReadToValue(ref reader, ref state, out _))
+                        return false;
+                }
+                return true;
+            }
+
             if (!state.Current.EnumerableLength.HasValue)
             {
                 if (!reader.TryRead(out state.Current.EnumerableLength, out state.SizeNeeded))
@@ -29,18 +47,9 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Dictionaries
                     return false;
                 }
 
-                if (!state.Current.DrainBytes)
-                {
-                    value = new Dictionary<TKey, TValue>();
-                    if (state.Current.EnumerableLength!.Value == 0)
-                        return true;
-                }
-                else
-                {
-                    value = new Dictionary<TKey, TValue>();
-                    if (state.Current.EnumerableLength!.Value == 0)
-                        return true;
-                }
+                value = new Dictionary<TKey, TValue>();
+                if (state.Current.EnumerableLength!.Value == 0)
+                    return true;
             }
             else
             {

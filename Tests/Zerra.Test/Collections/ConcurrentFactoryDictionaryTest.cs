@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
 using Xunit;
 using Zerra.Collections;
 
@@ -387,6 +388,117 @@ namespace Zerra.Test.Collections
             await Task.WhenAll(tasks);
             Assert.Equal(1, factoryCallCount);
             Assert.Equal(1, dict["key"]);
+        }
+
+        [Fact]
+        public void GenericInterfaces()
+        {
+            var dict = new ConcurrentFactoryDictionary<string, int?>();
+            IDictionary<string, int?> dictionary = dict;
+            var collection = (ICollection<KeyValuePair<string, int?>>)dict;
+
+            dictionary.Add("a", 1);
+            _ = Assert.Throws<ArgumentException>(() => dictionary.Add("a", 2));
+            _ = Assert.Throws<ArgumentException>(() => collection.Add(new("a", 3)));
+            Assert.Equal(1, dictionary["a"]);
+
+            Assert.True(collection.Contains(new("a", 1)));
+            Assert.False(collection.Contains(new("a", 2)));
+            Assert.False(collection.Remove(new("a", 2)));
+            Assert.True(dictionary.ContainsKey("a"));
+            Assert.True(collection.Remove(new("a", 1)));
+            Assert.False(dictionary.ContainsKey("a"));
+            Assert.False(collection.IsReadOnly);
+
+            collection.Add(new("b", 2));
+            var array = new KeyValuePair<string, int?>[2];
+            collection.CopyTo(array, 1);
+            Assert.Equal(new KeyValuePair<string, int?>("b", 2), array[1]);
+            _ = Assert.ThrowsAny<ArgumentException>(() => collection.CopyTo(new KeyValuePair<string, int?>[0], 0));
+
+            var readOnly = (IReadOnlyDictionary<string, int?>)dict;
+            Assert.Equal(["b"], readOnly.Keys);
+            Assert.Equal([2], readOnly.Values);
+
+            Assert.True(dictionary.Remove("b"));
+            Assert.False(dictionary.Remove("b"));
+        }
+
+        [Fact]
+        public void NonGenericInterfaces()
+        {
+            var dict = new ConcurrentFactoryDictionary<string, int?>();
+            IDictionary dictionary = dict;
+
+            dictionary.Add("a", null);
+            Assert.True(dictionary.Contains("a"));
+            Assert.Null(dictionary["a"]);
+            _ = Assert.Throws<ArgumentException>(() => dictionary.Add("a", 1));
+            _ = Assert.Throws<ArgumentException>(() => dictionary.Add(5, 1));
+            _ = Assert.Throws<ArgumentException>(() => dictionary.Add("b", "text"));
+
+            Assert.Null(dictionary["missing"]);
+            Assert.Null(dictionary[5]);
+            Assert.False(dictionary.Contains("missing"));
+            Assert.False(dictionary.Contains(5));
+
+            dictionary["b"] = 2;
+            Assert.Equal(2, dictionary["b"]);
+            _ = Assert.Throws<ArgumentException>(() => dictionary["b"] = "text");
+
+            dictionary.Remove("missing");
+            dictionary.Remove(5);
+            Assert.Equal(2, dictionary.Count);
+
+            Assert.Equal(2, dictionary.Keys.Count);
+            Assert.Equal(2, dictionary.Values.Count);
+            var keys = new List<object>();
+            var enumerator = dictionary.GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                Assert.Equal(enumerator.Key, enumerator.Entry.Key);
+                keys.Add(enumerator.Key);
+            }
+            Assert.Equal(["a", "b"], keys.OrderBy(x => x));
+
+            var array = new KeyValuePair<string, int?>[2];
+            ((ICollection)dictionary).CopyTo(array, 0);
+            Assert.Equal(["a", "b"], array.Select(x => x.Key).OrderBy(x => x));
+
+            Assert.False(dictionary.IsFixedSize);
+            Assert.False(dictionary.IsReadOnly);
+            Assert.False(((ICollection)dictionary).IsSynchronized);
+            _ = Assert.Throws<NotSupportedException>(() => ((ICollection)dictionary).SyncRoot);
+
+            dictionary.Remove("a");
+            Assert.False(dictionary.Contains("a"));
+            dictionary.Clear();
+            Assert.Empty(dictionary);
+        }
+
+        [Fact]
+        public void GetOrAdd_FactoryAddingTheSameKey_Throws()
+        {
+            //a factory that adds its own key leaves the outer add nothing to do, which means the factory recursed into the dictionary
+            var dict = new ConcurrentFactoryDictionary<string, int>();
+            int Add(string key) { _ = dict.TryAdd(key, 0); return 1; }
+
+            _ = Assert.Throws<InvalidOperationException>(() => dict.GetOrAdd("a", () => Add("a")));
+            _ = Assert.Throws<InvalidOperationException>(() => dict.GetOrAdd("b", (key) => Add(key)));
+            _ = Assert.Throws<InvalidOperationException>(() => dict.GetOrAdd("c", 1, (key, a) => Add(key)));
+            _ = Assert.Throws<InvalidOperationException>(() => dict.GetOrAdd("d", 1, 2, (key, a, b) => Add(key)));
+            _ = Assert.Throws<InvalidOperationException>(() => dict.GetOrAdd("e", 1, 2, 3, (key, a, b, c) => Add(key)));
+            _ = Assert.Throws<InvalidOperationException>(() => dict.GetOrAdd("f", 1, 2, 3, 4, (key, a, b, c, d) => Add(key)));
+            _ = Assert.Throws<InvalidOperationException>(() => dict.GetOrAdd("g", 1, 2, 3, 4, 5, (key, a, b, c, d, e) => Add(key)));
+            _ = Assert.Throws<InvalidOperationException>(() => dict.GetOrAdd("h", "h", (a) => Add(a)));
+            _ = Assert.Throws<InvalidOperationException>(() => dict.GetOrAdd("i", "i", 2, (a, b) => Add(a)));
+            _ = Assert.Throws<InvalidOperationException>(() => dict.GetOrAdd("j", "j", 2, 3, (a, b, c) => Add(a)));
+            _ = Assert.Throws<InvalidOperationException>(() => dict.GetOrAdd("k", "k", 2, 3, 4, (a, b, c, d) => Add(a)));
+            _ = Assert.Throws<InvalidOperationException>(() => dict.GetOrAdd("l", "l", 2, 3, 4, 5, (a, b, c, d, e) => Add(a)));
+
+            var array = new KeyValuePair<string, int>[dict.Count + 1];
+            ((ICollection<KeyValuePair<string, int>>)dict).CopyTo(array, 1);
+            Assert.Equal(dict.Count, array.Count(x => x.Key is not null));
         }
     }
 }

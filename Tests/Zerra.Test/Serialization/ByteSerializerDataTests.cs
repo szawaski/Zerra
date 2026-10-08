@@ -750,6 +750,67 @@ namespace Zerra.Test.Serialization
         }
 
         [Fact]
+        public void DrainBytes_EveryCollectionType()
+        {
+            AssertDrains(TypesAllModel.Create());
+            AssertDrains(TypesArrayModel.Create());
+            AssertDrains(TypesListTModel.Create());
+            AssertDrains(TypesIListTModel.Create());
+            AssertDrains(TypesIListTOfTModel.Create());
+            AssertDrains(TypesIReadOnlyListTModel.Create());
+            AssertDrains(TypesIListModel.Create());
+            AssertDrains(TypesIListOfTModel.Create());
+            AssertDrains(TypesHashSetTModel.Create());
+            AssertDrains(TypesISetTModel.Create());
+            AssertDrains(TypesISetTOfTModel.Create());
+            AssertDrains(TypesIReadOnlySetTModel.Create());
+            AssertDrains(TypesICollectionModel.Create());
+            AssertDrains(TypesICollectionTModel.Create());
+            AssertDrains(TypesICollectionTOfTModel.Create());
+            AssertDrains(TypesIReadOnlyCollectionTModel.Create());
+            AssertDrains(TypesIEnumerableModel.Create());
+            AssertDrains(TypesIEnumerableOfTModel.Create());
+            AssertDrains(TypesIEnumerableTModel.Create());
+            AssertDrains(TypesIEnumerableTOfTModel.Create());
+            AssertDrains(TypesDictionaryTModel.Create());
+            AssertDrains(TypesIDictionaryTModel.Create());
+            AssertDrains(TypesIDictionaryTOfTModel.Create());
+            AssertDrains(TypesIReadOnlyDictionaryTModel.Create());
+            AssertDrains(TypesIDictionaryModel.Create());
+            AssertDrains(TypesIDictionaryOfTModel.Create());
+            AssertDrains(TypesCustomCollectionsModel.Create());
+            AssertDrains(new RecordModel(true) { Property2 = 42, Property3 = "moo" });
+            AssertDrains(new[] { new RecordModel(true) { Property2 = 1 }, new RecordModel(false) { Property3 = "x" } });
+        }
+
+        private static void AssertDrains<T>(T value)
+        {
+            var options = new ByteSerializerOptions()
+            {
+                IndexType = ByteSerializerIndexType.MemberNames,
+                UseTypes = true,
+            };
+
+            var bytes = ByteSerializer.Serialize(new DrainSourceModel<T>() { Before = 1, Value = value, After = "end" }, options);
+            var result = ByteSerializer.Deserialize<DrainTargetModel>(bytes, options)!;
+            Assert.Equal(1, result.Before);
+            Assert.Equal("end", result.After);
+        }
+
+        [Fact]
+        public void DrainBytes_WithoutTypes_Throws()
+        {
+            var options = new ByteSerializerOptions()
+            {
+                IndexType = ByteSerializerIndexType.MemberNames
+            };
+
+            var bytes = ByteSerializer.Serialize(new DrainSourceModel<int>() { Before = 1, Value = 2, After = "end" }, options);
+            var ex = Assert.Throws<NotSupportedException>(() => ByteSerializer.Deserialize<DrainTargetModel>(bytes, options));
+            Assert.Contains(nameof(ByteSerializerOptions.UseTypes), ex.Message);
+        }
+
+        [Fact]
         public void LargeModel()
         {
             var options = new ByteSerializerOptions()
@@ -853,6 +914,315 @@ namespace Zerra.Test.Serialization
             _ = Assert.IsType<Graph<GraphModel>>(model2);
             Assert.Equal(model1, model2);
             Assert.True(model2.IncludeAllMembers);
+        }
+
+        [Fact]
+        public async Task CoreTypeCollections_LargerThanStreamBuffer()
+        {
+            await AssertLargeCollections(i => i % 2 == 0);
+            await AssertLargeCollections(i => (byte)i);
+            await AssertLargeCollections(i => (sbyte)i);
+            await AssertLargeCollections(i => (short)i);
+            await AssertLargeCollections(i => (ushort)i);
+            await AssertLargeCollections(i => i);
+            await AssertLargeCollections(i => (uint)i);
+            await AssertLargeCollections(i => (long)i << 20);
+            await AssertLargeCollections(i => (ulong)i << 20);
+            await AssertLargeCollections(i => i * 1.5f);
+            await AssertLargeCollections(i => i * 1.5d);
+            await AssertLargeCollections(i => i * 1.5m);
+            await AssertLargeCollections(i => (char)(i + 32));
+            await AssertLargeCollections(i => new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(i));
+            await AssertLargeCollections(i => new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.FromHours(-5)).AddMinutes(i));
+            await AssertLargeCollections(i => TimeSpan.FromMinutes(i));
+            await AssertLargeCollections(i => new DateOnly(2000, 1, 1).AddDays(i));
+            await AssertLargeCollections(i => new TimeOnly(0, 0).Add(TimeSpan.FromSeconds(i)));
+            await AssertLargeCollections(i => new Guid(i, 0, 0, new byte[8]));
+            await AssertLargeCollections(i => $"value {i}");
+
+            await AssertLargeCollections<bool?>(i => i % 3 == 0 ? null : i % 2 == 0);
+            await AssertLargeCollections<byte?>(i => i % 3 == 0 ? null : (byte)i);
+            await AssertLargeCollections<sbyte?>(i => i % 3 == 0 ? null : (sbyte)i);
+            await AssertLargeCollections<short?>(i => i % 3 == 0 ? null : (short)i);
+            await AssertLargeCollections<ushort?>(i => i % 3 == 0 ? null : (ushort)i);
+            await AssertLargeCollections<int?>(i => i % 3 == 0 ? null : i);
+            await AssertLargeCollections<uint?>(i => i % 3 == 0 ? null : (uint)i);
+            await AssertLargeCollections<long?>(i => i % 3 == 0 ? null : (long)i << 20);
+            await AssertLargeCollections<ulong?>(i => i % 3 == 0 ? null : (ulong)i << 20);
+            await AssertLargeCollections<float?>(i => i % 3 == 0 ? null : i * 1.5f);
+            await AssertLargeCollections<double?>(i => i % 3 == 0 ? null : i * 1.5d);
+            await AssertLargeCollections<decimal?>(i => i % 3 == 0 ? null : i * 1.5m);
+            await AssertLargeCollections<char?>(i => i % 3 == 0 ? null : (char)(i + 32));
+            await AssertLargeCollections<DateTime?>(i => i % 3 == 0 ? null : new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(i));
+            await AssertLargeCollections<DateTimeOffset?>(i => i % 3 == 0 ? null : new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.FromHours(-5)).AddMinutes(i));
+            await AssertLargeCollections<TimeSpan?>(i => i % 3 == 0 ? null : TimeSpan.FromMinutes(i));
+            await AssertLargeCollections<DateOnly?>(i => i % 3 == 0 ? null : new DateOnly(2000, 1, 1).AddDays(i));
+            await AssertLargeCollections<TimeOnly?>(i => i % 3 == 0 ? null : new TimeOnly(0, 0).Add(TimeSpan.FromSeconds(i)));
+            await AssertLargeCollections<Guid?>(i => i % 3 == 0 ? null : new Guid(i, 0, 0, new byte[8]));
+        }
+
+        private static async Task AssertLargeCollections<T>(Func<int, T> create)
+        {
+            const int count = 20_000;
+            var items = Enumerable.Range(0, count).Select(create).ToArray();
+            var distinct = items.Distinct().ToArray();
+            var token = TestContext.Current.CancellationToken;
+
+            var array = ByteSerializer.Serialize(items);
+            Assert.True(array.Length > 16 * 1024, typeof(T).Name);
+            Assert.Equal(items, ByteSerializer.Deserialize<T[]>(new MemoryStream(array)));
+            Assert.Equal(items, await ByteSerializer.DeserializeAsync<T[]>(new MemoryStream(array), cancellationToken: token));
+
+            var list = ByteSerializer.Serialize(items.ToList());
+            Assert.Equal(items, ByteSerializer.Deserialize<List<T>>(new MemoryStream(list)));
+            Assert.Equal(items, await ByteSerializer.DeserializeAsync<List<T>>(new MemoryStream(list), cancellationToken: token));
+
+            var set = ByteSerializer.Serialize(distinct.ToHashSet());
+            Assert.Equal(distinct.ToHashSet(), ByteSerializer.Deserialize<HashSet<T>>(new MemoryStream(set)));
+            Assert.Equal(distinct.ToHashSet(), await ByteSerializer.DeserializeAsync<HashSet<T>>(new MemoryStream(set), cancellationToken: token));
+        }
+
+        [Fact]
+        public async Task StreamLargerThanBuffer_AllTypes()
+        {
+            await AssertStreamRoundTrip(Enumerable.Range(0, 8).Select(_ => TypesAllModel.Create()).ToArray(), new ByteSerializerOptions() { IndexType = ByteSerializerIndexType.UInt16 });
+            await AssertStreamRoundTrip(Enumerable.Range(0, 8).Select(_ => TypesAllModel.Create()).ToArray(), new ByteSerializerOptions() { UseTypes = true, IndexType = ByteSerializerIndexType.UInt16 });
+            await AssertStreamRoundTrip(Enumerable.Range(0, 8).Select(_ => TypesAllModel.Create()).ToArray(), new ByteSerializerOptions() { IndexType = ByteSerializerIndexType.MemberNames });
+            await AssertStreamRoundTrip(SpecialTypesModel.CreateArray(2000), null);
+        }
+
+        private static async Task AssertStreamRoundTrip<T>(T value, ByteSerializerOptions? options)
+        {
+            var token = TestContext.Current.CancellationToken;
+            var expected = ByteSerializer.Serialize(value, options);
+            Assert.True(expected.Length > 3 * 16 * 1024, typeof(T).Name);
+
+            using (var stream = new MemoryStream())
+            {
+                ByteSerializer.Serialize(stream, value, options);
+                Assert.Equal(expected, stream.ToArray());
+            }
+            using (var stream = new MemoryStream())
+            {
+                ByteSerializer.Serialize(stream, (object?)value, typeof(T), options);
+                Assert.Equal(expected, stream.ToArray());
+            }
+            using (var stream = new MemoryStream())
+            {
+                await ByteSerializer.SerializeAsync(stream, value, options, token);
+                Assert.Equal(expected, stream.ToArray());
+            }
+            using (var stream = new MemoryStream())
+            {
+                await ByteSerializer.SerializeAsync(stream, (object?)value, typeof(T), options, token);
+                Assert.Equal(expected, stream.ToArray());
+            }
+            if (value!.GetType() == typeof(T))
+            {
+                //by the runtime type, the same when it's the declared type
+                using (var stream = new MemoryStream())
+                {
+                    ByteSerializer.Serialize(stream, (object)value, options);
+                    Assert.Equal(expected, stream.ToArray());
+                }
+                using (var stream = new MemoryStream())
+                {
+                    await ByteSerializer.SerializeAsync(stream, (object)value, options, token);
+                    Assert.Equal(expected, stream.ToArray());
+                }
+            }
+
+            Assert.Equal(expected, ByteSerializer.Serialize(ByteSerializer.Deserialize<T>(new MemoryStream(expected), options), options));
+            Assert.Equal(expected, ByteSerializer.Serialize((T?)ByteSerializer.Deserialize(new MemoryStream(expected), typeof(T), options), options));
+            Assert.Equal(expected, ByteSerializer.Serialize(await ByteSerializer.DeserializeAsync<T>(new MemoryStream(expected), options, token), options));
+            Assert.Equal(expected, ByteSerializer.Serialize((T?)await ByteSerializer.DeserializeAsync(new MemoryStream(expected), typeof(T), options, token), options));
+        }
+
+        public class PartialRecordSource
+        {
+            public int Property2 { get; set; }
+            public string? Property3 { get; set; }
+        }
+
+        [Fact]
+        public void ConstructorArgumentMissing()
+        {
+            var options = new ByteSerializerOptions() { IndexType = ByteSerializerIndexType.MemberNames };
+            var bytes = ByteSerializer.Serialize(new PartialRecordSource() { Property2 = 5, Property3 = "a" }, options);
+            var result = ByteSerializer.Deserialize<RecordModel>(bytes, options)!;
+            Assert.False(result.Property1);
+            Assert.Equal(5, result.Property2);
+            Assert.Equal("a", result.Property3);
+        }
+
+        [Fact]
+        public void Enum_ReflectionOnlyTypes_RoundTrip()
+        {
+            AssertEnumRoundTrips(DayOfWeek.Sunday, DayOfWeek.Saturday);
+            AssertEnumRoundTrips(System.Text.Json.JsonTokenType.None, System.Text.Json.JsonTokenType.Null);
+            Assert.Null(ByteSerializer.Deserialize<DayOfWeek?>(ByteSerializer.Serialize<DayOfWeek?>(null)));
+            Assert.Equal([DayOfWeek.Monday, null], ByteSerializer.Deserialize<DayOfWeek?[]>(ByteSerializer.Serialize(new DayOfWeek?[] { DayOfWeek.Monday, null })));
+            Assert.Equal([System.Text.Json.JsonTokenType.String, null], ByteSerializer.Deserialize<System.Text.Json.JsonTokenType?[]>(ByteSerializer.Serialize(new System.Text.Json.JsonTokenType?[] { System.Text.Json.JsonTokenType.String, null })));
+        }
+
+        [Fact]
+        public void TypeValues_WithUseTypes_RoundTrip()
+        {
+            //a Type's runtime type is RuntimeType, it's still written as a Type
+            var options = new ByteSerializerOptions() { UseTypes = true };
+
+            var model = ByteSerializer.Deserialize<SpecialTypesModel>(ByteSerializer.Serialize(new SpecialTypesModel() { TypeValue = typeof(string), After = 5 }, options), options)!;
+            Assert.Equal(typeof(string), model.TypeValue);
+            Assert.Equal(5, model.After);
+
+            Assert.Equal(typeof(int), ByteSerializer.Deserialize<Type>(ByteSerializer.Serialize<Type>(typeof(int), options), options));
+            Assert.Equal(typeof(int), ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object>(typeof(int), options), options));
+            Assert.Equal([typeof(int), typeof(string)], ByteSerializer.Deserialize<Type[]>(ByteSerializer.Serialize(new[] { typeof(int), typeof(string) }, options), options));
+        }
+
+        public class MixedList : System.Collections.ArrayList { }
+        public class MixedDictionary : System.Collections.Hashtable { }
+        public sealed class MixedEnumerable : System.Collections.IEnumerable
+        {
+            private readonly object[] items;
+            public MixedEnumerable(params object[] items) => this.items = items;
+            public System.Collections.IEnumerator GetEnumerator() => items.GetEnumerator();
+        }
+
+        public class MixedCollectionsModel
+        {
+            public MixedList? List { get; set; }
+            public MixedDictionary? Dictionary { get; set; }
+            public System.Collections.IList? DeclaredList { get; set; }
+            public System.Collections.IDictionary? DeclaredDictionary { get; set; }
+            public System.Collections.IEnumerable? DeclaredEnumerable { get; set; }
+            public int After { get; set; }
+        }
+
+        [Fact]
+        public void NonGenericCollections_MixedItemsWithUseTypes()
+        {
+            var types = new ByteSerializerOptions() { UseTypes = true };
+            var simple = new SimpleModel() { Value1 = 3, Value2 = "c" };
+
+            var list = new MixedList { 1, "two", simple, null };
+            var dictionary = new MixedDictionary { { "a", 1 }, { 2, "b" }, { 3L, simple } };
+            var model = new MixedCollectionsModel()
+            {
+                List = list,
+                Dictionary = dictionary,
+                DeclaredList = list,
+                DeclaredDictionary = dictionary,
+                DeclaredEnumerable = new List<object?> { 4, "five" },
+            };
+
+            var result = ByteSerializer.Deserialize<MixedCollectionsModel>(ByteSerializer.Serialize(model, types), types)!;
+            foreach (var resultList in new[] { result.List!, (System.Collections.IList)result.DeclaredList! })
+            {
+                Assert.IsType<MixedList>(resultList);
+                Assert.Equal(1, resultList[0]);
+                Assert.Equal("two", resultList[1]);
+                Assert.Equal(3, Assert.IsType<SimpleModel>(resultList[2]).Value1);
+                Assert.Null(resultList[3]);
+            }
+            foreach (var resultDictionary in new[] { result.Dictionary!, (System.Collections.IDictionary)result.DeclaredDictionary! })
+            {
+                Assert.IsType<MixedDictionary>(resultDictionary);
+                Assert.Equal(1, resultDictionary["a"]);
+                Assert.Equal("b", resultDictionary[2]);
+                Assert.Equal("c", Assert.IsType<SimpleModel>(resultDictionary[3L]).Value2);
+            }
+            Assert.Equal(new object?[] { 4, "five" }, result.DeclaredEnumerable!.Cast<object?>());
+
+            //a type that's only IEnumerable can be written but not read, there's nothing to add the items to
+            var enumerableBytes = ByteSerializer.Serialize(new MixedEnumerable(1, "two", simple), types);
+            Assert.NotEmpty(enumerableBytes);
+            _ = Assert.ThrowsAny<Exception>(() => ByteSerializer.Deserialize<MixedEnumerable>(enumerableBytes, types));
+
+        }
+
+        [Fact]
+        public void NonGenericCollections_WithoutUseTypes_ItemsAreObjects()
+        {
+            //like the JSON serializer the items without a type come back as objects, without the types the bytes can't say which
+            var model = new MixedCollectionsModel()
+            {
+                List = new MixedList { 1, null, "two" },
+                Dictionary = new MixedDictionary { { "a", 1 } },
+                DeclaredList = new MixedList { 1, null },
+                DeclaredDictionary = new MixedDictionary { { "a", 1 }, { "b", null } },
+                DeclaredEnumerable = new object?[] { 1, null },
+                After = 7,
+            };
+
+            var result = ByteSerializer.Deserialize<MixedCollectionsModel>(ByteSerializer.Serialize(model))!;
+            Assert.Equal(7, result.After);
+            AssertObjects(result.List!, true, false, true);
+            AssertObjects(result.DeclaredList!, true, false);
+            AssertObjects(result.DeclaredEnumerable!, true, false);
+            Assert.IsType<MixedDictionary>(result.Dictionary);
+            Assert.Single(result.Dictionary!);
+            Assert.Equal(2, result.DeclaredDictionary!.Count);
+            Assert.All(result.DeclaredDictionary.Keys.Cast<object>(), x => Assert.Equal(typeof(object), x.GetType()));
+            Assert.Single(result.DeclaredDictionary.Values.Cast<object?>(), x => x is null);
+
+            var empty = ByteSerializer.Deserialize<MixedCollectionsModel>(ByteSerializer.Serialize(new MixedCollectionsModel() { List = new MixedList(), DeclaredDictionary = new MixedDictionary(), DeclaredEnumerable = Array.Empty<object>(), After = 8 }))!;
+            Assert.Empty(empty.List!);
+            Assert.Empty(empty.DeclaredDictionary!);
+            Assert.Empty(empty.DeclaredEnumerable!);
+            Assert.Equal(8, empty.After);
+
+            //a type that's only IEnumerable can be written but not read, the same as with the types
+            var enumerableBytes = ByteSerializer.Serialize(new MixedEnumerable(1, "two"));
+            _ = Assert.ThrowsAny<Exception>(() => ByteSerializer.Deserialize<MixedEnumerable>(enumerableBytes));
+
+            static void AssertObjects(System.Collections.IEnumerable items, params bool[] notNull)
+            {
+                var list = items.Cast<object?>().ToArray();
+                Assert.Equal(notNull.Length, list.Length);
+                for (var i = 0; i < list.Length; i++)
+                {
+                    if (notNull[i])
+                        Assert.Equal(typeof(object), list[i]!.GetType());
+                    else
+                        Assert.Null(list[i]);
+                }
+            }
+        }
+
+        [Fact]
+        public void ObjectValues_WithoutUseTypes_AreObjects()
+        {
+            var types = new ByteSerializerOptions() { UseTypes = true };
+
+            //without the types only that there's a value is kept, with them the value is
+            Assert.Equal(typeof(object), ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object>(5))!.GetType());
+            Assert.Equal(typeof(object), ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object>("text"))!.GetType());
+            Assert.Equal(typeof(object), ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object>(new SimpleModel() { Value1 = 1 }))!.GetType());
+            Assert.NotNull(ByteSerializer.Deserialize<object>(ByteSerializer.Serialize(new object())));
+
+            //a collection of objects keeps how many there are and which are null
+            object?[] items = [1, "two", null, new SimpleModel() { Value1 = 1 }, 5.5m];
+            foreach (var result in new System.Collections.IEnumerable[]
+            {
+                ByteSerializer.Deserialize<List<object?>>(ByteSerializer.Serialize(items.ToList()))!,
+                ByteSerializer.Deserialize<object?[]>(ByteSerializer.Serialize(items))!,
+                ByteSerializer.Deserialize<IEnumerable<object?>>(ByteSerializer.Serialize<IEnumerable<object?>>(items))!,
+                ByteSerializer.Deserialize<HashSet<object?>>(ByteSerializer.Serialize(new HashSet<object?>(items)))!,
+            })
+            {
+                var list = result.Cast<object?>().ToArray();
+                Assert.Equal(5, list.Length);
+                Assert.Equal(4, list.Count(x => x is not null && x.GetType() == typeof(object)));
+                Assert.Single(list, x => x is null);
+            }
+            var dictionary = ByteSerializer.Deserialize<Dictionary<string, object?>>(ByteSerializer.Serialize(new Dictionary<string, object?>() { { "a", 1 }, { "b", null }, { "c", "three" } }))!;
+            Assert.Equal(["a", "b", "c"], dictionary.Keys.OrderBy(x => x));
+            Assert.Null(dictionary["b"]);
+            Assert.Equal(typeof(object), dictionary["c"]!.GetType());
+
+            Assert.Equal(5,ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object>(5, types), types));
+            Assert.Equal("text", ByteSerializer.Deserialize<object>(ByteSerializer.Serialize<object>("text", types), types));
         }
     }
 }

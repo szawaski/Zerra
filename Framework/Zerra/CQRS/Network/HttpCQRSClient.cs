@@ -1082,7 +1082,7 @@ namespace Zerra.CQRS.Network
                     if (isThrowingRemote || cancellationToken.IsCancellationRequested)
                         throw;
                     else
-                        throw new Exception($"Dispatch failed for {commandType.Name}", ex);
+                        throw new Exception($"Dispatch failed for {commandType.Name} - {ex.GetBaseException().Message}");
                 }
             }
             finally

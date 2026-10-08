@@ -127,5 +127,75 @@ namespace Zerra.Test
             Assert.True(testDuplicate.HasFlag(TestFlagsEnum.Thing5));
             Assert.True(testDuplicate.HasFlag(TestFlagsEnum.ThingDuplicate));
         }
+
+        [Flags]
+        public enum ByteFlagsEnum : byte
+        {
+            None = 0,
+            A = 1,
+            [EnumName("B b")]
+            B = 2,
+            C = 128,
+        }
+
+        [Flags]
+        public enum ULongFlagsEnum : ulong
+        {
+            None = 0,
+            A = 1,
+            Top = 1UL << 63,
+        }
+
+        [Flags]
+        public enum SByteFlagsEnum : sbyte
+        {
+            None = 0,
+            A = 1,
+            Low = -128,
+        }
+
+        [Fact]
+        public void FlagsOtherUnderlyingTypes()
+        {
+            Assert.Equal("A|B b|C", EnumName.GetName(ByteFlagsEnum.A | ByteFlagsEnum.B | ByteFlagsEnum.C));
+            Assert.Equal(ByteFlagsEnum.A | ByteFlagsEnum.C, EnumName.Parse<ByteFlagsEnum>("A|C"));
+            Assert.Equal("A|Top", EnumName.GetName(ULongFlagsEnum.A | ULongFlagsEnum.Top));
+            Assert.Equal(ULongFlagsEnum.A | ULongFlagsEnum.Top, EnumName.Parse<ULongFlagsEnum>("A|Top"));
+            Assert.Equal("A|Low", EnumName.GetName(SByteFlagsEnum.A | SByteFlagsEnum.Low));
+            Assert.Equal(SByteFlagsEnum.A | SByteFlagsEnum.Low, EnumName.Parse<SByteFlagsEnum>("A|Low"));
+        }
+
+        [Fact]
+        public void NonGenericAndFailures()
+        {
+            Assert.Equal("Thing 2", EnumName.GetName(typeof(TestEnum), TestEnum.Thing2));
+            Assert.Equal(TestEnum.Thing2, EnumName.Parse("Thing 2", typeof(TestEnum)));
+            Assert.True(EnumName.TryParse("Thing 2", typeof(TestEnum), out var parsed));
+            Assert.Equal(TestEnum.Thing2, parsed);
+
+            Assert.False(EnumName.TryParse<TestEnum>("Missing", out _));
+            Assert.False(EnumName.TryParse<TestEnum>(null, out _));
+            Assert.False(EnumName.TryParse<TestEnum>("thing 2", out _));
+            Assert.False(EnumName.TryParse("Missing", typeof(TestEnum), out _));
+            _ = Assert.ThrowsAny<Exception>(() => EnumName.Parse<TestEnum>("Missing"));
+            _ = Assert.ThrowsAny<Exception>(() => EnumName.Parse<TestEnum>(null));
+            _ = Assert.ThrowsAny<Exception>(() => EnumName.Parse("Missing", typeof(TestEnum)));
+        }
+
+        [Fact]
+        public void Extensions()
+        {
+            Assert.Equal("Thing 2", TestEnum.Thing2.EnumName());
+            Assert.Equal("Thing 2", ((TestEnum?)TestEnum.Thing2).EnumName());
+            Assert.Null(((TestEnum?)null).EnumName());
+
+            Assert.Equal(TestEnum.Thing2, "Thing 2".ToEnum<TestEnum>());
+            _ = Assert.ThrowsAny<Exception>(() => "Missing".ToEnum<TestEnum>());
+
+            Assert.Equal(TestEnum.Thing2, "Thing 2".ToEnumNullable<TestEnum>());
+            Assert.Equal(TestEnum.None, "None".ToEnumNullable<TestEnum>());
+            Assert.Null("Missing".ToEnumNullable<TestEnum>());
+            Assert.Null(((string?)null).ToEnumNullable<TestEnum>());
+        }
     }
 }

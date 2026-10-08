@@ -310,11 +310,6 @@ namespace Zerra.Serialization.Bytes
             if (obj is null)
                 return;
 
-            if (stream is null)
-                throw new ArgumentNullException(nameof(stream));
-            if (obj is null)
-                return;
-
             options ??= defaultOptions;
 
             var converter = ByteConverterFactory.GetRoot(obj.GetType());
@@ -365,11 +360,6 @@ namespace Zerra.Serialization.Bytes
                 throw new ArgumentNullException(nameof(stream));
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
-            if (obj is null)
-                return;
-
-            if (stream is null)
-                throw new ArgumentNullException(nameof(stream));
             if (obj is null)
                 return;
 

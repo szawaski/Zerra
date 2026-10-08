@@ -196,17 +196,18 @@ namespace Zerra.Serialization.Json.IO
 
             if (useBytes)
             {
-                if (bufferBytes.Length - charPostion < 4)
+                if (charPostion >= bufferBytes.Length)
                     return new FormatException($"JSON Error: {message}");
-              
+
 #if NETSTANDARD2_0
-                var character = encoding.GetString(bufferBytes.Slice(charPostion, 4).ToArray())[0];
+                var characterText = encoding.GetString(bufferBytes.Slice(charPostion, Math.Min(4, bufferBytes.Length - charPostion)).ToArray());
 #else
-                var character = encoding.GetString(bufferBytes.Slice(charPostion, 4))[0];
+                var characterText = encoding.GetString(bufferBytes.Slice(charPostion, Math.Min(4, bufferBytes.Length - charPostion)));
 #endif
+                var character = characterText.Length > 0 ? characterText[0] : ' ';
 
                 var start1 = charPostion > errorHelperLength ? charPostion - errorHelperLength : 0;
-                var length1 = start1 + errorHelperLength > charPostion ? charPostion - start1 : errorHelperLength;
+                var length1 = charPostion - start1;
 #if NETSTANDARD2_0
                 var helper1 = encoding.GetString(bufferBytes.Slice(start1, length1).ToArray());
 #else
@@ -214,7 +215,7 @@ namespace Zerra.Serialization.Json.IO
 #endif
 
                 var start2 = charPostion + 1;
-                var length2 = start2 + errorHelperLength > bufferBytes.Length ? bufferBytes.Length - start2 : errorHelperLength;
+                var length2 = Math.Min(errorHelperLength, bufferBytes.Length - start2);
 #if NETSTANDARD2_0
                 var helper2 = encoding.GetString(bufferBytes.Slice(start2, length2).ToArray());
 #else
@@ -225,17 +226,20 @@ namespace Zerra.Serialization.Json.IO
             }
             else
             {
+                if (charPostion >= bufferChars.Length)
+                    return new FormatException($"JSON Error: {message}");
+
                 var character = bufferChars[charPostion];
 
                 var start1 = charPostion > errorHelperLength ? charPostion - errorHelperLength : 0;
-                var length1 = start1 + errorHelperLength > charPostion ? charPostion - start1 : errorHelperLength;
+                var length1 = charPostion - start1;
                 var helper1 = bufferChars.Slice(start1, length1).ToString();
 
-                var start2 = position + 1;
-                var length2 = start2 + errorHelperLength > bufferChars.Length ? bufferChars.Length - start2 : errorHelperLength;
+                var start2 = charPostion + 1;
+                var length2 = Math.Min(errorHelperLength, bufferChars.Length - start2);
                 var helper2 = bufferChars.Slice(start2, length2).ToString();
 
-                return new FormatException($"JSON Error: {message} at position {position} character {character} between {helper1} and {helper2}");
+                return new FormatException($"JSON Error: {message} at position {position} character ~{character}~ between ~{helper1}~ and ~{helper2}~");
             }
         }
     }

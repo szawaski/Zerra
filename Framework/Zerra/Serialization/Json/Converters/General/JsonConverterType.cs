@@ -33,7 +33,11 @@ namespace Zerra.Serialization.Json.Converters.General
                     else
                         str = reader.PositionOfFirstEscape == -1 ? reader.ValueChars.ToString() : reader.UnescapeStringChars();
 
-                    value = TypeFinder.GetTypeFromName(str);
+                    if (String.IsNullOrWhiteSpace(str) || !TypeFinder.TryGetTypeFromName(str, out value))
+                    {
+                        ThrowInvalidValue(ref reader);
+                        value = default;
+                    }
                     return true;
                 case JsonToken.Number:
                     if (state.ErrorOnTypeMismatch)

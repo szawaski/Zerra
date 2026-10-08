@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
 using Xunit;
 using Zerra.Collections;
 
@@ -248,6 +249,17 @@ namespace Zerra.Test.Collections
             Assert.Equal(5, values.Count);
             Assert.Equal(1, values[0]);
             Assert.Equal(5, values[4]);
+        }
+
+        [Fact]
+        public void SingleValue_CopyTo_Enumerate()
+        {
+            var stack = new ReadOnlyStack<int>(5);
+            Assert.Single(stack);
+            Assert.Equal([5], ((IEnumerable)stack).Cast<int>());
+            var array = new int[2];
+            ((ICollection)stack).CopyTo(array, 1);
+            Assert.Equal([0, 5], array);
         }
     }
 }
