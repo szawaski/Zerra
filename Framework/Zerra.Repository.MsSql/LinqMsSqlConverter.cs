@@ -1100,7 +1100,7 @@ namespace Zerra.Repository.MsSql
         }
 
         /// <inheritdoc/>
-        protected override bool ConvertToSqlValueRender(MemberExpression? memberProperty, Type type, object? value, ref CharWriter sb, BuilderContext context)
+        protected override void ConvertToSqlValueRender(Type type, object? value, ref CharWriter sb, BuilderContext context)
         {
             //avoid TypeDetail for AOT support
 
@@ -1111,7 +1111,7 @@ namespace Zerra.Repository.MsSql
             if (value is null)
             {
                 sb.Write("NULL");
-                return false;
+                return;
             }
 
             if (type.Name == nullableTypeName)
@@ -1132,18 +1132,18 @@ namespace Zerra.Repository.MsSql
                             sb.Write((bool)value != context.Inverted ? "1=1" : "1=0");
                         else
                             sb.Write((bool)value ? '1' : '0');
-                        return false;
-                    case CoreType.Byte: sb.Write((byte)value); return false;
-                    case CoreType.SByte: sb.Write((sbyte)value); return false;
-                    case CoreType.Int16: sb.Write((short)value); return false;
-                    case CoreType.UInt16: sb.Write((ushort)value); return false;
-                    case CoreType.Int32: sb.Write((int)value); return false;
-                    case CoreType.UInt32: sb.Write((uint)value); return false;
-                    case CoreType.Int64: sb.Write((long)value); return false;
-                    case CoreType.UInt64: sb.Write((ulong)value); return false;
-                    case CoreType.Single: sb.Write((float)value); return false;
-                    case CoreType.Double: sb.Write((double)value); return false;
-                    case CoreType.Decimal: sb.Write((decimal)value); return false;
+                        return;
+                    case CoreType.Byte: sb.Write((byte)value); return;
+                    case CoreType.SByte: sb.Write((sbyte)value); return;
+                    case CoreType.Int16: sb.Write((short)value); return;
+                    case CoreType.UInt16: sb.Write((ushort)value); return;
+                    case CoreType.Int32: sb.Write((int)value); return;
+                    case CoreType.UInt32: sb.Write((uint)value); return;
+                    case CoreType.Int64: sb.Write((long)value); return;
+                    case CoreType.UInt64: sb.Write((ulong)value); return;
+                    case CoreType.Single: sb.Write((float)value); return;
+                    case CoreType.Double: sb.Write((double)value); return;
+                    case CoreType.Decimal: sb.Write((decimal)value); return;
                     case CoreType.Char:
                         if ((char)value == '\'')
                         {
@@ -1155,246 +1155,41 @@ namespace Zerra.Repository.MsSql
                             sb.Write((char)value);
                             sb.Write('\'');
                         }
-                        return false;
+                        return;
                     case CoreType.DateTime:
-                        if (memberProperty is not null)
-                        {
-                            switch (memberProperty.Member.Name)
-                            {
-                                case "Year":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTime)value).Year);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Month":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTime)value).Month);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Day":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTime)value).Day);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Hour":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTime)value).Hour);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Minute":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTime)value).Minute);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Second":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTime)value).Second);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Millisecond":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTime)value).Millisecond);
-                                    sb.Write('\'');
-                                    return true;
-                                case "DayOfYear":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTime)value).DayOfYear);
-                                    sb.Write('\'');
-                                    return true;
-                                case "DayOfWeek":
-                                    sb.Write('\'');
-                                    sb.Write(((int)((DateTime)value).DayOfWeek).ToString());
-                                    sb.Write('\'');
-                                    return true;
-                            }
-                        }
                         sb.Write('\'');
                         sb.Write((DateTime)value, CharWriter.DateTimeFormat.MsSql);
                         sb.Write('\'');
-                        return false;
+                        return;
                     case CoreType.DateTimeOffset:
-                        if (memberProperty is not null)
-                        {
-                            switch (memberProperty.Member.Name)
-                            {
-                                case "Year":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTimeOffset)value).Year);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Month":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTimeOffset)value).Month);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Day":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTimeOffset)value).Day);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Hour":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTimeOffset)value).Hour);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Minute":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTimeOffset)value).Minute);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Second":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTimeOffset)value).Second);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Millisecond":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTimeOffset)value).Millisecond);
-                                    sb.Write('\'');
-                                    return true;
-                                case "DayOfYear":
-                                    sb.Write('\'');
-                                    sb.Write(((DateTimeOffset)value).DayOfYear);
-                                    sb.Write('\'');
-                                    return true;
-                                case "DayOfWeek":
-                                    sb.Write('\'');
-                                    sb.Write(((int)((DateTimeOffset)value).DayOfWeek).ToString());
-                                    sb.Write('\'');
-                                    return true;
-                            }
-                        }
                         sb.Write('\'');
                         sb.Write((DateTimeOffset)value, CharWriter.DateTimeFormat.MsSql);
                         sb.Write('\'');
-                        return false;
+                        return;
                     case CoreType.TimeSpan:
-                        if (memberProperty is not null)
-                        {
-                            switch (memberProperty.Member.Name)
-                            {
-                                case "Hours":
-                                    sb.Write('\'');
-                                    sb.Write(((TimeSpan)value).Hours);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Minutes":
-                                    sb.Write('\'');
-                                    sb.Write(((TimeSpan)value).Minutes);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Seconds":
-                                    sb.Write('\'');
-                                    sb.Write(((TimeSpan)value).Seconds);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Milliseconds":
-                                    sb.Write('\'');
-                                    sb.Write(((TimeSpan)value).Milliseconds);
-                                    sb.Write('\'');
-                                    return true;
-                                case "TotalHours":
-                                    sb.Write('\'');
-                                    sb.Write(((TimeSpan)value).TotalHours);
-                                    sb.Write('\'');
-                                    return true;
-                                case "TotalMinutes":
-                                    sb.Write('\'');
-                                    sb.Write(((TimeSpan)value).TotalMinutes);
-                                    sb.Write('\'');
-                                    return true;
-                                case "TotalSeconds":
-                                    sb.Write('\'');
-                                    sb.Write(((TimeSpan)value).TotalSeconds);
-                                    sb.Write('\'');
-                                    return true;
-                                case "TotalMilliseconds":
-                                    sb.Write('\'');
-                                    sb.Write(((TimeSpan)value).TotalMilliseconds);
-                                    sb.Write('\'');
-                                    return true;
-                            }
-                        }
                         sb.Write('\'');
                         sb.Write((TimeSpan)value, CharWriter.TimeFormat.MsSql);
                         sb.Write('\'');
-                        return false;
+                        return;
                     case CoreType.DateOnly:
-                        if (memberProperty is not null)
-                        {
-                            switch (memberProperty.Member.Name)
-                            {
-                                case "Year":
-                                    sb.Write('\'');
-                                    sb.Write(((DateOnly)value).Year);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Month":
-                                    sb.Write('\'');
-                                    sb.Write(((DateOnly)value).Month);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Day":
-                                    sb.Write('\'');
-                                    sb.Write(((DateOnly)value).Day);
-                                    sb.Write('\'');
-                                    return true;
-                                case "DayOfYear":
-                                    sb.Write('\'');
-                                    sb.Write(((DateOnly)value).DayOfYear);
-                                    sb.Write('\'');
-                                    return true;
-                                case "DayOfWeek":
-                                    sb.Write('\'');
-                                    sb.Write(((int)((DateOnly)value).DayOfWeek).ToString());
-                                    sb.Write('\'');
-                                    return true;
-                            }
-                        }
                         sb.Write('\'');
                         sb.Write((DateOnly)value, CharWriter.DateTimeFormat.MsSql);
                         sb.Write('\'');
-                        return false;
+                        return;
                     case CoreType.TimeOnly:
-                        if (memberProperty is not null)
-                        {
-                            switch (memberProperty.Member.Name)
-                            {
-                                case "Hour":
-                                    sb.Write('\'');
-                                    sb.Write(((TimeOnly)value).Hour);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Minute":
-                                    sb.Write('\'');
-                                    sb.Write(((TimeOnly)value).Minute);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Second":
-                                    sb.Write('\'');
-                                    sb.Write(((TimeOnly)value).Second);
-                                    sb.Write('\'');
-                                    return true;
-                                case "Millisecond":
-                                    sb.Write('\'');
-                                    sb.Write(((TimeOnly)value).Millisecond);
-                                    sb.Write('\'');
-                                    return true;
-                            }
-                        }
                         sb.Write('\'');
                         sb.Write((TimeOnly)value, CharWriter.TimeFormat.MsSql);
                         sb.Write('\'');
-                        return false;
+                        return;
                     case CoreType.Guid:
                         sb.Write('\'');
                         sb.Write((Guid)value);
                         sb.Write('\'');
-                        return false;
+                        return;
                     case CoreType.String:
                         sb.Write("N'");
                         sb.Write(((string)value).Replace("'", "''"));
-                        sb.Write('\''); return false;
+                        sb.Write('\''); return;
                 }
             }
 
@@ -1405,7 +1200,7 @@ namespace Zerra.Repository.MsSql
                     sb.Write(System.Convert.ToUInt64(value));
                 else
                     sb.Write(System.Convert.ToInt64(value));
-                return false;
+                return;
             }
 
             if (type.IsArray || type.Name == "ReadOnlySpan`1" || type.Name == "Span`1")
@@ -1415,7 +1210,7 @@ namespace Zerra.Repository.MsSql
                 {
                     sb.Write("0x");
                     sb.Write((byte[])value, CharWriter.ByteFormat.Hex);
-                    return false;
+                    return;
                 }
                 else
                 {
@@ -1436,7 +1231,7 @@ namespace Zerra.Repository.MsSql
                         sb.Write("NULL");
 
                     sb.Write(')');
-                    return false;
+                    return;
                 }
             }
 
@@ -1462,7 +1257,7 @@ namespace Zerra.Repository.MsSql
                     sb.Write("NULL");
 
                 sb.Write(')');
-                return false;
+                return;
             }
 
             if (type == typeof(object))
@@ -1470,7 +1265,7 @@ namespace Zerra.Repository.MsSql
                 sb.Write("N'");
                 sb.Write(value.ToString()!.Replace("\'", "''"));
                 sb.Write('\'');
-                return false;
+                return;
             }
 
             throw new NotImplementedException($"{type.Name} value {value?.ToString()} not converted");

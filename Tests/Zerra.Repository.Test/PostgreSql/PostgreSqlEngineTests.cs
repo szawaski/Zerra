@@ -64,6 +64,7 @@ namespace Zerra.Repository.Test.PostgreSql
             await RelationPersistTests.TestSequenceAsync(engine);
             QueryParityTests.TestSequence(engine);
             await QueryParityTests.TestSequenceAsync(engine);
+            SchemaChangeTests.Test(engine, table => ExecuteSql(connectionString, $"DROP TABLE IF EXISTS {table.ToLowerInvariant()}"));
 
             const string changeColumn = "ALTER TABLE testtypes ALTER COLUMN int32thing TYPE bigint; ALTER TABLE testtypes ALTER COLUMN int32thing DROP NOT NULL;";
             const string addColumn = "ALTER TABLE testtypes ADD dummytomakenullable int NOT NULL";

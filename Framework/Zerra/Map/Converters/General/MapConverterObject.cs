@@ -131,7 +131,7 @@ namespace Zerra.Map
 
             if (collectValues)
             {
-                var args = (object?[])parameterDefaults.Clone();
+                var args = new object?[parameterDefaults.Length];
                 for (var i = 0; i < args.Length; i++)
                 {
 #if NETSTANDARD2_0
@@ -140,9 +140,15 @@ namespace Zerra.Map
                         collectedValues.Remove(parameterConstructor!.Parameters[i].Name!);
                         args[i] = parameter;
                     }
+                    else
+                    {
+                        args[i] = parameterDefaults[i];
+                    }
 #else
                     if (collectedValues!.Remove(parameterConstructor!.Parameters[i].Name!, out var parameter))
                         args[i] = parameter;
+                    else
+                        args[i] = parameterDefaults[i];
 #endif
                 }
 

@@ -410,6 +410,92 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             }
         }
 
+        private static string AckQueue(AzureServiceBusProducer producer) => (string)typeof(AzureServiceBusProducer).GetField("ackQueue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producer)!;
+        private static ICollection<string> PendingAckKeys(AzureServiceBusProducer producer) => ((System.Collections.IDictionary)typeof(AzureServiceBusProducer).GetField("ackCallbacks", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producer)!).Keys.Cast<string>().ToArray();
+
+        [Fact(Timeout = 300000)]
+        public async Task TestInvalidAcknowledgement()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            await using var client = new Azure.Messaging.ServiceBus.ServiceBusClient(host);
+            try
+            {
+                await using var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null);
+                await using var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null);
+                try
+                {
+                    Zerra.Reflection.TypeFinder.Register(typeof(TestCommand));
+                    async Task Handle(ICommand command, string commandSource, CancellationToken cancellationToken)
+                    {
+                        started.TrySetResult();
+                        await release.Task;
+                    }
+                    ((ICommandConsumer)consumer).Setup(null, Handle, Handle, (_, _, _) => Task.FromResult<object?>(null));
+                    ((ICommandConsumer)consumer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                    ((ICommandProducer)producer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                    ((ICommandConsumer)consumer).Open();
+
+                    var awaiting = ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand { ID = Guid.NewGuid() }, "test", TestContext.Current.CancellationToken);
+                    await started.Task.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
+
+                    //an acknowledgement that can't be read fails the call instead of leaving it waiting
+                    var key = Assert.Single(PendingAckKeys(producer));
+                    await using (var sender = client.CreateSender(AckQueue(producer)))
+                    {
+                        await sender.SendMessageAsync(new Azure.Messaging.ServiceBus.ServiceBusMessage(new byte[] { 1, 2, 3 }) { SessionId = key }, TestContext.Current.CancellationToken);
+                        //an acknowledgement nobody is waiting for is ignored
+                        await sender.SendMessageAsync(new Azure.Messaging.ServiceBus.ServiceBusMessage(new byte[] { 1 }) { SessionId = "unknown" }, TestContext.Current.CancellationToken);
+                    }
+                    _ = await Assert.ThrowsAnyAsync<Exception>(() => awaiting.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken));
+                }
+                finally
+                {
+                    //disposing the consumer waits for the handler
+                    release.TrySetResult();
+                }
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestAckQueueDeleted()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            string? ackQueue = null;
+            try
+            {
+                await using var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null);
+                await using var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null);
+                ackQueue = AckQueue(producer);
+                Zerra.Reflection.TypeFinder.Register(typeof(TestCommand));
+                ((ICommandConsumer)consumer).Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null));
+                ((ICommandConsumer)consumer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                ((ICommandProducer)producer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                ((ICommandConsumer)consumer).Open();
+
+                await ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand { ID = Guid.NewGuid() }, "test", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
+
+                //deleted outside Zerra while the producer listens on it, awaited commands still get their acknowledgements
+                await AzureServiceBusCommon.CreateAdministrationClient(host).DeleteQueueAsync(ackQueue, TestContext.Current.CancellationToken);
+                await ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand { ID = Guid.NewGuid() }, "test", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(120), TestContext.Current.CancellationToken);
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+                if (ackQueue is not null)
+                    await AzureServiceBusCommon.DeleteQueue(host, ackQueue);
+            }
+        }
+
         [Fact(Timeout = 120000)]
         public async Task TestLongNamesTruncated()
         {

@@ -95,7 +95,6 @@ namespace Zerra.CQRS.Kafka
             producerConfig.LingerMs = 0;
             //topics are created by Zerra with its settings, not by the broker with its defaults
             producerConfig.AllowAutoCreateTopics = false;
-            //a send to a missing topic fails after this instead of the 30 second default, then creates it
             producerConfig.TopicMetadataPropagationMaxMs = 1000;
             producerConfig.ClientId = clientID;
             if (userName is not null && password is not null)
@@ -413,7 +412,13 @@ namespace Zerra.CQRS.Kafka
 
                 try
                 {
-                    using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build())
+                    //librdkafka only reports a deleted topic as an error and keeps waiting, so it ends the consume and the retry creates the topic again
+                    using var topicMissing = CancellationTokenSource.CreateLinkedTokenSource(canceller.Token);
+                    using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).SetErrorHandler((_, error) =>
+                    {
+                        if (error.Code == ErrorCode.UnknownTopicOrPart || error.Code == ErrorCode.Local_UnknownPartition)
+                            topicMissing.Cancel();
+                    }).Build())
                     {
                         //the topic is new, so reading from the start catches acknowledgements sent before the assignment
                         consumer.Assign(new TopicPartitionOffset(ackTopic, 0, Offset.Beginning));
@@ -421,7 +426,7 @@ namespace Zerra.CQRS.Kafka
                         {
                             for (; ; )
                             {
-                                var consumerResult = consumer.Consume(canceller.Token);
+                                var consumerResult = consumer.Consume(topicMissing.Token);
 
                                 if (!ackCallbacks.TryRemove(consumerResult.Message.Key, out var waiter))
                                     continue;
@@ -460,6 +465,14 @@ namespace Zerra.CQRS.Kafka
                     {
                         log?.Error(ex);
                         await Task.Delay(KafkaCommon.RetryDelay);
+                        try
+                        {
+                            await KafkaCommon.CreateTopic(commonHost, ackTopic);
+                        }
+                        catch (Exception createEx)
+                        {
+                            log?.Error(createEx);
+                        }
                         goto retry;
                     }
                 }

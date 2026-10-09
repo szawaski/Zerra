@@ -17,7 +17,7 @@ namespace Zerra.SourceGeneration
                 return "null";
             if (typeSymbol.Kind == SymbolKind.TypeParameter)
                 return "null";
-            if (typeSymbol.Kind == SymbolKind.PointerType)
+            if (typeSymbol.Kind == SymbolKind.PointerType || typeSymbol.Kind == SymbolKind.FunctionPointerType)
                 return "typeof(nint)";
             if (typeSymbol.Name == "Void")
                 return "typeof(void)";

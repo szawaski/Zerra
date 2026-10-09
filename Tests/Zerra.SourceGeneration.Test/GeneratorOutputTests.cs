@@ -737,5 +737,212 @@ namespace Zerra.SourceGeneration.Test
             output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.WidgetAggregate,");
             output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.WidgetCreatedAggregateEvent,");
         }
+
+        [Fact]
+        public void MemberShapes()
+        {
+            var output = GeneratorRunner.Run("""
+                using System;
+                using Zerra.Reflection;
+                using Zerra.Repository;
+
+                namespace TestApp
+                {
+                    public interface IThing
+                    {
+                        void Do();
+                    }
+
+                    [GenerateTypeDetail]
+                    public unsafe class Shapes
+                    {
+                        public int WriteOnly { set { } }
+                        public static int StaticField;
+                        public static string? StaticReferenceField;
+                        public required int First { get; set; }
+                        public required string Second { get; set; }
+                        public Outer.Inner? Nested { get; set; }
+                        public int* Pointer { get; set; }
+                        public nint Native { get; set; }
+                        public int* PointerField;
+                        public delegate*<int, void> FunctionPointer;
+                        public System.Span<int> Span => default;
+
+                        public Shapes() { }
+                        public Shapes(int* pointer) { }
+                    }
+
+                    //methods are generated for aggregates
+                    public sealed unsafe class ShapeAggregate : AggregateRoot, IThing
+                    {
+                        public ShapeAggregate(Guid id, IEventStoreEngine eventStore) : base(id, eventStore) { }
+
+                        public int* GetPointer() => null;
+                        public void SetPointer(int* pointer) { }
+                        public void Run(int a, string b) { }
+                        public int Add(int a, int b) => a + b;
+                        internal void Hidden() { }
+                        public static int StaticMethod(int a) => a;
+                        public T Echo<T>(T value) => value;
+                        public static ShapeAggregate operator +(ShapeAggregate a, ShapeAggregate b) => a;
+                        public void TryGet(out int value) { value = 1; }
+                        void IThing.Do() { }
+                    }
+
+                    public class Outer
+                    {
+                        public class Inner
+                        {
+                            public int Value { get; set; }
+                        }
+                    }
+                }
+                """);
+
+            output.AssertInitializerContains("\"Run\"");
+            output.AssertInitializerContains("\"Add\"");
+            output.AssertInitializerContains("\"StaticField\"");
+            output.AssertInitializerContains("\"WriteOnly\"");
+            output.AssertInitializerContains("global::TestApp.Outer.Inner");
+            //pointers and ref structs can't be boxed, they are listed without accessors like reflection does
+            output.AssertInitializerContains("new global::Zerra.Reflection.MemberDetail(typeof(global::TestApp.Shapes), typeof(nint), \"Pointer\", false, null, null, null, null, ");
+            output.AssertInitializerContains("new global::Zerra.Reflection.MemberDetail(typeof(global::TestApp.Shapes), typeof(nint), \"PointerField\", true, null, null, null, null, ");
+            output.AssertInitializerContains("\"Span\", false, null, null, null, null, ");
+            //methods that can't be called through an object and object[] aren't generated
+            output.AssertInitializerDoesNotContain("\"Hidden\"");
+            output.AssertInitializerDoesNotContain("\"StaticMethod\"");
+            output.AssertInitializerDoesNotContain("\"GetPointer\"");
+            output.AssertInitializerDoesNotContain("\"SetPointer\"");
+            output.AssertInitializerDoesNotContain("\"Echo\"");
+            output.AssertInitializerDoesNotContain("\"TryGet\"");
+            output.AssertInitializerDoesNotContain("\"op_Addition\"");
+            output.AssertInitializerDoesNotContain("\"TestApp.IThing.Do\"");
+        }
+
+        [Fact]
+        public void EmptyImplementationShapes()
+        {
+            var output = GeneratorRunner.Run("""
+                using System.Threading.Tasks;
+                using Zerra.Reflection;
+
+                namespace TestApp
+                {
+                    public interface IBase
+                    {
+                        int BaseValue { get; }
+                    }
+
+                    public interface IStore<T> : IBase where T : class
+                    {
+                        T this[int index, string key] { get; set; }
+                        U Convert<U, V>(T value, V other) where U : struct;
+                        Task Save(T value);
+                    }
+
+                    public class Child
+                    {
+                        public int Value { get; set; }
+                    }
+
+                    [GenerateTypeDetail]
+                    public class Model
+                    {
+                        public IStore<Child>? Store { get; set; }
+                    }
+                }
+                """);
+
+            var source = output.Sources["Empty_IStore_TestApp_Child_.cs"];
+            Assert.Contains("this[", source);
+            Assert.Contains("BaseValue", source);
+            Assert.Contains("Convert<", source);
+            Assert.Contains("System.Threading.Tasks.Task.CompletedTask", source);
+        }
+
+        [Fact]
+        public void RouterAndCollectionShapes()
+        {
+            var output = GeneratorRunner.Run("""
+                using System.Collections;
+                using System.Collections.Generic;
+                using System.Diagnostics.CodeAnalysis;
+                using System.Threading.Tasks;
+                using Zerra.CQRS;
+                using Zerra.Reflection;
+
+                namespace TestApp
+                {
+                    public interface IShapeQueryProvider : IQueryHandler
+                    {
+                        int Value { get; set; }
+                        Task<T> Make<T>() where T : struct;
+                    }
+
+                    public class ReadOnlyMap : IReadOnlyDictionary<string, int>
+                    {
+                        public int this[string key] => 0;
+                        public IEnumerable<string> Keys => [];
+                        public IEnumerable<int> Values => [];
+                        public int Count => 0;
+                        public bool ContainsKey(string key) => false;
+                        public bool TryGetValue(string key, [MaybeNullWhen(false)] out int value) { value = 0; return false; }
+                        public IEnumerator<KeyValuePair<string, int>> GetEnumerator() => new List<KeyValuePair<string, int>>().GetEnumerator();
+                        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+                    }
+
+                    public class Pair<TFirst, TSecond>
+                    {
+                        public TFirst? First { get; set; }
+                        public TSecond? Second { get; set; }
+                    }
+
+                    public class Child
+                    {
+                        public int Value { get; set; }
+                    }
+
+                    [GenerateTypeDetail]
+                    public class Model
+                    {
+                        public ReadOnlyMap? Map { get; set; }
+                        public Pair<Child, List<Child>>? Pair { get; set; }
+                    }
+                }
+                """);
+
+            var caller = output.Sources["Caller_IShapeQueryProvider.cs"];
+            Assert.Contains("set => throw new global::System.NotSupportedException();", caller);
+            Assert.Contains("struct", caller);
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.ReadOnlyMap,global::System.Collections.Generic.KeyValuePair<string, int>,string,int>();");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.Pair<global::TestApp.Child, global::System.Collections.Generic.List<global::TestApp.Child>>,");
+        }
+
+        [Fact]
+        public void AttributeSpecialNumbers()
+        {
+            var output = GeneratorRunner.Run("""
+                using System;
+                using Zerra.Reflection;
+
+                namespace TestApp
+                {
+                    [AttributeUsage(AttributeTargets.All)]
+                    public class LimitsAttribute : Attribute
+                    {
+                        public LimitsAttribute(float a, float b, double c, double d) { }
+                    }
+
+                    [GenerateTypeDetail]
+                    public class Model
+                    {
+                        [Limits(float.PositiveInfinity, float.NegativeInfinity, double.NaN, double.NegativeInfinity)]
+                        public int Value { get; set; }
+                    }
+                }
+                """);
+
+            output.AssertInitializerContains("new global::TestApp.LimitsAttribute(float.PositiveInfinity, float.NegativeInfinity, double.NaN, double.NegativeInfinity)");
+        }
     }
 }

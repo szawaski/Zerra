@@ -13,6 +13,30 @@ namespace Zerra.Repository.Test.KurrentDB
     public class KurrentDBEngineTests
     {
         [Fact]
+        public async Task TestSequenceEventStore()
+        {
+            using var engine = new KurrentDBEngine(KurrentDBTestDataContext.ConnectionString, KurrentDBTestDataContext.Insecure);
+            await RepoTest.TestSequenceEventStoreAsync(engine);
+        }
+
+        [Fact]
+        public async Task TestEventStoreEngine()
+        {
+            using var engine = new KurrentDBEngine(KurrentDBTestDataContext.ConnectionString, KurrentDBTestDataContext.Insecure);
+            await EventStoreEngineTest.TestAsync(engine);
+        }
+
+        [Fact]
+        public void SynchronousCalls_NotSupported()
+        {
+            using var engine = new KurrentDBEngine(KurrentDBTestDataContext.ConnectionString, KurrentDBTestDataContext.Insecure);
+            _ = Assert.Throws<NotSupportedException>(() => engine.Append(Guid.NewGuid(), "E", "Stream", null, EventStoreState.Any, [0]));
+            _ = Assert.Throws<NotSupportedException>(() => engine.Terminate(Guid.NewGuid(), "E", "Stream", null, EventStoreState.Any));
+            _ = Assert.Throws<NotSupportedException>(() => engine.Read("Stream", null, null, null, null, null));
+            _ = Assert.Throws<NotSupportedException>(() => engine.ReadBackwards("Stream", null, null, null, null, null));
+        }
+
+        [Fact]
         public async Task TestSequenceAggregate()
         {
             using var engine = new KurrentDBEngine(KurrentDBTestDataContext.ConnectionString, KurrentDBTestDataContext.Insecure);

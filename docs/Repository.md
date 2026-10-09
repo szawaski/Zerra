@@ -22,18 +22,18 @@ It is a lighter alternative designed for Zerra services, not a replacement for E
 | **Migrations** | ⚠️ Code First generation, no migration history | ✅ Rich migration tooling |
 | **Maturity** | ⚠️ Experimental | ✅ Mature, large community |
 
-Against SQL Server, with `AsNoTracking()` on the EF side, BenchmarkDotNet measured Zerra approximately:
+Against SQL Server, with `AsNoTracking()` and a new `DbContext` per query on the EF side, BenchmarkDotNet's median times put Zerra at approximately:
 
 | Scenario | Speed | Memory |
 |---|---|---|
-| Query many (all rows) | ~20–25% faster | ~40% less |
-| Query many with a where clause | ~3–4× faster | ~75% less |
-| Query first with a where clause | ~3–4× faster | ~75% less |
-| Query many with a one-to-one include | ~30–35% faster | ~60% less |
-| Query many with a one-to-many include | ~15–16× faster | ~95% less |
-| Update | ~40% faster | ~80% less |
+| Query many (all rows) | ~45% faster | ~70% less |
+| Query many with a where clause | ~2.3× faster | ~80% less |
+| Query first with a where clause | ~2× faster | ~80% less |
+| Query many with a one-to-one include | ~20% faster | ~65% less |
+| Query many with a one-to-many include | ~3.8× faster | ~90% less |
+| Update | ~40% faster | ~95% less |
 
-For one-to-many includes, Zerra loads the related rows of every parent in one additional query. Results vary by environment. The benchmarks are in [`EFBenchmark.cs`](../Benchmarks/Zerra.Repository.Benchmark/Benchmarks/EFBenchmark.cs).
+For one-to-many includes, Zerra loads the related rows of every parent in one additional query, while EF joins them into one query by default. With EF's `AsSplitQuery()`, which loads them separately like Zerra, Zerra is ~30% faster with ~65% less memory. Results vary by environment. The benchmarks are in [`EFBenchmark.cs`](../Benchmarks/Zerra.Repository.Benchmark/Benchmarks/EFBenchmark.cs).
 
 ## Packages
 

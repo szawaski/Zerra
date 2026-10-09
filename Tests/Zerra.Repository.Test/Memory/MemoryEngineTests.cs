@@ -24,6 +24,13 @@ namespace Zerra.Repository.Test.Memory
         }
 
         [Fact]
+        public async Task TestEventStoreEngine()
+        {
+            await EventStoreEngineTest.TestSync(new MemoryEngine());
+            await EventStoreEngineTest.TestAsync(new MemoryEngine());
+        }
+
+        [Fact]
         public async Task TestSequenceAggregate()
         {
             await AggregateTest.TestSequenceAsync(new MemoryEngine());

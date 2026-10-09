@@ -391,6 +391,17 @@ namespace Zerra.CQRS.AzureServiceBus
                     {
                         log?.Error(ex);
                         await Task.Delay(AzureServiceBusCommon.RetryDelay);
+                        if (ex is ServiceBusException sbex && sbex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
+                        {
+                            try
+                            {
+                                await AzureServiceBusCommon.CreateQueue(commonNamespace, ackQueue, true);
+                            }
+                            catch (Exception createEx)
+                            {
+                                log?.Error(createEx);
+                            }
+                        }
                         goto retry;
                     }
                 }

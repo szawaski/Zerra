@@ -8,7 +8,7 @@ Results from `Benchmarks/Zerra.Benchmark`, measured with BenchmarkDotNet. Run th
 dotnet run --project Benchmarks/Zerra.Benchmark/Zerra.Benchmark.csproj -c Release
 ```
 
-Environment: BenchmarkDotNet 0.15.8, .NET 10.0.12, Windows 11, Intel Core i9-14900HX laptop, pinned to the performance cores. Measured October 6, 2026. Times vary between machines, so compare rows within a table.
+Environment: BenchmarkDotNet 0.15.8, .NET 10.0.12, Windows 11, Intel Core i9-14900HX laptop, pinned to the performance cores. Measured October 9, 2026. Times vary between machines, so compare rows within a table.
 
 ## Serializers
 
@@ -18,10 +18,10 @@ One `NormalJsonModel` from `Tests/Zerra.Test` (41 properties: strings, decimals,
 
 | | `ZerraJsonSerializer` | System.Text.Json | Newtonsoft.Json | `ZerraByteSerializer` |
 |---|---:|---:|---:|---:|
-| Serialize to string | **4.7 µs** | 5.6 µs | 11.8 µs | |
-| Serialize to bytes | 4.1 µs | 5.2 µs | | **2.8 µs** |
-| Deserialize from string | **9.5 µs** | 10.4 µs | 18.8 µs | |
-| Deserialize from bytes | 8.4 µs | 10.2 µs | | **3.0 µs** |
+| Serialize to string | **5.0 µs** | 6.0 µs | 12.8 µs | |
+| Serialize to bytes | 4.3 µs | 5.4 µs | | **3.0 µs** |
+| Deserialize from string | **9.8 µs** | 11.1 µs | 20.5 µs | |
+| Deserialize from bytes | 9.4 µs | 10.4 µs | | **3.3 µs** |
 
 **Memory allocated**
 
@@ -32,8 +32,8 @@ One `NormalJsonModel` from `Tests/Zerra.Test` (41 properties: strings, decimals,
 | Deserialize from string | **13.4 KB** | 13.6 KB | 21.1 KB | |
 | Deserialize from bytes | 13.4 KB | 13.6 KB | | **12.8 KB** |
 
-- `ZerraByteSerializer`, the serializer services use between themselves, serializes in about half of System.Text.Json's time and deserializes in under a third, with less memory.
-- `ZerraJsonSerializer`, for browsers and outside callers, is faster than System.Text.Json in all four comparisons, by 9–21%, and about twice as fast as Newtonsoft.Json. It adds [Graph](Graph.md) member selection, nameless JSON, and PATCH tracking.
+- `ZerraByteSerializer`, the serializer services use between themselves, serializes in about half of System.Text.Json's time and deserializes in about a third, with less memory.
+- `ZerraJsonSerializer`, for browsers and outside callers, is faster than System.Text.Json in all four comparisons, by 10–20%, and about twice as fast as Newtonsoft.Json. It adds [Graph](Graph.md) member selection, nameless JSON, and PATCH tracking.
 
 ### Other Models
 
@@ -41,12 +41,12 @@ One `NormalJsonModel` from `Tests/Zerra.Test` (41 properties: strings, decimals,
 
 | Model | Serialize to string | Serialize to bytes | Deserialize from string | Deserialize from bytes |
 |---|---:|---:|---:|---:|
-| Small: one object with an int and a string (40–80 ns) | −39% | −37% | −24% | −12% |
-| TypesBasic: every core type, nullable and null, enums, a child object | −10% | −12% | −17% | −19% |
-| TypesList: a `List<T>` of every core type | −14% | −14% | −42% | −44% |
-| Orders100: a list of 100 orders with a Guid, strings, a date, a decimal, an int, and a bool | −18% | −31% | −15% | −17% |
-| SimpleArray1000: an array of 1,000 objects with an int and a string | −16% | −24% | −21% | −22% |
-| Dictionary100: a `Dictionary<string, string>` of 100 entries | −5% | −16% | −4% | −7% |
+| Small: one object with an int and a string (40–80 ns) | −37% | −31% | −21% | −20% |
+| TypesBasic: every core type, nullable and null, enums, a child object | −8% | −10% | −17% | −18% |
+| TypesList: a `List<T>` of every core type | −13% | −15% | −42% | −43% |
+| Orders100: a list of 100 orders with a Guid, strings, a date, a decimal, an int, and a bool | −24% | −28% | −18% | −16% |
+| SimpleArray1000: an array of 1,000 objects with an int and a string | −17% | −25% | −22% | −22% |
+| Dictionary100: a `Dictionary<string, string>` of 100 entries | −1% | −15% | −2% | −5% |
 
 ## Mapper
 
@@ -54,8 +54,8 @@ One `NormalJsonModel` from `Tests/Zerra.Test` (41 properties: strings, decimals,
 
 | Method | Mean | Allocated |
 |---|---:|---:|
-| `ModelA` to `ModelB` | 4.3 µs | 8.3 KB |
-| `ModelB` to `ModelA` | 4.3 µs | 7.3 KB |
+| `ModelA` to `ModelB` | 4.5 µs | 8.3 KB |
+| `ModelB` to `ModelA` | 4.7 µs | 7.5 KB |
 
 ## Repository
 

@@ -171,6 +171,15 @@ namespace Zerra.SourceGeneration
 
                     _ = sb.Append(EnvironmentHelper.NewLine).Append("                ");
 
+                    if (property.Type.IsRefLikeType || property.Type.Kind == SymbolKind.PointerType || property.Type.Kind == SymbolKind.FunctionPointerType)
+                    {
+                        _ = sb.Append("new global::Zerra.Reflection.MemberDetail(").Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ").Append(Helper.GetTypeOfName(property.Type)).Append(", \"").Append(propertyName).Append("\", false, null, null, null, null, ");
+                        GenerateAttributes(sb, property);
+                        _ = sb.Append(", ").Append(Helper.BoolString(property.IsStatic));
+                        _ = sb.Append(", ").Append(Helper.BoolString(isExplicitFromInterface)).Append(")");
+                        continue;
+                    }
+
                     _ = sb.Append("new global::Zerra.Reflection.MemberDetail<").Append(propertyTypeName).Append(">(");
                     _ = sb.Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ");
                     _ = sb.Append("\"").Append(propertyName).Append("\", false, ");
@@ -227,6 +236,15 @@ namespace Zerra.SourceGeneration
                     var fieldTypeName = Helper.GetFullName(@field.Type);
 
                     _ = sb.Append(EnvironmentHelper.NewLine).Append("                ");
+
+                    if (@field.Type.IsRefLikeType || @field.Type.Kind == SymbolKind.PointerType || @field.Type.Kind == SymbolKind.FunctionPointerType)
+                    {
+                        _ = sb.Append("new global::Zerra.Reflection.MemberDetail(").Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ").Append(Helper.GetTypeOfName(@field.Type)).Append(", \"").Append(@field.Name).Append("\", true, null, null, null, null, ");
+                        GenerateAttributes(sb, @field);
+                        _ = sb.Append(", ").Append(Helper.BoolString(@field.IsStatic));
+                        _ = sb.Append(", false)");
+                        continue;
+                    }
 
                     _ = sb.Append("new global::Zerra.Reflection.MemberDetail<").Append(fieldTypeName).Append(">(");
                     _ = sb.Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ");
@@ -289,7 +307,7 @@ namespace Zerra.SourceGeneration
                     if (constructor.DeclaredAccessibility != Accessibility.Public || namedTypeSymbol.TypeKind == TypeKind.Delegate)
                         continue;
                     //an object[] element can't be passed by ref or out; in parameters take the value
-                    if (constructor.Parameters.Any(x => x.Type.IsRefLikeType || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
+                    if (constructor.Parameters.Any(x => x.Type.IsRefLikeType || x.Type.Kind == SymbolKind.PointerType || x.Type.Kind == SymbolKind.FunctionPointerType || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
                         continue;
 
                     if (hasFirst)
@@ -398,7 +416,9 @@ namespace Zerra.SourceGeneration
                         continue;
                     if (isExplicitFromInterface)
                         continue;
-                    if (method.Parameters.Any(x => x.Type.IsRefLikeType || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
+                    if (method.Parameters.Any(x => x.Type.IsRefLikeType || x.Type.Kind == SymbolKind.PointerType || x.Type.Kind == SymbolKind.FunctionPointerType || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
+                        continue;
+                    if (method.ReturnType.IsRefLikeType || method.ReturnType.Kind == SymbolKind.PointerType || method.ReturnType.Kind == SymbolKind.FunctionPointerType)
                         continue;
 
                     if (hasFirst)

@@ -41,6 +41,7 @@ namespace Zerra.CQRS.AzureServiceBus
             //which keeps the senders to the producers still sending instead of every producer ever seen.
             private readonly ConcurrentDictionary<string, ReplySender> replySenders = new();
             private static readonly int replySenderIdleMilliseconds = (int)AzureServiceBusCommon.DeleteWhenIdleTimeout.TotalMilliseconds;
+            private const int maxAckAttempts = 12;
             private int lastReplySenderSweep = Environment.TickCount;
 
             private sealed class ReplySender
@@ -265,7 +266,20 @@ namespace Zerra.CQRS.AzureServiceBus
                         replySender = replySenders.GetOrAdd(ackTopic, created);
                         if (replySender != created)
                             await created.Sender.DisposeAsync();
-                        await replySender.Sender.SendMessageAsync(replyServiceBusMessage);
+                        for (var attempt = 1; ; attempt++)
+                        {
+                            try
+                            {
+                                await replySender.Sender.SendMessageAsync(replyServiceBusMessage);
+                                break;
+                            }
+                            catch (ServiceBusException ex) when (attempt < maxAckAttempts && ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound)
+                            {
+                                if (attempt == 1)
+                                    log?.Warn($"{nameof(AzureServiceBusConsumer)} failed to send an acknowledgement to {ackTopic}, trying again until its producer creates it again: {ex.Message}");
+                                await Task.Delay(AzureServiceBusCommon.RetryDelay);
+                            }
+                        }
                     }
 
                     //at most once per idle timeout, the senders to acknowledgement queues the broker has deleted by now are dropped

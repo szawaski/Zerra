@@ -180,7 +180,7 @@ namespace Zerra.Repository.KurrentDB
                 if (eventCount.HasValue && models.Count >= eventCount.Value)
                     break;
 
-                if (streamEvents.Length < maxPerQuery)
+                if (streamEvents.Length < streamCount)
                     break;
 
                 streamCount = endEventDate.HasValue ? maxPerQuery : (remaining <= maxPerQuery ? (int)remaining : maxPerQuery);
@@ -246,6 +246,8 @@ namespace Zerra.Repository.KurrentDB
                             remaining--;
                     }
 
+                    if (streamEvent.Event.EventNumber == StreamPosition.Start)
+                        return models.ToArray();
                     streamStart = streamEvent.Event.EventNumber - 1;
                 }
 
@@ -258,7 +260,7 @@ namespace Zerra.Repository.KurrentDB
                 if (eventCount.HasValue && models.Count == eventCount.Value)
                     break;
 
-                if (streamEvents.Length < maxPerQuery)
+                if (streamEvents.Length < streamCount)
                     break;
 
                 streamCount = endEventDate.HasValue ? maxPerQuery : (remaining <= maxPerQuery ? (int)remaining : maxPerQuery);

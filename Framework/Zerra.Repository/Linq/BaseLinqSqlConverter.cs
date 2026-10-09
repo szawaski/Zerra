@@ -737,34 +737,23 @@ namespace Zerra.Repository
         /// <param name="context">The current builder context.</param>
         protected void ConvertToSqlValue(Type type, object? value, ref CharWriter sb, BuilderContext context)
         {
-            MemberExpression? memberProperty = null;
-
             if (context.MemberContext.MemberAccessStack.Count > 0)
-                memberProperty = context.MemberContext.MemberAccessStack.Pop();
+                throw new NotSupportedException($"{type.FullName}.{context.MemberContext.MemberAccessStack.Peek().Member.Name} not supported");
 
-            var memberPropertyHandled = ConvertToSqlValueRender(memberProperty, type, value, ref sb, context);
-
-            if (memberProperty is not null)
-            {
-                if (!memberPropertyHandled)
-                    throw new NotSupportedException($"{type.FullName}.{memberProperty.Member.Name} not supported");
-                context.MemberContext.MemberAccessStack.Push(memberProperty);
-            }
+            ConvertToSqlValueRender(type, value, ref sb, context);
         }
 
         /// <summary>The type name of <see cref="Nullable{T}"/>, used for nullable type detection.</summary>
         protected static readonly string nullableTypeName = typeof(Nullable<>).Name;
 
         /// <summary>
-        /// Renders a value into SQL, optionally using a member property context.
+        /// Renders a value into SQL.
         /// </summary>
-        /// <param name="memberProperty">An optional member property that provides additional context.</param>
         /// <param name="type">The CLR type of the value.</param>
         /// <param name="value">The value to render.</param>
         /// <param name="sb">The writer to append SQL into.</param>
         /// <param name="context">The current builder context.</param>
-        /// <returns><see langword="true"/> if the member property was handled; otherwise, <see langword="false"/>.</returns>
-        protected abstract bool ConvertToSqlValueRender(MemberExpression? memberProperty, Type type, object? value, ref CharWriter sb, BuilderContext context);
+        protected abstract void ConvertToSqlValueRender(Type type, object? value, ref CharWriter sb, BuilderContext context);
 
         /// <summary>
         /// Determines whether the given expression can be fully evaluated to a constant value

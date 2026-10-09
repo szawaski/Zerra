@@ -104,17 +104,20 @@ namespace Zerra.Reflection
                 }
             }
 
+            int hashCode;
+            if (!altered)
+                hashCode = obj.GetHashCode();
+            else
+#if !NETSTANDARD2_0
+                hashCode = String.GetHashCode(chars.Slice(0, charsIndex));
+#else
+                hashCode = chars.Slice(0, charsIndex).ToString().GetHashCode();
+#endif
+
             if (rented is not null)
                 ArrayPoolHelper<char>.Return(rented, charsIndex);
 
-            if (!altered)
-                return obj.GetHashCode();
-
-#if !NETSTANDARD2_0
-            return String.GetHashCode(chars.Slice(0, charsIndex));
-#else
-            return chars.Slice(0, charsIndex).ToString().GetHashCode();
-#endif
+            return hashCode;
         }
     }
 }

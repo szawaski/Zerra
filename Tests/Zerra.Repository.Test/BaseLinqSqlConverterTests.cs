@@ -769,5 +769,76 @@ namespace Zerra.Repository.Test
         }
 
         #endregion
+
+        #region Date Parts Of Mixed Expressions
+
+        //a date part of an expression that mixes the model with captured values is written as a function of the whole expression,
+        //so the captured values are written as plain values
+        private static readonly DateTime partDate = new(2021, 2, 3, 4, 5, 6, 7, DateTimeKind.Utc);
+        private static readonly DateTimeOffset partOffset = new(2021, 2, 3, 4, 5, 6, 7, TimeSpan.FromHours(2));
+        private static readonly DateOnly partDateOnly = new(2021, 2, 3);
+        private static readonly TimeOnly partTimeOnly = new(4, 5, 6, 7);
+        private static readonly TimeSpan partTimeSpan = new(0, 4, 5, 6, 7);
+
+        private static readonly Dictionary<string, Expression<Func<TestTypesModel, bool>>> datePartExpressions = new()
+        {
+            ["DateTime.Year"] = x => (x.BooleanThing ? x.DateTimeThing : partDate).Year == 1,
+            ["DateTime.Month"] = x => (x.BooleanThing ? x.DateTimeThing : partDate).Month == 1,
+            ["DateTime.Day"] = x => (x.BooleanThing ? x.DateTimeThing : partDate).Day == 1,
+            ["DateTime.Hour"] = x => (x.BooleanThing ? x.DateTimeThing : partDate).Hour == 1,
+            ["DateTime.Minute"] = x => (x.BooleanThing ? x.DateTimeThing : partDate).Minute == 1,
+            ["DateTime.Second"] = x => (x.BooleanThing ? x.DateTimeThing : partDate).Second == 1,
+            ["DateTime.Millisecond"] = x => (x.BooleanThing ? x.DateTimeThing : partDate).Millisecond == 1,
+            ["DateTime.DayOfYear"] = x => (x.BooleanThing ? x.DateTimeThing : partDate).DayOfYear == 1,
+            ["DateTime.DayOfWeek"] = x => (x.BooleanThing ? x.DateTimeThing : partDate).DayOfWeek == DayOfWeek.Monday,
+            ["DateTime.Coalesce.Year"] = x => (x.DateTimeNullableThing ?? partDate).Year == 1,
+            ["DateTime.Values.Year"] = x => (x.BooleanThing ? partDate : partDate.AddYears(1)).Year == 1,
+            ["DateTimeOffset.Year"] = x => (x.BooleanThing ? x.DateTimeOffsetThing : partOffset).Year == 1,
+            ["DateTimeOffset.Month"] = x => (x.BooleanThing ? x.DateTimeOffsetThing : partOffset).Month == 1,
+            ["DateTimeOffset.Day"] = x => (x.BooleanThing ? x.DateTimeOffsetThing : partOffset).Day == 1,
+            ["DateTimeOffset.Hour"] = x => (x.BooleanThing ? x.DateTimeOffsetThing : partOffset).Hour == 1,
+            ["DateTimeOffset.Minute"] = x => (x.BooleanThing ? x.DateTimeOffsetThing : partOffset).Minute == 1,
+            ["DateTimeOffset.Second"] = x => (x.BooleanThing ? x.DateTimeOffsetThing : partOffset).Second == 1,
+            ["DateTimeOffset.Millisecond"] = x => (x.BooleanThing ? x.DateTimeOffsetThing : partOffset).Millisecond == 1,
+            ["DateTimeOffset.DayOfYear"] = x => (x.BooleanThing ? x.DateTimeOffsetThing : partOffset).DayOfYear == 1,
+            ["DateTimeOffset.DayOfWeek"] = x => (x.BooleanThing ? x.DateTimeOffsetThing : partOffset).DayOfWeek == DayOfWeek.Monday,
+            ["DateOnly.Year"] = x => (x.BooleanThing ? x.DateOnlyThing : partDateOnly).Year == 1,
+            ["DateOnly.Month"] = x => (x.BooleanThing ? x.DateOnlyThing : partDateOnly).Month == 1,
+            ["DateOnly.Day"] = x => (x.BooleanThing ? x.DateOnlyThing : partDateOnly).Day == 1,
+            ["DateOnly.DayOfYear"] = x => (x.BooleanThing ? x.DateOnlyThing : partDateOnly).DayOfYear == 1,
+            ["DateOnly.DayOfWeek"] = x => (x.BooleanThing ? x.DateOnlyThing : partDateOnly).DayOfWeek == DayOfWeek.Monday,
+            ["TimeOnly.Hour"] = x => (x.BooleanThing ? x.TimeOnlyThing : partTimeOnly).Hour == 1,
+            ["TimeOnly.Minute"] = x => (x.BooleanThing ? x.TimeOnlyThing : partTimeOnly).Minute == 1,
+            ["TimeOnly.Second"] = x => (x.BooleanThing ? x.TimeOnlyThing : partTimeOnly).Second == 1,
+            ["TimeOnly.Millisecond"] = x => (x.BooleanThing ? x.TimeOnlyThing : partTimeOnly).Millisecond == 1,
+            ["TimeSpan.Hours"] = x => (x.BooleanThing ? x.TimeSpanThing : partTimeSpan).Hours == 1,
+            ["TimeSpan.Minutes"] = x => (x.BooleanThing ? x.TimeSpanThing : partTimeSpan).Minutes == 1,
+            ["TimeSpan.Seconds"] = x => (x.BooleanThing ? x.TimeSpanThing : partTimeSpan).Seconds == 1,
+            ["TimeSpan.Milliseconds"] = x => (x.BooleanThing ? x.TimeSpanThing : partTimeSpan).Milliseconds == 1,
+            ["TimeSpan.TotalHours"] = x => (x.BooleanThing ? x.TimeSpanThing : partTimeSpan).TotalHours > 1,
+            ["TimeSpan.TotalMinutes"] = x => (x.BooleanThing ? x.TimeSpanThing : partTimeSpan).TotalMinutes > 1,
+            ["TimeSpan.TotalSeconds"] = x => (x.BooleanThing ? x.TimeSpanThing : partTimeSpan).TotalSeconds > 1,
+            ["TimeSpan.TotalMilliseconds"] = x => (x.BooleanThing ? x.TimeSpanThing : partTimeSpan).TotalMilliseconds > 1,
+        };
+
+        public static TheoryData<string> DatePartNames() => new(datePartExpressions.Keys);
+
+        [Theory]
+        [MemberData(nameof(DatePartNames))]
+        public void Convert_DatePartOfMixedExpression_WritesFunctionOfExpression(string name)
+        {
+            var sql = ConvertToSql(QueryOperation.Many, datePartExpressions[name], null, null, null, null, testTypesModelDetail);
+
+            //the part is taken by the SQL function, the captured value is written whole rather than as its part
+            Assert.DoesNotContain("'1'", sql);
+        }
+
+        [Fact]
+        public void Convert_UnsupportedPartOfMixedExpression_Throws()
+        {
+            _ = Assert.Throws<NotSupportedException>(() => ConvertToSql(QueryOperation.Many, (Expression<Func<TestTypesModel, bool>>)(x => (x.BooleanThing ? x.DateTimeThing : partDate).Ticks == 1), null, null, null, null, testTypesModelDetail));
+        }
+
+        #endregion
     }
 }

@@ -13,8 +13,9 @@ using Zerra.Test.Helpers.TypesModels;
 
 namespace Zerra.Test.Serialization
 {
+#if DEBUG
     //the readers and writers in testing mode stop every other read and write as if the buffer ran out, so every converter resumes where it left off
-    //the mode is static, so these run alone
+    //the mode is static, so these run alone, and other tests leave it on, so it's turned off for the expected values
     [Collection(nameof(SerializerTestingMode))]
     public class SerializerResumeTests
     {
@@ -52,6 +53,8 @@ namespace Zerra.Test.Serialization
             var token = TestContext.Current.CancellationToken;
             foreach (var options in new[] { new JsonSerializerOptions(), new JsonSerializerOptions() { Nameless = true }, new JsonSerializerOptions() { EnumAsNumber = true, DoNotWriteNullProperties = true } })
             {
+                JsonWriter.Testing = false;
+                JsonReader.Testing = false;
                 var expected = JsonSerializer.Serialize(model, type, options);
                 var expectedBytes = JsonSerializer.SerializeBytes(model, type, options);
                 var expectedModel = JsonSerializer.Deserialize(expected, type, options)!;
@@ -96,6 +99,8 @@ namespace Zerra.Test.Serialization
                 Json = JsonSerializer.DeserializeJsonObject("{\"x\":[1,2,{\"y\":\"z\"}]}"),
                 After = 7,
             };
+            JsonWriter.Testing = false;
+            JsonReader.Testing = false;
             var expected = JsonSerializer.Serialize(model);
             var expectedBytes = Encoding.UTF8.GetBytes(expected);
 
@@ -136,6 +141,8 @@ namespace Zerra.Test.Serialization
             var token = TestContext.Current.CancellationToken;
             foreach (var options in new[] { new ByteSerializerOptions() { IndexType = ByteSerializerIndexType.UInt16 }, new ByteSerializerOptions() { UseTypes = true, IndexType = ByteSerializerIndexType.UInt16 }, new ByteSerializerOptions() { IndexType = ByteSerializerIndexType.MemberNames } })
             {
+                ByteWriter.Testing = false;
+                ByteReader.Testing = false;
                 var expected = ByteSerializer.Serialize(model, type, options);
                 var expectedModel = ByteSerializer.Deserialize(expected, type, options)!;
 
@@ -161,7 +168,72 @@ namespace Zerra.Test.Serialization
             }
         }
 
+        public static TheoryData<object> DrainModels() => new()
+        {
+            TypesAllModel.Create(),
+            TypesArrayModel.Create(),
+            TypesListTModel.Create(),
+            TypesIListTModel.Create(),
+            TypesIListTOfTModel.Create(),
+            TypesIReadOnlyListTModel.Create(),
+            TypesIListModel.Create(),
+            TypesIListOfTModel.Create(),
+            TypesHashSetTModel.Create(),
+            TypesISetTModel.Create(),
+            TypesISetTOfTModel.Create(),
+            TypesIReadOnlySetTModel.Create(),
+            TypesICollectionModel.Create(),
+            TypesICollectionTModel.Create(),
+            TypesICollectionTOfTModel.Create(),
+            TypesIReadOnlyCollectionTModel.Create(),
+            TypesIEnumerableModel.Create(),
+            TypesIEnumerableOfTModel.Create(),
+            TypesIEnumerableTModel.Create(),
+            TypesIEnumerableTOfTModel.Create(),
+            TypesDictionaryTModel.Create(),
+            TypesIDictionaryTModel.Create(),
+            TypesIDictionaryTOfTModel.Create(),
+            TypesIReadOnlyDictionaryTModel.Create(),
+            TypesIDictionaryModel.Create(),
+            TypesIDictionaryOfTModel.Create(),
+            TypesCustomCollectionsModel.Create(),
+        };
+
+        //a member the target doesn't have is read past, resuming like any other read
+        [Theory]
+        [MemberData(nameof(DrainModels))]
+        public async Task Bytes_ResumesDrain(object model)
+        {
+            var token = TestContext.Current.CancellationToken;
+            var options = new ByteSerializerOptions() { IndexType = ByteSerializerIndexType.MemberNames, UseTypes = true };
+            var sourceType = typeof(DrainSourceModel<>).MakeGenericType(model.GetType());
+            var source = Activator.CreateInstance(sourceType)!;
+            sourceType.GetProperty(nameof(DrainSourceModel<int>.Before))!.SetValue(source, 1);
+            sourceType.GetProperty(nameof(DrainSourceModel<int>.Value))!.SetValue(source, model);
+            sourceType.GetProperty(nameof(DrainSourceModel<int>.After))!.SetValue(source, "end");
+
+            ByteWriter.Testing = false;
+            ByteReader.Testing = false;
+            var bytes = ByteSerializer.Serialize(source, sourceType, options);
+
+            ByteReader.Testing = true;
+            try
+            {
+                var result = ByteSerializer.Deserialize<DrainTargetModel>(bytes, options)!;
+                Assert.Equal(1, result.Before);
+                Assert.Equal("end", result.After);
+                var resultAsync = (await ByteSerializer.DeserializeAsync<DrainTargetModel>(new MemoryStream(bytes), options, token))!;
+                Assert.Equal(1, resultAsync.Before);
+                Assert.Equal("end", resultAsync.After);
+            }
+            finally
+            {
+                ByteReader.Testing = false;
+            }
+        }
+
     }
+#endif
 
     [CollectionDefinition(nameof(SerializerTestingMode), DisableParallelization = true)]
     public sealed class SerializerTestingMode { }

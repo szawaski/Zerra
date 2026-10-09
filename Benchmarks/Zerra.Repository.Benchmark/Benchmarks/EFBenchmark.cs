@@ -13,6 +13,7 @@ using Zerra.Repository.Test.MsSql;
 namespace Zerra.Repository.Benchmark.Benchmarks
 {
     [MemoryDiagnoser]
+    [MedianColumn, MinColumn, MaxColumn]
     [SimpleJob(warmupCount: 2, iterationCount: 5)]
     public class EFBenchmarks
     {
@@ -179,6 +180,18 @@ namespace Zerra.Repository.Benchmark.Benchmarks
             var results = await context.TestTypes
                 .AsNoTracking()
                 .Include(x => x.RelationB)
+                .ToListAsync();
+            return results;
+        }
+
+        [Benchmark]
+        public async Task<List<EFTestTypesModel>> QueryManyIncludeOneToMany_EF_Split()
+        {
+            using var context = new EFDataContext();
+            var results = await context.TestTypes
+                .AsNoTracking()
+                .Include(x => x.RelationB)
+                .AsSplitQuery()
                 .ToListAsync();
             return results;
         }

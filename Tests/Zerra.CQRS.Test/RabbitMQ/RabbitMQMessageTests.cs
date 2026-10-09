@@ -396,6 +396,143 @@ namespace Zerra.CQRS.Test.RabbitMQ
             Assert.True(log.Warnings >= 4, $"{log.Warnings} warnings");
         }
 
+        //the broker sees connections through Docker's port mapping, so a client's connection is found as the one that appeared after it connected
+        private static async Task<HashSet<string>> ConnectionNames(HttpClient http)
+        {
+            using var connections = System.Text.Json.JsonDocument.Parse(await http.GetStringAsync("http://localhost:15672/api/connections"));
+            return connections.RootElement.EnumerateArray().Select(x => x.GetProperty("name").GetString()!).ToHashSet();
+        }
+
+        private static HttpClient ManagementClient()
+        {
+            var http = new HttpClient();
+            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes("guest:guest")));
+            return http;
+        }
+
+        //the management API lists a new connection after its next statistics update
+        private static async Task<HashSet<string>> WaitForNewConnections(HttpClient http, HashSet<string> before)
+        {
+            for (var i = 0; i < 150; i++)
+            {
+                var current = await ConnectionNames(http);
+                current.ExceptWith(before);
+                if (current.Count > 0)
+                    return current;
+                await Task.Delay(200);
+            }
+            throw new TimeoutException("No new broker connection");
+        }
+
+        //closes connections from the broker, the same as the broker restarting or the network dropping them
+        private static async Task CloseConnections(HttpClient http, IEnumerable<string> names)
+        {
+            foreach (var name in names)
+            {
+                using var response = await http.DeleteAsync($"http://localhost:15672/api/connections/{Uri.EscapeDataString(name)}");
+                _ = response.EnsureSuccessStatusCode();
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestConsumerConnectionDropped()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var eventTopic = MessageTest.NewTopic("Event");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            var commands = new ConcurrentDictionary<Guid, bool>();
+            var events = new ConcurrentDictionary<Guid, bool>();
+            using var http = ManagementClient();
+            try
+            {
+                using var producer = new RabbitMQProducer(host, serializer, null, null, log, null);
+                using var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null);
+                TypeFinder.Register(typeof(TestCommand));
+                TypeFinder.Register(typeof(TestEvent));
+                ((ICommandConsumer)consumer).Setup(null, (c, _, _) => { commands[((TestCommand)c).ID] = true; return Task.CompletedTask; }, (c, _, _) => { commands[((TestCommand)c).ID] = true; return Task.CompletedTask; }, (_, _, _) => Task.FromResult<object?>(null));
+                ((IEventConsumer)consumer).Setup("FaultService", (e, eventSource) => { events[((TestEvent)e).ID] = true; return Task.CompletedTask; });
+                ((ICommandConsumer)consumer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                ((IEventConsumer)consumer).RegisterEventType(4, eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
+                ((ICommandProducer)producer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                ((IEventProducer)producer).RegisterEventType(4, eventTopic, typeof(TestEvent));
+
+                var before = await ConnectionNames(http);
+                ((ICommandConsumer)consumer).Open();
+                ((IEventConsumer)consumer).Open();
+                var consumerConnections = await WaitForNewConnections(http, before);
+
+                await WaitUntilReceived(producer, producer, commands, events, TestContext.Current.CancellationToken);
+                await CloseConnections(http, consumerConnections);
+                //commands and events sent while it reconnects wait in their queues
+                await WaitUntilReceived(producer, producer, commands, events, TestContext.Current.CancellationToken);
+            }
+            finally
+            {
+                DeleteExchanges(commandTopic, eventTopic);
+                DeleteQueues(commandTopic, $"{eventTopic}_FaultService");
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestProducerConnectionDroppedWhileAwaiting()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var blockFirst = 1;
+            using var http = ManagementClient();
+            try
+            {
+                //the producer connects when it is created
+                var before = await ConnectionNames(http);
+                using var producer = new RabbitMQProducer(host, serializer, null, null, log, null);
+                var producerConnections = await WaitForNewConnections(http, before);
+                using var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null);
+                try
+                {
+                    TypeFinder.Register(typeof(TestCommand));
+                    async Task Handle(ICommand command, string commandSource, CancellationToken cancellationToken)
+                    {
+                        if (Interlocked.Exchange(ref blockFirst, 0) == 1)
+                        {
+                            started.SetResult();
+                            await release.Task;
+                        }
+                    }
+                    ((ICommandConsumer)consumer).Setup(null, Handle, Handle, (_, _, _) => Task.FromResult<object?>(null));
+                    ((ICommandConsumer)consumer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                    ((ICommandProducer)producer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+
+                    ((ICommandConsumer)consumer).Open();
+
+                    var awaiting = ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand { ID = Guid.NewGuid() }, "test", TestContext.Current.CancellationToken);
+                    await started.Task.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
+
+                    //the reply can only come back on the channel that sent the command, so the caller is told now instead of waiting forever
+                    await CloseConnections(http, producerConnections);
+                    var error = await Assert.ThrowsAnyAsync<Exception>(() => awaiting.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken));
+                    Assert.Contains("channel closed", error.Message);
+                    release.SetResult();
+
+                    //the next send opens a new channel
+                    await ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand { ID = Guid.NewGuid() }, "test", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
+                }
+                finally
+                {
+                    //disposing the consumer waits for the handler
+                    release.TrySetResult();
+                }
+            }
+            finally
+            {
+                DeleteExchanges(commandTopic);
+                DeleteQueues(commandTopic);
+            }
+        }
+
         private static async Task WaitUntilReceived(ICommandProducer commandProducer, IEventProducer eventProducer, ConcurrentDictionary<Guid, bool> commands, ConcurrentDictionary<Guid, bool> events, CancellationToken cancellationToken)
         {
             var timer = System.Diagnostics.Stopwatch.StartNew();

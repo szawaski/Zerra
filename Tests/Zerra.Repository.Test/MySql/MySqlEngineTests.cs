@@ -61,6 +61,7 @@ namespace Zerra.Repository.Test.MySql
             await RelationPersistTests.TestSequenceAsync(engine);
             QueryParityTests.TestSequence(engine);
             await QueryParityTests.TestSequenceAsync(engine);
+            SchemaChangeTests.Test(engine, table => ExecuteSql(connectionString, $"DROP TABLE IF EXISTS `{table}`"));
 
             const string changeColumn = "ALTER TABLE `TestTypes` MODIFY `Int32Thing` bigint NULL";
             const string addColumn = "ALTER TABLE `TestTypes` ADD `DummyToMakeNullable` int NOT NULL";

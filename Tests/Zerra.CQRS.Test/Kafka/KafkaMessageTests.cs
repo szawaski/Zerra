@@ -443,6 +443,95 @@ namespace Zerra.CQRS.Test.Kafka
             }
         }
 
+        private static ICollection<string> PendingAckKeys(KafkaProducer producer) => ((System.Collections.IDictionary)typeof(KafkaProducer).GetField("ackCallbacks", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producer)!).Keys.Cast<string>().ToArray();
+
+        [Fact(Timeout = 300000)]
+        public async Task TestInvalidAcknowledgement()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            string? ackTopic = null;
+            using var raw = new ProducerBuilder<string, byte[]>(new ProducerConfig { BootstrapServers = host }).Build();
+            try
+            {
+                using var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null);
+                using var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null);
+                try
+                {
+                    ackTopic = AckTopic(producer);
+                    TypeFinder.Register(typeof(TestCommand));
+                    async Task Handle(ICommand command, string commandSource, CancellationToken cancellationToken)
+                    {
+                        started.TrySetResult();
+                        await release.Task;
+                    }
+                    ((ICommandConsumer)consumer).Setup(null, Handle, Handle, (_, _, _) => Task.FromResult<object?>(null));
+                    ((ICommandConsumer)consumer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                    ((ICommandProducer)producer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                    ((ICommandConsumer)consumer).Open();
+
+                    var awaiting = ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand { ID = Guid.NewGuid() }, "test", TestContext.Current.CancellationToken);
+                    await started.Task.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
+
+                    //an acknowledgement that can't be read fails the call instead of leaving it waiting
+                    var key = Assert.Single(PendingAckKeys(producer));
+                    _ = await raw.ProduceAsync(ackTopic, new Message<string, byte[]> { Key = key, Value = [1, 2, 3] }, TestContext.Current.CancellationToken);
+                    _ = await Assert.ThrowsAnyAsync<Exception>(() => awaiting.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken));
+
+                    //an acknowledgement nobody is waiting for is ignored
+                    _ = await raw.ProduceAsync(ackTopic, new Message<string, byte[]> { Key = "unknown", Value = [1] }, TestContext.Current.CancellationToken);
+                }
+                finally
+                {
+                    //disposing the consumer waits for the handler
+                    release.TrySetResult();
+                }
+            }
+            finally
+            {
+                await KafkaCommon.DeleteTopic(host, null, null, commandTopic);
+                await DeleteConsumerGroup(commandTopic);
+                if (ackTopic is not null)
+                    await KafkaCommon.DeleteTopic(host, null, null, ackTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestAckTopicDeleted()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            string? ackTopic = null;
+            try
+            {
+                using var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null);
+                using var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null);
+                ackTopic = AckTopic(producer);
+                TypeFinder.Register(typeof(TestCommand));
+                ((ICommandConsumer)consumer).Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null));
+                ((ICommandConsumer)consumer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                ((ICommandProducer)producer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                ((ICommandConsumer)consumer).Open();
+
+                await ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand { ID = Guid.NewGuid() }, "test", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
+
+                //deleted outside Zerra while the producer listens on it, awaited commands still get their acknowledgements
+                await KafkaCommon.DeleteTopic(host, null, null, ackTopic);
+                await ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand { ID = Guid.NewGuid() }, "test", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(120), TestContext.Current.CancellationToken);
+            }
+            finally
+            {
+                await KafkaCommon.DeleteTopic(host, null, null, commandTopic);
+                await DeleteConsumerGroup(commandTopic);
+                if (ackTopic is not null)
+                    await KafkaCommon.DeleteTopic(host, null, null, ackTopic);
+            }
+        }
+
         [Fact(Timeout = 120000)]
         public async Task TestLongNamesTruncated()
         {

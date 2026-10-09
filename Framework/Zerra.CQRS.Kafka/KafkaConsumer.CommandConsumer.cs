@@ -43,6 +43,7 @@ namespace Zerra.CQRS.Kafka
 
             //librdkafka keeps every topic a producer has sent to for the producer's life, so after this many acknowledgement topics it's replaced
             private const int maxAckTopicsPerProducer = 1000;
+            private const int maxAckAttempts = 12;
 
             private sealed class AckProducer
             {
@@ -109,6 +110,7 @@ namespace Zerra.CQRS.Kafka
                 producerConfig.LingerMs = 0;
                 //librdkafka keeps refreshing every topic it has produced to, with auto-create on that brings back the acknowledgement topic of a stopped producer
                 producerConfig.AllowAutoCreateTopics = false;
+                producerConfig.TopicMetadataPropagationMaxMs = 1000;
                 producerConfig.ClientId = clientID;
                 if (commonHost.UserName is not null && commonHost.Password is not null)
                 {
@@ -340,11 +342,28 @@ namespace Zerra.CQRS.Kafka
                                 ackProducer.Dispose();
                         }
 
-                        _ = await ackProducer.Producer.ProduceAsync(ackTopic, new Message<string, byte[]>()
+                        var ackMessage = new Message<string, byte[]>()
                         {
                             Key = ackKey!,
                             Value = body
-                        });
+                        };
+                        for (var attempt = 1; ; attempt++)
+                        {
+                            try
+                            {
+                                _ = await ackProducer.Producer.ProduceAsync(ackTopic, ackMessage);
+                                break;
+                            }
+                            catch (ProduceException<string, byte[]> ex) when (attempt < maxAckAttempts && (ex.Error.Code == ErrorCode.Local_UnknownTopic || ex.Error.Code == ErrorCode.UnknownTopicOrPart || ex.Error.Code == ErrorCode.Local_UnknownPartition))
+                            {
+                                if (attempt == 1)
+                                    log?.Warn($"{nameof(KafkaConsumer)} failed to send an acknowledgement to {ackTopic}, trying again until its sender creates it again: {ex.Error.Code} {ex.Message}");
+                                await Task.Delay(KafkaCommon.RetryDelay);
+                                //the producer caches the topic as missing until its own handle refreshes the metadata
+                                using (var producerAdmin = new DependentAdminClientBuilder(ackProducer.Producer.Handle).Build())
+                                    _ = producerAdmin.GetMetadata(ackTopic, TimeSpan.FromSeconds(10));
+                            }
+                        }
                     }
                     finally
                     {

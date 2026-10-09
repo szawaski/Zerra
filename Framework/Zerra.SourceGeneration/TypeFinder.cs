@@ -74,6 +74,8 @@ namespace Zerra.SourceGeneration
             var arrayTypeSymbol = typeSymbol as IArrayTypeSymbol;
             if (namedTypeSymbol == null && arrayTypeSymbol == null)
                 return;
+            if (typeSymbol.IsRefLikeType)
+                return;
             if (typeSymbol.DeclaredAccessibility != Accessibility.Public && typeSymbol.DeclaredAccessibility != Accessibility.Internal && typeSymbol.DeclaredAccessibility != Accessibility.NotApplicable)
                 return;
 
