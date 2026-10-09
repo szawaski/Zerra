@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Globalization;
 using System.Buffers.Text;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
@@ -37,9 +38,9 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             return false;
                         }
 #if NETSTANDARD2_0
-                        if (!UInt32.TryParse(chars.ToString(), out value) && state.ErrorOnTypeMismatch)
+                        if (!UInt32.TryParse(chars.ToString(), NumberStyles.None, NumberFormatInfo.InvariantInfo, out value) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt32.TryParse(chars, out value) && state.ErrorOnTypeMismatch)
+                        if (!UInt32.TryParse(chars, NumberStyles.None, NumberFormatInfo.InvariantInfo, out value) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         return true;
@@ -64,9 +65,9 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             return false;
                         }
 #if NETSTANDARD2_0
-                        if (!UInt32.TryParse(chars.ToString(), out value) && state.ErrorOnTypeMismatch)
+                        if (!UInt32.TryParse(chars.ToString(), NumberStyles.None, NumberFormatInfo.InvariantInfo, out value) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt32.TryParse(chars, out value) && state.ErrorOnTypeMismatch)
+                        if (!UInt32.TryParse(chars, NumberStyles.None, NumberFormatInfo.InvariantInfo, out value) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         return true;

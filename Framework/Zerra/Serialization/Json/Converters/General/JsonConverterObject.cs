@@ -42,7 +42,7 @@ namespace Zerra.Serialization.Json.Converters.General
         {
             foreach (var member in typeDetail.SerializableMemberDetails)
             {
-                var found = false;
+                string? name = null;
                 var ignoreCondition = JsonIgnoreCondition.Never;
                 foreach (var attribute in member.Attributes)
                 {
@@ -84,31 +84,17 @@ namespace Zerra.Serialization.Json.Converters.General
                         break;
 
                     if (attribute is JsonPropertyNameAttribute jsonPropertyName)
-                    {
-                        var detail = new JsonConverterObjectMember(typeDetail, member, jsonPropertyName.Name, ignoreCondition);
-                        membersByName.Add(jsonPropertyName.Name, detail);
-                        members.Add(detail);
-                        found = true;
-                        break;
-                    }
+                        name ??= jsonPropertyName.Name;
                     else if (attribute is System.Text.Json.Serialization.JsonPropertyNameAttribute jsonPropertyName2)
-                    {
-                        var detail = new JsonConverterObjectMember(typeDetail, member, jsonPropertyName2.Name, ignoreCondition);
-                        membersByName.Add(jsonPropertyName2.Name, detail);
-                        members.Add(detail);
-                        found = true;
-                        break;
-                    }
+                        name ??= jsonPropertyName2.Name;
                 }
                 if (ignoreCondition == JsonIgnoreCondition.Always)
                     continue;
 
-                if (!found)
-                {
-                    var detail = new JsonConverterObjectMember(typeDetail, member, member.Name, ignoreCondition);
-                    membersByName.Add(member.Name, detail);
-                    members.Add(detail);
-                }
+                name ??= member.Name;
+                var detail = new JsonConverterObjectMember(typeDetail, member, name, ignoreCondition);
+                membersByName.Add(name, detail);
+                members.Add(detail);
 
                 membersKeyed = members.Select(x => new MemberKey(x)).ToArray();
             }
@@ -391,9 +377,6 @@ namespace Zerra.Serialization.Json.Converters.General
                                     return false;
                                 }
 
-                                if (name.Length == 0)
-                                    throw reader.CreateException("Unexpected character");
-
                                 if (!membersByName.TryGetValue(name, out member))
                                     member = null;
                             }
@@ -407,9 +390,6 @@ namespace Zerra.Serialization.Json.Converters.General
                                         state.Current.Object = value;
                                     return false;
                                 }
-
-                                if (name.Length == 0)
-                                    throw reader.CreateException("Unexpected character");
 
                                 var nameKey = MemberKey.GetHashCode(name);
 
@@ -489,9 +469,6 @@ namespace Zerra.Serialization.Json.Converters.General
                                     return false;
                                 }
 
-                                if (name.Length == 0)
-                                    throw reader.CreateException("Unexpected character");
-
                                 if (!membersByName.TryGetValue(name, out member))
                                     member = null;
                             }
@@ -505,9 +482,6 @@ namespace Zerra.Serialization.Json.Converters.General
                                         state.Current.Object = value;
                                     return false;
                                 }
-
-                                if (name.Length == 0)
-                                    throw reader.CreateException("Unexpected character");
 
                                 var nameKey = MemberKey.GetHashCode(name);
 

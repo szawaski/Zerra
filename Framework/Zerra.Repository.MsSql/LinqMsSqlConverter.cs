@@ -438,7 +438,9 @@ namespace Zerra.Repository.MsSql
 
             sb.Write("CASE WHEN(");
 
+            context.MemberContext.OperatorStack.Push(Operator.And);
             ConvertToSql(conditional.Test, ref sb, context);
+            _ = context.MemberContext.OperatorStack.Pop();
 
             sb.Write(")THEN(");
 

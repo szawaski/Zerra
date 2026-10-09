@@ -219,7 +219,7 @@ namespace Zerra.Reflection
         private ConcurrentFactoryDictionary<TypeKey, ConstructorDetail?>? constructorLookups = null;
         private ConstructorDetail? GetConstructorBoxedInternal(int? parameterCount, Type[]? parameterTypes)
         {
-            var key = new TypeKey(parameterTypes);
+            var key = new TypeKey(String.Empty, parameterCount, parameterTypes);
             constructorLookups ??= new();
             var constructor = constructorLookups.GetOrAdd(key, ConstructorDetailsBoxed, parameterCount, parameterTypes, static (ConstructorDetailsBoxed, parameterCount, parameterTypes) =>
             {

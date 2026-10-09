@@ -311,7 +311,7 @@ namespace Zerra.Repository
             ConvertToSql(binaryLeft, ref sb, context);
             sb.Write(')');
 
-            sb.Write(OperatorToString(operation));
+            sb.Write(OperatorToString(operation, binary.Type));
 
             if (binaryRight is not null)
             {
@@ -870,5 +870,6 @@ namespace Zerra.Repository
         protected abstract void AppendLineBreak(ref CharWriter sb);
 
         protected abstract string? OperatorToString(Operator operation);
+        protected virtual string? OperatorToString(Operator operation, Type type) => OperatorToString(operation);
     }
 }

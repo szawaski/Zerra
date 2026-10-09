@@ -319,7 +319,10 @@ namespace Zerra.Collections
             lock (locker)
             {
                 if (!dictionary.TryGetValue(key, out var currentvalue))
-                    throw new KeyNotFoundException();
+                {
+                    dictionary.Add(key, value);
+                    return value;
+                }
                 return currentvalue;
             }
         }
@@ -374,7 +377,7 @@ namespace Zerra.Collections
                 if (!dictionary.TryGetValue(key, out var currentvalue))
                     return false;
                 
-                if (currentvalue is not null && comparisonValue is not null && !currentvalue.Equals(comparisonValue))
+                if (!EqualityComparer<TValue>.Default.Equals(currentvalue, comparisonValue))
                     return false;
                 dictionary[key] = value;
                 return true;

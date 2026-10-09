@@ -25,7 +25,7 @@ namespace Zerra.Reflection
         private ConcurrentFactoryDictionary<TypeKey, MethodDetail<T>?>? methodLookups = null;
         private MethodDetail<T>? GetMethodInternal(string name, int? parameterCount, Type[]? parameterTypes)
         {
-            var key = new TypeKey(name, parameterTypes);
+            var key = new TypeKey(name, parameterCount, parameterTypes);
             methodLookups ??= new();
             var method = methodLookups.GetOrAdd(key, MethodDetails, name, parameterCount, parameterTypes, static (MethodDetails, name, parameterCount, parameterTypes) =>
             {

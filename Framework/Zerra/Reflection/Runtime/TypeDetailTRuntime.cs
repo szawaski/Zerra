@@ -1246,6 +1246,9 @@ namespace Zerra.Reflection.Runtime
 #if !NETSTANDARD2_0
                 && !type.IsByRefLike
 #endif
+#if NET8_0_OR_GREATER
+                && !type.IsFunctionPointer
+#endif
                 )
             {
                 var typeDetailGeneric = typeDetailT.MakeGenericType(type);

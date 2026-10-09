@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Globalization;
 using System.Buffers.Text;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
@@ -38,9 +39,9 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             return false;
                         }
 #if NETSTANDARD2_0
-                        if (!UInt64.TryParse(chars.ToString(), out ulong parsed) && state.ErrorOnTypeMismatch)
+                        if (!UInt64.TryParse(chars.ToString(), NumberStyles.None, NumberFormatInfo.InvariantInfo, out ulong parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt64.TryParse(chars, out ulong parsed) && state.ErrorOnTypeMismatch)
+                        if (!UInt64.TryParse(chars, NumberStyles.None, NumberFormatInfo.InvariantInfo, out ulong parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;
@@ -81,9 +82,9 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                             return true;
                         }
 #if NETSTANDARD2_0
-                        if (!UInt64.TryParse(chars.ToString(), out ulong parsed) && state.ErrorOnTypeMismatch)
+                        if (!UInt64.TryParse(chars.ToString(), NumberStyles.None, NumberFormatInfo.InvariantInfo, out ulong parsed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt64.TryParse(chars, out ulong parsed) && state.ErrorOnTypeMismatch)
+                        if (!UInt64.TryParse(chars, NumberStyles.None, NumberFormatInfo.InvariantInfo, out ulong parsed) && state.ErrorOnTypeMismatch)
 #endif
                             ThrowCannotConvert(ref reader);
                         value = parsed;

@@ -4,6 +4,7 @@
 
 using Zerra.Reflection;
 using System;
+using System.Globalization;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
 using System.Runtime.CompilerServices;
@@ -329,6 +330,7 @@ namespace Zerra.Serialization.Json.Converters
                     return true;
                 case JsonValueType.Number:
                     decimal number;
+                    string? numberText = null;
                     if (reader.UseBytes)
                     {
                         if (!reader.TryReadNumberBytes(out var bytes, out state.SizeNeeded))
@@ -336,8 +338,8 @@ namespace Zerra.Serialization.Json.Converters
                             value = default;
                             return false;
                         }
-                        if ((!Utf8Parser.TryParse(bytes, out number, out var consumed) || consumed != bytes.Length) && state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert number (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
+                        if (!Utf8Parser.TryParse(bytes, out number, out var consumed) || consumed != bytes.Length || (number == 0 && IsUnderflow(bytes)))
+                            numberText = System.Text.Encoding.UTF8.GetString(bytes.ToArray());
                     }
                     else
                     {
@@ -347,13 +349,13 @@ namespace Zerra.Serialization.Json.Converters
                             return false;
                         }
 #if NETSTANDARD2_0
-                        if (!Decimal.TryParse(chars.ToString(), out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(chars.ToString(), NumberStyles.Float, NumberFormatInfo.InvariantInfo, out number) || (number == 0 && IsUnderflow(chars)))
 #else
-                        if (!Decimal.TryParse(chars, out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(chars, NumberStyles.Float, NumberFormatInfo.InvariantInfo, out number) || (number == 0 && IsUnderflow(chars)))
 #endif
-                            throw reader.CreateException($"Cannot convert number (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
+                            numberText = chars.ToString();
                     }
-                    value = new JsonObject(number);
+                    value = numberText is null ? new JsonObject(number) : JsonObject.FromNumberText(numberText);
                     return true;
                 default:
                     throw new NotImplementedException();
@@ -418,6 +420,7 @@ namespace Zerra.Serialization.Json.Converters
                     return true;
                 case JsonValueType.Number:
                     decimal number;
+                    string? numberText = null;
                     if (reader.UseBytes)
                     {
                         if (!reader.TryReadNumberBytes(out var bytes, out state.SizeNeeded))
@@ -425,8 +428,8 @@ namespace Zerra.Serialization.Json.Converters
                             value = default;
                             return false;
                         }
-                        if ((!Utf8Parser.TryParse(bytes, out number, out var consumed) || consumed != bytes.Length) && state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert number (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
+                        if (!Utf8Parser.TryParse(bytes, out number, out var consumed) || consumed != bytes.Length || (number == 0 && IsUnderflow(bytes)))
+                            numberText = System.Text.Encoding.UTF8.GetString(bytes.ToArray());
                     }
                     else
                     {
@@ -436,13 +439,13 @@ namespace Zerra.Serialization.Json.Converters
                             return false;
                         }
 #if NETSTANDARD2_0
-                        if (!Decimal.TryParse(chars.ToString(), out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(chars.ToString(), NumberStyles.Float, NumberFormatInfo.InvariantInfo, out number) || (number == 0 && IsUnderflow(chars)))
 #else
-                        if (!Decimal.TryParse(chars, out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(chars, NumberStyles.Float, NumberFormatInfo.InvariantInfo, out number) || (number == 0 && IsUnderflow(chars)))
 #endif
-                            throw reader.CreateException($"Cannot convert number (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
+                            numberText = chars.ToString();
                     }
-                    parent[property] = new JsonObject(number!);
+                    parent[property] = numberText is null ? new JsonObject(number) : JsonObject.FromNumberText(numberText);
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 default:
@@ -507,6 +510,7 @@ namespace Zerra.Serialization.Json.Converters
                     return true;
                 case JsonValueType.Number:
                     decimal number;
+                    string? numberText = null;
                     if (reader.UseBytes)
                     {
                         if (!reader.TryReadNumberBytes(out var bytes, out state.SizeNeeded))
@@ -514,8 +518,8 @@ namespace Zerra.Serialization.Json.Converters
                             value = default;
                             return false;
                         }
-                        if ((!Utf8Parser.TryParse(bytes, out number, out var consumed) || consumed != bytes.Length) && state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert number (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
+                        if (!Utf8Parser.TryParse(bytes, out number, out var consumed) || consumed != bytes.Length || (number == 0 && IsUnderflow(bytes)))
+                            numberText = System.Text.Encoding.UTF8.GetString(bytes.ToArray());
                     }
                     else
                     {
@@ -525,13 +529,13 @@ namespace Zerra.Serialization.Json.Converters
                             return false;
                         }
 #if NETSTANDARD2_0
-                        if (!Decimal.TryParse(chars.ToString(), out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(chars.ToString(), NumberStyles.Float, NumberFormatInfo.InvariantInfo, out number) || (number == 0 && IsUnderflow(chars)))
 #else
-                        if (!Decimal.TryParse(chars, out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(chars, NumberStyles.Float, NumberFormatInfo.InvariantInfo, out number) || (number == 0 && IsUnderflow(chars)))
 #endif
-                            throw reader.CreateException($"Cannot convert number (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
+                            numberText = chars.ToString();
                     }
-                    addMethod(new JsonObject(number));
+                    addMethod(numberText is null ? new JsonObject(number) : JsonObject.FromNumberText(numberText));
                     state.Current.ChildValueType = JsonValueType.NotDetermined;
                     return true;
                 default:
@@ -566,6 +570,7 @@ namespace Zerra.Serialization.Json.Converters
                     return true;
                 case JsonValueType.Number:
                     decimal number;
+                    string? numberText = null;
                     if (reader.UseBytes)
                     {
                         if (!reader.TryReadNumberBytes(out var bytes, out state.SizeNeeded))
@@ -573,8 +578,8 @@ namespace Zerra.Serialization.Json.Converters
                             value = default;
                             return false;
                         }
-                        if ((!Utf8Parser.TryParse(bytes, out number, out var consumed) || consumed != bytes.Length) && state.ErrorOnTypeMismatch)
-                            throw reader.CreateException($"Cannot convert number (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
+                        if (!Utf8Parser.TryParse(bytes, out number, out var consumed) || consumed != bytes.Length || (number == 0 && IsUnderflow(bytes)))
+                            numberText = System.Text.Encoding.UTF8.GetString(bytes.ToArray());
                     }
                     else
                     {
@@ -584,13 +589,13 @@ namespace Zerra.Serialization.Json.Converters
                             return false;
                         }
 #if NETSTANDARD2_0
-                        if (!Decimal.TryParse(chars.ToString(), out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(chars.ToString(), NumberStyles.Float, NumberFormatInfo.InvariantInfo, out number) || (number == 0 && IsUnderflow(chars)))
 #else
-                        if (!Decimal.TryParse(chars, out number) && state.ErrorOnTypeMismatch)
+                        if (!Decimal.TryParse(chars, NumberStyles.Float, NumberFormatInfo.InvariantInfo, out number) || (number == 0 && IsUnderflow(chars)))
 #endif
-                            throw reader.CreateException($"Cannot convert number (disable {nameof(ReadState.ErrorOnTypeMismatch)} to prevent this exception)");
+                            numberText = chars.ToString();
                     }
-                    value = new JsonObject(number);
+                    value = numberText is null ? new JsonObject(number) : JsonObject.FromNumberText(numberText);
                     return true;
                 default:
                     throw new NotImplementedException();
@@ -760,6 +765,29 @@ namespace Zerra.Serialization.Json.Converters
 
                 state.Current.HasReadValue = false;
             }
+        }
+
+        private static bool IsUnderflow(ReadOnlySpan<byte> number)
+        {
+            foreach (var c in number)
+            {
+                if (c >= (byte)'1' && c <= (byte)'9')
+                    return true;
+                if (c == (byte)'e' || c == (byte)'E')
+                    return false;
+            }
+            return false;
+        }
+        private static bool IsUnderflow(ReadOnlySpan<char> number)
+        {
+            foreach (var c in number)
+            {
+                if (c >= '1' && c <= '9')
+                    return true;
+                if (c == 'e' || c == 'E')
+                    return false;
+            }
+            return false;
         }
     }
 }

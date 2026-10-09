@@ -147,7 +147,14 @@ namespace Zerra.Serialization.Json
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
             if (obj is null)
+            {
+#if NETSTANDARD2_0
+                stream.Write(nullBytes.ToArray(), 0, nullBytes.Length);
+#else
+                stream.Write(nullBytes.Span);
+#endif
                 return;
+            }
 
             options ??= defaultOptions;
 
@@ -189,7 +196,14 @@ namespace Zerra.Serialization.Json
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
             if (obj is null)
+            {
+#if NETSTANDARD2_0
+                stream.Write(nullBytes.ToArray(), 0, nullBytes.Length);
+#else
+                stream.Write(nullBytes.Span);
+#endif
                 return;
+            }
 
             options ??= defaultOptions;
 
@@ -233,7 +247,14 @@ namespace Zerra.Serialization.Json
             if (type is null)
                 throw new ArgumentNullException(nameof(type));
             if (obj is null)
+            {
+#if NETSTANDARD2_0
+                stream.Write(nullBytes.ToArray(), 0, nullBytes.Length);
+#else
+                stream.Write(nullBytes.Span);
+#endif
                 return;
+            }
 
             options ??= defaultOptions;
 

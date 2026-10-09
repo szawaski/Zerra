@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Globalization;
 using System.Buffers.Text;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
@@ -47,8 +48,19 @@ namespace Zerra.Serialization.Json.Converters.General
                             return false;
                         }
 
-                        if ((!Utf8Parser.TryParse(bytes, out long number, out var consumed) || consumed != bytes.Length) && state.ErrorOnTypeMismatch)
-                            ThrowCannotConvert(ref reader);
+                        object number;
+                        if (bytes.Length > 0 && bytes[0] == (byte)'-')
+                        {
+                            if ((!Utf8Parser.TryParse(bytes, out long signed, out var consumed) || consumed != bytes.Length) && state.ErrorOnTypeMismatch)
+                                ThrowCannotConvert(ref reader);
+                            number = signed;
+                        }
+                        else
+                        {
+                            if ((!Utf8Parser.TryParse(bytes, out ulong unsigned, out var consumed) || consumed != bytes.Length) && state.ErrorOnTypeMismatch)
+                                ThrowCannotConvert(ref reader);
+                            number = unsigned;
+                        }
                         try
                         {
                             value = (TValue?)Enum.ToObject(typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, number);
@@ -68,12 +80,27 @@ namespace Zerra.Serialization.Json.Converters.General
                             value = default;
                             return false;
                         }
+                        object number;
+                        if (chars.Length > 0 && chars[0] == '-')
+                        {
 #if NETSTANDARD2_0
-                        if (!UInt64.TryParse(chars.ToString(), out var number) && state.ErrorOnTypeMismatch)
+                            if (!Int64.TryParse(chars.ToString(), NumberStyles.AllowLeadingSign, NumberFormatInfo.InvariantInfo, out var signed) && state.ErrorOnTypeMismatch)
 #else
-                        if (!UInt64.TryParse(chars, out var number) && state.ErrorOnTypeMismatch)
+                            if (!Int64.TryParse(chars, NumberStyles.AllowLeadingSign, NumberFormatInfo.InvariantInfo, out var signed) && state.ErrorOnTypeMismatch)
 #endif
-                            ThrowCannotConvert(ref reader);
+                                ThrowCannotConvert(ref reader);
+                            number = signed;
+                        }
+                        else
+                        {
+#if NETSTANDARD2_0
+                            if (!UInt64.TryParse(chars.ToString(), NumberStyles.None, NumberFormatInfo.InvariantInfo, out var unsigned) && state.ErrorOnTypeMismatch)
+#else
+                            if (!UInt64.TryParse(chars, NumberStyles.None, NumberFormatInfo.InvariantInfo, out var unsigned) && state.ErrorOnTypeMismatch)
+#endif
+                                ThrowCannotConvert(ref reader);
+                            number = unsigned;
+                        }
                         try
                         {
                             value = (TValue?)Enum.ToObject(typeDetail.IsNullable ? typeDetail.InnerType : typeDetail.Type, number);

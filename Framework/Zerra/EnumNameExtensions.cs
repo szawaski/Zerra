@@ -41,7 +41,7 @@ public static class EnumNameExtensions
         return global::EnumName.Parse<T>(it);
     }
     public static T? ToEnumNullable<T>(this string? it)
-        where T : Enum
+        where T : struct, Enum
     {
         if (global::EnumName.TryParse<T>(it, out var value))
             return value;

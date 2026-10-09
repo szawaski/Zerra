@@ -97,8 +97,8 @@ namespace Zerra
         /// <param name="includeAllMembers">Indiciates if all members should be included.</param>
         public Graph(bool includeAllMembers)
         {
-            this.includeAllMembers = true;
-            this.signature = "A";
+            this.includeAllMembers = includeAllMembers;
+            this.signature = includeAllMembers ? "A:" : String.Empty;
         }
         /// <summary>
         /// Creates a graph with the specified members included.
@@ -231,6 +231,108 @@ namespace Zerra
             }
         }
 
+        internal static unsafe bool TryParseSignature(string? signature, Graph graph)
+        {
+            graph.includeAllMembers = false;
+            graph.addedMembers = null;
+            graph.removedMembers = null;
+            graph.childGraphs = null;
+
+            if (signature is null)
+                return false;
+
+            if (signature.Length == 0)
+            {
+                graph.signature = String.Empty;
+                return true;
+            }
+
+            graph.signature = null;
+
+            fixed (char* pFixed = signature)
+            {
+                var end = pFixed + signature.Length;
+                var p = pFixed;
+                if (TryParseSignature(graph, ref p, end) && p == end)
+                    return true;
+            }
+
+            graph.includeAllMembers = false;
+            graph.addedMembers = null;
+            graph.removedMembers = null;
+            graph.childGraphs = null;
+            return false;
+        }
+        //a signature is a run of tokens: A: for all members, P:member for added, R:member for removed, G:member:(tokens) for a child graph
+        //member names cannot contain a colon so a name ends at the colon of the next token, at a closing parenthesis, or at the end
+        private static unsafe bool TryParseSignature(Graph graph, ref char* p, char* end)
+        {
+            while (p < end)
+            {
+                if (*p == ')')
+                    return true;
+                if (p + 1 >= end || *(p + 1) != ':')
+                    return false;
+
+                var token = *p;
+                p += 2;
+                switch (token)
+                {
+                    case 'A':
+                        graph.includeAllMembers = true;
+                        break;
+                    case 'P':
+                        {
+                            var start = p;
+                            while (p < end && *p != ':' && *p != ')')
+                                p++;
+                            if (p < end && *p == ':')
+                                p--; //the character before the colon opens the next token
+                            graph.addedMembers ??= new();
+                            _ = graph.addedMembers.Add(new string(start, 0, (int)(p - start)));
+                            break;
+                        }
+                    case 'R':
+                        {
+                            var start = p;
+                            while (p < end && *p != ':' && *p != ')')
+                                p++;
+                            if (p < end && *p == ':')
+                                p--; //the character before the colon opens the next token
+                            graph.removedMembers ??= new();
+                            _ = graph.removedMembers.Add(new string(start, 0, (int)(p - start)));
+                            break;
+                        }
+                    case 'G':
+                        {
+                            var start = p;
+                            while (p < end && *p != ':')
+                                p++;
+                            if (p + 1 >= end || *(p + 1) != '(')
+                                return false;
+                            var member = new string(start, 0, (int)(p - start));
+                            p += 2;
+
+                            var childGraph = new Graph();
+                            if (!TryParseSignature(childGraph, ref p, end))
+                                return false;
+                            if (p >= end || *p != ')')
+                                return false;
+                            p++;
+
+                            graph.childGraphs ??= new();
+                            if (graph.childGraphs.ContainsKey(member))
+                                return false;
+                            graph.childGraphs.Add(member, childGraph);
+                            break;
+                        }
+                    default:
+                        return false;
+                }
+            }
+            return true;
+        }
+
         /// <summary>
         /// Adds members to include in the graph.
         /// </summary>
@@ -286,6 +388,7 @@ namespace Zerra
                 addedMembers ??= new();
                 _ = addedMembers.Add(member);
             }
+            _ = removedMembers?.Remove(member);
 
             signature = null;
 
@@ -334,8 +437,14 @@ namespace Zerra
                 }
                 if (graph.instanceGraphs is not null)
                 {
+                    existingGraph.instanceGraphs ??= new();
                     foreach (var instanceGraph in graph.instanceGraphs)
-                        existingGraph.AddInstanceGraph(instanceGraph.Key, instanceGraph.Value);
+                    {
+                        existingGraph.instanceGraphs[instanceGraph.Key] = instanceGraph.Value;
+                        instanceGraph.Value.instanceGraphs = existingGraph.instanceGraphs;
+                        instanceGraph.Value.signature = null;
+                    }
+                    existingGraph.signature = null;
                 }
             }
             else

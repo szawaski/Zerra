@@ -201,10 +201,14 @@ namespace Zerra.Reflection
 
                     string? interfaceTypeName = null;
                     if (interfaceType.ContainsGenericParameters)
-                    {
                         interfaceTypeName = GetNiceFullName(interfaceType);
+                    else if (interfaceType.IsGenericType)
+                        interfaceTypeName = GetNiceFullName(interfaceType.GetGenericTypeDefinition());
+                    if (interfaceTypeName is not null)
+                    {
                         var typeByInterfaceNameList = typeByInterfaceName.GetOrAdd(interfaceTypeName, static (key) => new());
-                        typeByInterfaceNameList.Add(typeInAssembly);
+                        if (!typeByInterfaceNameList.Contains(typeInAssembly))
+                            typeByInterfaceNameList.Add(typeInAssembly);
                     }
 
                     if (!typeInAssembly.IsAbstract && typeInAssembly.IsClass)
@@ -212,10 +216,11 @@ namespace Zerra.Reflection
                         var classByInterfaceList = classByInterface.GetOrAdd(interfaceType, static (key) => new());
                         classByInterfaceList.Add(typeInAssembly);
 
-                        if (interfaceType.ContainsGenericParameters)
+                        if (interfaceTypeName is not null)
                         {
-                            var classByInterfaceNameList = classByInterfaceName.GetOrAdd(interfaceTypeName!, static (key) => new());
-                            classByInterfaceNameList.Add(typeInAssembly);
+                            var classByInterfaceNameList = classByInterfaceName.GetOrAdd(interfaceTypeName, static (key) => new());
+                            if (!classByInterfaceNameList.Contains(typeInAssembly))
+                                classByInterfaceNameList.Add(typeInAssembly);
                         }
                     }
                 }
@@ -227,11 +232,16 @@ namespace Zerra.Reflection
                 var classByBaseList = classByBaseType.GetOrAdd(baseType, static (key) => new());
                 classByBaseList.Add(typeInAssembly);
 
+                string? baseTypeName = null;
                 if (baseType.ContainsGenericParameters)
+                    baseTypeName = GetNiceFullName(baseType);
+                else if (baseType.IsGenericType)
+                    baseTypeName = GetNiceFullName(baseType.GetGenericTypeDefinition());
+                if (baseTypeName is not null)
                 {
-                    var baseTypeName = GetNiceFullName(baseType);
                     var classByBaseNameList = classByBaseTypeName.GetOrAdd(baseTypeName, static (key) => new());
-                    classByBaseNameList.Add(typeInAssembly);
+                    if (!classByBaseNameList.Contains(typeInAssembly))
+                        classByBaseNameList.Add(typeInAssembly);
                 }
 
                 baseType = baseType.BaseType;

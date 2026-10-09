@@ -69,7 +69,12 @@ namespace Zerra.Reflection
                 return null;
 
             if (!getMethod.IsStatic)
-                il.Emit(OpCodes.Ldarg_0);
+            {
+                if (propertyInfo.ReflectedType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
+            }
 
             if (getMethod.IsFinal || !getMethod.IsVirtual)
                 il.Emit(OpCodes.Call, getMethod);
@@ -138,7 +143,12 @@ namespace Zerra.Reflection
                 return null;
 
             if (!setMethod.IsStatic)
-                il.Emit(OpCodes.Ldarg_0);
+            {
+                if (propertyInfo.ReflectedType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
+            }
 
             il.Emit(OpCodes.Ldarg_1);
 
@@ -194,7 +204,12 @@ namespace Zerra.Reflection
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
-                il.Emit(OpCodes.Ldarg_0);
+            {
+                if (fieldInfo.ReflectedType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
+            }
 
             if (!fieldInfo.IsStatic)
                 il.Emit(OpCodes.Ldfld, fieldInfo);
@@ -249,7 +264,12 @@ namespace Zerra.Reflection
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
-                il.Emit(OpCodes.Ldarg_0);
+            {
+                if (fieldInfo.ReflectedType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
+            }
 
             il.Emit(OpCodes.Ldarg_1);
 
@@ -493,7 +513,10 @@ namespace Zerra.Reflection
                 if (methodBase.DeclaringType is null)
                     return false;
 
-                il.Emit(OpCodes.Ldarg_0);
+                if (methodBase.DeclaringType.IsValueType)
+                    il.Emit(OpCodes.Ldarga_S, (byte)0);
+                else
+                    il.Emit(OpCodes.Ldarg_0);
             }
 
             var localObject = il.DeclareLocal(typeof(T));

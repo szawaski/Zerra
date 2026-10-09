@@ -102,6 +102,9 @@ namespace Zerra.SourceGeneration
 
         public static void GenerateType(SourceProductionContext context, ITypeSymbol typeSymbol, IReadOnlyCollection<ITypeSymbol> allTypeSymbol, List<Tuple<string, string>> classList, bool recursive, bool publicAndImplicitOnly)
         {
+            if (typeSymbol.IsRefLikeType)
+                return;
+
             var namespaceRecursionCheck = typeSymbol;
             while (namespaceRecursionCheck is not null)
             {

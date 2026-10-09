@@ -125,7 +125,7 @@ namespace Zerra.Serialization.Json
 
                 for (; ; )
                 {
-                    var bytesUsed = Read(buffer.AsSpan().Slice(0, read), ref state, out result);
+                    var bytesUsed = Read(buffer.AsSpan().Slice(0, length), ref state, out result);
 
                     if (state.SizeNeeded == 0)
                         break;
@@ -134,7 +134,7 @@ namespace Zerra.Serialization.Json
                         throw new EndOfStreamException();
 
                     Buffer.BlockCopy(buffer, bytesUsed, buffer, 0, length - bytesUsed);
-                    position = length - position;
+                    position = length - bytesUsed;
 
                     if (position + state.SizeNeeded > buffer.Length)
                         ArrayPoolHelper<byte>.Grow(ref buffer, position + state.SizeNeeded);

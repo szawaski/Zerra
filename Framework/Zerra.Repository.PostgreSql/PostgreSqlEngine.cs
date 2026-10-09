@@ -34,7 +34,7 @@ namespace Zerra.Repository.PostgreSql
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var property = reader.GetName(i);
-                if (modelDetail.TryGetPropertyLower(property, out var propertyInfo))
+                if (modelDetail.TryGetPropertyBySourceNameLower(property, out var propertyInfo))
                     columnProperties[i] = (ICoreTypeSetter<TModel>)propertyInfo.CoreTypeSetter;
             }
             return columnProperties;
@@ -1157,6 +1157,7 @@ namespace Zerra.Repository.PostgreSql
                 AssureExtensions(sql, needCreateDatabase);
 
                 var columnsToCheck = new List<ModelDetail>();
+                var droppedConstraints = new HashSet<string>();
                 foreach (var model in modelDetails)
                 {
                     var needCreateTable = AssureTable(create, sql, needCreateDatabase, model);
@@ -1168,13 +1169,13 @@ namespace Zerra.Repository.PostgreSql
                 {
                     var sqlColumns = GetSqlColumns(model);
                     var sqlConstraints = GetSqlConstraints(model);
-                    AssureColumns(create, update, delete, sql, model, sqlColumns, sqlConstraints);
+                    AssureColumns(create, update, delete, sql, model, sqlColumns, sqlConstraints, droppedConstraints);
                 }
 
                 foreach (var model in modelDetails)
                 {
                     var sqlConstraints = needCreateDatabase ? Array.Empty<SqlConstraint>() : GetSqlConstraints(model);
-                    AssureConstraints(create, update, delete, sql, model, sqlConstraints);
+                    AssureConstraints(create, update, delete, sql, model, sqlConstraints, droppedConstraints);
                 }
             }
             catch (Exception ex)
@@ -1305,7 +1306,7 @@ namespace Zerra.Repository.PostgreSql
             return true;
         }
 
-        private void AssureColumns(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints)
+        private void AssureColumns(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints)
         {
             var columns = model.Properties.Where(x => !x.IsDataSourceEntity && x.CoreType.HasValue || x.Type == typeof(byte[])).ToArray();
 
@@ -1318,12 +1319,24 @@ namespace Zerra.Repository.PostgreSql
                 {
                     if (create)
                     {
-                        _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ADD ").Append(column.Name).Append(' ');
+                        _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ADD ").Append(column.PropertySourceName).Append(' ');
                         WriteSqlTypeFromModel(sb, column);
                         WriteTypeEndingFromModel(sb, column);
+                        var withDefault = column.IsDataSourceNotNull && !column.IsIdentity;
+                        if (withDefault)
+                        {
+                            _ = sb.Append(" DEFAULT ");
+                            WriteDefaultValue(sb, column);
+                        }
                         _ = sb.Append(';');
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
+                        if (withDefault)
+                        {
+                            _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.PropertySourceName.ToLower()).Append(" DROP DEFAULT;");
+                            sql.Add(sb.ToString());
+                            _ = sb.Clear();
+                        }
                     }
                 }
                 else
@@ -1341,19 +1354,21 @@ namespace Zerra.Repository.PostgreSql
                             {
                                 foreach (var sqlConstraint in theseSqlConstraints)
                                 {
+                                    if (!droppedConstraints.Add(sqlConstraint.FK_Name))
+                                        continue;
                                     _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
                                     sql.Add(sb.ToString());
                                     _ = sb.Clear();
                                 }
                             }
 
-                            _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.Name.ToLower()).Append(" TYPE ");
+                            _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.PropertySourceName.ToLower()).Append(" TYPE ");
                             WriteSqlTypeFromModel(sb, column);
                             _ = sb.Append(';');
                             sql.Add(sb.ToString());
                             _ = sb.Clear();
 
-                            _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.Name.ToLower());
+                            _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.PropertySourceName.ToLower());
                             if (column.IsDataSourceNotNull) //model checks for identity not null
                             {
                                 _ = sb.Append(" SET NOT NULL");
@@ -1388,6 +1403,8 @@ namespace Zerra.Repository.PostgreSql
                         {
                             foreach (var sqlConstraint in theseSqlConstraints)
                             {
+                                if (!droppedConstraints.Add(sqlConstraint.FK_Name))
+                                    continue;
                                 _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
                                 sql.Add(sb.ToString());
                                 _ = sb.Clear();
@@ -1408,9 +1425,9 @@ namespace Zerra.Repository.PostgreSql
             }
         }
 
-        private void AssureConstraints(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints)
+        private void AssureConstraints(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints)
         {
-            var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).ToDictionary(x => x, x => 0);
+            var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).ToDictionary(x => x, x => 0, StringComparer.OrdinalIgnoreCase);
 
             var sb = new StringBuilder();
 
@@ -1431,13 +1448,17 @@ namespace Zerra.Repository.PostgreSql
                 var pkColumn = relatedModelDetails.IdentityProperties[0].Name;
 
                 var sqlConstraint = sqlConstraints.FirstOrDefault(x => x.FK_Table == fkTable.ToLower() && x.FK_Column == fkColumn.ToLower() && x.PK_Table == pkTable.ToLower() && x.PK_Column == pkColumn.ToLower());
-                if (sqlConstraint is null)
+                if (sqlConstraint is null || droppedConstraints.Contains(sqlConstraint.FK_Name))
                 {
                     if (create)
                     {
                         var baseConstraintName = $"FK_{fkTable}_{pkTable}";
                         string constraintName;
-                        if (constraintNameDictionary.TryGetValue(baseConstraintName, out var constraintNameIndex))
+                        if (sqlConstraint is not null)
+                        {
+                            constraintName = sqlConstraint.FK_Name;
+                        }
+                        else if (constraintNameDictionary.TryGetValue(baseConstraintName, out var constraintNameIndex))
                         {
                             constraintNameIndex++;
                             constraintName = baseConstraintName + constraintNameIndex;
@@ -1469,7 +1490,7 @@ namespace Zerra.Repository.PostgreSql
                 //foreign keys not in model
                 foreach (var sqlConstraint in sqlConstraints.Where(x => x.FK_Table == fkTable))
                 {
-                    if (!usedSqlConstraints.Contains(sqlConstraint))
+                    if (!usedSqlConstraints.Contains(sqlConstraint) && !droppedConstraints.Contains(sqlConstraint.FK_Name))
                     {
                         _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
                         sql.Add(sb.ToString());
@@ -1529,7 +1550,10 @@ namespace Zerra.Repository.PostgreSql
                         break;
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
-                        _ = sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 6).Append(')');
+                        if (property.DatePart == StoreDatePart.Date)
+                            _ = sb.Append("date");
+                        else
+                            _ = sb.Append("timestamp(").Append(property.DataSourcePrecisionLength ?? 6).Append(')');
                         break;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
@@ -1621,16 +1645,22 @@ namespace Zerra.Repository.PostgreSql
             {
                 switch (property.CoreType.Value)
                 {
-                    case CoreType.Boolean:
-                    case CoreType.BooleanNullable:
                     case CoreType.Byte:
                     case CoreType.ByteNullable:
+                    case CoreType.SByte:
+                    case CoreType.SByteNullable:
                     case CoreType.Int16:
                     case CoreType.Int16Nullable:
+                    case CoreType.UInt16:
+                    case CoreType.UInt16Nullable:
                     case CoreType.Int32:
                     case CoreType.Int32Nullable:
+                    case CoreType.UInt32:
+                    case CoreType.UInt32Nullable:
                     case CoreType.Int64:
                     case CoreType.Int64Nullable:
+                    case CoreType.UInt64:
+                    case CoreType.UInt64Nullable:
                     case CoreType.Single:
                     case CoreType.SingleNullable:
                     case CoreType.Double:
@@ -1639,36 +1669,46 @@ namespace Zerra.Repository.PostgreSql
                     case CoreType.DecimalNullable:
                         _ = sb.Append('0');
                         break;
+                    case CoreType.Boolean:
+                    case CoreType.BooleanNullable:
+                        _ = sb.Append("false");
+                        break;
                     case CoreType.Char:
                     case CoreType.CharNullable:
+                    case CoreType.String:
                         _ = sb.Append("''");
                         break;
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
+                    case CoreType.DateOnly:
+                    case CoreType.DateOnlyNullable:
+                        _ = sb.Append("'1900-01-01'");
+                        break;
                     case CoreType.DateTimeOffset:
                     case CoreType.DateTimeOffsetNullable:
+                        _ = sb.Append("'1900-01-01 00:00:00+00'");
+                        break;
                     case CoreType.TimeSpan:
                     case CoreType.TimeSpanNullable:
-                        _ = sb.Append("CAST(0 AS timestamp)");
+                    case CoreType.TimeOnly:
+                    case CoreType.TimeOnlyNullable:
+                        _ = sb.Append("'00:00:00'");
                         break;
                     case CoreType.Guid:
                     case CoreType.GuidNullable:
-                        _ = sb.Append("uuid_nil()");
-                        break;
-                    case CoreType.String:
-                        _ = sb.Append("''");
+                        _ = sb.Append("'00000000-0000-0000-0000-000000000000'");
                         break;
                     default:
-                        throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(PostgreSqlEngine)} type.");
+                        throw new Exception($"Cannot match type {property.Type.Name} to an {nameof(PostgreSqlEngine)} type.");
                 }
             }
             else if (property.Type == typeof(byte[]))
             {
-                _ = sb.Append("E'\\x0'");
+                _ = sb.Append("'\\x'");
             }
             else
             {
-                throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(PostgreSqlEngine)} type.");
+                throw new Exception($"Cannot match type {property.Type.Name} to an {nameof(PostgreSqlEngine)} type.");
             }
         }
 
@@ -1681,37 +1721,37 @@ namespace Zerra.Repository.PostgreSql
             {
                 switch (property.CoreType.Value)
                 {
-                    case CoreType.Boolean: return sqlColumn.DataType == "boolean" && sqlColumn.IsNullable == false;
-                    case CoreType.Byte: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == false;
-                    case CoreType.Int16: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == false;
-                    case CoreType.Int32: return sqlColumn.DataType == "integer" && sqlColumn.IsNullable == false;
-                    case CoreType.Int64: return sqlColumn.DataType == "bigint" && sqlColumn.IsNullable == false;
-                    case CoreType.Single: return sqlColumn.DataType == "real" && sqlColumn.IsNullable == false;
-                    case CoreType.Double: return sqlColumn.DataType == "double precision" && sqlColumn.IsNullable == false;
-                    case CoreType.Decimal: return sqlColumn.DataType == "numeric" && sqlColumn.IsNullable == false && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
-                    case CoreType.Char: return sqlColumn.DataType == "character varying" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTime: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "timestamp with time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.TimeSpan: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.DateOnly: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == 0;
-                    case CoreType.TimeOnly: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.Guid: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == false;
+                    case CoreType.Boolean: return sqlColumn.DataType == "boolean" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Byte: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int16: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int32: return sqlColumn.DataType == "integer" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int64: return sqlColumn.DataType == "bigint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Single: return sqlColumn.DataType == "real" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Double: return sqlColumn.DataType == "double precision" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Decimal: return sqlColumn.DataType == "numeric" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
+                    case CoreType.Char: return sqlColumn.DataType == "character varying" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
+                    case CoreType.DateTime: return (property.DatePart == StoreDatePart.Date ? sqlColumn.DataType == "date" : sqlColumn.DataType == "timestamp without time zone" && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6)) && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "timestamp with time zone" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.TimeSpan: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.DateOnly: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == 0;
+                    case CoreType.TimeOnly: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.Guid: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
 
-                    case CoreType.BooleanNullable: return sqlColumn.DataType == "boolean" && sqlColumn.IsNullable == true;
-                    case CoreType.ByteNullable: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == true;
-                    case CoreType.Int16Nullable: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == true;
-                    case CoreType.Int32Nullable: return sqlColumn.DataType == "integer" && sqlColumn.IsNullable == true;
-                    case CoreType.Int64Nullable: return sqlColumn.DataType == "bigint" && sqlColumn.IsNullable == true;
-                    case CoreType.SingleNullable: return sqlColumn.DataType == "real" && sqlColumn.IsNullable == true;
-                    case CoreType.DoubleNullable: return sqlColumn.DataType == "double precision" && sqlColumn.IsNullable == true;
-                    case CoreType.DecimalNullable: return sqlColumn.DataType == "numeric" && sqlColumn.IsNullable == true && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
-                    case CoreType.CharNullable: return sqlColumn.DataType == "character varying" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTimeNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "timestamp with time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.DateOnlyNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == 0;
-                    case CoreType.TimeOnlyNullable: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.GuidNullable: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == true;
+                    case CoreType.BooleanNullable: return sqlColumn.DataType == "boolean" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.ByteNullable: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int16Nullable: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int32Nullable: return sqlColumn.DataType == "integer" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int64Nullable: return sqlColumn.DataType == "bigint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.SingleNullable: return sqlColumn.DataType == "real" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.DoubleNullable: return sqlColumn.DataType == "double precision" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.DecimalNullable: return sqlColumn.DataType == "numeric" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
+                    case CoreType.CharNullable: return sqlColumn.DataType == "character varying" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
+                    case CoreType.DateTimeNullable: return (property.DatePart == StoreDatePart.Date ? sqlColumn.DataType == "date" : sqlColumn.DataType == "timestamp without time zone" && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6)) && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "timestamp with time zone" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.DateOnlyNullable: return sqlColumn.DataType == "timestamp without time zone" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == 0;
+                    case CoreType.TimeOnlyNullable: return sqlColumn.DataType == "time without time zone" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.GuidNullable: return sqlColumn.DataType == "uuid" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
 
                     case CoreType.String:
                         //decided by the length the model asks for, the existing column only has a length when it is already varchar

@@ -22,25 +22,35 @@ namespace Zerra.Collections
             get
             {
                 locker.EnterReadLock();
-                if (index < 0 || index > list.Count - 1)
+                try
+                {
+                    if (index < 0 || index > list.Count - 1)
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(index));
+                    }
+                    var value = list[index];
+                    return value;
+                }
+                finally
                 {
                     locker.ExitReadLock();
-                    throw new ArgumentOutOfRangeException(nameof(index));
                 }
-                var value = list[index];
-                locker.ExitReadLock();
-                return value;
             }
             set
             {
                 locker.EnterWriteLock();
-                if (index < 0 || index > list.Count - 1)
+                try
+                {
+                    if (index < 0 || index > list.Count - 1)
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(index));
+                    }
+                    list[index] = value;
+                }
+                finally
                 {
                     locker.ExitWriteLock();
-                    throw new ArgumentOutOfRangeException(nameof(index));
                 }
-                list[index] = value;
-                locker.ExitWriteLock();
             }
         }
 
@@ -49,9 +59,15 @@ namespace Zerra.Collections
             get
             {
                 locker.EnterReadLock();
-                var count = list.Count;
-                locker.ExitReadLock();
-                return count;
+                try
+                {
+                    var count = list.Count;
+                    return count;
+                }
+                finally
+                {
+                    locker.ExitReadLock();
+                }
             }
         }
 
@@ -69,39 +85,54 @@ namespace Zerra.Collections
             get
             {
                 locker.EnterReadLock();
-                if (index < 0 || index > list.Count - 1)
+                try
+                {
+                    if (index < 0 || index > list.Count - 1)
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(index));
+                    }
+                    var value = list[index];
+                    return value;
+                }
+                finally
                 {
                     locker.ExitReadLock();
-                    throw new ArgumentOutOfRangeException(nameof(index));
                 }
-                var value = list[index];
-                locker.ExitReadLock();
-                return value;
             }
             set
             {
                 locker.EnterWriteLock();
-                if (index < 0 || index > list.Count - 1)
+                try
+                {
+                    if (index < 0 || index > list.Count - 1)
+                    {
+                        throw new ArgumentOutOfRangeException(nameof(index));
+                    }
+                    if (value is not T casted)
+                    {
+                        throw new InvalidOperationException("value cannot be casted to the List type");
+                    }
+                    list[index] = casted;
+                }
+                finally
                 {
                     locker.ExitWriteLock();
-                    throw new ArgumentOutOfRangeException(nameof(index));
                 }
-                if (value is not T casted)
-                {
-                    locker.ExitWriteLock();
-                    throw new InvalidOperationException("value cannot be casted to the List type");
-                }
-                list[index] = casted;
-                locker.ExitWriteLock();
             }
         }
 
         int IList.Add(object? value)
         {
             locker.EnterWriteLock();
-            var result = ((IList)list).Add(value);
-            locker.ExitWriteLock();
-            return result;
+            try
+            {
+                var result = ((IList)list).Add(value);
+                return result;
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
         void IList.Clear() => Clear();
         bool IList.Contains(object? value)
@@ -133,31 +164,55 @@ namespace Zerra.Collections
         public void Add(T item)
         {
             locker.EnterWriteLock();
-            list.Add(item);
-            locker.ExitWriteLock();
+            try
+            {
+                list.Add(item);
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 
         public void AddRange(IEnumerable<T> items)
         {
             locker.EnterWriteLock();
-            foreach (var item in items)
-                list.Add(item);
-            locker.ExitWriteLock();
+            try
+            {
+                foreach (var item in items)
+                    list.Add(item);
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 
         public void Clear()
         {
             locker.EnterWriteLock();
-            list.Clear();
-            locker.ExitWriteLock();
+            try
+            {
+                list.Clear();
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 
         public bool Contains(T item)
         {
             locker.EnterReadLock();
-            var contains = list.Contains(item);
-            locker.ExitReadLock();
-            return contains;
+            try
+            {
+                var contains = list.Contains(item);
+                return contains;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
         public void CopyTo(T[] array, int arrayIndex)
@@ -166,64 +221,104 @@ namespace Zerra.Collections
                 throw new ArgumentOutOfRangeException(nameof(arrayIndex));
 
             locker.EnterReadLock();
-            list.CopyTo(array, arrayIndex);
-            locker.ExitReadLock();
+            try
+            {
+                list.CopyTo(array, arrayIndex);
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
         public T[] ToArray()
         {
             locker.EnterReadLock();
-            var items = list.ToArray();
-            locker.ExitReadLock();
-            return items;
+            try
+            {
+                var items = list.ToArray();
+                return items;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
         public IEnumerator<T> GetEnumerator()
         {
             locker.EnterReadLock();
-            IEnumerable<T> items = list.ToArray();
-            locker.ExitReadLock();
-            return items.GetEnumerator();
+            try
+            {
+                IEnumerable<T> items = list.ToArray();
+                return items.GetEnumerator();
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
         public int IndexOf(T item)
         {
             locker.EnterReadLock();
-            var index = list.IndexOf(item);
-            locker.ExitReadLock();
-            return index;
+            try
+            {
+                var index = list.IndexOf(item);
+                return index;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
         public void Insert(int index, T item)
         {
             locker.EnterWriteLock();
-            if (index < 0 || index > list.Count - 1)
+            try
+            {
+                if (index < 0 || index > list.Count - 1)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(index));
+                }
+                list.Insert(index, item);
+            }
+            finally
             {
                 locker.ExitWriteLock();
-                throw new ArgumentOutOfRangeException(nameof(index));
             }
-            list.Insert(index, item);
-            locker.ExitWriteLock();
         }
 
         public bool Remove(T item)
         {
             locker.EnterWriteLock();
-            var removed = list.Remove(item);
-            locker.ExitWriteLock();
-            return removed;
+            try
+            {
+                var removed = list.Remove(item);
+                return removed;
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 
         public void RemoveAt(int index)
         {
             locker.EnterWriteLock();
-            if (index < 0 || index > list.Count - 1)
+            try
+            {
+                if (index < 0 || index > list.Count - 1)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(index));
+                }
+                list.RemoveAt(index);
+            }
+            finally
             {
                 locker.ExitWriteLock();
-                throw new ArgumentOutOfRangeException(nameof(index));
             }
-            list.RemoveAt(index);
-            locker.ExitWriteLock();
         }
 
         IEnumerator IEnumerable.GetEnumerator()

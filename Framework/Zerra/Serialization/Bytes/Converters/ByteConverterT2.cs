@@ -187,6 +187,8 @@ namespace Zerra.Serialization.Bytes.Converters
                 if (state.EntryWriteType is null)
                 {
                     var writeType = value!.GetType();
+                    if (writeType != typeDetail.Type && value is Type)
+                        writeType = typeof(Type);
                     var typeName = writeType.AssemblyQualifiedName ?? throw new InvalidOperationException($"Type {writeType} does not have {nameof(writeType.AssemblyQualifiedName)}");
 
                     if (!writer.TryWrite(typeName, out state.BytesNeeded))
@@ -403,6 +405,8 @@ namespace Zerra.Serialization.Bytes.Converters
                 if (state.EntryWriteType is null)
                 {
                     var writeType = value!.GetType();
+                    if (writeType != typeDetail.Type && value is Type)
+                        writeType = typeof(Type);
                     var typeName = writeType.AssemblyQualifiedName ?? throw new InvalidOperationException($"Type {writeType} does not have {nameof(writeType.AssemblyQualifiedName)}");
 
                     if (!writer.TryWrite(typeName, out state.BytesNeeded))
@@ -663,6 +667,8 @@ namespace Zerra.Serialization.Bytes.Converters
                 if (state.Current.ChildWriteType is null)
                 {
                     var writeType = value!.GetType();
+                    if (writeType != typeDetail.Type && value is Type)
+                        writeType = typeof(Type);
                     var typeName = writeType.AssemblyQualifiedName ?? throw new InvalidOperationException($"Type {writeType} does not have {nameof(writeType.AssemblyQualifiedName)}");
 
                     if (!writer.TryWrite(typeName, out state.BytesNeeded))

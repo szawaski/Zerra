@@ -59,14 +59,19 @@ namespace Zerra.Encryption
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-#if !NETSTANDARD2_0
-            return HashCode.Combine(Key, IV, KeySize, BlockSize);
+#if NET6_0_OR_GREATER
+            var hashCode = new HashCode();
+            hashCode.AddBytes(Key);
+            hashCode.AddBytes(IV);
+            return hashCode.ToHashCode();
 #else
             unchecked
             {
                 var hash = (int)2166136261;
-                hash = (hash * 16777619) ^ Key.GetHashCode();
-                hash = (hash * 16777619) ^ IV.GetHashCode();
+                foreach (var b in Key)
+                    hash = (hash * 16777619) ^ b;
+                foreach (var b in IV)
+                    hash = (hash * 16777619) ^ b;
                 return hash;
             }
 #endif

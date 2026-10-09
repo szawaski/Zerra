@@ -11,6 +11,7 @@ using Zerra.Serialization.Json.Converters.Collections.Dictionaries;
 using Zerra.Serialization.Json.Converters.Collections.Enumerables;
 using Zerra.Serialization.Json.Converters.Collections.Lists;
 using Zerra.Serialization.Json.Converters.General;
+using Zerra.Serialization.Json.Converters.Special;
 
 namespace Zerra.Serialization.Json.Converters
 {
@@ -71,6 +72,9 @@ namespace Zerra.Serialization.Json.Converters
                             return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, objectType, objectType);
                 }
             }
+
+            if (typeDetail.Type == typeof(Graph) || (typeDetail.Type.IsGenericType && typeDetail.Type.GetGenericTypeDefinition() == typeof(Graph<>)))
+                return typeof(JsonConverterGraph<,>).GetGenericTypeDetail(parentType, typeDetail.Type);
 
             if (typeDetail.CoreType.HasValue)
                 throw new NotSupportedException($"No JsonConverter found to support {typeDetail.Type.GetNiceName()}");

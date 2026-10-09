@@ -325,10 +325,13 @@ namespace Zerra.Reflection.Runtime
         private static readonly Type typeDetailT = typeof(MemberDetailRuntime<,>);
         internal static MemberDetail New(Type type, Type valueType, string name, MemberInfo member, MemberDetail? backingFieldDetail, bool isExplicitFromInterface, object locker)
         {
-            if (!valueType.ContainsGenericParameters && !type.IsPointer && !type.IsByRef
+            if (!valueType.ContainsGenericParameters && !valueType.IsPointer && !valueType.IsByRef
 #if !NETSTANDARD2_0
-                && !valueType.IsByRefLike
+                && !valueType.IsByRefLike && !type.IsByRefLike
             #endif
+#if NET8_0_OR_GREATER
+                && !valueType.IsFunctionPointer
+#endif
             )
             {
                 var typeDetailGeneric = typeDetailT.MakeGenericType(type, valueType);

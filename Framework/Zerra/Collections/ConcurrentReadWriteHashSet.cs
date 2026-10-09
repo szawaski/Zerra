@@ -24,9 +24,15 @@ namespace Zerra.Collections
             get
             {
                 locker.EnterReadLock();
-                var count = hashSet.Count;
-                locker.ExitReadLock();
-                return count;
+                try
+                {
+                    var count = hashSet.Count;
+                    return count;
+                }
+                finally
+                {
+                    locker.ExitReadLock();
+                }
             }
         }
 
@@ -35,29 +41,53 @@ namespace Zerra.Collections
         public bool Add(T item)
         {
             locker.EnterWriteLock();
-            var add = hashSet.Add(item);
-            locker.ExitWriteLock();
-            return add;
+            try
+            {
+                var add = hashSet.Add(item);
+                return add;
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
         public void Clear()
         {
             locker.EnterWriteLock();
-            hashSet.Clear();
-            locker.ExitWriteLock();
+            try
+            {
+                hashSet.Clear();
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
         public bool Contains(T item)
         {
             locker.EnterReadLock();
-            var contains = hashSet.Contains(item);
-            locker.ExitReadLock();
-            return contains;
+            try
+            {
+                var contains = hashSet.Contains(item);
+                return contains;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
         public void CopyTo(T[] array)
         {
             locker.EnterReadLock();
-            hashSet.CopyTo(array);
-            locker.ExitReadLock();
+            try
+            {
+                hashSet.CopyTo(array);
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
         public void CopyTo(T[] array, int arrayIndex)
         {
@@ -65,8 +95,14 @@ namespace Zerra.Collections
                 throw new ArgumentOutOfRangeException(nameof(arrayIndex));
 
             locker.EnterReadLock();
-            hashSet.CopyTo(array, arrayIndex);
-            locker.ExitReadLock();
+            try
+            {
+                hashSet.CopyTo(array, arrayIndex);
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
         public void CopyTo(T[] array, int arrayIndex, int count)
         {
@@ -77,141 +113,255 @@ namespace Zerra.Collections
                 throw new ArgumentOutOfRangeException(nameof(count));
 
             locker.EnterReadLock();
-            hashSet.CopyTo(array, arrayIndex, count);
-            locker.ExitReadLock();
+            try
+            {
+                hashSet.CopyTo(array, arrayIndex, count);
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
 #if !NETSTANDARD2_0
         public int EnsureCapacity(int capacity)
         {
             locker.EnterWriteLock();
-            var result = hashSet.EnsureCapacity(capacity);
-            locker.ExitWriteLock();
-            return result;
+            try
+            {
+                var result = hashSet.EnsureCapacity(capacity);
+                return result;
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 #endif
         public void ExceptWith(IEnumerable<T> other)
         {
             locker.EnterWriteLock();
-            hashSet.ExceptWith(other);
-            locker.ExitWriteLock();
+            try
+            {
+                hashSet.ExceptWith(other);
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 
         public void IntersectWith(IEnumerable<T> other)
         {
             locker.EnterWriteLock();
-            hashSet.IntersectWith(other);
-            locker.ExitWriteLock();
+            try
+            {
+                hashSet.IntersectWith(other);
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
         public bool IsProperSubsetOf(IEnumerable<T> other)
         {
             locker.EnterReadLock();
-            var isProperSubsetOf = hashSet.IsProperSubsetOf(other);
-            locker.ExitReadLock();
-            return isProperSubsetOf;
+            try
+            {
+                var isProperSubsetOf = hashSet.IsProperSubsetOf(other);
+                return isProperSubsetOf;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
         public bool IsProperSupersetOf(IEnumerable<T> other)
         {
             locker.EnterReadLock();
-            var isProperSupersetOf = hashSet.IsProperSupersetOf(other);
-            locker.ExitReadLock();
-            return isProperSupersetOf;
+            try
+            {
+                var isProperSupersetOf = hashSet.IsProperSupersetOf(other);
+                return isProperSupersetOf;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
         public bool IsSubsetOf(IEnumerable<T> other)
         {
             locker.EnterReadLock();
-            var isSubsetOf = hashSet.IsSubsetOf(other);
-            locker.ExitReadLock();
-            return isSubsetOf;
+            try
+            {
+                var isSubsetOf = hashSet.IsSubsetOf(other);
+                return isSubsetOf;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
         public bool IsSupersetOf(IEnumerable<T> other)
         {
             locker.EnterReadLock();
-            var isSupersetOf = hashSet.IsSupersetOf(other);
-            locker.ExitReadLock();
-            return isSupersetOf;
+            try
+            {
+                var isSupersetOf = hashSet.IsSupersetOf(other);
+                return isSupersetOf;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
         public bool Overlaps(IEnumerable<T> other)
         {
             locker.EnterReadLock();
-            var overlaps = hashSet.Overlaps(other);
-            locker.ExitReadLock();
-            return overlaps;
+            try
+            {
+                var overlaps = hashSet.Overlaps(other);
+                return overlaps;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
         public bool Remove(T item)
         {
             locker.EnterWriteLock();
-            var removed = hashSet.Remove(item);
-            locker.ExitWriteLock();
-            return removed;
+            try
+            {
+                var removed = hashSet.Remove(item);
+                return removed;
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
         public int RemoveWhere(Predicate<T> match)
         {
             locker.EnterWriteLock();
-            var removed = hashSet.RemoveWhere(match);
-            locker.ExitWriteLock();
-            return removed;
+            try
+            {
+                var removed = hashSet.RemoveWhere(match);
+                return removed;
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
         public bool SetEquals(IEnumerable<T> other)
         {
             locker.EnterReadLock();
-            var setEquals = hashSet.SetEquals(other);
-            locker.ExitReadLock();
-            return setEquals;
+            try
+            {
+                var setEquals = hashSet.SetEquals(other);
+                return setEquals;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
         public void SymmetricExceptWith(IEnumerable<T> other)
         {
             locker.EnterWriteLock();
-            hashSet.SymmetricExceptWith(other);
-            locker.ExitWriteLock();
+            try
+            {
+                hashSet.SymmetricExceptWith(other);
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
         public void TrimExcess()
         {
             locker.EnterWriteLock();
-            hashSet.TrimExcess();
-            locker.ExitWriteLock();
+            try
+            {
+                hashSet.TrimExcess();
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 #if !NETSTANDARD2_0
         public bool TryGetValue(T equalValue, [MaybeNullWhen(false)] out T actualValue)
         {
             locker.EnterReadLock();
-            var result = hashSet.TryGetValue(equalValue, out var tryActualValue);
-            if (result)
-                actualValue = tryActualValue;
-            else
-                actualValue = default;
-            locker.ExitReadLock();
-            return result;
+            try
+            {
+                var result = hashSet.TryGetValue(equalValue, out var tryActualValue);
+                if (result)
+                    actualValue = tryActualValue;
+                else
+                    actualValue = default;
+                return result;
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 #endif
         public void UnionWith(IEnumerable<T> other)
         {
             locker.EnterWriteLock();
-            hashSet.UnionWith(other);
-            locker.ExitWriteLock();
+            try
+            {
+                hashSet.UnionWith(other);
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 
         void ICollection<T>.Add(T item)
         {
             locker.EnterWriteLock();
-            _ = hashSet.Add(item);
-            locker.ExitWriteLock();
+            try
+            {
+                _ = hashSet.Add(item);
+            }
+            finally
+            {
+                locker.ExitWriteLock();
+            }
         }
 
         public IEnumerator<T> GetEnumerator()
         {
             locker.EnterReadLock();
-            IEnumerable<T> items = hashSet.ToArray();
-            locker.ExitReadLock();
-            return items.GetEnumerator();
+            try
+            {
+                IEnumerable<T> items = hashSet.ToArray();
+                return items.GetEnumerator();
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
             locker.EnterReadLock();
-            IEnumerable<T> items = hashSet.ToArray();
-            locker.ExitReadLock();
-            return items.GetEnumerator();
+            try
+            {
+                IEnumerable<T> items = hashSet.ToArray();
+                return items.GetEnumerator();
+            }
+            finally
+            {
+                locker.ExitReadLock();
+            }
         }
 
         public void Dispose()

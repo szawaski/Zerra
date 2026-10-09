@@ -245,12 +245,11 @@ namespace Zerra.Repository
                 return eventModels;
 
             var compressedModels = eventModels.Select(x => x.Model).ToArray();
-            var models = DecompressModels(compressedModels, query.Graph, true);
-            var i = 0;
+            var models = DecompressModels(compressedModels, query.Graph, true).GetEnumerator();
             foreach (var eventModel in eventModels)
             {
-                eventModel.Model = compressedModels[i];
-                i++;
+                _ = models.MoveNext();
+                eventModel.Model = models.Current;
             }
 
             return eventModels;
@@ -340,12 +339,11 @@ namespace Zerra.Repository
                 return eventModels;
 
             var compressedModels = eventModels.Select(x => x.Model).ToArray();
-            var models = DecompressModels(compressedModels, query.Graph, true);
-            var i = 0;
+            var models = DecompressModels(compressedModels, query.Graph, true).GetEnumerator();
             foreach (var eventModel in eventModels)
             {
-                eventModel.Model = compressedModels[i];
-                i++;
+                _ = models.MoveNext();
+                eventModel.Model = models.Current;
             }
 
             return eventModels;

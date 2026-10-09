@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -48,7 +49,7 @@ public sealed class EnumName : Attribute
         });
     }
 
-    private static readonly ConcurrentFactoryDictionary<Type, Dictionary<long, string>> nameCache = new();
+    private static readonly ConcurrentFactoryDictionary<Type, ConcurrentDictionary<long, string>> nameCache = new();
 
     /// <summary>
     /// Get the string representation of an Enum using EnumName Attributes.
@@ -65,7 +66,7 @@ public sealed class EnumName : Attribute
 
         var nameLookup = nameCache.GetOrAdd(type, static (type) =>
         {
-            var items = new Dictionary<long, string>();
+            var items = new ConcurrentDictionary<long, string>();
             var underlyingType = GetUnderlyingType(type);
 
             var typeDetail = type.GetTypeDetail();
@@ -229,7 +230,7 @@ public sealed class EnumName : Attribute
                 }
 
                 name = sb.ToString();
-                nameLookup.Add(longValue, name);
+                _ = nameLookup.TryAdd(longValue, name);
                 return name;
             }
         }

@@ -106,12 +106,12 @@ namespace Zerra.Serialization.Json
                             case >= ' ':
                                 if (c >= lowerSurrogate && c <= upperSurrogate)
                                 {
-                                    bufferIndex += encoding.GetBytes(&pValue[start], i - start, pEscapeBuffer, bufferIndex - escapeBuffer.Length);
+                                    bufferIndex += encoding.GetBytes(&pValue[start], i - start, &pEscapeBuffer[bufferIndex], escapeBuffer.Length - bufferIndex);
 
                                     var surrogateCode = SurrogateIntToEncodedHexBytes[c];
                                     fixed (byte* pCode = surrogateCode)
                                     {
-                                        Buffer.MemoryCopy(pCode, &pEscapeBuffer[bufferIndex], bufferIndex - escapeBuffer.Length, surrogateCode.Length);
+                                        Buffer.MemoryCopy(pCode, &pEscapeBuffer[bufferIndex], escapeBuffer.Length - bufferIndex, surrogateCode.Length);
                                         bufferIndex += surrogateCode.Length;
                                     }
 
@@ -136,12 +136,12 @@ namespace Zerra.Serialization.Json
                                 break;
                             default:
 
-                                bufferIndex += encoding.GetBytes(&pValue[start], i - start, pEscapeBuffer, bufferIndex - escapeBuffer.Length);
+                                bufferIndex += encoding.GetBytes(&pValue[start], i - start, &pEscapeBuffer[bufferIndex], escapeBuffer.Length - bufferIndex);
 
                                 var code = LowUnicodeIntToEncodedHexBytes[c];
                                 fixed (byte* pCode = code)
                                 {
-                                    Buffer.MemoryCopy(pCode, &pEscapeBuffer[bufferIndex], bufferIndex - escapeBuffer.Length, code.Length);
+                                    Buffer.MemoryCopy(pCode, &pEscapeBuffer[bufferIndex], escapeBuffer.Length - bufferIndex, code.Length);
                                     bufferIndex += code.Length;
                                 }
 
@@ -149,7 +149,7 @@ namespace Zerra.Serialization.Json
                                 continue;
                         }
 
-                        bufferIndex += encoding.GetBytes(&pValue[start], i - start, pEscapeBuffer, bufferIndex - escapeBuffer.Length);
+                        bufferIndex += encoding.GetBytes(&pValue[start], i - start, &pEscapeBuffer[bufferIndex], escapeBuffer.Length - bufferIndex);
 
                         pEscapeBuffer[bufferIndex++] = escapeByte;
                         pEscapeBuffer[bufferIndex++] = escapedByte;
@@ -158,7 +158,7 @@ namespace Zerra.Serialization.Json
 
                     if (value.Length > start)
                     {
-                        bufferIndex += encoding.GetBytes(&pValue[start], value.Length - start, pEscapeBuffer, bufferIndex - escapeBuffer.Length);
+                        bufferIndex += encoding.GetBytes(&pValue[start], value.Length - start, &pEscapeBuffer[bufferIndex], escapeBuffer.Length - bufferIndex);
                     }
 
                     bytes = new byte[bufferIndex + (quoteAndColon ? 3 : 0)];
@@ -173,7 +173,7 @@ namespace Zerra.Serialization.Json
                         }
                         else
                         {
-                            Buffer.MemoryCopy(pEscapeBuffer, pBytes, bytes.Length - 1, bufferIndex);
+                            Buffer.MemoryCopy(pEscapeBuffer, pBytes, bytes.Length, bufferIndex);
                         }
                     }
                 }
@@ -306,8 +306,8 @@ namespace Zerra.Serialization.Json
                         Buffer.MemoryCopy(&pValue[start], &pEscapeBuffer[bufferIndex], (escapeBuffer.Length - bufferIndex) * 2, (i - start) * 2);
                         bufferIndex += i - start;
 
-                        pValue[bufferIndex++] = '\\';
-                        pValue[bufferIndex++] = escapedChar;
+                        pEscapeBuffer[bufferIndex++] = '\\';
+                        pEscapeBuffer[bufferIndex++] = escapedChar;
                         start = i + 1;
                     }
 
@@ -317,18 +317,19 @@ namespace Zerra.Serialization.Json
                         bufferIndex += value.Length - start;
                     }
 
-                    chars = new char[encoding.GetByteCount(pEscapeBuffer, bufferIndex) + (quoteAndColon ? 3 : 0)];
+                    chars = new char[bufferIndex + (quoteAndColon ? 3 : 0)];
                     fixed (char* pChar = chars)
                     {
                         if (quoteAndColon)
                         {
                             pChar[0] = '"';
+                            Buffer.MemoryCopy(pEscapeBuffer, &pChar[1], (chars.Length - 1) * 2, bufferIndex * 2);
+                            pChar[chars.Length - 2] = '"';
+                            pChar[chars.Length - 1] = ':';
                         }
-                        Buffer.MemoryCopy(pValue, &pChar[1], (chars.Length - 1) * 2, value.Length * 2);
-                        if (quoteAndColon)
+                        else
                         {
-                            pChar[chars.Length - 2] = '"'; ;
-                            pChar[chars.Length - 1] = ':'; ;
+                            Buffer.MemoryCopy(pEscapeBuffer, pChar, chars.Length * 2, bufferIndex * 2);
                         }
                     }
                 }

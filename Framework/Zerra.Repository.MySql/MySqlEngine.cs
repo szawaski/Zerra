@@ -35,7 +35,7 @@ namespace Zerra.Repository.MySql
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var property = reader.GetName(i);
-                if (modelDetail.TryGetProperty(property, out var propertyInfo))
+                if (modelDetail.TryGetPropertyBySourceName(property, out var propertyInfo))
                     columnProperties[i] = (ICoreTypeSetter<TModel>)propertyInfo.CoreTypeSetter;
             }
             return columnProperties;
@@ -1137,6 +1137,7 @@ namespace Zerra.Repository.MySql
                 needCreateDatabase = NeedCreateDatabase(databaseName);
 
                 var columnsToCheck = new List<ModelDetail>();
+                var droppedConstraints = new HashSet<string>();
                 foreach (var model in modelDetails)
                 {
                     var needCreateTable = AssureTable(create, sql, needCreateDatabase, model);
@@ -1148,13 +1149,13 @@ namespace Zerra.Repository.MySql
                 {
                     var sqlColumns = GetSqlColumns(model);
                     var sqlConstraints = GetSqlConstraints(model);
-                    AssureColumns(create, update, delete, sql, model, sqlColumns, sqlConstraints);
+                    AssureColumns(create, update, delete, sql, model, sqlColumns, sqlConstraints, droppedConstraints);
                 }
 
                 foreach (var model in modelDetails)
                 {
                     var sqlConstraints = needCreateDatabase ? Array.Empty<SqlConstraint>() : GetSqlConstraints(model);
-                    AssureConstraints(create, update, delete, sql, model, sqlConstraints);
+                    AssureConstraints(create, update, delete, sql, model, sqlConstraints, droppedConstraints);
                 }
             }
             catch (Exception ex)
@@ -1219,7 +1220,7 @@ namespace Zerra.Repository.MySql
 
             if (!needCreateDatabase)
             {
-                var sqlQuery = $"SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = '{model.DataSourceEntityName}'";
+                var sqlQuery = $"SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = '{model.DataSourceEntityName.ToLower()}'";
                 var exists = ExecuteSqlScalar<long>(sqlQuery) > 0;
                 if (exists)
                     return false;
@@ -1272,7 +1273,7 @@ namespace Zerra.Repository.MySql
             return true;
         }
 
-        private void AssureColumns(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints)
+        private void AssureColumns(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints)
         {
             var columns = model.Properties.Where(x => !x.IsDataSourceEntity && x.CoreType.HasValue || x.Type == typeof(byte[])).ToArray();
 
@@ -1280,16 +1281,28 @@ namespace Zerra.Repository.MySql
 
             foreach (var column in columns)
             {
-                var sqlColumn = sqlColumns.FirstOrDefault(x => x.Table == model.DataSourceEntityName.ToLower() && x.Column == column.PropertySourceName);
+                var sqlColumn = sqlColumns.FirstOrDefault(x => String.Equals(x.Table, model.DataSourceEntityName, StringComparison.OrdinalIgnoreCase) && x.Column == column.PropertySourceName);
                 if (sqlColumn is null)
                 {
                     if (create)
                     {
-                        _ = sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` ADD `").Append(column.Name).Append("` ");
+                        _ = sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` ADD `").Append(column.PropertySourceName).Append("` ");
                         WriteSqlTypeFromModel(sb, column);
+                        var withDefault = column.IsDataSourceNotNull && !column.IsIdentity;
+                        if (withDefault)
+                        {
+                            _ = sb.Append(" DEFAULT ");
+                            WriteDefaultValue(sb, column);
+                        }
                         _ = sb.Append(';');
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
+                        if (withDefault)
+                        {
+                            _ = sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` ALTER COLUMN `").Append(column.PropertySourceName).Append("` DROP DEFAULT;");
+                            sql.Add(sb.ToString());
+                            _ = sb.Clear();
+                        }
                     }
                 }
                 else
@@ -1302,18 +1315,20 @@ namespace Zerra.Repository.MySql
                             if (sqlColumn.IsPrimaryKey || sqlColumn.IsIdentity || sqlColumn.IsPrimaryKey != column.IsIdentity || sqlColumn.IsIdentity != column.IsIdentityAutoGenerated)
                                 throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MySqlEngine)} cannot automatically change column with a Primary Key or Identity {model.Type.GetNiceName()}.{column.Name}");
 
-                            var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == model.DataSourceEntityName.ToLower() && x.PK_Column == column.Name) || (x.FK_Table == model.DataSourceEntityName && x.FK_Column == column.Name)).ToArray();
+                            var theseSqlConstraints = sqlConstraints.Where(x => (String.Equals(x.PK_Table, model.DataSourceEntityName, StringComparison.OrdinalIgnoreCase) && x.PK_Column == column.Name) || (String.Equals(x.FK_Table, model.DataSourceEntityName, StringComparison.OrdinalIgnoreCase) && x.FK_Column == column.Name)).ToArray();
                             if (theseSqlConstraints.Length > 0)
                             {
                                 foreach (var sqlConstraint in theseSqlConstraints)
                                 {
+                                    if (!droppedConstraints.Add(sqlConstraint.FK_Name))
+                                        continue;
                                     _ = sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT `").Append(sqlConstraint.FK_Name).Append("`;");
                                     sql.Add(sb.ToString());
                                     _ = sb.Clear();
                                 }
                             }
 
-                            _ = sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` MODIFY `").Append(column.Name).Append("` ");
+                            _ = sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` MODIFY `").Append(column.PropertySourceName).Append("` ");
                             WriteSqlTypeFromModel(sb, column);
                             _ = sb.Append(';');
                             sql.Add(sb.ToString());
@@ -1326,7 +1341,7 @@ namespace Zerra.Repository.MySql
             if (delete)
             {
                 //columns not in model
-                foreach (var sqlColumn in sqlColumns.Where(x => x.Table == model.DataSourceEntityName.ToLower()))
+                foreach (var sqlColumn in sqlColumns.Where(x => String.Equals(x.Table, model.DataSourceEntityName, StringComparison.OrdinalIgnoreCase)))
                 {
                     var column = columns.FirstOrDefault(x => x.PropertySourceName == sqlColumn.Column);
                     if (column is null)
@@ -1336,6 +1351,8 @@ namespace Zerra.Repository.MySql
                         {
                             foreach (var sqlConstraint in theseSqlConstraints)
                             {
+                                if (!droppedConstraints.Add(sqlConstraint.FK_Name))
+                                    continue;
                                 _ = sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT `").Append(sqlConstraint.FK_Name).Append("`;");
                                 sql.Add(sb.ToString());
                                 _ = sb.Clear();
@@ -1358,9 +1375,9 @@ namespace Zerra.Repository.MySql
             }
         }
 
-        private void AssureConstraints(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints)
+        private void AssureConstraints(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints)
         {
-            var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).ToDictionary(x => x, x => 0);
+            var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).ToDictionary(x => x, x => 0, StringComparer.OrdinalIgnoreCase);
 
             var sb = new StringBuilder();
 
@@ -1381,13 +1398,17 @@ namespace Zerra.Repository.MySql
                 var pkColumn = relatedModelDetails.IdentityProperties[0].Name;
 
                 var sqlConstraint = sqlConstraints.FirstOrDefault(x => x.FK_Table.ToLower() == fkTable.ToLower() && x.FK_Column.ToLower() == fkColumn.ToLower() && x.PK_Table.ToLower() == pkTable.ToLower() && x.PK_Column.ToLower() == pkColumn.ToLower());
-                if (sqlConstraint is null)
+                if (sqlConstraint is null || droppedConstraints.Contains(sqlConstraint.FK_Name))
                 {
                     if (create)
                     {
                         var baseConstraintName = $"FK_{fkTable}_{pkTable}";
                         string constraintName;
-                        if (constraintNameDictionary.TryGetValue(baseConstraintName, out var constraintNameIndex))
+                        if (sqlConstraint is not null)
+                        {
+                            constraintName = sqlConstraint.FK_Name;
+                        }
+                        else if (constraintNameDictionary.TryGetValue(baseConstraintName, out var constraintNameIndex))
                         {
                             constraintNameIndex++;
                             constraintName = baseConstraintName + constraintNameIndex;
@@ -1419,7 +1440,7 @@ namespace Zerra.Repository.MySql
                 //foreign keys not in model
                 foreach (var sqlConstraint in sqlConstraints.Where(x => x.FK_Table == fkTable))
                 {
-                    if (!usedSqlConstraints.Contains(sqlConstraint))
+                    if (!usedSqlConstraints.Contains(sqlConstraint) && !droppedConstraints.Contains(sqlConstraint.FK_Name))
                     {
                         _ = sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT ").Append(sqlConstraint.FK_Name).Append(';');
                         sql.Add(sb.ToString());
@@ -1531,9 +1552,8 @@ namespace Zerra.Repository.MySql
                 _ = sb.Append(" NOT NULL");
                 if (property.IsIdentity && !property.IsIdentityAutoGenerated)
                 {
-                    _ = sb.Append(" DEFAULT (");
+                    _ = sb.Append(" DEFAULT ");
                     WriteDefaultValue(sb, property);
-                    _ = sb.Append(')');
                 }
             }
             else
@@ -1551,20 +1571,27 @@ namespace Zerra.Repository.MySql
 
         private static void WriteDefaultValue(StringBuilder sb, ModelPropertyDetail property)
         {
+            _ = sb.Append('(');
             if (property.CoreType.HasValue)
             {
                 switch (property.CoreType.Value)
                 {
-                    case CoreType.Boolean:
-                    case CoreType.BooleanNullable:
                     case CoreType.Byte:
                     case CoreType.ByteNullable:
+                    case CoreType.SByte:
+                    case CoreType.SByteNullable:
                     case CoreType.Int16:
                     case CoreType.Int16Nullable:
+                    case CoreType.UInt16:
+                    case CoreType.UInt16Nullable:
                     case CoreType.Int32:
                     case CoreType.Int32Nullable:
+                    case CoreType.UInt32:
+                    case CoreType.UInt32Nullable:
                     case CoreType.Int64:
                     case CoreType.Int64Nullable:
+                    case CoreType.UInt64:
+                    case CoreType.UInt64Nullable:
                     case CoreType.Single:
                     case CoreType.SingleNullable:
                     case CoreType.Double:
@@ -1573,41 +1600,48 @@ namespace Zerra.Repository.MySql
                     case CoreType.DecimalNullable:
                         _ = sb.Append('0');
                         break;
+                    case CoreType.Boolean:
+                    case CoreType.BooleanNullable:
+                        _ = sb.Append('0');
+                        break;
                     case CoreType.Char:
                     case CoreType.CharNullable:
+                    case CoreType.String:
                         _ = sb.Append("''");
                         break;
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
-                    case CoreType.DateTimeOffset:
-                    case CoreType.DateTimeOffsetNullable:
-                    case CoreType.TimeSpan:
-                    case CoreType.TimeSpanNullable:
                     case CoreType.DateOnly:
                     case CoreType.DateOnlyNullable:
+                        _ = sb.Append("'1900-01-01'");
+                        break;
+                    case CoreType.DateTimeOffset:
+                    case CoreType.DateTimeOffsetNullable:
+                        _ = sb.Append("'1900-01-01'");
+                        break;
+                    case CoreType.TimeSpan:
+                    case CoreType.TimeSpanNullable:
                     case CoreType.TimeOnly:
                     case CoreType.TimeOnlyNullable:
-                        _ = sb.Append("CONVERT(datetime, 0)");
+                        _ = sb.Append("'00:00:00'");
                         break;
                     case CoreType.Guid:
                     case CoreType.GuidNullable:
-                        _ = sb.Append("UUID()");
-                        break;
-                    case CoreType.String:
-                        _ = sb.Append("''");
+                        _ = sb.Append("0x00000000000000000000000000000000");
                         break;
                     default:
-                        throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(MySqlEngine)} type.");
+                        throw new Exception($"Cannot match type {property.Type.Name} to an {nameof(MySqlEngine)} type.");
                 }
             }
             else if (property.Type == typeof(byte[]))
             {
-                _ = sb.Append("0x");
+                _ = sb.Append("X''");
             }
             else
             {
-                throw new Exception($"Cannot match type {property.Type.GetNiceName()} to an {nameof(MySqlEngine)} type.");
+                throw new Exception($"Cannot match type {property.Type.Name} to an {nameof(MySqlEngine)} type.");
             }
+            _ = sb.Append(')');
         }
 
         private static void WriteSqlTypeFromColumnAsNullable(StringBuilder sb, SqlColumnType sqlColumn)
@@ -1626,6 +1660,7 @@ namespace Zerra.Repository.MySql
                 case "date":
 
                 case "text":
+                case "blob":
                     _ = sb.Append(sqlColumn.DataType);
                     break;
                 case "numeric":
@@ -1660,37 +1695,37 @@ namespace Zerra.Repository.MySql
             {
                 switch (property.CoreType.Value)
                 {
-                    case CoreType.Boolean: return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == false;
-                    case CoreType.Byte: return sqlColumn.DataType == "tinyint" && sqlColumn.IsNullable == false;
-                    case CoreType.Int16: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == false;
-                    case CoreType.Int32: return sqlColumn.DataType == "int" && sqlColumn.IsNullable == false;
-                    case CoreType.Int64: return sqlColumn.DataType == "bigint" && sqlColumn.IsNullable == false;
-                    case CoreType.Single: return sqlColumn.DataType == "float" && sqlColumn.IsNullable == false;
-                    case CoreType.Double: return sqlColumn.DataType == "double" && sqlColumn.IsNullable == false;
-                    case CoreType.Decimal: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == false && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
-                    case CoreType.Char: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTime: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == false;
-                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.TimeSpan: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.DateOnly: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == false;
-                    case CoreType.TimeOnly: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == false && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.Guid: return sqlColumn.DataType == "char" && sqlColumn.IsNullable == false && sqlColumn.CharacterMaximumLength == 32;
+                    case CoreType.Boolean: return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Byte: return sqlColumn.DataType == "tinyint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int16: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int32: return sqlColumn.DataType == "int" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int64: return sqlColumn.DataType == "bigint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Single: return sqlColumn.DataType == "float" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Double: return sqlColumn.DataType == "double" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Decimal: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
+                    case CoreType.Char: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
+                    case CoreType.DateTime: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.DateTimeOffset: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.TimeSpan: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.DateOnly: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.TimeOnly: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.Guid: return sqlColumn.DataType == "char" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == 32;
 
-                    case CoreType.BooleanNullable: return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == true;
-                    case CoreType.ByteNullable: return sqlColumn.DataType == "tinyint" && sqlColumn.IsNullable == true;
-                    case CoreType.Int16Nullable: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == true;
-                    case CoreType.Int32Nullable: return sqlColumn.DataType == "int" && sqlColumn.IsNullable == true;
-                    case CoreType.Int64Nullable: return sqlColumn.DataType == "bigint" && sqlColumn.IsNullable == true;
-                    case CoreType.SingleNullable: return sqlColumn.DataType == "float" && sqlColumn.IsNullable == true;
-                    case CoreType.DoubleNullable: return sqlColumn.DataType == "double" && sqlColumn.IsNullable == true;
-                    case CoreType.DecimalNullable: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == true && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
-                    case CoreType.CharNullable: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
-                    case CoreType.DateTimeNullable: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == true;
-                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.DateOnlyNullable: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == true;
-                    case CoreType.TimeOnlyNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == true && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
-                    case CoreType.GuidNullable: return sqlColumn.DataType == "char" && sqlColumn.IsNullable == true && sqlColumn.CharacterMaximumLength == 32;
+                    case CoreType.BooleanNullable: return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.ByteNullable: return sqlColumn.DataType == "tinyint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int16Nullable: return sqlColumn.DataType == "smallint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int32Nullable: return sqlColumn.DataType == "int" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.Int64Nullable: return sqlColumn.DataType == "bigint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.SingleNullable: return sqlColumn.DataType == "float" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.DoubleNullable: return sqlColumn.DataType == "double" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.DecimalNullable: return sqlColumn.DataType == "decimal" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.NumericPrecision == (property.DataSourcePrecisionLength ?? 19) && sqlColumn.NumericScale == (property.DataSourceScale ?? 5);
+                    case CoreType.CharNullable: return sqlColumn.DataType == "varchar" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? 1);
+                    case CoreType.DateTimeNullable: return ((sqlColumn.DataType == "datetime" && property.DatePart == StoreDatePart.DateTime && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6)) || (sqlColumn.DataType == "date" && property.DatePart == StoreDatePart.Date)) && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.DateTimeOffsetNullable: return sqlColumn.DataType == "datetime" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.TimeSpanNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.DateOnlyNullable: return sqlColumn.DataType == "date" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                    case CoreType.TimeOnlyNullable: return sqlColumn.DataType == "time" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.DatetimePrecision == (property.DataSourcePrecisionLength ?? 6);
+                    case CoreType.GuidNullable: return sqlColumn.DataType == "char" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == 32;
 
                     case CoreType.String:
                         //decided by the length the model asks for, the existing column only has a length when it is already varchar
@@ -1719,7 +1754,7 @@ namespace Zerra.Repository.MySql
 FROM INFORMATION_SCHEMA.COLUMNS C
 LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON KF.COLUMN_NAME = C.COLUMN_NAME AND C.TABLE_NAME = KF.TABLE_NAME AND C.TABLE_SCHEMA = KF.TABLE_SCHEMA
 LEFT OUTER JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS RC ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.TABLE_NAME = KF.TABLE_NAME AND RC.TABLE_SCHEMA = KF.TABLE_SCHEMA
-WHERE C.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
+WHERE C.TABLE_SCHEMA = DATABASE() AND LOWER(C.TABLE_NAME) = '{model.DataSourceEntityName.ToLower()}'";
 
             var sqlColumns = ExecuteSqlQuery(query).Select(x => (IList<object>)x).Select(x => new SqlColumnType()
             {
@@ -1744,7 +1779,7 @@ FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC
 LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KF.CONSTRAINT_SCHEMA
 LEFT JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS TCKF ON KF.CONSTRAINT_NAME = TCKF.CONSTRAINT_NAME AND KF.CONSTRAINT_SCHEMA = TCKF.CONSTRAINT_SCHEMA
 WHERE TCKF.CONSTRAINT_TYPE = 'FOREIGN KEY'
-AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
+AND KF.TABLE_SCHEMA = DATABASE() AND LOWER(KF.TABLE_NAME) = '{model.DataSourceEntityName.ToLower()}'";
 
             var sqlConstrains = ExecuteSqlQuery(query).Select(x => (IList<object>)x).Select(x => new SqlConstraint()
             {

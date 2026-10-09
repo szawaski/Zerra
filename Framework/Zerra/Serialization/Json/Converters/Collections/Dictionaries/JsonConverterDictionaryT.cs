@@ -2,7 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Zerra.Reflection;
 using Zerra.Serialization.Json.IO;
 using Zerra.Serialization.Json.State;
@@ -152,7 +154,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 value = accessor.Dictionary;
                 return true;
             }
-            else if (valueType == JsonValueType.Array)
+            else if (valueType == JsonValueType.Array && !canWriteAsProperties)
             {
                 if (!state.Current.HasCreated)
                 {
@@ -246,7 +248,22 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
 
                 while (state.Current.EnumeratorInProgress || enumerator.MoveNext())
                 {
-                    var name = enumerator.Current.Key.ToString();
+                    var currentKey = enumerator.Current.Key;
+                    string name;
+                    if (typeof(TKey) == typeof(string))
+                        name = (string)(object)currentKey!;
+                    else if (typeof(TKey) == typeof(DateTime) || typeof(TKey) == typeof(DateTimeOffset))
+                        name = GetDateKeyName(currentKey);
+#if NET6_0_OR_GREATER
+                    else if (typeof(TKey) == typeof(DateOnly))
+                        name = ((DateOnly)(object)currentKey!).ToString("O", CultureInfo.InvariantCulture);
+                    else if (typeof(TKey) == typeof(TimeOnly))
+                        name = ((TimeOnly)(object)currentKey!).ToTimeSpan().ToString("c", CultureInfo.InvariantCulture);
+#endif
+                    else if (currentKey is IFormattable formattable)
+                        name = formattable.ToString(null, CultureInfo.InvariantCulture);
+                    else
+                        name = currentKey!.ToString()!;
                     var nameSegmentBytes = writer.UseBytes ? StringHelper.EscapeAndEncodeString(name, true) : null;
                     var nameSegmentChars = writer.UseBytes ? null : StringHelper.EscapeString(name, true);
                     if (!writeValueConverter.TryWriteFromParent(ref writer, ref state, enumerator, name, nameSegmentChars, nameSegmentBytes, default, true))
@@ -333,6 +350,27 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 }
                 return true;
             }
+        }
+
+        private static string GetDateKeyName(TKey key)
+        {
+#if NETSTANDARD2_0
+            return typeof(TKey) == typeof(DateTime) ? ((DateTime)(object)key!).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture) : ((DateTimeOffset)(object)key!).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss.FFFFFFFK", CultureInfo.InvariantCulture);
+#else
+            Span<char> dateChars = stackalloc char[33];
+            int dateLength;
+            if (typeof(TKey) == typeof(DateTime))
+                _ = ((DateTime)(object)key!).TryFormat(dateChars, out dateLength, "O", CultureInfo.InvariantCulture);
+            else
+                _ = ((DateTimeOffset)(object)key!).TryFormat(dateChars, out dateLength, "O", CultureInfo.InvariantCulture);
+            var fractionEnd = 27;
+            while (fractionEnd > 20 && dateChars[fractionEnd - 1] == '0')
+                fractionEnd--;
+            if (fractionEnd == 20)
+                fractionEnd = 19;
+            dateChars.Slice(27, dateLength - 27).CopyTo(dateChars.Slice(fractionEnd));
+            return new string(dateChars.Slice(0, fractionEnd + dateLength - 27));
+#endif
         }
     }
 }

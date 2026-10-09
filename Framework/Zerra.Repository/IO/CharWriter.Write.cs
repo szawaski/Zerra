@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 
 namespace Zerra.Repository.IO
@@ -69,21 +70,21 @@ namespace Zerra.Repository.IO
         public void Write(float value)
         {
             EnsureBufferSize(16); //min
-            Write(value.ToString());
+            Write(value.ToString(CultureInfo.InvariantCulture));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(double value)
         {
             EnsureBufferSize(32); //min
-            Write(value.ToString());
+            Write(value.ToString(CultureInfo.InvariantCulture));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(decimal value)
         {
             EnsureBufferSize(31);
-            Write(value.ToString());
+            Write(value.ToString(CultureInfo.InvariantCulture));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -208,18 +209,24 @@ namespace Zerra.Repository.IO
                             case DateTimeKind.Local:
                                 {
                                     var offset = (DateTimeOffset)value;
-                                    if (offset.Offset.Hours < 0)
+                                    var offsetMinutes = (int)offset.Offset.TotalMinutes;
+                                    if (offsetMinutes < 0)
+                                    {
                                         buffer[position++] = '-';
+                                        offsetMinutes = -offsetMinutes;
+                                    }
                                     else
+                                    {
                                         buffer[position++] = '+';
-                                    if (offset.Offset.Hours < 10)
+                                    }
+                                    if (offsetMinutes / 60 < 10)
                                         buffer[position++] = '0';
-                                    WriteInt64(offset.Offset.Hours < 0 ? -offset.Offset.Hours : offset.Offset.Hours);
+                                    WriteInt64(offsetMinutes / 60);
                                     buffer[position++] = ':';
 
-                                    if (offset.Offset.Minutes < 10)
+                                    if (offsetMinutes % 60 < 10)
                                         buffer[position++] = '0';
-                                    WriteInt64(offset.Offset.Minutes);
+                                    WriteInt64(offsetMinutes % 60);
                                     break;
                                 }
                             case DateTimeKind.Unspecified:
@@ -475,18 +482,24 @@ namespace Zerra.Repository.IO
                             WriteInt64(fraction);
                         }
 
-                        if (value.Offset.Hours < 0)
+                        var offsetMinutes = (int)value.Offset.TotalMinutes;
+                        if (offsetMinutes < 0)
+                        {
                             buffer[position++] = '-';
+                            offsetMinutes = -offsetMinutes;
+                        }
                         else
+                        {
                             buffer[position++] = '+';
-                        if (value.Offset.Hours < 10)
+                        }
+                        if (offsetMinutes / 60 < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
+                        WriteInt64(offsetMinutes / 60);
                         buffer[position++] = ':';
 
-                        if (value.Offset.Minutes < 10)
+                        if (offsetMinutes % 60 < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Offset.Minutes);
+                        WriteInt64(offsetMinutes % 60);
 
                         break;
                     }
@@ -542,18 +555,24 @@ namespace Zerra.Repository.IO
                             WriteInt64(fraction);
                         }
 
-                        if (value.Offset.Hours < 0)
+                        var offsetMinutes = (int)value.Offset.TotalMinutes;
+                        if (offsetMinutes < 0)
+                        {
                             buffer[position++] = '-';
+                            offsetMinutes = -offsetMinutes;
+                        }
                         else
+                        {
                             buffer[position++] = '+';
-                        if (value.Offset.Hours < 10)
+                        }
+                        if (offsetMinutes / 60 < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
+                        WriteInt64(offsetMinutes / 60);
                         buffer[position++] = ':';
 
-                        if (value.Offset.Minutes < 10)
+                        if (offsetMinutes % 60 < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Offset.Minutes);
+                        WriteInt64(offsetMinutes % 60);
 
                         break;
                     }
@@ -676,18 +695,24 @@ namespace Zerra.Repository.IO
                         }
 
 
-                        if (value.Offset.Hours < 0)
+                        var offsetMinutes = (int)value.Offset.TotalMinutes;
+                        if (offsetMinutes < 0)
+                        {
                             buffer[position++] = '-';
+                            offsetMinutes = -offsetMinutes;
+                        }
                         else
+                        {
                             buffer[position++] = '+';
-                        if (value.Offset.Hours < 10)
+                        }
+                        if (offsetMinutes / 60 < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Offset.Hours < 0 ? -value.Offset.Hours : value.Offset.Hours);
+                        WriteInt64(offsetMinutes / 60);
                         buffer[position++] = ':';
 
-                        if (value.Offset.Minutes < 10)
+                        if (offsetMinutes % 60 < 10)
                             buffer[position++] = '0';
-                        WriteInt64(value.Offset.Minutes);
+                        WriteInt64(offsetMinutes % 60);
 
                         break;
                     }
@@ -958,8 +983,6 @@ namespace Zerra.Repository.IO
                         if (value.Day < 10)
                             buffer[position++] = '0';
                         WriteInt64(value.Day);
-
-                        buffer[position++] = ' ';
 
                         break;
                     }

@@ -987,6 +987,17 @@ namespace Zerra.Repository.MySql
             sb.Write(Environment.NewLine);
         }
 
+        protected override string? OperatorToString(Operator operation, Type type)
+        {
+            if (operation == Operator.Divide)
+            {
+                var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+                if (underlyingType == typeof(int) || underlyingType == typeof(long) || underlyingType == typeof(short) || underlyingType == typeof(byte) || underlyingType == typeof(sbyte) || underlyingType == typeof(uint) || underlyingType == typeof(ulong) || underlyingType == typeof(ushort))
+                    return " DIV ";
+            }
+            return OperatorToString(operation);
+        }
+
         protected override string? OperatorToString(Operator operation)
         {
             return operation switch

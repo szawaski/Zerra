@@ -43,7 +43,7 @@ namespace Zerra.SourceGeneration.Discovery
                 }
             }
 
-            var ns = symbols.Where(x => x.ContainingNamespace is not null).Select(x => x.ContainingNamespace.ToString()).OrderBy(x => x.Length).FirstOrDefault() ?? "Unknown";
+            var ns = symbols.Where(x => x.ContainingNamespace is not null && !x.ContainingNamespace.IsGlobalNamespace).Select(x => x.ContainingNamespace.ToString()).OrderBy(x => x.Length).FirstOrDefault() ?? "Unknown";
 
             var sbInitializer = new StringBuilder();
             var firstPass = false;

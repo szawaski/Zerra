@@ -327,6 +327,8 @@ namespace Zerra.Map
         }
 
         private static readonly Type[] typeArgumentsForParse = [typeof(string)];
+        private static readonly MethodInfo typeAnalyzerConvertMethod = typeof(TypeAnalyzer).GetMethod(nameof(TypeAnalyzer.Convert), [typeof(object), typeof(Type)])!;
+
         private Expression GenerateMap(Graph? graph, Expression source, Expression target, Expression recursionDictionary, ref int depth)
         {
             if (sourceType.CoreType.HasValue || targetType.CoreType.HasValue)
@@ -370,7 +372,16 @@ namespace Zerra.Map
                     }
                     else
                     {
-                        assigner = Expression.Assign(target, Expression.Convert(source, targetType.Type));
+                        Expression converted;
+                        try
+                        {
+                            converted = Expression.Convert(source, targetType.Type);
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            converted = Expression.Convert(Expression.Call(typeAnalyzerConvertMethod, Expression.Convert(source, objectType), Expression.Constant(targetType.Type, typeof(Type))), targetType.Type);
+                        }
+                        assigner = Expression.Assign(target, converted);
                     }
                 }
                 else

@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -86,7 +87,7 @@ namespace Zerra.Reflection
                     CoreType.Double => System.Convert.ToDouble(obj),
                     CoreType.Decimal => System.Convert.ToDecimal(obj),
                     CoreType.Char => System.Convert.ToChar(obj),
-                    CoreType.DateTime => System.Convert.ToDateTime(obj),
+                    CoreType.DateTime => ConvertToDateTime(obj),
                     CoreType.DateTimeOffset => ConvertToDateTimeOffset(obj),
                     CoreType.TimeSpan => ConvertToTimeSpan(obj),
 #if NET6_0_OR_GREATER
@@ -108,8 +109,8 @@ namespace Zerra.Reflection
                     CoreType.DoubleNullable => System.Convert.ToDouble(obj),
                     CoreType.DecimalNullable => System.Convert.ToDecimal(obj),
                     CoreType.CharNullable => System.Convert.ToChar(obj),
-                    CoreType.DateTimeNullable => System.Convert.ToDateTime(obj),
-                    CoreType.DateTimeOffsetNullable => System.Convert.ToDateTime(obj),
+                    CoreType.DateTimeNullable => ConvertToDateTime(obj),
+                    CoreType.DateTimeOffsetNullable => ConvertToDateTimeOffset(obj),
                     CoreType.TimeSpanNullable => ConvertToTimeSpan(obj),
 #if NET6_0_OR_GREATER
                     CoreType.DateOnlyNullable => ConvertToDateOnly(obj),
@@ -121,41 +122,49 @@ namespace Zerra.Reflection
             }
         }
 
-        private static Guid ConvertToGuid(object? obj)
-        {
-            if (obj is null)
-                return Guid.Empty;
-            return Guid.Parse(obj.ToString() ?? String.Empty);
-        }
-
-
-        private static TimeSpan ConvertToTimeSpan(object? obj)
-        {
-            if (obj is null)
-                return TimeSpan.MinValue;
-            return TimeSpan.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
-        }
+        private static string ToInvariantString(object obj)
+            => obj is IFormattable formattable ? formattable.ToString(null, CultureInfo.InvariantCulture) : obj.ToString() ?? String.Empty;
+        private static Guid ConvertToGuid(object obj)
+            => obj is Guid guid ? guid : Guid.Parse(ToInvariantString(obj));
+        private static DateTime ConvertToDateTime(object obj)
+            => obj switch
+            {
+                DateTime dateTime => dateTime,
+                DateTimeOffset dateTimeOffset => dateTimeOffset.DateTime,
 #if NET6_0_OR_GREATER
-        private static DateOnly ConvertToDateOnly(object? obj)
-        {
-            if (obj is null)
-                return DateOnly.MinValue;
-            return DateOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
-        }
-        private static TimeOnly ConvertToTimeOnly(object? obj)
-        {
-            if (obj is null)
-                return TimeOnly.MinValue;
-            return TimeOnly.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.InvariantCulture);
-        }
+                DateOnly dateOnly => dateOnly.ToDateTime(TimeOnly.MinValue),
 #endif
-
-        private static DateTimeOffset ConvertToDateTimeOffset(object? obj)
-        {
-            if (obj is null)
-                return DateTimeOffset.MinValue;
-            return DateTimeOffset.Parse(obj.ToString() ?? String.Empty, System.Globalization.CultureInfo.CurrentCulture);
-        }
+                string str => DateTime.Parse(str),
+                _ => System.Convert.ToDateTime(obj),
+            };
+        private static TimeSpan ConvertToTimeSpan(object obj)
+            => obj is TimeSpan timeSpan ? timeSpan : TimeSpan.Parse(ToInvariantString(obj), CultureInfo.InvariantCulture);
+#if NET6_0_OR_GREATER
+        private static DateOnly ConvertToDateOnly(object obj)
+            => obj switch
+            {
+                DateOnly dateOnly => dateOnly,
+                DateTime dateTime => DateOnly.FromDateTime(dateTime),
+                DateTimeOffset dateTimeOffset => DateOnly.FromDateTime(dateTimeOffset.DateTime),
+                _ => DateOnly.Parse(ToInvariantString(obj), CultureInfo.InvariantCulture),
+            };
+        private static TimeOnly ConvertToTimeOnly(object obj)
+            => obj switch
+            {
+                TimeOnly timeOnly => timeOnly,
+                TimeSpan timeSpan => TimeOnly.FromTimeSpan(timeSpan),
+                DateTime dateTime => TimeOnly.FromDateTime(dateTime),
+                DateTimeOffset dateTimeOffset => TimeOnly.FromDateTime(dateTimeOffset.DateTime),
+                _ => TimeOnly.Parse(ToInvariantString(obj), CultureInfo.InvariantCulture),
+            };
+#endif
+        private static DateTimeOffset ConvertToDateTimeOffset(object obj)
+            => obj switch
+            {
+                DateTimeOffset dateTimeOffset => dateTimeOffset,
+                DateTime dateTime => new DateTimeOffset(dateTime),
+                _ => DateTimeOffset.Parse(obj.ToString() ?? String.Empty, CultureInfo.CurrentCulture),
+            };
 
         private static readonly ConcurrentFactoryDictionary<Type, TypeDetail> typeDetailsByType = new();
         private static readonly Dictionary<Type, Func<TypeDetail>> typeDetailCreatorsByType = new();

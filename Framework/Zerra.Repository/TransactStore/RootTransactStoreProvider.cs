@@ -1001,7 +1001,7 @@ namespace Zerra.Repository
             ICollection<TModel> returnModels;
             if (models.Count > 0)
             {
-                returnModels = OnGetWithRelations(models.Select(x => x.Model).ToArray(), query.Graph);
+                returnModels = await OnGetWithRelationsAsync(models.Select(x => x.Model).ToArray(), query.Graph);
             }
             else
             {
@@ -1022,7 +1022,7 @@ namespace Zerra.Repository
 
             if (model is not null)
             {
-                var returnModel = OnGetWithRelations(new TModel[] { model.Model }, query.Graph).FirstOrDefault();
+                var returnModel = (await OnGetWithRelationsAsync(new TModel[] { model.Model }, query.Graph)).FirstOrDefault();
                 if (returnModel is null)
                     model = null;
             }
@@ -1041,7 +1041,7 @@ namespace Zerra.Repository
 
             if (model is not null)
             {
-                var returnModel = OnGetWithRelations(new TModel[] { model.Model }, query.Graph).FirstOrDefault();
+                var returnModel = (await OnGetWithRelationsAsync(new TModel[] { model.Model }, query.Graph)).FirstOrDefault();
                 if (returnModel is null)
                     model = null;
             }
@@ -1170,7 +1170,7 @@ namespace Zerra.Repository
 
             foreach (var model in persist.Models)
             {
-                if (!PersistLinking && graph is not null && !graph.IsEmpty)
+                if (PersistLinking && graph is not null && !graph.IsEmpty)
                 {
                     PersistSingleRelations(persist.Event, model, graph, false);
                 }

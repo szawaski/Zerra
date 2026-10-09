@@ -268,7 +268,7 @@ namespace Zerra.Repository
                 throw new Exception($"Invalid {nameof(Persist<TModel>)} for {nameof(DeleteAsync)}");
             }
 
-            await NextProvider.PersistAsync(new DeleteByID<TModel>(persist.Event, returnIds));
+            await NextProvider.PersistAsync(new DeleteByID<TModel>(persist.Event, returnIds, persist.Graph));
             OnDeleteComplete(returnIds);
         }
     }

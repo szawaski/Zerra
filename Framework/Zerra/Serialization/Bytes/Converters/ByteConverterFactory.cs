@@ -12,6 +12,7 @@ using Zerra.Serialization.Bytes.Converters.Collections.Enumerables;
 using Zerra.Serialization.Bytes.Converters.Collections.Lists;
 using Zerra.Serialization.Bytes.Converters.Collections.Sets;
 using Zerra.Serialization.Bytes.Converters.General;
+using Zerra.Serialization.Bytes.Converters.Special;
 
 namespace Zerra.Serialization.Bytes.Converters
 {
@@ -90,6 +91,9 @@ namespace Zerra.Serialization.Bytes.Converters
                             return discoveredTypeDetail.GetGenericTypeDetail(parentType, typeDetail.Type, objectTypeDetail.Type, objectTypeDetail.Type);
                 }
             }
+
+            if (typeDetail.Type == typeof(Graph) || (typeDetail.Type.IsGenericType && typeDetail.Type.GetGenericTypeDefinition() == typeof(Graph<>)))
+                return typeof(ByteConverterGraph<,>).GetGenericTypeDetail(parentType, typeDetail.Type);
 
             if (typeDetail.CoreType.HasValue)
                 throw new NotSupportedException($"No ByteConverter found to support {typeDetail.Type.GetNiceName()}");

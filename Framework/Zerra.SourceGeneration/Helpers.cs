@@ -35,7 +35,7 @@ namespace Zerra.SourceGeneration.Discovery
                 {
                     if (typeSymbol.ContainingType is not null)
                         _ = sb.Append(typeSymbol.ContainingType).Append('.');
-                    else if (typeSymbol.ContainingNamespace is not null)
+                    else if (typeSymbol.ContainingNamespace is not null && !typeSymbol.ContainingNamespace.IsGlobalNamespace)
                         _ = sb.Append(typeSymbol.ContainingNamespace).Append('.');
                     _ = sb.Append(typeSymbol.Name);
                 }
@@ -60,7 +60,7 @@ namespace Zerra.SourceGeneration.Discovery
                 return $"typeof({GetFullName(typeSymbol)}){(isByRef ? ".MakeByRefType()" : null)}";
             else if (typeSymbol.ContainingType is not null)
                 return $"typeof({typeSymbol.ContainingType}.{typeSymbol.Name}){(isByRef ? ".MakeByRefType()" : null)}";
-            else if (typeSymbol.ContainingNamespace is not null)
+            else if (typeSymbol.ContainingNamespace is not null && !typeSymbol.ContainingNamespace.IsGlobalNamespace)
                 return $"typeof({typeSymbol.ContainingNamespace}.{typeSymbol.Name}){(isByRef ? ".MakeByRefType()" : null)}";
             else
                 return $"typeof({typeSymbol.Name}){(isByRef ? ".MakeByRefType()" : null)}";
@@ -75,7 +75,7 @@ namespace Zerra.SourceGeneration.Discovery
 
             if (typeSymbol.ContainingType is not null)
                 _ = sb.Append(typeSymbol.ContainingType).Append('.');
-            else if (typeSymbol.ContainingNamespace is not null)
+            else if (typeSymbol.ContainingNamespace is not null && !typeSymbol.ContainingNamespace.IsGlobalNamespace)
                 _ = sb.Append(typeSymbol.ContainingNamespace).Append('.');
             _ = sb.Append(typeSymbol.Name);
 
