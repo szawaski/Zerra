@@ -34,7 +34,16 @@ namespace Zerra.Repository
                 var update = !dataStoreGenerationType.HasFlag(DataStoreGenerationType.NoUpdate);
                 var delete = !dataStoreGenerationType.HasFlag(DataStoreGenerationType.NoDelete);
 
-                var plan = engine.BuildStoreGenerationPlan(create, update, delete, modelDetails);
+                IDataStoreGenerationPlan plan;
+                try
+                {
+                    plan = engine.BuildStoreGenerationPlan(create, update, delete, modelDetails);
+                }
+                catch (Exception ex)
+                {
+                    log?.Error($"{engine.GetType().Name} error while reading datastore.", ex);
+                    throw;
+                }
 
                 if (dataStoreGenerationType.HasFlag(DataStoreGenerationType.Preview))
                 {

@@ -98,7 +98,6 @@ public interface IOrderEventHandler : IEventHandler<OrderShippedEvent> { }
 
 ```csharp
 ILogger log = new ConsoleLogger();          //your Zerra.Logging.ILogger implementation
-Log.SetLog(log);                            //framework messages too, such as a failed database read
 
 var engine = new PostgreSqlEngine(connectionString);   //one engine shared by every provider on the store
 var repo = Repo.New();

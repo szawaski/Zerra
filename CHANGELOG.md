@@ -8,6 +8,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 
 - Each service builds its bus in `Program.cs` with `Bus.New` and registers handlers, servers, clients, producers, and consumers explicitly. `cqrssettings.json`, discovery, and service creators are gone.
 - Handlers derive from `BaseHandler` or `BaseHandlerWithRepo` and use the `Bus`, `Log`, `Repo`, and `Context` they inherit. Services are injected through `BusServices`.
+- The static `Bus` and `Log` are obsolete. Use the `IBus` from `Bus.New` and pass your `ILogger` where it's needed, including `CodeFirstGeneration.Generate`, which logs a failed database read to it.
 - What a service exposes is what its bus registers; `[ServiceExposed]`, `[ServiceBlocked]`, and `[ServiceSecure]` are removed.
 - Graceful shutdown: stopping the bus finishes every message already received, and `WaitForExitAsync` handles SIGTERM and SIGINT for containers. `shutdownTimeout` limits the wait without cancelling handlers.
 - `commandToReceiveUntilExit` for batch jobs and KEDA-style scaling.

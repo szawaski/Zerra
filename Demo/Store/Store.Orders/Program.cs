@@ -22,7 +22,6 @@ var startup = Stopwatch.StartNew();
 
 Console.Title = "Store - Orders Service";
 ILogger log = new ConsoleLogger();
-Log.SetLog(log); //framework messages too, such as a failed database read
 log.Info("Starting Orders service");
 
 //Data store: this service's own database when it's running, checked here first like the message brokers, schema from the data models, then seed data

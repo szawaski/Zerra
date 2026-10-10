@@ -130,7 +130,7 @@ timer.Restart();
 //------------------------------------------------------------------------------------
 Console.WriteLine();
 
-await Bus.DispatchAwaitAsync(new DeleteTestDatabaseCommand());
+await busClient.DispatchAwaitAsync(new DeleteTestDatabaseCommand());
 Console.WriteLine($"Delete Test Database: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
@@ -139,7 +139,7 @@ Console.WriteLine($"CodeFirstGeneration.Generate: {timer.ElapsedMilliseconds} ms
 timer.Restart();
 
 var petTypeId = await busClient.DispatchAwaitAsync(new AddPetTypeCommand() { Name = "Dog" });
-await Bus.DispatchAwaitAsync(new AddPetCommand() { Name = "Lucy", PetTypeId = petTypeId });
+await busClient.DispatchAwaitAsync(new AddPetCommand() { Name = "Lucy", PetTypeId = petTypeId });
 Console.WriteLine($"Dispatch Await Async AddPetTypeCommand and AddPetCommand: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
@@ -147,7 +147,7 @@ var petsFromRepo = await busClient.Call<IPetsQueryHandler>().GetPetsFromRepo();
 Console.WriteLine($"Call GetPetsFromRepo: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
-await Bus.DispatchAwaitAsync(new DeleteTestDatabaseCommand());
+await busClient.DispatchAwaitAsync(new DeleteTestDatabaseCommand());
 Console.WriteLine($"Delete Test Database: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 

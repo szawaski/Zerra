@@ -6,7 +6,6 @@ using System.Linq.Expressions;
 using Zerra.Repository.Reflection;
 using Zerra.Reflection;
 using System.Text;
-using Zerra.Logging;
 using System.Data;
 using System.Runtime.CompilerServices;
 using Npgsql;
@@ -1208,40 +1207,31 @@ namespace Zerra.Repository.PostgreSql
             var databaseName = connectionForParsing.Database;
             connectionForParsing.Dispose();
 
-            bool needCreateDatabase;
             var sql = new List<string>();
-            try
+            var needCreateDatabase = NeedCreateDatabase(databaseName);
+
+            AssureExtensions(sql, needCreateDatabase);
+
+            var columnsToCheck = new List<ModelDetail>();
+            var droppedConstraints = new HashSet<string>();
+            foreach (var model in modelDetails)
             {
-                needCreateDatabase = NeedCreateDatabase(databaseName);
-
-                AssureExtensions(sql, needCreateDatabase);
-
-                var columnsToCheck = new List<ModelDetail>();
-                var droppedConstraints = new HashSet<string>();
-                foreach (var model in modelDetails)
-                {
-                    var needCreateTable = AssureTable(create, sql, needCreateDatabase, model);
-                    if (!needCreateTable)
-                        columnsToCheck.Add(model);
-                }
-
-                foreach (var model in columnsToCheck)
-                {
-                    var sqlColumns = GetSqlColumns(model);
-                    var sqlConstraints = GetSqlConstraints(model);
-                    AssureColumns(create, update, delete, sql, model, sqlColumns, sqlConstraints, droppedConstraints);
-                }
-
-                foreach (var model in modelDetails)
-                {
-                    var sqlConstraints = needCreateDatabase ? Array.Empty<SqlConstraint>() : GetSqlConstraints(model);
-                    AssureConstraints(create, update, delete, sql, model, sqlConstraints, droppedConstraints);
-                }
+                var needCreateTable = AssureTable(create, sql, needCreateDatabase, model);
+                if (!needCreateTable)
+                    columnsToCheck.Add(model);
             }
-            catch (Exception ex)
+
+            foreach (var model in columnsToCheck)
             {
-                Log.Error($"{nameof(PostgreSqlEngine)} error while reading datastore.", ex);
-                throw;
+                var sqlColumns = GetSqlColumns(model);
+                var sqlConstraints = GetSqlConstraints(model);
+                AssureColumns(create, update, delete, sql, model, sqlColumns, sqlConstraints, droppedConstraints);
+            }
+
+            foreach (var model in modelDetails)
+            {
+                var sqlConstraints = needCreateDatabase ? Array.Empty<SqlConstraint>() : GetSqlConstraints(model);
+                AssureConstraints(create, update, delete, sql, model, sqlConstraints, droppedConstraints);
             }
 
             var plan = new PostgreSqlDataStoreGenerationPlan(this, needCreateDatabase ? databaseName : null, sql);

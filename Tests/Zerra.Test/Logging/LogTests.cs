@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+#pragma warning disable CS0618 //tests the obsolete static Log
+
 using Xunit;
 using Zerra.Logging;
 using Zerra.Test.Helpers;
@@ -27,7 +29,6 @@ namespace Zerra.Test.Logging
                 Log.Error(exception);
                 Log.Critical("critical", exception);
                 Log.Critical(exception);
-#pragma warning disable CS0618 // Type or member is obsolete
                 await Log.TraceAsync("trace");
                 await Log.DebugAsync("debug");
                 await Log.InfoAsync("info");
@@ -36,7 +37,6 @@ namespace Zerra.Test.Logging
                 await Log.ErrorAsync(exception);
                 await Log.CriticalAsync("critical", exception);
                 await Log.CriticalAsync(exception);
-#pragma warning restore CS0618 // Type or member is obsolete
 
                 (string, string?, Exception?)[] expected =
                 [

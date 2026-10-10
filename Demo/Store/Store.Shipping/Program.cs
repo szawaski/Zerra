@@ -19,7 +19,6 @@ var startup = Stopwatch.StartNew();
 Console.Title = "Store - Shipping Service";
 //Zerra.Logging.ILogger, ASP.NET's implicit usings also bring in Microsoft.Extensions.Logging.ILogger
 Zerra.Logging.ILogger log = new ConsoleLogger();
-Zerra.Logging.Log.SetLog(log); //framework messages too, such as a failed database read
 log.Info("Starting Shipping service");
 
 var builder = WebApplication.CreateBuilder(args);

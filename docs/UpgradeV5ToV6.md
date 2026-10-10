@@ -19,7 +19,7 @@ Zerra 6 does no scanning. Each service's `Program.cs` builds everything itself: 
 | Handlers | Found by discovery | Created with `new` and registered with `bus.AddHandler<IInterface>(handler)`. Must derive from `BaseHandler` |
 | Bus | Static `Bus` class | `IBusSetup` instance from `Bus.New`. A static `Bus` wrapper remains but should be avoided |
 | Repository | Static `Repo.QueryAsync(new QueryMany<T>(...))`, providers discovered | `IRepo` instance from `Repo.New()`, providers added with `repo.AddProvider`, methods like `ManyAsync<T>(...)` |
-| Logging | Static `Log.InfoAsync`, discovered `ILoggingProvider`, `Zerra.Logger` package | `Zerra.Logging.ILogger` you implement, passed to `Bus.New` and set with `Log.SetLog` |
+| Logging | Static `Log.InfoAsync`, discovered `ILoggingProvider`, `Zerra.Logger` package | `Zerra.Logging.ILogger` you implement, passed to `Bus.New` |
 | Configuration | `Zerra.Config` | Removed. Bring your own (see [Configuration](#9-configuration)) |
 | Network encryption | `SymmetricConfig` built from an `EncryptionKey` string | `IEncryptor`, normally `new ZerraEncryptor(key, SymmetricAlgorithmType.AESwithPrefix)` |
 | Network compression | None | Optional `ICompressor`, such as `new ZerraCompressor(CompressionAlgorithmType.Brotli)`, passed after the encryptor; `null` for none |
@@ -283,7 +283,7 @@ A single server object can be the query server, command consumer, and event cons
 Config.LoadConfiguration(args);                        //only if you kept Config, see section 9
 
 ILogger log = new ConsoleLogger();                     //your Zerra.Logging.ILogger
-Log.SetLog(log);                                       //framework messages and any remaining static Log calls
+Log.SetLog(log);                                       //only while static Log calls remain, see section 11
 
 var repo = Repo.New();                                 //skip if this service has no data access
 repo.AddProvider<LogNoteDTO>(new LogNoteProvider());
@@ -328,7 +328,6 @@ v5 solutions often had one shared `cqrssettings.json`. To keep one place that de
 public static IBusSetup StartServices(string serviceName, IRepo? repo)
 {
     var logger = new Logger();
-    Log.SetLog(logger);
     var busServices = new BusServices();
     if (repo is not null)
         busServices.AddRepo(repo);
@@ -369,11 +368,11 @@ Startup order for a service:
 
 ## 7. Logging
 
-- **`ILoggingProvider` → `Zerra.Logging.ILogger`.** The methods are now synchronous: `Trace`, `Debug`, `Info`, `Warn`, `Error(string?, Exception?)`, `Error(Exception?)`, `Critical(string?, Exception?)`, `Critical(Exception?)`. Nothing discovers it. Pass it to `Bus.New`, to servers and clients, and to `Log.SetLog`.
+- **`ILoggingProvider` → `Zerra.Logging.ILogger`.** The methods are now synchronous: `Trace`, `Debug`, `Info`, `Warn`, `Error(string?, Exception?)`, `Error(Exception?)`, `Critical(string?, Exception?)`, `Critical(Exception?)`. Nothing discovers it. Pass it to `Bus.New`, to servers and clients, and to `CodeFirstGeneration.Generate`.
 - **`Zerra.Logger` was removed** (`LoggingProvider`, the file logger that used `LogFileDirectory`, and `BusLoggingProvider`). Write your own. `Demo/Store/Store.Common/Logging/ConsoleLogger.cs` and `ConsoleBusLogger.cs` are short examples, and any logging library can sit behind the interface.
 - **`IBusLogger`**: all six methods gained a `string service` parameter before `source`, for example `EndCall(Type interfaceType, string methodName, object[] arguments, object? result, string service, string source, bool handled, long milliseconds, Exception? ex)`. Register it as `Bus.New`'s `busLog` argument instead of calling `Bus.AddLogger`.
 - **Always pass a logger to `Bus.New`.** Registration mistakes (wrong interface kind, a duplicate client, and so on) are only reported through that logger.
-- **Static `Log`** still exists, but it logs nothing until `Log.SetLog(log)` is called. Its `...Async` methods are marked `[Obsolete]`, so they fail to build in projects with `TreatWarningsAsErrors`. Rewrite `await Log.XAsync(...)` and `_ = Log.XAsync(...)` to `Log.X(...)`, a regex job; inside handlers use `Log?.X(...)` (see [Handlers](#4-handlers)). See [Static Bus and Log](#11-static-bus-and-log).
+- **Static `Log`** still exists, but it logs nothing until `Log.SetLog(log)` is called. It's marked `[Obsolete]`, so it fails to build in projects with `TreatWarningsAsErrors`. Rewrite `await Log.XAsync(...)` and `_ = Log.XAsync(...)` to `Log.X(...)`, a regex job; inside handlers use `Log?.X(...)` (see [Handlers](#4-handlers)). See [Static Bus and Log](#11-static-bus-and-log).
 
 ## 8. ASP.NET Projects
 
@@ -491,7 +490,7 @@ v5 rebuilt an exception thrown in another service as its original type when the 
 
 ## 11. Static Bus and Log
 
-v6 keeps a static `Bus` (`Call`, `DispatchAsync`, `DispatchAwaitAsync`) and a static `Log` so upgrades compile, but new code shouldn't use them:
+v6 keeps a static `Bus` (`Call`, `DispatchAsync`, `DispatchAwaitAsync`) and a static `Log` so upgrades compile. Both are marked `[Obsolete]`, so each use is a build warning, and new code shouldn't use them:
 
 - The static `Bus` points at the bus from the most recent `Bus.New`, and it throws `Bus not initialized. Call Bus.New to initialize.` before that.
 - The static `Log` drops messages until `Log.SetLog` is called.

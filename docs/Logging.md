@@ -17,7 +17,6 @@ using Zerra.Logging;
 ILogger log = new ConsoleLogger();
 IBusLogger busLog = new ConsoleBusLogger();
 
-Log.SetLog(log);                                    // the static Log, used by framework code outside the bus
 var bus = Bus.New("MyService", log, busLog, busServices);
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);   // servers, clients, and consumers take one too
 ```
@@ -29,12 +28,7 @@ Log?.Info($"Creating user {command.Email}");
 Log?.Error($"Failed to create user {command.Email}", ex);
 ```
 
-Code without a handler uses the static `Log` class, which forwards to the logger passed to `Log.SetLog`, with async versions of each method:
-
-```csharp
-Log.Info("Service starting");
-await Log.WarnAsync("Disk space low");   // TraceAsync, DebugAsync, InfoAsync, WarnAsync, ErrorAsync, CriticalAsync
-```
+Code outside a handler uses the `ILogger` it's given, the same one passed to `Bus.New`. Pass it to `CodeFirstGeneration.Generate` too, which logs a failed database read to it. The static `Log` class is obsolete and only remains for upgrades from Zerra 5.
 
 ## ILogger
 

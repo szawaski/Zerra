@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+#pragma warning disable CS0618 //tests the obsolete static Bus
+
 using Xunit;
 using Zerra.CQRS;
 
