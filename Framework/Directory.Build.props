@@ -1,0 +1,18 @@
+<Project>
+
+    <!--symbols go in a .snupkg next to each package, and Source Link points the debugger at the GitHub source-->
+    <PropertyGroup>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <!--the netstandard2.0 build may have less than the net10.0 one, the accepted differences are in each project's CompatibilitySuppressions.xml-->
+        <EnablePackageValidation>true</EnablePackageValidation>
+    </PropertyGroup>
+
+    <!--release packages build deterministically, with source paths that don't depend on the machine that built them-->
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+</Project>

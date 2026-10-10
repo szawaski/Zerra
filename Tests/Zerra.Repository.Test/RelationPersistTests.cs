@@ -80,7 +80,7 @@ namespace Zerra.Repository.Test
         [Fact]
         public Task Async_PersistsRelations() => TestSequenceAsync(new MemoryEngine());
 
-        public static void TestSequence(ITransactStoreEngine engine)
+        internal static void TestSequence(ITransactStoreEngine engine)
         {
             var repo = CreateRepo(engine);
             var parent = NewParent();
@@ -106,7 +106,7 @@ namespace Zerra.Repository.Test
             Assert.False(repo.Any<Item>(x => x.ParentID == parent.ID));
         }
 
-        public static async Task TestSequenceAsync(ITransactStoreEngine engine)
+        internal static async Task TestSequenceAsync(ITransactStoreEngine engine)
         {
             var repo = CreateRepo(engine);
             var parent = NewParent();

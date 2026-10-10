@@ -19,11 +19,11 @@ namespace Zerra.CQRS.Test.RabbitMQ
         private const string host = "localhost";
 
         [Fact]
-        public void TestConnection()
+        public async Task TestConnection()
         {
-            Assert.True(RabbitMQConnectionTest.Test(host));
+            Assert.True(await RabbitMQConnectionTest.TestAsync(host));
             //nothing listens on port 1
-            Assert.False(RabbitMQConnectionTest.Test("amqp://guest:guest@localhost:1", TimeSpan.FromSeconds(2)));
+            Assert.False(await RabbitMQConnectionTest.TestAsync("amqp://guest:guest@localhost:1", TimeSpan.FromSeconds(2)));
         }
 
         [Theory(Timeout = 300000)]
@@ -48,8 +48,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(commandTopic, eventTopic);
-                DeleteQueues(commandTopic);
+                await DeleteExchangesAsync(commandTopic, eventTopic);
+                await DeleteQueuesAsync(commandTopic);
             }
         }
 
@@ -74,8 +74,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(commandTopicA, commandTopicB, eventTopic);
-                DeleteQueues(commandTopicA, commandTopicB);
+                await DeleteExchangesAsync(commandTopicA, commandTopicB, eventTopic);
+                await DeleteQueuesAsync(commandTopicA, commandTopicB);
             }
         }
 
@@ -99,8 +99,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(commandTopic, eventTopic);
-                DeleteQueues(commandTopic);
+                await DeleteExchangesAsync(commandTopic, eventTopic);
+                await DeleteQueuesAsync(commandTopic);
             }
         }
 
@@ -122,8 +122,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(commandTopic);
-                DeleteQueues(commandTopic);
+                await DeleteExchangesAsync(commandTopic);
+                await DeleteQueuesAsync(commandTopic);
             }
         }
 
@@ -141,18 +141,17 @@ namespace Zerra.CQRS.Test.RabbitMQ
                 using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
                 {
                     //dropping the connection is what the broker sees when the process is killed
-                    await MessageTest.TestResilientCommandDeliveredAgain(producer, replica1, replica2, commandTopic, () =>
+                    await MessageTest.TestResilientCommandDeliveredAgain(producer, replica1, replica2, commandTopic, async () =>
                     {
                         var connection = (IConnection)typeof(RabbitMQConsumer).GetField("connection", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(replica1)!;
-                        connection.Abort();
-                        return Task.CompletedTask;
+                        await connection.AbortAsync();
                     }, TimeSpan.FromSeconds(90), TestContext.Current.CancellationToken);
                 }
             }
             finally
             {
-                DeleteExchanges(commandTopic);
-                DeleteQueues(commandTopic);
+                await DeleteExchangesAsync(commandTopic);
+                await DeleteQueuesAsync(commandTopic);
             }
         }
 
@@ -173,8 +172,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(commandTopic);
-                DeleteQueues(commandTopic);
+                await DeleteExchangesAsync(commandTopic);
+                await DeleteQueuesAsync(commandTopic);
             }
         }
 
@@ -199,8 +198,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(commandTopic, eventTopic);
-                DeleteQueues(commandTopic);
+                await DeleteExchangesAsync(commandTopic, eventTopic);
+                await DeleteQueuesAsync(commandTopic);
             }
         }
 
@@ -225,8 +224,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(eventTopic);
-                DeleteQueues($"{eventTopic}_{MessageTest.ServiceAName}", $"{eventTopic}_{MessageTest.ServiceBName}");
+                await DeleteExchangesAsync(eventTopic);
+                await DeleteQueuesAsync($"{eventTopic}_{MessageTest.ServiceAName}", $"{eventTopic}_{MessageTest.ServiceBName}");
             }
         }
 
@@ -248,8 +247,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(commandTopic, eventTopic);
-                DeleteQueues(commandTopic, $"{eventTopic}_{MessageTest.ServiceAName}");
+                await DeleteExchangesAsync(commandTopic, eventTopic);
+                await DeleteQueuesAsync(commandTopic, $"{eventTopic}_{MessageTest.ServiceAName}");
             }
         }
 
@@ -292,7 +291,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
                     await WaitUntilReceived(commandProducer, eventProducer, commands, events, cancellationToken);
 
                     //the broker cancels a consumer whose queue is deleted, the consumer declares the queue and consumes again
-                    DeleteQueues(commandTopic, $"{eventTopic}_{serviceName}");
+                    await DeleteQueuesAsync(commandTopic, $"{eventTopic}_{serviceName}");
 
                     await WaitUntilReceived(commandProducer, eventProducer, commands, events, cancellationToken);
 
@@ -301,8 +300,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(commandTopic, eventTopic);
-                DeleteQueues(commandTopic, $"{eventTopic}_{serviceName}");
+                await DeleteExchangesAsync(commandTopic, eventTopic);
+                await DeleteQueuesAsync(commandTopic, $"{eventTopic}_{serviceName}");
             }
         }
 
@@ -321,8 +320,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(commandTopic, eventTopic);
-                DeleteQueues(commandTopic);
+                await DeleteExchangesAsync(commandTopic, eventTopic);
+                await DeleteQueuesAsync(commandTopic);
             }
         }
 
@@ -344,8 +343,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges($"{environment}_{commandTopic}", $"{environment}_{eventTopic}");
-                DeleteQueues($"{environment}_{commandTopic}");
+                await DeleteExchangesAsync($"{environment}_{commandTopic}", $"{environment}_{eventTopic}");
+                await DeleteQueuesAsync($"{environment}_{commandTopic}");
             }
             Assert.Equal(0, log.Errors);
         }
@@ -366,8 +365,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(commandTopic);
-                DeleteQueues(commandTopic);
+                await DeleteExchangesAsync(commandTopic);
+                await DeleteQueuesAsync(commandTopic);
             }
         }
 
@@ -378,12 +377,11 @@ namespace Zerra.CQRS.Test.RabbitMQ
             var eventTopic = MessageTest.NewTopic("Event");
             var serializer = new ZerraByteSerializer();
             var log = new TestLogger();
-            using var connection = RabbitMQCommon.CreateConnectionFactory(host).CreateConnection();
-            using var channel = connection.CreateModel();
-            Task Send(string exchange, byte[] body)
+            await using var connection = await RabbitMQCommon.CreateConnectionFactory(host).CreateConnectionAsync(TestContext.Current.CancellationToken);
+            await using var channel = await connection.CreateChannelAsync(cancellationToken: TestContext.Current.CancellationToken);
+            async Task Send(string exchange, byte[] body)
             {
-                channel.BasicPublish(exchange, String.Empty, channel.CreateBasicProperties(), body);
-                return Task.CompletedTask;
+                await channel.BasicPublishAsync(exchange, String.Empty, body);
             }
             try
             {
@@ -400,13 +398,13 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                channel.Close();
-                DeleteExchanges(commandTopic, eventTopic);
-                DeleteQueues(commandTopic);
+                await channel.CloseAsync(TestContext.Current.CancellationToken);
+                await DeleteExchangesAsync(commandTopic, eventTopic);
+                await DeleteQueuesAsync(commandTopic);
             }
         }
 
-        [Fact(Timeout = 120000)]
+        [Fact]
         public void TestLongNamesTruncated()
         {
             //nothing is created until a consumer opens or a producer sends
@@ -500,8 +498,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(commandTopic, eventTopic);
-                DeleteQueues(commandTopic, $"{eventTopic}_FaultService");
+                await DeleteExchangesAsync(commandTopic, eventTopic);
+                await DeleteQueuesAsync(commandTopic, $"{eventTopic}_FaultService");
             }
         }
 
@@ -559,8 +557,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             finally
             {
-                DeleteExchanges(commandTopic);
-                DeleteQueues(commandTopic);
+                await DeleteExchangesAsync(commandTopic);
+                await DeleteQueuesAsync(commandTopic);
             }
         }
 
@@ -581,25 +579,25 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
         }
 
-        private static void DeleteQueues(params string[] queues)
+        private static async Task DeleteQueuesAsync(params string[] queues)
         {
             var factory = RabbitMQCommon.CreateConnectionFactory(host);
-            using var connection = factory.CreateConnection();
-            using var channel = connection.CreateModel();
+            await using var connection = await factory.CreateConnectionAsync();
+            await using var channel = await connection.CreateChannelAsync();
             foreach (var queue in queues)
-                _ = channel.QueueDelete(queue);
-            channel.Close();
+                _ = await channel.QueueDeleteAsync(queue);
+            await channel.CloseAsync();
         }
 
         //the consumer declares an exchange per topic and the command and PerService queues, which outlive the connection, a PerReplica queue is exclusive and goes with the connection
-        private static void DeleteExchanges(params string[] topics)
+        private static async Task DeleteExchangesAsync(params string[] topics)
         {
             var factory = RabbitMQCommon.CreateConnectionFactory(host);
-            using var connection = factory.CreateConnection();
-            using var channel = connection.CreateModel();
+            await using var connection = await factory.CreateConnectionAsync();
+            await using var channel = await connection.CreateChannelAsync();
             foreach (var topic in topics)
-                channel.ExchangeDelete(topic, false);
-            channel.Close();
+                await channel.ExchangeDeleteAsync(topic, false);
+            await channel.CloseAsync();
         }
     }
 }

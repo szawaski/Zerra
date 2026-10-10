@@ -16,9 +16,9 @@ namespace Zerra.Reflection
     {
         /// <summary>Synchronization lock used to ensure thread-safe lazy initialization of members, constructors, and methods.</summary>
 #if NETSTANDARD2_0
-        protected readonly object locker = new();
+        private protected readonly object locker = new();
 #else
-        protected readonly Lock locker = new();
+        private protected readonly Lock locker = new();
 #endif
 
         /// <summary>The type being analyzed.</summary>

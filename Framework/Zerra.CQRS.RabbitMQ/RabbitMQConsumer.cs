@@ -34,7 +34,11 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly ConcurrentDictionary<string, Type> commandTypes;
         private readonly ConcurrentDictionary<string, Type> eventTypes;
 
+        private readonly Func<Task<IConnection>> getConnection;
+        private readonly SemaphoreSlim connectionLock;
         private IConnection? connection = null;
+        private bool isOpen = false;
+        private volatile bool disposed = false;
         private HandleRemoteCommandDispatch? commandHandlerAsync = null;
         private HandleRemoteCommandDispatch? commandHandlerAwaitAsync = null;
         private HandleRemoteCommandWithResultDispatch? commandHandlerWithResultAwaitAsync = null;
@@ -69,6 +73,8 @@ namespace Zerra.CQRS.RabbitMQ
             this.eventExchanges = new();
             this.commandTypes = new();
             this.eventTypes = new();
+            this.getConnection = GetConnectionAsync;
+            this.connectionLock = new SemaphoreSlim(1, 1);
         }
 
         string ICommandConsumer.MessageHost => "[Host has Secrets]";
@@ -103,20 +109,7 @@ namespace Zerra.CQRS.RabbitMQ
         }
         private void Open()
         {
-            if (this.connection is not null)
-                return;
-
-            try
-            {
-                var factory = RabbitMQCommon.CreateConnectionFactory(host);
-                factory.DispatchConsumersAsync = true;
-                this.connection = factory.CreateConnection();
-            }
-            catch (Exception ex)
-            {
-                log?.Error($"{nameof(RabbitMQConsumer)} failed to open", ex);
-                throw;
-            }
+            isOpen = true;
 
             lock (commandExchanges)
             {
@@ -127,16 +120,48 @@ namespace Zerra.CQRS.RabbitMQ
             }
         }
 
+        //the exchanges connect when they start listening, so one that can't reach the broker logs it and retries
+        private async Task<IConnection> GetConnectionAsync()
+        {
+            var connection = this.connection;
+            if (connection is not null)
+                return connection;
+
+            await connectionLock.WaitAsync();
+            try
+            {
+                if (this.connection is not null)
+                    return this.connection;
+                if (disposed)
+                    throw new ObjectDisposedException(nameof(RabbitMQConsumer));
+
+                var factory = RabbitMQCommon.CreateConnectionFactory(host);
+                connection = await factory.CreateConnectionAsync();
+                _ = Interlocked.Exchange(ref this.connection, connection);
+                //disposed while connecting, Dispose may have missed this connection
+                if (disposed)
+                {
+                    Interlocked.Exchange(ref this.connection, null)?.Dispose();
+                    throw new ObjectDisposedException(nameof(RabbitMQConsumer));
+                }
+                return connection;
+            }
+            finally
+            {
+                _ = connectionLock.Release();
+            }
+        }
+
         private void OpenExchanges()
         {
-            if (this.connection is null)
+            if (!isOpen)
                 return;
 
             foreach (var exchange in commandExchanges.Values.Where(x => !x.IsOpen))
-                exchange.Open(this.connection);
+                exchange.Open(getConnection);
 
             foreach (var exchange in eventExchanges.Values.Where(x => !x.IsOpen))
-                exchange.Open(this.connection);
+                exchange.Open(getConnection);
         }
 
         void ICommandConsumer.Close()
@@ -176,14 +201,9 @@ namespace Zerra.CQRS.RabbitMQ
             this.commandExchanges.Clear();
             this.eventExchanges.Clear();
 
-            if (this.connection is not null)
-            {
-                //closing a connection the broker or network already closed throws
-                if (this.connection.IsOpen)
-                    this.connection.Close();
-                this.connection.Dispose();
-                this.connection = null;
-            }
+            disposed = true;
+            //disposing closes the connection, ignoring one the broker or network already closed
+            Interlocked.Exchange(ref this.connection, null)?.Dispose();
             GC.SuppressFinalize(this);
         }
 
@@ -205,14 +225,11 @@ namespace Zerra.CQRS.RabbitMQ
             this.commandExchanges.Clear();
             this.eventExchanges.Clear();
 
-            if (this.connection is not null)
-            {
-                //closing a connection the broker or network already closed throws
-                if (this.connection.IsOpen)
-                    this.connection.Close();
-                this.connection.Dispose();
-                this.connection = null;
-            }
+            disposed = true;
+            //disposing closes the connection, ignoring one the broker or network already closed
+            var connection = Interlocked.Exchange(ref this.connection, null);
+            if (connection is not null)
+                await connection.DisposeAsync();
             GC.SuppressFinalize(this);
         }
 

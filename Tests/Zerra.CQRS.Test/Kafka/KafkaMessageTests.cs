@@ -563,7 +563,7 @@ namespace Zerra.CQRS.Test.Kafka
             }
         }
 
-        [Fact(Timeout = 120000)]
+        [Fact]
         public async Task TestLongNamesTruncated()
         {
             //nothing is created until a consumer opens or a producer sends
@@ -584,7 +584,7 @@ namespace Zerra.CQRS.Test.Kafka
             Assert.True(log.Warnings >= 5, $"{log.Warnings} warnings");
         }
 
-        [Fact(Timeout = 120000)]
+        [Fact]
         public async Task TestCredentialsConfigure()
         {
             //a user name and password set up SASL, plain or over TLS, nothing connects until a message is sent

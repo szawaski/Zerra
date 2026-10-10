@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 using Zerra.Logging;
 
 namespace Zerra.Repository.MySql
@@ -37,8 +37,8 @@ namespace Zerra.Repository.MySql
                     {
                         command.CommandTimeout = 0;
                         command.CommandText = sql;
-                        var version = (string)command.ExecuteScalar();
-                        if (version.Length > 0 && Char.IsNumber(version[0]))
+                        var version = (string?)command.ExecuteScalar();
+                        if (version != null && version.Length > 0 && Char.IsNumber(version[0]))
                             return true;
 
                         log?.Warn($"{nameof(MySqlConnectionTest)} could not connect: Invalid version {version}");

@@ -15,7 +15,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MySql.Data" Version="26.7.0" />
+        <PackageReference Include="MySqlConnector" Version="2.6.2" />
         <PackageReference Include="Npgsql" Version="10.0.3" />
     </ItemGroup>
 

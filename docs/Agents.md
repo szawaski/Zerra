@@ -212,7 +212,7 @@ public sealed class OrderDataModel
 }
 ```
 
-- To fall back to memory, choose the engine in Program.cs with the store's connection test, e.g. `PostgreSqlConnectionTest.Test(connectionString, log) ? new PostgreSqlEngine(connectionString) : new MemoryEngine()`, the same way `RabbitMQConnectionTest.Test` is used for brokers, and pass that one engine to every provider and to `CodeFirstGeneration.Generate`.
+- To fall back to memory, choose the engine in Program.cs with the store's connection test, e.g. `PostgreSqlConnectionTest.Test(connectionString, log) ? new PostgreSqlEngine(connectionString) : new MemoryEngine()`, the same way `RabbitMQConnectionTest.TestAsync` is used for brokers, and pass that one engine to every provider and to `CodeFirstGeneration.Generate`.
 - Create the schema on startup with `CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst | DataStoreGenerationType.NoDelete, modelTypes, log)` on the same engine the providers use, then seed only when the store is empty. Data models need a parameterless constructor.
 - Handlers derive from `BaseHandlerWithRepo` and use the async `IRepo` methods. LINQ `Where` expressions support comparisons, arithmetic, `&&`, `||`, `!`, bool members, `??`, integer bitwise operators, `array.Contains(x.Prop)`, and `HasValue`/`Value` on nullables. Strings support `Contains`, `StartsWith`, `EndsWith` (wildcards in the text are matched literally, a `StringComparison` ignoring case is honored), `Equals`, `string.IsNullOrEmpty`/`IsNullOrWhiteSpace`, `Length`, `ToUpper`/`ToLower`, `Trim`/`TrimStart`/`TrimEnd`, `Substring`, `IndexOf`, `Replace`, `string.Concat`, and `+`. `Math.Abs`/`Ceiling`/`Floor`/`Round`/`Pow`/`Sqrt` are translated; SQL rounds midpoints away from zero. Date and time parts such as `x.PlacedOn.Year`, `.Date`, and `.DayOfWeek` work on `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, and `TimeSpan` (including `TotalHours` and the other totals). Related collections support `Any`, `All`, `Count`/`LongCount`, and `Sum`/`Min`/`Max`/`Average` with a selector. Anything that doesn't use the model, such as `DateTime.Now.Date` or `new[] { a, b }`, is evaluated before the query. Case sensitivity of `==`, `Contains`, `StartsWith`, and `EndsWith` follows the database collation, and `Trim`/`IsNullOrWhiteSpace` only trim spaces.
 - Relations load only when named in a graph: `Repo.ManyAsync<OrderDataModel>(new Graph<OrderDataModel>(true, x => x.Customer, x => x.Lines))`. One-to-many properties can be arrays, `List<T>`, or interfaces like `IReadOnlyList<T>`.
@@ -421,7 +421,7 @@ Both close the servers and consumers so they receive nothing new, dispose them (
 
 ### Message Broker Implementations
 - `Zerra.CQRS.Kafka`: Kafka producer/consumer, `KafkaConnectionTest.TestAsync` to check the cluster is reachable
-- `Zerra.CQRS.RabbitMQ`: RabbitMQ producer/consumer, `RabbitMQConnectionTest.Test` to check the server is reachable
+- `Zerra.CQRS.RabbitMQ`: RabbitMQ producer/consumer, `RabbitMQConnectionTest.TestAsync` to check the server is reachable
 - `Zerra.CQRS.AzureServiceBus`: Azure Service Bus producer/consumer, `AzureServiceBusConnectionTest.TestAsync` to check the namespace is reachable
 
 The Store demo checks each broker at startup and falls back to direct TCP/HTTP when it isn't running: the sender registers either the broker's producer or the direct client, and the receiver makes the same check and registers either the broker's consumer or its direct consumer, so both ends pick the same route. See "Message brokers" in `Demo/Store/README.md`.

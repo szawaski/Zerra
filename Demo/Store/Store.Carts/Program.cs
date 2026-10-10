@@ -34,7 +34,7 @@ log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 //Carts receives queries and commands from the gateway and a reprice command from Catalog over TCP, and Catalog's product events over
 //RabbitMQ when it's running. Its checkout command to Orders is outbound.
-var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnectionTest.Test(StoreSettings.RabbitMQHost, log: log);
+var useRabbitMQ = !StoreSettings.DirectMessagingOnly && await RabbitMQConnectionTest.TestAsync(StoreSettings.RabbitMQHost, log: log);
 IMessagingInfo messaging = new MessagingInfo($"Commands: Direct TCP. Product events: {(useRabbitMQ ? "RabbitMQ" : "Direct TCP")}.");
 log.Info($"Messaging: {messaging.Description}");
 

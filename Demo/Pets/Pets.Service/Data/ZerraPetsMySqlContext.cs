@@ -1,4 +1,4 @@
-﻿using MySql.Data.MySqlClient;
+﻿using MySqlConnector;
 using Zerra.Repository.MySql;
 
 namespace Pets.Service.Data

@@ -50,7 +50,7 @@ log.Info($"Seed data done in {seeding.ElapsedMilliseconds} ms");
 
 //Message brokers: each is used when it's running, checked here first so the choice can be reported like the data store
 var useKafka = !StoreSettings.DirectMessagingOnly && await KafkaConnectionTest.TestAsync(StoreSettings.KafkaHost, null, null, log: log);
-var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnectionTest.Test(StoreSettings.RabbitMQHost, log: log);
+var useRabbitMQ = !StoreSettings.DirectMessagingOnly && await RabbitMQConnectionTest.TestAsync(StoreSettings.RabbitMQHost, log: log);
 //Orders only receives commands from the gateway over TCP, its Kafka and RabbitMQ use is outbound
 IMessagingInfo messaging = new MessagingInfo("Direct TCP");
 log.Info($"Messaging: {messaging.Description}");

@@ -29,11 +29,7 @@ namespace Zerra.CQRS.RabbitMQ
         private const string directReplyTo = "amq.rabbitmq.reply-to";
 
         //guards the connection and the channel, a channel isn't safe to publish on from more than one thread
-#if NETSTANDARD2_0
-        private readonly object locker = new();
-#else
-        private readonly Lock locker = new();
-#endif
+        private readonly SemaphoreSlim locker = new(1, 1);
 
         private readonly string host;
         private readonly ISerializer serializer;
@@ -49,7 +45,8 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly HashSet<string> declaredTopics;
         private readonly ConnectionFactory factory;
         private IConnection? connection = null;
-        private IModel? channel = null;
+        private IChannel? channel = null;
+        private volatile bool disposed = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RabbitMQProducer"/> class.
@@ -78,17 +75,26 @@ namespace Zerra.CQRS.RabbitMQ
             this.declaredTopics = new();
 
             this.factory = RabbitMQCommon.CreateConnectionFactory(host);
-            try
+            //opened now so the first send doesn't wait for the channel and its reply consumer, a send retries if this fails
+            _ = Task.Run(async () =>
             {
-                //opened now so the first send doesn't wait for the channel and its reply consumer
-                lock (locker)
-                    _ = OpenChannel();
-            }
-            catch (Exception ex)
-            {
-                log?.Error(ex);
-                throw;
-            }
+                await locker.WaitAsync();
+                try
+                {
+                    if (this.channel is null || !this.channel.IsOpen)
+                        _ = await OpenChannelAsync();
+                }
+                catch (Exception ex)
+                {
+                    //disposed before it finished
+                    if (!disposed)
+                        log?.Error(ex);
+                }
+                finally
+                {
+                    _ = locker.Release();
+                }
+            });
         }
 
         string ICommandProducer.MessageHost => "[Host has Secrets]";
@@ -144,14 +150,17 @@ namespace Zerra.CQRS.RabbitMQ
                             //added before publishing, a reply that arrives first would otherwise be missed
                             _ = ackCallbacks.TryAdd(correlationId, waiter);
 
-                            lock (locker)
+                            var properties = new BasicProperties() { ReplyTo = directReplyTo, CorrelationId = correlationId };
+                            await locker.WaitAsync(cancellationToken);
+                            try
                             {
-                                var channel = this.channel is not null && this.channel.IsOpen ? this.channel : OpenChannel();
-                                DeclareTopic(channel, topic, true);
-                                var properties = channel.CreateBasicProperties();
-                                properties.ReplyTo = directReplyTo;
-                                properties.CorrelationId = correlationId;
-                                channel.BasicPublish(topic, String.Empty, properties, body);
+                                var channel = this.channel is not null && this.channel.IsOpen ? this.channel : await OpenChannelAsync();
+                                await DeclareTopicAsync(channel, topic, true);
+                                await channel.BasicPublishAsync(topic, String.Empty, false, properties, body);
+                            }
+                            finally
+                            {
+                                _ = locker.Release();
                             }
 
                             Acknowledgement acknowledgement;
@@ -167,11 +176,16 @@ namespace Zerra.CQRS.RabbitMQ
                     }
                     else
                     {
-                        lock (locker)
+                        await locker.WaitAsync(cancellationToken);
+                        try
                         {
-                            var channel = this.channel is not null && this.channel.IsOpen ? this.channel : OpenChannel();
-                            DeclareTopic(channel, topic, true);
-                            channel.BasicPublish(topic, String.Empty, channel.CreateBasicProperties(), body);
+                            var channel = this.channel is not null && this.channel.IsOpen ? this.channel : await OpenChannelAsync();
+                            await DeclareTopicAsync(channel, topic, true);
+                            await channel.BasicPublishAsync(topic, String.Empty, body);
+                        }
+                        finally
+                        {
+                            _ = locker.Release();
                         }
                     }
                 }
@@ -230,14 +244,17 @@ namespace Zerra.CQRS.RabbitMQ
                         //added before publishing, a reply that arrives first would otherwise be missed
                         _ = ackCallbacks.TryAdd(correlationId, waiter);
 
-                        lock (locker)
+                        var properties = new BasicProperties() { ReplyTo = directReplyTo, CorrelationId = correlationId };
+                        await locker.WaitAsync(cancellationToken);
+                        try
                         {
-                            var channel = this.channel is not null && this.channel.IsOpen ? this.channel : OpenChannel();
-                            DeclareTopic(channel, topic, true);
-                            var properties = channel.CreateBasicProperties();
-                            properties.ReplyTo = directReplyTo;
-                            properties.CorrelationId = correlationId;
-                            channel.BasicPublish(topic, String.Empty, properties, body);
+                            var channel = this.channel is not null && this.channel.IsOpen ? this.channel : await OpenChannelAsync();
+                            await DeclareTopicAsync(channel, topic, true);
+                            await channel.BasicPublishAsync(topic, String.Empty, false, properties, body);
+                        }
+                        finally
+                        {
+                            _ = locker.Release();
                         }
 
                         Acknowledgement acknowledgement;
@@ -298,11 +315,16 @@ namespace Zerra.CQRS.RabbitMQ
                     if (encryptor is not null)
                         body = encryptor.Encrypt(body);
 
-                    lock (locker)
+                    await locker.WaitAsync(cancellationToken);
+                    try
                     {
-                        var channel = this.channel is not null && this.channel.IsOpen ? this.channel : OpenChannel();
-                        DeclareTopic(channel, topic, false);
-                        channel.BasicPublish(topic, String.Empty, channel.CreateBasicProperties(), body);
+                        var channel = this.channel is not null && this.channel.IsOpen ? this.channel : await OpenChannelAsync();
+                        await DeclareTopicAsync(channel, topic, false);
+                        await channel.BasicPublishAsync(topic, String.Empty, body);
+                    }
+                    finally
+                    {
+                        _ = locker.Release();
                     }
                 }
                 catch (Exception ex)
@@ -319,28 +341,34 @@ namespace Zerra.CQRS.RabbitMQ
 
         //Called under the lock when there's no open channel. One channel is used for the producer's life instead of one per message, which saves
         //opening and closing it with the broker on every send, and the replies to it arrive through direct reply-to on the consumer started here.
-        private IModel OpenChannel()
+        private async Task<IChannel> OpenChannelAsync()
         {
-            if (connection is null || connection.IsOpen == false)
+            if (disposed)
+                throw new ObjectDisposedException(nameof(RabbitMQProducer));
+
+            var connection = this.connection;
+            if (connection is null || !connection.IsOpen)
             {
                 var reconnect = connection is not null;
-                this.connection?.Close();
-                this.connection?.Dispose();
-                this.connection = factory.CreateConnection();
+                if (connection is not null)
+                    await connection.DisposeAsync();
+                connection = await factory.CreateConnectionAsync();
+                this.connection = connection;
                 if (reconnect)
                     log?.Info($"Sender Reconnected");
             }
 
-            this.channel?.Dispose();
+            if (this.channel is not null)
+                await this.channel.DisposeAsync();
 
-            var channel = connection.CreateModel();
+            var channel = await connection.CreateChannelAsync();
 
-            var consumer = new EventingBasicConsumer(channel);
-            consumer.Received += (sender, e) =>
+            var consumer = new AsyncEventingBasicConsumer(channel);
+            consumer.ReceivedAsync += (sender, e) =>
             {
                 var correlationId = e.BasicProperties.CorrelationId;
                 if (correlationId is null || !ackCallbacks.TryRemove(correlationId, out var waiter))
-                    return;
+                    return Task.CompletedTask;
 
                 Acknowledgement? acknowledgement;
                 try
@@ -369,22 +397,31 @@ namespace Zerra.CQRS.RabbitMQ
                 }
 
                 _ = waiter.TrySetResult(acknowledgement);
+                return Task.CompletedTask;
             };
 
             //a direct reply only reaches the channel that published the command, once it closes the replies still awaited can't arrive
-            channel.ModelShutdown += (sender, e) =>
+            channel.ChannelShutdownAsync += (sender, e) =>
             {
                 foreach (var correlationId in ackCallbacks.Keys)
                 {
                     if (ackCallbacks.TryRemove(correlationId, out var waiter))
                         _ = waiter.TrySetException(new Exception($"{nameof(RabbitMQProducer)} channel closed before the acknowledgement arrived: {e.ReplyText}"));
                 }
+                return Task.CompletedTask;
             };
 
             //direct reply-to requires no acknowledgements, and the consumer before publishing
-            _ = channel.BasicConsume(directReplyTo, true, consumer);
+            _ = await channel.BasicConsumeAsync(directReplyTo, true, consumer);
 
-            this.channel = channel;
+            _ = Interlocked.Exchange(ref this.channel, channel);
+            //disposed while opening, Dispose may have missed this channel and connection
+            if (disposed)
+            {
+                Interlocked.Exchange(ref this.channel, null)?.Dispose();
+                Interlocked.Exchange(ref this.connection, null)?.Dispose();
+                throw new ObjectDisposedException(nameof(RabbitMQProducer));
+            }
             return channel;
         }
 
@@ -396,22 +433,10 @@ namespace Zerra.CQRS.RabbitMQ
         /// </remarks>
         public void Dispose()
         {
-            lock (locker)
-            {
-                try
-                {
-                    this.channel?.Close();
-                }
-                catch (Exception ex)
-                {
-                    //the connection may already be gone
-                    log?.Error(ex);
-                }
-                this.channel?.Dispose();
-                this.channel = null;
-                this.connection?.Close();
-                this.connection?.Dispose();
-            }
+            disposed = true;
+            //disposing closes them, ignoring ones the broker or network already closed
+            Interlocked.Exchange(ref this.channel, null)?.Dispose();
+            Interlocked.Exchange(ref this.connection, null)?.Dispose();
             GC.SuppressFinalize(this);
         }
 
@@ -419,12 +444,19 @@ namespace Zerra.CQRS.RabbitMQ
         /// Releases all resources used by the <see cref="RabbitMQProducer"/>.
         /// </summary>
         /// <remarks>
-        /// The RabbitMQ connection only closes synchronously, so this is the same as <see cref="Dispose"/>.
+        /// Closes and disposes the RabbitMQ channel and connection. After disposal, the producer cannot be used.
         /// </remarks>
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
-            Dispose();
-            return default;
+            disposed = true;
+            //disposing closes them, ignoring ones the broker or network already closed
+            var channel = Interlocked.Exchange(ref this.channel, null);
+            if (channel is not null)
+                await channel.DisposeAsync();
+            var connection = Interlocked.Exchange(ref this.connection, null);
+            if (connection is not null)
+                await connection.DisposeAsync();
+            GC.SuppressFinalize(this);
         }
 
         void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
@@ -439,16 +471,22 @@ namespace Zerra.CQRS.RabbitMQ
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
             //declared now so the first send finds it declared
-            _ = Task.Run(() =>
+            _ = Task.Run(async () =>
             {
+                await locker.WaitAsync();
                 try
                 {
-                    lock (locker)
-                        DeclareTopic(this.channel is not null && this.channel.IsOpen ? this.channel : OpenChannel(), topic, true);
+                    await DeclareTopicAsync(this.channel is not null && this.channel.IsOpen ? this.channel : await OpenChannelAsync(), topic, true);
                 }
                 catch (Exception ex)
                 {
-                    log?.Error(ex);
+                    //disposed before it finished
+                    if (!disposed)
+                        log?.Error(ex);
+                }
+                finally
+                {
+                    _ = locker.Release();
                 }
             });
         }
@@ -465,35 +503,41 @@ namespace Zerra.CQRS.RabbitMQ
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
             //declared now so the first send finds it declared
-            _ = Task.Run(() =>
+            _ = Task.Run(async () =>
             {
+                await locker.WaitAsync();
                 try
                 {
-                    lock (locker)
-                        DeclareTopic(this.channel is not null && this.channel.IsOpen ? this.channel : OpenChannel(), topic, false);
+                    await DeclareTopicAsync(this.channel is not null && this.channel.IsOpen ? this.channel : await OpenChannelAsync(), topic, false);
                 }
                 catch (Exception ex)
                 {
-                    log?.Error(ex);
+                    //disposed before it finished
+                    if (!disposed)
+                        log?.Error(ex);
+                }
+                finally
+                {
+                    _ = locker.Release();
                 }
             });
         }
 
         //Called under the lock. The exchange, and for commands the queue, are declared the same as the consumers declare them, so a command sent
         //before any consumer has run waits in the queue instead of being dropped when the broker closes the channel for a missing exchange.
-        private void DeclareTopic(IModel channel, string topic, bool isCommand)
+        private async ValueTask DeclareTopicAsync(IChannel channel, string topic, bool isCommand)
         {
             if (declaredTopics.Contains(topic))
                 return;
             if (isCommand)
             {
-                channel.ExchangeDeclare(topic, ExchangeType.Direct);
-                _ = channel.QueueDeclare(topic, true, false, false);
-                channel.QueueBind(topic, topic, String.Empty);
+                await channel.ExchangeDeclareAsync(topic, ExchangeType.Direct);
+                _ = await channel.QueueDeclareAsync(topic, true, false, false);
+                await channel.QueueBindAsync(topic, topic, String.Empty);
             }
             else
             {
-                channel.ExchangeDeclare(topic, ExchangeType.Fanout);
+                await channel.ExchangeDeclareAsync(topic, ExchangeType.Fanout);
             }
             _ = declaredTopics.Add(topic);
         }

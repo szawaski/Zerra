@@ -35,7 +35,7 @@ var repo = Repo.New();
 repo.AddProvider(new ShippingStoreProvider<ShipmentDataModel>(engine));
 
 //Commands come from the gateway over HTTP/Kestrel. The order events from Orders take RabbitMQ when it's running, HTTP/Kestrel when it isn't
-var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnectionTest.Test(StoreSettings.RabbitMQHost, log: log);
+var useRabbitMQ = !StoreSettings.DirectMessagingOnly && await RabbitMQConnectionTest.TestAsync(StoreSettings.RabbitMQHost, log: log);
 IMessagingInfo messaging = new MessagingInfo($"Shipment commands: Direct HTTP. Order events: {(useRabbitMQ ? "RabbitMQ" : "Direct HTTP")}.");
 log.Info($"Messaging: {messaging.Description}");
 

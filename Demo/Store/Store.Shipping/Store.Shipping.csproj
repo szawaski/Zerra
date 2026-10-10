@@ -7,12 +7,6 @@
         <PublishAot>true</PublishAot>
         <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
         <PublishDocumentationFiles>false</PublishDocumentationFiles>
-        <!-- RabbitMQ.Client 6.x is a netstandard2.0 library with no trim annotations, so its one trim warning rolls up
-             into an IL2104: EventSource.WriteEvent boxing an exception detail on the error logging path. RabbitMQ.Client
-             7.x is marked trimmable, but its API is async-only and would be a rewrite of Zerra.CQRS.RabbitMQ. The SDK
-             never rolls up the project's own assembly or its project references, so this only silences NuGet packages,
-             never Zerra or the Store projects. -->
-        <NoWarn>$(NoWarn);IL2104</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

@@ -40,21 +40,13 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly Lock isOpenLock = new();
 #endif
 
-            private IModel? channel = null;
+            private IChannel? channel = null;
             //a channel isn't safe to publish on from more than one thread, a publish is several frames and replies from concurrent handlers would
             //interleave them, acks are taken on the dispatcher while the handlers reply from their own tasks so they share the lock
-#if NETSTANDARD2_0
-            private readonly object channelLock = new();
-#else
-            private readonly Lock channelLock = new();
-#endif
+            private readonly SemaphoreSlim channelLock = new(1, 1);
             private string? consumerTag = null;
             private string? cancelledConsumerTag = null;
-#if NETSTANDARD2_0
-            private readonly object cancelLock = new();
-#else
-            private readonly Lock cancelLock = new();
-#endif
+            private readonly SemaphoreSlim cancelLock = new(1, 1);
             private volatile bool receiveLimitReached = false;
             private readonly SemaphoreSlim throttle;
             private readonly ConcurrentHashSet<Task> handling = new();
@@ -87,7 +79,7 @@ namespace Zerra.CQRS.RabbitMQ
                 this.throttle = new SemaphoreSlim(this.maxConcurrent, this.maxConcurrent);
             }
 
-            public void Open(IConnection connection)
+            public void Open(Func<Task<IConnection>> getConnection)
             {
                 lock (isOpenLock)
                 {
@@ -95,35 +87,39 @@ namespace Zerra.CQRS.RabbitMQ
                         return;
                     IsOpen = true;
                 }
-                _ = Task.Run(() => ListeningThread(connection));
+                _ = Task.Run(() => ListeningThread(getConnection));
             }
 
-            private async Task ListeningThread(IConnection connection)
+            private async Task ListeningThread(Func<Task<IConnection>> getConnection)
             {
             retry:
 
                 try
                 {
+                    var connection = await getConnection();
+                    if (canceller.IsCancellationRequested)
+                        return;
+
                     if (this.channel is null)
                     {
-                        this.channel = connection.CreateModel();
-                        this.channel.BasicQos(0, (ushort)maxConcurrent, false);
+                        this.channel = await connection.CreateChannelAsync();
+                        await this.channel.BasicQosAsync(0, (ushort)maxConcurrent, false);
                     }
-                    this.channel.ExchangeDeclare(this.topic, ExchangeType.Direct);
+                    await this.channel.ExchangeDeclareAsync(this.topic, ExchangeType.Direct);
 
                     //not auto-deleted so commands sent while no replica is connected, such as during a reconnect, wait in the queue
-                    var queue = this.channel.QueueDeclare(this.topic, true, false, false);
-                    this.channel.QueueBind(queue.QueueName, this.topic, String.Empty);
+                    var queue = await this.channel.QueueDeclareAsync(this.topic, true, false, false);
+                    await this.channel.QueueBindAsync(queue.QueueName, this.topic, String.Empty);
 
                     var consumer = new AsyncEventingBasicConsumer(this.channel);
 
-                    consumer.Received += async (sender, e) =>
+                    consumer.ReceivedAsync += async (sender, e) =>
                     {
                         if (receiveLimitReached)
                         {
                             //waits for a cancel in progress so the command put back can't be sent here again
-                            StopReceiving(consumer, e.ConsumerTag);
-                            Requeue(consumer, e.DeliveryTag);
+                            await StopReceivingAsync(consumer, e.ConsumerTag);
+                            await RequeueAsync(consumer, e.DeliveryTag);
                             return;
                         }
 
@@ -141,22 +137,22 @@ namespace Zerra.CQRS.RabbitMQ
                             if (!commandCounter.BeginReceive())
                             {
                                 _ = throttle.Release();
-                                StopReceiving(consumer, e.ConsumerTag);
-                                Requeue(consumer, e.DeliveryTag);
+                                await StopReceivingAsync(consumer, e.ConsumerTag);
+                                await RequeueAsync(consumer, e.DeliveryTag);
                                 return; //don't receive anymore, externally will be shutdown
                             }
 
                             //cancelled before the ack, otherwise the broker keeps sending commands here that would have to be put back
                             if (commandCounter.ReceiveLimitReached)
-                                StopReceiving(consumer, e.ConsumerTag);
+                                await StopReceivingAsync(consumer, e.ConsumerTag);
                         }
 
                         if (!resilient)
                         {
+                            await channelLock.WaitAsync();
                             try
                             {
-                                lock (channelLock)
-                                    consumer.Model.BasicAck(e.DeliveryTag, false);
+                                await consumer.Channel.BasicAckAsync(e.DeliveryTag, false);
                             }
                             catch (Exception ex)
                             {
@@ -168,7 +164,7 @@ namespace Zerra.CQRS.RabbitMQ
                                     if (receiveLimitReached)
                                     {
                                         receiveLimitReached = false;
-                                        _ = Task.Run(() => ListeningThread(connection));
+                                        _ = Task.Run(() => ListeningThread(getConnection));
                                     }
                                 }
                                 else
@@ -177,27 +173,32 @@ namespace Zerra.CQRS.RabbitMQ
                                 }
                                 return;
                             }
+                            finally
+                            {
+                                _ = channelLock.Release();
+                            }
                         }
 
                         var body = e.Body.ToArray();
                         var replyTo = e.BasicProperties.ReplyTo;
                         var correlationId = e.BasicProperties.CorrelationId;
                         //resilient commands are acknowledged once handled, on the channel they came from, if it closes first the broker delivers them again
-                        var ackChannel = resilient ? consumer.Model : null;
+                        var ackChannel = resilient ? consumer.Channel : null;
                         var deliveryTag = e.DeliveryTag;
                         var handleTask = Task.Run(() => HandleMessage(body, replyTo, correlationId, ackChannel, deliveryTag));
                         _ = handling.Add(handleTask);
                         _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
                     };
 
-                    consumer.ConsumerCancelled += (sender, e) =>
+                    //raised for a cancel from the broker, such as the queue being deleted, as well as for the ones made here
+                    consumer.UnregisteredAsync += (sender, e) =>
                     {
-                        if (!canceller.IsCancellationRequested && !e.ConsumerTags.Contains(Volatile.Read(ref cancelledConsumerTag)) && consumer.Model.IsOpen)
-                            _ = Task.Run(() => ListeningThread(connection));
+                        if (!canceller.IsCancellationRequested && !e.ConsumerTags.Contains(Volatile.Read(ref cancelledConsumerTag)) && consumer.Channel.IsOpen)
+                            _ = Task.Run(() => ListeningThread(getConnection));
                         return Task.CompletedTask;
                     };
 
-                    this.consumerTag = this.channel.BasicConsume(queue.QueueName, false, consumer);
+                    this.consumerTag = await this.channel.BasicConsumeAsync(queue.QueueName, false, consumer);
                 }
                 catch (Exception ex)
                 {
@@ -207,8 +208,8 @@ namespace Zerra.CQRS.RabbitMQ
 
                         if (channel is not null)
                         {
-                            channel.Close();
-                            channel.Dispose();
+                            //disposing closes the channel, ignoring one the broker already closed
+                            await channel.DisposeAsync();
                             channel = null;
                         }
                         await Task.Delay(RabbitMQCommon.RetryDelay);
@@ -217,46 +218,56 @@ namespace Zerra.CQRS.RabbitMQ
                 }
             }
 
-            private void StopReceiving(AsyncEventingBasicConsumer consumer, string consumerTag)
+            private Task StopReceivingAsync(AsyncEventingBasicConsumer consumer, string consumerTag)
             {
                 receiveLimitReached = true;
-                _ = CancelConsumer(consumer.Model, consumerTag);
+                return CancelConsumerAsync(consumer.Channel, consumerTag);
             }
 
-            private void Requeue(AsyncEventingBasicConsumer consumer, ulong deliveryTag)
+            private async Task RequeueAsync(AsyncEventingBasicConsumer consumer, ulong deliveryTag)
             {
+                await channelLock.WaitAsync();
                 try
                 {
-                    lock (channelLock)
-                        consumer.Model.BasicNack(deliveryTag, false, true);
+                    await consumer.Channel.BasicNackAsync(deliveryTag, false, true);
                 }
                 catch (Exception ex)
                 {
                     log?.Error(topic, ex);
                 }
-            }
-
-            //the limit and Close can both cancel the same consumer, it's only cancelled once and a second caller waits for the broker to confirm it
-            private bool CancelConsumer(IModel channel, string consumerTag)
-            {
-                lock (cancelLock)
+                finally
                 {
-                    if (cancelledConsumerTag == consumerTag)
-                        return false;
-                    try
-                    {
-                        channel.BasicCancel(consumerTag);
-                    }
-                    catch (Exception ex)
-                    {
-                        log?.Error(topic, ex);
-                    }
-                    Volatile.Write(ref cancelledConsumerTag, consumerTag);
-                    return true;
+                    _ = channelLock.Release();
                 }
             }
 
-            private async Task HandleMessage(byte[] body, string? replyTo, string? correlationId, IModel? ackChannel, ulong deliveryTag)
+            //the limit and Close can both cancel the same consumer, it's only cancelled once and a second caller waits for the broker to confirm it
+            private async Task CancelConsumerAsync(IChannel channel, string consumerTag)
+            {
+                await cancelLock.WaitAsync();
+                try
+                {
+                    if (cancelledConsumerTag == consumerTag)
+                        return;
+                    try
+                    {
+                        await channel.BasicCancelAsync(consumerTag);
+                    }
+                    catch (Exception ex)
+                    {
+                        //Dispose closes the channel without waiting for a cancel from Close
+                        if (channel.IsOpen)
+                            log?.Error(topic, ex);
+                    }
+                    Volatile.Write(ref cancelledConsumerTag, consumerTag);
+                }
+                finally
+                {
+                    _ = cancelLock.Release();
+                }
+            }
+
+            private async Task HandleMessage(byte[] body, string? replyTo, string? correlationId, IChannel? ackChannel, ulong deliveryTag)
             {
                 object? result = null;
                 Exception? error = null;
@@ -308,14 +319,18 @@ namespace Zerra.CQRS.RabbitMQ
                     {
                         if (ackChannel is not null)
                         {
+                            await channelLock.WaitAsync();
                             try
                             {
-                                lock (channelLock)
-                                    ackChannel.BasicAck(deliveryTag, false);
+                                await ackChannel.BasicAckAsync(deliveryTag, false);
                             }
                             catch (Exception ex)
                             {
                                 log?.Error(topic, ex);
+                            }
+                            finally
+                            {
+                                _ = channelLock.Release();
                             }
                         }
                         if (commandCounter is not null)
@@ -338,11 +353,15 @@ namespace Zerra.CQRS.RabbitMQ
                     if (encryptor is not null)
                         acknowledgmentBody = encryptor.Encrypt(acknowledgmentBody);
 
-                    lock (channelLock)
+                    var replyProperties = new BasicProperties() { CorrelationId = correlationId };
+                    await channelLock.WaitAsync();
+                    try
                     {
-                        var replyProperties = this.channel!.CreateBasicProperties();
-                        replyProperties.CorrelationId = correlationId;
-                        this.channel.BasicPublish(String.Empty, replyTo!, replyProperties, acknowledgmentBody);
+                        await this.channel!.BasicPublishAsync(String.Empty, replyTo!, false, replyProperties, acknowledgmentBody);
+                    }
+                    finally
+                    {
+                        _ = channelLock.Release();
                     }
                 }
                 catch (Exception ex)
@@ -353,14 +372,18 @@ namespace Zerra.CQRS.RabbitMQ
                 {
                     if (ackChannel is not null)
                     {
+                        await channelLock.WaitAsync();
                         try
                         {
-                            lock (channelLock)
-                                ackChannel.BasicAck(deliveryTag, false);
+                            await ackChannel.BasicAckAsync(deliveryTag, false);
                         }
                         catch (Exception ex)
                         {
                             log?.Error(topic, ex);
+                        }
+                        finally
+                        {
+                            _ = channelLock.Release();
                         }
                     }
                     if (commandCounter is not null)
@@ -378,7 +401,7 @@ namespace Zerra.CQRS.RabbitMQ
                 var channel = this.channel;
                 var consumerTag = this.consumerTag;
                 if (channel is not null && consumerTag is not null)
-                    _ = CancelConsumer(channel, consumerTag);
+                    _ = CancelConsumerAsync(channel, consumerTag);
             }
 
             public void Dispose()
@@ -410,7 +433,6 @@ namespace Zerra.CQRS.RabbitMQ
 
                 if (channel is not null)
                 {
-                    channel.Close();
                     channel.Dispose();
                     channel = null;
                 }
@@ -444,8 +466,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                 if (channel is not null)
                 {
-                    channel.Close();
-                    channel.Dispose();
+                    await channel.DisposeAsync();
                     channel = null;
                 }
 

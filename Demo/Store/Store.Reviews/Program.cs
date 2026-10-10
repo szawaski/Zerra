@@ -41,7 +41,7 @@ log.Info($"Seed data done in {seeding.ElapsedMilliseconds} ms");
 
 //Message brokers: Azure Service Bus is used when it's running, checked here first so the choice can be reported like the data store
 var useServiceBus = !StoreSettings.DirectMessagingOnly && await AzureServiceBusConnectionTest.TestAsync(StoreSettings.AzureServiceBusConnectionString, log: log);
-var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnectionTest.Test(StoreSettings.RabbitMQHost, log: log);
+var useRabbitMQ = !StoreSettings.DirectMessagingOnly && await RabbitMQConnectionTest.TestAsync(StoreSettings.RabbitMQHost, log: log);
 IMessagingInfo messaging = new MessagingInfo($"Review commands: {(useServiceBus ? "Azure Service Bus" : "Direct TCP")}. Product events: {(useRabbitMQ ? "RabbitMQ" : "Direct TCP")}.");
 log.Info($"Messaging: {messaging.Description}");
 

@@ -22,6 +22,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Streams as query arguments (uploads) as well as results.
 - Connection tests for each broker (`KafkaConnectionTest`, `RabbitMQConnectionTest`, `AzureServiceBusConnectionTest`) to fall back to direct TCP or HTTP.
 - RabbitMQ accepts AMQP URIs, including TLS with `amqps://`. Kafka connects with TLS through `useTls`.
+- `Zerra.CQRS.RabbitMQ` uses RabbitMQ.Client 7, and `RabbitMQConnectionTest.Test` is now `TestAsync`. Creating a RabbitMQ consumer or producer no longer throws when the broker is down: the consumer logs it and keeps retrying, and sends fail until the broker is back.
 - `Zerra.CQRS.AzureEventHub` is removed; use Kafka, RabbitMQ, or Azure Service Bus.
 - Kafka and Azure Service Bus recover when a producer's acknowledgement topic or queue is deleted: the producer creates it again and the consumer retries the reply, so awaited commands no longer hang.
 - `WriteStreamContent` made with an async delegate throws `NotSupportedException` when sent synchronously, instead of blocking a thread on the delegate. Use the synchronous delegate constructor for synchronous sends.
@@ -65,6 +66,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 
 - `IRepo` from `Repo.New()` with providers added explicitly, replacing the static `Repo` and data contexts.
 - Engines for SQL Server (`Microsoft.Data.SqlClient`), PostgreSQL, MySQL, MariaDB, in-memory, and KurrentDB (replacing EventStoreDB), each with a connection test.
+- The MySQL engine uses MySqlConnector instead of MySql.Data, the same driver as MariaDB, so async calls are truly async.
 - `AggregateRoot` for event-sourced aggregates.
 - SQL queries compare null columns the way C# does, so `x.Maybe != 4` and `!(x.Maybe > 1)` include rows where `Maybe` is null, matching the in-memory engine.
 - `saveStateEvery` sets how often the event store saves a model's state, or 0 to never save it.

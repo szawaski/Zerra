@@ -31,7 +31,7 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly CancellationTokenSource canceller;
             private readonly string? queue;
 
-            private IModel? channel = null;
+            private IChannel? channel = null;
             private string? consumerTag = null;
             private readonly SemaphoreSlim throttle;
             private readonly ConcurrentHashSet<Task> handling = new();
@@ -70,36 +70,40 @@ namespace Zerra.CQRS.RabbitMQ
                 this.throttle = new SemaphoreSlim(this.maxConcurrent, this.maxConcurrent);
             }
 
-            public void Open(IConnection connection)
+            public void Open(Func<Task<IConnection>> getConnection)
             {
                 if (IsOpen)
                     return;
                 IsOpen = true;
-                _ = Task.Run(() => ListeningThread(connection));
+                _ = Task.Run(() => ListeningThread(getConnection));
             }
 
-            private async Task ListeningThread(IConnection connection)
+            private async Task ListeningThread(Func<Task<IConnection>> getConnection)
             {
             retry:
 
                 try
                 {
+                    var connection = await getConnection();
+                    if (canceller.IsCancellationRequested)
+                        return;
+
                     if (this.channel is null)
                     {
-                        this.channel = connection.CreateModel();
-                        this.channel.BasicQos(0, (ushort)maxConcurrent, false);
+                        this.channel = await connection.CreateChannelAsync();
+                        await this.channel.BasicQosAsync(0, (ushort)maxConcurrent, false);
                     }
-                    this.channel.ExchangeDeclare(this.topic, ExchangeType.Fanout);
+                    await this.channel.ExchangeDeclareAsync(this.topic, ExchangeType.Fanout);
 
                     //a PerService queue isn't auto-deleted so events sent while no replica is connected, such as during a reconnect, wait in the queue
                     var queue = this.queue is null
-                        ? this.channel.QueueDeclare(String.Empty, false, true, true)
-                        : this.channel.QueueDeclare(this.queue, true, false, false);
-                    this.channel.QueueBind(queue.QueueName, this.topic, String.Empty);
+                        ? await this.channel.QueueDeclareAsync(String.Empty, false, true, true)
+                        : await this.channel.QueueDeclareAsync(this.queue, true, false, false);
+                    await this.channel.QueueBindAsync(queue.QueueName, this.topic, String.Empty);
 
                     var consumer = new AsyncEventingBasicConsumer(this.channel);
 
-                    consumer.Received += async (sender, e) =>
+                    consumer.ReceivedAsync += async (sender, e) =>
                     {
                         try
                         {
@@ -112,7 +116,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                         try
                         {
-                            consumer.Model.BasicAck(e.DeliveryTag, false);
+                            await consumer.Channel.BasicAckAsync(e.DeliveryTag, false);
                         }
                         catch (Exception ex)
                         {
@@ -127,14 +131,15 @@ namespace Zerra.CQRS.RabbitMQ
                         _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
                     };
 
-                    consumer.ConsumerCancelled += (sender, e) =>
+                    //raised for a cancel from the broker, such as the queue being deleted, as well as for the one made by Close
+                    consumer.UnregisteredAsync += (sender, e) =>
                     {
-                        if (!canceller.IsCancellationRequested && consumer.Model.IsOpen)
-                            _ = Task.Run(() => ListeningThread(connection));
+                        if (!canceller.IsCancellationRequested && consumer.Channel.IsOpen)
+                            _ = Task.Run(() => ListeningThread(getConnection));
                         return Task.CompletedTask;
                     };
 
-                    this.consumerTag = this.channel.BasicConsume(queue.QueueName, false, consumer);
+                    this.consumerTag = await this.channel.BasicConsumeAsync(queue.QueueName, false, consumer);
                 }
                 catch (Exception ex)
                 {
@@ -144,8 +149,8 @@ namespace Zerra.CQRS.RabbitMQ
 
                         if (channel is not null)
                         {
-                            channel.Close();
-                            channel.Dispose();
+                            //disposing closes the channel, ignoring one the broker already closed
+                            await channel.DisposeAsync();
                             channel = null;
                         }
                         await Task.Delay(RabbitMQCommon.RetryDelay);
@@ -203,15 +208,20 @@ namespace Zerra.CQRS.RabbitMQ
                 var channel = this.channel;
                 var consumerTag = this.consumerTag;
                 if (channel is not null && consumerTag is not null)
+                    _ = CancelConsumerAsync(channel, consumerTag);
+            }
+
+            private async Task CancelConsumerAsync(IChannel channel, string consumerTag)
+            {
+                try
                 {
-                    try
-                    {
-                        channel.BasicCancel(consumerTag);
-                    }
-                    catch (Exception ex)
-                    {
+                    await channel.BasicCancelAsync(consumerTag);
+                }
+                catch (Exception ex)
+                {
+                    //Dispose closes the channel without waiting for the cancel
+                    if (channel.IsOpen)
                         log?.Error(topic, ex);
-                    }
                 }
             }
 
@@ -244,7 +254,6 @@ namespace Zerra.CQRS.RabbitMQ
 
                 if (channel is not null)
                 {
-                    channel.Close();
                     channel.Dispose();
                     channel = null;
                 }
@@ -278,8 +287,7 @@ namespace Zerra.CQRS.RabbitMQ
 
                 if (channel is not null)
                 {
-                    channel.Close();
-                    channel.Dispose();
+                    await channel.DisposeAsync();
                     channel = null;
                 }
 

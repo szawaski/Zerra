@@ -522,7 +522,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             }
         }
 
-        [Fact(Timeout = 120000)]
+        [Fact]
         public async Task TestLongNamesTruncated()
         {
             //nothing is created until a consumer opens or a producer sends

@@ -8,11 +8,10 @@
         <PublishAot>true</PublishAot>
         <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
         <PublishDocumentationFiles>false</PublishDocumentationFiles>
-        <!-- Confluent.Kafka, MySql.Data and the System.Configuration.ConfigurationManager it drags in are not trim
-             annotated, so each rolls its trim warnings up into one IL2104. The reflection behind them is in code paths
-             this demo never runs: Kafka's AWS OAuth handler, MySQL's OCI and authentication plugin loaders, and
-             app.config section binding. The SDK never rolls up the project's own assembly or its project references,
-             so this only silences NuGet packages, never Zerra or the Store projects. -->
+        <!-- Confluent.Kafka is not trim annotated, so its trim warnings roll up into one IL2104. The reflection
+             behind them is in a code path this demo never runs, Kafka's AWS OAuth handler. The SDK never rolls up
+             the project's own assembly or its project references, so this only silences NuGet packages, never Zerra
+             or the Store projects. -->
         <NoWarn>$(NoWarn);IL2104</NoWarn>
     </PropertyGroup>
 

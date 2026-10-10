@@ -39,7 +39,7 @@ seeding.Stop();
 log.Info($"Seed data done in {seeding.ElapsedMilliseconds} ms");
 
 //Message brokers: RabbitMQ carries the product events when it's running, checked here first so the choice can be reported like the data store
-var useRabbitMQ = !StoreSettings.DirectMessagingOnly && RabbitMQConnectionTest.Test(StoreSettings.RabbitMQHost, log: log);
+var useRabbitMQ = !StoreSettings.DirectMessagingOnly && await RabbitMQConnectionTest.TestAsync(StoreSettings.RabbitMQHost, log: log);
 //Catalog receives queries and commands from the gateway over TCP, its RabbitMQ use is outbound
 IMessagingInfo messaging = new MessagingInfo("Direct TCP");
 log.Info($"Publishing product events over {(useRabbitMQ ? "RabbitMQ" : "direct TCP")}");
