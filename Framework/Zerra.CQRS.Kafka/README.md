@@ -19,7 +19,7 @@ using Zerra.Serialization;
 using Zerra.CQRS.Kafka;
 
 ISerializer serializer = new ZerraByteSerializer();
-IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
+IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AES_GCM);
 
 var bus = Bus.New("OrderService");
 

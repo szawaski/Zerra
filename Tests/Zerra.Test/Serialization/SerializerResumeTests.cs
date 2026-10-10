@@ -30,7 +30,9 @@ namespace Zerra.Test.Serialization
             TypesHashSetTModel.Create(),
             TypesISetTModel.Create(),
             TypesISetTOfTModel.Create(),
+#if !NETSTANDARD2_0
             TypesIReadOnlySetTModel.Create(),
+#endif
             TypesICollectionTModel.Create(),
             TypesICollectionTOfTModel.Create(),
             TypesIReadOnlyCollectionTModel.Create(),
@@ -181,7 +183,9 @@ namespace Zerra.Test.Serialization
             TypesHashSetTModel.Create(),
             TypesISetTModel.Create(),
             TypesISetTOfTModel.Create(),
+#if !NETSTANDARD2_0
             TypesIReadOnlySetTModel.Create(),
+#endif
             TypesICollectionModel.Create(),
             TypesICollectionTModel.Create(),
             TypesICollectionTOfTModel.Create(),

@@ -49,7 +49,7 @@ namespace Zerra.Repository.Test
             public string? Text { get; set; }
         }
 
-        private static readonly SymmetricKey key = SymmetricEncryptor.GetKey("edge-test");
+        private static readonly IEncryptor encryptor = new ZerraEncryptor("edge-test", SymmetricAlgorithmType.AES_GCM);
 
         private sealed class Encrypting<TModel>(ITransactStoreProvider<TModel> next, bool enabled = true, Graph<TModel>? properties = null)
             : BaseTransactStoreEncryptionProvider<ITransactStoreProvider<TModel>, TModel>(next)
@@ -57,8 +57,7 @@ namespace Zerra.Repository.Test
         {
             public override bool Enabled => enabled;
             public override Graph<TModel>? Properties => properties;
-            public override SymmetricKey EncryptionKey => key;
-            public override SymmetricAlgorithmType EncryptionAlgorithm => SymmetricAlgorithmType.AES;
+            public override IEncryptor Encryptor => encryptor;
         }
 
         private sealed class Compressing<TModel>(ITransactStoreProvider<TModel> next, bool enabled = true, Graph<TModel>? properties = null)

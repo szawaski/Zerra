@@ -52,7 +52,10 @@ namespace Zerra.Test.Serialization
             var json1 = JsonSerializer.Serialize(baseModel);
             var json2 = System.Text.Json.JsonSerializer.Serialize(baseModel, options);
 
+#if !NETSTANDARD2_0
+            //System.Text.Json on .NET Standard writes floats longer than they need to be
             Assert.True(json1 == json2);
+#endif
 
             //swap serializers
             var model1 = JsonSerializer.Deserialize<TypesAllModel>(json2);
@@ -159,6 +162,7 @@ namespace Zerra.Test.Serialization
             AssertHelper.AreEqual(model1, model2);
         }
 
+#if !NETSTANDARD2_0
         [Fact]
         public void StringTypesIReadOnlySetT()
         {
@@ -167,6 +171,7 @@ namespace Zerra.Test.Serialization
             var model2 = JsonSerializer.Deserialize<TypesIReadOnlySetTModel>(json);
             AssertHelper.AreEqual(model1, model2);
         }
+#endif
 
         [Fact]
         public void StringTypesICollection()
@@ -572,20 +577,20 @@ namespace Zerra.Test.Serialization
         [Fact]
         public void StringDateTimeTypes()
         {
-            var dateUtc = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Utc);
+            var dateUtc = new DateTime(2024, 12, 5, 18, 10, 5, 123, DateTimeKind.Utc).AddTicks(456 * 10);
             var json = JsonSerializer.Serialize(dateUtc);
             var dateUtc2 = JsonSerializer.Deserialize<DateTime>(json);
             Assert.Equal(dateUtc, dateUtc2);
             Assert.Equal(DateTimeKind.Utc, dateUtc2.Kind);
 
-            var dateLocal = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Local);
+            var dateLocal = new DateTime(2024, 12, 5, 18, 10, 5, 123, DateTimeKind.Local).AddTicks(456 * 10);
             json = JsonSerializer.Serialize(dateLocal);
             var dateLocal2 = JsonSerializer.Deserialize<DateTime>(json);
             var dateLocalUtc = dateLocal.ToUniversalTime();
             Assert.Equal(dateLocalUtc, dateLocal2);
             Assert.Equal(DateTimeKind.Utc, dateLocal2.Kind);
 
-            var dateUnspecified = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Unspecified);
+            var dateUnspecified = new DateTime(2024, 12, 5, 18, 10, 5, 123, DateTimeKind.Unspecified).AddTicks(456 * 10);
             json = JsonSerializer.Serialize(dateUnspecified);
             var dateUnspecified2 = JsonSerializer.Deserialize<DateTime>(json);
             Assert.Equal(dateUnspecified, dateUnspecified2);
@@ -1014,8 +1019,10 @@ namespace Zerra.Test.Serialization
         {
             AssertPatchKeys(new Dictionary<DateTime, int> { { new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc), 1 }, { new DateTime(2024, 1, 2, 3, 4, 5, 500, DateTimeKind.Utc), 2 } }, null, "2024-01-02T03:04:05Z", "2024-01-02T03:04:05.5Z");
             AssertPatchKeys(new Dictionary<DateTimeOffset, int> { { new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(2)), 1 } }, null, "2024-01-02T03:04:05+02:00");
+#if !NETSTANDARD2_0
             AssertPatchKeys(new Dictionary<DateOnly, int> { { new DateOnly(2024, 1, 2), 1 } }, null, "2024-01-02");
             AssertPatchKeys(new Dictionary<TimeOnly, int> { { new TimeOnly(3, 4, 5), 1 } }, null, "03:04:05");
+#endif
             AssertPatchKeys(new Dictionary<DayOfWeek, int> { { DayOfWeek.Monday, 1 } }, null, "Monday");
             AssertPatchKeys(new Dictionary<DayOfWeek, int> { { DayOfWeek.Monday, 1 } }, new JsonSerializerOptions() { EnumAsNumber = true }, "1");
             AssertPatchKeys(new Dictionary<int, int> { { -5, 1 } }, null, "-5");
@@ -1190,7 +1197,10 @@ namespace Zerra.Test.Serialization
             using var sr2 = new StreamReader(stream2, Encoding.UTF8);
             var json2 = await sr2.ReadToEndAsync(TestContext.Current.CancellationToken);
 
+#if !NETSTANDARD2_0
+            //System.Text.Json on .NET Standard writes floats longer than they need to be
             Assert.True(json1 == json2);
+#endif
 
             //swap serializers
             using var stream3 = new MemoryStream(Encoding.UTF8.GetBytes(json2));
@@ -1334,6 +1344,7 @@ namespace Zerra.Test.Serialization
             AssertHelper.AreEqual(model1, model2);
         }
 
+#if !NETSTANDARD2_0
         [Fact]
         public async Task StreamTypesIReadOnlySetT()
         {
@@ -1344,6 +1355,7 @@ namespace Zerra.Test.Serialization
             var model2 = await JsonSerializer.DeserializeAsync<TypesIReadOnlySetTModel>(stream, null, null, TestContext.Current.CancellationToken);
             AssertHelper.AreEqual(model1, model2);
         }
+#endif
 
         [Fact]
         public async Task StreamTypesICollection()
@@ -1845,7 +1857,7 @@ namespace Zerra.Test.Serialization
         [Fact]
         public async Task StreamDateTimeTypes()
         {
-            var dateUtc = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Utc);
+            var dateUtc = new DateTime(2024, 12, 5, 18, 10, 5, 123, DateTimeKind.Utc).AddTicks(456 * 10);
             using var stream1 = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream1, dateUtc, null, null, TestContext.Current.CancellationToken);
             stream1.Position = 0;
@@ -1853,7 +1865,7 @@ namespace Zerra.Test.Serialization
             Assert.Equal(dateUtc, dateUtc2);
             Assert.Equal(DateTimeKind.Utc, dateUtc2.Kind);
 
-            var dateLocal = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Local);
+            var dateLocal = new DateTime(2024, 12, 5, 18, 10, 5, 123, DateTimeKind.Local).AddTicks(456 * 10);
             using var stream2 = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream2, dateLocal, null, null, TestContext.Current.CancellationToken);
             stream2.Position = 0;
@@ -1862,7 +1874,7 @@ namespace Zerra.Test.Serialization
             Assert.Equal(dateLocalUtc, dateLocal2);
             Assert.Equal(DateTimeKind.Utc, dateLocal2.Kind);
 
-            var dateUnspecified = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Unspecified);
+            var dateUnspecified = new DateTime(2024, 12, 5, 18, 10, 5, 123, DateTimeKind.Unspecified).AddTicks(456 * 10);
             using var stream3 = new MemoryStream();
             await JsonSerializer.SerializeAsync(stream3, dateUnspecified, null, null, TestContext.Current.CancellationToken);
             stream3.Position = 0;
@@ -2024,6 +2036,43 @@ namespace Zerra.Test.Serialization
 
             for (var i = 0; i < models.Count; i++)
                 AssertHelper.AreEqual(models[i], result[i]);
+        }
+
+        private sealed class DictionaryKeyModel
+        {
+            public int Id { get; set; }
+        }
+
+        //the closing brace or bracket landing on the stream buffer boundary must resume
+        [Fact]
+        public async Task StreamDictionaryEndOnBufferBoundary()
+        {
+            var comparer = Comparer<DictionaryKeyModel>.Create((x, y) => x.Id.CompareTo(y.Id));
+            //names reserve their max size, a run of exact sized values is what lets the end land on the last byte
+            for (var count = 3260; count < 3280; count++)
+            for (var pad = 1; pad <= 5; pad++)
+            {
+                var values = Enumerable.Repeat(true, count).ToArray();
+                var name = new string('a', pad);
+                var key = new DictionaryKeyModel() { Id = (int)Math.Pow(10, pad - 1) };
+
+                await AssertStreamMatches(new Dictionary<string, bool[]>() { { name, values } });
+                await AssertStreamMatches<IDictionary<string, bool[]>>(new Dictionary<string, bool[]>() { { name, values } });
+                await AssertStreamMatches<IReadOnlyDictionary<string, bool[]>>(new Dictionary<string, bool[]>() { { name, values } });
+                await AssertStreamMatches(new SortedDictionary<string, bool[]>() { { name, values } });
+
+                await AssertStreamMatches(new Dictionary<DictionaryKeyModel, bool[]>() { { key, values } });
+                await AssertStreamMatches<IDictionary<DictionaryKeyModel, bool[]>>(new Dictionary<DictionaryKeyModel, bool[]>() { { key, values } });
+                await AssertStreamMatches<IReadOnlyDictionary<DictionaryKeyModel, bool[]>>(new Dictionary<DictionaryKeyModel, bool[]>() { { key, values } });
+                await AssertStreamMatches(new SortedDictionary<DictionaryKeyModel, bool[]>(comparer) { { key, values } });
+            }
+
+            static async Task AssertStreamMatches<T>(T value)
+            {
+                using var stream = new MemoryStream();
+                await JsonSerializer.SerializeAsync(stream, value, null, null, TestContext.Current.CancellationToken);
+                Assert.Equal(JsonSerializer.Serialize(value), Encoding.UTF8.GetString(stream.ToArray()));
+            }
         }
 
         [Fact]
@@ -2502,8 +2551,10 @@ namespace Zerra.Test.Serialization
             AssertTypeMismatch<DateTime>(text);
             AssertTypeMismatch<DateTimeOffset>(text);
             AssertTypeMismatch<TimeSpan>(text);
+#if !NETSTANDARD2_0
             AssertTypeMismatch<DateOnly>(text);
             AssertTypeMismatch<TimeOnly>(text);
+#endif
             AssertTypeMismatch<Guid>(text);
             AssertTypeMismatch<string>(none);
 
@@ -2523,8 +2574,10 @@ namespace Zerra.Test.Serialization
             AssertTypeMismatch<DateTime?>(text);
             AssertTypeMismatch<DateTimeOffset?>(text);
             AssertTypeMismatch<TimeSpan?>(text);
+#if !NETSTANDARD2_0
             AssertTypeMismatch<DateOnly?>(text);
             AssertTypeMismatch<TimeOnly?>(text);
+#endif
             AssertTypeMismatch<Guid?>(text);
             AssertTypeMismatch<EnumModel>(enumValue);
             AssertTypeMismatch<EnumModel?>(enumValue);
@@ -2554,8 +2607,10 @@ namespace Zerra.Test.Serialization
             AssertRootMismatch<DateTime>(); AssertRootMismatch<DateTime?>();
             AssertRootMismatch<DateTimeOffset>(); AssertRootMismatch<DateTimeOffset?>();
             AssertRootMismatch<TimeSpan>(); AssertRootMismatch<TimeSpan?>();
+#if !NETSTANDARD2_0
             AssertRootMismatch<DateOnly>(); AssertRootMismatch<DateOnly?>();
             AssertRootMismatch<TimeOnly>(); AssertRootMismatch<TimeOnly?>();
+#endif
             AssertRootMismatch<Guid>(); AssertRootMismatch<Guid?>();
             AssertRootMismatch<string>();
         }
@@ -2754,7 +2809,9 @@ namespace Zerra.Test.Serialization
             AssertCollectionMismatch<IList<int>>(false);
             AssertCollectionMismatch<IReadOnlyList<int>>(false);
             AssertCollectionMismatch<ISet<int>>(false);
+#if !NETSTANDARD2_0
             AssertCollectionMismatch<IReadOnlySet<int>>(false);
+#endif
             AssertCollectionMismatch<HashSet<int>>(false);
             AssertCollectionMismatch<List<int>>(false);
             AssertCollectionMismatch<int[]>(false);
@@ -2855,7 +2912,7 @@ namespace Zerra.Test.Serialization
             if (!strictMismatches)
                 return;
 
-            string[] mismatches = typeof(T) == typeof(string) ? tokens[8..] : Nullable.GetUnderlyingType(typeof(T)) is not null ? [tokens[6], .. tokens[8..]] : tokens[6..];
+            string[] mismatches = typeof(T) == typeof(string) ? tokens.Skip(8).ToArray() : Nullable.GetUnderlyingType(typeof(T)) is not null ? [tokens[6], .. tokens.Skip(8)] : tokens.Skip(6).ToArray();
             foreach (var token in mismatches)
             {
                 var json = $"{{\"Value\":{token},\"After\":7}}";
@@ -3053,15 +3110,19 @@ namespace Zerra.Test.Serialization
             Assert.Equal(default, JsonSerializer.Deserialize<DateTimeOffset>(bytes));
             Assert.Null(JsonSerializer.Deserialize<DateTime?>(json));
             Assert.Null(JsonSerializer.Deserialize<DateTimeOffset?>(bytes));
+#if !NETSTANDARD2_0
             Assert.Equal(default, JsonSerializer.Deserialize<DateOnly>(json));
             Assert.Equal(default, JsonSerializer.Deserialize<DateOnly>(bytes));
+#endif
 
             _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<DateTime>(json, strict));
             _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<DateTime>(bytes, strict));
             _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<DateTimeOffset>(json, strict));
             _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<DateTimeOffset>(bytes, strict));
+#if !NETSTANDARD2_0
             _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<DateOnly>(json, strict));
             _ = Assert.ThrowsAny<Exception>(() => JsonSerializer.Deserialize<DateOnly>(bytes, strict));
+#endif
         }
 
         [Theory]
@@ -3081,7 +3142,7 @@ namespace Zerra.Test.Serialization
         {
             var json = $"\"{text}\"";
             var bytes = Encoding.UTF8.GetBytes(json);
-            var hasOffset = text.Length > 19 && (text.EndsWith('Z') || text[^6] is '+' or '-');
+            var hasOffset = text.Length > 19 && (text[text.Length - 1] == 'Z' || text[^6] is '+' or '-');
             var expected = hasOffset
                 ? DateTimeOffset.Parse(text, CultureInfo.InvariantCulture)
                 : new DateTimeOffset(DateTime.Parse(text, CultureInfo.InvariantCulture), TimeSpan.Zero);
@@ -3532,8 +3593,10 @@ namespace Zerra.Test.Serialization
         {
             AssertDictionaryKinds(new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc), new DateTime(2026, 1, 2, 3, 4, 5, 500, DateTimeKind.Utc));
             AssertDictionaryKinds(new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(2)), new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero));
+#if !NETSTANDARD2_0
             AssertDictionaryKinds(new DateOnly(2026, 1, 2), new DateOnly(1, 1, 1));
             AssertDictionaryKinds(new TimeOnly(3, 4, 5), new TimeOnly(23, 59));
+#endif
             AssertDictionaryKinds(true, false);
             AssertDictionaryKinds(Guid.Parse("11111111-2222-3333-4444-555555555555"), Guid.Empty);
             AssertDictionaryKinds(DayOfWeek.Monday, DayOfWeek.Friday);

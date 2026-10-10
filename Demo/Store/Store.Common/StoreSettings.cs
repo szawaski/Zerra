@@ -55,7 +55,7 @@ namespace Store.Common
         /// Internal traffic is encrypted with a shared key so only callers holding the key can send messages to a service.
         /// A real deployment would load this from a secret store.
         /// </summary>
-        public static IEncryptor CreateServiceEncryptor() => new ZerraEncryptor(Get("STORE_SHARED_KEY", "zerra-store-demo-shared-key"), SymmetricAlgorithmType.AESwithPrefix);
+        public static IEncryptor CreateServiceEncryptor() => new ZerraEncryptor(Get("STORE_SHARED_KEY", "zerra-store-demo-shared-key"), SymmetricAlgorithmType.AES_GCM);
 
         /// <summary>
         /// Catalog's traffic is compressed: its product lists and the CSV export and import are large and repetitive. The rest of the store's

@@ -20,8 +20,10 @@ namespace Zerra.Test.Compression
         [Theory]
         [InlineData(CompressionAlgorithmType.Deflate)]
         [InlineData(CompressionAlgorithmType.GZip)]
+#if !NETSTANDARD2_0
         [InlineData(CompressionAlgorithmType.ZLib)]
         [InlineData(CompressionAlgorithmType.Brotli)]
+#endif
         public void Bytes_RoundTrip(CompressionAlgorithmType algorithm)
         {
             var compressor = new ZerraCompressor(algorithm);
@@ -34,11 +36,14 @@ namespace Zerra.Test.Compression
             Assert.Equal(test, result);
         }
 
+#if !NETSTANDARD2_0
         [Theory]
         [InlineData(CompressionAlgorithmType.Deflate)]
         [InlineData(CompressionAlgorithmType.GZip)]
+#if !NETSTANDARD2_0
         [InlineData(CompressionAlgorithmType.ZLib)]
         [InlineData(CompressionAlgorithmType.Brotli)]
+#endif
         public void Span_RoundTrip(CompressionAlgorithmType algorithm)
         {
             var compressor = new ZerraCompressor(algorithm);
@@ -50,12 +55,15 @@ namespace Zerra.Test.Compression
             Assert.Equal(test, result);
             Assert.Equal(test, compressor.Decompress(compressed));
         }
+#endif
 
         [Theory]
         [InlineData(CompressionAlgorithmType.Deflate)]
         [InlineData(CompressionAlgorithmType.GZip)]
+#if !NETSTANDARD2_0
         [InlineData(CompressionAlgorithmType.ZLib)]
         [InlineData(CompressionAlgorithmType.Brotli)]
+#endif
         public void Empty_RoundTrip(CompressionAlgorithmType algorithm)
         {
             var compressor = new ZerraCompressor(algorithm);
@@ -66,11 +74,14 @@ namespace Zerra.Test.Compression
             Assert.Empty(result);
         }
 
+#if !NETSTANDARD2_0
         [Theory]
         [InlineData(CompressionAlgorithmType.Deflate)]
         [InlineData(CompressionAlgorithmType.GZip)]
+#if !NETSTANDARD2_0
         [InlineData(CompressionAlgorithmType.ZLib)]
         [InlineData(CompressionAlgorithmType.Brotli)]
+#endif
         public async Task Stream_RoundTrip(CompressionAlgorithmType algorithm)
         {
             var compressor = new ZerraCompressor(algorithm);
@@ -92,6 +103,7 @@ namespace Zerra.Test.Compression
 
             Assert.Equal(test, resultStream.ToArray());
         }
+#endif
 
         [Fact]
         public void Stream_Decompress_DisposesSource()

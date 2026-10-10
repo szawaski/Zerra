@@ -20,6 +20,10 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `resilientCommands` on the Kafka, RabbitMQ, and Azure Service Bus consumers acknowledges a command after its handler finishes, so a command being handled when the process dies goes to another replica. See [Resilient Commands](docs/Reliability.md#resilient-commands).
 - Optional message compression with `ICompressor`, applied before encryption.
 - `IEncryptor` replaces `SymmetricConfig`, with `ZerraEncryptor` built in.
+- New encryption modes: `AES_GCM` and `AES_CBC_HMAC` reject messages that were changed, reordered, or cut short, and `AES_CBC` only keeps them private. Every encryption is different, even of the same message. `DES`, `TripleDES`, and `RC2` are removed. Keys are `byte[]` (`SymmetricKey` and `SymmetricConfig` are gone), and Zerra 5's `AES` and `AESwithShift` moved to `ZerraEncryptorOld` and `SymmetricEncryptorOld` for data Zerra 5 stored. Repository encryption providers take an `IEncryptor`.
+- `AsymmetricEncryptor` writes standard JWE, so it encrypts data of any size that any JOSE library can read, with `AsymmetricAlgorithmType.RSA_OAEP_256_A256GCM`, or `RSA_OAEP_A256CBC_HS512` on .NET Framework. Keys are PEM, 2048-bit by default, and `Encrypt`/`Decrypt` replace `RSAEncrypt`/`RSADecrypt`.
+- `Hasher.PBKDF2GenerateHash` stores passwords as PHC strings with modern settings (SHA-256, 600,000 iterations), `PBKDF2NeedsRehash` says when to upgrade one, and hashes are compared in constant time. `HashAlgoritmType` is renamed `HashAlgorithmType` without MD5 and SHA-1, and Zerra 5 hashes are checked with `HasherOld`. PBKDF2 with SHA-256 and up works on .NET Framework too.
+- Fixed `Password.GeneratePassword` favoring some characters, and it now includes at least one character from each set chosen.
 - Streams as query arguments (uploads) as well as results.
 - Connection tests for each broker (`KafkaConnectionTest`, `RabbitMQConnectionTest`, `AzureServiceBusConnectionTest`) to fall back to direct TCP or HTTP.
 - RabbitMQ accepts AMQP URIs, including TLS with `amqps://`. Kafka connects with TLS through `useTls`.
@@ -43,6 +47,8 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Fixed `ZerraJsonSerializer` throwing `ArgumentOutOfRangeException` instead of a `FormatException` for some invalid JSON at the end of the input.
 - Fixed `ZerraJsonSerializer` reading a dictionary written as an array of key and value pairs when an item isn't a pair, such as `[1]`. It threw `ArgumentNullException` or added an empty entry, and now skips the item.
 - Fixed `ZerraJsonSerializer` failing on dictionaries with `string` or number keys written as an array of key-value pairs.
+- Fixed `ZerraJsonSerializer` throwing `NullReferenceException` when writing a dictionary to a stream if its closing `}` or `]` landed exactly at the end of the write buffer.
+- Fixed on .NET Framework: reading records and `init` properties, `float` and `double` values that didn't round trip, numbers too large for `float` or `double` throwing instead of reading as infinity, and `[JsonIgnore(Condition = ...)]` being treated as always ignored.
 - `ZerraJsonSerializer` throws on anything after the JSON value other than whitespace, and every type follows one rule for values that don't match it ([Mismatched Values](docs/JsonSerializer.md#mismatched-values)).
 - `JsonSerializerOptions.ErrorOnTypeMismatch` is renamed `ErrorOnReadMismatchedData`. With it off, the default, valid JSON that doesn't fit the type no longer throws: `1.5` for an `int`, an unparseable date, an unknown enum name, or extra values in a nameless array read as the default or are skipped, and a repeated dictionary key keeps the last value. Invalid JSON still throws.
 

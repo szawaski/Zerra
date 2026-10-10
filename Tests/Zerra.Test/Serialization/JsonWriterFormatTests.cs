@@ -128,9 +128,11 @@ namespace Zerra.Test.Serialization
             AssertKeyRoundTrips(new DateTime(2026, 10, 6, 13, 45, 30, DateTimeKind.Utc).AddTicks(1234567));
             AssertKeyRoundTrips(new DateTime(2026, 10, 6, 13, 45, 30, DateTimeKind.Unspecified));
             AssertKeyRoundTrips(new DateTimeOffset(2026, 10, 6, 13, 45, 30, TimeSpan.FromHours(-5)));
+#if !NETSTANDARD2_0
             AssertKeyRoundTrips(new DateOnly(2026, 10, 6));
             AssertKeyRoundTrips(new TimeOnly(13, 45, 30, 500));
             AssertKeyRoundTrips(new TimeOnly(13, 45, 30));
+#endif
             AssertKeyRoundTrips(new TimeSpan(-1, 2, 3, 4, 500));
         }
 
@@ -236,6 +238,7 @@ namespace Zerra.Test.Serialization
             Assert.Equal([expected, 3.0], JsonSerializer.Deserialize<List<double>>(Encoding.UTF8.GetBytes($"[{json},3]")));
         }
 
+#if !NETSTANDARD2_0
         [Fact]
         public void DateOnlyTimeOnly_MatchSystemTextJson()
         {
@@ -249,6 +252,7 @@ namespace Zerra.Test.Serialization
             Assert.Equal(dates, JsonSerializer.Deserialize<DateOnly[]>(JsonSerializer.Serialize(dates)));
             Assert.Equal(times, JsonSerializer.Deserialize<TimeOnly[]>(JsonSerializer.SerializeBytes(times)));
         }
+#endif
 
         private static void AssertKeyRoundTrips<TKey>(TKey key) where TKey : notnull
         {
@@ -271,7 +275,11 @@ namespace Zerra.Test.Serialization
             public ICollection<int> Collection { get; set; }
             public IReadOnlyCollection<int> ReadOnlyCollection { get; set; }
             public IList<int> IList { get; set; }
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
             public IReadOnlySet<int> ReadOnlySet { get; set; }
+#endif
+#endif
             public int[] Empty { get; set; }
             public List<Collections> Children { get; set; }
         }
@@ -290,7 +298,9 @@ namespace Zerra.Test.Serialization
                 Collection = [6],
                 ReadOnlyCollection = [7, 8, 9],
                 IList = [10, 11],
+#if !NETSTANDARD2_0
                 ReadOnlySet = new HashSet<int>() { 12 },
+#endif
                 Empty = [],
                 Children = [new Collections() { Array = [1] }, new Collections() { List = ["z"] }],
             };
@@ -309,7 +319,9 @@ namespace Zerra.Test.Serialization
                 Assert.Equal(value.Collection, result.Collection);
                 Assert.Equal(value.ReadOnlyCollection, result.ReadOnlyCollection);
                 Assert.Equal(value.IList, result.IList);
+#if !NETSTANDARD2_0
                 Assert.Equal(value.ReadOnlySet, result.ReadOnlySet);
+#endif
                 Assert.Empty(result.Empty);
                 Assert.Equal(2, result.Children.Count);
                 Assert.Equal([1], result.Children[0].Array);
@@ -535,6 +547,7 @@ namespace Zerra.Test.Serialization
             Assert.Equal(expected, JsonSerializer.Deserialize<TimeSpan?>(json));
         }
 
+#if !NETSTANDARD2_0
         [Theory]
         [InlineData("\"00:00:00\"")]
         [InlineData("\"13:45:30.1234567\"")]
@@ -546,6 +559,7 @@ namespace Zerra.Test.Serialization
             Assert.Equal(expected, JsonSerializer.Deserialize<TimeOnly>(Encoding.UTF8.GetBytes(json)));
             Assert.Equal(expected, JsonSerializer.Deserialize<TimeOnly?>(json));
         }
+#endif
 
         [Fact]
         public void Numbers_IgnoreCurrentCulture()

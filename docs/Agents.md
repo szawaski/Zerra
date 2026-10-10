@@ -4,7 +4,7 @@
 
 This document provides architectural context for AI agents working with the Zerra framework.
 
-Before writing any handler, read [Command or Event?](#command-or-event-read-this-first). Upgrading a solution from Zerra 5? Follow [UpgradeV5ToV6.md](UpgradeV5ToV6.md).
+Before writing any handler, read [Command or Event?](#command-or-event-read-this-first). Upgrading an existing solution? Follow [UpgradeV5ToV6.md](UpgradeV5ToV6.md).
 
 ## Overview
 
@@ -61,7 +61,8 @@ Choosing between them:
 - There's no native AOT; types the generator misses are built at runtime as usual.
 - The generator needs C# 9 or later, but `netstandard2.0` and .NET Framework projects default to C# 7.3 and fail with `ZERRA001`. Set `<LangVersion>9.0</LangVersion>` or higher.
 - Synchronous query calls through `ApiClient` and `KestrelCqrsClient` throw `PlatformNotSupportedException`, because `HttpClient` has no synchronous send there. Use async query methods.
-- `Hasher.PBKDF2*` and `SymmetricEncryptor.GetKey` support only `HashAlgorithmName.SHA1`; any other algorithm throws `PlatformNotSupportedException`.
+- `SymmetricAlgorithmType.AES_GCM` throws `PlatformNotSupportedException`. Use `AES_CBC_HMAC` on both ends when either end is a .NET Framework app.
+- `AsymmetricAlgorithmType.RSA_OAEP_256_A256GCM` throws `PlatformNotSupportedException`. Use `RSA_OAEP_A256CBC_HS512`.
 - `ZerraCompressor` supports only `Deflate` and `GZip`; `ZLib` and `Brotli` throw `PlatformNotSupportedException`.
 - The serializers and the mapper don't handle `IReadOnlySet<T>`, `DateOnly`, or `TimeOnly`, and the span overloads of `IEncryptor` and `ICompressor` aren't there.
 - Zerra.Web uses the ASP.NET Core 2.3 packages instead of the `Microsoft.AspNetCore.App` framework reference.
@@ -110,7 +111,7 @@ bus.AddHandler<ICatalogQueryHandler>(new CatalogQueryHandler());
 bus.AddHandler<ICatalogCommandHandler>(new CatalogCommandHandler());
 
 var serializer = new ZerraByteSerializer();
-var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AESwithPrefix);
+var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AES_GCM);
 var server = new TcpCqrsServer("localhost:9101", serializer, encryptor, null, log);   //null: no compressor, see Compressors.md
 bus.AddQueryServer<ICatalogQueryHandler>(server);
 bus.AddCommandConsumer<ICatalogCommandHandler>(server);

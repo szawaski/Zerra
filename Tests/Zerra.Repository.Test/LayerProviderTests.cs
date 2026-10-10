@@ -20,12 +20,11 @@ namespace Zerra.Repository.Test
             public int Number { get; set; }
         }
 
-        private static readonly SymmetricKey key = SymmetricEncryptor.GetKey("layer-test");
+        private static readonly IEncryptor encryptor = new ZerraEncryptor("layer-test", SymmetricAlgorithmType.AES_GCM);
 
         private sealed class EncryptionProvider(ITransactStoreProvider<LayerModel> next) : BaseTransactStoreEncryptionProvider<ITransactStoreProvider<LayerModel>, LayerModel>(next)
         {
-            public override SymmetricKey EncryptionKey => key;
-            public override SymmetricAlgorithmType EncryptionAlgorithm => SymmetricAlgorithmType.AES;
+            public override IEncryptor Encryptor => encryptor;
         }
 
         private sealed class CompressionProvider(ITransactStoreProvider<LayerModel> next) : BaseTransactStoreCompressionProvider<ITransactStoreProvider<LayerModel>, LayerModel>(next)

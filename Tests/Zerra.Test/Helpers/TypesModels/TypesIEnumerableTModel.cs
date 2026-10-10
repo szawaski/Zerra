@@ -25,7 +25,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IEnumerable<DateTime> DateTimeIEnumerableT { get; set; }
         public IEnumerable<DateTimeOffset> DateTimeOffsetIEnumerableT { get; set; }
         public IEnumerable<TimeSpan> TimeSpanIEnumerableT { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IEnumerable<DateOnly> DateOnlyIEnumerableT { get; set; }
         public IEnumerable<TimeOnly> TimeOnlyIEnumerableT { get; set; }
 #endif
@@ -47,7 +47,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IEnumerable<DateTime> DateTimeIEnumerableTEmpty { get; set; }
         public IEnumerable<DateTimeOffset> DateTimeOffsetIEnumerableTEmpty { get; set; }
         public IEnumerable<TimeSpan> TimeSpanIEnumerableTEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IEnumerable<DateOnly> DateOnlyIEnumerableTEmpty { get; set; }
         public IEnumerable<TimeOnly> TimeOnlyIEnumerableTEmpty { get; set; }
 #endif
@@ -69,7 +69,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IEnumerable<DateTime> DateTimeIEnumerableTNull { get; set; }
         public IEnumerable<DateTimeOffset> DateTimeOffsetIEnumerableTNull { get; set; }
         public IEnumerable<TimeSpan> TimeSpanIEnumerableTNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IEnumerable<DateOnly> DateOnlyIEnumerableTNull { get; set; }
         public IEnumerable<TimeOnly> TimeOnlyIEnumerableTNull { get; set; }
 #endif
@@ -91,7 +91,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IEnumerable<DateTime?> DateTimeIEnumerableTNullable { get; set; }
         public IEnumerable<DateTimeOffset?> DateTimeOffsetIEnumerableTNullable { get; set; }
         public IEnumerable<TimeSpan?> TimeSpanIEnumerableTNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IEnumerable<DateOnly?> DateOnlyIEnumerableTNullable { get; set; }
         public IEnumerable<TimeOnly?> TimeOnlyIEnumerableTNullable { get; set; }
 #endif
@@ -113,7 +113,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IEnumerable<DateTime?> DateTimeIEnumerableTNullableEmpty { get; set; }
         public IEnumerable<DateTimeOffset?> DateTimeOffsetIEnumerableTNullableEmpty { get; set; }
         public IEnumerable<TimeSpan?> TimeSpanIEnumerableTNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IEnumerable<DateOnly?> DateOnlyIEnumerableTNullableEmpty { get; set; }
         public IEnumerable<TimeOnly?> TimeOnlyIEnumerableTNullableEmpty { get; set; }
 #endif
@@ -135,7 +135,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IEnumerable<DateTime?> DateTimeIEnumerableTNullableNull { get; set; }
         public IEnumerable<DateTimeOffset?> DateTimeOffsetIEnumerableTNullableNull { get; set; }
         public IEnumerable<TimeSpan?> TimeSpanIEnumerableTNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IEnumerable<DateOnly?> DateOnlyIEnumerableTNullableNull { get; set; }
         public IEnumerable<TimeOnly?> TimeOnlyIEnumerableTNullableNull { get; set; }
 #endif
@@ -177,7 +177,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIEnumerableT = new List<DateTime>() { DateTime.UtcNow.AddMonths(1), DateTime.UtcNow.AddMonths(2), DateTime.UtcNow.AddMonths(3) },
                 DateTimeOffsetIEnumerableT = new List<DateTimeOffset>() { DateTimeOffset.UtcNow.AddMonths(4), DateTimeOffset.UtcNow.AddMonths(5), DateTimeOffset.UtcNow.AddMonths(6) },
                 TimeSpanIEnumerableT = new List<TimeSpan>() { DateTime.UtcNow.AddHours(1).TimeOfDay, DateTime.UtcNow.AddHours(2).TimeOfDay, DateTime.UtcNow.AddHours(3).TimeOfDay },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIEnumerableT = new List<DateOnly>() { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(2)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
                 TimeOnlyIEnumerableT = new List<TimeOnly>() { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(2)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
 #endif
@@ -199,7 +199,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIEnumerableTEmpty = new List<DateTime>(0),
                 DateTimeOffsetIEnumerableTEmpty = new List<DateTimeOffset>(0),
                 TimeSpanIEnumerableTEmpty = new List<TimeSpan>(0),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIEnumerableTEmpty = new List<DateOnly>(0),
                 TimeOnlyIEnumerableTEmpty = new List<TimeOnly>(0),
 #endif
@@ -221,7 +221,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIEnumerableTNull = null,
                 DateTimeOffsetIEnumerableTNull = null,
                 TimeSpanIEnumerableTNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIEnumerableTNull = null,
                 TimeOnlyIEnumerableTNull = null,
 #endif
@@ -243,7 +243,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIEnumerableTNullable = new List<DateTime?>() { DateTime.UtcNow.AddMonths(1), null, DateTime.UtcNow.AddMonths(3) },
                 DateTimeOffsetIEnumerableTNullable = new List<DateTimeOffset?>() { DateTimeOffset.UtcNow.AddMonths(4), null, DateTimeOffset.UtcNow.AddMonths(6) },
                 TimeSpanIEnumerableTNullable = new List<TimeSpan?>() { DateTime.UtcNow.AddHours(1).TimeOfDay, null, DateTime.UtcNow.AddHours(3).TimeOfDay },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIEnumerableTNullable = new List<DateOnly?>() { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), null, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
                 TimeOnlyIEnumerableTNullable = new List<TimeOnly?>() { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), null, TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
 #endif
@@ -265,7 +265,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIEnumerableTNullableEmpty = new List<DateTime?>(0),
                 DateTimeOffsetIEnumerableTNullableEmpty = new List<DateTimeOffset?>(0),
                 TimeSpanIEnumerableTNullableEmpty = new List<TimeSpan?>(0),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIEnumerableTNullableEmpty = new List<DateOnly?>(0),
                 TimeOnlyIEnumerableTNullableEmpty = new List<TimeOnly?>(0),
 #endif
@@ -287,7 +287,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIEnumerableTNullableNull = null,
                 DateTimeOffsetIEnumerableTNullableNull = null,
                 TimeSpanIEnumerableTNullableNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIEnumerableTNullableNull = null,
                 TimeOnlyIEnumerableTNullableNull = null,
 #endif

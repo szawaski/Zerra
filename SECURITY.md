@@ -17,7 +17,5 @@ Report vulnerabilities privately through GitHub's [private vulnerability reporti
 Zerra separates public traffic from service-to-service traffic. [Security](docs/Security.md) describes it in full; in short:
 
 - **The `Zerra.Web` API gateway is the public entry point.** It authorizes every request through `ICqrsAuthorizer` or ASP.NET Core authentication, restricts browser origins, exposes only the interfaces its bus registers, and never accepts events from outside.
-- **Direct TCP, HTTP, and broker connections are for services inside a private network.** They trust the claims a caller sends so that a handler sees the original user's identity across service hops. Message encryption with a shared key limits valid senders to services holding the key.
+- **Direct TCP, HTTP, and broker connections are for services inside a private network.** They trust the claims a caller sends so that a handler sees the original user's identity across service hops. Message encryption with a shared key keeps messages private, and with `AES_GCM` or `AES_CBC_HMAC` rejects changed ones, but it doesn't authenticate the sender or stop a captured message being sent again, so the private network is the trust boundary.
 - **A handler's exception, including its stack trace, is returned to the caller** so failures can be diagnosed across services.
-
-Reports showing that the gateway can be bypassed, that a message can be read or forged without the encryption key, or that a malformed message can crash a server or consume unbounded resources are in scope. Reports that internal transports trust caller claims, or that exceptions reach the caller, describe the design above.

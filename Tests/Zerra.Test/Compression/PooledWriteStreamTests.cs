@@ -26,7 +26,7 @@ namespace Zerra.Test.Compression
             Assert.Equal(107, stream.Length);
             Assert.Equal(107, stream.Position);
             var bytes = stream.ToArray();
-            Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7 }, bytes[..7]);
+            Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 7 }, bytes.AsSpan()[..7].ToArray());
             Assert.Equal(99, bytes[106]);
 
             _ = Assert.Throws<NotSupportedException>(() => stream.Read(new byte[1], 0, 1));

@@ -477,7 +477,12 @@ namespace Zerra.Test.Reflection.Types
             var set = TypeAnalyzer.GetTypeDetail(typeof(HashSet<>));
             Assert.True(set.IsHashSetGeneric);
             Assert.True(set.HasISetGeneric);
+#if !NETSTANDARD2_0
             Assert.True(set.HasIReadOnlySetGeneric);
+#else
+            //HashSet doesn't implement IReadOnlySet on .NET Framework
+            Assert.False(set.HasIReadOnlySetGeneric);
+#endif
 
             var nullable = TypeAnalyzer.GetTypeDetail(typeof(Nullable<>));
             Assert.True(nullable.IsNullable);

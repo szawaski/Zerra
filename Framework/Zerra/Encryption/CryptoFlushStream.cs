@@ -16,26 +16,21 @@ namespace Zerra.Encryption
     public sealed class CryptoFlushStream : StreamWrapper
     {
         private readonly CryptoStream? cryptoStream;
-        private readonly ICryptoTransform transform;
-        private readonly CryptoPrefixStream? cryptoPrefixStream;
-#pragma warning disable CS0612 // Type or member is obsolete
+        private readonly ICryptoTransform? transform;
+        private readonly CryptoChunkStream? cryptoChunkStream;
         private readonly CryptoShiftStream? cryptoShiftStream;
-#pragma warning restore CS0612 // Type or member is obsolete
         internal CryptoFlushStream(CryptoStream stream, ICryptoTransform transform, bool leaveOpen)
             : base(stream, leaveOpen)
         {
             this.cryptoStream = stream;
             this.transform = transform;
         }
-        internal CryptoFlushStream(CryptoPrefixStream stream, ICryptoTransform transform, bool leaveOpen)
-            : base(stream, leaveOpen)
+        internal CryptoFlushStream(CryptoChunkStream stream)
+            : base(stream, false)
         {
-            this.transform = transform;
-            this.cryptoPrefixStream = stream;
+            this.cryptoChunkStream = stream;
         }
-#pragma warning disable CS0612 // Type or member is obsolete
         internal CryptoFlushStream(CryptoShiftStream stream, ICryptoTransform transform, bool leaveOpen)
-#pragma warning restore CS0612 // Type or member is obsolete
             : base(stream, leaveOpen)
         {
             this.transform = transform;
@@ -49,8 +44,8 @@ namespace Zerra.Encryption
         {
             if (cryptoStream is not null)
                 cryptoStream.FlushFinalBlock();
-            else if (cryptoPrefixStream is not null)
-                cryptoPrefixStream.FlushFinalBlock();
+            else if (cryptoChunkStream is not null)
+                cryptoChunkStream.FlushFinalBlock();
             else if (cryptoShiftStream is not null)
                 cryptoShiftStream.FlushFinalBlock();
         }
@@ -63,8 +58,8 @@ namespace Zerra.Encryption
         {
             if (cryptoStream is not null)
                 return cryptoStream.FlushFinalBlockAsync(cancellationToken);
-            else if (cryptoPrefixStream is not null)
-                return cryptoPrefixStream.FlushFinalBlockAsync(cancellationToken);
+            else if (cryptoChunkStream is not null)
+                return cryptoChunkStream.FlushFinalBlockAsync(cancellationToken);
             else if (cryptoShiftStream is not null)
                 return cryptoShiftStream.FlushFinalBlockAsync(cancellationToken);
             return ValueTask.CompletedTask;
@@ -75,7 +70,7 @@ namespace Zerra.Encryption
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            transform.Dispose();
+            transform?.Dispose();
         }
     }
 }

@@ -241,7 +241,7 @@ namespace Zerra.Test
                 for (var i = 0; i < 1 << 14; i++)
                 {
                     var value = (ManyFlagsEnum)((i * 7919 + thread * 104729) & ((1 << 14) - 1));
-                    var expected = value == ManyFlagsEnum.None ? "None" : string.Join("|", Enum.GetValues<ManyFlagsEnum>().Where(x => x != ManyFlagsEnum.None && value.HasFlag(x)).Select(x => x.ToString()));
+                    var expected = value == ManyFlagsEnum.None ? "None" : string.Join("|", ((ManyFlagsEnum[])Enum.GetValues(typeof(ManyFlagsEnum))).Where(x => x != ManyFlagsEnum.None && value.HasFlag(x)).Select(x => x.ToString()));
                     if (EnumName.GetName(value) != expected)
                         _ = Interlocked.Increment(ref errors);
                 }

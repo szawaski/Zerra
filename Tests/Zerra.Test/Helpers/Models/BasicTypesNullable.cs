@@ -23,7 +23,7 @@ namespace Zerra.Test.Helpers.Models
         public DateTime? DateTimeThing { get; set; }
         public DateTimeOffset? DateTimeOffsetThing { get; set; }
         public TimeSpan? TimeSpanThing { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public DateOnly? DateOnlyThing { get; set; }
         public TimeOnly? TimeOnlyThing { get; set; }
 #endif

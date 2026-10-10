@@ -9,7 +9,6 @@ using Zerra.IO;
 
 namespace Zerra.Encryption
 {
-    [Obsolete]
     internal class CryptoShiftStream : StreamTransform
     {
         private const int bufferSize = 8 * 1024;

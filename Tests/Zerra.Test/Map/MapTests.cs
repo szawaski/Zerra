@@ -263,7 +263,9 @@ namespace Zerra.Test.Map
             var modelDs = modelAs.Map<ModelA[], IList<ModelB>>();
             var modelEs = modelAs.Map<ModelA[], IReadOnlyList<ModelB>>();
             var modelFs = modelAs.Map<ModelA[], ISet<ModelB>>();
+#if !NETSTANDARD2_0
             var modelGs = modelAs.Map<ModelA[], IReadOnlySet<ModelB>>();
+#endif
             var modelHs = modelAs.Map<ModelA[], IEnumerable<ModelB>>();
             var modelIs = modelAs.Map<ModelA[], ModelB[]>();
 
@@ -272,7 +274,9 @@ namespace Zerra.Test.Map
             Assert.Equal(typeof(List<ModelB>), modelDs.GetType());
             Assert.Equal(typeof(List<ModelB>), modelEs.GetType());
             Assert.Equal(typeof(HashSet<ModelB>), modelFs.GetType());
+#if !NETSTANDARD2_0
             Assert.Equal(typeof(HashSet<ModelB>), modelGs.GetType());
+#endif
             Assert.Equal(typeof(ModelB[]), modelHs.GetType());
             Assert.Equal(typeof(ModelB[]), modelIs.GetType());
         }

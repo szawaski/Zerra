@@ -84,7 +84,7 @@ namespace Zerra.Test.Serialization
         [Fact]
         public async Task Truncated_Throws()
         {
-            var bytes = ByteSerializer.Serialize(model)[..^2];
+            var bytes = ByteSerializer.Serialize(model).AsSpan()[..^2].ToArray();
             var token = TestContext.Current.CancellationToken;
 
             _ = Assert.Throws<EndOfStreamException>(() => ByteSerializer.Deserialize<SimpleModel>(bytes));

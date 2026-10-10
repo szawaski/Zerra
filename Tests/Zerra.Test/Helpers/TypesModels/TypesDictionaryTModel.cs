@@ -17,7 +17,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public Dictionary<string, string> DictionaryThingNull { get; set; }
         public Dictionary<DateTime, int> DictionaryDateTimeKey { get; set; }
         public Dictionary<DateTimeOffset, int> DictionaryDateTimeOffsetKey { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public Dictionary<DateOnly, int> DictionaryDateOnlyKey { get; set; }
         public Dictionary<TimeOnly, int> DictionaryTimeOnlyKey { get; set; }
 #endif
@@ -43,7 +43,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DictionaryThingNull = null,
                 DictionaryDateTimeKey = new() { { new DateTime(2026, 10, 6, 13, 45, 30, DateTimeKind.Utc).AddTicks(1234567), 1 }, { new DateTime(2026, 10, 6, 13, 45, 30, DateTimeKind.Unspecified), 2 } },
                 DictionaryDateTimeOffsetKey = new() { { new DateTimeOffset(2026, 10, 6, 13, 45, 30, TimeSpan.FromHours(-5)), 1 }, { new DateTimeOffset(2026, 10, 6, 13, 45, 30, 123, TimeSpan.FromMinutes(330)), 2 } },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DictionaryDateOnlyKey = new() { { new DateOnly(2026, 10, 6), 1 }, { DateOnly.MinValue, 2 } },
                 DictionaryTimeOnlyKey = new() { { new TimeOnly(13, 45, 30, 500), 1 }, { new TimeOnly(0, 0), 2 } },
 #endif

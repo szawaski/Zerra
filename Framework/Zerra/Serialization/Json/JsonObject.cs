@@ -66,7 +66,11 @@ namespace Zerra.Serialization.Json
         internal static JsonObject FromNumberText(string text) => new(JsonObjectType.Number, text);
 
         private decimal NumberValue => valueString is null ? valueNumber : Decimal.Parse(valueString, NumberStyles.Float, CultureInfo.InvariantCulture);
+#if NETSTANDARD2_0
+        private double DoubleValue => valueString is null ? (double)valueNumber : NetStandardNumberParsing.ParseDouble(valueString, NumberStyles.Float, CultureInfo.InvariantCulture);
+#else
         private double DoubleValue => valueString is null ? (double)valueNumber : Double.Parse(valueString, NumberStyles.Float, CultureInfo.InvariantCulture);
+#endif
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonObject"/> class with a string value.

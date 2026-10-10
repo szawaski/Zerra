@@ -25,9 +25,11 @@ namespace Zerra.Test.Helpers.TypesModels
         public DateTime DateTimeThing { get; set; }
         public DateTimeOffset DateTimeOffsetThing { get; set; }
         public TimeSpan TimeSpanThing { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
         public DateOnly DateOnlyThing { get; set; }
         public TimeOnly TimeOnlyThing { get; set; }
+#endif
 #endif
         public Guid GuidThing { get; set; }
 
@@ -47,9 +49,11 @@ namespace Zerra.Test.Helpers.TypesModels
         public DateTime? DateTimeThingNullable { get; set; }
         public DateTimeOffset? DateTimeOffsetThingNullable { get; set; }
         public TimeSpan? TimeSpanThingNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
         public DateOnly? DateOnlyThingNullable { get; set; }
         public TimeOnly? TimeOnlyThingNullable { get; set; }
+#endif
 #endif
         public Guid? GuidThingNullable { get; set; }
 
@@ -69,9 +73,11 @@ namespace Zerra.Test.Helpers.TypesModels
         public DateTime? DateTimeThingNullableNull { get; set; }
         public DateTimeOffset? DateTimeOffsetThingNullableNull { get; set; }
         public TimeSpan? TimeSpanThingNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
         public DateOnly? DateOnlyThingNullableNull { get; set; }
         public TimeOnly? TimeOnlyThingNullableNull { get; set; }
+#endif
 #endif
         public Guid? GuidThingNullableNull { get; set; }
 
@@ -109,10 +115,12 @@ namespace Zerra.Test.Helpers.TypesModels
                 CharThing = 'Z',
                 DateTimeThing = DateTime.UtcNow.Date,
                 DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
-                TimeSpanThing = -(new TimeSpan(2, DateTime.UtcNow.Hour, DateTime.UtcNow.Minute, DateTime.UtcNow.Second, DateTime.UtcNow.Millisecond, 1)),
-#if NET6_0_OR_GREATER
+                TimeSpanThing = -(new TimeSpan(2, DateTime.UtcNow.Hour, DateTime.UtcNow.Minute, DateTime.UtcNow.Second, DateTime.UtcNow.Millisecond).Add(TimeSpan.FromTicks(10))),
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
                 DateOnlyThing = DateOnly.FromDateTime(DateTime.UtcNow.Date),
                 TimeOnlyThing = TimeOnly.FromDateTime(DateTime.UtcNow),
+#endif
 #endif
                 GuidThing = Guid.NewGuid(),
 
@@ -131,10 +139,12 @@ namespace Zerra.Test.Helpers.TypesModels
                 CharThingNullable = 'X',
                 DateTimeThingNullable = DateTime.UtcNow.AddMonths(1),
                 DateTimeOffsetThingNullable = DateTimeOffset.UtcNow.AddMonths(1).AddDays(1),
-                TimeSpanThingNullable = new TimeSpan(0, 0, 0, DateTime.UtcNow.Second, DateTime.UtcNow.Millisecond, 1),
-#if NET6_0_OR_GREATER
+                TimeSpanThingNullable = new TimeSpan(0, 0, 0, DateTime.UtcNow.Second, DateTime.UtcNow.Millisecond).Add(TimeSpan.FromTicks(10)),
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
                 DateOnlyThingNullable = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
                 TimeOnlyThingNullable = TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)),
+#endif
 #endif
                 GuidThingNullable = Guid.NewGuid(),
 
@@ -154,9 +164,11 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeThingNullableNull = null,
                 DateTimeOffsetThingNullableNull = null,
                 TimeSpanThingNullableNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
                 DateOnlyThingNullableNull = null,
                 TimeOnlyThingNullableNull = null,
+#endif
 #endif
                 GuidThingNullableNull = null,
 

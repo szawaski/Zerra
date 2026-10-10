@@ -32,7 +32,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
             var serializer = new ZerraByteSerializer();
-            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var compressor = new ZerraCompressor(CompressionAlgorithmType.Brotli);
             var log = new TestLogger();
 
@@ -264,7 +264,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
             var serializer = new ZerraByteSerializer();
-            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var log = new TestLogger();
 
             try
@@ -288,7 +288,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         {
             var eventTopic = MessageTest.NewTopic("Event");
             var serializer = new ZerraByteSerializer();
-            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var log = new TestLogger();
 
             try

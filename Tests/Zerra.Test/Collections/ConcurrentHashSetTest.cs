@@ -262,6 +262,7 @@ namespace Zerra.Test.Collections
             set.CopyTo([], 0, 0);
         }
 
+#if !NETSTANDARD2_0
         [Fact]
         public void EnsureCapacity_TryGetValue_Add_Enumerate()
         {
@@ -274,5 +275,6 @@ namespace Zerra.Test.Collections
             Assert.False(set.TryGetValue("other", out _));
             Assert.Equal(["Value"], ((IEnumerable)set).Cast<string>());
         }
+#endif
     }
 }

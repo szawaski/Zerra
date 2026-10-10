@@ -25,9 +25,11 @@ namespace Zerra.Test.Helpers.Models
         public DateTime DateTimeThing { get; set; }
         public DateTimeOffset DateTimeOffsetThing { get; set; }
         public TimeSpan TimeSpanThing { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
         public DateOnly DateOnlyThing { get; set; }
         public TimeOnly TimeOnlyThing { get; set; }
+#endif
 #endif
         public Guid GuidThing { get; set; }
 
@@ -53,8 +55,10 @@ namespace Zerra.Test.Helpers.Models
                 DateTimeThing = DateTime.UtcNow,
                 DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
                 TimeSpanThing = DateTime.UtcNow.TimeOfDay,
+#if !NETSTANDARD2_0
                 DateOnlyThing = DateOnly.FromDateTime(DateTime.UtcNow),
                 TimeOnlyThing = TimeOnly.FromDateTime(DateTime.UtcNow),
+#endif
                 GuidThing = Guid.NewGuid(),
 
                 EnumThing = EnumModel.EnumItem1,
@@ -110,9 +114,11 @@ namespace Zerra.Test.Helpers.Models
             Assert.Equal(model1.DateTimeThing, model2.DateTimeThing.Value);
             Assert.Equal(model1.DateTimeOffsetThing, model2.DateTimeOffsetThing.Value);
             Assert.Equal(model1.TimeSpanThing, model2.TimeSpanThing.Value);
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
             Assert.Equal(model1.DateOnlyThing, model2.DateOnlyThing.Value);
             Assert.Equal(model1.TimeOnlyThing, model2.TimeOnlyThing.Value);
+#endif
 #endif
             Assert.Equal(model1.GuidThing, model2.GuidThing.Value);
 

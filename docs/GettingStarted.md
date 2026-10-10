@@ -173,7 +173,7 @@ bus.AddHandler<IEmailEventHandler>(new EmailEventHandler());
 
 // Expose them over TCP, serialized in binary and encrypted with a shared key
 var serializer = new ZerraByteSerializer();
-var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AESwithPrefix);
+var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AES_GCM);
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);   // null: no compressor, see Compressors.md
 bus.AddQueryServer<IUserQueryHandler>(server);
 bus.AddCommandConsumer<IUserCommandHandler>(server);
@@ -192,7 +192,7 @@ The client builds its own bus and registers where each interface lives. The seri
 var bus = Bus.New("ClientService", log, busLog);
 
 var serializer = new ZerraByteSerializer();
-var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AESwithPrefix);
+var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AES_GCM);
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log);
 bus.AddQueryClient<IUserQueryHandler>(client);
 bus.AddCommandProducer<IUserCommandHandler>(client);

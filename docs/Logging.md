@@ -28,7 +28,7 @@ Log?.Info($"Creating user {command.Email}");
 Log?.Error($"Failed to create user {command.Email}", ex);
 ```
 
-Code outside a handler uses the `ILogger` it's given, the same one passed to `Bus.New`. Pass it to `CodeFirstGeneration.Generate` too, which logs a failed database read to it. The static `Log` class is obsolete and only remains for upgrades from Zerra 5.
+Code outside a handler uses the `ILogger` it's given, the same one passed to `Bus.New`. Pass it to `CodeFirstGeneration.Generate` too, which logs a failed database read to it. The static `Log` class is obsolete.
 
 ## ILogger
 

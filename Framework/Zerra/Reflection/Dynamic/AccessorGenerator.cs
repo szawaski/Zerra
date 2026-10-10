@@ -542,8 +542,15 @@ namespace Zerra.Reflection.Dynamic
                 return null;
             if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
                 return null;
+#if NETSTANDARD2_0
+
+            //.NET Framework verifies anonymously hosted dynamic methods, which can't write readonly fields such as an init property's, one in the field's module can
+
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter", null, [typeof(object), typeof(object)], fieldInfo.Module, true);
+#else
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter", null, [typeof(object), typeof(object)], true);
+#endif
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
@@ -577,8 +584,15 @@ namespace Zerra.Reflection.Dynamic
                 return null;
             if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
                 return null;
+#if NETSTANDARD2_0
+
+            //.NET Framework verifies anonymously hosted dynamic methods, which can't write readonly fields such as an init property's, one in the field's module can
+
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [typeof(object), fieldInfo.FieldType], fieldInfo.Module, true);
+#else
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [typeof(object), fieldInfo.FieldType], true);
+#endif
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
@@ -607,8 +621,15 @@ namespace Zerra.Reflection.Dynamic
                 return null;
             if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
                 return null;
+#if NETSTANDARD2_0
+
+            //.NET Framework verifies anonymously hosted dynamic methods, which can't write readonly fields such as an init property's, one in the field's module can
+
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [fieldInfo.ReflectedType, fieldInfo.FieldType], fieldInfo.Module, true);
+#else
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [fieldInfo.ReflectedType, fieldInfo.FieldType], true);
+#endif
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
@@ -636,8 +657,15 @@ namespace Zerra.Reflection.Dynamic
                 return null;
             if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
                 return null;
+#if NETSTANDARD2_0
+
+            //.NET Framework verifies anonymously hosted dynamic methods, which can't write readonly fields such as an init property's, one in the field's module can
+
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [typeof(object), fieldInfo.FieldType], fieldInfo.Module, true);
+#else
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [typeof(object), fieldInfo.FieldType], true);
+#endif
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)
@@ -666,8 +694,15 @@ namespace Zerra.Reflection.Dynamic
                 return null;
             if (fieldInfo.ReflectedType.IsByRefLike || fieldInfo.FieldType.IsByRefLike || fieldInfo.FieldType.IsPointer)
                 return null;
+#if NETSTANDARD2_0
+
+            //.NET Framework verifies anonymously hosted dynamic methods, which can't write readonly fields such as an init property's, one in the field's module can
+
+            var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [fieldInfo.ReflectedType, fieldInfo.FieldType], fieldInfo.Module, true);
+#else
 
             var dynamicMethod = new DynamicMethod($"{fieldInfo.ReflectedType.Name}.{fieldInfo.Name}.Setter`2", null, [fieldInfo.ReflectedType, fieldInfo.FieldType], true);
+#endif
             var il = dynamicMethod.GetILGenerator();
 
             if (!fieldInfo.IsStatic)

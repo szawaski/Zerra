@@ -26,7 +26,7 @@ bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
 
 var serializer = new ZerraByteSerializer();
-var encryptor = new ZerraEncryptor(encryptionKey, SymmetricAlgorithmType.AESwithPrefix);
+var encryptor = new ZerraEncryptor(encryptionKey, SymmetricAlgorithmType.AES_GCM);
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);   // null: no compressor, see Compressors.md
 bus.AddCommandConsumer<IUserCommandHandler>(server);
 bus.AddQueryServer<IUserQueryHandler>(server);

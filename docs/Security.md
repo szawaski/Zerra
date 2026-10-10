@@ -10,12 +10,12 @@ Zerra distinguishes between two categories of service:
 
 - **Gateway-facing services** — services that receive requests through the [Zerra.Web](ZerraWeb.md) API gateway. These are the public entry points and should be secured in one of two ways: implement `ICqrsAuthorizer` to validate headers and set `Thread.CurrentPrincipal` directly, or place standard ASP.NET Core authentication middleware (`UseAuthentication` / `UseAuthorization`) before `UseCqrsApiGateway` and use a minimal `ICqrsAuthorizer` that simply copies `HttpContext.User` onto `Thread.CurrentPrincipal`. See the [Zerra.Web API Gateway](#zerraweb-api-gateway--icqrsauthorizer) section below.
 
-### Encryption as a Trust Mechanism
+### Message Encryption
 
-For internal services, supplying an `IEncryptor` with a shared key is a lightweight way to enforce that only callers who possess the key can send valid messages. Any message that cannot be decrypted is rejected before it reaches a handler. This does not replace network-level isolation but provides an additional layer of assurance against unauthorized senders.
+An `IEncryptor` with a shared key keeps messages private on the network and on broker disks. With `AES_GCM` or `AES_CBC_HMAC` a changed message is also rejected before it reaches a handler. Encryption doesn't authenticate the sender, though: any service holding the key can send any message, and a captured message can be sent again. The network boundary is what makes internal callers trusted.
 
 ```csharp
-var encryptor = new ZerraEncryptor("shared-internal-secret", SymmetricAlgorithmType.AESwithPrefix);
+var encryptor = new ZerraEncryptor(configuration["Encryption:Key"], SymmetricAlgorithmType.AES_GCM);
 ```
 
 See [Encryptors](Encryptors.md) for setup details.

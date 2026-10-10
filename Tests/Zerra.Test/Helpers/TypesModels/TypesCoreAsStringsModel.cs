@@ -23,7 +23,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public string DateTimeThing { get; set; }
         public string DateTimeOffsetThing { get; set; }
         public string TimeSpanThing { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public string DateOnlyThing { get; set; }
         public string TimeOnlyThing { get; set; }
 #endif
@@ -45,7 +45,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public string DateTimeThingNullable { get; set; }
         public string DateTimeOffsetThingNullable { get; set; }
         public string TimeSpanThingNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public string DateOnlyThingNullable { get; set; }
         public string TimeOnlyThingNullable { get; set; }
 #endif

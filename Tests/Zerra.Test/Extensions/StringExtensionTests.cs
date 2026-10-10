@@ -111,10 +111,12 @@ namespace Zerra.Test.Extensions
                 Assert.Equal(offset, "10/06/2026 13:45:30 -05:00".ToDateTimeOffsetNullable());
                 Assert.Equal(new TimeSpan(0, 1, 2, 3, 500), "01:02:03.5".ToTimeSpan());
                 Assert.Equal(new TimeSpan(0, 1, 2, 3, 500), "01:02:03.5".ToTimeSpanNullable());
+#if !NETSTANDARD2_0
                 Assert.Equal(new DateOnly(2026, 10, 6), "10/06/2026".ToDateOnly());
                 Assert.Equal(new DateOnly(2026, 10, 6), "10/06/2026".ToDateOnlyNullable());
                 Assert.Equal(new TimeOnly(13, 45, 30), "13:45:30".ToTimeOnly());
                 Assert.Equal(new TimeOnly(13, 45, 30), "13:45:30".ToTimeOnlyNullable());
+#endif
 
                 Assert.Equal(date, "06.10.2026".ToDateTime(provider: culture));
                 Assert.Equal(date, "06.10.2026".ToDateTimeNullable(culture));
@@ -122,10 +124,12 @@ namespace Zerra.Test.Extensions
                 Assert.Equal(offset, "06.10.2026 13:45:30 -05:00".ToDateTimeOffsetNullable(culture));
                 Assert.Equal(new TimeSpan(0, 1, 2, 3, 500), "01:02:03.5".ToTimeSpan(provider: culture));
                 Assert.Equal(new TimeSpan(0, 1, 2, 3, 500), "01:02:03.5".ToTimeSpanNullable(culture));
+#if !NETSTANDARD2_0
                 Assert.Equal(new DateOnly(2026, 10, 6), "06.10.2026".ToDateOnly(provider: culture));
                 Assert.Equal(new DateOnly(2026, 10, 6), "06.10.2026".ToDateOnlyNullable(culture));
                 Assert.Equal(new TimeOnly(13, 45, 30), "13:45:30".ToTimeOnly(provider: culture));
                 Assert.Equal(new TimeOnly(13, 45, 30), "13:45:30".ToTimeOnlyNullable(culture));
+#endif
             });
         }
         [Fact]
@@ -706,7 +710,7 @@ namespace Zerra.Test.Extensions
             Assert.Null("invalid".ToTimeSpanNullable());
         }
 
-#if NET5_0_OR_GREATER
+#if !NETSTANDARD2_0
         [Fact]
         public void ToDateOnly()
         {

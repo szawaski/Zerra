@@ -53,7 +53,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public CustomIList<DateTime> DateTimeIListT { get; set; }
         public CustomIList<DateTimeOffset> DateTimeOffsetIListT { get; set; }
         public CustomIList<TimeSpan> TimeSpanIListT { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public CustomIList<DateOnly> DateOnlyIListT { get; set; }
         public CustomIList<TimeOnly> TimeOnlyIListT { get; set; }
 #endif
@@ -75,7 +75,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public CustomIList<DateTime> DateTimeIListTEmpty { get; set; }
         public CustomIList<DateTimeOffset> DateTimeOffsetIListTEmpty { get; set; }
         public CustomIList<TimeSpan> TimeSpanIListTEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public CustomIList<DateOnly> DateOnlyIListTEmpty { get; set; }
         public CustomIList<TimeOnly> TimeOnlyIListTEmpty { get; set; }
 #endif
@@ -97,7 +97,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public CustomIList<DateTime> DateTimeIListTNull { get; set; }
         public CustomIList<DateTimeOffset> DateTimeOffsetIListTNull { get; set; }
         public CustomIList<TimeSpan> TimeSpanIListTNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public CustomIList<DateOnly> DateOnlyIListTNull { get; set; }
         public CustomIList<TimeOnly> TimeOnlyIListTNull { get; set; }
 #endif
@@ -119,7 +119,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public CustomIList<DateTime?> DateTimeIListTNullable { get; set; }
         public CustomIList<DateTimeOffset?> DateTimeOffsetIListTNullable { get; set; }
         public CustomIList<TimeSpan?> TimeSpanIListTNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public CustomIList<DateOnly?> DateOnlyIListTNullable { get; set; }
         public CustomIList<TimeOnly?> TimeOnlyIListTNullable { get; set; }
 #endif
@@ -141,7 +141,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public CustomIList<DateTime?> DateTimeIListTNullableEmpty { get; set; }
         public CustomIList<DateTimeOffset?> DateTimeOffsetIListTNullableEmpty { get; set; }
         public CustomIList<TimeSpan?> TimeSpanIListTNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public CustomIList<DateOnly?> DateOnlyIListTNullableEmpty { get; set; }
         public CustomIList<TimeOnly?> TimeOnlyIListTNullableEmpty { get; set; }
 #endif
@@ -163,7 +163,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public CustomIList<DateTime?> DateTimeIListTNullableNull { get; set; }
         public CustomIList<DateTimeOffset?> DateTimeOffsetIListTNullableNull { get; set; }
         public CustomIList<TimeSpan?> TimeSpanIListTNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public CustomIList<DateOnly?> DateOnlyIListTNullableNull { get; set; }
         public CustomIList<TimeOnly?> TimeOnlyIListTNullableNull { get; set; }
 #endif
@@ -205,7 +205,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIListT = new CustomIList<DateTime>() { DateTime.UtcNow.AddMonths(1), DateTime.UtcNow.AddMonths(2), DateTime.UtcNow.AddMonths(3) },
                 DateTimeOffsetIListT = new CustomIList<DateTimeOffset>() { DateTimeOffset.UtcNow.AddMonths(4), DateTimeOffset.UtcNow.AddMonths(5), DateTimeOffset.UtcNow.AddMonths(6) },
                 TimeSpanIListT = new CustomIList<TimeSpan>() { DateTime.UtcNow.AddHours(1).TimeOfDay, DateTime.UtcNow.AddHours(2).TimeOfDay, DateTime.UtcNow.AddHours(3).TimeOfDay },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIListT = new CustomIList<DateOnly>() { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(2)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
                 TimeOnlyIListT = new CustomIList<TimeOnly>() { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(2)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
 #endif
@@ -227,7 +227,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIListTEmpty = new CustomIList<DateTime>(0),
                 DateTimeOffsetIListTEmpty = new CustomIList<DateTimeOffset>(0),
                 TimeSpanIListTEmpty = new CustomIList<TimeSpan>(0),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIListTEmpty = new CustomIList<DateOnly>(0),
                 TimeOnlyIListTEmpty = new CustomIList<TimeOnly>(0),
 #endif
@@ -249,7 +249,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIListTNull = null,
                 DateTimeOffsetIListTNull = null,
                 TimeSpanIListTNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIListTNull = null,
                 TimeOnlyIListTNull = null,
 #endif
@@ -271,7 +271,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIListTNullable = new CustomIList<DateTime?>() { DateTime.UtcNow.AddMonths(1), null, DateTime.UtcNow.AddMonths(3) },
                 DateTimeOffsetIListTNullable = new CustomIList<DateTimeOffset?>() { DateTimeOffset.UtcNow.AddMonths(4), null, DateTimeOffset.UtcNow.AddMonths(6) },
                 TimeSpanIListTNullable = new CustomIList<TimeSpan?>() { DateTime.UtcNow.AddHours(1).TimeOfDay, null, DateTime.UtcNow.AddHours(3).TimeOfDay },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIListTNullable = new CustomIList<DateOnly?>() { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), null, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
                 TimeOnlyIListTNullable = new CustomIList<TimeOnly?>() { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), null, TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
 #endif
@@ -293,7 +293,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIListTNullableEmpty = new CustomIList<DateTime?>(0),
                 DateTimeOffsetIListTNullableEmpty = new CustomIList<DateTimeOffset?>(0),
                 TimeSpanIListTNullableEmpty = new CustomIList<TimeSpan?>(0),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIListTNullableEmpty = new CustomIList<DateOnly?>(0),
                 TimeOnlyIListTNullableEmpty = new CustomIList<TimeOnly?>(0),
 #endif
@@ -315,7 +315,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIListTNullableNull = null,
                 DateTimeOffsetIListTNullableNull = null,
                 TimeSpanIListTNullableNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIListTNullableNull = null,
                 TimeOnlyIListTNullableNull = null,
 #endif

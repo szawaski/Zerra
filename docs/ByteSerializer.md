@@ -67,7 +67,7 @@ public class CreateUserCommand : ICommand
 
 When services deploy independently, the sender and receiver can briefly run different versions of a contract, so give contracts that change `[SerializerIndex]` values.
 
-An index tolerates data from an **older** version: members it doesn't contain keep their defaults. Data from a **newer** version, with an index the type doesn't have, throws, because without names or types the reader can't tell how long the unknown value is. So deploy the receiving service before the senders that add a member. With `MemberNames` or `UseTypes = true`, unknown members are skipped and either order works.
+An index tolerates data from an **older** version: members it doesn't contain keep their defaults. Data from a **newer** version, with a member the type doesn't have, throws, because without types the reader can't tell how long the unknown value is. That holds for `MemberNames` too: a name says which member it is, not how long its value is. So deploy the receiving service before the senders that add a member, and update the senders before the receivers when removing one. With `UseTypes = true`, unknown members are skipped and either order works.
 
 ## Custom Converters
 

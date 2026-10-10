@@ -22,7 +22,7 @@ namespace Zerra.Test.Web
         private const string source = "test-source";
 
         private static readonly ISerializer serializer = new ZerraByteSerializer();
-        private static readonly IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
+        private static readonly IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
         private static readonly ICompressor compressor = new ZerraCompressor(CompressionAlgorithmType.Brotli);
 
         [Theory(Timeout = timeout)]

@@ -194,14 +194,20 @@ namespace Zerra.Test.Reflection
         {
             var dateTime = new DateTime(2026, 10, 6, 13, 45, 30);
 
+#if !NETSTANDARD2_0
             Assert.Equal(new DateOnly(2026, 10, 6), TypeAnalyzer.Convert<DateOnly>(dateTime));
             Assert.Equal(new TimeOnly(13, 45, 30), TypeAnalyzer.Convert<TimeOnly>(dateTime));
             Assert.Equal(new TimeOnly(1, 2, 3), TypeAnalyzer.Convert<TimeOnly>(new TimeSpan(1, 2, 3)));
+#endif
             Assert.Equal(new DateTimeOffset(dateTime), TypeAnalyzer.Convert<DateTimeOffset>(dateTime));
+#if !NETSTANDARD2_0
             Assert.Equal(new DateOnly(2026, 10, 6), TypeAnalyzer.Convert<DateOnly?>("2026-10-06"));
+#endif
             Assert.Equal(dateTime, TypeAnalyzer.Convert<DateTime>("2026-10-06T13:45:30"));
             Assert.Equal(dateTime, TypeAnalyzer.Convert<DateTime>(new DateTimeOffset(dateTime, TimeSpan.FromHours(-5))));
+#if !NETSTANDARD2_0
             Assert.Equal(dateTime.Date, TypeAnalyzer.Convert<DateTime?>(new DateOnly(2026, 10, 6)));
+#endif
         }
 
         #endregion
@@ -323,23 +329,31 @@ namespace Zerra.Test.Reflection
             Assert.Equal(ts, result);
         }
 
+#if !NETSTANDARD2_0
         [Fact]
         public void ConvertByCoreType_DateOnlyFromString_ReturnsCorrectDateOnly()
         {
+#if !NETSTANDARD2_0
             var date = new DateOnly(2024, 1, 15);
             var result = TypeAnalyzer.Convert(date.ToString(), CoreType.DateOnly);
+#endif
 
             Assert.Equal(date, result);
         }
+#endif
 
+#if !NETSTANDARD2_0
         [Fact]
         public void ConvertByCoreType_TimeOnlyFromString_ReturnsCorrectTimeOnly()
         {
+#if !NETSTANDARD2_0
             var time = new TimeOnly(14, 30, 0);
             var result = TypeAnalyzer.Convert(time.ToString(), CoreType.TimeOnly);
+#endif
 
             Assert.Equal(time, result);
         }
+#endif
 
         #endregion
     }
@@ -422,7 +436,7 @@ namespace Zerra.Test.Reflection
         [Fact]
         public void Convert_NullToEveryCoreType()
         {
-            foreach (var coreType in Enum.GetValues<CoreType>())
+            foreach (var coreType in ((CoreType[])Enum.GetValues(typeof(CoreType))))
             {
                 var result = TypeAnalyzer.Convert(null, coreType);
                 if (coreType == CoreType.String || coreType.ToString().EndsWith("Nullable"))
@@ -451,8 +465,10 @@ namespace Zerra.Test.Reflection
             Assert.Equal(new DateTime(2024, 1, 2), TypeAnalyzer.Convert("2024-01-02", CoreType.DateTimeNullable));
             Assert.Equal(new DateTimeOffset(2024, 1, 2, 0, 0, 0, TimeSpan.Zero), TypeAnalyzer.Convert("2024-01-02T00:00:00+00:00", CoreType.DateTimeOffsetNullable));
             Assert.Equal(TimeSpan.FromMinutes(90), TypeAnalyzer.Convert("01:30:00", CoreType.TimeSpanNullable));
+#if !NETSTANDARD2_0
             Assert.Equal(new DateOnly(2024, 1, 2), TypeAnalyzer.Convert("2024-01-02", CoreType.DateOnlyNullable));
             Assert.Equal(new TimeOnly(1, 30), TypeAnalyzer.Convert("01:30:00", CoreType.TimeOnlyNullable));
+#endif
             var guid = Guid.NewGuid();
             Assert.Equal(guid, TypeAnalyzer.Convert(guid.ToString(), CoreType.GuidNullable));
             Assert.Equal(guid, TypeAnalyzer.Convert(guid, CoreType.Guid));
@@ -509,7 +525,9 @@ namespace Zerra.Test.Reflection
         {
             int* Pointer { get; }
             ref int Reference { get; }
+#if !NETSTANDARD2_0
             protected int Hidden => 1;
+#endif
         }
         public sealed unsafe class UnusualMembersModel : IUnusualMembers
         {

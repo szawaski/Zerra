@@ -25,7 +25,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyCollection<DateTime> DateTimeIReadOnlyCollectionT { get; set; }
         public IReadOnlyCollection<DateTimeOffset> DateTimeOffsetIReadOnlyCollectionT { get; set; }
         public IReadOnlyCollection<TimeSpan> TimeSpanIReadOnlyCollectionT { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyCollection<DateOnly> DateOnlyIReadOnlyCollectionT { get; set; }
         public IReadOnlyCollection<TimeOnly> TimeOnlyIReadOnlyCollectionT { get; set; }
 #endif
@@ -47,7 +47,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyCollection<DateTime> DateTimeIReadOnlyCollectionTEmpty { get; set; }
         public IReadOnlyCollection<DateTimeOffset> DateTimeOffsetIReadOnlyCollectionTEmpty { get; set; }
         public IReadOnlyCollection<TimeSpan> TimeSpanIReadOnlyCollectionTEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyCollection<DateOnly> DateOnlyIReadOnlyCollectionTEmpty { get; set; }
         public IReadOnlyCollection<TimeOnly> TimeOnlyIReadOnlyCollectionTEmpty { get; set; }
 #endif
@@ -69,7 +69,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyCollection<DateTime> DateTimeIReadOnlyCollectionTNull { get; set; }
         public IReadOnlyCollection<DateTimeOffset> DateTimeOffsetIReadOnlyCollectionTNull { get; set; }
         public IReadOnlyCollection<TimeSpan> TimeSpanIReadOnlyCollectionTNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyCollection<DateOnly> DateOnlyIReadOnlyCollectionTNull { get; set; }
         public IReadOnlyCollection<TimeOnly> TimeOnlyIReadOnlyCollectionTNull { get; set; }
 #endif
@@ -91,7 +91,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyCollection<DateTime?> DateTimeIReadOnlyCollectionTNullable { get; set; }
         public IReadOnlyCollection<DateTimeOffset?> DateTimeOffsetIReadOnlyCollectionTNullable { get; set; }
         public IReadOnlyCollection<TimeSpan?> TimeSpanIReadOnlyCollectionTNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyCollection<DateOnly?> DateOnlyIReadOnlyCollectionTNullable { get; set; }
         public IReadOnlyCollection<TimeOnly?> TimeOnlyIReadOnlyCollectionTNullable { get; set; }
 #endif
@@ -113,7 +113,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyCollection<DateTime?> DateTimeIReadOnlyCollectionTNullableEmpty { get; set; }
         public IReadOnlyCollection<DateTimeOffset?> DateTimeOffsetIReadOnlyCollectionTNullableEmpty { get; set; }
         public IReadOnlyCollection<TimeSpan?> TimeSpanIReadOnlyCollectionTNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyCollection<DateOnly?> DateOnlyIReadOnlyCollectionTNullableEmpty { get; set; }
         public IReadOnlyCollection<TimeOnly?> TimeOnlyIReadOnlyCollectionTNullableEmpty { get; set; }
 #endif
@@ -135,7 +135,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyCollection<DateTime?> DateTimeIReadOnlyCollectionTNullableNull { get; set; }
         public IReadOnlyCollection<DateTimeOffset?> DateTimeOffsetIReadOnlyCollectionTNullableNull { get; set; }
         public IReadOnlyCollection<TimeSpan?> TimeSpanIReadOnlyCollectionTNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyCollection<DateOnly?> DateOnlyIReadOnlyCollectionTNullableNull { get; set; }
         public IReadOnlyCollection<TimeOnly?> TimeOnlyIReadOnlyCollectionTNullableNull { get; set; }
 #endif
@@ -177,7 +177,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIReadOnlyCollectionT = new List<DateTime>() { DateTime.UtcNow.AddMonths(1), DateTime.UtcNow.AddMonths(2), DateTime.UtcNow.AddMonths(3) },
                 DateTimeOffsetIReadOnlyCollectionT = new List<DateTimeOffset>() { DateTimeOffset.UtcNow.AddMonths(4), DateTimeOffset.UtcNow.AddMonths(5), DateTimeOffset.UtcNow.AddMonths(6) },
                 TimeSpanIReadOnlyCollectionT = new List<TimeSpan>() { DateTime.UtcNow.AddHours(1).TimeOfDay, DateTime.UtcNow.AddHours(2).TimeOfDay, DateTime.UtcNow.AddHours(3).TimeOfDay },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIReadOnlyCollectionT = new List<DateOnly>() { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(2)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
                 TimeOnlyIReadOnlyCollectionT = new List<TimeOnly>() { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(2)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
 #endif
@@ -199,7 +199,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIReadOnlyCollectionTEmpty = new List<DateTime>(0),
                 DateTimeOffsetIReadOnlyCollectionTEmpty = new List<DateTimeOffset>(0),
                 TimeSpanIReadOnlyCollectionTEmpty = new List<TimeSpan>(0),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIReadOnlyCollectionTEmpty = new List<DateOnly>(0),
                 TimeOnlyIReadOnlyCollectionTEmpty = new List<TimeOnly>(0),
 #endif
@@ -221,7 +221,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIReadOnlyCollectionTNull = null,
                 DateTimeOffsetIReadOnlyCollectionTNull = null,
                 TimeSpanIReadOnlyCollectionTNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIReadOnlyCollectionTNull = null,
                 TimeOnlyIReadOnlyCollectionTNull = null,
 #endif
@@ -243,7 +243,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIReadOnlyCollectionTNullable = new List<DateTime?>() { DateTime.UtcNow.AddMonths(1), null, DateTime.UtcNow.AddMonths(3) },
                 DateTimeOffsetIReadOnlyCollectionTNullable = new List<DateTimeOffset?>() { DateTimeOffset.UtcNow.AddMonths(4), null, DateTimeOffset.UtcNow.AddMonths(6) },
                 TimeSpanIReadOnlyCollectionTNullable = new List<TimeSpan?>() { DateTime.UtcNow.AddHours(1).TimeOfDay, null, DateTime.UtcNow.AddHours(3).TimeOfDay },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIReadOnlyCollectionTNullable = new List<DateOnly?>() { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), null, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
                 TimeOnlyIReadOnlyCollectionTNullable = new List<TimeOnly?>() { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), null, TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
 #endif
@@ -265,7 +265,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIReadOnlyCollectionTNullableEmpty = new List<DateTime?>(0),
                 DateTimeOffsetIReadOnlyCollectionTNullableEmpty = new List<DateTimeOffset?>(0),
                 TimeSpanIReadOnlyCollectionTNullableEmpty = new List<TimeSpan?>(0),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIReadOnlyCollectionTNullableEmpty = new List<DateOnly?>(0),
                 TimeOnlyIReadOnlyCollectionTNullableEmpty = new List<TimeOnly?>(0),
 #endif
@@ -287,7 +287,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeIReadOnlyCollectionTNullableNull = null,
                 DateTimeOffsetIReadOnlyCollectionTNullableNull = null,
                 TimeSpanIReadOnlyCollectionTNullableNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyIReadOnlyCollectionTNullableNull = null,
                 TimeOnlyIReadOnlyCollectionTNullableNull = null,
 #endif

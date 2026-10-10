@@ -296,7 +296,7 @@ namespace Zerra.Test.Web
         public async Task EncryptedStreamResponse_Decrypts()
         {
             var serializer = new ZerraByteSerializer();
-            var encryptor = new ZerraEncryptor("test-key", SymmetricAlgorithmType.AESwithPrefix);
+            var encryptor = new ZerraEncryptor("test-key", SymmetricAlgorithmType.AES_GCM);
             var streamData = Enumerable.Range(0, 5000).Select(x => (byte)x).ToArray();
             var settings = new KestrelCqrsServerLinkedSettings(null, null, serializer.ContentType);
             IQueryServer queryServer = new KestrelCqrsServerQueryServer(settings);

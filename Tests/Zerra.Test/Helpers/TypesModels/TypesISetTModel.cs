@@ -25,7 +25,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ISet<DateTime> DateTimeISet { get; set; }
         public ISet<DateTimeOffset> DateTimeOffsetISet { get; set; }
         public ISet<TimeSpan> TimeSpanISet { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ISet<DateOnly> DateOnlyISet { get; set; }
         public ISet<TimeOnly> TimeOnlyISet { get; set; }
 #endif
@@ -47,7 +47,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ISet<DateTime> DateTimeISetEmpty { get; set; }
         public ISet<DateTimeOffset> DateTimeOffsetISetEmpty { get; set; }
         public ISet<TimeSpan> TimeSpanISetEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ISet<DateOnly> DateOnlyISetEmpty { get; set; }
         public ISet<TimeOnly> TimeOnlyISetEmpty { get; set; }
 #endif
@@ -69,7 +69,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ISet<DateTime> DateTimeISetNull { get; set; }
         public ISet<DateTimeOffset> DateTimeOffsetISetNull { get; set; }
         public ISet<TimeSpan> TimeSpanISetNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ISet<DateOnly> DateOnlyISetNull { get; set; }
         public ISet<TimeOnly> TimeOnlyISetNull { get; set; }
 #endif
@@ -91,7 +91,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ISet<DateTime?> DateTimeISetNullable { get; set; }
         public ISet<DateTimeOffset?> DateTimeOffsetISetNullable { get; set; }
         public ISet<TimeSpan?> TimeSpanISetNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ISet<DateOnly?> DateOnlyISetNullable { get; set; }
         public ISet<TimeOnly?> TimeOnlyISetNullable { get; set; }
 #endif
@@ -113,7 +113,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ISet<DateTime?> DateTimeISetNullableEmpty { get; set; }
         public ISet<DateTimeOffset?> DateTimeOffsetISetNullableEmpty { get; set; }
         public ISet<TimeSpan?> TimeSpanISetNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ISet<DateOnly?> DateOnlyISetNullableEmpty { get; set; }
         public ISet<TimeOnly?> TimeOnlyISetNullableEmpty { get; set; }
 #endif
@@ -135,7 +135,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ISet<DateTime?> DateTimeISetNullableNull { get; set; }
         public ISet<DateTimeOffset?> DateTimeOffsetISetNullableNull { get; set; }
         public ISet<TimeSpan?> TimeSpanISetNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ISet<DateOnly?> DateOnlyISetNullableNull { get; set; }
         public ISet<TimeOnly?> TimeOnlyISetNullableNull { get; set; }
 #endif
@@ -177,7 +177,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeISet = new HashSet<DateTime>() { DateTime.UtcNow.AddMonths(1), DateTime.UtcNow.AddMonths(2), DateTime.UtcNow.AddMonths(3) },
                 DateTimeOffsetISet = new HashSet<DateTimeOffset>() { DateTimeOffset.UtcNow.AddMonths(4), DateTimeOffset.UtcNow.AddMonths(5), DateTimeOffset.UtcNow.AddMonths(6) },
                 TimeSpanISet = new HashSet<TimeSpan>() { DateTime.UtcNow.AddHours(1).TimeOfDay, DateTime.UtcNow.AddHours(2).TimeOfDay, DateTime.UtcNow.AddHours(3).TimeOfDay },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyISet = new HashSet<DateOnly>() { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(2)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
                 TimeOnlyISet = new HashSet<TimeOnly>() { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(2)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
 #endif
@@ -199,7 +199,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeISetEmpty = new HashSet<DateTime>(0),
                 DateTimeOffsetISetEmpty = new HashSet<DateTimeOffset>(0),
                 TimeSpanISetEmpty = new HashSet<TimeSpan>(0),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyISetEmpty = new HashSet<DateOnly>(0),
                 TimeOnlyISetEmpty = new HashSet<TimeOnly>(0),
 #endif
@@ -221,7 +221,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeISetNull = null,
                 DateTimeOffsetISetNull = null,
                 TimeSpanISetNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyISetNull = null,
                 TimeOnlyISetNull = null,
 #endif
@@ -243,7 +243,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeISetNullable = new HashSet<DateTime?>() { DateTime.UtcNow.AddMonths(1), null, DateTime.UtcNow.AddMonths(3) },
                 DateTimeOffsetISetNullable = new HashSet<DateTimeOffset?>() { DateTimeOffset.UtcNow.AddMonths(4), null, DateTimeOffset.UtcNow.AddMonths(6) },
                 TimeSpanISetNullable = new HashSet<TimeSpan?>() { DateTime.UtcNow.AddHours(1).TimeOfDay, null, DateTime.UtcNow.AddHours(3).TimeOfDay },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyISetNullable = new HashSet<DateOnly?>() { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), null, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
                 TimeOnlyISetNullable = new HashSet<TimeOnly?>() { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), null, TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
 #endif
@@ -265,7 +265,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeISetNullableEmpty = new HashSet<DateTime?>(0),
                 DateTimeOffsetISetNullableEmpty = new HashSet<DateTimeOffset?>(0),
                 TimeSpanISetNullableEmpty = new HashSet<TimeSpan?>(0),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyISetNullableEmpty = new HashSet<DateOnly?>(0),
                 TimeOnlyISetNullableEmpty = new HashSet<TimeOnly?>(0),
 #endif
@@ -287,7 +287,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeISetNullableNull = null,
                 DateTimeOffsetISetNullableNull = null,
                 TimeSpanISetNullableNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyISetNullableNull = null,
                 TimeOnlyISetNullableNull = null,
 #endif

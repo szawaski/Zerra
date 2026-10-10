@@ -90,6 +90,7 @@
     <Project Path="Tests/Zerra.SourceGeneration.Test/Zerra.SourceGeneration.Test.csproj" />
     <Project Path="Tests/Zerra.T4.Test/Zerra.T4.Test.csproj" />
     <Project Path="Tests/Zerra.Test/Zerra.Test.csproj" />
+    <Project Path="Tests/Zerra.Test.NetStandard/Zerra.Test.NetStandard.csproj" />
   </Folder>
   <Folder Name="/Docs/">
     <File Path="CLAUDE.md" />

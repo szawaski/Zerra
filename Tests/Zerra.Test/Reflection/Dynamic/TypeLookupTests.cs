@@ -26,8 +26,12 @@ namespace Zerra.Test.Reflection.Dynamic
         [InlineData(typeof(DateTime), CoreType.DateTime)]
         [InlineData(typeof(DateTimeOffset), CoreType.DateTimeOffset)]
         [InlineData(typeof(TimeSpan), CoreType.TimeSpan)]
+#if !NETSTANDARD2_0
         [InlineData(typeof(DateOnly), CoreType.DateOnly)]
+#endif
+#if !NETSTANDARD2_0
         [InlineData(typeof(TimeOnly), CoreType.TimeOnly)]
+#endif
         [InlineData(typeof(Guid), CoreType.Guid)]
         [InlineData(typeof(string), CoreType.String)]
         public void GetCoreType_KnownType_ReturnsTrueWithCorrectCoreType(Type type, CoreType expected)
@@ -55,8 +59,12 @@ namespace Zerra.Test.Reflection.Dynamic
         [InlineData(typeof(DateTime?))]
         [InlineData(typeof(DateTimeOffset?))]
         [InlineData(typeof(TimeSpan?))]
+#if !NETSTANDARD2_0
         [InlineData(typeof(DateOnly?))]
+#endif
+#if !NETSTANDARD2_0
         [InlineData(typeof(TimeOnly?))]
+#endif
         [InlineData(typeof(Guid?))]
         public void GetCoreType_NullableType_ReturnsTrueWithNullableCoreType(Type type)
         {

@@ -31,7 +31,9 @@ namespace Zerra.Test.Map
         public void Collections_FromNullOrAnEnumerable()
         {
             AssertCollection<IReadOnlyCollection<int>>(x => x);
+#if !NETSTANDARD2_0
             AssertCollection<IReadOnlySet<int>>(x => x);
+#endif
             AssertCollection<IReadOnlyList<int>>(x => x);
             AssertCollection<IList<int>>(x => x);
             AssertCollection<ISet<int>>(x => x);

@@ -24,7 +24,9 @@ namespace Zerra.Test.Serialization
             true, (byte)200, (sbyte)-100, (short)-30000, (ushort)60000, -2000000000, 4000000000u, long.MinValue, ulong.MaxValue,
             -1.234567e-30f, -1.2345678901234567e-300, -79228162514264337593543950335m, 'é', '"', '\n', '\u0001', (sbyte)-128, (short)-32768, int.MinValue, float.MinValue, double.MinValue, decimal.MinValue,
             new DateTime(2024, 12, 31, 23, 59, 59, 999, DateTimeKind.Utc).AddTicks(9999), new DateTimeOffset(2024, 12, 31, 23, 59, 59, 999, TimeSpan.FromHours(-11)),
+#if !NETSTANDARD2_0
             TimeSpan.FromTicks(-12345678912345), new DateOnly(2024, 12, 31), new TimeOnly(23, 59, 59, 999), Guid.Parse("01234567-89ab-cdef-0123-456789abcdef"),
+#endif
             EnumModel.EnumItem3,
         ];
 

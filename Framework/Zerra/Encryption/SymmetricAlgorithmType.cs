@@ -5,71 +5,28 @@
 namespace Zerra.Encryption
 {
     /// <summary>
-    /// Incidicates a symmetric encryption algorithm.
+    /// Indicates a symmetric encryption algorithm and mode.
     /// </summary>
+    /// <remarks>
+    /// The numbers are fixed so stored values keep their meaning. For data Zerra 5 encrypted, use <see cref="SymmetricAlgorithmTypeOld"/>.
+    /// </remarks>
     public enum SymmetricAlgorithmType : byte
     {
         /// <summary>
-        /// Advanced Encryption Standard (AES) algorithm.
+        /// AES in CBC mode with a random IV for each chunk. Keeps data private but doesn't detect changes to it.
         /// </summary>
-        AES,
-        /// <summary>
-        /// Data Encryption Standard (DES) algorithm
-        /// </summary>
-        DES,
-        /// <summary>
-        /// Data Encryption Standard (DES) algorithm applied three times to each block
-        /// </summary>
-        TripleDES,
-        /// <summary>
-        /// Rivest Cipher 2 (RC2) algorithm.
-        /// </summary>
-        RC2,
+        AES_CBC = 10,
 
         /// <summary>
-        /// Advanced Encryption Standard (AES) algorithm.
-        /// Inserts a random block at the begining combinded with CBC will make the same data look unique each time even with the same key and IV.
+        /// AES in CBC mode with a random IV, then HMAC-SHA256 over each chunk. Keeps data private and rejects data that was changed, reordered, or cut short.
+        /// Works on every platform.
         /// </summary>
-        AESwithPrefix,
-        /// <summary>
-        /// Data Encryption Standard (DES) algorithm.
-        /// Inserts a random block at the begining combinded with CBC will make the same data look unique each time even with the same key and IV.
-        /// </summary>
-        DESwithPrefix,
-        /// <summary>
-        /// Data Encryption Standard (DES) algorithm applied three times to each block
-        /// Inserts a random block at the begining combinded with CBC will make the same data look unique each time even with the same key and IV.
-        /// </summary>
-        TripleDESwithPrefix,
-        /// <summary>
-        /// Rivest Cipher 2 (RC2) algorithm.
-        /// Inserts a random block at the begining combinded with CBC will make the same data look unique each time even with the same key and IV.
-        /// </summary>
-        RC2withPrefix,
+        AES_CBC_HMAC = 11,
 
         /// <summary>
-        /// Advanced Encryption Standard (AES) algorithm.
-        /// The shift inserts a random block used to shift all other blocks so encrypting the same data will look unique even even with the same key and IV.
+        /// AES in GCM mode. Keeps data private and rejects data that was changed, reordered, or cut short, faster than AES_CBC_HMAC.
+        /// Needs .NET Core 3.0 or later, it throws <see cref="PlatformNotSupportedException"/> on .NET Standard.
         /// </summary>
-        [Obsolete]
-        AESwithShift,
-        /// <summary>
-        /// Data Encryption Standard (DES) algorithm.
-        /// The shift inserts a random block used to shift all other blocks so encrypting the same data will look unique even with the same key and IV.
-        /// </summary>
-        [Obsolete]
-        DESwithShift,
-        /// <summary>
-        /// Data Encryption Standard (DES) algorithm applied three times to each block
-        /// The shift inserts a random block used to shift all other blocks so encrypting the same data will look unique even with the same key and IV.
-        /// </summary>
-        [Obsolete]
-        TripleDESwithShift,
-        /// <summary>
-        /// Rivest Cipher 2 (RC2) algorithm.
-        /// The shift inserts a random block used to shift all other blocks so encrypting the same data will look unique even with the same key and IV.
-        /// </summary>
-        [Obsolete]
-        RC2withShift
+        AES_GCM = 12,
     }
 }

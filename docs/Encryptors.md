@@ -7,7 +7,7 @@ An `IEncryptor` encrypts every message a server, client, producer, or consumer s
 ```csharp
 using Zerra.Encryption;
 
-IEncryptor encryptor = new ZerraEncryptor(configuration["Encryption:Key"], SymmetricAlgorithmType.AESwithPrefix);
+IEncryptor encryptor = new ZerraEncryptor(configuration["Encryption:Key"], SymmetricAlgorithmType.AES_GCM);
 
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log);
@@ -19,38 +19,56 @@ Like serializers, encryptors are passed to each server, client, producer, and co
 
 ```csharp
 public ZerraEncryptor(
-    string key,                                           // password the symmetric key is derived from
+    string key,                                           // password the key is derived from
     SymmetricAlgorithmType algorithm,
     SymmetricKeySize keySize = SymmetricKeySize.Bits_256,
-    SymmetricBlockSize blockSize = SymmetricBlockSize.Bits_128,
-    HashAlgorithmName? hashAlgorithm = null,              // hash used to derive the key
+    HashAlgorithmName? hashAlgorithm = null,              // hash used to derive the key, SHA256
     int deriveKeyIterations = 1000)
+
+public ZerraEncryptor(byte[] key, SymmetricAlgorithmType algorithm)   // the key itself, 16, 24, or 32 bytes
 ```
 
-**Every value must match on both ends:** the key, the algorithm and its mode, and any key size, block size, hash, or iteration count you override. Anything else fails to decrypt.
+**Every value must match on both ends:** the key, the algorithm, and any key size, hash, or iteration count you override. Anything else fails to decrypt.
+
+Use a long random key, not a word or phrase: the key is stretched with PBKDF2, but a guessable one can still be found by trying candidates. 32 random bytes as Base64 is plenty:
+
+```csharp
+var key = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+```
 
 Keep the key out of source control. Read it from configuration or a secret store such as Azure Key Vault, and use a different key per environment.
 
-On .NET Standard 2.0, key derivation supports only `HashAlgorithmName.SHA1`; any other algorithm throws `PlatformNotSupportedException`.
-
 ## Algorithms
 
-`SymmetricAlgorithmType` combines an algorithm with a mode:
+| `SymmetricAlgorithmType` | Keeps data private | Rejects changed, reordered, or cut-off data | Platforms |
+|---|---|---|---|
+| `AES_GCM` | yes | yes | .NET Core 3.0 and later. **Recommended** |
+| `AES_CBC_HMAC` | yes | yes | all, including .NET Framework |
+| `AES_CBC` | yes | no | all |
 
-| Algorithm | Plain | Prefix | Shift | Use |
-|---|---|---|---|---|
-| AES | `AES` | `AESwithPrefix` | `AESwithShift` | **recommended** |
-| TripleDES | `TripleDES` | `TripleDESwithPrefix` | `TripleDESwithShift` | legacy only |
-| DES | `DES` | `DESwithPrefix` | `DESwithShift` | avoid, weak |
-| RC2 | `RC2` | `RC2withPrefix` | `RC2withShift` | legacy only |
+- **`AES_GCM`** is the fastest of the tamper-proof modes. On .NET Standard it throws `PlatformNotSupportedException`, so use `AES_CBC_HMAC` when a .NET Framework service shares the key.
+- **`AES_CBC_HMAC`** encrypts with AES-CBC and then signs each chunk with HMAC-SHA256.
+- **`AES_CBC`** only keeps data private. Someone without the key can't read it, but can change bytes in it without being detected.
 
-- **Plain** is deterministic: the same message always encrypts to the same bytes, so an observer can tell when a message repeats.
-- **Prefix** adds a random prefix that, with CBC chaining, makes every encryption of the same message different. Use `AESwithPrefix` unless you have a reason not to.
-- **Shift** reaches the same result by inserting a random block that shifts the others.
+Data is encrypted in chunks of up to 64 KB. Each chunk gets a random IV that travels unencrypted in front of it (an IV only has to be unpredictable, not secret), and `AES_GCM` gives each message its own key from a random value sent the same way, so the same message never encrypts to the same bytes and large streams don't have to be buffered. A tamper-proof mode checks each chunk before handing it on, and fails with a `CryptographicException` when anything was changed or the key is wrong.
 
 The modes aren't interchangeable, so both ends must use the same one.
 
-Message encryption doesn't replace TLS on connections that cross untrusted networks.
+`SymmetricEncryptor` has the same modes for data that isn't a message, such as values you store, with keys from `SymmetricEncryptor.DeriveKey(password)` or `GenerateKey()`.
+
+### Data Encrypted With the Old Format
+
+The old `AESwithShift` and plain `AES` formats don't detect changed data. Data already stored in them can still be read and written with `ZerraEncryptorOld`, which derives the key from the password the old way, or `SymmetricEncryptorOld` with `SymmetricAlgorithmTypeOld`. Use them only for that data ([Upgrading](UpgradeV5ToV6.md)):
+
+```csharp
+IEncryptor encryptor = new ZerraEncryptorOld(password);   // AESwithShift
+```
+
+### What Encryption Doesn't Do
+
+- **It doesn't prove who sent a message.** Every service holding the key can send any message, so a compromised service can send anything. Internal services are trusted because of where they run ([Security](Security.md#trust-model)).
+- **It doesn't stop replays.** A captured message can be sent again, even in a tamper-proof mode. Make commands that matter idempotent ([Commands](Commands.md#idempotency)).
+- **It doesn't replace TLS.** `TcpCqrsServer` and `HttpCqrsServer` have no TLS, so on a network you don't trust, host the service in ASP.NET Core with HTTPS ([Zerra.Web](ZerraWeb.md)) or use a service mesh with mutual TLS.
 
 ## Custom Encryptors
 
@@ -69,6 +87,35 @@ public interface IEncryptor
 ```
 
 `CryptoFlushStream` (in `Zerra.Encryption`) wraps a stream and adds `FlushFinalBlock` and `FlushFinalBlockAsync`.
+
+## Asymmetric Encryption
+
+`AsymmetricEncryptor` encrypts data that only the holder of a private key can decrypt, for when the sender shouldn't be able to read it back or doesn't share a secret with the receiver. The result is standard JSON Web Encryption (RFC 7516) in compact form: the data is encrypted under a random key, and that key with RSA. So the data can be any size, changed data is rejected, and any JOSE library in any language can decrypt it.
+
+```csharp
+var keys = AsymmetricEncryptor.GenerateKey();                         // 2048-bit RSA, keys as PEM
+var encrypted = AsymmetricEncryptor.Encrypt(AsymmetricAlgorithmType.RSA_OAEP_256_A256GCM, keys.PublicKey, "secret");
+var plain = AsymmetricEncryptor.Decrypt(keys.PrivateKey!, encrypted);  // the JWE header says which algorithms
+```
+
+| `AsymmetricAlgorithmType` | JWE `alg` and `enc` | Platforms |
+|---|---|---|
+| `RSA_OAEP_256_A256GCM` | `RSA-OAEP-256`, `A256GCM` | .NET Core 3.0 and later. **Recommended** |
+| `RSA_OAEP_A256CBC_HS512` | `RSA-OAEP`, `A256CBC-HS512` | all, including .NET Framework |
+
+Keys are PEM (`PUBLIC KEY`, `PRIVATE KEY`, or the `RSA` forms), so keys from other tools (OpenSSL, a key vault) work too. Keys under 2048 bits are rejected.
+
+## Hashing Passwords
+
+`Hasher.PBKDF2GenerateHash` hashes a password for storage as a PHC string, such as `$pbkdf2-sha256$i=600000$salt$hash`. The string holds the algorithm and iterations, so `PBKDF2VerifyHash` checks it however it was made, and `PBKDF2NeedsRehash` says when to hash a password again with stronger settings, such as the next time the user signs in.
+
+```csharp
+var stored = Hasher.PBKDF2GenerateHash(password);              // SHA-256, 600,000 iterations
+if (Hasher.PBKDF2VerifyHash(attempt, stored) && Hasher.PBKDF2NeedsRehash(stored))
+    stored = Hasher.PBKDF2GenerateHash(attempt);
+```
+
+`Hasher.GenerateHash` is a single fast SHA-2 hash for checking data, not for passwords. `HasherOld` checks hashes stored in the old format, including MD5 and SHA-1 ones. `Password.GeneratePassword` makes random passwords with at least one character from each set chosen.
 
 ## See Also
 

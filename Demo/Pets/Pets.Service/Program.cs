@@ -46,7 +46,7 @@ repo.AddProvider(new ZerraPetsSqlProvider<PetDataModel>(engine));
 repo.AddProvider(new ZerraPetsSqlProvider<PetTypeDataModel>(engine));
 
 ISerializer serializer = new ZerraByteSerializer();
-IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AESwithPrefix);
+IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 ILogger log = new Logger();
 IBusLogger busLog = new BusLogger();
 

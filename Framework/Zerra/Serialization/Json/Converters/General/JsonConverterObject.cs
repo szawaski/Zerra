@@ -50,7 +50,6 @@ namespace Zerra.Serialization.Json.Converters.General
                     }
                     else if (attribute is System.Text.Json.Serialization.JsonIgnoreAttribute jsonIgnore2)
                     {
-#if !NETSTANDARD2_0
                         if (ignoreCondition != JsonIgnoreCondition.Always)
                         {
                             ignoreCondition = jsonIgnore2.Condition switch
@@ -61,9 +60,6 @@ namespace Zerra.Serialization.Json.Converters.General
                                 _ => JsonIgnoreCondition.Always,
                             };
                         }
-#else
-                        ignoreCondition = JsonIgnoreCondition.Always;
-#endif
                     }
                     else if (attribute is NonSerializedAttribute)
                     {

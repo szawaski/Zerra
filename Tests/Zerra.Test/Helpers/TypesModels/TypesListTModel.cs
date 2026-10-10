@@ -25,7 +25,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public List<DateTime> DateTimeListT { get; set; }
         public List<DateTimeOffset> DateTimeOffsetListT { get; set; }
         public List<TimeSpan> TimeSpanListT { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public List<DateOnly> DateOnlyListT { get; set; }
         public List<TimeOnly> TimeOnlyListT { get; set; }
 #endif
@@ -47,7 +47,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public List<DateTime> DateTimeListTEmpty { get; set; }
         public List<DateTimeOffset> DateTimeOffsetListTEmpty { get; set; }
         public List<TimeSpan> TimeSpanListTEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public List<DateOnly> DateOnlyListTEmpty { get; set; }
         public List<TimeOnly> TimeOnlyListTEmpty { get; set; }
 #endif
@@ -69,7 +69,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public List<DateTime> DateTimeListTNull { get; set; }
         public List<DateTimeOffset> DateTimeOffsetListTNull { get; set; }
         public List<TimeSpan> TimeSpanListTNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public List<DateOnly> DateOnlyListTNull { get; set; }
         public List<TimeOnly> TimeOnlyListTNull { get; set; }
 #endif
@@ -91,7 +91,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public List<DateTime?> DateTimeListTNullable { get; set; }
         public List<DateTimeOffset?> DateTimeOffsetListTNullable { get; set; }
         public List<TimeSpan?> TimeSpanListTNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public List<DateOnly?> DateOnlyListTNullable { get; set; }
         public List<TimeOnly?> TimeOnlyListTNullable { get; set; }
 #endif
@@ -113,7 +113,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public List<DateTime?> DateTimeListTNullableEmpty { get; set; }
         public List<DateTimeOffset?> DateTimeOffsetListTNullableEmpty { get; set; }
         public List<TimeSpan?> TimeSpanListTNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public List<DateOnly?> DateOnlyListTNullableEmpty { get; set; }
         public List<TimeOnly?> TimeOnlyListTNullableEmpty { get; set; }
 #endif
@@ -135,7 +135,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public List<DateTime?> DateTimeListTNullableNull { get; set; }
         public List<DateTimeOffset?> DateTimeOffsetListTNullableNull { get; set; }
         public List<TimeSpan?> TimeSpanListTNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public List<DateOnly?> DateOnlyListTNullableNull { get; set; }
         public List<TimeOnly?> TimeOnlyListTNullableNull { get; set; }
 #endif
@@ -177,7 +177,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeListT = new List<DateTime>() { DateTime.UtcNow.AddMonths(1), DateTime.UtcNow.AddMonths(2), DateTime.UtcNow.AddMonths(3) },
                 DateTimeOffsetListT = new List<DateTimeOffset>() { DateTimeOffset.UtcNow.AddMonths(4), DateTimeOffset.UtcNow.AddMonths(5), DateTimeOffset.UtcNow.AddMonths(6) },
                 TimeSpanListT = new List<TimeSpan>() { DateTime.UtcNow.AddHours(1).TimeOfDay, DateTime.UtcNow.AddHours(2).TimeOfDay, DateTime.UtcNow.AddHours(3).TimeOfDay },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyListT = new List<DateOnly>() { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(2)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
                 TimeOnlyListT = new List<TimeOnly>() { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(2)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
 #endif
@@ -199,7 +199,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeListTEmpty = new List<DateTime>(0),
                 DateTimeOffsetListTEmpty = new List<DateTimeOffset>(0),
                 TimeSpanListTEmpty = new List<TimeSpan>(0),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyListTEmpty = new List<DateOnly>(0),
                 TimeOnlyListTEmpty = new List<TimeOnly>(0),
 #endif
@@ -221,7 +221,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeListTNull = null,
                 DateTimeOffsetListTNull = null,
                 TimeSpanListTNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyListTNull = null,
                 TimeOnlyListTNull = null,
 #endif
@@ -243,7 +243,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeListTNullable = new List<DateTime?>() { DateTime.UtcNow.AddMonths(1), null, DateTime.UtcNow.AddMonths(3) },
                 DateTimeOffsetListTNullable = new List<DateTimeOffset?>() { DateTimeOffset.UtcNow.AddMonths(4), null, DateTimeOffset.UtcNow.AddMonths(6) },
                 TimeSpanListTNullable = new List<TimeSpan?>() { DateTime.UtcNow.AddHours(1).TimeOfDay, null, DateTime.UtcNow.AddHours(3).TimeOfDay },
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyListTNullable = new List<DateOnly?>() { DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), null, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3)) },
                 TimeOnlyListTNullable = new List<TimeOnly?>() { TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), null, TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3)) },
 #endif
@@ -265,7 +265,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeListTNullableEmpty = new List<DateTime?>(0),
                 DateTimeOffsetListTNullableEmpty = new List<DateTimeOffset?>(0),
                 TimeSpanListTNullableEmpty = new List<TimeSpan?>(0),
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyListTNullableEmpty = new List<DateOnly?>(0),
                 TimeOnlyListTNullableEmpty = new List<TimeOnly?>(0),
 #endif
@@ -287,7 +287,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeListTNullableNull = null,
                 DateTimeOffsetListTNullableNull = null,
                 TimeSpanListTNullableNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyListTNullableNull = null,
                 TimeOnlyListTNullableNull = null,
 #endif

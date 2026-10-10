@@ -211,11 +211,17 @@ namespace Zerra.Test.Serialization
             var dateTime = new DateTime(2024, 1, 2, 3, 4, 5, 678, DateTimeKind.Utc);
             var dateTimeOffset = new DateTimeOffset(2024, 1, 2, 3, 4, 5, 678, TimeSpan.FromHours(-5));
             var timeSpan = new TimeSpan(1, 2, 3, 4, 500);
+#if !NETSTANDARD2_0
             var dateOnly = new DateOnly(2024, 1, 2);
             var timeOnly = new TimeOnly(3, 4, 5, 600);
+#endif
             var guid = Guid.NewGuid();
 
+#if !NETSTANDARD2_0
             var json = JsonSerializer.Serialize(new { Char = 'c', DateTime = dateTime, DateTimeOffset = dateTimeOffset, TimeSpan = timeSpan, DateOnly = dateOnly, TimeOnly = timeOnly, Guid = guid, String = "s", Empty = "", Null = (string?)null, Number = 1 });
+#else
+            var json = JsonSerializer.Serialize(new { Char = 'c', DateTime = dateTime, DateTimeOffset = dateTimeOffset, TimeSpan = timeSpan, Guid = guid, String = "s", Empty = "", Null = (string?)null, Number = 1 });
+#endif
             var obj = JsonSerializer.DeserializeJsonObject(json)!;
             var nul = obj["Null"];
             var number = obj["Number"];
@@ -226,8 +232,10 @@ namespace Zerra.Test.Serialization
             Assert.Equal(dateTimeOffset, (DateTimeOffset)obj["DateTimeOffset"]);
             Assert.Equal(dateTimeOffset.Offset, ((DateTimeOffset)obj["DateTimeOffset"]).Offset);
             Assert.Equal(timeSpan, (TimeSpan)obj["TimeSpan"]);
+#if !NETSTANDARD2_0
             Assert.Equal(dateOnly, (DateOnly)obj["DateOnly"]);
             Assert.Equal(timeOnly, (TimeOnly)obj["TimeOnly"]);
+#endif
             Assert.Equal(guid, (Guid)obj["Guid"]);
             Assert.Equal("s", (string?)obj["String"]);
 
@@ -235,16 +243,20 @@ namespace Zerra.Test.Serialization
             Assert.Equal(dateTime, (DateTime?)obj["DateTime"]);
             Assert.Equal(dateTimeOffset, (DateTimeOffset?)obj["DateTimeOffset"]);
             Assert.Equal(timeSpan, (TimeSpan?)obj["TimeSpan"]);
+#if !NETSTANDARD2_0
             Assert.Equal(dateOnly, (DateOnly?)obj["DateOnly"]);
             Assert.Equal(timeOnly, (TimeOnly?)obj["TimeOnly"]);
+#endif
             Assert.Equal(guid, (Guid?)obj["Guid"]);
 
             Assert.Null((char?)nul);
             Assert.Null((DateTime?)nul);
             Assert.Null((DateTimeOffset?)nul);
             Assert.Null((TimeSpan?)nul);
+#if !NETSTANDARD2_0
             Assert.Null((DateOnly?)nul);
             Assert.Null((TimeOnly?)nul);
+#endif
             Assert.Null((Guid?)nul);
             Assert.Null((string?)nul);
 
@@ -255,8 +267,10 @@ namespace Zerra.Test.Serialization
             Assert.Throws<InvalidCastException>(() => (DateTime)number);
             Assert.Throws<InvalidCastException>(() => (DateTimeOffset)number);
             Assert.Throws<InvalidCastException>(() => (TimeSpan)number);
+#if !NETSTANDARD2_0
             Assert.Throws<InvalidCastException>(() => (DateOnly)number);
             Assert.Throws<InvalidCastException>(() => (TimeOnly)number);
+#endif
             Assert.Throws<InvalidCastException>(() => (Guid)number);
             Assert.Throws<InvalidCastException>(() => (string?)number);
 
@@ -264,8 +278,10 @@ namespace Zerra.Test.Serialization
             Assert.Throws<InvalidCastException>(() => (DateTime?)number);
             Assert.Throws<InvalidCastException>(() => (DateTimeOffset?)number);
             Assert.Throws<InvalidCastException>(() => (TimeSpan?)number);
+#if !NETSTANDARD2_0
             Assert.Throws<InvalidCastException>(() => (DateOnly?)number);
             Assert.Throws<InvalidCastException>(() => (TimeOnly?)number);
+#endif
             Assert.Throws<InvalidCastException>(() => (Guid?)number);
         }
 

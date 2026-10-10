@@ -24,7 +24,7 @@ A high-performance, distributed CQRS (Command Query Responsibility Segregation) 
 
 📦 **Built-in Serialization** - High-performance ZerraByteSerializer for compact binary serialization and flexible ZerraJsonSerializer for human-readable JSON format
 
-🔐 **Message Encryption** - Transparent symmetric encryption supporting AES, DES, TripleDES, RC2, and custom algorithms
+🔐 **Message Encryption** - Transparent symmetric encryption with AES-GCM or AES-CBC with HMAC, which also reject changed messages, or a custom algorithm
 
 🗜️ **Message Compression** - Optional Deflate, GZip, ZLib, or Brotli compression applied before encryption
 
@@ -50,7 +50,7 @@ using Zerra.Encryption;
 
 // Configure services
 ISerializer serializer = new ZerraByteSerializer();
-IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
+IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AES_GCM);
 BusServices busServices = new BusServices();
 busServices.AddService<IUserRepository>(userRepository);
 
@@ -83,7 +83,7 @@ using Zerra.Encryption;
 
 // Configure services (must match server)
 ISerializer serializer = new ZerraByteSerializer();
-IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AESwithPrefix);
+IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AES_GCM);
 
 // Create the bus
 var bus = Bus.New("ClientService");

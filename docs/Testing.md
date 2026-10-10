@@ -8,7 +8,7 @@ Line coverage of each framework project is listed below, measured with `dotnet-c
 
 | Project | Coverage | Tested by |
 |---|---|---|
-| `Zerra` | 96% | `Zerra.Test` |
+| `Zerra` | 96% | `Zerra.Test`, and `Zerra.Test.NetStandard` for its .NET Standard build on .NET Framework |
 | `Zerra.Web` | 97% | `Zerra.Test` |
 | `Zerra.CQRS.Kafka` | 86% | `Zerra.CQRS.Test` |
 | `Zerra.CQRS.RabbitMQ` | 85% | `Zerra.CQRS.Test` |
@@ -22,6 +22,23 @@ Line coverage of each framework project is listed below, measured with `dotnet-c
 | `Zerra.Repository.KurrentDB` | 96% | `Zerra.Repository.Test` |
 | `Zerra.SourceGeneration` | 93% | `Zerra.SourceGeneration.Test` |
 | `Zerra.T4` | not measured, the coverage tool can't load into its .NET Framework test process | `Zerra.T4.Test` |
+
+## Failure Scenarios
+
+Beyond the happy path, the suites run these against real brokers, sockets, and databases:
+
+| Scenario | Where |
+|---|---|
+| A consumer's connection dropped mid-command, and the command delivered again to another replica with resilient commands | `Zerra.CQRS.Test`, each broker |
+| A producer's connection dropped while awaiting a reply, which fails instead of hanging | `Zerra.CQRS.Test`, each broker |
+| A queue or topic deleted under a running consumer, which consumes again | `Zerra.CQRS.Test`, each broker |
+| Shutdown while handlers run, which finish before the consumer stops | `Zerra.CQRS.Test`, `Zerra.Test` |
+| Malformed and truncated messages, which are rejected without reaching a handler | `Zerra.CQRS.Test`, `Zerra.Test` |
+| Handler errors returned to the caller and not received again | `Zerra.CQRS.Test`, `Zerra.Test` |
+| Receive limits handing off to other replicas, and sustained load within the concurrency limits | `Zerra.CQRS.Test` |
+| Cancelled and timed-out calls, and aborted connections | `Zerra.Test` |
+| Encrypted messages that were changed, reordered, cut short, mixed with another message, or read with the wrong key | `Zerra.Test` |
+| Contracts from an older and a newer version read by each other | `Zerra.Test` |
 
 ## Running the Tests
 

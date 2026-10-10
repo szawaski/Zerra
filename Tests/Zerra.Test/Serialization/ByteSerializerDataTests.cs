@@ -80,7 +80,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesBasicModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(343, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(315, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesBasicModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -90,7 +95,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesArrayModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1131, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1025, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesArrayModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -100,7 +110,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesListTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1131, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1025, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesListTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -110,7 +125,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesIListTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1131, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1025, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesIListTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -120,7 +140,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesIListTOfTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1131, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1025, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesIListTOfTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -130,7 +155,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesIReadOnlyListTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1131, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1025, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesIReadOnlyListTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -168,7 +198,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesHashSetTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1128, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1022, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesHashSetTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -178,7 +213,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesISetTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1128, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1022, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesISetTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -188,11 +228,17 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesISetTOfTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1128, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1022, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesISetTOfTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
 
+#if !NETSTANDARD2_0
         [Fact]
         public void TypesIReadOnlySetT()
         {
@@ -202,6 +248,7 @@ namespace Zerra.Test.Serialization
             var model2 = ByteSerializer.Deserialize<TypesIReadOnlySetTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
+#endif
 
         [Fact]
         public void TypesICollection()
@@ -222,7 +269,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesICollectionTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1131, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1025, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesICollectionTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -232,7 +284,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesICollectionTOfTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1131, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1025, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesICollectionTOfTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -242,7 +299,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesIReadOnlyCollectionTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1131, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1025, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesIReadOnlyCollectionTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -252,7 +314,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesIEnumerableTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1131, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1025, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesIEnumerableTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -262,7 +329,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesIEnumerableTOfTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(1131, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(1025, bytes.Length);
+#endif
         }
 
         [Fact]
@@ -297,7 +369,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesDictionaryTModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(698, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(636, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesDictionaryTModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -394,7 +471,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypeModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(186, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(171, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypeModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -404,7 +486,12 @@ namespace Zerra.Test.Serialization
         {
             var model1 = TypesCoreModel.Create();
             var bytes = ByteSerializer.Serialize(model1);
+#if !NETSTANDARD2_0
             Assert.Equal(304, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(276, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesCoreModel>(bytes);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -419,7 +506,12 @@ namespace Zerra.Test.Serialization
 
             var model1 = TypesAllModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
+#if !NETSTANDARD2_0
             Assert.Equal(9031, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(8227, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesAllModel>(bytes, options);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -541,6 +633,49 @@ namespace Zerra.Test.Serialization
             AssertHelper.AreNotEqual(model1.Value4, model2.Value4);
         }
 
+        [Zerra.Reflection.GenerateTypeDetail]
+        public class ContractVersion1
+        {
+            [SerializerIndex(1)]
+            public int Kept { get; set; }
+            [SerializerIndex(2)]
+            public string? Other { get; set; }
+        }
+
+        //a later version: a member added and the order changed
+        [Zerra.Reflection.GenerateTypeDetail]
+        public class ContractVersion2
+        {
+            [SerializerIndex(3)]
+            public string? Added { get; set; }
+            [SerializerIndex(2)]
+            public string? Other { get; set; }
+            [SerializerIndex(1)]
+            public int Kept { get; set; }
+        }
+
+        [Fact]
+        public void IndexAttribute_ContractVersions()
+        {
+            //an old sender to a new receiver works, as in a rolling deployment that updates receivers first
+            var newer = ByteSerializer.Deserialize<ContractVersion2>(ByteSerializer.Serialize(new ContractVersion1() { Kept = 5, Other = "other" }))!;
+            Assert.Equal(5, newer.Kept);
+            Assert.Equal("other", newer.Other);
+            Assert.Null(newer.Added);
+
+            //a new sender to an old receiver can't skip the member it doesn't know, so receivers deploy first
+            var newBytes = ByteSerializer.Serialize(new ContractVersion2() { Kept = 7, Other = "other", Added = "new" });
+            _ = Assert.Throws<NotSupportedException>(() => ByteSerializer.Deserialize<ContractVersion1>(newBytes));
+
+            //member names alone don't tell the reader how long an unknown value is, types do, so either order works
+            var names = new ByteSerializerOptions() { IndexType = ByteSerializerIndexType.MemberNames };
+            _ = Assert.Throws<NotSupportedException>(() => ByteSerializer.Deserialize<ContractVersion1>(ByteSerializer.Serialize(new ContractVersion2() { Added = "new" }, names), names));
+            var options = new ByteSerializerOptions() { UseTypes = true };
+            var older = ByteSerializer.Deserialize<ContractVersion1>(ByteSerializer.Serialize(new ContractVersion2() { Kept = 7, Other = "other", Added = "new" }, options), options)!;
+            Assert.Equal(7, older.Kept);
+            Assert.Equal("other", older.Other);
+        }
+
         [Fact]
         public void IgnoreIndexAttribute()
         {
@@ -620,20 +755,20 @@ namespace Zerra.Test.Serialization
         [Fact]
         public void DateTimeTypes()
         {
-            var dateUtc = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Utc);
+            var dateUtc = new DateTime(2024, 12, 5, 18, 10, 5, 123, DateTimeKind.Utc).AddTicks(456 * 10);
             var bytes = ByteSerializer.Serialize(dateUtc);
             var dateUtc2 = ByteSerializer.Deserialize<DateTime>(bytes);
             Assert.Equal(dateUtc, dateUtc2);
             Assert.Equal(DateTimeKind.Utc, dateUtc2.Kind);
 
-            var dateLocal = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Local);
+            var dateLocal = new DateTime(2024, 12, 5, 18, 10, 5, 123, DateTimeKind.Local).AddTicks(456 * 10);
             bytes = ByteSerializer.Serialize(dateLocal);
             var dateLocal2 = ByteSerializer.Deserialize<DateTime>(bytes);
             var dateLocalUtc = dateLocal.ToUniversalTime();
             Assert.Equal(dateLocalUtc, dateLocal2);
             Assert.Equal(DateTimeKind.Utc, dateLocal2.Kind);
 
-            var dateUnspecified = new DateTime(2024, 12, 5, 18, 10, 5, 123, 456, DateTimeKind.Unspecified);
+            var dateUnspecified = new DateTime(2024, 12, 5, 18, 10, 5, 123, DateTimeKind.Unspecified).AddTicks(456 * 10);
             bytes = ByteSerializer.Serialize(dateUnspecified);
             var dateUnspecified2 = ByteSerializer.Deserialize<DateTime>(bytes);
             Assert.Equal(dateUnspecified, dateUnspecified2);
@@ -666,7 +801,12 @@ namespace Zerra.Test.Serialization
             using (var ms = new MemoryStream())
             {
                 await ByteSerializer.SerializeAsync(ms, model1, options, TestContext.Current.CancellationToken);
+#if !NETSTANDARD2_0
                 Assert.Equal(9031, ms.Length);
+#else
+                //without the DateOnly and TimeOnly members
+                Assert.Equal(8227, ms.Length);
+#endif
                 ms.Position = 0;
                 var model2 = await ByteSerializer.DeserializeAsync<TypesAllModel>(ms, options, TestContext.Current.CancellationToken);
                 AssertHelper.AreEqual(model1, model2);
@@ -726,7 +866,12 @@ namespace Zerra.Test.Serialization
 
             var model1 = TypesAllModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
+#if !NETSTANDARD2_0
             Assert.Equal(223478, bytes.Length);
+#else
+            //without the DateOnly and TimeOnly members
+            Assert.Equal(184165, bytes.Length);
+#endif
             var model2 = ByteSerializer.Deserialize<TypesBasicModel>(bytes, options);
             AssertHelper.AreEqual(model1, model2);
         }
@@ -745,7 +890,9 @@ namespace Zerra.Test.Serialization
             AssertDrains(TypesHashSetTModel.Create());
             AssertDrains(TypesISetTModel.Create());
             AssertDrains(TypesISetTOfTModel.Create());
+#if !NETSTANDARD2_0
             AssertDrains(TypesIReadOnlySetTModel.Create());
+#endif
             AssertDrains(TypesICollectionModel.Create());
             AssertDrains(TypesICollectionTModel.Create());
             AssertDrains(TypesICollectionTOfTModel.Create());
@@ -917,8 +1064,10 @@ namespace Zerra.Test.Serialization
             await AssertLargeCollections(i => new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(i));
             await AssertLargeCollections(i => new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.FromHours(-5)).AddMinutes(i));
             await AssertLargeCollections(i => TimeSpan.FromMinutes(i));
+#if !NETSTANDARD2_0
             await AssertLargeCollections(i => new DateOnly(2000, 1, 1).AddDays(i));
             await AssertLargeCollections(i => new TimeOnly(0, 0).Add(TimeSpan.FromSeconds(i)));
+#endif
             await AssertLargeCollections(i => new Guid(i, 0, 0, new byte[8]));
             await AssertLargeCollections(i => $"value {i}");
 
@@ -938,8 +1087,10 @@ namespace Zerra.Test.Serialization
             await AssertLargeCollections<DateTime?>(i => i % 3 == 0 ? null : new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(i));
             await AssertLargeCollections<DateTimeOffset?>(i => i % 3 == 0 ? null : new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.FromHours(-5)).AddMinutes(i));
             await AssertLargeCollections<TimeSpan?>(i => i % 3 == 0 ? null : TimeSpan.FromMinutes(i));
+#if !NETSTANDARD2_0
             await AssertLargeCollections<DateOnly?>(i => i % 3 == 0 ? null : new DateOnly(2000, 1, 1).AddDays(i));
             await AssertLargeCollections<TimeOnly?>(i => i % 3 == 0 ? null : new TimeOnly(0, 0).Add(TimeSpan.FromSeconds(i)));
+#endif
             await AssertLargeCollections<Guid?>(i => i % 3 == 0 ? null : new Guid(i, 0, 0, new byte[8]));
         }
 

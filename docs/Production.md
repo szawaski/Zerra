@@ -20,7 +20,7 @@ Commands and events are acknowledged on receipt and handled once; shutdown finis
 Zerra separates public traffic from service-to-service traffic:
 
 - **Public callers** reach the [Zerra.Web](ZerraWeb.md) API gateway, which authenticates and authorizes every request through `ICqrsAuthorizer` or ASP.NET Core authentication, restricts browser origins, and exposes only the interfaces its bus registers. Events are never accepted from outside.
-- **Services** talk to each other directly over TCP, HTTP, or a broker inside a private network, the same trust model as most service meshes and internal gRPC. The caller's claims travel with each message, so a handler sees the identity of the user who started the request, several hops away. Message encryption with a shared key means only services holding the key can send a valid message.
+- **Services** talk to each other directly over TCP, HTTP, or a broker inside a private network, the same trust model as most service meshes and internal gRPC. The caller's claims travel with each message, so a handler sees the identity of the user who started the request, several hops away. Message encryption keeps messages private and, with `AES_GCM` or `AES_CBC_HMAC`, rejects changed ones, but any service holding the key can send any message, and a captured message can be sent again. The private network is what makes these callers trusted.
 
 So internal servers and brokers belong on a private network, the gateway has an `ICqrsAuthorizer`, and handlers check the claims they depend on. See [Security](Security.md).
 
@@ -28,13 +28,13 @@ So internal servers and brokers belong on a private network, the gateway has an 
 
 | Connection | Encryption |
 |---|---|
-| `TcpCqrsServer`, `HttpCqrsServer` | message encryption on every message with an `IEncryptor` such as `ZerraEncryptor` (AES) |
+| `TcpCqrsServer`, `HttpCqrsServer` | message encryption on every message with an `IEncryptor` such as `ZerraEncryptor` with `AES_GCM`. No TLS, so on an untrusted network host in Kestrel with HTTPS or use a service mesh with mutual TLS |
 | Kestrel (`Zerra.Web`) | HTTPS, configured in ASP.NET Core, plus message encryption |
 | RabbitMQ | TLS with an `amqps://` URI ([RabbitMQ Setup](RabbitMQSetup.md#connection-settings)), plus message encryption |
 | Azure Service Bus | TLS, plus message encryption |
 | Kafka | TLS with `useTls: true`, as `SSL` or `SASL_SSL` ([Kafka Setup](KafkaSetup.md#connection-settings)), plus message encryption |
 
-Message encryption protects message bodies end to end, including while they sit on a broker's disk. Read the key from configuration or a secret store, with one key per environment ([Encryptors](Encryptors.md#configuration)). Both ends of an endpoint use the same key, so a key is rotated by updating the services on that endpoint together, or by bringing up the new key under a new environment prefix or port and moving callers over.
+Message encryption protects message bodies end to end, including while they sit on a broker's disk. Use a long random key, read from configuration or a secret store, with one key per environment ([Encryptors](Encryptors.md#configuration)). Both ends of an endpoint use the same key, so a key is rotated by updating the services on that endpoint together, or by bringing up the new key under a new environment prefix or port and moving callers over.
 
 ### Error Details
 
@@ -51,8 +51,8 @@ Services that deploy independently run different versions of a contract for a wh
 
 - **Contract identity.** Query interfaces, commands, events, and command results are identified by their type name without the namespace, so each service can compile its own copy of the contracts instead of sharing an assembly. The names must be unique within a service. To rename a contract, add the new one and retire the old one.
 - **Binary contracts.** `ZerraByteSerializer` matches members by declaration order by default, the most compact form. Give contracts that will change a `[SerializerIndex]` per member and add members rather than reordering ([ByteSerializer](ByteSerializer.md#versioning)). `ZerraJsonSerializer` matches by name.
-- **Deployment order.** A receiver on the new version reads an old sender's messages, giving missing members their defaults. With indexes, deploy the receiving service before the services that send a new member. With `ByteSerializerIndexType.MemberNames`, `UseTypes = true`, or `ZerraJsonSerializer`, unknown members are skipped and either order works.
-- **Major versions.** Zerra 5 and 6 use different wire formats ([Upgrade Guide](UpgradeV5ToV6.md)), so services that share messages move to a new major version together.
+- **Deployment order.** A receiver on the new version reads an old sender's messages, giving missing members their defaults. With indexes, deploy the receiving service before the services that send a new member. Removing a member is the reverse: update the senders to stop sending it before the receivers drop it. With `UseTypes = true` or `ZerraJsonSerializer`, unknown members are skipped and either order works; `MemberNames` alone isn't enough.
+- **Major versions.** Major versions use different wire formats ([Upgrade Guide](UpgradeV5ToV6.md)), so services that share messages move to a new major version together.
 
 ## Observability
 

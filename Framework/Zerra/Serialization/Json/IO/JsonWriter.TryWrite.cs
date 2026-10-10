@@ -394,29 +394,36 @@ namespace Zerra.Serialization.Json.IO
                 return false;
 #endif
 
+#if NETSTANDARD2_0
+            //.NET Framework's default format doesn't round trip, and its R can be a digit short, so it's checked
+            var str = value.ToString("R", CultureInfo.InvariantCulture);
+            if (!Single.IsNaN(value) && Single.Parse(str, NumberStyles.Float, CultureInfo.InvariantCulture) != value)
+                str = value.ToString("G9", CultureInfo.InvariantCulture);
             if (useBytes)
             {
-#if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
-#else
-                _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
-#endif
-                position += written;
+                for (var i = 0; i < str.Length; i++)
+                    bufferBytes[position + i] = (byte)str[i];
             }
             else
             {
-#if NETSTANDARD2_0
-                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
-                position += str.Length;
+            }
+            position += str.Length;
 #else
+            if (useBytes)
+            {
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
+                position += written;
+            }
+            else
+            {
                 _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
-#endif
             }
+#endif
 
             return true;
         }
@@ -441,29 +448,36 @@ namespace Zerra.Serialization.Json.IO
                 return false;
 #endif
 
+#if NETSTANDARD2_0
+            //.NET Framework's default format doesn't round trip, and its R can be a digit short, so it's checked
+            var str = value.ToString("R", CultureInfo.InvariantCulture);
+            if (!Double.IsNaN(value) && Double.Parse(str, NumberStyles.Float, CultureInfo.InvariantCulture) != value)
+                str = value.ToString("G17", CultureInfo.InvariantCulture);
             if (useBytes)
             {
-#if !NETSTANDARD2_0
-                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
-#else
-                _ = Utf8Formatter.TryFormat(value, bufferBytes.Slice(position), out var written);
-#endif
-                position += written;
+                for (var i = 0; i < str.Length; i++)
+                    bufferBytes[position + i] = (byte)str[i];
             }
             else
             {
-#if NETSTANDARD2_0
-                var str = value.ToString(CultureInfo.InvariantCulture);
                 fixed (char* pSource = str, pBuffer = &bufferChars[position])
                 {
                     Buffer.MemoryCopy(pSource, pBuffer, (bufferChars.Length - position) * 2, str.Length * 2);
                 }
-                position += str.Length;
+            }
+            position += str.Length;
 #else
+            if (useBytes)
+            {
+                _ = value.TryFormat(bufferBytes.Slice(position), out var written, default, CultureInfo.InvariantCulture);
+                position += written;
+            }
+            else
+            {
                 _ = value.TryFormat(bufferChars.Slice(position), out var consumed, default, CultureInfo.InvariantCulture);
                 position += consumed;
-#endif
             }
+#endif
 
             return true;
         }

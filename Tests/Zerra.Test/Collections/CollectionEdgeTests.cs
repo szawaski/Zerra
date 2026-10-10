@@ -110,14 +110,6 @@ namespace Zerra.Test.Collections
         }
 
         [Fact]
-        public void Password_RandomNumberRange()
-        {
-            using var rng = RandomNumberGenerator.Create();
-            Assert.Equal(3, Password.GetRandomNumber(rng, 3, 3));
-            _ = Assert.Throws<ArgumentOutOfRangeException>(() => Password.GetRandomNumber(rng, 5, 1));
-        }
-
-        [Fact]
         public void ZerraCompressor_UnknownAlgorithm_Throws()
         {
             _ = Assert.Throws<NotSupportedException>(() => new ZerraCompressor((CompressionAlgorithmType)99, CompressionLevel.Fastest));

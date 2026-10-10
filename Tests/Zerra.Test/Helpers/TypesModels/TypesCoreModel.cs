@@ -25,9 +25,11 @@ namespace Zerra.Test.Helpers.TypesModels
         public DateTime DateTimeThing { get; set; }
         public DateTimeOffset DateTimeOffsetThing { get; set; }
         public TimeSpan TimeSpanThing { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
         public DateOnly DateOnlyThing { get; set; }
         public TimeOnly TimeOnlyThing { get; set; }
+#endif
 #endif
         public Guid GuidThing { get; set; }
 
@@ -47,9 +49,11 @@ namespace Zerra.Test.Helpers.TypesModels
         public DateTime? DateTimeThingNullable { get; set; }
         public DateTimeOffset? DateTimeOffsetThingNullable { get; set; }
         public TimeSpan? TimeSpanThingNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
         public DateOnly? DateOnlyThingNullable { get; set; }
         public TimeOnly? TimeOnlyThingNullable { get; set; }
+#endif
 #endif
         public Guid? GuidThingNullable { get; set; }
 
@@ -74,10 +78,12 @@ namespace Zerra.Test.Helpers.TypesModels
                 CharThing = 'Z',
                 DateTimeThing = DateTime.UtcNow,
                 DateTimeOffsetThing = DateTimeOffset.UtcNow.AddDays(1),
-                TimeSpanThing = -(new TimeSpan(2, DateTime.UtcNow.Hour, DateTime.UtcNow.Minute, DateTime.UtcNow.Second, DateTime.UtcNow.Millisecond, 1)),
-#if NET6_0_OR_GREATER
+                TimeSpanThing = -(new TimeSpan(2, DateTime.UtcNow.Hour, DateTime.UtcNow.Minute, DateTime.UtcNow.Second, DateTime.UtcNow.Millisecond).Add(TimeSpan.FromTicks(10))),
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
                 DateOnlyThing = DateOnly.FromDateTime(DateTime.UtcNow),
                 TimeOnlyThing = TimeOnly.FromDateTime(DateTime.UtcNow),
+#endif
 #endif
                 GuidThing = Guid.NewGuid(),
 
@@ -96,10 +102,12 @@ namespace Zerra.Test.Helpers.TypesModels
                 CharThingNullable = 'X',
                 DateTimeThingNullable = DateTime.UtcNow.AddMonths(1),
                 DateTimeOffsetThingNullable = DateTimeOffset.UtcNow.AddMonths(1).AddDays(1),
-                TimeSpanThingNullable = new TimeSpan(0, 0, 0, DateTime.UtcNow.Second, DateTime.UtcNow.Millisecond, 1),
-#if NET6_0_OR_GREATER
+                TimeSpanThingNullable = new TimeSpan(0, 0, 0, DateTime.UtcNow.Second, DateTime.UtcNow.Millisecond).Add(TimeSpan.FromTicks(10)),
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
                 DateOnlyThingNullable = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
                 TimeOnlyThingNullable = TimeOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
+#endif
 #endif
                 GuidThingNullable = Guid.NewGuid(),
 
@@ -130,9 +138,11 @@ namespace Zerra.Test.Helpers.TypesModels
             Assert.Equal(model1.DateTimeThing.ToString(), model2.DateTimeThing);
             Assert.Equal(model1.DateTimeOffsetThing.ToString(), model2.DateTimeOffsetThing);
             Assert.Equal(model1.TimeSpanThing.ToString(), model2.TimeSpanThing);
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
             Assert.Equal(model1.DateOnlyThing.ToString(), model2.DateOnlyThing);
             Assert.Equal(model1.TimeOnlyThing.ToString(), model2.TimeOnlyThing);
+#endif
 #endif
             Assert.Equal(model1.GuidThing.ToString(), model2.GuidThing);
 
@@ -152,9 +162,11 @@ namespace Zerra.Test.Helpers.TypesModels
             Assert.Equal(model1.DateTimeThingNullable?.ToString(), model2.DateTimeThingNullable);
             Assert.Equal(model1.DateTimeOffsetThingNullable?.ToString(), model2.DateTimeOffsetThingNullable);
             Assert.Equal(model1.TimeSpanThingNullable?.ToString(), model2.TimeSpanThingNullable);
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
+#if !NETSTANDARD2_0
             Assert.Equal(model1.DateOnlyThingNullable.ToString(), model2.DateOnlyThingNullable);
             Assert.Equal(model1.TimeOnlyThingNullable.ToString(), model2.TimeOnlyThingNullable);
+#endif
 #endif
             Assert.Equal(model1.GuidThingNullable?.ToString(), model2.GuidThingNullable);
         }

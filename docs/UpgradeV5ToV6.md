@@ -21,7 +21,7 @@ Zerra 6 does no scanning. Each service's `Program.cs` builds everything itself: 
 | Repository | Static `Repo.QueryAsync(new QueryMany<T>(...))`, providers discovered | `IRepo` instance from `Repo.New()`, providers added with `repo.AddProvider`, methods like `ManyAsync<T>(...)` |
 | Logging | Static `Log.InfoAsync`, discovered `ILoggingProvider`, `Zerra.Logger` package | `Zerra.Logging.ILogger` you implement, passed to `Bus.New` |
 | Configuration | `Zerra.Config` | Removed. Bring your own (see [Configuration](#9-configuration)) |
-| Network encryption | `SymmetricConfig` built from an `EncryptionKey` string | `IEncryptor`, normally `new ZerraEncryptor(key, SymmetricAlgorithmType.AESwithPrefix)` |
+| Network encryption | `SymmetricConfig` built from an `EncryptionKey` string | `IEncryptor`, normally `new ZerraEncryptor(key, SymmetricAlgorithmType.AES_GCM)` |
 | Network compression | None | Optional `ICompressor`, such as `new ZerraCompressor(CompressionAlgorithmType.Brotli)`, passed after the encryptor; `null` for none |
 | Serialization choice | `ContentType` passed to clients and servers | `ISerializer` instance: `ZerraByteSerializer` or `ZerraJsonSerializer` |
 
@@ -59,7 +59,7 @@ Search the solution (skip `bin`/`obj`) and write down which of these appear. Eac
 | `Log.` with `Async(`, `ILoggingProvider`, `Zerra.Logger`, `BusLoggingProvider`, `IBusLogger`, `Bus.AddLogger`, `AddZerraLogger` | [7](#7-logging) |
 | `UseCqrsApiGateway`, `ICqrsAuthorizer`, `ApiClient`, `KestrelServiceCreator` | [8](#8-aspnet-projects) |
 | `Config.` | [9](#9-configuration) |
-| `Resolver.`, `Discovery.`, `Instantiator.`, `.ForEach(`, `.Batch(`, `AppendAnd`, `AppendOr`, `WhereBuilder`, `ToLinqString`, `WaitAsync`, `Zerra.Threading`, `Zerra.Mathematics`, `SymmetricConfig`, `AESwithShift`, `TcpRawCqrs`, `QueryStringSerializer`, `MapperWithLog`, `using Zerra.Linq` | [10](#10-other-removed-apis) |
+| `Resolver.`, `Discovery.`, `Instantiator.`, `.ForEach(`, `.Batch(`, `AppendAnd`, `AppendOr`, `WhereBuilder`, `ToLinqString`, `WaitAsync`, `Zerra.Threading`, `Zerra.Mathematics`, `SymmetricConfig`, `SymmetricKey`, `GetKey`, `AESwithShift`, `TcpRawCqrs`, `QueryStringSerializer`, `MapperWithLog`, `using Zerra.Linq` | [10](#10-other-removed-apis) |
 | `Bus.Call`, `Bus.Dispatch`, static `Log.` calls outside handlers | [11](#11-static-bus-and-log) |
 | `MemberDetails`, `SerializableMemberDetails`, `MethodDetailsBoxed`, `ParameterDetails`, `TypeDetailBoxed`, `GetMethodBoxed`, `GetGenericMethodDetail`, `GetGenericTypeDetail`, `GetNiceName`, `CoreTypeLookup`, `IsTask` | [10](#reflection) |
 | `JsonConverter<`, `JsonValueType`, `JsonSerializer.AddConverter`, `Mapper.Copy` on types without a public parameterless constructor | [10](#serialization-and-mapping) |
@@ -213,14 +213,15 @@ Watch for these:
   //Program.cs
   repo.AddProvider<LogSessionDTO>(new LogSessionCompressionProvider());
   ```
-- **Encryption providers must override `EncryptionAlgorithm`.** v5 always used `AESwithShift`. Keep that for existing data or it can't be decrypted. `AESwithShift` is marked `[Obsolete]`, so suppress the warning:
+- **Encryption providers override `Encryptor`** instead of `EncryptionKey` and `EncryptionAlgorithm`. v5 used `AESwithShift` with a key from `SymmetricEncryptor.GetKey(password)`, so to keep reading existing data, return a `ZerraEncryptorOld` made from the same password. Keep it in a field, the key is derived when it's created:
   ```csharp
+  private static readonly IEncryptor encryptor = new ZerraEncryptorOld(password);   //AESwithShift, keyed as v5's GetKey(password)
+
   public AccountEncryptionProvider() : base(new AccountProvider()) { }
 
-  #pragma warning disable CS0612 // Type or member is obsolete
-  public override SymmetricAlgorithmType EncryptionAlgorithm => SymmetricAlgorithmType.AESwithShift;
-  #pragma warning restore CS0612 // Type or member is obsolete
+  public override IEncryptor Encryptor => encryptor;
   ```
+  If the v5 code passed a salt to `GetKey`, pass the same `salt`. If it used `GenerateKey` or stored the key, pass the bytes: `new ZerraEncryptorOld(key, iv)`. A provider for new data uses `new ZerraEncryptor(key, SymmetricAlgorithmType.AES_GCM)`.
 - **Cache providers** (`ICacheProvider`) and `IDualBaseProvider` were removed. Drop the cache layer, or rewrite it as a `BaseTransactStoreLayerProvider`.
 
 ## 6. Replace `cqrssettings.json` with Program.cs
@@ -248,7 +249,7 @@ v6 reads none of this. Write each service's registrations in code. The mapping f
 | Event interface in this service's `Messages.Types` | `bus.AddHandler<IX>(new XImpl());` and `bus.AddEventConsumer<IX>(serverOrBrokerConsumer, EventConsumerMode.PerService /* or PerReplica */);` |
 | Event interface this service publishes | Direct TCP/HTTP: `bus.AddEventProducer<IX>(client)` once per subscribing service. Broker: one `AddEventProducer<IX>(brokerProducer)` |
 | `BindingUrl` / `ExternalUrl` / `MessageHost` | The URL passed to the server or client constructor. Read it from your own settings (see [Configuration](#9-configuration)) |
-| `EncryptionKey` | `new ZerraEncryptor(key, SymmetricAlgorithmType.AESwithPrefix)`, the same key on both ends. An encryptor is optional, like the key was. If either end runs on `netstandard2.0` (a .NET Framework app), pass `hashAlgorithm: HashAlgorithmName.SHA1` on **both** ends: the default SHA256 key derivation throws `PlatformNotSupportedException` there, and the keys only match when both ends use the same algorithm |
+| `EncryptionKey` | `new ZerraEncryptor(key, SymmetricAlgorithmType.AES_GCM)`, the same key on both ends. An encryptor is optional, like the key was. If either end runs on `netstandard2.0` (a .NET Framework app), use `AES_CBC_HMAC` on both ends instead, since `AES_GCM` throws `PlatformNotSupportedException` there |
 
 **Only register what this service actually uses.** A service no longer needs to know about interfaces it neither hosts nor calls.
 
@@ -298,7 +299,7 @@ bus.AddHandler<ILogNoteCommandProvider>(new LogNoteCommandProvider());
 
 //2. what this service hosts
 var serializer = new ZerraByteSerializer();
-var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AESwithPrefix);
+var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AES_GCM);
 var server = new TcpCqrsServer(domainServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryServer<ILogNoteQueryProvider>(server);
 bus.AddCommandConsumer<ILogNoteCommandProvider>(server);
@@ -334,7 +335,7 @@ public static IBusSetup StartServices(string serviceName, IRepo? repo)
     var bus = Bus.New(serviceName, logger, new BusLogger(), busServices);
 
     var serializer = new ZerraByteSerializer();
-    var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AESwithPrefix);
+    var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AES_GCM);
 
     if (serviceName == "MyApp.Service.Email")
     {
@@ -400,7 +401,7 @@ Startup order for a service:
 - **Custom gateways calling `ApiServerHandler` directly** (for example an `IHttpHandler` in an ASP.NET Web Forms app): `HandleRequestAsync(ContentType? accept, data, token)` became `HandleRequestAsync(bus, serializer, responseSerializer, data, argumentStream, token)`. Deserialize the `ApiRequestData` yourself with the `ISerializer` that matches the request's content type (`ZerraByteSerializer`, `ZerraJsonSerializer`, or `new ZerraJsonSerializer(new JsonSerializerOptions() { Nameless = true })`). `ApiResponseData.Bytes` is gone: write `response.Stream` when it's set, otherwise `await response.Serializer.SerializeAsync(outputStream, response.Model, token)`. `Void` still means an empty 200.
 - **.NET Framework web apps** have no `Program.cs`. Build the bus in `Application_Start`, keep it in a static property for handlers and pages, and call `StopServices` in `Application_End`. Interfaces the app handled in-process in v5 (found by discovery, with no client in `cqrssettings.json`) need `AddHandler` there.
 - **In ASP.NET projects `ILogger` is ambiguous** with Microsoft's, so write `Zerra.Logging.ILogger`.
-- Cookie or token protectors that used `SymmetricAlgorithmType.AESwithShift` can switch to `AESwithPrefix`. Values issued before the switch stop decrypting, so users sign in again. Keep `AESwithShift` if that isn't acceptable.
+- Cookie or token protectors that used `SymmetricAlgorithmType.AESwithShift` can switch to `SymmetricEncryptor` with `AES_GCM`. Values issued before the switch stop decrypting, so users sign in again. If that isn't acceptable, keep `SymmetricEncryptorOld` with `SymmetricAlgorithmTypeOld.AESwithShift`.
 
 ## 9. Configuration
 
@@ -438,13 +439,17 @@ A solution that relies heavily on a removed helper can keep it. Examples are `Co
 | `QueryStringSerializer` | Removed |
 | `MapperWithLog`, `IMapLogger` | Removed. `Mapper.Map`/`MapTo`/`Copy` remain |
 | `SymmetricConfig` for network encryption | `IEncryptor` (`ZerraEncryptor`) |
-| `SymmetricAlgorithmType.AESwithShift` (and DES/TripleDES/RC2 `withShift`) | `[Obsolete]`, use `AESwithPrefix` for new data. The enum's numbers changed (`AESwithShift` was 4 and is now 8), so remap any stored enum numbers |
+| `SymmetricAlgorithmType.AESwithShift` and plain `AES` | Moved to `SymmetricAlgorithmTypeOld`, used by `SymmetricEncryptorOld` and `ZerraEncryptorOld` for data v5 encrypted, with the same numbers (`AES` is 0, `AESwithShift` is 4). Use `AES_GCM` for new data, or `AES_CBC_HMAC` when a .NET Framework service shares the key |
+| `DES`, `TripleDES`, `RC2`, and their `withShift` modes | Removed. Decrypt that data with v5 and encrypt it again with `AES_GCM` before upgrading |
 | `NetworkType`, `IServiceCreator`, `ServiceSettings`, `ServiceQuerySetting`, `ServiceMessageSetting` | Removed with `cqrssettings.json` |
 | `StringExtensions` (`ToInt32`, `ToGuid`, `Truncate`, ...) | Still in the global namespace. Numbers and dates now parse with the invariant culture; pass `provider: CultureInfo.CurrentCulture` to parse in the machine's culture as v5 did |
 | `EnumName.Parse`, `EnumName.TryParse`, `ToEnum`, `ToEnumNullable` | Unchanged API, but names are now matched case-sensitively; v5 ignored case. `TryParse` returns false and `Parse` throws for a name that differs only in case. Values the application wrote itself with `EnumName()` still match. Check calls that parse text from outside the application (provider data, user input, files), and match case-insensitively there yourself where needed |
 | `StreamExtensions` (`stream.ToArray()`, `stream.ToArrayAsync()`, ...) | Moved from `namespace System.IO` to `Zerra.IO`. Add `using Zerra.IO;`. Without it, `ToArrayAsync()` on a `Stream` binds to `System.Linq.AsyncEnumerable` and fails with CS0411 |
-| `SymmetricConfig`, `SymmetricEncryptor` with `AESwithShift` for stored data | Still available for data at rest. Keep `AESwithShift` for existing data (suppress CS0612); use `AESwithPrefix` for data that only lives in memory |
-| `AsynmmetricEncryptor` | Renamed `AsymmetricEncryptor`, fixing the spelling |
+| `SymmetricConfig`, `SymmetricKey`, `SymmetricBlockSize`, `SymmetricEncryptor.GetKey` | Removed. Keys are `byte[]`: `SymmetricEncryptor.DeriveKey(password)` or `GenerateKey()`. For data v5 encrypted, `SymmetricEncryptorOld.DeriveKey(password)` returns the key and IV `GetKey` did, and its `Encrypt` and `Decrypt` take them |
+| `AsynmmetricEncryptor` | Renamed `AsymmetricEncryptor`, fixing the spelling. `Encrypt` and `Decrypt` replace `RSAEncrypt` and `RSADecrypt`; keys are now PEM and the output is standard JWE, so v5 keys (XML) and data can't be used. Generate new keys and decrypt any stored v5 data with v5 first. `Encrypt` takes an `AsymmetricAlgorithmType`; use `RSA_OAEP_A256CBC_HS512` on .NET Framework |
+| `HashAlgoritmType` | Renamed `HashAlgorithmType`, without `MD5` and `SHA1`. The numbers are unchanged |
+| `Hasher.PBKDF2GenerateHash`, `PBKDF2VerifyHash` | Now a PHC string with the algorithm and iterations, SHA-256 with 600,000 iterations by default. Check stored v5 hashes with `HasherOld.PBKDF2VerifyHash`, and when it matches, store `Hasher.PBKDF2GenerateHash` of the password in its place |
+| `Hasher.GenerateHash` and `VerifyHash` with `MD5` or `SHA1` | `HasherOld`, with `HashAlgorithmTypeOld` |
 
 ### Reflection
 
@@ -504,7 +509,7 @@ Replace them in this order and stop where the change would spread through too mu
 
 ## 12. Verify
 
-1. Build the whole solution with no errors. Fix obsolete warnings for `AESwithShift` only where the old algorithm is still needed.
+1. Build the whole solution with no errors.
 2. Run each service and the web app, and pass a logger to every `Bus.New`. Look for:
    - `Cannot add ...` messages: wrong registration kind, duplicates, or a type registered as both client and server.
    - `No handler registered for ...` / `No handler or client registered for ...`: missing `AddHandler`, `AddQueryClient`, or `AddCommandProducer` for something that is called.
@@ -512,6 +517,6 @@ Replace them in this order and stop where the change would spread through too mu
    - `does not implement IHandler`: a handler class still missing `BaseHandler`.
    - `Bus not initialized. Call Bus.New to initialize.`: a static `Bus` call ran before `Bus.New`, often in a static field initializer or in background work started from a handler's static constructor.
 3. Exercise one query, one command, and one event across each pair of services, and check the event consumer mode chosen for each subscriber.
-4. Read existing encrypted data through the repository to confirm the encryption providers still use `AESwithShift`.
+4. Read existing encrypted data through the repository to confirm the encryption providers use `ZerraEncryptorOld` with the v5 password.
 5. Make a call that fails in another service and check the caller still handles it, since the exception now arrives as a `RemoteServiceException` (see [Remote Exceptions](#remote-exceptions)).
 6. Run the unit tests. Failures such as `Handler not initialized`, `No handler or client registered for ...`, `Cannot create instance of ...` and `method not found` in a type initializer point back to [Handlers](#4-handlers), [Serialization and Mapping](#serialization-and-mapping) and [Reflection](#reflection).

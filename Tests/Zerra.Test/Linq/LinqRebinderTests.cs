@@ -1026,7 +1026,10 @@ namespace Zerra.Test.Linq
                     Expression.Throw(Expression.New(typeof(InvalidOperationException))),
                     Expression.Block(typeof(void), Expression.AddAssign(v, Expression.Constant(100))),
                     Expression.Catch(e, Expression.Block(typeof(void), Expression.AddAssign(v, Expression.Constant(10))))),
+#if !NETSTANDARD2_0
+                //.NET Framework's expression compiler can't emit fault blocks
                 Expression.TryFault(Expression.Empty(), Expression.Empty()),
+#endif
                 Expression.Switch(
                     Expression.Property(x, nameof(Model.Int)),
                     Expression.Empty(),
@@ -1162,8 +1165,14 @@ namespace Zerra.Test.Linq
                 Expression.Assign(v, Expression.Convert(Expression.Dynamic(new PassThroughBinder(), typeof(object), boxed), typeof(int))),
                 Expression.IfThen(Expression.LessThan(v, Expression.Constant(int.MinValue)), Expression.Throw(Expression.New(typeof(InvalidOperationException).GetConstructor([typeof(string)])!, Expression.Call(boxed, typeof(object).GetMethod(nameof(ToString))!)))),
                 Expression.TryFinally(Expression.Assign(v, v), Expression.Assign(v, v)),
+#if !NETSTANDARD2_0
+                //.NET Framework's expression compiler can't emit fault blocks
                 Expression.TryFault(Expression.Assign(v, v), Expression.Assign(v, v)),
+#endif
+#if !NETSTANDARD2_0
+                //.NET Framework's expression compiler can't emit exception filters
                 Expression.TryCatch(Expression.Assign(v, v), Expression.Catch(Expression.Parameter(typeof(Exception), "ex"), Expression.Assign(v, zero), Expression.Equal(v, zero))),
+#endif
                 Expression.RuntimeVariables(v),
                 Expression.Label(label),
                 Expression.DebugInfo(Expression.SymbolDocument("rebinder"), 1, 1, 1, 2),

@@ -12,7 +12,7 @@ Handlers are called the same way whether they live in the same process, across T
 
 ## Why Zerra
 
-- **Location-transparent calls.** `bus.Call<IUserQueryHandler>().GetUserById(id)` is a typed method call, local or remote. No controllers, routes, or hand-written HTTP clients.
+- **Location-transparent calls.** `bus.Call<IUserQueryHandler>().GetUserById(id)` is a typed method call, local or remote. No controllers, routes, or hand-written HTTP clients. A remote call can still time out or fail where a local one wouldn't, so the [failure handling](docs/Reliability.md#remote-calls-look-local) is spelled out too.
 - **Deploy as you need.** Start as one process, split into microservices later, or test every handler in memory, all with the same handlers and callers.
 - **Clear message semantics.** Queries read, commands change state and are handled by one replica, events notify every subscriber. Per-replica or per-service delivery is an explicit choice for each subscriber, and the [delivery guarantees](docs/Reliability.md) are documented for each transport. [Resilient commands](docs/Reliability.md#resilient-commands) can survive a crash mid-handler.
 - **Fast by design.** Source generators replace runtime reflection, the binary serializer is compact, and everything is Native AOT compatible.

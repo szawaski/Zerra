@@ -14,7 +14,7 @@ namespace Zerra.Test.CQRS
         {
             var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
-            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var handler = new ShutdownQueryHandler();
             var busServer = Bus.New("test-server", null, null, null);
@@ -42,7 +42,7 @@ namespace Zerra.Test.CQRS
         {
             var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
-            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var handler = new ShutdownQueryHandler();
             var busServer = Bus.New("test-server", null, null, null);
@@ -68,7 +68,7 @@ namespace Zerra.Test.CQRS
         {
             var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
-            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var handler = new ShutdownQueryHandler();
             var busServer = Bus.New("test-server", null, null, null);
@@ -94,7 +94,7 @@ namespace Zerra.Test.CQRS
         {
             var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
-            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var handler = new ShutdownCommandHandler();
             var busServer = Bus.New("test-server", null, null, null);
@@ -121,7 +121,7 @@ namespace Zerra.Test.CQRS
         {
             var url = TestNetwork.NewUrl();
             var serializer = new ZerraByteSerializer();
-            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES);
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var handler = new ShutdownCommandHandler();
             var busServer = Bus.New("test-server", null, null, null, shutdownTimeout: TimeSpan.FromMilliseconds(300));

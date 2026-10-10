@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net48</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <NoWarn>CS8632</NoWarn>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <IsPackable>false</IsPackable>
+        <Authors>Steven Zawaski</Authors>
+        <Copyright>KaKush LLC</Copyright>
+        <Product>Zerra Framework</Product>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <LangVersion>14.0</LangVersion>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <!--Tests Zerra's netstandard2.0 build, so the shared tests use the same checks as Zerra-->
+        <DefineConstants>$(DefineConstants);NETSTANDARD2_0</DefineConstants>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\..\LICENSE">
+            <Pack>True</Pack>
+            <PackagePath></PackagePath>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+        <PackageReference Include="xunit.v3" Version="4.0.1" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="coverlet.collector" Version="10.0.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="..\Zerra.Test\GlobalSuppressions.cs" Link="GlobalSuppressions.cs" />
+        <Compile Include="..\Zerra.Test\Helpers\**\*.cs" Exclude="..\Zerra.Test\Helpers\NewtonsoftDateOnlyConverter.cs;..\Zerra.Test\Helpers\NewtonsoftTimeOnlyConverter.cs" Link="Helpers\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\Serialization\**\*.cs" Link="Serialization\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\ByteSerializer\**\*.cs" Link="ByteSerializer\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\JsonSerializer\**\*.cs" Link="JsonSerializer\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\IO\**\*.cs" Link="IO\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\Compression\**\*.cs" Exclude="..\Zerra.Test\Compression\ExactEndCompressor.cs" Link="Compression\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\Collections\**\*.cs" Link="Collections\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\Map\**\*.cs" Link="Map\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\Buffers\**\*.cs" Link="Buffers\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\Reflection\**\*.cs" Exclude="..\Zerra.Test\Reflection\Dynamic\DiscoveryTests.cs" Link="Reflection\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\Linq\**\*.cs" Link="Linq\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\Extensions\**\*.cs" Link="Extensions\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\GraphTests.cs;..\Zerra.Test\GraphEdgeTests.cs;..\Zerra.Test\EnumNameTests.cs" />
+    </ItemGroup>
+
+</Project>

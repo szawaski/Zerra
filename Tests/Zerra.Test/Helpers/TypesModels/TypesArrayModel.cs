@@ -25,7 +25,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public DateTime[] DateTimeArray { get; set; }
         public DateTimeOffset[] DateTimeOffsetArray { get; set; }
         public TimeSpan[] TimeSpanArray { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public DateOnly[] DateOnlyArray { get; set; }
         public TimeOnly[] TimeOnlyArray { get; set; }
 #endif
@@ -47,7 +47,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public DateTime[] DateTimeArrayEmpty { get; set; }
         public DateTimeOffset[] DateTimeOffsetArrayEmpty { get; set; }
         public TimeSpan[] TimeSpanArrayEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public DateOnly[] DateOnlyArrayEmpty { get; set; }
         public TimeOnly[] TimeOnlyArrayEmpty { get; set; }
 #endif
@@ -69,7 +69,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public DateTime[] DateTimeArrayNull { get; set; }
         public DateTimeOffset[] DateTimeOffsetArrayNull { get; set; }
         public TimeSpan[] TimeSpanArrayNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public DateOnly[] DateOnlyArrayNull { get; set; }
         public TimeOnly[] TimeOnlyArrayNull { get; set; }
 #endif
@@ -91,7 +91,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public DateTime?[] DateTimeArrayNullable { get; set; }
         public DateTimeOffset?[] DateTimeOffsetArrayNullable { get; set; }
         public TimeSpan?[] TimeSpanArrayNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public DateOnly?[] DateOnlyArrayNullable { get; set; }
         public TimeOnly?[] TimeOnlyArrayNullable { get; set; }
 #endif
@@ -113,7 +113,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public DateTime?[] DateTimeArrayNullableEmpty { get; set; }
         public DateTimeOffset?[] DateTimeOffsetArrayNullableEmpty { get; set; }
         public TimeSpan?[] TimeSpanArrayNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public DateOnly?[] DateOnlyArrayNullableEmpty { get; set; }
         public TimeOnly?[] TimeOnlyArrayNullableEmpty { get; set; }
 #endif
@@ -135,7 +135,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public DateTime?[] DateTimeArrayNullableNull { get; set; }
         public DateTimeOffset?[] DateTimeOffsetArrayNullableNull { get; set; }
         public TimeSpan?[] TimeSpanArrayNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public DateOnly?[] DateOnlyArrayNullableNull { get; set; }
         public TimeOnly?[] TimeOnlyArrayNullableNull { get; set; }
 #endif
@@ -177,7 +177,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeArray = [DateTime.UtcNow.AddMonths(1), DateTime.UtcNow.AddMonths(2), DateTime.UtcNow.AddMonths(3)],
                 DateTimeOffsetArray = [DateTimeOffset.UtcNow.AddMonths(4), DateTimeOffset.UtcNow.AddMonths(5), DateTimeOffset.UtcNow.AddMonths(6)],
                 TimeSpanArray = [DateTime.UtcNow.AddHours(1).TimeOfDay, DateTime.UtcNow.AddHours(2).TimeOfDay, DateTime.UtcNow.AddHours(3).TimeOfDay],
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyArray = [DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(2)), DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3))],
                 TimeOnlyArray = [TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(2)), TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3))],
 #endif
@@ -199,7 +199,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeArrayEmpty = [],
                 DateTimeOffsetArrayEmpty = [],
                 TimeSpanArrayEmpty = [],
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyArrayEmpty = [],
                 TimeOnlyArrayEmpty = [],
 #endif
@@ -221,7 +221,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeArrayNull = null,
                 DateTimeOffsetArrayNull = null,
                 TimeSpanArrayNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyArrayNull = null,
                 TimeOnlyArrayNull = null,
 #endif
@@ -243,7 +243,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeArrayNullable = [DateTime.UtcNow.AddMonths(1), null, DateTime.UtcNow.AddMonths(3)],
                 DateTimeOffsetArrayNullable = [DateTimeOffset.UtcNow.AddMonths(4), null, DateTimeOffset.UtcNow.AddMonths(6)],
                 TimeSpanArrayNullable = [DateTime.UtcNow.AddHours(1).TimeOfDay, null, DateTime.UtcNow.AddHours(3).TimeOfDay],
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyArrayNullable = [DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)), null, DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(3))],
                 TimeOnlyArrayNullable = [TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(1)), null, TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3))],
 #endif
@@ -265,7 +265,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeArrayNullableEmpty = [],
                 DateTimeOffsetArrayNullableEmpty = [],
                 TimeSpanArrayNullableEmpty = [],
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyArrayNullableEmpty = [],
                 TimeOnlyArrayNullableEmpty = [],
 #endif
@@ -287,7 +287,7 @@ namespace Zerra.Test.Helpers.TypesModels
                 DateTimeArrayNullableNull = null,
                 DateTimeOffsetArrayNullableNull = null,
                 TimeSpanArrayNullableNull = null,
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
                 DateOnlyArrayNullableNull = null,
                 TimeOnlyArrayNullableNull = null,
 #endif

@@ -29,7 +29,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public string DateTimeThing { get; set; }
         public string DateTimeOffsetThing { get; set; }
         public string TimeSpanThing { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public string DateOnlyThing { get; set; }
         public string TimeOnlyThing { get; set; }
 #endif
@@ -51,7 +51,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public string DateTimeThingNullable { get; set; }
         public string DateTimeOffsetThingNullable { get; set; }
         public string TimeSpanThingNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public string DateOnlyThingNullable { get; set; }
         public string TimeOnlyThingNullable { get; set; }
 #endif
@@ -73,7 +73,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public string DateTimeThingNullableNull { get; set; }
         public string DateTimeOffsetThingNullableNull { get; set; }
         public string TimeSpanThingNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public string DateOnlyThingNullableNull { get; set; }
         public string TimeOnlyThingNullableNull { get; set; }
 #endif
@@ -107,7 +107,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public string[] DateTimeArray { get; set; }
         public string[] DateTimeOffsetArray { get; set; }
         public string[] TimeSpanArray { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public string[] DateOnlyArray { get; set; }
         public string[] TimeOnlyArray { get; set; }
 #endif
@@ -129,7 +129,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public string[] DateTimeArrayEmpty { get; set; }
         public string[] DateTimeOffsetArrayEmpty { get; set; }
         public string[] TimeSpanArrayEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public string[] DateOnlyArrayEmpty { get; set; }
         public string[] TimeOnlyArrayEmpty { get; set; }
 #endif
@@ -151,7 +151,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public string[] DateTimeArrayNull { get; set; }
         public string[] DateTimeOffsetArrayNull { get; set; }
         public string[] TimeSpanArrayNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public string[] DateOnlyArrayNull { get; set; }
         public string[] TimeOnlyArrayNull { get; set; }
 #endif
@@ -173,7 +173,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public string[] DateTimeArrayNullable { get; set; }
         public string[] DateTimeOffsetArrayNullable { get; set; }
         public string[] TimeSpanArrayNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public string[] DateOnlyArrayNullable { get; set; }
         public string[] TimeOnlyArrayNullable { get; set; }
 #endif
@@ -195,7 +195,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public string[] DateTimeArrayNullableEmpty { get; set; }
         public string[] DateTimeOffsetArrayNullableEmpty { get; set; }
         public string[] TimeSpanArrayNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public string[] DateOnlyArrayNullableEmpty { get; set; }
         public string[] TimeOnlyArrayNullableEmpty { get; set; }
 #endif
@@ -217,7 +217,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public string[] DateTimeArrayNullableNull { get; set; }
         public string[] DateTimeOffsetArrayNullableNull { get; set; }
         public string[] TimeSpanArrayNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public string[] DateOnlyArrayNullableNull { get; set; }
         public string[] TimeOnlyArrayNullableNull { get; set; }
 #endif
@@ -251,7 +251,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public List<string> DateTimeListT { get; set; }
         public List<string> DateTimeOffsetListT { get; set; }
         public List<string> TimeSpanListT { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public List<string> DateOnlyListT { get; set; }
         public List<string> TimeOnlyListT { get; set; }
 #endif
@@ -273,7 +273,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public List<string> DateTimeListTEmpty { get; set; }
         public List<string> DateTimeOffsetListTEmpty { get; set; }
         public List<string> TimeSpanListTEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public List<string> DateOnlyListTEmpty { get; set; }
         public List<string> TimeOnlyListTEmpty { get; set; }
 #endif
@@ -295,7 +295,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public List<string> DateTimeListTNull { get; set; }
         public List<string> DateTimeOffsetListTNull { get; set; }
         public List<string> TimeSpanListTNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public List<string> DateOnlyListTNull { get; set; }
         public List<string> TimeOnlyListTNull { get; set; }
 #endif
@@ -317,7 +317,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public List<string> DateTimeListTNullable { get; set; }
         public List<string> DateTimeOffsetListTNullable { get; set; }
         public List<string> TimeSpanListTNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public List<string> DateOnlyListTNullable { get; set; }
         public List<string> TimeOnlyListTNullable { get; set; }
 #endif
@@ -339,7 +339,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public List<string> DateTimeListTNullableEmpty { get; set; }
         public List<string> DateTimeOffsetListTNullableEmpty { get; set; }
         public List<string> TimeSpanListTNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public List<string> DateOnlyListTNullableEmpty { get; set; }
         public List<string> TimeOnlyListTNullableEmpty { get; set; }
 #endif
@@ -361,7 +361,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public List<string> DateTimeListTNullableNull { get; set; }
         public List<string> DateTimeOffsetListTNullableNull { get; set; }
         public List<string> TimeSpanListTNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public List<string> DateOnlyListTNullableNull { get; set; }
         public List<string> TimeOnlyListTNullableNull { get; set; }
 #endif
@@ -395,7 +395,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IList<string> DateTimeIListT { get; set; }
         public IList<string> DateTimeOffsetIListT { get; set; }
         public IList<string> TimeSpanIListT { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IList<string> DateOnlyIListT { get; set; }
         public IList<string> TimeOnlyIListT { get; set; }
 #endif
@@ -417,7 +417,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IList<string> DateTimeIListTEmpty { get; set; }
         public IList<string> DateTimeOffsetIListTEmpty { get; set; }
         public IList<string> TimeSpanIListTEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IList<string> DateOnlyIListTEmpty { get; set; }
         public IList<string> TimeOnlyIListTEmpty { get; set; }
 #endif
@@ -439,7 +439,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IList<string> DateTimeIListTNull { get; set; }
         public IList<string> DateTimeOffsetIListTNull { get; set; }
         public IList<string> TimeSpanIListTNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IList<string> DateOnlyIListTNull { get; set; }
         public IList<string> TimeOnlyIListTNull { get; set; }
 #endif
@@ -461,7 +461,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IList<string> DateTimeIListTNullable { get; set; }
         public IList<string> DateTimeOffsetIListTNullable { get; set; }
         public IList<string> TimeSpanIListTNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IList<string> DateOnlyIListTNullable { get; set; }
         public IList<string> TimeOnlyIListTNullable { get; set; }
 #endif
@@ -483,7 +483,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IList<string> DateTimeIListTNullableEmpty { get; set; }
         public IList<string> DateTimeOffsetIListTNullableEmpty { get; set; }
         public IList<string> TimeSpanIListTNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IList<string> DateOnlyIListTNullableEmpty { get; set; }
         public IList<string> TimeOnlyIListTNullableEmpty { get; set; }
 #endif
@@ -505,7 +505,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IList<string> DateTimeIListTNullableNull { get; set; }
         public IList<string> DateTimeOffsetIListTNullableNull { get; set; }
         public IList<string> TimeSpanIListTNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IList<string> DateOnlyIListTNullableNull { get; set; }
         public IList<string> TimeOnlyIListTNullableNull { get; set; }
 #endif
@@ -539,7 +539,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyList<string> DateTimeIReadOnlyListT { get; set; }
         public IReadOnlyList<string> DateTimeOffsetIReadOnlyListT { get; set; }
         public IReadOnlyList<string> TimeSpanIReadOnlyListT { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyList<string> DateOnlyIReadOnlyListT { get; set; }
         public IReadOnlyList<string> TimeOnlyIReadOnlyListT { get; set; }
 #endif
@@ -561,7 +561,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyList<string> DateTimeIReadOnlyListTEmpty { get; set; }
         public IReadOnlyList<string> DateTimeOffsetIReadOnlyListTEmpty { get; set; }
         public IReadOnlyList<string> TimeSpanIReadOnlyListTEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyList<string> DateOnlyIReadOnlyListTEmpty { get; set; }
         public IReadOnlyList<string> TimeOnlyIReadOnlyListTEmpty { get; set; }
 #endif
@@ -583,7 +583,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyList<string> DateTimeIReadOnlyListTNull { get; set; }
         public IReadOnlyList<string> DateTimeOffsetIReadOnlyListTNull { get; set; }
         public IReadOnlyList<string> TimeSpanIReadOnlyListTNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyList<string> DateOnlyIReadOnlyListTNull { get; set; }
         public IReadOnlyList<string> TimeOnlyIReadOnlyListTNull { get; set; }
 #endif
@@ -605,7 +605,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyList<string> DateTimeIReadOnlyListTNullable { get; set; }
         public IReadOnlyList<string> DateTimeOffsetIReadOnlyListTNullable { get; set; }
         public IReadOnlyList<string> TimeSpanIReadOnlyListTNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyList<string> DateOnlyIReadOnlyListTNullable { get; set; }
         public IReadOnlyList<string> TimeOnlyIReadOnlyListTNullable { get; set; }
 #endif
@@ -627,7 +627,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyList<string> DateTimeIReadOnlyListTNullableEmpty { get; set; }
         public IReadOnlyList<string> DateTimeOffsetIReadOnlyListTNullableEmpty { get; set; }
         public IReadOnlyList<string> TimeSpanIReadOnlyListTNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyList<string> DateOnlyIReadOnlyListTNullableEmpty { get; set; }
         public IReadOnlyList<string> TimeOnlyIReadOnlyListTNullableEmpty { get; set; }
 #endif
@@ -649,7 +649,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyList<string> DateTimeIReadOnlyListTNullableNull { get; set; }
         public IReadOnlyList<string> DateTimeOffsetIReadOnlyListTNullableNull { get; set; }
         public IReadOnlyList<string> TimeSpanIReadOnlyListTNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyList<string> DateOnlyIReadOnlyListTNullableNull { get; set; }
         public IReadOnlyList<string> TimeOnlyIReadOnlyListTNullableNull { get; set; }
 #endif
@@ -683,7 +683,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IList DateTimeIReadOnlyList { get; set; }
         public IList DateTimeOffsetIReadOnlyList { get; set; }
         public IList TimeSpanIReadOnlyList { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IList DateOnlyIReadOnlyList { get; set; }
         public IList TimeOnlyIReadOnlyList { get; set; }
 #endif
@@ -705,7 +705,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IList DateTimeIReadOnlyListEmpty { get; set; }
         public IList DateTimeOffsetIReadOnlyListEmpty { get; set; }
         public IList TimeSpanIReadOnlyListEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IList DateOnlyIReadOnlyListEmpty { get; set; }
         public IList TimeOnlyIReadOnlyListEmpty { get; set; }
 #endif
@@ -727,7 +727,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IList DateTimeIReadOnlyListNull { get; set; }
         public IList DateTimeOffsetIReadOnlyListNull { get; set; }
         public IList TimeSpanIReadOnlyListNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IList DateOnlyIReadOnlyListNull { get; set; }
         public IList TimeOnlyIReadOnlyListNull { get; set; }
 #endif
@@ -749,7 +749,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IList DateTimeIReadOnlyListNullable { get; set; }
         public IList DateTimeOffsetIReadOnlyListNullable { get; set; }
         public IList TimeSpanIReadOnlyListNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IList DateOnlyIReadOnlyListNullable { get; set; }
         public IList TimeOnlyIReadOnlyListNullable { get; set; }
 #endif
@@ -771,7 +771,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IList DateTimeIReadOnlyListNullableEmpty { get; set; }
         public IList DateTimeOffsetIReadOnlyListNullableEmpty { get; set; }
         public IList TimeSpanIReadOnlyListNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IList DateOnlyIReadOnlyListNullableEmpty { get; set; }
         public IList TimeOnlyIReadOnlyListNullableEmpty { get; set; }
 #endif
@@ -793,7 +793,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IList DateTimeIReadOnlyListNullableNull { get; set; }
         public IList DateTimeOffsetIReadOnlyListNullableNull { get; set; }
         public IList TimeSpanIReadOnlyListNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IList DateOnlyIReadOnlyListNullableNull { get; set; }
         public IList TimeOnlyIReadOnlyListNullableNull { get; set; }
 #endif
@@ -827,7 +827,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ICollection<string> DateTimeICollectionT { get; set; }
         public ICollection<string> DateTimeOffsetICollectionT { get; set; }
         public ICollection<string> TimeSpanICollectionT { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ICollection<string> DateOnlyICollectionT { get; set; }
         public ICollection<string> TimeOnlyICollectionT { get; set; }
 #endif
@@ -849,7 +849,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ICollection<string> DateTimeICollectionTEmpty { get; set; }
         public ICollection<string> DateTimeOffsetICollectionTEmpty { get; set; }
         public ICollection<string> TimeSpanICollectionTEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ICollection<string> DateOnlyICollectionTEmpty { get; set; }
         public ICollection<string> TimeOnlyICollectionTEmpty { get; set; }
 #endif
@@ -871,7 +871,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ICollection<string> DateTimeICollectionTNull { get; set; }
         public ICollection<string> DateTimeOffsetICollectionTNull { get; set; }
         public ICollection<string> TimeSpanICollectionTNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ICollection<string> DateOnlyICollectionTNull { get; set; }
         public ICollection<string> TimeOnlyICollectionTNull { get; set; }
 #endif
@@ -893,7 +893,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ICollection<string> DateTimeICollectionTNullable { get; set; }
         public ICollection<string> DateTimeOffsetICollectionTNullable { get; set; }
         public ICollection<string> TimeSpanICollectionTNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ICollection<string> DateOnlyICollectionTNullable { get; set; }
         public ICollection<string> TimeOnlyICollectionTNullable { get; set; }
 #endif
@@ -915,7 +915,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ICollection<string> DateTimeICollectionTNullableEmpty { get; set; }
         public ICollection<string> DateTimeOffsetICollectionTNullableEmpty { get; set; }
         public ICollection<string> TimeSpanICollectionTNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ICollection<string> DateOnlyICollectionTNullableEmpty { get; set; }
         public ICollection<string> TimeOnlyICollectionTNullableEmpty { get; set; }
 #endif
@@ -937,7 +937,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ICollection<string> DateTimeICollectionTNullableNull { get; set; }
         public ICollection<string> DateTimeOffsetICollectionTNullableNull { get; set; }
         public ICollection<string> TimeSpanICollectionTNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ICollection<string> DateOnlyICollectionTNullableNull { get; set; }
         public ICollection<string> TimeOnlyICollectionTNullableNull { get; set; }
 #endif
@@ -971,7 +971,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyCollection<string> DateTimeIReadOnlyCollectionT { get; set; }
         public IReadOnlyCollection<string> DateTimeOffsetIReadOnlyCollectionT { get; set; }
         public IReadOnlyCollection<string> TimeSpanIReadOnlyCollectionT { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyCollection<string> DateOnlyIReadOnlyCollectionT { get; set; }
         public IReadOnlyCollection<string> TimeOnlyIReadOnlyCollectionT { get; set; }
 #endif
@@ -993,7 +993,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyCollection<string> DateTimeIReadOnlyCollectionTEmpty { get; set; }
         public IReadOnlyCollection<string> DateTimeOffsetIReadOnlyCollectionTEmpty { get; set; }
         public IReadOnlyCollection<string> TimeSpanIReadOnlyCollectionTEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyCollection<string> DateOnlyIReadOnlyCollectionTEmpty { get; set; }
         public IReadOnlyCollection<string> TimeOnlyIReadOnlyCollectionTEmpty { get; set; }
 #endif
@@ -1015,7 +1015,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyCollection<string> DateTimeIReadOnlyCollectionTNull { get; set; }
         public IReadOnlyCollection<string> DateTimeOffsetIReadOnlyCollectionTNull { get; set; }
         public IReadOnlyCollection<string> TimeSpanIReadOnlyCollectionTNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyCollection<string> DateOnlyIReadOnlyCollectionTNull { get; set; }
         public IReadOnlyCollection<string> TimeOnlyIReadOnlyCollectionTNull { get; set; }
 #endif
@@ -1037,7 +1037,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyCollection<string> DateTimeIReadOnlyCollectionTNullable { get; set; }
         public IReadOnlyCollection<string> DateTimeOffsetIReadOnlyCollectionTNullable { get; set; }
         public IReadOnlyCollection<string> TimeSpanIReadOnlyCollectionTNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyCollection<string> DateOnlyIReadOnlyCollectionTNullable { get; set; }
         public IReadOnlyCollection<string> TimeOnlyIReadOnlyCollectionTNullable { get; set; }
 #endif
@@ -1059,7 +1059,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyCollection<string> DateTimeIReadOnlyCollectionTNullableEmpty { get; set; }
         public IReadOnlyCollection<string> DateTimeOffsetIReadOnlyCollectionTNullableEmpty { get; set; }
         public IReadOnlyCollection<string> TimeSpanIReadOnlyCollectionTNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyCollection<string> DateOnlyIReadOnlyCollectionTNullableEmpty { get; set; }
         public IReadOnlyCollection<string> TimeOnlyIReadOnlyCollectionTNullableEmpty { get; set; }
 #endif
@@ -1081,7 +1081,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public IReadOnlyCollection<string> DateTimeIReadOnlyCollectionTNullableNull { get; set; }
         public IReadOnlyCollection<string> DateTimeOffsetIReadOnlyCollectionTNullableNull { get; set; }
         public IReadOnlyCollection<string> TimeSpanIReadOnlyCollectionTNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public IReadOnlyCollection<string> DateOnlyIReadOnlyCollectionTNullableNull { get; set; }
         public IReadOnlyCollection<string> TimeOnlyIReadOnlyCollectionTNullableNull { get; set; }
 #endif
@@ -1115,7 +1115,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ICollection DateTimeICollection { get; set; }
         public ICollection DateTimeOffsetICollection { get; set; }
         public ICollection TimeSpanICollection { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ICollection DateOnlyICollection { get; set; }
         public ICollection TimeOnlyICollection { get; set; }
 #endif
@@ -1137,7 +1137,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ICollection DateTimeICollectionEmpty { get; set; }
         public ICollection DateTimeOffsetICollectionEmpty { get; set; }
         public ICollection TimeSpanICollectionEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ICollection DateOnlyICollectionEmpty { get; set; }
         public ICollection TimeOnlyICollectionEmpty { get; set; }
 #endif
@@ -1159,7 +1159,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ICollection DateTimeICollectionNull { get; set; }
         public ICollection DateTimeOffsetICollectionNull { get; set; }
         public ICollection TimeSpanICollectionNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ICollection DateOnlyICollectionNull { get; set; }
         public ICollection TimeOnlyICollectionNull { get; set; }
 #endif
@@ -1181,7 +1181,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ICollection DateTimeICollectionNullable { get; set; }
         public ICollection DateTimeOffsetICollectionNullable { get; set; }
         public ICollection TimeSpanICollectionNullable { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ICollection DateOnlyICollectionNullable { get; set; }
         public ICollection TimeOnlyICollectionNullable { get; set; }
 #endif
@@ -1203,7 +1203,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ICollection DateTimeICollectionNullableEmpty { get; set; }
         public ICollection DateTimeOffsetICollectionNullableEmpty { get; set; }
         public ICollection TimeSpanICollectionNullableEmpty { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ICollection DateOnlyICollectionNullableEmpty { get; set; }
         public ICollection TimeOnlyICollectionNullableEmpty { get; set; }
 #endif
@@ -1225,7 +1225,7 @@ namespace Zerra.Test.Helpers.TypesModels
         public ICollection DateTimeICollectionNullableNull { get; set; }
         public ICollection DateTimeOffsetICollectionNullableNull { get; set; }
         public ICollection TimeSpanICollectionNullableNull { get; set; }
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
         public ICollection DateOnlyICollectionNullableNull { get; set; }
         public ICollection TimeOnlyICollectionNullableNull { get; set; }
 #endif
@@ -1320,7 +1320,7 @@ namespace Zerra.Test.Helpers.TypesModels
             Assert.Equal(model1.DateTimeThing, DateTime.Parse(model2.DateTimeThing, null, DateTimeStyles.RoundtripKind)); //extra zeros removed at end of fractional sectons
             Assert.Equal(model1.DateTimeOffsetThing, DateTimeOffset.Parse(model2.DateTimeOffsetThing, null, DateTimeStyles.RoundtripKind));//extra zeros removed at end of fractional sectons
             Assert.Equal(model1.TimeSpanThing, TimeSpan.Parse(model2.TimeSpanThing));
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
             Assert.Equal(model1.DateOnlyThing, DateOnly.Parse(model2.DateOnlyThing)); //extra zeros removed at end of fractional sectons
             Assert.Equal(model1.TimeOnlyThing, TimeOnly.Parse(model2.TimeOnlyThing));
 #endif
@@ -1342,7 +1342,7 @@ namespace Zerra.Test.Helpers.TypesModels
             Assert.Equal(model1.DateTimeThingNullable, DateTime.Parse(model2.DateTimeThingNullable, null, DateTimeStyles.RoundtripKind));//extra zeros removed at end of fractional sectons
             Assert.Equal(model1.DateTimeOffsetThingNullable, DateTimeOffset.Parse(model2.DateTimeOffsetThingNullable));//extra zeros removed at end of fractional sectons
             Assert.Equal(model1.TimeSpanThingNullable, TimeSpan.Parse(model2.TimeSpanThingNullable));
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
             Assert.Equal(model1.DateOnlyThingNullable, DateOnly.Parse(model2.DateOnlyThingNullable)); //extra zeros removed at end of fractional sectons
             Assert.Equal(model1.TimeOnlyThingNullable, TimeOnly.Parse(model2.TimeOnlyThingNullable));
 #endif
@@ -1363,7 +1363,7 @@ namespace Zerra.Test.Helpers.TypesModels
             Assert.Null(model1.DateTimeThingNullableNull);
             Assert.Null(model1.DateTimeOffsetThingNullableNull);
             Assert.Null(model1.TimeSpanThingNullableNull);
-#if NET6_0_OR_GREATER
+#if !NETSTANDARD2_0
             Assert.Null(model1.DateOnlyThingNullableNull);
             Assert.Null(model1.TimeOnlyThingNullableNull);
 #endif

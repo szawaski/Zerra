@@ -20,7 +20,11 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.Number:
                     if (reader.UseBytes)
                     {
+#if NETSTANDARD2_0
+                        if (!NetStandardNumberParsing.TryParseDouble(reader.ValueBytes, out value))
+#else
                         if (!Utf8Parser.TryParse(reader.ValueBytes, out value, out var consumed) || consumed != reader.ValueBytes.Length)
+#endif
                         {
                             if (state.ErrorOnReadMismatchedData || !reader.IsNumberValid())
                                 ThrowInvalidValue(ref reader);
@@ -32,7 +36,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     else
                     {
 #if NETSTANDARD2_0
-                        if (!Double.TryParse(reader.ValueChars.ToString(), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, NumberFormatInfo.InvariantInfo, out value))
+                        if (!NetStandardNumberParsing.TryParseDouble(reader.ValueChars.ToString(), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, NumberFormatInfo.InvariantInfo, out value))
 #else
                         if (!Double.TryParse(reader.ValueChars, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, NumberFormatInfo.InvariantInfo, out value))
 #endif
@@ -47,7 +51,11 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                 case JsonToken.String:
                     if (reader.UseBytes)
                     {
+#if NETSTANDARD2_0
+                        if (!NetStandardNumberParsing.TryParseDouble(reader.ValueBytes, out value))
+#else
                         if (!Utf8Parser.TryParse(reader.ValueBytes, out value, out var consumed) || reader.ValueBytes.Length != consumed)
+#endif
                         {
                             if (state.ErrorOnReadMismatchedData)
                                 ThrowCannotConvert(ref reader);
@@ -59,7 +67,7 @@ namespace Zerra.Serialization.Json.Converters.CoreTypes.Values
                     else
                     {
 #if NETSTANDARD2_0
-                        if (!Double.TryParse(reader.ValueChars.ToString(), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, NumberFormatInfo.InvariantInfo, out value))
+                        if (!NetStandardNumberParsing.TryParseDouble(reader.ValueChars.ToString(), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, NumberFormatInfo.InvariantInfo, out value))
 #else
                         if (!Double.TryParse(reader.ValueChars, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent, NumberFormatInfo.InvariantInfo, out value))
 #endif

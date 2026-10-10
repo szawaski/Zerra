@@ -3,55 +3,67 @@
 namespace Zerra.Encryption
 {
     /// <summary>
-    /// Provides symmetric encryption and decryption functionality using a configurable algorithm and key.
+    /// Provides symmetric encryption and decryption with a <see cref="SymmetricAlgorithmType"/> and a shared key.
+    /// For data encrypted by Zerra 5, use <see cref="ZerraEncryptorOld"/>.
     /// </summary>
     public sealed class ZerraEncryptor : IEncryptor
     {
         private const SymmetricKeySize defaultKeySize = SymmetricKeySize.Bits_256;
-        private const SymmetricBlockSize defaultBlockSize = SymmetricBlockSize.Bits_128;
         private static readonly HashAlgorithmName defaultHashAlgorithm = HashAlgorithmName.SHA256;
         private const int defaultDeriveBytesIterations = 1000;
 
-        private readonly SymmetricConfig config;
+        private readonly SymmetricAlgorithmType algorithm;
+        private readonly byte[] key;
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="ZerraEncryptor"/> class.
+        /// Initializes a new instance of the <see cref="ZerraEncryptor"/> class with a key derived from a password.
         /// </summary>
-        /// <param name="key">The encryption key as a string, which will be converted to a symmetric key.</param>
-        /// <param name="keySize">The size of the key.</param>
-        /// <param name="blockSize">The size of each encrypted block.</param>
+        /// <param name="key">The password the key is derived from, a long random one.</param>
         /// <param name="algorithm">The symmetric algorithm to use for encryption and decryption.</param>
+        /// <param name="keySize">The size of the key.</param>
         /// <param name="hashAlgorithm">The hash algorithm to use for the key derivation, default is SHA256.</param>
         /// <param name="deriveKeyIterations">The number of iterations to perform in the key derivation, default is 1000.</param>
-        public ZerraEncryptor(string key, SymmetricAlgorithmType algorithm, SymmetricKeySize keySize = defaultKeySize, SymmetricBlockSize blockSize = defaultBlockSize, HashAlgorithmName? hashAlgorithm = null, int deriveKeyIterations = defaultDeriveBytesIterations)
+        public ZerraEncryptor(string key, SymmetricAlgorithmType algorithm, SymmetricKeySize keySize = defaultKeySize, HashAlgorithmName? hashAlgorithm = null, int deriveKeyIterations = defaultDeriveBytesIterations)
         {
-            var symmetricKey = SymmetricEncryptor.GetKey(key, null, keySize, blockSize, hashAlgorithm ?? defaultHashAlgorithm, deriveKeyIterations);
-            config = new SymmetricConfig(algorithm, symmetricKey);
+            this.algorithm = algorithm;
+            this.key = SymmetricEncryptor.DeriveKey(key, null, keySize, hashAlgorithm ?? defaultHashAlgorithm, deriveKeyIterations);
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ZerraEncryptor"/> class with the key bytes.
+        /// </summary>
+        /// <param name="key">The key bytes, 16, 24, or 32 of them.</param>
+        /// <param name="algorithm">The symmetric algorithm to use for encryption and decryption.</param>
+        public ZerraEncryptor(byte[] key, SymmetricAlgorithmType algorithm)
+        {
+            this.algorithm = algorithm;
+            this.key = key ?? throw new ArgumentNullException(nameof(key));
         }
 
         /// <inheritdoc/>
         public byte[] Encrypt(byte[] bytes)
-            => SymmetricEncryptor.Encrypt(config, bytes);
+            => SymmetricEncryptor.Encrypt(algorithm, key, bytes);
 
         /// <inheritdoc/>
         public byte[] Decrypt(byte[] bytes)
-            => SymmetricEncryptor.Decrypt(config, bytes);
+            => SymmetricEncryptor.Decrypt(algorithm, key, bytes);
 
 #if !NETSTANDARD2_0
         /// <inheritdoc/>
         public Span<byte> Encrypt(ReadOnlySpan<byte> bytes)
-            => SymmetricEncryptor.Encrypt(config, bytes);
+            => SymmetricEncryptor.Encrypt(algorithm, key, bytes);
 
         /// <inheritdoc/>
         public Span<byte> Decrypt(ReadOnlySpan<byte> bytes)
-            => SymmetricEncryptor.Decrypt(config, bytes);
+            => SymmetricEncryptor.Decrypt(algorithm, key, bytes);
 #endif
 
         /// <inheritdoc/>
         public CryptoFlushStream Encrypt(Stream stream, bool write)
-            => SymmetricEncryptor.Encrypt(config, stream, write, false);
+            => SymmetricEncryptor.Encrypt(algorithm, key, stream, write, false);
 
         /// <inheritdoc/>
         public CryptoFlushStream Decrypt(Stream stream, bool write)
-            => SymmetricEncryptor.Decrypt(config, stream, write, false);
+            => SymmetricEncryptor.Decrypt(algorithm, key, stream, write, false);
     }
 }
