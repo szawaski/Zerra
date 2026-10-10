@@ -56,6 +56,7 @@
         <Compile Include="..\Zerra.Test\Reflection\**\*.cs" Exclude="..\Zerra.Test\Reflection\Dynamic\DiscoveryTests.cs" Link="Reflection\%(RecursiveDir)%(Filename)%(Extension)" />
         <Compile Include="..\Zerra.Test\Linq\**\*.cs" Link="Linq\%(RecursiveDir)%(Filename)%(Extension)" />
         <Compile Include="..\Zerra.Test\Extensions\**\*.cs" Link="Extensions\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="..\Zerra.Test\CQRS\Network\SocketAbortMonitorTests.cs" Link="CQRS\Network\SocketAbortMonitorTests.cs" />
         <Compile Include="..\Zerra.Test\GraphTests.cs;..\Zerra.Test\GraphEdgeTests.cs;..\Zerra.Test\EnumNameTests.cs" />
     </ItemGroup>
 

@@ -12,5 +12,6 @@ _ = BenchmarkRunner.Run<ModelSerializerBenchmarks>(args: args);
 //_ = BenchmarkRunner.Run<CompressorBenchmarks>();
 //_ = BenchmarkRunner.Run<CompressionTcpBenchmarks>();
 //_ = BenchmarkRunner.Run<EncryptorBenchmarks>(args: args);
+//_ = BenchmarkRunner.Run<BusBenchmarks>(args: args);
 
 //dotnet run --project Benchmarks\Zerra.Benchmark\Zerra.Benchmark.csproj -c Release

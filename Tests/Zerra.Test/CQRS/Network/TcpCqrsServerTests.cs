@@ -508,24 +508,31 @@ namespace Zerra.Test.CQRS.Network
         [InlineData(true)]
         public async Task AbortedWhileHandling_SkipsTheResponseAndKeepsTheConnection(bool query)
         {
-            //the client gave up, the handler still finishes but its response isn't sent, the connection takes the next request
+            //the client gave up, the handler's token is canceled, its response isn't sent, and the connection takes the next request
             var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var canceled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var calls = 0;
-            async Task Wait()
+            async Task Wait(CancellationToken cancellationToken)
             {
                 if (Interlocked.Increment(ref calls) > 1)
                     return;
                 started.SetResult();
-                await release.Task;
+                try
+                {
+                    await Task.Delay(Timeout.Infinite, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    canceled.SetResult();
+                }
             }
             using var server = query
-                ? StartQueryServer(out var port, null, async (_, _, _, _, _, _, _) =>
+                ? StartQueryServer(out var port, null, async (_, _, _, _, _, _, cancellationToken) =>
                 {
-                    await Wait();
+                    await Wait(cancellationToken);
                     return new RemoteQueryCallResponse(1);
                 })
-                : StartMessageServer(out port, null, commandAwait: async (_, _, _) => await Wait());
+                : StartMessageServer(out port, null, commandAwait: async (_, _, cancellationToken) => await Wait(cancellationToken));
 
             await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
             var request = query ? QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 1) : MessageRequest(new TestCommand { Value = 1 }, true, false);
@@ -533,7 +540,7 @@ namespace Zerra.Test.CQRS.Network
             await started.Task.WaitAsync(TestContext.Current.CancellationToken);
 
             Assert.True(await connection.AbortAsync(TestContext.Current.CancellationToken));
-            release.SetResult();
+            await canceled.Task.WaitAsync(TestContext.Current.CancellationToken);
 
             await connection.SendAsync(request, null, cancellationToken: TestContext.Current.CancellationToken);
             var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);

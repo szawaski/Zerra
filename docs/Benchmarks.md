@@ -57,6 +57,23 @@ One `NormalJsonModel` from `Tests/Zerra.Test` (41 properties: strings, decimals,
 | `ModelA` to `ModelB` | 4.5 µs | 8.3 KB |
 | `ModelB` to `ModelA` | 4.7 µs | 7.5 KB |
 
+## Bus
+
+`BusBenchmarks` calls a handler that returns a `NormalJsonModel` directly, through an in-process bus, and through `TcpCqrsServer` and `TcpCqrsClient` over loopback with `ZerraByteSerializer`. Measured October 10, 2026.
+
+| | Mean | Median | P95 |
+|---|---:|---:|---:|
+| Direct call | 4 ns | 4 ns | 5 ns |
+| In-process query | 34 ns | 34 ns | 36 ns |
+| In-process command | 31 ns | 31 ns | 33 ns |
+| TCP query | 65 µs | 65 µs | 67 µs |
+| TCP query with `AES_GCM` | 74 µs | 74 µs | 82 µs |
+| TCP command | 47 µs | 47 µs | 48 µs |
+| 64 TCP queries at once, until all finish | 1.16 ms | 1.15 ms | 1.19 ms |
+
+- The in-process bus adds about 30 ns to a call, so handlers can start in one process at almost no cost.
+- A remote call is a network round trip. On a real network, add the network's latency to the TCP numbers.
+
 ## Encryption
 
 `EncryptorBenchmarks` encrypts and decrypts random bytes with a 256-bit key, as byte arrays and through the streams services send messages with, written and read in 8 KB pieces like the serializers do. The old formats are `ZerraEncryptorOld`, kept only for data already stored with them. Measured October 10, 2026.

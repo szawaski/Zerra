@@ -125,7 +125,7 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
-        public async Task Dispose_WhileReadPending_CancelsTokenWithoutBlocking()
+        public async Task Dispose_WhileReadPending_DoesNotBlockOrCancel()
         {
             var (clientSocket, serverSocket) = await CreateConnectedSocketPairAsync();
 
@@ -138,7 +138,8 @@ namespace Zerra.Test.CQRS.Network
                 // The monitor's read is still pending, nothing was sent
                 monitor.Dispose();
 
-                Assert.True(token.IsCancellationRequested);
+                // the handler finished, so its token isn't canceled
+                Assert.False(token.IsCancellationRequested);
 
                 // Second dispose is a no-op
                 monitor.Dispose();
@@ -215,6 +216,71 @@ namespace Zerra.Test.CQRS.Network
                 var result = await monitor.DisposeAndGetIsCancellationRequestedAsync();
 
                 Assert.True(result);
+            }
+            finally
+            {
+                clientSocket.Dispose();
+                serverSocket.Dispose();
+            }
+        }
+
+        [Fact]
+        public async Task Abort_WhileHandling_CancelsTheHandlersTokenAndAcknowledges()
+        {
+            var (clientSocket, serverSocket) = await CreateConnectedSocketPairAsync();
+
+            try
+            {
+                var monitor = new SocketAbortMonitor(serverSocket, CancellationToken.None);
+                var canceled = new TaskCompletionSource<bool>();
+                using var registration = monitor.Token.Register(() => canceled.TrySetResult(true));
+
+                await clientSocket.SendAsync(new ArraySegment<byte>([0]), SocketFlags.None);
+
+                //the handler sees its token canceled while it's still running
+                await canceled.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+                var ack = new byte[2];
+                var read = await clientSocket.ReceiveAsync(new ArraySegment<byte>(ack), SocketFlags.None);
+                Assert.Equal(1, read);
+                Assert.Equal(0, ack[0]);
+
+                Assert.True(await monitor.DisposeAndGetIsCancellationRequestedAsync());
+            }
+            finally
+            {
+                clientSocket.Dispose();
+                serverSocket.Dispose();
+            }
+        }
+
+        [Fact]
+        public async Task Finished_LeavesTheNextRequestsBytes()
+        {
+            var (clientSocket, serverSocket) = await CreateConnectedSocketPairAsync();
+
+            try
+            {
+                for (var request = 0; request < 3; request++)
+                {
+                    var monitor = new SocketAbortMonitor(serverSocket, CancellationToken.None);
+                    var token = monitor.Token;
+                    Assert.False(await monitor.DisposeAndGetIsCancellationRequestedAsync());
+
+                    //a next request starting with what looks like an abort, the monitor's receive is still waiting when it comes
+                    var next = new byte[] { 0, 1, 2, 3 };
+                    await clientSocket.SendAsync(new ArraySegment<byte>(next), SocketFlags.None);
+
+                    var received = new byte[next.Length];
+                    var total = 0;
+                    while (total < received.Length)
+                        total += await serverSocket.ReceiveAsync(new ArraySegment<byte>(received, total, received.Length - total), SocketFlags.None);
+                    Assert.Equal(next, received);
+                    Assert.False(token.IsCancellationRequested);
+                }
+
+                //nothing was acknowledged
+                Assert.Equal(0, clientSocket.Available);
             }
             finally
             {
@@ -365,7 +431,7 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
-        public async Task Dispose_MultipleCalls_ThrowsOnSecondCall()
+        public async Task DisposeAndGetIsCancellationRequested_MultipleCalls_ReturnsFalse()
         {
             var (clientSocket, serverSocket) = await CreateConnectedSocketPairAsync();
             var cts = new CancellationTokenSource();
@@ -377,10 +443,8 @@ namespace Zerra.Test.CQRS.Network
                 // Cancel immediately to stop monitor task
                 cts.Cancel();
 
-                await monitor.DisposeAndGetIsCancellationRequestedAsync();
-
-                // Second dispose should throw because semaphore is disposed
-                await Assert.ThrowsAsync<ObjectDisposedException>(() => monitor.DisposeAndGetIsCancellationRequestedAsync());
+                Assert.False(await monitor.DisposeAndGetIsCancellationRequestedAsync());
+                Assert.False(await monitor.DisposeAndGetIsCancellationRequestedAsync());
             }
             finally
             {

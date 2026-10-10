@@ -7,16 +7,26 @@ namespace Zerra.CQRS.Network
         private static readonly TimeSpan sendAbortMessageTimeout = TimeSpan.FromMilliseconds(1000);
 
         private static readonly byte[] abortMessageBytes = new byte[1];
+#if NETSTANDARD2_0
+        private static readonly ArraySegment<byte> noBytes = new(Array.Empty<byte>());
+#endif
 
+        private const int handling = 0;
+        private const int finished = 1;
+        private const int aborting = 2;
+
+        private readonly Socket socket;
         private readonly Stream stream;
         private readonly CancellationTokenSource cancellationTokenSource;
         private readonly Task monitorTask;
 
+        private int state;
         private bool isCancellationRequested;
         private bool disposed;
 
         public SocketAbortMonitor(Socket socket, CancellationToken cancellationToken)
         {
+            this.socket = socket;
             this.stream = new NetworkStream(socket, false);
             this.cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             this.monitorTask = Monitor(); //runs until the read waits, no thread or waiter needed
@@ -24,16 +34,27 @@ namespace Zerra.CQRS.Network
 
         public CancellationToken Token => cancellationTokenSource.Token;
 
+        //A zero byte receive waits for data without taking it and is never canceled, canceling a socket read throws, which cost every request.
+        //Whoever moves the state first owns what arrives: the monitor during handling, where the client only sends an abort,
+        //or the server once handling finished, where it's the next request and the receive just ends when it comes.
         private async Task Monitor()
         {
             try
             {
-                //receive abort
+#if !NETSTANDARD2_0
+                _ = await socket.ReceiveAsync(Memory<byte>.Empty, SocketFlags.None);
+#else
+                _ = await socket.ReceiveAsync(noBytes, SocketFlags.None);
+#endif
+                if (Interlocked.CompareExchange(ref state, aborting, handling) != handling)
+                    return;
+
+                //receive abort, it's already here
                 var buffer = new byte[2];
 #if !NETSTANDARD2_0
-                var result = await stream.ReadAsync(buffer, cancellationTokenSource.Token);
+                var result = await stream.ReadAsync(buffer);
 #else
-                var result = await stream.ReadAsync(buffer, 0, 2, cancellationTokenSource.Token);
+                var result = await stream.ReadAsync(buffer, 0, 2);
 #endif
 
                 if (result != 1 || buffer[0] != 0)
@@ -45,13 +66,12 @@ namespace Zerra.CQRS.Network
                 try
                 {
 #if !NETSTANDARD2_0
-                    _ = stream.WriteAsync(abortMessageBytes, cancellationTokenSource.Token).AsTask();
+                    _ = stream.WriteAsync(abortMessageBytes).AsTask();
 #else
-                    _ = stream.WriteAsync(abortMessageBytes, 0, 1, cancellationTokenSource.Token);
+                    _ = stream.WriteAsync(abortMessageBytes, 0, 1);
 #endif
                 }
                 catch { }
-
 
 #if !NETSTANDARD2_0
                 await cancellationTokenSource.CancelAsync();
@@ -59,7 +79,7 @@ namespace Zerra.CQRS.Network
                 cancellationTokenSource.Cancel();
 #endif
             }
-            catch { } //the read is canceled on dispose or fails when the connection closes, the monitor just ends
+            catch { } //the receive fails when the connection closes, the monitor just ends
         }
 
         public static async Task<bool> SendAndAcknowledgeAbortAsync(Stream stream)
@@ -125,11 +145,11 @@ namespace Zerra.CQRS.Network
             return false;
         }
 
-        //awaits the monitor ending instead of blocking a thread
+        //only waits when the monitor took an abort, which is already here, otherwise its receive is left for the next request
         public async Task<bool> DisposeAndGetIsCancellationRequestedAsync()
         {
-            cancellationTokenSource.Cancel();
-            await monitorTask;
+            if (Interlocked.CompareExchange(ref state, finished, handling) == aborting)
+                await monitorTask;
 
             stream.Dispose();
             cancellationTokenSource.Dispose();
@@ -137,14 +157,15 @@ namespace Zerra.CQRS.Network
             return isCancellationRequested;
         }
 
-        //releases without waiting for the monitor, the cancel ends its read and it catches anything that follows
+        //releases without waiting for the monitor, one taking an abort is left to finish with the stream and token
         public void Dispose()
         {
             if (disposed)
                 return;
             disposed = true;
 
-            cancellationTokenSource.Cancel();
+            if (Interlocked.CompareExchange(ref state, finished, handling) == aborting)
+                return;
 
             stream.Dispose();
             cancellationTokenSource.Dispose();

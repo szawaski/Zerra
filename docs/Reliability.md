@@ -79,7 +79,7 @@ Only the handler knows whether repeating its work is safe, so these choices are 
 - **Idempotent commands where callers retry.** Give the command an ID the caller creates and have the handler skip an ID it has already stored, or check the target state first, as `ActivateUserCommand` does in [Commands](Commands.md#idempotency).
 - **Save, then notify.** Write the state change, then dispatch the event. The reverse order can announce a change that never happened.
 - **An outbox where a notification must survive a forced termination.** Store the outgoing message in the same transaction as the state change, and dispatch it from a background job.
-- **Retry at the caller.** Wrap `DispatchAwaitAsync` in a retry policy, for example with Polly, for commands whose handlers are idempotent.
+- **Retry at the caller.** Wrap `DispatchAwaitAsync` in a retry policy, for example with Polly, for commands whose handlers are idempotent. Zerra has no circuit breaker either; add one the same way, such as Polly's, so callers stop waiting on a service that keeps failing.
 - **Compensate across services.** When a handler awaits several commands, undo the earlier ones if a later one fails. See [Coordinating Several Services](Commands.md#coordinating-several-services).
 - **Commands for work that must happen once.** Events fan out to every replica unless the subscriber registers `PerService`. See [Events Are Fanned Out to Every Replica](Events.md#events-are-fanned-out-to-every-replica).
 
