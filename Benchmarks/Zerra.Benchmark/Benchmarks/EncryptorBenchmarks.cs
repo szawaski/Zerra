@@ -52,5 +52,58 @@ namespace Zerra.Benchmark.Benchmarks
         {
             return encryptor.Decrypt(encrypted);
         }
+
+        //the transports write and read through the streams, the serializers use 8 KB pieces
+        [Benchmark]
+        public async Task<long> EncryptStream()
+        {
+            var sink = new SinkStream();
+            await using (var stream = encryptor.Encrypt(sink, true))
+            {
+                for (var offset = 0; offset < plain.Length; offset += pieceSize)
+                    await stream.WriteAsync(plain.AsMemory(offset, Math.Min(pieceSize, plain.Length - offset)));
+                await stream.FlushFinalBlockAsync();
+            }
+            return sink.Count;
+        }
+
+        [Benchmark]
+        public async Task<long> DecryptStream()
+        {
+            var total = 0L;
+            await using (var stream = encryptor.Decrypt(new MemoryStream(encrypted, false), false))
+            {
+                int read;
+                while ((read = await stream.ReadAsync(readBuffer)) > 0)
+                    total += read;
+            }
+            return total;
+        }
+
+        private const int pieceSize = 8 * 1024;
+        private readonly byte[] readBuffer = new byte[pieceSize];
+
+        private sealed class SinkStream : Stream
+        {
+            public long Count;
+            public override bool CanRead => false;
+            public override bool CanSeek => false;
+            public override bool CanWrite => true;
+            public override long Length => Count;
+            public override long Position { get => Count; set => throw new NotSupportedException(); }
+            public override void Flush() { }
+            //the base one queues the flush to the thread pool, a network stream doesn't
+            public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset, int count) => Count += count;
+            public override void Write(ReadOnlySpan<byte> buffer) => Count += buffer.Length;
+            public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+            {
+                Count += buffer.Length;
+                return default;
+            }
+        }
     }
 }

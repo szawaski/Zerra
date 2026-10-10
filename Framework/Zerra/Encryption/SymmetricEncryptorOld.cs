@@ -15,6 +15,7 @@ namespace Zerra.Encryption
     public static class SymmetricEncryptorOld
     {
         private const SymmetricKeySize defaultKeySize = SymmetricKeySize.Bits_256;
+        private static readonly HashAlgorithmName defaultHashAlgorithm = HashAlgorithmName.SHA1;
         private const int defaultDeriveBytesIterations = 1000;
         private const int blockSize = 128;
 
@@ -30,7 +31,7 @@ namespace Zerra.Encryption
         public static (byte[] Key, byte[] IV) DeriveKey(string password, string? salt = null, SymmetricKeySize keySize = defaultKeySize, HashAlgorithmName? hashAlgorithm = null, int deriveKeyIterations = defaultDeriveBytesIterations)
         {
             var keyLength = (int)keySize / 8;
-            var bytes = SymmetricEncryptor.DeriveBytes(password, salt, keyLength + blockSize / 8, hashAlgorithm, deriveKeyIterations);
+            var bytes = SymmetricEncryptor.DeriveBytes(password, salt, keyLength + blockSize / 8, hashAlgorithm ?? defaultHashAlgorithm, deriveKeyIterations);
             var key = new byte[keyLength];
             var iv = new byte[blockSize / 8];
             Buffer.BlockCopy(bytes, 0, key, 0, key.Length);

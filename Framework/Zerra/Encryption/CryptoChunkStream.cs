@@ -45,6 +45,8 @@ namespace Zerra.Encryption
         private Phase phase;
         private bool finished;
         private long position;
+        //how far into the buffers anything was written, only that is cleared when they go back to the pool
+        private int used;
 
         private enum Phase : byte { Header, Length, Body }
 
@@ -112,8 +114,8 @@ namespace Zerra.Encryption
                 //like CryptoStream, an encrypting writer that wasn't finished writes its end
                 if (disposing && encrypt && mode == CryptoStreamMode.Write && !finished)
                     FlushFinalBlock();
-                ArrayPoolHelper<byte>.Return(inBufferOwner);
-                ArrayPoolHelper<byte>.Return(outBufferOwner!);
+                ArrayPoolHelper<byte>.Return(inBufferOwner, Math.Max(used, inLength));
+                ArrayPoolHelper<byte>.Return(outBufferOwner!, used);
                 inBufferOwner = null;
                 outBufferOwner = null;
                 codec.Dispose();
@@ -128,8 +130,8 @@ namespace Zerra.Encryption
             {
                 if (encrypt && mode == CryptoStreamMode.Write && !finished)
                     await FlushFinalBlockAsync();
-                ArrayPoolHelper<byte>.Return(inBufferOwner);
-                ArrayPoolHelper<byte>.Return(outBufferOwner!);
+                ArrayPoolHelper<byte>.Return(inBufferOwner, Math.Max(used, inLength));
+                ArrayPoolHelper<byte>.Return(outBufferOwner!, used);
                 inBufferOwner = null;
                 outBufferOwner = null;
                 codec.Dispose();
@@ -150,6 +152,8 @@ namespace Zerra.Encryption
             }
             var length = codec.EncryptChunk(inBufferOwner.AsSpan(0, inLength), final, outBufferOwner.AsSpan(offset));
             inLength = 0;
+            if (offset + length > used)
+                used = offset + length;
             return offset + length;
         }
 
@@ -189,6 +193,8 @@ namespace Zerra.Encryption
                     ReadExactly(lengthSize, 0);
                     var lengthField = BinaryPrimitives.ReadUInt32LittleEndian(inBufferOwner.AsSpan(0, lengthSize));
                     var bodyLength = Codec.GetBodyLength(lengthField);
+                    if (lengthSize + bodyLength > used)
+                        used = lengthSize + bodyLength;
                     ReadExactly(bodyLength, lengthSize);
                     outLength = codec.DecryptChunk(lengthField, inBufferOwner.AsSpan(lengthSize, bodyLength), outBufferOwner);
                     outOffset = 0;
@@ -255,6 +261,8 @@ namespace Zerra.Encryption
                     await ReadExactlyAsync(lengthSize, 0, cancellationToken);
                     var lengthField = BinaryPrimitives.ReadUInt32LittleEndian(inBufferOwner.AsSpan(0, lengthSize));
                     var bodyLength = Codec.GetBodyLength(lengthField);
+                    if (lengthSize + bodyLength > used)
+                        used = lengthSize + bodyLength;
                     await ReadExactlyAsync(bodyLength, lengthSize, cancellationToken);
                     outLength = codec.DecryptChunk(lengthField, inBufferOwner.AsSpan(lengthSize, bodyLength), outBufferOwner);
                     outOffset = 0;
@@ -387,6 +395,8 @@ namespace Zerra.Encryption
                     var bodyLength = Codec.GetBodyLength(BinaryPrimitives.ReadUInt32LittleEndian(inBufferOwner.AsSpan(0, lengthSize)));
                     phase = Phase.Body;
                     expected = lengthSize + bodyLength;
+                    if (expected > used)
+                        used = expected;
                     return 0;
                 default:
                     var lengthField = BinaryPrimitives.ReadUInt32LittleEndian(inBufferOwner.AsSpan(0, lengthSize));
@@ -489,7 +499,7 @@ namespace Zerra.Encryption
             }
             finally
             {
-                ArrayPoolHelper<byte>.Return(plainBufferOwner);
+                ArrayPoolHelper<byte>.Return(plainBufferOwner, encrypted.Length);
             }
         }
 

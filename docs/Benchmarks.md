@@ -59,26 +59,37 @@ One `NormalJsonModel` from `Tests/Zerra.Test` (41 properties: strings, decimals,
 
 ## Encryption
 
-`EncryptorBenchmarks` encrypts and decrypts random bytes with `IEncryptor.Encrypt` and `Decrypt` and a 256-bit key. The old formats are `ZerraEncryptorOld`, kept only for data already stored with them. Measured October 10, 2026.
+`EncryptorBenchmarks` encrypts and decrypts random bytes with a 256-bit key, as byte arrays and through the streams services send messages with, written and read in 8 KB pieces like the serializers do. The old formats are `ZerraEncryptorOld`, kept only for data already stored with them. Measured October 10, 2026.
 
-**Time** (lower is better)
+**Byte arrays** (lower is better)
 
 | | 256 B | 16 KB | 1 MB |
 |---|---:|---:|---:|
-| `AES_GCM` encrypt | 1.0 µs | **3.1 µs** | **177 µs** |
-| `AES_GCM` decrypt | 0.9 µs | 3.0 µs | **185 µs** |
-| `AES_CBC_HMAC` encrypt | 1.7 µs | 16.5 µs | 1,059 µs |
-| `AES_CBC_HMAC` decrypt | 1.6 µs | 10.2 µs | 723 µs |
-| `AES_CBC` encrypt | **0.6 µs** | 9.2 µs | 645 µs |
-| `AES_CBC` decrypt | **0.6 µs** | **2.7 µs** | 282 µs |
-| Old `AES` encrypt | 1.0 µs | 13.0 µs | 1,116 µs |
-| Old `AES` decrypt | 0.9 µs | 3.6 µs | 387 µs |
-| Old `AESwithShift` encrypt | 1.5 µs | 23.6 µs | 1,832 µs |
-| Old `AESwithShift` decrypt | 1.1 µs | 11.1 µs | 1,006 µs |
+| `AES_GCM` encrypt | 1.0 µs | 2.8 µs | 155 µs |
+| `AES_GCM` decrypt | 0.8 µs | 2.8 µs | 179 µs |
+| `AES_CBC_HMAC` encrypt | 1.6 µs | 16.2 µs | 1,034 µs |
+| `AES_CBC_HMAC` decrypt | 1.6 µs | 9.7 µs | 692 µs |
+| `AES_CBC` encrypt | 0.7 µs | 9.6 µs | 615 µs |
+| `AES_CBC` decrypt | 0.5 µs | 2.5 µs | 276 µs |
+| Old `AES` encrypt | 0.9 µs | 10.7 µs | 1,082 µs |
+| Old `AES` decrypt | 0.8 µs | 3.3 µs | 359 µs |
+| Old `AESwithShift` encrypt | 1.4 µs | 24.3 µs | 1,737 µs |
+| Old `AESwithShift` decrypt | 1.1 µs | 11.1 µs | 966 µs |
 
-- `AES_GCM`, the recommended mode, encrypts and decrypts 1 MB 5–10 times faster than the old default, `AESwithShift`, and also detects changed data.
-- `AES_CBC_HMAC` is the slowest new mode because it hashes everything as well as encrypting it. It's still faster than `AESwithShift`.
-- The new modes allocate about the size of the data. The old formats allocate 2–4 times that.
+**Streams** (lower is better)
+
+| | 256 B | 16 KB | 1 MB |
+|---|---:|---:|---:|
+| `AES_GCM` encrypt | 1.0 µs | 2.9 µs | 114 µs |
+| `AES_GCM` decrypt | 1.0 µs | 3.3 µs | 135 µs |
+| `AES_CBC_HMAC` encrypt | 1.7 µs | 16.2 µs | 939 µs |
+| `AES_CBC_HMAC` decrypt | 1.7 µs | 10.0 µs | 522 µs |
+| `AES_CBC` encrypt | 0.8 µs | 9.4 µs | 544 µs |
+| `AES_CBC` decrypt | 0.7 µs | 2.6 µs | 118 µs |
+| Old `AES` encrypt | 0.9 µs | 8.8 µs | 521 µs |
+| Old `AES` decrypt | 1.0 µs | 2.8 µs | 116 µs |
+| Old `AESwithShift` encrypt | 1.3 µs | 15.7 µs | 1,182 µs |
+| Old `AESwithShift` decrypt | 1.4 µs | 9.6 µs | 561 µs |
 
 ## Repository
 

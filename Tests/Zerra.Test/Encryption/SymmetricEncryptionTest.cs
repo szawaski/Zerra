@@ -158,12 +158,93 @@ namespace Zerra.Test.Encryption
             var data = Enumerable.Range(0, 100).Select(x => (byte)x).ToArray();
             Assert.Equal(data, fromBytes.Decrypt(SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AES_GCM, key, data)));
 
-            //the password constructor derives with SHA256, the same as DeriveKey given SHA256
+            //the password constructor derives the same key as DeriveKey
             var fromPassword = new ZerraEncryptor("password", SymmetricAlgorithmType.AES_GCM);
-            var derived = SymmetricEncryptor.DeriveKey("password", hashAlgorithm: System.Security.Cryptography.HashAlgorithmName.SHA256);
+            var derived = SymmetricEncryptor.DeriveKey("password");
             Assert.Equal(data, fromPassword.Decrypt(SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AES_GCM, derived, data)));
 
             _ = Assert.Throws<ArgumentNullException>(() => new ZerraEncryptor((byte[])null!, SymmetricAlgorithmType.AES_GCM));
+        }
+
+        //reads the output with only the format in docs/Encryptors.md and the standard primitives, so the description stays true
+        [Fact]
+        public void Format_AES_GCM()
+        {
+            var key = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+            var plain = System.Security.Cryptography.RandomNumberGenerator.GetBytes(70_000);
+            var encrypted = new ZerraEncryptor(key, SymmetricAlgorithmType.AES_GCM).Encrypt(plain);
+
+            var messageKey = System.Security.Cryptography.HMACSHA256.HashData(key, encrypted.AsSpan(0, 16)).AsSpan(0, key.Length).ToArray();
+            using var gcm = new System.Security.Cryptography.AesGcm(messageKey, 16);
+            var result = new List<byte>();
+            var offset = 16;
+            var chunkNumber = 0u;
+            for (; ; )
+            {
+                var lengthBytes = encrypted.AsSpan(offset, 4).ToArray();
+                var lengthField = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(lengthBytes);
+                var bodyLength = (int)(lengthField & 0x7FFFFFFF);
+                var body = encrypted.AsSpan(offset + 4, bodyLength);
+                var nonce = new byte[12];
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(nonce.AsSpan(8), chunkNumber++);
+                var chunk = new byte[bodyLength - 16];
+                gcm.Decrypt(nonce, body.Slice(0, bodyLength - 16), body.Slice(bodyLength - 16), chunk, lengthBytes);
+                result.AddRange(chunk);
+                offset += 4 + bodyLength;
+                if ((lengthField & 0x80000000) != 0)
+                    break;
+            }
+            Assert.Equal(2u, chunkNumber);
+            Assert.Equal(encrypted.Length, offset);
+            Assert.Equal(plain, result.ToArray());
+        }
+
+        [Fact]
+        public void Format_AES_CBC_HMAC()
+        {
+            var key = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+            var plain = System.Security.Cryptography.RandomNumberGenerator.GetBytes(70_000);
+            var encrypted = new ZerraEncryptor(key, SymmetricAlgorithmType.AES_CBC_HMAC).Encrypt(plain);
+
+            var macKey = System.Security.Cryptography.HMACSHA256.HashData(key, Encoding.ASCII.GetBytes("Zerra AES_CBC_HMAC"));
+            using var aes = System.Security.Cryptography.Aes.Create();
+            aes.Key = key;
+            var header = encrypted.AsSpan(0, 16).ToArray();
+            var result = new List<byte>();
+            var offset = 16;
+            var chunkNumber = 0u;
+            for (; ; )
+            {
+                var lengthBytes = encrypted.AsSpan(offset, 4).ToArray();
+                var lengthField = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(lengthBytes);
+                var bodyLength = (int)(lengthField & 0x7FFFFFFF);
+                var body = encrypted.AsSpan(offset + 4, bodyLength).ToArray();
+                var numberBytes = new byte[4];
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(numberBytes, chunkNumber++);
+                var signed = header.Concat(numberBytes).Concat(lengthBytes).Concat(body.Take(bodyLength - 32)).ToArray();
+                Assert.Equal(System.Security.Cryptography.HMACSHA256.HashData(macKey, signed), body.Skip(bodyLength - 32).ToArray());
+                result.AddRange(aes.DecryptCbc(body.AsSpan(16, bodyLength - 48), body.AsSpan(0, 16), System.Security.Cryptography.PaddingMode.PKCS7));
+                offset += 4 + bodyLength;
+                if ((lengthField & 0x80000000) != 0)
+                    break;
+            }
+            Assert.Equal(2u, chunkNumber);
+            Assert.Equal(encrypted.Length, offset);
+            Assert.Equal(plain, result.ToArray());
+        }
+
+        [Fact]
+        public void Format_KeyFromPassword()
+        {
+            var password = "a password é";
+            var passwordBytes = Encoding.UTF8.GetBytes(password);
+            var salt = Encoding.UTF8.GetBytes("ενγρυπτιον");
+            var pbkdf2Salt = System.Security.Cryptography.SHA256.HashData(passwordBytes.Concat(salt).ToArray()).Concat(salt).ToArray();
+
+            var sha256Key = System.Security.Cryptography.Rfc2898DeriveBytes.Pbkdf2(passwordBytes, pbkdf2Salt, 1000, System.Security.Cryptography.HashAlgorithmName.SHA256, 32);
+            var data = GetTestBytes();
+            Assert.Equal(data, new ZerraEncryptor(sha256Key, SymmetricAlgorithmType.AES_GCM).Decrypt(new ZerraEncryptor(password, SymmetricAlgorithmType.AES_GCM).Encrypt(data)));
+            Assert.Equal(sha256Key, SymmetricEncryptor.DeriveKey(password));
         }
 
         //produced by the old SymmetricEncryptor.GetKey("old-password") and Encrypt
@@ -181,8 +262,8 @@ namespace Zerra.Test.Encryption
             var (key, iv) = SymmetricEncryptorOld.DeriveKey(oldPassword);
             Assert.Equal(Convert.FromBase64String(oldKey), key);
             Assert.Equal(Convert.FromBase64String(oldIV), iv);
-            //the same password gives the same key bytes in both
-            Assert.Equal(key, SymmetricEncryptor.DeriveKey(oldPassword));
+            //with SHA1, the same password gives the same key bytes in both
+            Assert.Equal(key, SymmetricEncryptor.DeriveKey(oldPassword, hashAlgorithm: System.Security.Cryptography.HashAlgorithmName.SHA1));
 
             Assert.Equal("stored data", SymmetricEncryptorOld.Decrypt(SymmetricAlgorithmTypeOld.AES, key, iv, oldAes));
             Assert.Equal("stored data", SymmetricEncryptorOld.Decrypt(SymmetricAlgorithmTypeOld.AESwithShift, key, iv, oldShift));

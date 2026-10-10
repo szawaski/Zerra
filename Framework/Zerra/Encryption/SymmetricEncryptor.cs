@@ -14,10 +14,10 @@ namespace Zerra.Encryption
     {
         private static readonly byte[] defaultSalt = Encoding.UTF8.GetBytes("ενγρυπτιον"); //20 bytes
         private const SymmetricKeySize defaultKeySize = SymmetricKeySize.Bits_256;
-        private static readonly HashAlgorithmName defaultHashAlgorithm = HashAlgorithmName.SHA1;
+        private static readonly HashAlgorithmName defaultHashAlgorithm = HashAlgorithmName.SHA256;
         private const int defaultDeriveBytesIterations = 1000;
 
-        //PBKDF2 output starts the same however many bytes are asked for, so a key derived here matches the key SymmetricEncryptorOld derives with its IV
+        //PBKDF2 output starts the same however many bytes are asked for, so with the same hash a key derived here matches the key SymmetricEncryptorOld derives with its IV
         internal static byte[] DeriveBytes(string password, string? salt, int length, HashAlgorithmName? hashAlgorithm, int deriveKeyIterations)
         {
             if (password is null)
@@ -38,7 +38,7 @@ namespace Zerra.Encryption
         /// <param name="password">The password to derive the key from.</param>
         /// <param name="salt">An optional salt for the key.</param>
         /// <param name="keySize">The size of the key.</param>
-        /// <param name="hashAlgorithm">The hash algorithm for the derivation, default is SHA1.</param>
+        /// <param name="hashAlgorithm">The hash algorithm for the derivation, default is SHA256.</param>
         /// <param name="deriveKeyIterations">The number of iterations in the derivation, default is 1000.</param>
         /// <returns>The key bytes.</returns>
         public static byte[] DeriveKey(string password, string? salt = null, SymmetricKeySize keySize = defaultKeySize, HashAlgorithmName? hashAlgorithm = null, int deriveKeyIterations = defaultDeriveBytesIterations)

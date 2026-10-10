@@ -54,6 +54,20 @@ Data is encrypted in chunks of up to 64 KB. Each chunk gets a random IV that tra
 
 The modes aren't interchangeable, so both ends must use the same one.
 
+### Format
+
+For reading or writing Zerra's encrypted data in another language. A message is a header, then chunks. Each chunk is a 4-byte little-endian length of its body, with the high bit set on the last chunk, then the body. A chunk holds up to 64 KB of data, chunks are numbered from 0, and a message always ends with a last chunk, which can be empty. Encrypting zero bytes as a byte array returns zero bytes.
+
+| Mode | Header | Chunk body |
+|---|---|---|
+| `AES_GCM` | 16 random bytes | ciphertext, then the 16-byte tag |
+| `AES_CBC_HMAC` | 16 random bytes | 16-byte random IV, ciphertext with PKCS7 padding, then a 32-byte HMAC |
+| `AES_CBC` | none | 16-byte random IV, then ciphertext with PKCS7 padding |
+
+- **`AES_GCM`:** the message's key is HMAC-SHA256 of the header with the key, cut to the key's length. The 12-byte nonce is 8 zero bytes then the chunk number as a big-endian `uint32`, and the 4 length bytes are the associated data.
+- **`AES_CBC_HMAC`:** the MAC key is HMAC-SHA256 of the ASCII text `Zerra AES_CBC_HMAC` with the key. Each chunk's HMAC-SHA256 covers the header, the chunk number as a big-endian `uint32`, the 4 length bytes, the IV, and the ciphertext.
+- **Keys from a password:** PBKDF2 of the UTF-8 password, 1,000 iterations, SHA-256, and as its salt, SHA-256 of the password followed by the salt, then the salt. The salt is the UTF-8 of the one given, or of `ενγρυπτιον`.
+
 `SymmetricEncryptor` has the same modes for data that isn't a message, such as values you store, with keys from `SymmetricEncryptor.DeriveKey(password)` or `GenerateKey()`.
 
 ### Data Encrypted With the Old Format
