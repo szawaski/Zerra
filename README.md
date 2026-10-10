@@ -8,16 +8,16 @@
 
 Handlers are called the same way whether they live in the same process, across TCP or HTTP, or behind Kafka, RabbitMQ, or Azure Service Bus. Moving a handler from a monolith into its own service changes a few lines of registration, not the code that calls it.
 
-> **Version 6.0.0 is in development.** This branch and its documentation describe v6; the current NuGet release is v5. Moving a v5 solution to v6? Follow the [upgrade guide](docs/UpgradeV5ToV6.md).
+> **Version 6.0.0 is in development.** This branch and its documentation describe v6; the current NuGet release is v5. Moving a v5 solution to v6? Follow the [upgrade guide](docs/UpgradeV5ToV6.md); the two use different wire formats, so services that share messages upgrade together.
 
 ## Why Zerra
 
-- **Location-transparent calls.** `bus.Call<IUserQueryHandler>().GetUserById(id)` is a typed method call, local or remote. No controllers, routes, or hand-written HTTP clients. A remote call can still time out or fail where a local one wouldn't, so the [failure handling](docs/Reliability.md#remote-calls-look-local) is spelled out too.
+- **Location-transparent calls.** `bus.Call<IUserQueryHandler>().GetUserById(id)` is a typed method call, local or remote. No controllers, routes, or hand-written HTTP clients. A remote call can still time out or fail where a local one wouldn't, so timeouts, cancellation that reaches the remote handler, and typed failures are built in and [spelled out](docs/Reliability.md#remote-calls-look-local).
 - **Deploy as you need.** Start as one process, split into microservices later, or test every handler in memory, all with the same handlers and callers.
-- **Clear message semantics.** Queries read, commands change state and are handled by one replica, events notify every subscriber. Per-replica or per-service delivery is an explicit choice for each subscriber, and the [delivery guarantees](docs/Reliability.md) are documented for each transport. [Resilient commands](docs/Reliability.md#resilient-commands) can survive a crash mid-handler.
-- **Fast by design.** Source generators replace runtime reflection, the binary serializer is compact, and everything is Native AOT compatible.
+- **Clear message semantics.** Queries read, commands change state and are handled by one replica, events notify every subscriber. Per-replica or per-service delivery is an explicit choice for each subscriber, and the [delivery guarantees](docs/Reliability.md) are documented for each transport. Zerra never retries a failed handler, and [resilient commands](docs/Reliability.md#resilient-commands) can survive a crash mid-handler, at the cost of possibly running twice, so those handlers should be [idempotent](docs/Commands.md#idempotency).
+- **Fast by design.** Source generators replace runtime reflection, the binary serializer is compact, everything is [Native AOT](docs/AOT.md) compatible, and [benchmarks](docs/Benchmarks.md) cover the serializers, the bus with P95 latency, and encryption.
 - **No external dependencies.** Nothing beyond .NET itself on .NET 10. The .NET Standard 2.0 build, which also runs on .NET Framework 4.7.2+, adds only Microsoft's System.* compatibility packages.
-- **Complete toolkit.** Built-in binary and JSON serializers, message compression and encryption with key rotation, claims propagation, a browser API gateway with generated JavaScript and TypeScript clients, and an experimental LINQ repository across SQL Server, PostgreSQL, MySQL, MariaDB, and KurrentDB.
+- **Complete toolkit.** Built-in binary and JSON serializers, message compression and encryption, with tamper-proof modes checked before anything is deserialized and [key rotation](docs/Encryptors.md#rotating-keys), claims propagation, a browser API gateway with generated JavaScript and TypeScript clients, and an experimental LINQ repository across SQL Server, PostgreSQL, MySQL, MariaDB, and KurrentDB.
 
 ## At a Glance
 
@@ -84,7 +84,7 @@ dotnet add package Zerra
 
 ## In Production
 
-Zerra runs in production in private commercial applications, across in-process, TCP, and broker deployments. Zerra 6 is the version in development here; Zerra 5 is the current NuGet release. Changes are in the [changelog](CHANGELOG.md), and security reports go through the [security policy](SECURITY.md).
+Zerra runs in production in private commercial applications, across in-process, TCP, and broker deployments. Zerra 6 is the version in development here; Zerra 5 is the current NuGet release. Changes are in the [changelog](CHANGELOG.md), security reports go through the [security policy](SECURITY.md), and the [trust model](docs/Security.md#trust-model) says what encryption and claims protect and what they don't.
 
 ## Packages
 

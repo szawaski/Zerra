@@ -70,9 +70,9 @@ IEncryptor encryptor = new ZerraEncryptor(new SecretStoreKeySource(), SymmetricA
 - **`AES_CBC_HMAC`** encrypts with AES-CBC and then signs each chunk with HMAC-SHA256.
 - **`AES_CBC`** only keeps data private. Someone without the key can't read it, but can change bytes in it without being detected. A wrong key is still detected.
 
-Data is encrypted in chunks of up to 64 KB. Each chunk gets a random IV that travels unencrypted in front of it (an IV only has to be unpredictable, not secret), and `AES_GCM` gives each message its own key from a random value sent the same way, so the same message never encrypts to the same bytes and large streams don't have to be buffered. A tamper-proof mode checks each chunk before handing it on, and fails with a `CryptographicException` when anything was changed or the key is wrong.
+Data is encrypted in chunks of up to 64 KB. Each chunk gets a random IV that travels unencrypted in front of it (an IV only has to be unpredictable, not secret), and `AES_GCM` gives each message its own key from a random value sent the same way, so the same message never encrypts to the same bytes and large streams don't have to be buffered. A tamper-proof mode checks each chunk before handing it on, so changed data never reaches the deserializer, and fails with a `CryptographicException` when anything was changed or the key is wrong.
 
-The modes aren't interchangeable, so both ends must use the same one.
+The modes aren't interchangeable, so both ends must use the same one. The mode is configured, never negotiated, so a message can't ask for a weaker one.
 
 ### Format
 
