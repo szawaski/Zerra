@@ -1072,6 +1072,43 @@ namespace Zerra.Test
             AssertHelper.AreEqual(model1, model2);
         }
 
+        private sealed class DictionaryKeyModel
+        {
+            public int Id { get; set; }
+        }
+
+        //the closing brace or bracket landing on the stream buffer boundary must resume
+        [Fact]
+        public async Task StreamDictionaryEndOnBufferBoundary()
+        {
+            var comparer = Comparer<DictionaryKeyModel>.Create((x, y) => x.Id.CompareTo(y.Id));
+            //names reserve their max size, a run of exact sized values is what lets the end land on the last byte
+            for (var count = 3260; count < 3280; count++)
+            for (var pad = 1; pad <= 5; pad++)
+            {
+                var values = Enumerable.Repeat(true, count).ToArray();
+                var name = new string('a', pad);
+                var key = new DictionaryKeyModel() { Id = (int)Math.Pow(10, pad - 1) };
+
+                await AssertStreamMatches(new Dictionary<string, bool[]>() { { name, values } });
+                await AssertStreamMatches<IDictionary<string, bool[]>>(new Dictionary<string, bool[]>() { { name, values } });
+                await AssertStreamMatches<IReadOnlyDictionary<string, bool[]>>(new Dictionary<string, bool[]>() { { name, values } });
+                await AssertStreamMatches(new SortedDictionary<string, bool[]>() { { name, values } });
+
+                await AssertStreamMatches(new Dictionary<DictionaryKeyModel, bool[]>() { { key, values } });
+                await AssertStreamMatches<IDictionary<DictionaryKeyModel, bool[]>>(new Dictionary<DictionaryKeyModel, bool[]>() { { key, values } });
+                await AssertStreamMatches<IReadOnlyDictionary<DictionaryKeyModel, bool[]>>(new Dictionary<DictionaryKeyModel, bool[]>() { { key, values } });
+                await AssertStreamMatches(new SortedDictionary<DictionaryKeyModel, bool[]>(comparer) { { key, values } });
+            }
+
+            static async Task AssertStreamMatches<T>(T value)
+            {
+                using var stream = new MemoryStream();
+                await JsonSerializer.SerializeAsync(stream, value);
+                Assert.Equal(JsonSerializer.Serialize(value), Encoding.UTF8.GetString(stream.ToArray()));
+            }
+        }
+
         [Fact]
         public async Task StreamTypes()
         {

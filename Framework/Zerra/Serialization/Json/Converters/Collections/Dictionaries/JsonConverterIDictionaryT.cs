@@ -289,6 +289,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 if (!writer.TryWriteCloseBrace(out state.SizeNeeded))
                 {
                     state.Current.HasWrittenStart = true;
+                    state.Current.Object = enumerator;
                     return false;
                 }
                 return true;
@@ -354,6 +355,7 @@ namespace Zerra.Serialization.Json.Converters.Collections.Dictionaries
                 if (!writer.TryWriteCloseBracket(out state.SizeNeeded))
                 {
                     state.Current.HasWrittenStart = true;
+                    state.Current.Object = enumerator;
                     return false;
                 }
                 return true;
