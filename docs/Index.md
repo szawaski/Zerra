@@ -17,7 +17,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - [Serializers](Serializers.md) - Configure serialization with ZerraByteSerializer and ZerraJsonSerializer
   - [ByteSerializer](ByteSerializer.md) - High-performance binary serialization
   - [JsonSerializer](JsonSerializer.md) - JSON serialization with Graph-based property control
-- [Encryptors](Encryptors.md) - Secure message encryption with ZerraEncryptor
+- [Encryptors](Encryptors.md) - Secure message encryption with ZerraEncryptor and key rotation
 - [Compressors](Compressors.md) - Message compression with ZerraCompressor
 - [Logging](Logging.md) - Implement ILogger and IBusLogger for comprehensive logging
 - [Service Injection](ServiceInjection.md) - Manage dependencies with BusServices

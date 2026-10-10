@@ -38,6 +38,26 @@ var key = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenera
 
 Keep the key out of source control. Read it from configuration or a secret store such as Azure Key Vault, and use a different key per environment.
 
+### Rotating Keys
+
+To change keys without restarting services, pass an `ISymmetricKeySource` instead of a key. It returns the current key and when to ask for it again:
+
+```csharp
+public sealed class SecretStoreKeySource : ISymmetricKeySource
+{
+    public (byte[] Key, DateTime Expiration) GetKey() => ...;                    // the current key from your secret store
+    public ValueTask<(byte[] Key, DateTime Expiration)> GetKeyAsync() => ...;
+}
+
+IEncryptor encryptor = new ZerraEncryptor(new SecretStoreKeySource(), SymmetricAlgorithmType.AES_GCM);
+```
+
+- Data is encrypted with the current key. Once it expires, the source is asked again before the next use.
+- Data encrypted with the previous key still decrypts, so services can move to a new key at different times.
+- Data neither key reads makes the encryptor ask the source for a newer key, in case the sender moved first. It asks at most once a minute.
+- A message keeps the key that read its start, so a stream never changes keys partway.
+- It's for messages. Repository encryption providers refuse a `ZerraEncryptor` with a key source, since stored data outlives the previous key, so give them a fixed key.
+
 ## Algorithms
 
 | `SymmetricAlgorithmType` | Keeps data private | Rejects changed, reordered, or cut-off data | Platforms |
@@ -48,7 +68,7 @@ Keep the key out of source control. Read it from configuration or a secret store
 
 - **`AES_GCM`** is the fastest of the tamper-proof modes. On .NET Standard it throws `PlatformNotSupportedException`, so use `AES_CBC_HMAC` when a .NET Framework service shares the key.
 - **`AES_CBC_HMAC`** encrypts with AES-CBC and then signs each chunk with HMAC-SHA256.
-- **`AES_CBC`** only keeps data private. Someone without the key can't read it, but can change bytes in it without being detected.
+- **`AES_CBC`** only keeps data private. Someone without the key can't read it, but can change bytes in it without being detected. A wrong key is still detected.
 
 Data is encrypted in chunks of up to 64 KB. Each chunk gets a random IV that travels unencrypted in front of it (an IV only has to be unpredictable, not secret), and `AES_GCM` gives each message its own key from a random value sent the same way, so the same message never encrypts to the same bytes and large streams don't have to be buffered. A tamper-proof mode checks each chunk before handing it on, and fails with a `CryptographicException` when anything was changed or the key is wrong.
 
@@ -60,10 +80,11 @@ For reading or writing Zerra's encrypted data in another language. A message is 
 
 | Mode | Header | Chunk body |
 |---|---|---|
-| `AES_GCM` | 16 random bytes | ciphertext, then the 16-byte tag |
-| `AES_CBC_HMAC` | 16 random bytes | 16-byte random IV, ciphertext with PKCS7 padding, then a 32-byte HMAC |
-| `AES_CBC` | none | 16-byte random IV, then ciphertext with PKCS7 padding |
+| `AES_GCM` | 8-byte key check, then 16 random bytes | ciphertext, then the 16-byte tag |
+| `AES_CBC_HMAC` | 8-byte key check, then 16 random bytes | 16-byte random IV, ciphertext with PKCS7 padding, then a 32-byte HMAC |
+| `AES_CBC` | 8-byte key check | 16-byte random IV, then ciphertext with PKCS7 padding |
 
+- **Key check:** the first 8 bytes of HMAC-SHA256 of the ASCII text `Zerra key check` with the key. It's the same in every message under one key, so the right key is picked, or a wrong one found, before anything is decrypted.
 - **`AES_GCM`:** the message's key is HMAC-SHA256 of the header with the key, cut to the key's length. The 12-byte nonce is 8 zero bytes then the chunk number as a big-endian `uint32`, and the 4 length bytes are the associated data.
 - **`AES_CBC_HMAC`:** the MAC key is HMAC-SHA256 of the ASCII text `Zerra AES_CBC_HMAC` with the key. Each chunk's HMAC-SHA256 covers the header, the chunk number as a big-endian `uint32`, the 4 length bytes, the IV, and the ciphertext.
 - **Keys from a password:** PBKDF2 of the UTF-8 password, 1,000 iterations, SHA-256, and as its salt, SHA-256 of the password followed by the salt, then the salt. The salt is the UTF-8 of the one given, or of `ενγρυπτιον`.

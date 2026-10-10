@@ -17,7 +17,7 @@ Handlers are called the same way whether they live in the same process, across T
 - **Clear message semantics.** Queries read, commands change state and are handled by one replica, events notify every subscriber. Per-replica or per-service delivery is an explicit choice for each subscriber, and the [delivery guarantees](docs/Reliability.md) are documented for each transport. [Resilient commands](docs/Reliability.md#resilient-commands) can survive a crash mid-handler.
 - **Fast by design.** Source generators replace runtime reflection, the binary serializer is compact, and everything is Native AOT compatible.
 - **No external dependencies.** Nothing beyond .NET itself on .NET 10. The .NET Standard 2.0 build, which also runs on .NET Framework 4.7.2+, adds only Microsoft's System.* compatibility packages.
-- **Complete toolkit.** Built-in binary and JSON serializers, message encryption and compression, claims propagation, a browser API gateway with generated JavaScript and TypeScript clients, and an experimental LINQ repository across SQL Server, PostgreSQL, MySQL, MariaDB, and KurrentDB.
+- **Complete toolkit.** Built-in binary and JSON serializers, message compression and encryption with key rotation, claims propagation, a browser API gateway with generated JavaScript and TypeScript clients, and an experimental LINQ repository across SQL Server, PostgreSQL, MySQL, MariaDB, and KurrentDB.
 
 ## At a Glance
 

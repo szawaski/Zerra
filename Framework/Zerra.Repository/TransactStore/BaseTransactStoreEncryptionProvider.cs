@@ -28,11 +28,21 @@ namespace Zerra.Repository
         public virtual bool Enabled { get { return true; } }
         /// <summary>Gets an optional graph that restricts which model properties are encrypted. When <see langword="null"/>, all eligible properties are encrypted.</summary>
         public virtual Graph<TModel>? Properties { get { return null; } }
-        /// <summary>Gets the encryptor for the values, such as <see cref="ZerraEncryptor"/>, or <see cref="ZerraEncryptorOld"/> for data stored in the old format. It's read once.</summary>
+        /// <summary>Gets the encryptor for the values, such as <see cref="ZerraEncryptor"/>, or <see cref="ZerraEncryptorOld"/> for data stored in the old format. It's read once. A <see cref="ZerraEncryptor"/> with an <see cref="ISymmetricKeySource"/> isn't allowed, data stored with a key older than the previous one wouldn't decrypt.</summary>
         public abstract IEncryptor Encryptor { get; }
 
         private IEncryptor? encryptor;
-        private IEncryptor GetEncryptor() => encryptor ??= Encryptor;
+        private IEncryptor GetEncryptor()
+        {
+            if (encryptor is null)
+            {
+                var value = Encryptor;
+                if (value is ZerraEncryptor { HasKeySource: true })
+                    throw new NotSupportedException($"{GetType().Name} can't use a {nameof(ZerraEncryptor)} with an {nameof(ISymmetricKeySource)}, stored data outlives the two keys it keeps, so use a fixed key");
+                encryptor = value;
+            }
+            return encryptor;
+        }
 
         /// <summary>Initializes a new instance of <see cref="BaseTransactStoreEncryptionProvider{TNextProviderInterface, TModel}"/> with the next provider in the chain.</summary>
         /// <param name="nextProvider">The next provider to delegate operations to after encryption/decryption.</param>

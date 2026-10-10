@@ -76,6 +76,30 @@ namespace Zerra.Repository.Test
 
         private static EdgeModel NewModel() => new() { ID = Guid.NewGuid(), Text = new string('t', 100), Bytes = Enumerable.Repeat((byte)9, 100).ToArray(), Number = 1 };
 
+        private sealed class RotatingKeySource : ISymmetricKeySource
+        {
+            private static readonly byte[] key = new byte[32];
+            public (byte[] Key, DateTime Expiration) GetKey() => (key, DateTime.UtcNow.AddHours(1));
+            public ValueTask<(byte[] Key, DateTime Expiration)> GetKeyAsync() => new(GetKey());
+        }
+
+        private sealed class EncryptingWithKeySource<TModel>(ITransactStoreProvider<TModel> next)
+            : BaseTransactStoreEncryptionProvider<ITransactStoreProvider<TModel>, TModel>(next)
+            where TModel : class, new()
+        {
+            public override IEncryptor Encryptor { get; } = new ZerraEncryptor(new RotatingKeySource(), SymmetricAlgorithmType.AES_GCM);
+        }
+
+        //stored data outlives the two keys a key source keeps, so a rotating encryptor is refused
+        [Fact]
+        public async Task KeySource_IsRejected()
+        {
+            var repo = Repo.New();
+            repo.AddProvider(new EncryptingWithKeySource<EdgeModel>(new TransactStoreProvider<EdgeModel>(new MemoryEngine())));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Create(NewModel()));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.CreateAsync(NewModel()));
+        }
+
         [Theory]
         [MemberData(nameof(Compression))]
         public void Disabled_StoresAsIs(bool compression)

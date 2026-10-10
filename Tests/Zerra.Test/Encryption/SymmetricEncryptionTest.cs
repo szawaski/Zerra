@@ -174,10 +174,11 @@ namespace Zerra.Test.Encryption
             var plain = System.Security.Cryptography.RandomNumberGenerator.GetBytes(70_000);
             var encrypted = new ZerraEncryptor(key, SymmetricAlgorithmType.AES_GCM).Encrypt(plain);
 
-            var messageKey = System.Security.Cryptography.HMACSHA256.HashData(key, encrypted.AsSpan(0, 16)).AsSpan(0, key.Length).ToArray();
+            Assert.Equal(System.Security.Cryptography.HMACSHA256.HashData(key, Encoding.ASCII.GetBytes("Zerra key check")).AsSpan(0, 8).ToArray(), encrypted.AsSpan(0, 8).ToArray());
+            var messageKey = System.Security.Cryptography.HMACSHA256.HashData(key, encrypted.AsSpan(0, 24)).AsSpan(0, key.Length).ToArray();
             using var gcm = new System.Security.Cryptography.AesGcm(messageKey, 16);
             var result = new List<byte>();
-            var offset = 16;
+            var offset = 24;
             var chunkNumber = 0u;
             for (; ; )
             {
@@ -209,9 +210,10 @@ namespace Zerra.Test.Encryption
             var macKey = System.Security.Cryptography.HMACSHA256.HashData(key, Encoding.ASCII.GetBytes("Zerra AES_CBC_HMAC"));
             using var aes = System.Security.Cryptography.Aes.Create();
             aes.Key = key;
-            var header = encrypted.AsSpan(0, 16).ToArray();
+            Assert.Equal(System.Security.Cryptography.HMACSHA256.HashData(key, Encoding.ASCII.GetBytes("Zerra key check")).AsSpan(0, 8).ToArray(), encrypted.AsSpan(0, 8).ToArray());
+            var header = encrypted.AsSpan(0, 24).ToArray();
             var result = new List<byte>();
-            var offset = 16;
+            var offset = 24;
             var chunkNumber = 0u;
             for (; ; )
             {
@@ -229,6 +231,34 @@ namespace Zerra.Test.Encryption
                     break;
             }
             Assert.Equal(2u, chunkNumber);
+            Assert.Equal(encrypted.Length, offset);
+            Assert.Equal(plain, result.ToArray());
+        }
+
+        [Fact]
+        public void Format_AES_CBC()
+        {
+            var key = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+            var plain = System.Security.Cryptography.RandomNumberGenerator.GetBytes(70_000);
+            var encrypted = new ZerraEncryptor(key, SymmetricAlgorithmType.AES_CBC).Encrypt(plain);
+
+            var keyCheck = System.Security.Cryptography.HMACSHA256.HashData(key, Encoding.ASCII.GetBytes("Zerra key check")).AsSpan(0, 8).ToArray();
+            Assert.Equal(keyCheck, encrypted.AsSpan(0, 8).ToArray());
+
+            using var aes = System.Security.Cryptography.Aes.Create();
+            aes.Key = key;
+            var result = new List<byte>();
+            var offset = 8;
+            for (; ; )
+            {
+                var lengthField = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(encrypted.AsSpan(offset, 4));
+                var bodyLength = (int)(lengthField & 0x7FFFFFFF);
+                var body = encrypted.AsSpan(offset + 4, bodyLength);
+                result.AddRange(aes.DecryptCbc(body.Slice(16), body.Slice(0, 16), System.Security.Cryptography.PaddingMode.PKCS7));
+                offset += 4 + bodyLength;
+                if ((lengthField & 0x80000000) != 0)
+                    break;
+            }
             Assert.Equal(encrypted.Length, offset);
             Assert.Equal(plain, result.ToArray());
         }

@@ -224,7 +224,7 @@ namespace Zerra.Test.Encryption
         //the header, then chunks of {4 byte length}{body}
         private static List<(int Offset, int Length)> GetChunks(SymmetricAlgorithmType algorithm, byte[] encrypted)
         {
-            var offset = algorithm switch { SymmetricAlgorithmType.AES_GCM => 16, SymmetricAlgorithmType.AES_CBC_HMAC => 16, _ => 0 };
+            var offset = algorithm switch { SymmetricAlgorithmType.AES_GCM => 24, SymmetricAlgorithmType.AES_CBC_HMAC => 24, _ => 8 };
             var chunks = new List<(int, int)>();
             while (offset < encrypted.Length)
             {

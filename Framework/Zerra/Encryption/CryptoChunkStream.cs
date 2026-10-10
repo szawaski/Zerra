@@ -11,12 +11,13 @@ using Zerra.IO;
 namespace Zerra.Encryption
 {
     //Format: {header}{chunk}...{final chunk}
+    //  header: {8 byte key check, the start of HMAC-SHA256 of a label with the key, so the key is picked without decrypting}{16 random bytes, except AES_CBC}
     //  chunk: {uint32 little endian: body length, high bit set on the final chunk}{body}
-    //  AES_GCM header: 16 random bytes, each message gets its own key, HMAC-SHA256 of the key and header, so a random nonce can't repeat under one key; the nonce is the chunk number; body: {ciphertext}{16 byte tag}, the length field is the associated data
-    //  AES_CBC_HMAC header: 16 random bytes; body: {16 byte IV}{ciphertext}{32 byte HMAC-SHA256 of header, chunk number, length field, IV, and ciphertext}
-    //  AES_CBC no header; body: {16 byte IV}{ciphertext}, nothing is authenticated
+    //  AES_GCM: each message gets its own key, HMAC-SHA256 of the key and header, so a random nonce can't repeat under one key; the nonce is the chunk number; body: {ciphertext}{16 byte tag}, the length field is the associated data
+    //  AES_CBC_HMAC body: {16 byte IV}{ciphertext}{32 byte HMAC-SHA256 of header, chunk number, length field, IV, and ciphertext}
+    //  AES_CBC body: {16 byte IV}{ciphertext}, nothing is authenticated
     //The chunk number and final flag in the tag stop chunks being reordered, moved between messages, or cut off the end.
-    internal sealed class CryptoChunkStream : StreamTransform
+    internal sealed partial class CryptoChunkStream : StreamTransform
     {
         internal const int ChunkSize = 64 * 1024;
         private const int lengthSize = 4;
@@ -24,15 +25,29 @@ namespace Zerra.Encryption
         private const int blockSize = 16;
         private const int gcmTagSize = 16;
         private const int macSize = 32;
-        private const int maxHeaderSize = 16;
+        internal const int KeyCheckSize = 8;
+        private const int headerRandomSize = 16;
+        private const int maxHeaderSize = KeyCheckSize + headerRandomSize;
         private const int maxBodySize = ChunkSize + blockSize + blockSize + macSize;
 
 #if NETSTANDARD2_0
         private static readonly RandomNumberGenerator rng = RandomNumberGenerator.Create();
 #endif
         private static readonly byte[] macKeyLabel = Encoding.ASCII.GetBytes("Zerra AES_CBC_HMAC");
+        private static readonly byte[] keyCheckLabel = Encoding.ASCII.GetBytes("Zerra key check");
 
-        private readonly Codec codec;
+        internal static byte[] GetKeyCheck(byte[] key)
+        {
+            var check = new byte[KeyCheckSize];
+            using (var derive = new HMACSHA256(key))
+                Buffer.BlockCopy(derive.ComputeHash(keyCheckLabel), 0, check, 0, KeyCheckSize);
+            return check;
+        }
+
+        private readonly SymmetricAlgorithmType algorithm;
+        private readonly SymmetricKeyRing? ring;
+        private readonly int headerSize;
+        private Codec? codec;
         private readonly bool encrypt;
         private readonly CryptoStreamMode mode;
 
@@ -53,13 +68,30 @@ namespace Zerra.Encryption
         public CryptoChunkStream(Stream stream, SymmetricAlgorithmType algorithm, byte[] key, bool encrypt, CryptoStreamMode mode, bool leaveOpen)
             : base(stream, leaveOpen)
         {
+            this.algorithm = algorithm;
             this.codec = new Codec(algorithm, key);
+            this.headerSize = codec.HeaderSize;
             this.encrypt = encrypt;
             this.mode = mode;
             this.inBufferOwner = ArrayPoolHelper<byte>.Rent(lengthSize + maxBodySize);
             this.outBufferOwner = ArrayPoolHelper<byte>.Rent(maxHeaderSize + lengthSize + maxBodySize);
-            this.phase = codec.HeaderSize > 0 ? Phase.Header : Phase.Length;
-            this.expected = codec.HeaderSize > 0 ? codec.HeaderSize : lengthSize;
+            this.phase = Phase.Header;
+            this.expected = headerSize;
+        }
+
+        //the key comes from the ring when the first chunk is written or read, and stays for the whole stream
+        public CryptoChunkStream(Stream stream, SymmetricAlgorithmType algorithm, SymmetricKeyRing ring, bool encrypt, CryptoStreamMode mode, bool leaveOpen)
+            : base(stream, leaveOpen)
+        {
+            this.algorithm = algorithm;
+            this.ring = ring;
+            this.headerSize = Codec.GetHeaderSize(algorithm);
+            this.encrypt = encrypt;
+            this.mode = mode;
+            this.inBufferOwner = ArrayPoolHelper<byte>.Rent(lengthSize + maxBodySize);
+            this.outBufferOwner = ArrayPoolHelper<byte>.Rent(maxHeaderSize + lengthSize + maxBodySize);
+            this.phase = Phase.Header;
+            this.expected = headerSize;
         }
 
         public override bool CanRead => mode == CryptoStreamMode.Read;
@@ -76,6 +108,7 @@ namespace Zerra.Encryption
                 return;
             if (encrypt)
             {
+                codec ??= new Codec(algorithm, ring!.GetState().Current);
                 var length = EncryptChunk(true);
                 stream.Write(outBufferOwner!, 0, length);
                 //like CryptoStream, the end is flushed through to the stream underneath
@@ -95,6 +128,7 @@ namespace Zerra.Encryption
                 return;
             if (encrypt)
             {
+                codec ??= new Codec(algorithm, (await ring!.GetStateAsync()).Current);
                 var length = EncryptChunk(true);
                 await stream.WriteAsync(outBufferOwner.AsMemory(0, length), cancellationToken);
                 await stream.FlushAsync(cancellationToken);
@@ -118,7 +152,7 @@ namespace Zerra.Encryption
                 ArrayPoolHelper<byte>.Return(outBufferOwner!, used);
                 inBufferOwner = null;
                 outBufferOwner = null;
-                codec.Dispose();
+                codec?.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -134,7 +168,7 @@ namespace Zerra.Encryption
                 ArrayPoolHelper<byte>.Return(outBufferOwner!, used);
                 inBufferOwner = null;
                 outBufferOwner = null;
-                codec.Dispose();
+                codec?.Dispose();
             }
             await base.DisposeAsync();
         }
@@ -146,11 +180,11 @@ namespace Zerra.Encryption
             var offset = 0;
             if (phase == Phase.Header)
             {
-                codec.CreateHeader(outBufferOwner.AsSpan(0, codec.HeaderSize));
-                offset = codec.HeaderSize;
+                codec!.CreateHeader(outBufferOwner.AsSpan(0, headerSize));
+                offset = headerSize;
                 phase = Phase.Length;
             }
-            var length = codec.EncryptChunk(inBufferOwner.AsSpan(0, inLength), final, outBufferOwner.AsSpan(offset));
+            var length = codec!.EncryptChunk(inBufferOwner.AsSpan(0, inLength), final, outBufferOwner.AsSpan(offset));
             inLength = 0;
             if (offset + length > used)
                 used = offset + length;
@@ -179,6 +213,7 @@ namespace Zerra.Encryption
                         }
                         inLength += read;
                     }
+                    codec ??= new Codec(algorithm, ring!.GetState().Current);
                     outLength = EncryptChunk(finished);
                     outOffset = 0;
                 }
@@ -186,8 +221,9 @@ namespace Zerra.Encryption
                 {
                     if (phase == Phase.Header)
                     {
-                        ReadExactly(codec.HeaderSize, 0);
-                        codec.ReadHeader(inBufferOwner.AsSpan(0, codec.HeaderSize));
+                        ReadExactly(headerSize, 0);
+                        codec ??= new Codec(algorithm, ring!.SelectKey(inBufferOwner.AsSpan(0, KeyCheckSize)));
+                        codec.ReadHeader(inBufferOwner.AsSpan(0, headerSize));
                         phase = Phase.Length;
                     }
                     ReadExactly(lengthSize, 0);
@@ -196,7 +232,7 @@ namespace Zerra.Encryption
                     if (lengthSize + bodyLength > used)
                         used = lengthSize + bodyLength;
                     ReadExactly(bodyLength, lengthSize);
-                    outLength = codec.DecryptChunk(lengthField, inBufferOwner.AsSpan(lengthSize, bodyLength), outBufferOwner);
+                    outLength = codec!.DecryptChunk(lengthField, inBufferOwner.AsSpan(lengthSize, bodyLength), outBufferOwner);
                     outOffset = 0;
                     finished = (lengthField & finalFlag) != 0;
                 }
@@ -247,6 +283,7 @@ namespace Zerra.Encryption
                         }
                         inLength += read;
                     }
+                    codec ??= new Codec(algorithm, (await ring!.GetStateAsync()).Current);
                     outLength = EncryptChunk(finished);
                     outOffset = 0;
                 }
@@ -254,8 +291,9 @@ namespace Zerra.Encryption
                 {
                     if (phase == Phase.Header)
                     {
-                        await ReadExactlyAsync(codec.HeaderSize, 0, cancellationToken);
-                        codec.ReadHeader(inBufferOwner.AsSpan(0, codec.HeaderSize));
+                        await ReadExactlyAsync(headerSize, 0, cancellationToken);
+                        codec ??= new Codec(algorithm, await ring!.SelectKeyAsync(inBufferOwner.AsSpan(0, KeyCheckSize).ToArray()));
+                        codec.ReadHeader(inBufferOwner.AsSpan(0, headerSize));
                         phase = Phase.Length;
                     }
                     await ReadExactlyAsync(lengthSize, 0, cancellationToken);
@@ -264,7 +302,7 @@ namespace Zerra.Encryption
                     if (lengthSize + bodyLength > used)
                         used = lengthSize + bodyLength;
                     await ReadExactlyAsync(bodyLength, lengthSize, cancellationToken);
-                    outLength = codec.DecryptChunk(lengthField, inBufferOwner.AsSpan(lengthSize, bodyLength), outBufferOwner);
+                    outLength = codec!.DecryptChunk(lengthField, inBufferOwner.AsSpan(lengthSize, bodyLength), outBufferOwner);
                     outOffset = 0;
                     finished = (lengthField & finalFlag) != 0;
                 }
@@ -307,6 +345,7 @@ namespace Zerra.Encryption
                     //a full chunk is only written once more data comes, the last one is written by FlushFinalBlock
                     if (inLength == ChunkSize)
                     {
+                        codec ??= new Codec(algorithm, ring!.GetState().Current);
                         var length = EncryptChunk(false);
                         stream.Write(outBufferOwner!, 0, length);
                     }
@@ -344,6 +383,7 @@ namespace Zerra.Encryption
                 {
                     if (inLength == ChunkSize)
                     {
+                        codec ??= new Codec(algorithm, (await ring!.GetStateAsync()).Current);
                         var length = EncryptChunk(false);
 #if NETSTANDARD2_0
                         await stream.WriteAsync(outBufferOwner!, 0, length, cancellationToken);
@@ -364,6 +404,8 @@ namespace Zerra.Encryption
                     buffer = buffer.Slice(size);
                     while (inLength == expected)
                     {
+                        if (phase == Phase.Header && codec is null)
+                            codec = new Codec(algorithm, await ring!.SelectKeyAsync(inBufferOwner.AsSpan(0, KeyCheckSize).ToArray()));
                         var plainLength = DecryptWritten();
                         if (plainLength > 0)
                         {
@@ -386,7 +428,8 @@ namespace Zerra.Encryption
             switch (phase)
             {
                 case Phase.Header:
-                    codec.ReadHeader(inBufferOwner.AsSpan(0, codec.HeaderSize));
+                    codec ??= new Codec(algorithm, ring!.SelectKey(inBufferOwner.AsSpan(0, KeyCheckSize)));
+                    codec.ReadHeader(inBufferOwner.AsSpan(0, headerSize));
                     phase = Phase.Length;
                     inLength = 0;
                     expected = lengthSize;
@@ -400,7 +443,7 @@ namespace Zerra.Encryption
                     return 0;
                 default:
                     var lengthField = BinaryPrimitives.ReadUInt32LittleEndian(inBufferOwner.AsSpan(0, lengthSize));
-                    var plainLength = codec.DecryptChunk(lengthField, inBufferOwner.AsSpan(lengthSize, expected - lengthSize), outBufferOwner);
+                    var plainLength = codec!.DecryptChunk(lengthField, inBufferOwner.AsSpan(lengthSize, expected - lengthSize), outBufferOwner);
                     finished = (lengthField & finalFlag) != 0;
                     phase = Phase.Length;
                     inLength = 0;
@@ -500,265 +543,6 @@ namespace Zerra.Encryption
             finally
             {
                 ArrayPoolHelper<byte>.Return(plainBufferOwner, encrypted.Length);
-            }
-        }
-
-        private sealed class Codec : IDisposable
-        {
-            private readonly SymmetricAlgorithmType algorithm;
-            private readonly byte[] header;
-            private uint counter;
-#if !NETSTANDARD2_0
-            private readonly byte[]? gcmKey;
-            private AesGcm? gcm;
-#endif
-            private readonly Aes? aes;
-            private readonly IncrementalHash? hmac;
-
-            public int HeaderSize { get; }
-
-            public Codec(SymmetricAlgorithmType algorithm, byte[] key)
-            {
-                this.algorithm = algorithm;
-                switch (algorithm)
-                {
-                    case SymmetricAlgorithmType.AES_GCM:
-#if NETSTANDARD2_0
-                        throw new PlatformNotSupportedException($"{nameof(SymmetricAlgorithmType.AES_GCM)} needs .NET Core 3.0 or later, use {nameof(SymmetricAlgorithmType.AES_CBC_HMAC)} on this platform");
-#else
-                        gcmKey = key;
-                        HeaderSize = 16;
-                        break;
-#endif
-                    case SymmetricAlgorithmType.AES_CBC_HMAC:
-                        aes = Aes.Create();
-                        aes.Key = key;
-                        byte[] macKey;
-                        using (var derive = new HMACSHA256(key))
-                            macKey = derive.ComputeHash(macKeyLabel);
-                        hmac = IncrementalHash.CreateHMAC(HashAlgorithmName.SHA256, macKey);
-                        HeaderSize = 16;
-                        break;
-                    case SymmetricAlgorithmType.AES_CBC:
-                        aes = Aes.Create();
-                        aes.Key = key;
-                        HeaderSize = 0;
-                        break;
-                    default:
-                        throw new NotSupportedException($"{algorithm} is not a chunked algorithm");
-                }
-                header = new byte[HeaderSize];
-            }
-
-            public void Dispose()
-            {
-#if !NETSTANDARD2_0
-                gcm?.Dispose();
-#endif
-                aes?.Dispose();
-                hmac?.Dispose();
-            }
-
-            public static int GetBodyLength(uint lengthField)
-            {
-                var bodyLength = (int)(lengthField & ~finalFlag);
-                if (bodyLength > maxBodySize)
-                    throw new CryptographicException("Encrypted chunk is larger than allowed");
-                return bodyLength;
-            }
-
-            public int GetBodySize(int plainLength) => algorithm switch
-            {
-                SymmetricAlgorithmType.AES_GCM => plainLength + gcmTagSize,
-                SymmetricAlgorithmType.AES_CBC_HMAC => blockSize + (plainLength / blockSize + 1) * blockSize + macSize,
-                _ => blockSize + (plainLength / blockSize + 1) * blockSize,
-            };
-
-            public void CreateHeader(Span<byte> destination)
-            {
-                if (HeaderSize == 0)
-                    return;
-                Fill(header);
-                header.CopyTo(destination);
-                CreateMessageKey();
-            }
-
-            public void ReadHeader(ReadOnlySpan<byte> source)
-            {
-                if (HeaderSize == 0)
-                    return;
-                source.CopyTo(header);
-                CreateMessageKey();
-            }
-
-            //writes {length}{body} and returns its size
-            public int EncryptChunk(ReadOnlySpan<byte> plain, bool final, Span<byte> destination)
-            {
-                var bodyLength = GetBodySize(plain.Length);
-                var lengthField = (uint)bodyLength | (final ? finalFlag : 0);
-                BinaryPrimitives.WriteUInt32LittleEndian(destination, lengthField);
-                var body = destination.Slice(lengthSize, bodyLength);
-
-                switch (algorithm)
-                {
-#if !NETSTANDARD2_0
-                    case SymmetricAlgorithmType.AES_GCM:
-                        {
-                            Span<byte> nonce = stackalloc byte[12];
-                            BinaryPrimitives.WriteUInt32BigEndian(nonce.Slice(8), NextCounter());
-                            gcm!.Encrypt(nonce, plain, body.Slice(0, plain.Length), body.Slice(plain.Length, gcmTagSize), destination.Slice(0, lengthSize));
-                            break;
-                        }
-#endif
-                    case SymmetricAlgorithmType.AES_CBC_HMAC:
-                        {
-                            var iv = body.Slice(0, blockSize);
-                            Fill(iv);
-                            var cipherLength = bodyLength - blockSize - macSize;
-                            EncryptCbc(plain, iv, body.Slice(blockSize, cipherLength));
-                            ComputeMac(NextCounter(), destination.Slice(0, lengthSize), body.Slice(0, blockSize + cipherLength), body.Slice(blockSize + cipherLength, macSize));
-                            break;
-                        }
-                    default:
-                        {
-                            var iv = body.Slice(0, blockSize);
-                            Fill(iv);
-                            EncryptCbc(plain, iv, body.Slice(blockSize));
-                            break;
-                        }
-                }
-                return lengthSize + bodyLength;
-            }
-
-            //decrypts the body into the destination and returns the plain length
-            public int DecryptChunk(uint lengthField, ReadOnlySpan<byte> body, Span<byte> destination)
-            {
-                Span<byte> lengthBytes = stackalloc byte[lengthSize];
-                BinaryPrimitives.WriteUInt32LittleEndian(lengthBytes, lengthField);
-
-                switch (algorithm)
-                {
-#if !NETSTANDARD2_0
-                    case SymmetricAlgorithmType.AES_GCM:
-                        {
-                            if (body.Length < gcmTagSize)
-                                throw new CryptographicException("Encrypted chunk is too short");
-                            var plainLength = body.Length - gcmTagSize;
-                            Span<byte> nonce = stackalloc byte[12];
-                            BinaryPrimitives.WriteUInt32BigEndian(nonce.Slice(8), NextCounter());
-                            gcm!.Decrypt(nonce, body.Slice(0, plainLength), body.Slice(plainLength, gcmTagSize), destination.Slice(0, plainLength), lengthBytes);
-                            return plainLength;
-                        }
-#endif
-                    case SymmetricAlgorithmType.AES_CBC_HMAC:
-                        {
-                            var cipherLength = body.Length - blockSize - macSize;
-                            if (cipherLength < blockSize || cipherLength % blockSize != 0)
-                                throw new CryptographicException("Encrypted chunk is the wrong size");
-                            Span<byte> mac = stackalloc byte[macSize];
-                            ComputeMac(NextCounter(), lengthBytes, body.Slice(0, blockSize + cipherLength), mac);
-                            if (!FixedTimeEquals(mac, body.Slice(blockSize + cipherLength, macSize)))
-                                throw new CryptographicException("Encrypted data was changed or the key is wrong");
-                            return DecryptCbc(body.Slice(blockSize, cipherLength), body.Slice(0, blockSize), destination);
-                        }
-                    default:
-                        {
-                            var cipherLength = body.Length - blockSize;
-                            if (cipherLength < blockSize || cipherLength % blockSize != 0)
-                                throw new CryptographicException("Encrypted chunk is the wrong size");
-                            return DecryptCbc(body.Slice(blockSize), body.Slice(0, blockSize), destination);
-                        }
-                }
-            }
-
-            private void CreateMessageKey()
-            {
-#if !NETSTANDARD2_0
-                if (gcmKey is null)
-                    return;
-                //the message key is the same size as the key
-                Span<byte> messageKey = stackalloc byte[32];
-                _ = HMACSHA256.HashData(gcmKey, header, messageKey);
-                gcm?.Dispose();
-                gcm = new AesGcm(messageKey.Slice(0, gcmKey.Length), gcmTagSize);
-                CryptographicOperations.ZeroMemory(messageKey);
-#endif
-            }
-
-            private uint NextCounter()
-            {
-                if (counter == uint.MaxValue)
-                    throw new CryptographicException("Too many encrypted chunks");
-                return counter++;
-            }
-
-            private void ComputeMac(uint chunkNumber, ReadOnlySpan<byte> lengthBytes, ReadOnlySpan<byte> ivAndCipher, Span<byte> destination)
-            {
-                Span<byte> counterBytes = stackalloc byte[4];
-                BinaryPrimitives.WriteUInt32BigEndian(counterBytes, chunkNumber);
-#if NETSTANDARD2_0
-                hmac!.AppendData(header);
-                hmac.AppendData(counterBytes.ToArray());
-                hmac.AppendData(lengthBytes.ToArray());
-                hmac.AppendData(ivAndCipher.ToArray());
-                hmac.GetHashAndReset().CopyTo(destination);
-#else
-                hmac!.AppendData(header);
-                hmac.AppendData(counterBytes);
-                hmac.AppendData(lengthBytes);
-                hmac.AppendData(ivAndCipher);
-                _ = hmac.GetHashAndReset(destination);
-#endif
-            }
-
-            private void EncryptCbc(ReadOnlySpan<byte> plain, ReadOnlySpan<byte> iv, Span<byte> destination)
-            {
-#if NETSTANDARD2_0
-                using (var transform = aes!.CreateEncryptor(aes.Key, iv.ToArray()))
-                    transform.TransformFinalBlock(plain.ToArray(), 0, plain.Length).CopyTo(destination);
-#else
-                _ = aes!.EncryptCbc(plain, iv, destination, PaddingMode.PKCS7);
-#endif
-            }
-
-            private int DecryptCbc(ReadOnlySpan<byte> cipher, ReadOnlySpan<byte> iv, Span<byte> destination)
-            {
-#if NETSTANDARD2_0
-                using (var transform = aes!.CreateDecryptor(aes.Key, iv.ToArray()))
-                {
-                    var plain = transform.TransformFinalBlock(cipher.ToArray(), 0, cipher.Length);
-                    plain.CopyTo(destination);
-                    return plain.Length;
-                }
-#else
-                return aes!.DecryptCbc(cipher, iv, destination, PaddingMode.PKCS7);
-#endif
-            }
-
-            private static void Fill(Span<byte> destination)
-            {
-#if NETSTANDARD2_0
-                var bytes = new byte[destination.Length];
-                lock (rng)
-                    rng.GetBytes(bytes);
-                bytes.CopyTo(destination);
-#else
-                RandomNumberGenerator.Fill(destination);
-#endif
-            }
-
-            private static bool FixedTimeEquals(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
-            {
-#if NETSTANDARD2_0
-                if (left.Length != right.Length)
-                    return false;
-                var difference = 0;
-                for (var i = 0; i < left.Length; i++)
-                    difference |= left[i] ^ right[i];
-                return difference == 0;
-#else
-                return CryptographicOperations.FixedTimeEquals(left, right);
-#endif
             }
         }
     }
