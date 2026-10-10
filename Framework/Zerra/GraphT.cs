@@ -295,7 +295,7 @@ namespace Zerra
         }
 
         /// <inheritdoc />
-        protected override Type GetModelType()
+        private protected override Type GetModelType()
         {
             return typeof(T);
         }

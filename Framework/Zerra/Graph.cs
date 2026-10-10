@@ -52,7 +52,7 @@ namespace Zerra
         /// Stores the signature string associated with the current instance.
         /// </summary>
         [NonSerialized]
-        protected string? signature = null;
+        private protected string? signature = null;
         /// <summary>
         /// Gets the unique signature of the graph used for comparing graphs.
         /// </summary>
@@ -709,7 +709,7 @@ namespace Zerra
         /// If the graph members are directed to an object type, this returns that type.
         /// </summary>
         /// <returns>The object type to which the graph members are directed, or null if not applicable.</returns>
-        protected virtual Type? GetModelType() => null;
+        private protected virtual Type? GetModelType() => null;
 
         internal static Graph? InternalGetChildGraph(Graph graph, MemberInfo member, bool canCreate, bool canIncludeAllMembers)
         {
