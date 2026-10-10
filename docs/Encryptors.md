@@ -58,7 +58,7 @@ The modes aren't interchangeable, so both ends must use the same one.
 
 ### Data Encrypted With the Old Format
 
-The old `AESwithShift` and plain `AES` formats don't detect changed data. Data already stored in them can still be read and written with `ZerraEncryptorOld`, which derives the key from the password the old way, or `SymmetricEncryptorOld` with `SymmetricAlgorithmTypeOld`. Use them only for that data ([Upgrading](UpgradeV5ToV6.md)):
+The old `AESwithShift` and plain `AES` formats don't detect changed data. Data already stored in them can still be read and written with `ZerraEncryptorOld`, which derives the key from the password the old way, or `SymmetricEncryptorOld` with `SymmetricAlgorithmTypeOld`. They're obsolete, so code that uses them gets warning `CS0612` as a reminder to move that data to a new mode. Use them only for that data ([Upgrading](UpgradeV5ToV6.md)):
 
 ```csharp
 IEncryptor encryptor = new ZerraEncryptorOld(password);   // AESwithShift

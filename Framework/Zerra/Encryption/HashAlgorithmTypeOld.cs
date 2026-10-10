@@ -5,7 +5,7 @@
 namespace Zerra.Encryption
 {
     /// <summary>
-    /// The hash algorithms Zerra 5's <c>HashAlgoritmType</c> had, for <see cref="HasherOld"/> to check hashes made with them. The numbers are Zerra 5's.
+    /// The hash algorithms the old <c>HashAlgoritmType</c> had, for <see cref="HasherOld"/> to check hashes made with them.
     /// New hashes use <see cref="HashAlgorithmType"/>.
     /// </summary>
     [Obsolete]
@@ -14,22 +14,22 @@ namespace Zerra.Encryption
         /// <summary>
         /// Secure Hash Algorithm 1 (SHA-1)
         /// </summary>
-        SHA1 = 0,
+        SHA1,
         /// <summary>
         /// Secure Hash Algorithm 2 with 256 bits (SHA-256)
         /// </summary>
-        SHA256 = 1,
+        SHA256,
         /// <summary>
         /// Secure Hash Algorithm 2 with 512 bits (SHA-512)
         /// </summary>
-        SHA512 = 2,
+        SHA512,
         /// <summary>
         /// Secure Hash Algorithm 2 with 384 bits (SHA-384)
         /// </summary>
-        SHA384 = 3,
+        SHA384,
         /// <summary>
         /// Message Digest 5 Algorithm (MD5)
         /// </summary>
-        MD5 = 4,
+        MD5 
     }
 }

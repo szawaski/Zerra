@@ -8,7 +8,7 @@ using System.Text;
 namespace Zerra.Encryption
 {
     /// <summary>
-    /// Performs symmetric encryption and decryption the way Zerra 5 did, for data it encrypted.
+    /// Performs symmetric encryption and decryption the old way, for data encrypted with it.
     /// These modes don't detect changed data; new data uses <see cref="SymmetricEncryptor"/>.
     /// </summary>
     [Obsolete]
@@ -19,12 +19,12 @@ namespace Zerra.Encryption
         private const int blockSize = 128;
 
         /// <summary>
-        /// Derives a key and IV from a password the way Zerra 5's <c>SymmetricEncryptor.GetKey</c> did.
+        /// Derives a key and IV from a password the way the old <c>SymmetricEncryptor.GetKey</c> did.
         /// </summary>
         /// <param name="password">The password to derive the key from.</param>
         /// <param name="salt">An optional salt for the key.</param>
         /// <param name="keySize">The size of the key.</param>
-        /// <param name="hashAlgorithm">The hash algorithm for the derivation, default is SHA1 as in Zerra 5.</param>
+        /// <param name="hashAlgorithm">The hash algorithm for the derivation, default is SHA1, as before.</param>
         /// <param name="deriveKeyIterations">The number of iterations in the derivation, default is 1000.</param>
         /// <returns>The key and IV bytes.</returns>
         public static (byte[] Key, byte[] IV) DeriveKey(string password, string? salt = null, SymmetricKeySize keySize = defaultKeySize, HashAlgorithmName? hashAlgorithm = null, int deriveKeyIterations = defaultDeriveBytesIterations)
@@ -41,7 +41,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric encryption.
         /// </summary>
-        /// <param name="algorithm">The Zerra 5 algorithm.</param>
+        /// <param name="algorithm">The old algorithm.</param>
         /// <param name="key">The key bytes.</param>
         /// <param name="iv">The IV bytes.</param>
         /// <param name="plainData">The text to encrypt.</param>
@@ -62,7 +62,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric encryption.
         /// </summary>
-        /// <param name="algorithm">The Zerra 5 algorithm.</param>
+        /// <param name="algorithm">The old algorithm.</param>
         /// <param name="key">The key bytes.</param>
         /// <param name="iv">The IV bytes.</param>
         /// <param name="plainBytes">The data to encrypt.</param>
@@ -90,7 +90,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric encryption.
         /// </summary>
-        /// <param name="algorithm">The Zerra 5 algorithm.</param>
+        /// <param name="algorithm">The old algorithm.</param>
         /// <param name="key">The key bytes.</param>
         /// <param name="iv">The IV bytes.</param>
         /// <param name="plainBytes">The data to encrypt.</param>
@@ -116,7 +116,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric encryption on a stream.
         /// </summary>
-        /// <param name="algorithm">The Zerra 5 algorithm.</param>
+        /// <param name="algorithm">The old algorithm.</param>
         /// <param name="key">The key bytes.</param>
         /// <param name="iv">The IV bytes.</param>
         /// <param name="stream">The stream to encrypt.</param>
@@ -183,7 +183,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric decryption.
         /// </summary>
-        /// <param name="algorithm">The Zerra 5 algorithm.</param>
+        /// <param name="algorithm">The old algorithm.</param>
         /// <param name="key">The key bytes.</param>
         /// <param name="iv">The IV bytes.</param>
         /// <param name="encryptedData">The Base64 data to decrypt.</param>
@@ -204,7 +204,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric decryption.
         /// </summary>
-        /// <param name="algorithm">The Zerra 5 algorithm.</param>
+        /// <param name="algorithm">The old algorithm.</param>
         /// <param name="key">The key bytes.</param>
         /// <param name="iv">The IV bytes.</param>
         /// <param name="encryptedBytes">The data to decrypt.</param>
@@ -232,7 +232,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric decryption.
         /// </summary>
-        /// <param name="algorithm">The Zerra 5 algorithm.</param>
+        /// <param name="algorithm">The old algorithm.</param>
         /// <param name="key">The key bytes.</param>
         /// <param name="iv">The IV bytes.</param>
         /// <param name="encryptedBytes">The data to decrypt.</param>
@@ -258,7 +258,7 @@ namespace Zerra.Encryption
         /// <summary>
         /// Performs a symmetric decryption on a stream.
         /// </summary>
-        /// <param name="algorithm">The Zerra 5 algorithm.</param>
+        /// <param name="algorithm">The old algorithm.</param>
         /// <param name="key">The key bytes.</param>
         /// <param name="iv">The IV bytes.</param>
         /// <param name="stream">The stream to decrypt.</param>

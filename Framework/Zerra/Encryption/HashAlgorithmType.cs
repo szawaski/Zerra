@@ -5,21 +5,21 @@
 namespace Zerra.Encryption
 {
     /// <summary>
-    /// Indicates a hash algorithm for <see cref="Hasher"/>. The numbers are fixed so stored values keep their meaning.
+    /// Indicates a hash algorithm for <see cref="Hasher"/>.
     /// </summary>
     public enum HashAlgorithmType : byte
     {
         /// <summary>
         /// Secure Hash Algorithm 2 with 256 bits (SHA-256)
         /// </summary>
-        SHA256 = 1,
+        SHA256,
         /// <summary>
         /// Secure Hash Algorithm 2 with 512 bits (SHA-512)
         /// </summary>
-        SHA512 = 2,
+        SHA512,
         /// <summary>
         /// Secure Hash Algorithm 2 with 384 bits (SHA-384)
         /// </summary>
-        SHA384 = 3,
+        SHA384
     }
 }

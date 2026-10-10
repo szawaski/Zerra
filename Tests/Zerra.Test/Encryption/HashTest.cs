@@ -33,7 +33,7 @@ namespace Zerra.Test.Encryption
                 Assert.True(Hasher.VerifyHash(alg, bytes, hashBytes));
                 Assert.False(Hasher.VerifyHash(alg, wrongBytes, hashBytes));
             }
-            _ = Assert.Throws<NotSupportedException>(() => Hasher.GenerateHash((HashAlgorithmType)0, "test"));
+            _ = Assert.Throws<NotSupportedException>(() => Hasher.GenerateHash((HashAlgorithmType)99, "test"));
         }
 
         public static TheoryData<string> PBKDF2Algorithms => new() { nameof(HashAlgorithmName.SHA1), nameof(HashAlgorithmName.SHA256), nameof(HashAlgorithmName.SHA384), nameof(HashAlgorithmName.SHA512) };

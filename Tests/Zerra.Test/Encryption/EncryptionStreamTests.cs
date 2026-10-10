@@ -537,7 +537,7 @@ namespace Zerra.Test.Encryption
             _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Decrypt(algorithm, null!, new MemoryStream(), true));
             _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptor.Decrypt(algorithm, key, (Stream)null!, true));
 
-            _ = Assert.Throws<NotSupportedException>(() => SymmetricEncryptor.Encrypt((SymmetricAlgorithmType)1, key, new byte[1]));
+            _ = Assert.Throws<NotSupportedException>(() => SymmetricEncryptor.Encrypt((SymmetricAlgorithmType)99, key, new byte[1]));
         }
 
         [Fact]

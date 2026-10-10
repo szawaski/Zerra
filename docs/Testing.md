@@ -9,11 +9,11 @@ Line coverage of each framework project is listed below, measured with `dotnet-c
 | Project | Coverage | Tested by |
 |---|---|---|
 | `Zerra` | 96% | `Zerra.Test`, and `Zerra.Test.NetStandard` for its .NET Standard build on .NET Framework |
-| `Zerra.Web` | 97% | `Zerra.Test` |
-| `Zerra.CQRS.Kafka` | 86% | `Zerra.CQRS.Test` |
-| `Zerra.CQRS.RabbitMQ` | 85% | `Zerra.CQRS.Test` |
+| `Zerra.Web` | 98% | `Zerra.Test` |
+| `Zerra.CQRS.Kafka` | 85% | `Zerra.CQRS.Test` |
+| `Zerra.CQRS.RabbitMQ` | 87% | `Zerra.CQRS.Test` |
 | `Zerra.CQRS.AzureServiceBus` | 88% | `Zerra.CQRS.Test` |
-| `Zerra.Repository` | 92% | `Zerra.Repository.Test` |
+| `Zerra.Repository` | 93% | `Zerra.Repository.Test` |
 | `Zerra.Repository.Memory` | 92% | `Zerra.Repository.Test` |
 | `Zerra.Repository.MsSql` | 90% | `Zerra.Repository.Test` |
 | `Zerra.Repository.PostgreSql` | 89% | `Zerra.Repository.Test` |

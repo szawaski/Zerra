@@ -5,7 +5,7 @@
 namespace Zerra.Encryption
 {
     /// <summary>
-    /// The symmetric algorithms Zerra 5 used, for data it encrypted. The numbers are Zerra 5's, so stored values keep their meaning.
+    /// The symmetric algorithms used before, for data encrypted with them.
     /// New data uses <see cref="SymmetricAlgorithmType"/>.
     /// </summary>
     public enum SymmetricAlgorithmTypeOld : byte
@@ -13,11 +13,11 @@ namespace Zerra.Encryption
         /// <summary>
         /// AES in CBC mode with the IV derived from the key, so the same data always encrypts to the same bytes.
         /// </summary>
-        AES = 0,
+        AES,
 
         /// <summary>
-        /// AES in CBC mode with a random block that shifts the others, Zerra 5's default.
+        /// AES in CBC mode with a random block that shifts the others, the old default.
         /// </summary>
-        AESwithShift = 4,
+        AESwithShift
     }
 }

@@ -8,7 +8,7 @@ using System.Text;
 namespace Zerra.Encryption
 {
     /// <summary>
-    /// Hashes the way Zerra 5's <c>Hasher</c> did, to check hashes it stored. New hashes use <see cref="Hasher"/>:
+    /// Hashes the way the old <c>Hasher</c> did, to check hashes it stored. New hashes use <see cref="Hasher"/>:
     /// these PBKDF2 hashes use only 1,000 iterations, and the plain hashes allow MD5 and SHA-1.
     /// </summary>
     [Obsolete]
@@ -32,7 +32,7 @@ namespace Zerra.Encryption
         }
 
         /// <summary>
-        /// Hashes text with a salt as Zerra 5 did, as Base64 of the hash followed by the salt.
+        /// Hashes text with a salt the old way, as Base64 of the hash followed by the salt.
         /// </summary>
         /// <param name="hashAlgorithmType">The hash algorithm.</param>
         /// <param name="plain">The text to hash.</param>
@@ -45,7 +45,7 @@ namespace Zerra.Encryption
             return Convert.ToBase64String(GenerateHash(hashAlgorithmType, plainBytes, saltBytes));
         }
         /// <summary>
-        /// Hashes data with a salt as Zerra 5 did, as the hash followed by the salt.
+        /// Hashes data with a salt the old way, as the hash followed by the salt.
         /// </summary>
         /// <param name="hashAlgorithmType">The hash algorithm.</param>
         /// <param name="plainBytes">The data to hash.</param>
@@ -73,7 +73,7 @@ namespace Zerra.Encryption
             }
         }
         /// <summary>
-        /// Checks text against a hash Zerra 5's <c>Hasher.GenerateHash</c> made.
+        /// Checks text against a hash the old <c>Hasher.GenerateHash</c> made.
         /// </summary>
         /// <param name="hashAlgorithmType">The hash algorithm.</param>
         /// <param name="plain">The text to check.</param>
@@ -95,7 +95,7 @@ namespace Zerra.Encryption
             return VerifyHash(hashAlgorithmType, Encoding.UTF8.GetBytes(plain), hashBytes);
         }
         /// <summary>
-        /// Checks data against a hash Zerra 5's <c>Hasher.GenerateHash</c> made.
+        /// Checks data against a hash the old <c>Hasher.GenerateHash</c> made.
         /// </summary>
         /// <param name="hashAlgorithmType">The hash algorithm.</param>
         /// <param name="plainBytes">The data to check.</param>
@@ -125,11 +125,11 @@ namespace Zerra.Encryption
         }
 
         /// <summary>
-        /// Hashes a password with PBKDF2 as Zerra 5 did, Base64 of 64 hash bytes followed by the salt.
+        /// Hashes a password with PBKDF2 the old way, Base64 of 64 hash bytes followed by the salt.
         /// </summary>
         /// <param name="plain">The password to hash.</param>
         /// <param name="salt">The salt, a random one if not given.</param>
-        /// <param name="hashAlgorithm">The hash algorithm, SHA-1 as in Zerra 5 if not given.</param>
+        /// <param name="hashAlgorithm">The hash algorithm, SHA-1 if not given, as before.</param>
         /// <returns>The hash and salt as Base64.</returns>
         public static string PBKDF2GenerateHash(string plain, string? salt = null, HashAlgorithmName? hashAlgorithm = null)
         {
@@ -138,11 +138,11 @@ namespace Zerra.Encryption
             return Convert.ToBase64String(PBKDF2GenerateHash(plainBytes, saltBytes, hashAlgorithm));
         }
         /// <summary>
-        /// Hashes a password with PBKDF2 as Zerra 5 did, 64 hash bytes followed by the salt.
+        /// Hashes a password with PBKDF2 the old way, 64 hash bytes followed by the salt.
         /// </summary>
         /// <param name="plainBytes">The password to hash.</param>
         /// <param name="saltBytes">The salt, a random one if not given.</param>
-        /// <param name="hashAlgorithm">The hash algorithm, SHA-1 as in Zerra 5 if not given.</param>
+        /// <param name="hashAlgorithm">The hash algorithm, SHA-1 if not given, as before.</param>
         /// <returns>The hash and salt.</returns>
         public static byte[] PBKDF2GenerateHash(byte[] plainBytes, byte[]? saltBytes = null, HashAlgorithmName? hashAlgorithm = null)
         {
@@ -160,11 +160,11 @@ namespace Zerra.Encryption
             return hashWithSaltBytes;
         }
         /// <summary>
-        /// Checks a password against a hash Zerra 5's <c>Hasher.PBKDF2GenerateHash</c> made.
+        /// Checks a password against a hash the old <c>Hasher.PBKDF2GenerateHash</c> made.
         /// </summary>
         /// <param name="plain">The password to check.</param>
         /// <param name="hash">The hash and salt as Base64.</param>
-        /// <param name="hashAlgorithm">The hash algorithm, SHA-1 as in Zerra 5 if not given.</param>
+        /// <param name="hashAlgorithm">The hash algorithm, SHA-1 if not given, as before.</param>
         /// <returns>True if the password matches.</returns>
         public static bool PBKDF2VerifyHash(string plain, string hash, HashAlgorithmName? hashAlgorithm = null)
         {
@@ -182,11 +182,11 @@ namespace Zerra.Encryption
             return PBKDF2VerifyHash(Encoding.UTF8.GetBytes(plain), hashBytes, hashAlgorithm);
         }
         /// <summary>
-        /// Checks a password against a hash Zerra 5's <c>Hasher.PBKDF2GenerateHash</c> made.
+        /// Checks a password against a hash the old <c>Hasher.PBKDF2GenerateHash</c> made.
         /// </summary>
         /// <param name="plainBytes">The password to check.</param>
         /// <param name="hashWithSaltBytes">The hash and salt.</param>
-        /// <param name="hashAlgorithm">The hash algorithm, SHA-1 as in Zerra 5 if not given.</param>
+        /// <param name="hashAlgorithm">The hash algorithm, SHA-1 if not given, as before.</param>
         /// <returns>True if the password matches.</returns>
         public static bool PBKDF2VerifyHash(byte[] plainBytes, byte[] hashWithSaltBytes, HashAlgorithmName? hashAlgorithm = null)
         {

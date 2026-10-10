@@ -28,7 +28,7 @@ namespace Zerra.Repository
         public virtual bool Enabled { get { return true; } }
         /// <summary>Gets an optional graph that restricts which model properties are encrypted. When <see langword="null"/>, all eligible properties are encrypted.</summary>
         public virtual Graph<TModel>? Properties { get { return null; } }
-        /// <summary>Gets the encryptor for the values, such as <see cref="ZerraEncryptor"/>, or <see cref="ZerraEncryptorOld"/> for data Zerra 5 stored. It's read once.</summary>
+        /// <summary>Gets the encryptor for the values, such as <see cref="ZerraEncryptor"/>, or <see cref="ZerraEncryptorOld"/> for data stored in the old format. It's read once.</summary>
         public abstract IEncryptor Encryptor { get; }
 
         private IEncryptor? encryptor;

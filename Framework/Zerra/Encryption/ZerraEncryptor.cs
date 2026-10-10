@@ -4,7 +4,6 @@ namespace Zerra.Encryption
 {
     /// <summary>
     /// Provides symmetric encryption and decryption with a <see cref="SymmetricAlgorithmType"/> and a shared key.
-    /// For data encrypted by Zerra 5, use <see cref="ZerraEncryptorOld"/>.
     /// </summary>
     public sealed class ZerraEncryptor : IEncryptor
     {

@@ -425,6 +425,45 @@ namespace Zerra.Encryption
             codec.ReadHeader(encrypted.Slice(0, codec.HeaderSize));
             var offset = codec.HeaderSize;
 
+#if !NETSTANDARD2_0
+            //GCM's plain length is known from the chunk lengths, so it decrypts straight into the result
+            if (algorithm == SymmetricAlgorithmType.AES_GCM)
+            {
+                var plainLength = 0;
+                var scan = offset;
+                for (; ; )
+                {
+                    if (encrypted.Length - scan < lengthSize)
+                        throw new CryptographicException("Encrypted data ended before its final chunk");
+                    var lengthField = BinaryPrimitives.ReadUInt32LittleEndian(encrypted.Slice(scan, lengthSize));
+                    var bodyLength = Codec.GetBodyLength(lengthField);
+                    scan += lengthSize;
+                    if (encrypted.Length - scan < bodyLength)
+                        throw new CryptographicException("Encrypted data ended before its final chunk");
+                    if (bodyLength < gcmTagSize)
+                        throw new CryptographicException("Encrypted chunk is too short");
+                    plainLength += bodyLength - gcmTagSize;
+                    scan += bodyLength;
+                    if ((lengthField & finalFlag) != 0)
+                        break;
+                }
+                if (scan != encrypted.Length)
+                    throw new CryptographicException("Data after the final chunk");
+
+                var plain = new byte[plainLength];
+                var plainOffset = 0;
+                while (offset < encrypted.Length)
+                {
+                    var lengthField = BinaryPrimitives.ReadUInt32LittleEndian(encrypted.Slice(offset, lengthSize));
+                    var bodyLength = Codec.GetBodyLength(lengthField);
+                    offset += lengthSize;
+                    plainOffset += codec.DecryptChunk(lengthField, encrypted.Slice(offset, bodyLength), plain.AsSpan(plainOffset));
+                    offset += bodyLength;
+                }
+                return plain;
+            }
+#endif
+
             //the plain bytes are always fewer than the encrypted ones, and each chunk decrypts in place after the ones before it
             var plainBufferOwner = ArrayPoolHelper<byte>.Rent(encrypted.Length);
             try

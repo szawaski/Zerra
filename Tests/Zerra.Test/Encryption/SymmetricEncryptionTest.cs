@@ -166,13 +166,13 @@ namespace Zerra.Test.Encryption
             _ = Assert.Throws<ArgumentNullException>(() => new ZerraEncryptor((byte[])null!, SymmetricAlgorithmType.AES_GCM));
         }
 
-        //produced by the old SymmetricEncryptor.GetKey("zerra-5-password") and Encrypt
-        private const string oldPassword = "zerra-5-password";
-        private const string oldKey = "dKxnujWoBUWkAdvFqEXpFV6bzn0rOQmIkp+BZilT3GY=";
-        private const string oldIV = "yRC+dn1KzCPzis9jmE7RXw==";
-        private const string oldAes = "ZWH6JDYUhXCL4hoGUNP/Wmom3vQY3kBAJreDvc7hCJA=";
-        private const string oldShift = "BYuW7glRExYE8nyFgVzN6UPBA1FsC8CbvA6f4vGUd55jb700u63BfWtq0E97d41a";
-        private const string oldSaltedShift = "tSrygIcOFJ6a3Vm1TkihANpnZekSJAHeyzs1IiBIjCUr47FZz3iBagvSGSFx9CR3";
+        //produced by the old SymmetricEncryptor.GetKey("old-password") and Encrypt
+        private const string oldPassword = "old-password";
+        private const string oldKey = "GhsW5BJipJYLqu+SDgO6Xsqi5tvZ/AWD+FPho2Qs3mU=";
+        private const string oldIV = "TCM9StoVkWIqyRtQDKyOFg==";
+        private const string oldAes = "wO8SkoHL22UcE5YSeopEgQ==";
+        private const string oldShift = "Ui9+CuG84CiE6Uq5EaOJLbOaMBr/2pEqPCi37rRNBEA=";
+        private const string oldSaltedShift = "gCzZ7wifdNcgc1Zp7RntaVaJ14ux3MKhSDyR7mcVCPQ=";
 
 #pragma warning disable CS0612 //tests the obsolete Old APIs
         [Fact]
@@ -184,15 +184,15 @@ namespace Zerra.Test.Encryption
             //the same password gives the same key bytes in both
             Assert.Equal(key, SymmetricEncryptor.DeriveKey(oldPassword));
 
-            Assert.Equal("stored by zerra 5", SymmetricEncryptorOld.Decrypt(SymmetricAlgorithmTypeOld.AES, key, iv, oldAes));
-            Assert.Equal("stored by zerra 5", SymmetricEncryptorOld.Decrypt(SymmetricAlgorithmTypeOld.AESwithShift, key, iv, oldShift));
+            Assert.Equal("stored data", SymmetricEncryptorOld.Decrypt(SymmetricAlgorithmTypeOld.AES, key, iv, oldAes));
+            Assert.Equal("stored data", SymmetricEncryptorOld.Decrypt(SymmetricAlgorithmTypeOld.AESwithShift, key, iv, oldShift));
             //plain AES is deterministic, so it writes exactly what was stored
-            Assert.Equal(oldAes, SymmetricEncryptorOld.Encrypt(SymmetricAlgorithmTypeOld.AES, key, iv, "stored by zerra 5"));
+            Assert.Equal(oldAes, SymmetricEncryptorOld.Encrypt(SymmetricAlgorithmTypeOld.AES, key, iv, "stored data"));
 
-            Assert.Equal("stored by zerra 5", Encoding.UTF8.GetString(new ZerraEncryptorOld(oldPassword).Decrypt(Convert.FromBase64String(oldShift))));
-            Assert.Equal("stored by zerra 5", Encoding.UTF8.GetString(new ZerraEncryptorOld(oldPassword, SymmetricAlgorithmTypeOld.AES).Decrypt(Convert.FromBase64String(oldAes))));
-            Assert.Equal("salted by zerra 5", Encoding.UTF8.GetString(new ZerraEncryptorOld(oldPassword, salt: "pepper").Decrypt(Convert.FromBase64String(oldSaltedShift))));
-            Assert.Equal("stored by zerra 5", Encoding.UTF8.GetString(new ZerraEncryptorOld(key, iv).Decrypt(Convert.FromBase64String(oldShift))));
+            Assert.Equal("stored data", Encoding.UTF8.GetString(new ZerraEncryptorOld(oldPassword).Decrypt(Convert.FromBase64String(oldShift))));
+            Assert.Equal("stored data", Encoding.UTF8.GetString(new ZerraEncryptorOld(oldPassword, SymmetricAlgorithmTypeOld.AES).Decrypt(Convert.FromBase64String(oldAes))));
+            Assert.Equal("salted data", Encoding.UTF8.GetString(new ZerraEncryptorOld(oldPassword, salt: "pepper").Decrypt(Convert.FromBase64String(oldSaltedShift))));
+            Assert.Equal("stored data", Encoding.UTF8.GetString(new ZerraEncryptorOld(key, iv).Decrypt(Convert.FromBase64String(oldShift))));
         }
 
         [Fact]
@@ -227,7 +227,7 @@ namespace Zerra.Test.Encryption
             using (var sr = new StreamReader(reader))
                 Assert.Equal("", sr.ReadToEnd());
 
-            _ = Assert.Throws<NotSupportedException>(() => SymmetricEncryptorOld.Encrypt((SymmetricAlgorithmTypeOld)1, key, iv, data));
+            _ = Assert.Throws<NotSupportedException>(() => SymmetricEncryptorOld.Encrypt((SymmetricAlgorithmTypeOld)99, key, iv, data));
             _ = Assert.Throws<ArgumentNullException>(() => SymmetricEncryptorOld.Encrypt(SymmetricAlgorithmTypeOld.AES, key, null!, data));
             _ = Assert.Throws<ArgumentNullException>(() => new ZerraEncryptorOld(key, null!));
         }

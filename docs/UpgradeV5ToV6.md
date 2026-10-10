@@ -221,7 +221,7 @@ Watch for these:
 
   public override IEncryptor Encryptor => encryptor;
   ```
-  If the v5 code passed a salt to `GetKey`, pass the same `salt`. If it used `GenerateKey` or stored the key, pass the bytes: `new ZerraEncryptorOld(key, iv)`. A provider for new data uses `new ZerraEncryptor(key, SymmetricAlgorithmType.AES_GCM)`.
+  If the v5 code passed a salt to `GetKey`, pass the same `salt`. If it used `GenerateKey` or stored the key, pass the bytes: `new ZerraEncryptorOld(key, iv)`. A provider for new data uses `new ZerraEncryptor(key, SymmetricAlgorithmType.AES_GCM)`. `ZerraEncryptorOld`, `SymmetricEncryptorOld`, and `HasherOld` are obsolete, so the build warns (`CS0612`) where they're used. Wrap those lines in `#pragma warning disable CS0612` and `#pragma warning restore CS0612` while old data still needs them.
 - **Cache providers** (`ICacheProvider`) and `IDualBaseProvider` were removed. Drop the cache layer, or rewrite it as a `BaseTransactStoreLayerProvider`.
 
 ## 6. Replace `cqrssettings.json` with Program.cs
@@ -439,7 +439,7 @@ A solution that relies heavily on a removed helper can keep it. Examples are `Co
 | `QueryStringSerializer` | Removed |
 | `MapperWithLog`, `IMapLogger` | Removed. `Mapper.Map`/`MapTo`/`Copy` remain |
 | `SymmetricConfig` for network encryption | `IEncryptor` (`ZerraEncryptor`) |
-| `SymmetricAlgorithmType.AESwithShift` and plain `AES` | Moved to `SymmetricAlgorithmTypeOld`, used by `SymmetricEncryptorOld` and `ZerraEncryptorOld` for data v5 encrypted, with the same numbers (`AES` is 0, `AESwithShift` is 4). Use `AES_GCM` for new data, or `AES_CBC_HMAC` when a .NET Framework service shares the key |
+| `SymmetricAlgorithmType.AESwithShift` and plain `AES` | Moved to `SymmetricAlgorithmTypeOld`, used by `SymmetricEncryptorOld` and `ZerraEncryptorOld` for data v5 encrypted. Use `AES_GCM` for new data, or `AES_CBC_HMAC` when a .NET Framework service shares the key |
 | `DES`, `TripleDES`, `RC2`, and their `withShift` modes | Removed. Decrypt that data with v5 and encrypt it again with `AES_GCM` before upgrading |
 | `NetworkType`, `IServiceCreator`, `ServiceSettings`, `ServiceQuerySetting`, `ServiceMessageSetting` | Removed with `cqrssettings.json` |
 | `StringExtensions` (`ToInt32`, `ToGuid`, `Truncate`, ...) | Still in the global namespace. Numbers and dates now parse with the invariant culture; pass `provider: CultureInfo.CurrentCulture` to parse in the machine's culture as v5 did |
@@ -447,7 +447,7 @@ A solution that relies heavily on a removed helper can keep it. Examples are `Co
 | `StreamExtensions` (`stream.ToArray()`, `stream.ToArrayAsync()`, ...) | Moved from `namespace System.IO` to `Zerra.IO`. Add `using Zerra.IO;`. Without it, `ToArrayAsync()` on a `Stream` binds to `System.Linq.AsyncEnumerable` and fails with CS0411 |
 | `SymmetricConfig`, `SymmetricKey`, `SymmetricBlockSize`, `SymmetricEncryptor.GetKey` | Removed. Keys are `byte[]`: `SymmetricEncryptor.DeriveKey(password)` or `GenerateKey()`. For data v5 encrypted, `SymmetricEncryptorOld.DeriveKey(password)` returns the key and IV `GetKey` did, and its `Encrypt` and `Decrypt` take them |
 | `AsynmmetricEncryptor` | Renamed `AsymmetricEncryptor`, fixing the spelling. `Encrypt` and `Decrypt` replace `RSAEncrypt` and `RSADecrypt`; keys are now PEM and the output is standard JWE, so v5 keys (XML) and data can't be used. Generate new keys and decrypt any stored v5 data with v5 first. `Encrypt` takes an `AsymmetricAlgorithmType`; use `RSA_OAEP_A256CBC_HS512` on .NET Framework |
-| `HashAlgoritmType` | Renamed `HashAlgorithmType`, without `MD5` and `SHA1`. The numbers are unchanged |
+| `HashAlgoritmType` | Renamed `HashAlgorithmType`, without `MD5` and `SHA1`. |
 | `Hasher.PBKDF2GenerateHash`, `PBKDF2VerifyHash` | Now a PHC string with the algorithm and iterations, SHA-256 with 600,000 iterations by default. Check stored v5 hashes with `HasherOld.PBKDF2VerifyHash`, and when it matches, store `Hasher.PBKDF2GenerateHash` of the password in its place |
 | `Hasher.GenerateHash` and `VerifyHash` with `MD5` or `SHA1` | `HasherOld`, with `HashAlgorithmTypeOld` |
 

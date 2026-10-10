@@ -49,16 +49,16 @@ namespace Zerra.Test.NetStandard.Encryption
             _ = Assert.Throws<PlatformNotSupportedException>(() => SymmetricEncryptor.Encrypt(SymmetricAlgorithmType.AES_GCM, fixedKey, new byte[1]));
         }
 
-        //produced by the old SymmetricEncryptor.GetKey("zerra-5-password") and Encrypt
+        //produced by the old SymmetricEncryptor.GetKey("old-password") and Encrypt
 #pragma warning disable CS0612 //tests the obsolete Old APIs
         [Fact]
         public void Old_ReadsStoredData()
         {
-            var (key, iv) = SymmetricEncryptorOld.DeriveKey("zerra-5-password");
-            Assert.Equal(Convert.FromBase64String("dKxnujWoBUWkAdvFqEXpFV6bzn0rOQmIkp+BZilT3GY="), key);
-            Assert.Equal(Convert.FromBase64String("yRC+dn1KzCPzis9jmE7RXw=="), iv);
-            Assert.Equal("stored by zerra 5", SymmetricEncryptorOld.Decrypt(SymmetricAlgorithmTypeOld.AES, key, iv, "ZWH6JDYUhXCL4hoGUNP/Wmom3vQY3kBAJreDvc7hCJA="));
-            Assert.Equal("stored by zerra 5", SymmetricEncryptorOld.Decrypt(SymmetricAlgorithmTypeOld.AESwithShift, key, iv, "BYuW7glRExYE8nyFgVzN6UPBA1FsC8CbvA6f4vGUd55jb700u63BfWtq0E97d41a"));
+            var (key, iv) = SymmetricEncryptorOld.DeriveKey("old-password");
+            Assert.Equal(Convert.FromBase64String("GhsW5BJipJYLqu+SDgO6Xsqi5tvZ/AWD+FPho2Qs3mU="), key);
+            Assert.Equal(Convert.FromBase64String("TCM9StoVkWIqyRtQDKyOFg=="), iv);
+            Assert.Equal("stored data", SymmetricEncryptorOld.Decrypt(SymmetricAlgorithmTypeOld.AES, key, iv, "wO8SkoHL22UcE5YSeopEgQ=="));
+            Assert.Equal("stored data", SymmetricEncryptorOld.Decrypt(SymmetricAlgorithmTypeOld.AESwithShift, key, iv, "Ui9+CuG84CiE6Uq5EaOJLbOaMBr/2pEqPCi37rRNBEA="));
             var data = GetData(100_000);
             Assert.Equal(data, new ZerraEncryptorOld("password").Decrypt(new ZerraEncryptorOld("password").Encrypt(data)));
         }
