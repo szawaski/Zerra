@@ -27,6 +27,7 @@ namespace Zerra.CQRS.AzureServiceBus
         private readonly ICompressor? compressor;
         private readonly ILogger? log;
         private readonly string? environment;
+        private readonly bool resilientCommands;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
         private readonly Dictionary<string, EventConsumer> eventExchanges;
@@ -47,6 +48,10 @@ namespace Zerra.CQRS.AzureServiceBus
         {
             ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete,
         };
+        private static readonly ServiceBusReceiverOptions resilientReceiverOptions = new()
+        {
+            ReceiveMode = ServiceBusReceiveMode.PeekLock,
+        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AzureServiceBusConsumer"/> class.
@@ -57,8 +62,9 @@ namespace Zerra.CQRS.AzureServiceBus
         /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information.</param>
         /// <param name="environment">Optional environment name to match queue and topic name prefixes for isolation.</param>
+        /// <param name="resilientCommands">True to complete a command once its handler finishes instead of removing it when it's received, so a command being handled when the process stops is delivered again once its lock expires. A command can then run more than once.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public AzureServiceBusConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment)
+        public AzureServiceBusConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, bool resilientCommands = false)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
@@ -68,6 +74,7 @@ namespace Zerra.CQRS.AzureServiceBus
             this.compressor = compressor;
             this.log = log;
             this.environment = environment;
+            this.resilientCommands = resilientCommands;
             this.commandExchanges = new();
             this.eventExchanges = new();
             this.commandTypes = new();
@@ -194,7 +201,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, commandTypes, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, commandTypes, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync, resilientCommands));
                 OpenExchanges();
             }
         }

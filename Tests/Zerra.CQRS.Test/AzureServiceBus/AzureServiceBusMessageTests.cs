@@ -24,8 +24,10 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             Assert.False(await AzureServiceBusConnectionTest.TestAsync("Endpoint=sb://localhost:1;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;", TimeSpan.FromSeconds(2)));
         }
 
-        [Fact(Timeout = 300000)]
-        public async Task TestSequence()
+        [Theory(Timeout = 300000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestSequence(bool resilientCommands)
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
@@ -36,7 +38,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
 
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, encryptor, compressor, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, encryptor, compressor, log, null, resilientCommands))
                 await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, compressor, log, null))
                 {
                     await MessageTest.TestSequence(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
@@ -116,6 +118,30 @@ namespace Zerra.CQRS.Test.AzureServiceBus
                 await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
                 {
                     await MessageTest.TestReceiveLimitHandsOff(producer, replica1, replica2, commandTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await AzureServiceBusCommon.DeleteQueue(host, commandTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestResilientCommandDeliveredAgain()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                await using (var replica1 = new AzureServiceBusConsumer(host, serializer, null, null, log, null, true))
+                await using (var replica2 = new AzureServiceBusConsumer(host, serializer, null, null, log, null, true))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                {
+                    //closing the connection is what the broker sees when the process is killed, the lock then expires and the command is delivered again
+                    var client = (global::Azure.Messaging.ServiceBus.ServiceBusClient)typeof(AzureServiceBusConsumer).GetField("client", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(replica1)!;
+                    await MessageTest.TestResilientCommandDeliveredAgain(producer, replica1, replica2, commandTopic, async () => await client.DisposeAsync(), TimeSpan.FromSeconds(150), TestContext.Current.CancellationToken);
                 }
             }
             finally

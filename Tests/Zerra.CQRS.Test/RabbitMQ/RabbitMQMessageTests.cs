@@ -26,8 +26,10 @@ namespace Zerra.CQRS.Test.RabbitMQ
             Assert.False(RabbitMQConnectionTest.Test("amqp://guest:guest@localhost:1", TimeSpan.FromSeconds(2)));
         }
 
-        [Fact(Timeout = 300000)]
-        public async Task TestSequence()
+        [Theory(Timeout = 300000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestSequence(bool resilientCommands)
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
@@ -38,7 +40,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
 
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, compressor, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, compressor, log, null, resilientCommands))
                 using (var producer = new RabbitMQProducer(host, serializer, encryptor, compressor, log, null))
                 {
                     await MessageTest.TestSequence(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
@@ -116,6 +118,35 @@ namespace Zerra.CQRS.Test.RabbitMQ
                 using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
                 {
                     await MessageTest.TestReceiveLimitHandsOff(producer, replica1, replica2, commandTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                DeleteExchanges(commandTopic);
+                DeleteQueues(commandTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestResilientCommandDeliveredAgain()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+
+            try
+            {
+                using (var replica1 = new RabbitMQConsumer(host, serializer, null, null, log, null, true))
+                using (var replica2 = new RabbitMQConsumer(host, serializer, null, null, log, null, true))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                {
+                    //dropping the connection is what the broker sees when the process is killed
+                    await MessageTest.TestResilientCommandDeliveredAgain(producer, replica1, replica2, commandTopic, () =>
+                    {
+                        var connection = (IConnection)typeof(RabbitMQConsumer).GetField("connection", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(replica1)!;
+                        connection.Abort();
+                        return Task.CompletedTask;
+                    }, TimeSpan.FromSeconds(90), TestContext.Current.CancellationToken);
                 }
             }
             finally

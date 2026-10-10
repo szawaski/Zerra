@@ -27,6 +27,7 @@ namespace Zerra.CQRS.Kafka
         private readonly ICompressor? compressor;
         private readonly ILogger? log;
         private readonly string? environment;
+        private readonly bool resilientCommands;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
         private readonly Dictionary<string, EventConsumer> eventExchanges;
@@ -57,6 +58,7 @@ namespace Zerra.CQRS.Kafka
         /// <param name="userName">Optional username for SASL authentication. Must be paired with password.</param>
         /// <param name="password">Optional password for SASL authentication. Must be paired with userName.</param>
         /// <param name="useTls">True to connect with TLS, SASL_SSL with a user name and password or SSL without.</param>
+        /// <param name="resilientCommands">True to commit a command's offset once its handler finishes instead of when it's received, so a command being handled when the process stops is received again. A command can then run more than once.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
         //Confluent.Kafka binds its native library by finding these methods and fields through reflection, which native AOT would otherwise trim away
 #if !NETSTANDARD2_0
@@ -65,7 +67,7 @@ namespace Zerra.CQRS.Kafka
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Alpine", "Confluent.Kafka")]
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Centos8", "Confluent.Kafka")]
 #endif
-        public KafkaConsumer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName, string? password, bool useTls = false)
+        public KafkaConsumer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName = null, string? password = null, bool useTls = false, bool resilientCommands = false)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
@@ -75,6 +77,7 @@ namespace Zerra.CQRS.Kafka
             this.compressor = compressor;
             this.log = log;
             this.environment = environment;
+            this.resilientCommands = resilientCommands;
             this.commandExchanges = new();
             this.eventExchanges = new();
             this.commandTypes = new();
@@ -236,7 +239,7 @@ namespace Zerra.CQRS.Kafka
                     throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, commandTypes, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync, MaxPollIntervalMs));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, commandTypes, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync, MaxPollIntervalMs, resilientCommands));
                 OpenExchanges();
             }
         }

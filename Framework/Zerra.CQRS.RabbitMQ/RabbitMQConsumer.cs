@@ -27,6 +27,7 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly ICompressor? compressor;
         private readonly ILogger? log;
         private readonly string? environment;
+        private readonly bool resilientCommands;
 
         private readonly Dictionary<string, CommandConsumer> commandExchanges;
         private readonly Dictionary<string, EventConsumer> eventExchanges;
@@ -51,8 +52,9 @@ namespace Zerra.CQRS.RabbitMQ
         /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="environment">Optional environment name to match exchange name prefixes for isolation.</param>
+        /// <param name="resilientCommands">True to acknowledge a command once its handler finishes instead of when it's received, so a command being handled when the process stops is delivered again. A command can then run more than once.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public RabbitMQConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment)
+        public RabbitMQConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, bool resilientCommands = false)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
@@ -62,6 +64,7 @@ namespace Zerra.CQRS.RabbitMQ
             this.compressor = compressor;
             this.log = log;
             this.environment = environment;
+            this.resilientCommands = resilientCommands;
             this.commandExchanges = new();
             this.eventExchanges = new();
             this.commandTypes = new();
@@ -175,7 +178,9 @@ namespace Zerra.CQRS.RabbitMQ
 
             if (this.connection is not null)
             {
-                this.connection.Close();
+                //closing a connection the broker or network already closed throws
+                if (this.connection.IsOpen)
+                    this.connection.Close();
                 this.connection.Dispose();
                 this.connection = null;
             }
@@ -202,7 +207,9 @@ namespace Zerra.CQRS.RabbitMQ
 
             if (this.connection is not null)
             {
-                this.connection.Close();
+                //closing a connection the broker or network already closed throws
+                if (this.connection.IsOpen)
+                    this.connection.Close();
                 this.connection.Dispose();
                 this.connection = null;
             }
@@ -221,7 +228,7 @@ namespace Zerra.CQRS.RabbitMQ
                     throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, commandTypes, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, commandTypes, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync, resilientCommands));
                 OpenExchanges();
             }
         }

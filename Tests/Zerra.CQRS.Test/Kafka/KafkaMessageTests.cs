@@ -58,8 +58,10 @@ namespace Zerra.CQRS.Test.Kafka
             Assert.Same(KafkaCommon.GetHost(host, null, null, true), CommonHost(consumer));
         }
 
-        [Fact(Timeout = 300000)]
-        public async Task TestSequence()
+        [Theory(Timeout = 300000)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestSequence(bool resilientCommands)
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
@@ -71,7 +73,7 @@ namespace Zerra.CQRS.Test.Kafka
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, encryptor, compressor, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, encryptor, compressor, log, null, resilientCommands: resilientCommands))
                 using (var producer = new KafkaProducer(host, serializer, encryptor, compressor, log, null, null, null))
                 {
                     ackTopic = AckTopic(producer);
@@ -294,6 +296,35 @@ namespace Zerra.CQRS.Test.Kafka
                 {
                     ackTopic = AckTopic(producer);
                     await MessageTest.TestReceiveLimitHandsOff(producer, replica1, replica2, commandTopic, TestContext.Current.CancellationToken);
+                }
+            }
+            finally
+            {
+                await KafkaCommon.DeleteTopic(host, null, null, commandTopic);
+                await DeleteConsumerGroup(commandTopic);
+                if (ackTopic is not null)
+                    await KafkaCommon.DeleteTopic(host, null, null, ackTopic);
+            }
+        }
+
+        [Fact(Timeout = 300000)]
+        public async Task TestResilientCommandDeliveredAgain()
+        {
+            var commandTopic = MessageTest.NewTopic("Command");
+            var serializer = new ZerraByteSerializer();
+            var log = new TestLogger();
+            string? ackTopic = null;
+
+            try
+            {
+                //replica1 waits for its stuck command before giving up the partition, so it stops polling and the group drops it after max.poll.interval.ms,
+                //which leaves the partition uncommitted as a killed process would
+                using (var replica1 = new KafkaConsumer(host, serializer, null, null, log, null, resilientCommands: true) { MaxPollIntervalMs = 7000 })
+                using (var replica2 = new KafkaConsumer(host, serializer, null, null, log, null, resilientCommands: true) { MaxPollIntervalMs = 7000 })
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null))
+                {
+                    ackTopic = AckTopic(producer);
+                    await MessageTest.TestResilientCommandDeliveredAgain(producer, replica1, replica2, commandTopic, () => Task.CompletedTask, TimeSpan.FromSeconds(90), TestContext.Current.CancellationToken);
                 }
             }
             finally

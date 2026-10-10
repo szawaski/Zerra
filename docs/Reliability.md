@@ -6,13 +6,30 @@ How Zerra delivers commands and events across process boundaries, why it works t
 
 ## The Delivery Model
 
-Every transport acknowledges a message when a consumer receives it, then runs the handler. This is a deliberate choice:
+By default every transport acknowledges a message when a consumer receives it, then runs the handler. Broker consumers can opt into [resilient commands](#resilient-commands) instead. Receipt is the default by choice:
 
 - **The queue never waits on a slow handler.** A replica busy with a long command doesn't hold a partition, lock, or unacknowledged message that other replicas are waiting behind.
 - **A message is never run twice by Zerra.** There is no redelivery after a handler has started, so a handler that charged a card or sent an email isn't run again because a lock expired or a connection blinked.
 - **Shutdown finishes everything received.** Stopping the bus stops receiving, then waits for every received message to finish. Handlers are never cancelled. Rolling deployments, scale-in, and `docker stop` lose nothing.
 
-The one case where work is lost is a forced termination, such as an out-of-memory kill or power loss, while a handler is running. Only the messages being handled at that moment are affected; messages not yet received stay in the broker for the next consumer.
+The one case where work is lost is a forced termination, such as an out-of-memory kill or power loss, while a handler is running. Only the messages being handled at that moment are affected; messages not yet received stay in the broker for the next consumer. [Resilient commands](#resilient-commands) cover that case for commands.
+
+### Resilient Commands
+
+Pass `resilientCommands: true` to a `KafkaConsumer`, `RabbitMQConsumer`, or `AzureServiceBusConsumer` and its commands are acknowledged when the handler finishes instead of when they're received. If the process dies while a handler is running, the broker gives that command to the next replica.
+
+```csharp
+var consumer = new RabbitMQConsumer("localhost", serializer, encryptor, null, log, "prod", resilientCommands: true);
+```
+
+What changes:
+
+- **A command can run more than once.** It runs again if the process dies after the handler's work but before the acknowledgement. Make these handlers [idempotent](Commands.md#idempotency).
+- **A failed handler is still not retried.** A handler that throws has handled the command, the same as without the option. Only a crash brings a command back.
+- **The broker waits on running handlers.** Kafka commits a command's offset only after every earlier command from that partition has finished, and a replica joining or leaving the group waits for the running commands before the partition moves. Azure Service Bus keeps renewing the message lock while the handler runs.
+- **Broker limits apply.** RabbitMQ closes a channel that holds a message unacknowledged longer than its `consumer_timeout` (30 minutes by default). Azure Service Bus moves a command to the dead-letter queue after its `MaxDeliveryCount` (10 by default) deliveries, so a command that crashes the process every time stops coming back.
+
+Events are not affected; they're always acknowledged when received.
 
 ### Handler Failures Are Results, Not Retries
 
@@ -32,7 +49,7 @@ A handler that throws has handled the message: the exception is its outcome. A c
 | The service stops normally, including a deployment or scale-in | messages already received finish; the rest wait for the next consumer |
 | The handler throws | an awaiting caller gets `RemoteServiceException`; the message is done |
 | The broker is unreachable | consumers reconnect every 5 seconds; a dispatch fails with an exception or times out |
-| The process is forcibly terminated while handling | the messages being handled at that moment are lost |
+| The process is forcibly terminated while handling | the messages being handled at that moment are lost, except [resilient commands](#resilient-commands), which go to the next consumer |
 
 `PerReplica` event subscriptions belong to one consumer, so events published while that replica is down aren't held for it, which is what a per-replica notification wants. `PerService` subscriptions hold them. See [Events](Events.md#choosing-per-replica-or-per-service).
 

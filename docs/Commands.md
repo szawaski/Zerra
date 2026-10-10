@@ -4,7 +4,7 @@
 
 A command asks for a change of state. It is **handled once**, by one replica of the handling service, however many replicas are running. That is the difference from events, which reach every replica unless the subscriber registers [`EventConsumerMode.PerService`](Events.md#choosing-per-replica-or-per-service). Work that must happen once belongs in a command. See [Events Are Fanned Out to Every Replica](Events.md#events-are-fanned-out-to-every-replica).
 
-"Once" is about replicas, not delivery: a remote command is delivered at most once and isn't retried if its handler fails or its process crashes. See [Delivery and Failure Handling](Reliability.md).
+"Once" is about replicas, not delivery: a remote command is delivered at most once and isn't retried if its handler fails or its process crashes. With [resilient commands](Reliability.md#resilient-commands), a command whose process crashes while handling it goes to another replica instead. See [Delivery and Failure Handling](Reliability.md).
 
 A command can be sent fire-and-forget or awaited, can return a result, and is handled locally or remotely depending only on how the bus is set up.
 
@@ -186,7 +186,7 @@ catch (TimeoutException)
 
 ## Idempotency
 
-Zerra doesn't redeliver commands, but a caller that retries after a `TimeoutException` may send one that already ran. Make handlers safe to run twice where you can, like the "already active" check in `ActivateUserCommand` above, or give the command an ID the caller creates and skip IDs already handled. See [Making Handlers Safe](Reliability.md#making-handlers-safe).
+Zerra doesn't redeliver commands unless they're [resilient](Reliability.md#resilient-commands), but a caller that retries after a `TimeoutException` may send one that already ran. Make handlers safe to run twice where you can, like the "already active" check in `ActivateUserCommand` above, or give the command an ID the caller creates and skip IDs already handled. See [Making Handlers Safe](Reliability.md#making-handlers-safe).
 
 ## Coordinating Several Services
 

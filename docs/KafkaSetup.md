@@ -49,6 +49,8 @@ bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerReplica);
 await bus.WaitForExitAsync();
 ```
 
+Pass `resilientCommands: true` so a command whose handler was running when the process died is handled again by another replica. See [Resilient Commands](Reliability.md#resilient-commands).
+
 ### Consumer Groups
 
 The consumer group decides how many replicas of the service handle each message:

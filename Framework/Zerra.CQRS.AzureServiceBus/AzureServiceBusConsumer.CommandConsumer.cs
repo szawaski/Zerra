@@ -31,6 +31,7 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly HandleRemoteCommandDispatch handlerAsync;
             private readonly HandleRemoteCommandDispatch handlerAwaitAsync;
             private readonly HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync;
+            private readonly bool resilient;
             private readonly CancellationTokenSource canceller;
             private readonly ConcurrentHashSet<Task> handling = new();
             private static readonly Action<Task, object?> removeHandling = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
@@ -56,7 +57,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
             }
 
-            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string queue, ConcurrentDictionary<string, Type> commandTypes, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
+            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string queue, ConcurrentDictionary<string, Type> commandTypes, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync, bool resilient)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -79,6 +80,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 this.handlerAsync = handlerAsync;
                 this.handlerAwaitAsync = handlerAwaitAsync;
                 this.handlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
+                this.resilient = resilient;
                 this.canceller = new CancellationTokenSource();
             }
 
@@ -104,44 +106,68 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     await AzureServiceBusCommon.EnsureQueue(commonNamespace, queue, false);
 
-                    await using (var receiver = client.CreateReceiver(queue, receiverOptions))
+                    await using (var receiver = client.CreateReceiver(queue, resilient ? resilientReceiverOptions : receiverOptions))
                     {
-                        for (; ; )
+                        try
                         {
-                            await throttle.WaitAsync(canceller.Token);
-
-                            if (commandCounter is not null && !commandCounter.BeginReceive())
-                                break; //don't receive anymore, externally will be shutdown
-
-                            ServiceBusReceivedMessage? serviceBusMessage;
-                            try
+                            for (; ; )
                             {
-                                serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
-                            }
-                            catch
-                            {
-                                if (commandCounter is not null)
-                                    commandCounter.CancelReceive(throttle);
-                                else
-                                    _ = throttle.Release();
-                                throw;
-                            }
-                            if (serviceBusMessage is null)
-                            {
-                                if (commandCounter is not null)
-                                    commandCounter.CancelReceive(throttle);
-                                else
-                                    _ = throttle.Release();
-                                continue;
-                            }
+                                await throttle.WaitAsync(canceller.Token);
 
-                            var handleTask = Task.Run(() => HandleMessage(throttle, client, serviceBusMessage));
-                            //tracked until it completes so disposing waits for it
-                            _ = handling.Add(handleTask);
-                            _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                                if (commandCounter is not null && !commandCounter.BeginReceive())
+                                    break; //don't receive anymore, externally will be shutdown
 
-                            if (canceller.IsCancellationRequested || (commandCounter is not null && commandCounter.ReceiveLimitReached))
-                                break;
+                                ServiceBusReceivedMessage? serviceBusMessage;
+                                try
+                                {
+                                    serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
+                                }
+                                catch
+                                {
+                                    if (commandCounter is not null)
+                                        commandCounter.CancelReceive(throttle);
+                                    else
+                                        _ = throttle.Release();
+                                    throw;
+                                }
+                                if (serviceBusMessage is null)
+                                {
+                                    if (commandCounter is not null)
+                                        commandCounter.CancelReceive(throttle);
+                                    else
+                                        _ = throttle.Release();
+                                    continue;
+                                }
+
+                                var handleTask = Task.Run(() => HandleMessage(throttle, client, serviceBusMessage, resilient ? receiver : null));
+                                //tracked until it completes so disposing waits for it
+                                _ = handling.Add(handleTask);
+                                _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+
+                                if (canceller.IsCancellationRequested || (commandCounter is not null && commandCounter.ReceiveLimitReached))
+                                    break;
+                            }
+                        }
+                        finally
+                        {
+                            //resilient commands are completed through this receiver, closing it first would have them delivered again
+                            if (resilient)
+                            {
+                                for (; ; )
+                                {
+                                    var pending = handling.Where(x => !x.IsCompleted).ToArray();
+                                    if (pending.Length == 0)
+                                        break;
+                                    try
+                                    {
+                                        await Task.WhenAll(pending);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        log?.Error(queue, ex);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -158,11 +184,55 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
             }
 
-            private async Task HandleMessage(SemaphoreSlim throttle, ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage)
+            //a resilient command's lock is renewed while it's handled, otherwise it would be delivered again to another consumer when it expires
+            private async Task RenewLock(ServiceBusReceiver receiver, ServiceBusReceivedMessage serviceBusMessage, CancellationToken cancellationToken)
+            {
+                try
+                {
+                    for (; ; )
+                    {
+                        //half of what's left so a clock difference with the broker doesn't let it expire
+                        var delay = TimeSpan.FromTicks((serviceBusMessage.LockedUntil - DateTimeOffset.UtcNow).Ticks / 2);
+                        if (delay < TimeSpan.FromSeconds(1))
+                            delay = TimeSpan.FromSeconds(1);
+                        await Task.Delay(delay, cancellationToken);
+                        try
+                        {
+                            await receiver.RenewMessageLockAsync(serviceBusMessage, cancellationToken);
+                        }
+                        catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessageLockLost)
+                        {
+                            log?.Error(queue, ex);
+                            return;
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            return;
+                        }
+                        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+                        {
+                            log?.Error(queue, ex);
+                        }
+                    }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                }
+            }
+
+            private async Task HandleMessage(SemaphoreSlim throttle, ServiceBusClient client, ServiceBusReceivedMessage serviceBusMessage, ServiceBusReceiver? receiver)
             {
                 object? result = null;
                 Exception? error = null;
                 var awaitResponse = !String.IsNullOrWhiteSpace(serviceBusMessage.ReplyTo);
+
+                CancellationTokenSource? renewing = null;
+                Task? renewal = null;
+                if (receiver is not null)
+                {
+                    renewing = new CancellationTokenSource();
+                    renewal = RenewLock(receiver, serviceBusMessage, renewing.Token);
+                }
 
                 var inHandlerContext = false;
                 try
@@ -217,6 +287,20 @@ namespace Zerra.CQRS.AzureServiceBus
                 {
                     if (!awaitResponse)
                     {
+                        if (receiver is not null)
+                        {
+                            renewing!.Cancel();
+                            await renewal!;
+                            renewing.Dispose();
+                            try
+                            {
+                                await receiver.CompleteMessageAsync(serviceBusMessage);
+                            }
+                            catch (Exception ex)
+                            {
+                                log?.Error(queue, ex);
+                            }
+                        }
                         if (commandCounter is not null)
                             commandCounter.CompleteReceive(throttle);
                         else
@@ -299,6 +383,20 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
                 finally
                 {
+                    if (receiver is not null)
+                    {
+                        renewing!.Cancel();
+                        await renewal!;
+                        renewing.Dispose();
+                        try
+                        {
+                            await receiver.CompleteMessageAsync(serviceBusMessage);
+                        }
+                        catch (Exception ex)
+                        {
+                            log?.Error(queue, ex);
+                        }
+                    }
                     if (commandCounter is not null)
                         commandCounter.CompleteReceive(throttle);
                     else

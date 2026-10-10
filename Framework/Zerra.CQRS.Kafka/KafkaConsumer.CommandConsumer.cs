@@ -45,6 +45,17 @@ namespace Zerra.CQRS.Kafka
             private const int maxAckTopicsPerProducer = 1000;
             private const int maxAckAttempts = 12;
 
+            //resilient commands commit a partition's offset up to the oldest command still being handled from it, handlers finish out of order
+            private readonly Dictionary<TopicPartition, PartitionOffsets>? offsets;
+            private static readonly TimeSpan resilientPollInterval = TimeSpan.FromMilliseconds(100);
+
+            private sealed class PartitionOffsets
+            {
+                public readonly SortedSet<long> Handling = new();
+                public long Next;
+                public long Committed = -1;
+            }
+
             private sealed class AckProducer
             {
                 public readonly IProducer<string, byte[]> Producer;
@@ -70,7 +81,7 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
-            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string topic, ConcurrentDictionary<string, Type> commandTypes, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync, int? maxPollIntervalMs)
+            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string topic, ConcurrentDictionary<string, Type> commandTypes, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync, int? maxPollIntervalMs, bool resilient)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 
@@ -97,6 +108,8 @@ namespace Zerra.CQRS.Kafka
                 //well within max.poll.interval.ms, librdkafka's default is 5 minutes
                 this.busyPollInterval = maxPollIntervalMs.HasValue ? TimeSpan.FromMilliseconds(maxPollIntervalMs.Value / 4) : TimeSpan.FromSeconds(10);
                 this.canceller = new CancellationTokenSource();
+                if (resilient)
+                    this.offsets = new();
             }
 
             public void Open(KafkaCommonHost commonHost)
@@ -169,11 +182,17 @@ namespace Zerra.CQRS.Kafka
 
                     //librdkafka only reports a deleted topic as an error and keeps waiting, so it ends the consume and the retry creates the topic again
                     using var topicMissing = CancellationTokenSource.CreateLinkedTokenSource(canceller.Token);
-                    using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).SetErrorHandler((_, error) =>
+                    var consumerBuilder = new ConsumerBuilder<string, byte[]>(consumerConfig).SetErrorHandler((_, error) =>
                     {
                         if (error.Code == ErrorCode.UnknownTopicOrPart || error.Code == ErrorCode.Local_UnknownPartition)
                             topicMissing.Cancel();
-                    }).Build())
+                    });
+                    if (offsets is not null)
+                    {
+                        _ = consumerBuilder.SetPartitionsRevokedHandler(PartitionsRevoked);
+                        _ = consumerBuilder.SetPartitionsLostHandler(PartitionsLost);
+                    }
+                    using (var consumer = consumerBuilder.Build())
                     {
                         consumer.Subscribe(topic);
                         try
@@ -202,10 +221,39 @@ namespace Zerra.CQRS.Kafka
                                     break; //don't receive anymore, externally will be shutdown
 
                                 ConsumeResult<string, byte[]> consumerResult;
+                                PartitionOffsets? partitionOffsets = null;
                                 try
                                 {
-                                    consumerResult = consumer.Consume(topicMissing.Token);
-                                    consumer.Commit(consumerResult);
+                                    if (offsets is null)
+                                    {
+                                        consumerResult = consumer.Consume(topicMissing.Token);
+                                        consumer.Commit(consumerResult);
+                                    }
+                                    else
+                                    {
+                                        //polled instead of waiting on the token so the commands handled in the meantime are committed
+                                        for (; ; )
+                                        {
+                                            CommitHandled(consumer);
+                                            var polled = consumer.Consume(resilientPollInterval);
+                                            if (polled is not null)
+                                            {
+                                                consumerResult = polled;
+                                                break;
+                                            }
+                                            topicMissing.Token.ThrowIfCancellationRequested();
+                                        }
+                                        lock (offsets)
+                                        {
+                                            if (!offsets.TryGetValue(consumerResult.TopicPartition, out partitionOffsets))
+                                            {
+                                                partitionOffsets = new PartitionOffsets();
+                                                offsets.Add(consumerResult.TopicPartition, partitionOffsets);
+                                            }
+                                            _ = partitionOffsets.Handling.Add(consumerResult.Offset.Value);
+                                            partitionOffsets.Next = consumerResult.Offset.Value + 1;
+                                        }
+                                    }
                                 }
                                 catch
                                 {
@@ -216,7 +264,7 @@ namespace Zerra.CQRS.Kafka
                                     throw;
                                 }
 
-                                var handleTask = Task.Run(() => HandleMessage(throttle, consumerResult));
+                                var handleTask = Task.Run(() => HandleMessage(throttle, consumerResult, partitionOffsets));
                                 _ = handling.Add(handleTask);
                                 _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
@@ -227,8 +275,16 @@ namespace Zerra.CQRS.Kafka
                         }
                         finally
                         {
+                            if (offsets is not null)
+                                await WaitForHandling(consumer);
                             //Close leaves the group right away, Unsubscribe and Dispose leave its member until the session times out
                             consumer.Close();
+                            //a topic created again starts its offsets over
+                            if (offsets is not null)
+                            {
+                                lock (offsets)
+                                    offsets.Clear();
+                            }
                         }
                     }
                 }
@@ -244,7 +300,113 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
-            private async Task HandleMessage(SemaphoreSlim throttle, ConsumeResult<string, byte[]> consumerResult)
+            private void CommitHandled(IConsumer<string, byte[]> consumer)
+            {
+                List<TopicPartitionOffset>? commit = null;
+                lock (offsets!)
+                {
+                    foreach (var pair in offsets)
+                    {
+                        var offset = pair.Value.Handling.Count > 0 ? pair.Value.Handling.Min : pair.Value.Next;
+                        if (offset > pair.Value.Committed)
+                            (commit ??= new()).Add(new TopicPartitionOffset(pair.Key, offset));
+                    }
+                }
+                if (commit is null)
+                    return;
+
+                try
+                {
+                    consumer.Commit(commit);
+                }
+                catch (Exception ex)
+                {
+                    log?.Error(topic, ex);
+                    return;
+                }
+
+                lock (offsets)
+                {
+                    foreach (var committed in commit)
+                    {
+                        if (offsets.TryGetValue(committed.TopicPartition, out var partitionOffsets) && committed.Offset.Value > partitionOffsets.Committed)
+                            partitionOffsets.Committed = committed.Offset.Value;
+                    }
+                }
+            }
+
+            //called from Consume and Close, the partitions stay assigned until it returns so it waits for their commands and commits them,
+            //otherwise the consumer given them next would handle those commands again
+            private void PartitionsRevoked(IConsumer<string, byte[]> consumer, List<TopicPartitionOffset> revoked)
+            {
+                var commit = new List<TopicPartitionOffset>();
+                lock (offsets!)
+                {
+                    foreach (var partition in revoked)
+                    {
+                        if (!offsets.TryGetValue(partition.TopicPartition, out var partitionOffsets))
+                            continue;
+                        while (partitionOffsets.Handling.Count > 0)
+                            _ = Monitor.Wait(offsets);
+                        if (partitionOffsets.Next > partitionOffsets.Committed)
+                            commit.Add(new TopicPartitionOffset(partition.TopicPartition, partitionOffsets.Next));
+                        _ = offsets.Remove(partition.TopicPartition);
+                    }
+                }
+                if (commit.Count == 0)
+                    return;
+
+                try
+                {
+                    consumer.Commit(commit);
+                }
+                catch (Exception ex)
+                {
+                    log?.Error(topic, ex);
+                }
+            }
+
+            //another consumer already has them and can't be committed for, the commands still being handled here may run there too
+            private void PartitionsLost(IConsumer<string, byte[]> consumer, List<TopicPartitionOffset> lost)
+            {
+                lock (offsets!)
+                {
+                    foreach (var partition in lost)
+                        _ = offsets.Remove(partition.TopicPartition);
+                }
+            }
+
+            //before leaving the group the commands still being handled finish and are committed, the partitions are paused and still polled to stay in the group meanwhile
+            private async Task WaitForHandling(IConsumer<string, byte[]> consumer)
+            {
+                try
+                {
+                    consumer.Pause(consumer.Assignment);
+                    for (; ; )
+                    {
+                        var pending = handling.Where(x => !x.IsCompleted).ToArray();
+                        if (pending.Length == 0)
+                            break;
+                        var all = Task.WhenAll(pending);
+                        while (await Task.WhenAny(all, Task.Delay(busyPollInterval)) != all)
+                        {
+                            var held = consumer.Consume(TimeSpan.Zero);
+                            if (held is not null)
+                            {
+                                consumer.Seek(held.TopicPartitionOffset);
+                                consumer.Pause(consumer.Assignment);
+                            }
+                        }
+                    }
+                    CommitHandled(consumer);
+                }
+                catch (Exception ex)
+                {
+                    log?.Error(topic, ex);
+                }
+            }
+
+            private async Task HandleMessage(SemaphoreSlim throttle, ConsumeResult<string, byte[]> consumerResult, PartitionOffsets? partitionOffsets)
             {
                 object? result = null;
                 Exception? error = null;
@@ -301,6 +463,14 @@ namespace Zerra.CQRS.Kafka
                 {
                     if (!awaitResponse)
                     {
+                        if (partitionOffsets is not null)
+                        {
+                            lock (offsets!)
+                            {
+                                _ = partitionOffsets.Handling.Remove(consumerResult.Offset.Value);
+                                Monitor.PulseAll(offsets);
+                            }
+                        }
                         if (commandCounter is not null)
                             commandCounter.CompleteReceive(throttle);
                         else
@@ -376,6 +546,14 @@ namespace Zerra.CQRS.Kafka
                 }
                 finally
                 {
+                    if (partitionOffsets is not null)
+                    {
+                        lock (offsets!)
+                        {
+                            _ = partitionOffsets.Handling.Remove(consumerResult.Offset.Value);
+                            Monitor.PulseAll(offsets);
+                        }
+                    }
                     if (commandCounter is not null)
                         commandCounter.CompleteReceive(throttle);
                     else

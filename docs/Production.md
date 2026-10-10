@@ -6,7 +6,7 @@ How a Zerra deployment is laid out, secured, versioned, and observed. Each secti
 
 ## Delivery
 
-Commands and events are acknowledged on receipt and handled once; shutdown finishes everything received; a handler's exception is its result and isn't retried. [Delivery and Failure Handling](Reliability.md) explains the model and the reasoning behind it.
+Commands and events are acknowledged on receipt and handled once; shutdown finishes everything received; a handler's exception is its result and isn't retried. For commands that must survive a crash, broker consumers take `resilientCommands: true` so a command is acknowledged after its handler finishes ([Resilient Commands](Reliability.md#resilient-commands)). [Delivery and Failure Handling](Reliability.md) explains the model and the reasoning behind it.
 
 - Put work that must happen once in a command, or in an event the subscriber registers `PerService` ([Events](Events.md#the-rule)).
 - Make commands idempotent where callers retry them ([Commands](Commands.md#idempotency)).

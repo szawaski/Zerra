@@ -44,6 +44,8 @@ bus.AddEventConsumer<IUserEventHandler>(consumer, EventConsumerMode.PerReplica);
 await bus.WaitForExitAsync();
 ```
 
+Pass `resilientCommands: true` so a command whose handler was running when the process died is handled again by another replica. See [Resilient Commands](Reliability.md#resilient-commands).
+
 ### Queues and Subscriptions
 
 Commands get a queue and events get a topic. How the topic is subscribed decides how many replicas handle each event:

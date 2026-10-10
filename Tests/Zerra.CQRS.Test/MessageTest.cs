@@ -206,6 +206,55 @@ namespace Zerra.CQRS.Test
         }
 
         /// <summary>
+        /// A resilient command whose handler is still running when its replica stops abruptly is delivered again to the next replica, and only that command.
+        /// </summary>
+        public static async Task TestResilientCommandDeliveredAgain(ICommandProducer commandProducer, ICommandConsumer replica1, ICommandConsumer replica2, string commandTopic, Func<Task> stopReplica1Abruptly, TimeSpan redeliveryTimeout, CancellationToken cancellationToken)
+        {
+            TypeFinder.Register(typeof(TestCommand));
+
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var received1 = new BlockingReceiver(release.Task);
+            var received2 = new BlockingReceiver(Task.CompletedTask);
+            var blocked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            replica1.Setup(null, received1.HandleCommandAsync, received1.HandleCommandAsync, received1.HandleCommandWithResultAwaitAsync);
+            replica1.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            replica2.Setup(null, received2.HandleCommandAsync, received2.HandleCommandAsync, received2.HandleCommandWithResultAwaitAsync);
+            replica2.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+
+            replica1.Open();
+            try
+            {
+                var handled = new TestCommand() { ID = Guid.NewGuid() };
+                var stuck = new TestCommand() { ID = Guid.NewGuid() };
+
+                //replica1 handles one command fully and is stuck on the second
+                await commandProducer.DispatchAsync(handled, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken);
+                await WaitUntil(() => received1.IDs.Contains(handled.ID), readyTimeout, cancellationToken);
+                release.SetResult();
+                await Task.Delay(settleDelay, cancellationToken);
+                received1.Release = blocked.Task;
+                await commandProducer.DispatchAsync(stuck, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken);
+                await WaitUntil(() => received1.IDs.Contains(stuck.ID), messageTimeout, cancellationToken);
+
+                await stopReplica1Abruptly();
+                replica2.Open();
+
+                await WaitUntil(() => received2.IDs.Contains(stuck.ID), redeliveryTimeout, cancellationToken);
+                await Task.Delay(settleDelay, cancellationToken);
+                Assert.Equal([stuck.ID], received2.IDs);
+            }
+            finally
+            {
+                _ = release.TrySetResult();
+                _ = blocked.TrySetResult();
+                replica1.Close();
+                replica2.Close();
+            }
+        }
+
+        /// <summary>
         /// Sustained traffic from one producer to two replicas. Every command is handled once by one of them, every event once by each,
         /// each awaited command gets its own result back, and neither replica runs more handlers at once than it was registered for.
         /// </summary>
@@ -861,15 +910,15 @@ namespace Zerra.CQRS.Test
 
         private sealed class BlockingReceiver
         {
-            private readonly Task release;
+            public volatile Task Release;
             public readonly ConcurrentQueue<Guid> IDs = new();
 
-            public BlockingReceiver(Task release) => this.release = release;
+            public BlockingReceiver(Task release) => this.Release = release;
 
             public Task HandleCommandAsync(ICommand command, string source, CancellationToken cancellationToken)
             {
                 IDs.Enqueue(Assert.IsType<TestCommand>(command).ID);
-                return release;
+                return Release;
             }
 
             public Task<object?> HandleCommandWithResultAwaitAsync(ICommand command, string source, CancellationToken cancellationToken)

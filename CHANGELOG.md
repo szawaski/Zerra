@@ -16,6 +16,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 ### Messaging
 
 - `EventConsumerMode.PerReplica` and `PerService` on every event subscription.
+- `resilientCommands` on the Kafka, RabbitMQ, and Azure Service Bus consumers acknowledges a command after its handler finishes, so a command being handled when the process dies goes to another replica. See [Resilient Commands](docs/Reliability.md#resilient-commands).
 - Optional message compression with `ICompressor`, applied before encryption.
 - `IEncryptor` replaces `SymmetricConfig`, with `ZerraEncryptor` built in.
 - Streams as query arguments (uploads) as well as results.
