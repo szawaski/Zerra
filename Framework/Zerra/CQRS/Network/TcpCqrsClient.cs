@@ -200,7 +200,7 @@ namespace Zerra.CQRS.Network
 
                     if (isStream)
                     {
-                        return (TReturn)(object)responseBodyStream; //TODO better way to convert type???
+                        return (TReturn)(object)responseBodyStream;
                     }
                     else
                     {
@@ -458,7 +458,7 @@ namespace Zerra.CQRS.Network
 
                     if (isStream)
                     {
-                        return (TReturn)(object)responseBodyStream; //TODO better way to convert type???
+                        return (TReturn)(object)responseBodyStream;
                     }
                     else
                     {
@@ -964,7 +964,7 @@ namespace Zerra.CQRS.Network
 
                     if (isStream)
                     {
-                        return (TResult)(object)responseBodyStream; //TODO better way to convert type???
+                        return (TResult)(object)responseBodyStream;
                     }
                     else
                     {

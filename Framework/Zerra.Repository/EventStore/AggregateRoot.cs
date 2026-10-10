@@ -142,7 +142,6 @@ namespace Zerra.Repository
         {
             var startEventNumber = LastEventNumber.HasValue ? LastEventNumber + 1 : null;
 
-            //TODO error handle if aggregate doesn't exist?????
             var eventDatas = await this.eventStore.ReadAsync(streamName, startEventNumber, null, maxEventNumber, null, maxEventDate);
             if (eventDatas.Length == 0)
                 return false;
