@@ -22,7 +22,7 @@ flowchart LR
     Carts -- command --> Orders
 ```
 
-Solid lines are queries and commands, dotted lines are events. Services also query each other, for example Orders, Reviews, and Carts all read products from Catalog. Service-to-service traffic is binary and encrypted, over TCP, or over HTTP for Shipping, which is hosted in ASP.NET Core. Traffic to and from Catalog is also compressed with Deflate, since its product lists and CSV export and import are large; the other messages are too small to gain from it.
+Solid lines are queries and commands, dotted lines are events. Services also query each other, for example Orders, Reviews, and Carts all read products from Catalog. Service-to-service traffic is binary and encrypted, over TCP, or over HTTP for Shipping, which is hosted in ASP.NET Core. The encryption key [rotates](../../docs/Encryptors.md#rotating-keys) every hour: `StoreKeySource` derives each period's key from the shared key, so every service moves to the new one together, and a message from the last period still decrypts with the previous key. Traffic to and from Catalog is also compressed with Deflate, since its product lists and CSV export and import are large; the other messages are too small to gain from it.
 
 Each service is one project with a `Domain` folder for its contracts and a `Service` folder for its handlers and data. Services don't reference each other: a service keeps its own copy of the contracts it uses from another service, in `Domain/<Service>/`, and only the type names have to match, not the namespaces. A copy keeps its members in the same order as the original, since the binary serializer matches members by order. Store.Web has copies of every contract the browser calls.
 
@@ -108,6 +108,7 @@ Defaults are in `Store.Common/StoreSettings.cs`. Override them with environment 
 | `STORE_CATALOG_POSTGRESQL`, `STORE_INVENTORY_MYSQL`, `STORE_ORDERS_MSSQL`, `STORE_ORDERS_MSSQL_WINDOWS_AUTH`, `STORE_REVIEWS_MARIADB`, `STORE_CARTS_KURRENTDB` | the connection strings above |
 | `STORE_KAFKA`, `STORE_RABBITMQ`, `STORE_AZURESERVICEBUS` | `localhost:9092`, `localhost`, the emulator in `Demo/Infrastructure` |
 | `STORE_SHARED_KEY` | the demo encryption key |
+| `STORE_KEY_ROTATION_MINUTES` | `60`; how often the encryption key rotates; `1` exercises rotations while you use the store |
 
 ## Tests
 

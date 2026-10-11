@@ -52,10 +52,10 @@ namespace Store.Common
         public static ISerializer CreateServiceSerializer() => new ZerraByteSerializer();
 
         /// <summary>
-        /// Internal traffic is encrypted with a shared key so only callers holding the key can send messages to a service.
-        /// A real deployment would load this from a secret store.
+        /// Internal traffic is encrypted so only callers holding the key can send messages to a service.
+        /// The key rotates every STORE_KEY_ROTATION_MINUTES, derived from the shared secret, see <see cref="StoreKeySource"/>.
         /// </summary>
-        public static IEncryptor CreateServiceEncryptor() => new ZerraEncryptor(Get("STORE_SHARED_KEY", "zerra-store-demo-shared-key"), SymmetricAlgorithmType.AES_GCM);
+        public static IEncryptor CreateServiceEncryptor() => new ZerraEncryptor(new StoreKeySource(Get("STORE_SHARED_KEY", "zerra-store-demo-shared-key"), TimeSpan.FromMinutes(Int32.Parse(Get("STORE_KEY_ROTATION_MINUTES", "1")))), SymmetricAlgorithmType.AES_GCM);
 
         /// <summary>
         /// Catalog's traffic is compressed: its product lists and the CSV export and import are large and repetitive. The rest of the store's
