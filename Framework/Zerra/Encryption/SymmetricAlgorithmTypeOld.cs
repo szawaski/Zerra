@@ -8,6 +8,7 @@ namespace Zerra.Encryption
     /// The symmetric algorithms used before, for data encrypted with them.
     /// New data uses <see cref="SymmetricAlgorithmType"/>.
     /// </summary>
+    [Obsolete]
     public enum SymmetricAlgorithmTypeOld : byte
     {
         /// <summary>
