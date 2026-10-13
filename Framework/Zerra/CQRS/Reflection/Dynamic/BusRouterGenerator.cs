@@ -23,12 +23,12 @@ namespace Zerra.CQRS.Reflection.Dynamic
         private static readonly MethodInfo call = typeof(IBusInternal).GetMethod(nameof(IBusInternal._CallMethod))!;
         private static readonly MethodInfo typeOfMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle)) ?? throw new Exception($"{nameof(Type)}.{nameof(Type.GetTypeFromHandle)} not found");
 
-        public static Func<IBusInternal, string, object> GenerateBusCaller(Type interfaceType)
+        public static Func<IBusInternal, string, bool, object> GenerateBusCaller(Type interfaceType)
         {
             var callerType = GenerateBusCallerClass(interfaceType);
-            var constructor = callerType.GetConstructor([typeof(IBusInternal), typeof(string)])!;
+            var constructor = callerType.GetConstructor([typeof(IBusInternal), typeof(string), typeof(bool)])!;
             var creator = AccessorGenerator.GenerateCreator(constructor)!;
-            object caller(IBusInternal bus, string source) => creator.Invoke([bus, source])!;
+            object caller(IBusInternal bus, string source, bool remote) => creator.Invoke([bus, source, remote])!;
             return caller;
         }
         private static Type GenerateBusCallerClass(Type interfaceType)
@@ -50,11 +50,13 @@ namespace Zerra.CQRS.Reflection.Dynamic
 
             var busField = typeBuilder.DefineField("bus", typeof(IBusInternal), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
+            var remoteField = typeBuilder.DefineField("remote", typeof(bool), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(IBusInternal), typeof(string)]);
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(IBusInternal), typeof(string), typeof(bool)]);
             {
                 _ = constructorBuilder.DefineParameter(1, ParameterAttributes.None, "bus");
                 _ = constructorBuilder.DefineParameter(2, ParameterAttributes.None, "source");
+                _ = constructorBuilder.DefineParameter(3, ParameterAttributes.None, "remote");
 
                 var il = constructorBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
@@ -69,6 +71,10 @@ namespace Zerra.CQRS.Reflection.Dynamic
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_2);
                 il.Emit(OpCodes.Stfld, sourceField);
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg_3);
+                il.Emit(OpCodes.Stfld, remoteField);
 
                 il.Emit(OpCodes.Ret);
             }
@@ -124,6 +130,9 @@ namespace Zerra.CQRS.Reflection.Dynamic
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, sourceField); //source
 
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldfld, remoteField); //remote
+
                 il.Emit(OpCodes.Callvirt, callMethod);
 
                 if (voidMethod)
@@ -147,14 +156,14 @@ namespace Zerra.CQRS.Reflection.Dynamic
         private static readonly ConcurrentFactoryDictionary<Type, MethodInfo> dispatchCommandWithResultInternalAsyncMethods = new();
         public static DispatchToBus GenerateBusDispatcher(Type commandType)
         {
-            static Task method(IBusInternal bus, ICommand command, Type commandType, string source, CancellationToken cancellationToken)
+            static Task method(IBusInternal bus, ICommand command, Type commandType, string source, bool remote, CancellationToken cancellationToken)
             {
                 var method = dispatchCommandWithResultInternalAsyncMethods.GetOrAdd(commandType, static (commandType) =>
                 {
                     var taskInnerType = commandType.GetInterface("ICommand`1")!.GetGenericArguments()[0];
                     return dispatchCommandWithResultInternalAsyncMethod.MakeGenericMethod(taskInnerType);
                 });
-                var task = (Task)method.Invoke(bus, [command, commandType, source, cancellationToken])!;
+                var task = (Task)method.Invoke(bus, [command, commandType, source, remote, cancellationToken])!;
                 return task;
             }
             var taskInnerType = commandType.GetInterface("ICommand`1")!.GetGenericArguments()[0];

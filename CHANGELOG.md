@@ -25,6 +25,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `AsymmetricEncryptor` writes standard JWE, so it encrypts data of any size that any JOSE library can read, with `AsymmetricAlgorithmType.RSA_OAEP_256_A256GCM`, or `RSA_OAEP_A256CBC_HS512` on .NET Framework. Keys are PEM, 2048-bit by default, and `Encrypt`/`Decrypt` replace `RSAEncrypt`/`RSADecrypt`.
 - `Hasher.PBKDF2GenerateHash` stores passwords as PHC strings with modern settings (SHA-256, 600,000 iterations), `PBKDF2NeedsRehash` says when to upgrade one, and hashes are compared in constant time. `HashAlgoritmType` is renamed `HashAlgorithmType` without MD5 and SHA-1, and Zerra 5 hashes are checked with `HasherOld`. PBKDF2 with SHA-256 and up works on .NET Framework too.
 - Fixed `Password.GeneratePassword` favoring some characters, and it now includes at least one character from each set chosen.
+- A handler's exception reaches the caller as a `CqrsServiceException` (renamed from `RemoteServiceException`) whether the handler is local or remote, with the original type name in `ErrorType`. See [Handler Exceptions](docs/UpgradeV5ToV6.md#handler-exceptions).
 - Streams as query arguments (uploads) as well as results.
 - Connection tests for each broker (`KafkaConnectionTest`, `RabbitMQConnectionTest`, `AzureServiceBusConnectionTest`) to fall back to direct TCP or HTTP.
 - RabbitMQ accepts AMQP URIs, including TLS with `amqps://`. Kafka connects with TLS through `useTls`.

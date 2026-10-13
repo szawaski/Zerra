@@ -773,7 +773,7 @@ namespace Zerra.Test.CQRS.Network
                 return ms.ToArray();
             }
 
-            public async Task<RemoteServiceException> ReadErrorAsync(TcpRequestHeader header, IEncryptor? encryptor, CancellationToken cancellationToken = default)
+            public async Task<CqrsServiceException> ReadErrorAsync(TcpRequestHeader header, IEncryptor? encryptor, CancellationToken cancellationToken = default)
             {
                 await using var body = OpenBody(header, encryptor);
                 return await ExceptionSerializer.DeserializeAsync("test", serializer, body, cancellationToken);

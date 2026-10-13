@@ -100,7 +100,7 @@ namespace Zerra.Test.Web
         public async Task Query_RemoteServiceThrows_RespondsWithOriginalType()
         {
             //the error came from a handler in another service, the browser sees the type it was thrown as
-            var bus = new MockBus { QueryException = new RemoteServiceException(nameof(InvalidOperationException), "remote failed", "remote-service", null) };
+            var bus = new MockBus { QueryException = new CqrsServiceException(nameof(InvalidOperationException), "remote failed", "remote-service", null) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
             var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
 
@@ -115,7 +115,7 @@ namespace Zerra.Test.Web
         [Fact(Timeout = timeout)]
         public async Task Query_RemoteServiceThrowsSecurityException_RespondsUnauthorized()
         {
-            var bus = new MockBus { QueryException = new RemoteServiceException(nameof(System.Security.SecurityException), "not yours", "remote-service", null) };
+            var bus = new MockBus { QueryException = new CqrsServiceException(nameof(System.Security.SecurityException), "not yours", "remote-service", null) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
             var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
 

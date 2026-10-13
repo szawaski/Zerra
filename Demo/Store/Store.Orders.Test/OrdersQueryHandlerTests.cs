@@ -2,6 +2,7 @@ using Store.Common;
 using Store.Orders.Domain;
 using Store.Orders.Service.Data;
 using Xunit;
+using Zerra.CQRS;
 using Zerra.Repository;
 
 namespace Store.Orders.Test
@@ -81,7 +82,7 @@ namespace Store.Orders.Test
         {
             var test = new OrdersTestBus();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.Call<IOrdersQueryHandler>().GetOrder(Guid.NewGuid(), Token));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.Call<IOrdersQueryHandler>().GetOrder(Guid.NewGuid(), Token));
         }
 
         [Fact]

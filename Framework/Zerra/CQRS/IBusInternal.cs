@@ -20,9 +20,10 @@ namespace Zerra.CQRS
         /// <param name="methodName">The name of the query method to call.</param>
         /// <param name="arguments">The arguments to pass to the query method.</param>
         /// <param name="source">The name of the service making the call.</param>
+        /// <param name="remote">Indicates this was initiated by a remote service.</param>
         /// <returns>The result returned by the query method.</returns>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, string source);
+        TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, bool remote);
         /// <summary>
         /// Internal method to call a query method that returns a non-generic task.
         /// </summary>
@@ -30,9 +31,10 @@ namespace Zerra.CQRS
         /// <param name="methodName">The name of the query method to call.</param>
         /// <param name="arguments">The arguments to pass to the query method.</param>
         /// <param name="source">The name of the service making the call.</param>
+        /// <param name="remote">Indicates this was initiated by a remote service.</param>
         /// <returns>A task representing the asynchronous query operation.</returns>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        Task _CallMethodTask(Type interfaceType, string methodName, object[] arguments, string source);
+        Task _CallMethodTask(Type interfaceType, string methodName, object[] arguments, string source, bool remote);
         /// <summary>
         /// Internal method to call a query method that returns a generic task with a result.
         /// </summary>
@@ -41,9 +43,10 @@ namespace Zerra.CQRS
         /// <param name="methodName">The name of the query method to call.</param>
         /// <param name="arguments">The arguments to pass to the query method.</param>
         /// <param name="source">The name of the service making the call.</param>
+        /// <param name="remote">Indicates this was initiated by a remote service.</param>
         /// <returns>A task that returns the result of the query method.</returns>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        Task<TReturn> _CallMethodTaskGeneric<TReturn>(Type interfaceType, string methodName, object[] arguments, string source);
+        Task<TReturn> _CallMethodTaskGeneric<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, bool remote);
 
         /// <summary>
         /// Internal method to dispatch a command asynchronously.
@@ -52,10 +55,11 @@ namespace Zerra.CQRS
         /// <param name="commandType">The type of the command.</param>
         /// <param name="requireAffirmation">Indicates whether to wait for the command to be processed before returning.</param>
         /// <param name="source">The name of the service making the call.</param>
+        /// <param name="remote">Indicates this was initiated by a remote service.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
         /// <returns>A task representing the asynchronous dispatch operation.</returns>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, string source, CancellationToken cancellationToken);
+        Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, string source, bool remote, CancellationToken cancellationToken);
         /// <summary>
         /// Internal method to dispatch a command asynchronously and return a result.
         /// </summary>
@@ -63,10 +67,11 @@ namespace Zerra.CQRS
         /// <param name="command">The command to dispatch.</param>
         /// <param name="commandType">The type of the command.</param>
         /// <param name="source">The name of the service making the call.</param>
+        /// <param name="remote">Indicates this was initiated by a remote service.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
         /// <returns>A task that returns the result of the command.</returns>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        Task<TResult> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, string source, CancellationToken cancellationToken);
+        Task<TResult> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, string source, bool remote, CancellationToken cancellationToken);
         /// <summary>
         /// Internal method to dispatch an event asynchronously.
         /// </summary>

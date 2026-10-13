@@ -60,7 +60,7 @@ namespace Zerra.SourceGeneration.Test
                 """);
 
             Assert.Contains("Caller_IWidgetQueryProvider.cs", output.Sources.Keys);
-            output.AssertInitializerContains("global::Zerra.Reflection.Register.Router(typeof(global::TestApp.IWidgetQueryProvider), static (global::Zerra.CQRS.IBusInternal bus, string source) => new global::TestApp.SourceGeneration.Caller_IWidgetQueryProvider(bus, source));");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.Router(typeof(global::TestApp.IWidgetQueryProvider), static (global::Zerra.CQRS.IBusInternal bus, string source, bool remote) => new global::TestApp.SourceGeneration.Caller_IWidgetQueryProvider(bus, source, remote));");
             output.AssertInitializerContains("global::Zerra.Reflection.Register.Handler(typeof(global::TestApp.IWidgetQueryProvider), \"GetWidget\", true, typeof(global::TestApp.Widget)");
             output.AssertInitializerContains("global::Zerra.Reflection.Register.Handler(typeof(global::TestApp.IWidgetQueryProvider), \"Ping\", true, null");
             output.AssertInitializerContains("global::Zerra.Reflection.Register.Handler(typeof(global::TestApp.IWidgetQueryProvider), \"Count\", false, null");

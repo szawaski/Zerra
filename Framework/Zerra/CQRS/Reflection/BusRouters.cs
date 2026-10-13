@@ -11,13 +11,13 @@ namespace Zerra.CQRS.Reflection
 {
     internal static class BusRouters
     {
-        private static readonly ConcurrentFactoryDictionary<Type, Func<IBusInternal, string, object>> interfaceRouterCreators = new();
+        private static readonly ConcurrentFactoryDictionary<Type, Func<IBusInternal, string, bool, object>> interfaceRouterCreators = new();
         private static readonly ConcurrentFactoryDictionary<Type, DispatchToBus> dispatchers = new();
 
-        public static object GetBusCaller(Type interfaceType, IBusInternal bus, string source)
+        public static object GetBusCaller(Type interfaceType, IBusInternal bus, string source, bool remote)
         {
             var creator = interfaceRouterCreators.GetOrAdd(interfaceType, GenerateBusCaller);
-            var handler = creator.Invoke(bus, source);
+            var handler = creator.Invoke(bus, source, remote);
             return handler;
         }
         public static DispatchToBus GetBusDispatcher(Type commandType)
@@ -25,7 +25,7 @@ namespace Zerra.CQRS.Reflection
             return dispatchers.GetOrAdd(commandType, GenerateBusDispatcher);
         }
 
-        private static Func<IBusInternal, string, object> GenerateBusCaller(Type interfaceType)
+        private static Func<IBusInternal, string, bool, object> GenerateBusCaller(Type interfaceType)
         {
 #if !NETSTANDARD2_0
             if (!RuntimeFeature.IsDynamicCodeSupported)
@@ -49,7 +49,7 @@ namespace Zerra.CQRS.Reflection
 #pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
         }
 
-        internal static void Register(Type interfaceType, Func<IBusInternal, string, object> creator)
+        internal static void Register(Type interfaceType, Func<IBusInternal, string, bool, object> creator)
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {interfaceType.Name} is not an interface");
@@ -57,7 +57,7 @@ namespace Zerra.CQRS.Reflection
                 throw new InvalidOperationException($"Caller for {interfaceType.Name} is already registered");
         }
 
-        public static void Register(Type commandType, Func<IBusInternal, ICommand, Type, string, CancellationToken, Task> dispatcher, Func<object, object?> taskResult)
+        public static void Register(Type commandType, Func<IBusInternal, ICommand, Type, string, bool, CancellationToken, Task> dispatcher, Func<object, object?> taskResult)
         {
             var dispatchToBus = new DispatchToBus(dispatcher, taskResult);
             if (!dispatchers.TryAdd(commandType, dispatchToBus))
@@ -66,9 +66,9 @@ namespace Zerra.CQRS.Reflection
 
         public sealed class DispatchToBus
         {
-            public readonly Func<IBusInternal, ICommand, Type, string, CancellationToken, Task> Method;
+            public readonly Func<IBusInternal, ICommand, Type, string, bool, CancellationToken, Task> Method;
             public readonly Func<object, object?> TaskResult;
-            public DispatchToBus(Func<IBusInternal, ICommand, Type, string, CancellationToken, Task> method, Func<object, object?> taskResult)
+            public DispatchToBus(Func<IBusInternal, ICommand, Type, string, bool, CancellationToken, Task> method, Func<object, object?> taskResult)
             {
                 this.Method = method;
                 this.TaskResult = taskResult;

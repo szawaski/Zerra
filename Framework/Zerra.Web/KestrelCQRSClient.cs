@@ -310,10 +310,12 @@ namespace Zerra.Web
                 {
                     var errorSource = data.ProviderMethod is null ? sourceName : $"{sourceName}.{data.ProviderMethod}";
                     //an error without a body, such as a 401 or a 400 sent before the request is read, has no details to read so the status is the error
-                    var responseException = response.Content.Headers.ContentLength == 0
-                        ? new RemoteServiceException(errorSource, $"Remote service responded {(int)response.StatusCode} {response.ReasonPhrase} without details for {errorSource}")
-                        : await ExceptionSerializer.DeserializeAsync(errorSource, serializer, responseStream, cancellationToken);
-                    throw responseException;
+                    Exception ex;
+                    if (response.Content.Headers.ContentLength == 0)
+                        ex = new CqrsNetworkException($"Remote service responded {(int)response.StatusCode} {response.ReasonPhrase} without details for {errorSource}");
+                    else
+                        ex = await ExceptionSerializer.DeserializeAsync(errorSource, serializer, responseStream, cancellationToken);
+                    throw ex;
                 }
 
                 if (!getResponseData)
@@ -446,10 +448,12 @@ namespace Zerra.Web
                 {
                     var errorSource = data.ProviderMethod is null ? sourceName : $"{sourceName}.{data.ProviderMethod}";
                     //an error without a body, such as a 401 or a 400 sent before the request is read, has no details to read so the status is the error
-                    var responseException = response.Content.Headers.ContentLength == 0
-                        ? new RemoteServiceException(errorSource, $"Remote service responded {(int)response.StatusCode} {response.ReasonPhrase} without details for {errorSource}")
-                        : ExceptionSerializer.Deserialize(errorSource, serializer, responseStream);
-                    throw responseException;
+                    Exception ex;
+                    if (response.Content.Headers.ContentLength == 0)
+                        ex = new CqrsNetworkException($"Remote service responded {(int)response.StatusCode} {response.ReasonPhrase} without details for {errorSource}");
+                    else
+                        ex = ExceptionSerializer.Deserialize(errorSource, serializer, responseStream);
+                    throw ex;
                 }
 
                 if (!getResponseData)

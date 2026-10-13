@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Xunit;
+using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Serialization;
 
@@ -65,7 +66,7 @@ namespace Zerra.Test.CQRS.Network
             var deserializedException = ExceptionSerializer.Deserialize("Test Source", serializer, stream);
 
             Assert.NotNull(deserializedException);
-            _ = Assert.IsType<RemoteServiceException>(deserializedException);
+            _ = Assert.IsType<CqrsServiceException>(deserializedException);
             Assert.Contains("Test error message", deserializedException.Message);
         }
 
@@ -75,7 +76,7 @@ namespace Zerra.Test.CQRS.Network
             //a service passing on an error from another service sends the type it was first thrown as
             var serializer = CreateTestSerializer();
             var stream = new MemoryStream();
-            var relayedException = new RemoteServiceException(nameof(ArgumentException), "Relayed message", "Other Service", null);
+            var relayedException = new CqrsServiceException(nameof(ArgumentException), "Relayed message", "Other Service", null);
 
             ExceptionSerializer.Serialize(serializer, stream, relayedException);
             stream.Position = 0;
@@ -164,7 +165,7 @@ namespace Zerra.Test.CQRS.Network
             var deserializedException = await ExceptionSerializer.DeserializeAsync("Test Source", serializer, stream, CancellationToken.None);
 
             Assert.NotNull(deserializedException);
-            _ = Assert.IsType<RemoteServiceException>(deserializedException);
+            _ = Assert.IsType<CqrsServiceException>(deserializedException);
             Assert.Contains("Async test error message", deserializedException.Message);
         }
 
@@ -253,7 +254,7 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
-        public void Deserialize_ReturnsRemoteServiceException_WhenExceptionCannotBeDeserialized()
+        public void Deserialize_ReturnsCqrsServiceException_WhenExceptionCannotBeDeserialized()
         {
             var serializer = CreateTestSerializer();
             var stream = new MemoryStream();
@@ -264,11 +265,11 @@ namespace Zerra.Test.CQRS.Network
 
             var result = ExceptionSerializer.Deserialize("Test Source", serializer, stream);
 
-            _ = Assert.IsType<RemoteServiceException>(result);
+            _ = Assert.IsType<CqrsServiceException>(result);
         }
 
         [Fact]
-        public async Task DeserializeAsync_ReturnsRemoteServiceException_WhenExceptionCannotBeDeserialized()
+        public async Task DeserializeAsync_ReturnsCqrsServiceException_WhenExceptionCannotBeDeserialized()
         {
             var serializer = CreateTestSerializer();
             var stream = new MemoryStream();
@@ -279,7 +280,7 @@ namespace Zerra.Test.CQRS.Network
 
             var result = await ExceptionSerializer.DeserializeAsync("Test Source", serializer, stream, CancellationToken.None);
 
-            _ = Assert.IsType<RemoteServiceException>(result);
+            _ = Assert.IsType<CqrsServiceException>(result);
         }
 
         [Fact]
@@ -319,7 +320,7 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
-        public void DeserializeBytes_WithValidBytes_ReturnsRemoteServiceException()
+        public void DeserializeBytes_WithValidBytes_ReturnsCqrsServiceException()
         {
             var serializer = CreateTestSerializer();
             var exception = new InvalidOperationException("Byte deserialization test");
@@ -328,7 +329,7 @@ namespace Zerra.Test.CQRS.Network
             var result = ExceptionSerializer.Deserialize("Test Source", serializer, bytes);
 
             Assert.NotNull(result);
-            _ = Assert.IsType<RemoteServiceException>(result);
+            _ = Assert.IsType<CqrsServiceException>(result);
             Assert.Contains("Byte deserialization test", result.Message);
         }
 
@@ -355,7 +356,7 @@ namespace Zerra.Test.CQRS.Network
             var result = ExceptionSerializer.Deserialize("Test Source", serializer, bytes);
 
             Assert.NotNull(result);
-            _ = Assert.IsType<RemoteServiceException>(result);
+            _ = Assert.IsType<CqrsServiceException>(result);
             Assert.Contains(errorMessage, result.Message);
         }
     }

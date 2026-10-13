@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Xunit;
+using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Serialization;
 
@@ -72,11 +73,11 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
-        public void ThrowIfFailed_WithNullAcknowledgement_ThrowsRemoteServiceException()
+        public void ThrowIfFailed_WithNullAcknowledgement_ThrowsCqrsNetworkException()
         {
             var serializer = CreateTestSerializer();
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.ThrowIfFailed("Test Source", serializer, null));
+            var ex = Assert.Throws<CqrsNetworkException>(() => Acknowledgement.ThrowIfFailed("Test Source", serializer, null));
             Assert.Contains("Test Source", ex.Message);
         }
 
@@ -90,51 +91,51 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
-        public void ThrowIfFailed_WithFailedAcknowledgement_ThrowsRemoteServiceException()
+        public void ThrowIfFailed_WithFailedAcknowledgement_ThrowsCqrsServiceException()
         {
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, null, new InvalidOperationException("Remote failure"));
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.ThrowIfFailed("Test Source", serializer, ack));
+            var ex = Assert.Throws<CqrsServiceException>(() => Acknowledgement.ThrowIfFailed("Test Source", serializer, ack));
             Assert.Contains("Remote failure", ex.Message);
         }
 
         [Fact]
-        public void ThrowIfFailed_WithErrorMessageAcknowledgement_ThrowsRemoteServiceException()
+        public void ThrowIfFailed_WithErrorMessageAcknowledgement_ThrowsCqrsServiceException()
         {
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, "Error from service");
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.ThrowIfFailed("Test Source", serializer, ack));
+            var ex = Assert.Throws<CqrsServiceException>(() => Acknowledgement.ThrowIfFailed("Test Source", serializer, ack));
             Assert.Contains("Error from service", ex.Message);
         }
 
         [Fact]
-        public void GetResultOrThrowIfFailed_WithNullAcknowledgement_ThrowsRemoteServiceException()
+        public void GetResultOrThrowIfFailed_WithNullAcknowledgement_ThrowsCqrsNetworkException()
         {
             var serializer = CreateTestSerializer();
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, null, typeof(object)));
+            var ex = Assert.Throws<CqrsNetworkException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, null, typeof(object)));
             Assert.Contains("Test Source", ex.Message);
         }
 
         [Fact]
-        public void GetResultOrThrowIfFailed_WithFailedAcknowledgement_ThrowsRemoteServiceException()
+        public void GetResultOrThrowIfFailed_WithFailedAcknowledgement_ThrowsCqrsServiceException()
         {
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, null, new ArgumentException("Bad argument"));
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack, typeof(object)));
+            var ex = Assert.Throws<CqrsServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack, typeof(object)));
             Assert.Contains("Bad argument", ex.Message);
         }
 
         [Fact]
-        public void GetResultOrThrowIfFailed_WithErrorMessageAcknowledgement_ThrowsRemoteServiceException()
+        public void GetResultOrThrowIfFailed_WithErrorMessageAcknowledgement_ThrowsCqrsServiceException()
         {
             var serializer = CreateTestSerializer();
             var ack = new Acknowledgement(serializer, "Service error message");
 
-            var ex = Assert.Throws<RemoteServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack, typeof(object)));
+            var ex = Assert.Throws<CqrsServiceException>(() => Acknowledgement.GetResultOrThrowIfFailed("Test Source", serializer, ack, typeof(object)));
             Assert.Contains("Service error message", ex.Message);
         }
 
@@ -208,7 +209,7 @@ namespace Zerra.Test.CQRS.Network
             var deserialized = serializer.Deserialize<Acknowledgement>(serializer.SerializeBytes(ack));
 
             Assert.NotNull(deserialized);
-            var exception = Assert.Throws<RemoteServiceException>(() => Acknowledgement.ThrowIfFailed("Test Source", serializer, deserialized));
+            var exception = Assert.Throws<CqrsServiceException>(() => Acknowledgement.ThrowIfFailed("Test Source", serializer, deserialized));
             Assert.Equal("Remote failure", exception.Message);
         }
 

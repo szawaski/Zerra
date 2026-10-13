@@ -24,14 +24,14 @@ namespace Zerra.Reflection
         /// </summary>
         /// <param name="interfaceType">The query or event interface type to register.</param>
         /// <param name="creator">A function that creates instances of the router for the given bus and route key.</param>
-        public static void Router(Type interfaceType, Func<IBusInternal, string, object> creator) => BusRouters.Register(interfaceType, creator);
+        public static void Router(Type interfaceType, Func<IBusInternal, string, bool, object> creator) => BusRouters.Register(interfaceType, creator);
         /// <summary>
         /// Registers a command router dispatcher for the specified command type.
         /// </summary>
         /// <param name="commandType">The command type to register.</param>
         /// <param name="dispatcher">A function that dispatches the command through the bus.</param>
         /// <param name="taskResult">A function that extracts the result from an async task, or null for fire-and-forget commands.</param>
-        public static void Router(Type commandType, Func<IBusInternal, ICommand, Type, string, CancellationToken, Task> dispatcher, Func<object, object?> taskResult) => BusRouters.Register(commandType, dispatcher, taskResult);
+        public static void Router(Type commandType, Func<IBusInternal, ICommand, Type, string, bool, CancellationToken, Task> dispatcher, Func<object, object?> taskResult) => BusRouters.Register(commandType, dispatcher, taskResult);
         /// <summary>
         /// Registers a query or event handler for the specified interface type.
         /// </summary>

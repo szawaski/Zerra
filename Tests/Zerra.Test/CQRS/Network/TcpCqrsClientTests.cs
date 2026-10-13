@@ -92,12 +92,12 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact(Timeout = timeout)]
-        public async Task Call_ErrorResponse_ThrowsRemoteServiceException()
+        public async Task Call_ErrorResponse_ThrowsCqrsServiceException()
         {
             using var server = new FakeServer(null, request => request.WriteErrorAsync("query failed"));
             using var client = CreateClient(server, null);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => Task.Run(() =>
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() => Task.Run(() =>
                 ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken));
 
             Assert.Equal("query failed", exception.Message);
@@ -107,13 +107,13 @@ namespace Zerra.Test.CQRS.Network
         [Theory(Timeout = timeout)]
         [InlineData(false)]
         [InlineData(true)]
-        public async Task CallTaskGeneric_ErrorResponse_ThrowsRemoteServiceException(bool encrypt)
+        public async Task CallTaskGeneric_ErrorResponse_ThrowsCqrsServiceException(bool encrypt)
         {
             var enc = encrypt ? encryptor : null;
             using var server = new FakeServer(enc, request => request.WriteErrorAsync("query failed"));
             using var client = CreateClient(server, enc);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() =>
                 ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
 
             Assert.Equal("query failed", exception.Message);
@@ -304,13 +304,13 @@ namespace Zerra.Test.CQRS.Network
         [Theory(Timeout = timeout)]
         [InlineData(false)]
         [InlineData(true)]
-        public async Task DispatchAwaitAsync_ErrorResponse_ThrowsRemoteServiceException(bool encrypt)
+        public async Task DispatchAwaitAsync_ErrorResponse_ThrowsCqrsServiceException(bool encrypt)
         {
             var enc = encrypt ? encryptor : null;
             using var server = new FakeServer(enc, request => request.WriteErrorAsync("command failed"));
             using var client = CreateClient(server, enc);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() =>
                 ((ICommandProducer)client).DispatchAwaitAsync(new TestCommand { Value = 5 }, source, TestContext.Current.CancellationToken));
 
             Assert.Equal("command failed", exception.Message);
@@ -531,13 +531,13 @@ namespace Zerra.Test.CQRS.Network
 
         [Theory(Timeout = timeout)]
         [MemberData(nameof(OperationsWithStreams))]
-        public async Task Operation_ErrorResponse_ThrowsRemoteServiceException(Operation operation, bool encrypt)
+        public async Task Operation_ErrorResponse_ThrowsCqrsServiceException(Operation operation, bool encrypt)
         {
             var enc = encrypt ? encryptor : null;
             using var server = new FakeServer(enc, request => request.WriteErrorAsync("failed remotely"));
             using var client = CreateClient(server, enc);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => RunAsync(client, operation, token: TestContext.Current.CancellationToken));
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() => RunAsync(client, operation, token: TestContext.Current.CancellationToken));
             Assert.Equal("failed remotely", exception.Message);
         }
 

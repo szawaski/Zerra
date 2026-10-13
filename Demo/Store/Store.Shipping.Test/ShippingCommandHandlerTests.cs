@@ -3,6 +3,7 @@ using Store.Shipping.Domain.Commands;
 using Store.Shipping.Domain.Orders;
 using Store.Shipping.Service.Data;
 using Xunit;
+using Zerra.CQRS;
 
 namespace Store.Shipping.Test
 {
@@ -63,7 +64,7 @@ namespace Store.Shipping.Test
             await test.Bus.DispatchAsync(shipped);
             await test.Bus.DispatchAwaitAsync(new MarkDeliveredCommand() { OrderID = shipped.OrderID }, Token);
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new MarkDeliveredCommand() { OrderID = shipped.OrderID }, Token));
+            var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new MarkDeliveredCommand() { OrderID = shipped.OrderID }, Token));
             Assert.Contains("already marked delivered", ex.Message);
         }
 
@@ -72,7 +73,7 @@ namespace Store.Shipping.Test
         {
             var test = new ShippingTestBus();
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new MarkDeliveredCommand() { OrderID = Guid.NewGuid() }, Token));
+            var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new MarkDeliveredCommand() { OrderID = Guid.NewGuid() }, Token));
             Assert.Equal("Shipment not found.", ex.Message);
         }
     }

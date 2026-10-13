@@ -44,8 +44,8 @@ namespace Zerra.Test.CQRS
             bus.AddHandler<ITestCommandHandler>(new TestCommandHandler(results, waiter));
 
             //a failure that isn't the timeout is thrown as it is, not swallowed or wrapped
-            _ = await Assert.ThrowsAsync<InvalidOperationException>(() => bus.DispatchAwaitAsync(new TestCommand { Thing = 30, Fail = true }, TimeSpan.FromSeconds(10)));
-            _ = await Assert.ThrowsAsync<InvalidOperationException>(() => bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 31, Fail = true }, TimeSpan.FromSeconds(10)));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => bus.DispatchAwaitAsync(new TestCommand { Thing = 30, Fail = true }, TimeSpan.FromSeconds(10)));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 31, Fail = true }, TimeSpan.FromSeconds(10)));
 
             //and a result comes back through the timeout
             Assert.Equal(64, await bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 32 }, TimeSpan.FromSeconds(10)));
@@ -60,8 +60,8 @@ namespace Zerra.Test.CQRS
             var bus = Bus.New("test-service", null, null, null, defaultDispatchAwaitTimeout: TimeSpan.FromSeconds(10));
             bus.AddHandler<ITestCommandHandler>(new TestCommandHandler(results, waiter));
 
-            _ = await Assert.ThrowsAsync<InvalidOperationException>(() => bus.DispatchAwaitAsync(new TestCommand { Thing = 33, Fail = true }));
-            _ = await Assert.ThrowsAsync<InvalidOperationException>(() => bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 34, Fail = true }));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => bus.DispatchAwaitAsync(new TestCommand { Thing = 33, Fail = true }));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => bus.DispatchAwaitAsync(new TestCommandWithResult { Thing = 34, Fail = true }));
 
             var timedOut = bus.DispatchAwaitAsync(new TestCommand { Thing = 35, Delay = 200 }, TimeSpan.FromMilliseconds(50));
             _ = await Assert.ThrowsAsync<TimeoutException>(() => timedOut);

@@ -33,7 +33,7 @@ Events are not affected; they're always acknowledged when received.
 
 ### Handler Failures Are Results, Not Retries
 
-A handler that throws has handled the message: the exception is its outcome. A caller using `DispatchAwaitAsync` receives it as a `RemoteServiceException` with the original type and message, and otherwise the handling service's `IBusLogger` records it. Zerra doesn't redeliver it, because a handler failure is usually a business outcome (validation, a missing record, a rule violation) where running again changes nothing or repeats a side effect. The caller knows whether a retry makes sense, so retry policy belongs there. With no redelivery loop there are no poison messages to bound and nothing to dead-letter.
+A handler that throws has handled the message: the exception is its outcome. A caller using `DispatchAwaitAsync` receives it as a `CqrsServiceException` with the original type and message, and otherwise the handling service's `IBusLogger` records it. Zerra doesn't redeliver it, because a handler failure is usually a business outcome (validation, a missing record, a rule violation) where running again changes nothing or repeats a side effect. The caller knows whether a retry makes sense, so retry policy belongs there. With no redelivery loop there are no poison messages to bound and nothing to dead-letter.
 
 ## When Each Message Is Acknowledged
 
@@ -47,7 +47,7 @@ A handler that throws has handled the message: the exception is its outcome. A c
 | What happens | Result |
 |---|---|
 | The service stops normally, including a deployment or scale-in | messages already received finish; the rest wait for the next consumer |
-| The handler throws | an awaiting caller gets `RemoteServiceException`; the message is done |
+| The handler throws | an awaiting caller gets `CqrsServiceException`; the message is done |
 | The broker is unreachable | consumers reconnect every 5 seconds; a dispatch fails with an exception or times out |
 | The process is forcibly terminated while handling | the messages being handled at that moment are lost, except [resilient commands](#resilient-commands), which go to the next consumer |
 
@@ -59,8 +59,8 @@ A handler that throws has handled the message: the exception is its outcome. A c
 |---|---|---|
 | `DispatchAsync` to a broker | Kafka and Service Bus have accepted the message; RabbitMQ's client has published it | recorded by the handling service's `IBusLogger` |
 | `DispatchAsync` over TCP or HTTP | the server has received the message and started the handler | recorded by the handling service's `IBusLogger` |
-| `DispatchAwaitAsync` | the handler has finished | throws `RemoteServiceException` |
-| `Call<T>().Method(...)` (a query) | the handler has returned | throws `RemoteServiceException` |
+| `DispatchAwaitAsync` | the handler has finished | throws `CqrsServiceException` |
+| `Call<T>().Method(...)` (a query) | the handler has returned | throws `CqrsServiceException` |
 
 `DispatchAwaitAsync` waits for that command's handler. Commands and events the handler itself sends with `DispatchAsync` have been sent; to wait for downstream work, the handler awaits the commands it depends on.
 
@@ -89,7 +89,7 @@ Only the handler knows whether repeating its work is safe, so these choices are 
 
 - **Timeouts.** `defaultCallTimeout`, `defaultDispatchTimeout`, and `defaultDispatchAwaitTimeout` on `Bus.New`, or a `TimeSpan` or `CancellationToken` per call. See [Client Setup](ClientSetup.md#timeout-configuration).
 - **Cancellation.** A query's token reaches the remote handler, so a caller that gives up stops the work too. See [Queries](Queries.md#cancellation-and-timeouts).
-- **Typed failures.** `RemoteServiceException` when the handler threw, `TimeoutException`, and connection exceptions. See [Client Setup](ClientSetup.md#errors).
+- **Typed failures.** `CqrsServiceException` when a local or remote handler threw, `TimeoutException`, `OperationCanceledException`, and connection exceptions such as `CqrsNetworkException`. See [Client Setup](ClientSetup.md#errors).
 - **Bounded concurrency.** `maxConcurrentQueries`, `maxConcurrentCommandsPerTopic`, and `maxConcurrentEventsPerTopic` on `Bus.New` limit how much each client and server runs at once; further messages wait.
 - **Per-hop logging.** An `IBusLogger` records each message's source, service, duration, and exception on both ends. See [Logging](Logging.md#ibuslogger).
 

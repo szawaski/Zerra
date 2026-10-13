@@ -62,14 +62,14 @@ namespace Zerra.Test.CQRS.Reflection
             _ = Assert.Throws<ArgumentException>(() => BusCommandOrEventInfo.Register(typeof(IRegisteredInfo), "Registered", [], []));
             _ = Assert.Throws<ArgumentException>(() => BusCommandOrEventInfo.Register(typeof(RegisteredCommand), "Registered", [], []));
 
-            BusRouters.Register(typeof(IRegisteredRouter), (bus, source) => source);
-            Assert.Equal("source", BusRouters.GetBusCaller(typeof(IRegisteredRouter), null!, "source"));
-            _ = Assert.Throws<InvalidOperationException>(() => BusRouters.Register(typeof(IRegisteredRouter), (bus, source) => source));
-            _ = Assert.Throws<ArgumentException>(() => BusRouters.Register(typeof(RegisteredCommand), (bus, source) => source));
+            BusRouters.Register(typeof(IRegisteredRouter), (bus, source, remote) => source);
+            Assert.Equal("source", BusRouters.GetBusCaller(typeof(IRegisteredRouter), null!, "source", false));
+            _ = Assert.Throws<InvalidOperationException>(() => BusRouters.Register(typeof(IRegisteredRouter), (bus, source, remote) => source));
+            _ = Assert.Throws<ArgumentException>(() => BusRouters.Register(typeof(RegisteredCommand), (bus, source, remote) => source));
 
-            BusRouters.Register(typeof(RegisteredCommand), (bus, command, type, source, cancellationToken) => Task.CompletedTask, task => null);
+            BusRouters.Register(typeof(RegisteredCommand), (bus, command, type, source, remote, cancellationToken) => Task.CompletedTask, task => null);
             Assert.NotNull(BusRouters.GetBusDispatcher(typeof(RegisteredCommand)));
-            _ = Assert.Throws<InvalidOperationException>(() => BusRouters.Register(typeof(RegisteredCommand), (bus, command, type, source, cancellationToken) => Task.CompletedTask, task => null));
+            _ = Assert.Throws<InvalidOperationException>(() => BusRouters.Register(typeof(RegisteredCommand), (bus, command, type, source, remote, cancellationToken) => Task.CompletedTask, task => null));
 
             BusHandlers.Register(typeof(IRegisteredHandler), "Run", false, null, [typeof(int)], (instance, args) => (int)args![0]! + 1, null);
             Assert.Equal(2, BusHandlers.Invoke(typeof(IRegisteredHandler), new object(), "Run", [1]));

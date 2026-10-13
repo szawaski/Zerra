@@ -87,13 +87,13 @@ namespace Zerra.Test.Web
         [Theory(Timeout = timeout)]
         [InlineData(false)]
         [InlineData(true)]
-        public async Task CallTaskGeneric_ErrorResponse_ThrowsRemoteServiceException(bool encrypt)
+        public async Task CallTaskGeneric_ErrorResponse_ThrowsCqrsServiceException(bool encrypt)
         {
             var enc = encrypt ? encryptor : null;
             using var server = new FakeServer(enc, _ => FakeResponse.Error("query failed"));
             using var client = CreateClient(server, enc);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() =>
                 ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
 
             Assert.Equal("query failed", exception.Message);
@@ -115,7 +115,7 @@ namespace Zerra.Test.Web
             using var server = new FakeServer(enc, _ => new FakeResponse(statusCode, []));
             using var client = CreateClient(server, enc);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsNetworkException>(() =>
                 ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
 
             Assert.Contains(status, exception.Message);
@@ -128,7 +128,7 @@ namespace Zerra.Test.Web
             using var server = new FakeServer(null, _ => new FakeResponse(401, []));
             using var client = CreateClient(server, null);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => Task.Run(() =>
+            var exception = await Assert.ThrowsAsync<CqrsNetworkException>(() => Task.Run(() =>
                 ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken));
 
             Assert.Contains("401 Unauthorized", exception.Message);
@@ -142,7 +142,7 @@ namespace Zerra.Test.Web
             using var server = new FakeServer(null, _ => new FakeResponse(401, []));
             using var client = CreateClient(server, null);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsNetworkException>(() =>
                 ((ICommandProducer)client).DispatchAwaitAsync(new TestCommand { Value = 5 }, source, TestContext.Current.CancellationToken));
 
             Assert.Contains("401 Unauthorized", exception.Message);
@@ -155,7 +155,7 @@ namespace Zerra.Test.Web
             using var server = new FakeServer(null, _ => new FakeResponse(401, []));
             using var client = CreateClient(server, null);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsNetworkException>(() =>
                 ((IEventProducer)client).DispatchAsync(new TestEvent { Value = 7 }, source, TestContext.Current.CancellationToken));
 
             Assert.Contains("401 Unauthorized", exception.Message);

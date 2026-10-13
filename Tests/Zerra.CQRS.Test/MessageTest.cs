@@ -6,8 +6,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Security.Claims;
 using Xunit;
-using Zerra.CQRS;
-using Zerra.CQRS.Network;
 using Zerra.Reflection;
 
 namespace Zerra.CQRS.Test
@@ -510,7 +508,7 @@ namespace Zerra.CQRS.Test
             var command = new TestCommand() { ID = Guid.NewGuid(), Throw = true };
             var received = receiver.Expect(command.ID);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => producer.DispatchAwaitAsync(command, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken));
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() => producer.DispatchAwaitAsync(command, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken));
 
             Assert.Equal(ErrorMessage(command.ID), exception.Message);
             Assert.True(received.IsCompleted);
@@ -521,7 +519,7 @@ namespace Zerra.CQRS.Test
             var command = new TestCommandWithResult() { ID = Guid.NewGuid(), Throw = true };
             var received = receiver.Expect(command.ID);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => producer.DispatchAwaitAsync(command, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken));
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() => producer.DispatchAwaitAsync(command, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken));
 
             Assert.Equal(ErrorMessage(command.ID), exception.Message);
             Assert.True(received.IsCompleted);

@@ -3,6 +3,7 @@ using Store.Reviews.Domain.Catalog;
 using Store.Reviews.Domain.Commands;
 using Store.Reviews.Service.Data;
 using Xunit;
+using Zerra.CQRS;
 using Zerra.Repository;
 
 namespace Store.Reviews.Test
@@ -66,7 +67,7 @@ namespace Store.Reviews.Test
             var lamp = test.AddProduct("Desk Lamp");
             var ada = test.AddCustomer("Ada Lovelace");
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = rating }, Token));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = rating }, Token));
         }
 
         [Fact]
@@ -76,7 +77,7 @@ namespace Store.Reviews.Test
             var lamp = test.AddProduct("Desk Lamp");
             var ada = test.AddCustomer("Ada Lovelace");
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 3, Comment = new string('a', 1001) }, Token));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 3, Comment = new string('a', 1001) }, Token));
         }
 
         [Fact]
@@ -87,7 +88,7 @@ namespace Store.Reviews.Test
             var ada = test.AddCustomer("Ada Lovelace");
             _ = await test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 4 }, Token);
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 1 }, Token));
+            var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 1 }, Token));
             Assert.Contains("already reviewed", ex.Message);
             Assert.Single(await test.Repo.ManyAsync<ReviewDataModel>(x => x.ProductID == lamp.ID));
         }
@@ -98,7 +99,7 @@ namespace Store.Reviews.Test
             var test = new ReviewsTestBus();
             var ada = test.AddCustomer("Ada Lovelace");
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = Guid.NewGuid(), Rating = 4 }, Token));
+            var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = Guid.NewGuid(), Rating = 4 }, Token));
             Assert.Equal("Product not found.", ex.Message);
         }
 
@@ -108,7 +109,7 @@ namespace Store.Reviews.Test
             var test = new ReviewsTestBus();
             var lamp = test.AddProduct("Desk Lamp");
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = Guid.NewGuid(), ProductID = lamp.ID, Rating = 4 }, Token));
+            var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = Guid.NewGuid(), ProductID = lamp.ID, Rating = 4 }, Token));
             Assert.Equal("Customer not found.", ex.Message);
             Assert.Empty(await test.Repo.ManyAsync<ReviewDataModel>(x => x.ProductID == lamp.ID));
         }

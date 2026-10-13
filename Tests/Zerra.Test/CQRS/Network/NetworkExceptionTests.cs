@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using Xunit;
+using Zerra.CQRS;
 using Zerra.CQRS.Network;
 
 namespace Zerra.Test.CQRS.Network
@@ -10,20 +11,46 @@ namespace Zerra.Test.CQRS.Network
     public class NetworkExceptionTests
     {
         [Fact]
-        public void RemoteServiceException_CarriesTheRemoteDetails()
+        public void CqrsServiceException_CarriesTheRemoteDetails()
         {
-            var remote = new RemoteServiceException("InvalidOperationException", "Failed", "server", "at Remote()");
-            Assert.Equal("InvalidOperationException", remote.ErrorType);
-            Assert.Equal("Failed", remote.Message);
-            Assert.Equal("server", remote.Source);
-            Assert.Equal("at Remote()", remote.StackTrace);
-            Assert.StartsWith("server - InvalidOperationException - ", remote.ToString());
+            var ex = new CqrsServiceException("InvalidOperationException", "Failed", "server", "at Remote()");
+            Assert.Equal("InvalidOperationException", ex.ErrorType);
+            Assert.Equal("Failed", ex.Message);
+            Assert.Equal("server", ex.Source);
+            Assert.Equal("at Remote()", ex.StackTrace);
+            Assert.StartsWith("server - InvalidOperationException - ", ex.ToString());
+        }
 
-            var plain = new RemoteServiceException("server", "Failed");
-            Assert.Null(plain.ErrorType);
-            Assert.Equal("server", plain.Source);
-            Assert.Null(plain.StackTrace);
-            Assert.DoesNotContain(" - ", plain.ToString());
+        [Fact]
+        public void CqrsServiceException_FromException_UsesTheBaseException()
+        {
+            InvalidOperationException thrown;
+            try
+            {
+                throw new InvalidOperationException("Failed");
+            }
+            catch (InvalidOperationException caught)
+            {
+                thrown = caught;
+            }
+
+            var ex = new CqrsServiceException(new AggregateException(thrown), "IQuery.Get");
+            Assert.Equal(nameof(InvalidOperationException), ex.ErrorType);
+            Assert.Equal("Failed", ex.Message);
+            Assert.Equal("IQuery.Get", ex.Source);
+            Assert.Equal(thrown.StackTrace, ex.StackTrace);
+        }
+
+        [Fact]
+        public void CqrsServiceException_FromRelayed_KeepsErrorTypeAndJoinsSource()
+        {
+            var relayed = new CqrsServiceException("KeyNotFoundException", "Missing", "IOther.Get", "at Remote()");
+
+            var ex = new CqrsServiceException(relayed, "IQuery.Get");
+            Assert.Equal("KeyNotFoundException", ex.ErrorType);
+            Assert.Equal("Missing", ex.Message);
+            Assert.Equal("IOther.Get - IQuery.Get", ex.Source);
+            Assert.Equal("at Remote()", ex.StackTrace);
         }
 
         [Fact]

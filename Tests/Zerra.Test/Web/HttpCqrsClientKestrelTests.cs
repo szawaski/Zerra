@@ -60,13 +60,13 @@ namespace Zerra.Test.Web
         [Theory(Timeout = timeout)]
         [InlineData(false)]
         [InlineData(true)]
-        public async Task Query_HandlerThrows_ThrowsRemoteServiceException(bool encrypt)
+        public async Task Query_HandlerThrows_ThrowsCqrsServiceException(bool encrypt)
         {
             var enc = encrypt ? encryptor : null;
             await using var server = await TestServer.StartAsync(enc);
             using var client = CreateClient(server.Url, enc);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() =>
                 ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Fail), [], [], source, TestContext.Current.CancellationToken));
 
             Assert.Equal("query failed", exception.Message);
@@ -121,7 +121,7 @@ namespace Zerra.Test.Web
             Assert.Equal(10, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [5], source), TestContext.Current.CancellationToken));
             Assert.Equal(new string('x', 50_000), await ((IQueryClient)client).CallTaskGeneric<string>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetLarge), [typeof(int)], [50_000], source, TestContext.Current.CancellationToken));
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() =>
                 ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Fail), [], [], source, TestContext.Current.CancellationToken));
             Assert.Equal("query failed", exception.Message);
 
@@ -140,7 +140,7 @@ namespace Zerra.Test.Web
             await using var server = await TestServer.StartAsync(null, ["example.com"]);
             using var client = CreateClient(server.Url, null);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsNetworkException>(() =>
                 ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
 
             Assert.Contains("401 Unauthorized", exception.Message);

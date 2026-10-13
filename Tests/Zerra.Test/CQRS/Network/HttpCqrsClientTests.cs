@@ -93,12 +93,12 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact(Timeout = timeout)]
-        public async Task Call_ErrorResponse_ThrowsRemoteServiceException()
+        public async Task Call_ErrorResponse_ThrowsCqrsServiceException()
         {
             using var server = new FakeServer(null, request => request.WriteErrorAsync("query failed"));
             using var client = CreateClient(server, null);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => Task.Run(() =>
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() => Task.Run(() =>
                 ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken));
 
             Assert.Equal("query failed", exception.Message);
@@ -108,13 +108,13 @@ namespace Zerra.Test.CQRS.Network
         [Theory(Timeout = timeout)]
         [InlineData(false)]
         [InlineData(true)]
-        public async Task CallTaskGeneric_ErrorResponse_ThrowsRemoteServiceException(bool encrypt)
+        public async Task CallTaskGeneric_ErrorResponse_ThrowsCqrsServiceException(bool encrypt)
         {
             var enc = encrypt ? encryptor : null;
             using var server = new FakeServer(enc, request => request.WriteErrorAsync("query failed"));
             using var client = CreateClient(server, enc);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() =>
                 ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
 
             Assert.Equal("query failed", exception.Message);
@@ -283,13 +283,13 @@ namespace Zerra.Test.CQRS.Network
         [Theory(Timeout = timeout)]
         [InlineData(false)]
         [InlineData(true)]
-        public async Task DispatchAwaitAsync_ErrorResponse_ThrowsRemoteServiceException(bool encrypt)
+        public async Task DispatchAwaitAsync_ErrorResponse_ThrowsCqrsServiceException(bool encrypt)
         {
             var enc = encrypt ? encryptor : null;
             using var server = new FakeServer(enc, request => request.WriteErrorAsync("command failed"));
             using var client = CreateClient(server, enc);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() =>
                 ((ICommandProducer)client).DispatchAwaitAsync(new TestCommand { Value = 5 }, source, TestContext.Current.CancellationToken));
 
             Assert.Equal("command failed", exception.Message);
@@ -339,12 +339,12 @@ namespace Zerra.Test.CQRS.Network
         [InlineData("HTTP/1.1 500 Internal Server Error")]
         [InlineData("HTTP/1.1 503 Service Unavailable")]
         [InlineData("HTTP/1.1 400 Bad Request")]
-        public async Task CallTaskGeneric_ErrorWithOtherStatusLine_ThrowsRemoteServiceException(string statusLine)
+        public async Task CallTaskGeneric_ErrorWithOtherStatusLine_ThrowsCqrsServiceException(string statusLine)
         {
             using var server = new FakeServer(null, request => request.WriteLengthFramedAsync(statusLine, body => ExceptionSerializer.SerializeAsync(serializer, body, new InvalidOperationException("query failed"), default)));
             using var client = CreateClient(server, null);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() =>
                 ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
 
             Assert.Equal("query failed", exception.Message);
@@ -360,7 +360,7 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeServer(null, request => request.WriteLengthFramedAsync(statusLine));
             using var client = CreateClient(server, null);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsNetworkException>(() =>
                 ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
 
             Assert.Contains(status, exception.Message);
@@ -372,7 +372,7 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeServer(null, request => request.WriteLengthFramedAsync("HTTP/1.1 401 Unauthorized"));
             using var client = CreateClient(server, null);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => Task.Run(() =>
+            var exception = await Assert.ThrowsAsync<CqrsNetworkException>(() => Task.Run(() =>
                 ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken));
 
             Assert.Contains("401 Unauthorized", exception.Message);
@@ -384,7 +384,7 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeServer(null, request => request.WriteLengthFramedAsync("HTTP/1.1 401 Unauthorized"));
             using var client = CreateClient(server, null);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            var exception = await Assert.ThrowsAsync<CqrsNetworkException>(() =>
                 ((ICommandProducer)client).DispatchAwaitAsync(new TestCommand { Value = 5 }, source, TestContext.Current.CancellationToken));
 
             Assert.Contains("401 Unauthorized", exception.Message);
@@ -398,7 +398,7 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeServer(null, request => Interlocked.Increment(ref responses) == 1 ? request.WriteLengthFramedAsync("HTTP/1.1 401 Unauthorized") : request.WriteModelAsync(42));
             using var client = CreateClient(server, null);
 
-            _ = await Assert.ThrowsAsync<RemoteServiceException>(() =>
+            _ = await Assert.ThrowsAsync<CqrsNetworkException>(() =>
                 ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
             var result = await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken);
 
@@ -598,13 +598,13 @@ namespace Zerra.Test.CQRS.Network
 
         [Theory(Timeout = timeout)]
         [MemberData(nameof(OperationsWithFlag))]
-        public async Task Operation_ErrorResponse_ThrowsRemoteServiceException(Operation operation, bool encrypt)
+        public async Task Operation_ErrorResponse_ThrowsCqrsServiceException(Operation operation, bool encrypt)
         {
             var enc = encrypt ? encryptor : null;
             using var server = new FakeServer(enc, request => request.WriteErrorAsync("failed remotely"));
             using var client = CreateClient(server, enc);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => RunAsync(client, operation, token: TestContext.Current.CancellationToken));
+            var exception = await Assert.ThrowsAsync<CqrsServiceException>(() => RunAsync(client, operation, token: TestContext.Current.CancellationToken));
             Assert.Equal("failed remotely", exception.Message);
         }
 
@@ -615,7 +615,7 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeServer(null, request => request.WriteLengthFramedAsync("HTTP/1.1 401 Unauthorized"));
             using var client = CreateClient(server, null);
 
-            var exception = await Assert.ThrowsAsync<RemoteServiceException>(() => RunAsync(client, operation, token: TestContext.Current.CancellationToken));
+            var exception = await Assert.ThrowsAsync<CqrsNetworkException>(() => RunAsync(client, operation, token: TestContext.Current.CancellationToken));
             Assert.Contains("401", exception.Message);
         }
 

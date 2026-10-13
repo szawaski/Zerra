@@ -65,11 +65,11 @@ namespace Zerra.CQRS.Network
         /// <param name="source">The source of the acknowledgement.</param>
         /// <param name="serializer">The serializer to use for deserializing the result or exception.</param>
         /// <param name="ack">The acknowledgement to check for a failure.</param>
-        /// <exception cref="RemoteServiceException"></exception>
+        /// <exception cref="CqrsServiceException"></exception>
         public static void ThrowIfFailed(string source, ISerializer serializer, Acknowledgement? ack)
         {
             if (ack is null)
-                throw new RemoteServiceException(source, $"Failed to deserialize acknowledgement from remote service for {source}");
+                throw new CqrsNetworkException($"Failed to deserialize acknowledgement from remote service for {source}");
 
             if (ack.Exception == null)
                 return;
@@ -88,11 +88,11 @@ namespace Zerra.CQRS.Network
         /// <param name="ack">The acknowledgement for the result or failure.</param>
         /// <param name="resultType">The expected type of the result to deserialize.</param>
         /// <returns>The result if successful which may be a null.  A failure will throw an exception.</returns>
-        /// <exception cref="RemoteServiceException"></exception>
+        /// <exception cref="CqrsServiceException"></exception>
         public static object? GetResultOrThrowIfFailed(string source, ISerializer serializer, Acknowledgement? ack, Type resultType)
         {
             if (ack is null)
-                throw new RemoteServiceException(source, $"Failed to deserialize acknowledgement from remote service for {source}");
+                throw new CqrsNetworkException($"Failed to deserialize acknowledgement from remote service for {source}");
 
             if (ack.Exception != null)
             {
@@ -109,7 +109,7 @@ namespace Zerra.CQRS.Network
                 }
                 catch
                 {
-                    throw new RemoteServiceException(source, $"Failed to deserialize acknowledgement of type {resultType.Name} from remote service for {source}");
+                    throw new CqrsNetworkException($"Failed to deserialize acknowledgement of type {resultType.Name} from remote service for {source}");
                 }
             }
 

@@ -152,12 +152,12 @@ See [Server Setup](ServerSetup.md), [Client Setup](ClientSetup.md), and the brok
 
 ## Errors
 
-An exception thrown by a remote handler is returned to the caller as a `RemoteServiceException`, **only** when the command was sent with `DispatchAwaitAsync`. It carries:
+An exception thrown by a handler is returned to the caller as a `CqrsServiceException`, **only** when the command was sent with `DispatchAwaitAsync`. A local handler's exception is wrapped the same way as a remote one's, so the caller handles both alike. It carries:
 
 - `Message`: the original message
 - `ErrorType`: the original exception's type name
 - `Source`: the command type that caused it
-- `StackTrace`: the remote stack trace
+- `StackTrace`: the handler's stack trace
 
 There is no `InnerException`, so branch on `ErrorType`:
 
@@ -166,7 +166,7 @@ try
 {
     await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com", Name = "John Doe" });
 }
-catch (RemoteServiceException ex) when (ex.ErrorType == nameof(ArgumentException))
+catch (CqrsServiceException ex) when (ex.ErrorType == nameof(ArgumentException))
 {
     // validation failed on the server
 }
@@ -178,9 +178,10 @@ catch (TimeoutException)
 
 | Exception | Meaning | Command handled? |
 |---|---|---|
-| `RemoteServiceException` | the handler threw | yes, and it failed |
+| `CqrsServiceException` | the handler threw | yes, and it failed |
 | `TimeoutException` | no response in time | unknown |
-| `IOException` or other | network or connection failure | no |
+| `OperationCanceledException` | the caller's token was cancelled | unknown |
+| `CqrsNetworkException` or other | network or connection failure | no |
 
 `DispatchAsync` returns as soon as the command is sent, so a handler's exception never reaches the caller. Use `DispatchAwaitAsync` when the caller needs to handle failures.
 

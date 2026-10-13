@@ -205,16 +205,16 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact(Timeout = timeout)]
-        public async Task Operations_ErrorResponse_ThrowsRemoteServiceException()
+        public async Task Operations_ErrorResponse_ThrowsCqrsServiceException()
         {
             var error = new MemoryStream();
             ExceptionSerializer.Serialize(serializer, error, new InvalidOperationException("gateway failed"));
             using var server = new FakeGateway(_ => error.ToArray(), 500);
             using var client = CreateClient(server);
 
-            Assert.Equal("gateway failed", (await Assert.ThrowsAsync<RemoteServiceException>(() => Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken))).Message);
-            Assert.Equal("gateway failed", (await Assert.ThrowsAsync<RemoteServiceException>(() => ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken))).Message);
-            Assert.Equal("gateway failed", (await Assert.ThrowsAsync<RemoteServiceException>(() => ((ICommandProducer)client).DispatchAwaitAsync(new TestCommand { Value = 5 }, source, TestContext.Current.CancellationToken))).Message);
+            Assert.Equal("gateway failed", (await Assert.ThrowsAsync<CqrsServiceException>(() => Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken))).Message);
+            Assert.Equal("gateway failed", (await Assert.ThrowsAsync<CqrsServiceException>(() => ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken))).Message);
+            Assert.Equal("gateway failed", (await Assert.ThrowsAsync<CqrsServiceException>(() => ((ICommandProducer)client).DispatchAwaitAsync(new TestCommand { Value = 5 }, source, TestContext.Current.CancellationToken))).Message);
         }
 
         [Fact(Timeout = timeout)]

@@ -85,20 +85,20 @@ catch (TimeoutException) { /* timed out */ }
 
 ## Errors
 
-An exception thrown by a remote handler is returned to the caller as a `RemoteServiceException` carrying the original `Message`, the original type name in `ErrorType`, the query in `Source` (such as `IUserQueryHandler.GetUserById`), and the remote `StackTrace`. There is no `InnerException`, so branch on `ErrorType`:
+An exception thrown by a handler, local or remote, is returned to the caller as a `CqrsServiceException` carrying the original `Message`, the original type name in `ErrorType`, the query in `Source` (such as `IUserQueryHandler.GetUserById`), and the handler's `StackTrace`. There is no `InnerException`, so branch on `ErrorType`:
 
 ```csharp
 try
 {
     var user = await bus.Call<IUserQueryHandler>().GetUserById(123, cancellationToken);
 }
-catch (RemoteServiceException ex) when (ex.ErrorType == nameof(KeyNotFoundException))
+catch (CqrsServiceException ex) when (ex.ErrorType == nameof(KeyNotFoundException))
 {
     // not found
 }
 ```
 
-Network and connection failures surface as their own exceptions, such as `IOException`.
+Cancelling the caller's token throws `OperationCanceledException`. Network and connection failures surface as their own exceptions, such as `CqrsNetworkException`.
 
 ## Streams
 

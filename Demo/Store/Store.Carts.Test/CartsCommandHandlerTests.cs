@@ -5,6 +5,7 @@ using Store.Carts.Domain.Orders;
 using Store.Carts.Service.Aggregates;
 using Store.Common;
 using Xunit;
+using Zerra.CQRS;
 
 namespace Store.Carts.Test
 {
@@ -53,7 +54,7 @@ namespace Store.Carts.Test
             var test = new CartsTestBus();
             var lamp = test.AddProduct("Desk Lamp", 59.00m);
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new AddToCartCommand() { CustomerID = customerID, ProductID = lamp.ID, Quantity = quantity }, Token));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new AddToCartCommand() { CustomerID = customerID, ProductID = lamp.ID, Quantity = quantity }, Token));
         }
 
         [Fact]
@@ -63,7 +64,7 @@ namespace Store.Carts.Test
             var lamp = test.AddProduct("Desk Lamp", 59.00m);
             await test.Bus.DispatchAwaitAsync(new AddToCartCommand() { CustomerID = customerID, ProductID = lamp.ID, Quantity = 60 }, Token);
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new AddToCartCommand() { CustomerID = customerID, ProductID = lamp.ID, Quantity = 41 }, Token));
+            var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new AddToCartCommand() { CustomerID = customerID, ProductID = lamp.ID, Quantity = 41 }, Token));
             Assert.Contains("Desk Lamp", ex.Message);
         }
 
@@ -78,7 +79,7 @@ namespace Store.Carts.Test
             }
             var oneTooMany = test.AddProduct("One Too Many", 1.00m);
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new AddToCartCommand() { CustomerID = customerID, ProductID = oneTooMany.ID, Quantity = 1 }, Token));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new AddToCartCommand() { CustomerID = customerID, ProductID = oneTooMany.ID, Quantity = 1 }, Token));
         }
 
         [Fact]
@@ -86,7 +87,7 @@ namespace Store.Carts.Test
         {
             var test = new CartsTestBus();
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new AddToCartCommand() { CustomerID = customerID, ProductID = Guid.NewGuid(), Quantity = 1 }, Token));
+            var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new AddToCartCommand() { CustomerID = customerID, ProductID = Guid.NewGuid(), Quantity = 1 }, Token));
             Assert.Equal("Product not found.", ex.Message);
         }
 
@@ -96,7 +97,7 @@ namespace Store.Carts.Test
             var test = new CartsTestBus();
             var lamp = test.AddProduct("Desk Lamp", 59.00m, isActive: false);
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new AddToCartCommand() { CustomerID = customerID, ProductID = lamp.ID, Quantity = 1 }, Token));
+            var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new AddToCartCommand() { CustomerID = customerID, ProductID = lamp.ID, Quantity = 1 }, Token));
             Assert.Contains("discontinued", ex.Message);
         }
 
@@ -139,7 +140,7 @@ namespace Store.Carts.Test
         {
             var test = new CartsTestBus();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new RemoveFromCartCommand() { CustomerID = customerID, ProductID = Guid.NewGuid() }, Token));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new RemoveFromCartCommand() { CustomerID = customerID, ProductID = Guid.NewGuid() }, Token));
         }
 
         [Fact]
@@ -162,7 +163,7 @@ namespace Store.Carts.Test
         {
             var test = new CartsTestBus();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new EmptyCartCommand() { CustomerID = customerID }, Token));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new EmptyCartCommand() { CustomerID = customerID }, Token));
         }
 
         [Fact]
@@ -193,7 +194,7 @@ namespace Store.Carts.Test
         {
             var test = new CartsTestBus();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new CheckoutCartCommand() { CustomerID = customerID }, Token));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new CheckoutCartCommand() { CustomerID = customerID }, Token));
             Assert.Empty(test.Orders.PlacedOrders);
         }
 
@@ -205,7 +206,7 @@ namespace Store.Carts.Test
             await test.Bus.DispatchAwaitAsync(new AddToCartCommand() { CustomerID = customerID, ProductID = lamp.ID, Quantity = 2 }, Token);
             test.Orders.PlaceOrderFailure = new DomainException("Desk Lamp is out of stock.");
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new CheckoutCartCommand() { CustomerID = customerID }, Token));
+            var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new CheckoutCartCommand() { CustomerID = customerID }, Token));
             Assert.Equal("Desk Lamp is out of stock.", ex.Message);
 
             var cart = await test.Bus.Call<ICartsQueryHandler>().GetCart(customerID, Token);

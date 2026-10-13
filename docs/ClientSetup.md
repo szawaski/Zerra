@@ -107,10 +107,10 @@ A dispatch can override them with its own `TimeSpan` or `CancellationToken`. A t
 
 | Exception | Meaning |
 |---|---|
-| `RemoteServiceException` | the remote handler threw; see `ErrorType` and `Message` |
+| `CqrsServiceException` | the handler threw, whether it's local or remote; see `ErrorType` and `Message` |
 | `TimeoutException` | no response in time; an awaited command may or may not have run |
 | `OperationCanceledException` | the caller's token was cancelled |
-| `IOException` or other | the connection failed |
+| `CqrsNetworkException` or other | the connection failed |
 
 See [Commands](Commands.md#errors) and [Queries](Queries.md#errors).
 

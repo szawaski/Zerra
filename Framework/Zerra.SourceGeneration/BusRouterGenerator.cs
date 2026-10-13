@@ -52,10 +52,12 @@ namespace Zerra.SourceGeneration
                     {        
                         private readonly global::Zerra.CQRS.IBusInternal bus;
                         private readonly string source;
-                        public {{className}}(global::Zerra.CQRS.IBusInternal bus, string source)
+                        private readonly bool remote;
+                        public {{className}}(global::Zerra.CQRS.IBusInternal bus, string source, bool remote)
                         {
                             this.bus = bus;
                             this.source = source;
+                            this.remote = remote;
                         }
 
                         {{membersLines}}
@@ -68,7 +70,7 @@ namespace Zerra.SourceGeneration
                 var typeNameForSymbol = Helper.GetTypeOfName(namedTypeSymbol);
                 var fullClassName = $"global::{ns}.SourceGeneration.{className}";
                 _ = sbInitializer.Append(EnvironmentHelper.NewLine);
-                _ = sbInitializer.Append("global::Zerra.Reflection.Register.Router(").Append(typeNameForSymbol).Append(", static (global::Zerra.CQRS.IBusInternal bus, string source) => new ").Append(fullClassName).Append("(bus, source)").Append(");");
+                _ = sbInitializer.Append("global::Zerra.Reflection.Register.Router(").Append(typeNameForSymbol).Append(", static (global::Zerra.CQRS.IBusInternal bus, string source, bool remote) => new ").Append(fullClassName).Append("(bus, source, remote)").Append(");");
             }
             if (namedTypeSymbol.AllInterfaces.Any(x => x.MetadataName == "ICommandHandler`2" && x.ContainingNamespace.ToString() == "Zerra.CQRS"))
             {
@@ -178,7 +180,7 @@ namespace Zerra.SourceGeneration
                     if (Helper.IsNullable(parameter.Type))
                         _ = sb.Append('!');
                 }
-                _ = sb.Append("], source);");
+                _ = sb.Append("], source, remote);");
             }
 
             foreach (IPropertySymbol property in members.Where(x => x.Kind == SymbolKind.Property))
@@ -213,11 +215,11 @@ namespace Zerra.SourceGeneration
                 _ = sb.Append(EnvironmentHelper.NewLine);
                 _ = sb.Append("global::Zerra.Reflection.Register.Router(typeof(").Append(commandTypeName).Append("), ");
 
-                _ = sb.Append("static (global::Zerra.CQRS.IBusInternal bus, global::Zerra.CQRS.ICommand command, global::System.Type type, string source, global::System.Threading.CancellationToken cancellationToken) => ");
+                _ = sb.Append("static (global::Zerra.CQRS.IBusInternal bus, global::Zerra.CQRS.ICommand command, global::System.Type type, string source, bool remote, global::System.Threading.CancellationToken cancellationToken) => ");
 
                 _ = sb.Append("bus._DispatchCommandWithResultInternalAsync<").Append(Helper.GetFullName(returnType)).Append(">(");
 
-                _ = sb.Append("(").Append(Helper.GetFullName(commandType)).Append(")command, type, source, cancellationToken), ");
+                _ = sb.Append("(").Append(Helper.GetFullName(commandType)).Append(")command, type, source, remote, cancellationToken), ");
 
                 _ = sb.Append("static (object task) => ");
                 var returnTypeName = Helper.GetFullName(method.ReturnType);

@@ -37,7 +37,7 @@ In ASP.NET Core or a MAUI app, build the client and bus once at startup and regi
 - **Origin:** `ApiClient` sends the gateway's host name as its `Origin`. If the gateway sets `allowOrigins`, include that host, or the gateway answers `401`. See [CORS Configuration](ZerraWeb.md#cors-configuration).
 - **Serializer:** the gateway accepts only its registered serializer's content type, usually JSON. A gateway registered with `ZerraByteSerializer` serves .NET callers only.
 - **Synchronous queries:** on .NET Standard 2.0 they throw `PlatformNotSupportedException`, because `HttpClient` has no synchronous send there. Use async query methods.
-- **Errors:** a handler's exception arrives as a `RemoteServiceException`, as over any other transport. See [Commands](Commands.md#errors).
+- **Errors:** a handler's exception arrives as a `CqrsServiceException`, as over any other transport. See [Commands](Commands.md#errors).
 
 ## See Also
 

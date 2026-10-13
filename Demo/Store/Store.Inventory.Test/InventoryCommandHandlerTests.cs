@@ -4,6 +4,7 @@ using Store.Inventory.Domain.Models;
 using Store.Inventory.Domain.Orders;
 using Store.Inventory.Service.Data;
 using Xunit;
+using Zerra.CQRS;
 using Zerra.Repository;
 
 namespace Store.Inventory.Test
@@ -63,7 +64,7 @@ namespace Store.Inventory.Test
             var test = new InventoryTestBus();
             var productID = Guid.NewGuid();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(new RestockProductCommand() { ProductID = productID, Quantity = quantity }, Token));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new RestockProductCommand() { ProductID = productID, Quantity = quantity }, Token));
             Assert.Null(await test.GetStockItem(productID));
         }
 
@@ -107,7 +108,7 @@ namespace Store.Inventory.Test
             var mouse = await Restocked(test, 2);
             var orderID = Guid.NewGuid();
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Reserve(orderID, (lamp, 3), (mouse, 5)), Token));
+            var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(Reserve(orderID, (lamp, 3), (mouse, 5)), Token));
             Assert.Contains("Only 2", ex.Message);
 
             Assert.Equal(0, (await test.GetStockItem(lamp))!.Reserved);
@@ -122,7 +123,7 @@ namespace Store.Inventory.Test
             var lamp = await Restocked(test, 1);
             await test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid(), (lamp, 1)), Token);
 
-            var ex = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid(), (lamp, 1)), Token));
+            var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid(), (lamp, 1)), Token));
             Assert.Contains("out of stock", ex.Message);
         }
 
@@ -131,7 +132,7 @@ namespace Store.Inventory.Test
         {
             var test = new InventoryTestBus();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid(), (Guid.NewGuid(), 1)), Token));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid(), (Guid.NewGuid(), 1)), Token));
         }
 
         [Fact]
@@ -139,7 +140,7 @@ namespace Store.Inventory.Test
         {
             var test = new InventoryTestBus();
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid()), Token));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid()), Token));
         }
 
         [Fact]
@@ -148,7 +149,7 @@ namespace Store.Inventory.Test
             var test = new InventoryTestBus();
             var lamp = await Restocked(test, 10);
 
-            _ = await Assert.ThrowsAsync<DomainException>(() => test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid(), (lamp, 0)), Token));
+            _ = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(Reserve(Guid.NewGuid(), (lamp, 0)), Token));
             Assert.Equal(0, (await test.GetStockItem(lamp))!.Reserved);
         }
 

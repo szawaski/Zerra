@@ -65,7 +65,7 @@ Search the solution (skip `bin`/`obj`) and write down which of these appear. Eac
 | `JsonConverter<`, `JsonValueType`, `JsonSerializer.AddConverter`, `Mapper.Copy` on types without a public parameterless constructor | [10](#serialization-and-mapping) |
 | `[ServiceLog]` on a method | [3](#3-contracts-domain-projects) |
 | `EnumName.Parse`, `EnumName.TryParse`, `.ToEnum`, `.ToEnumNullable` (now case-sensitive) | [10](#10-other-removed-apis) |
-| `RemoteServiceException`, or code that catches an exception type thrown by another service | [10](#remote-exceptions) |
+| `RemoteServiceException`, or code (including tests) that catches an exception type thrown by a handler through the bus | [10](#handler-exceptions) |
 | `Discovery.DefineClassByInterface` (tests that swap in mock handlers) | [4](#4-handlers) |
 
 ## 2. Projects and Packages
@@ -486,12 +486,13 @@ Other changes:
 - **Byte serialization of `object`.** Without `UseTypes`, `ZerraByteSerializer` throws on a value typed as `object`, including the items of `ArrayList` or `Hashtable`, instead of sending an empty object. Set `UseTypes = true` on both sides for those members.
 - **Byte reading.** `ZerraByteSerializer` throws `EndOfStreamException` on bytes after the value.
 
-### Remote Exceptions
+### Handler Exceptions
 
-v5 rebuilt an exception thrown in another service as its original type when the caller referenced that type, wrapped in `RemoteServiceException` with the original as `InnerException`. v6 does not rebuild it. The caller gets a `RemoteServiceException` whose `ErrorType` holds the original exception's type **name** (kept across several hops), with the original message and no `InnerException`.
+v5 rebuilt an exception thrown in another service as its original type when the caller referenced that type, wrapped in `RemoteServiceException` with the original as `InnerException`, and a local handler's exception reached the caller as it was thrown. v6 does neither. `RemoteServiceException` is renamed `CqrsServiceException` and moved to the `Zerra.CQRS` namespace, and the caller gets one whether the handler is local or remote. Its `ErrorType` holds the original exception's type **name** (kept across several hops), with the original message and no `InnerException`.
 
-- Code that catches the original type, or tests `ex.GetBaseException() is InvalidOperationException`, around a call to another service now falls through. Match `remote.ErrorType == nameof(InvalidOperationException)` as well, and list any derived types by name (`ArgumentNullException` for `ArgumentException`).
-- The constructors changed: `RemoteServiceException(string? source, string? message)` and `RemoteServiceException(string errorType, string? message, string? source, string? stackTrace)`. v5's `(message)` and `(message, innerException)` are gone. A two-string call still compiles, now with the message as `source`, so check each one.
+- Code that catches the original type, or tests `ex.GetBaseException() is InvalidOperationException`, around a query or awaited command now falls through, even when the handler is in the same service. Match `ex.ErrorType == nameof(InvalidOperationException)` instead, and list any derived types by name (`ArgumentNullException` for `ArgumentException`). Unit tests that assert a handler's exception through the bus change the same way.
+- Cancelling the caller's token still throws `OperationCanceledException`, and a timeout still throws `TimeoutException`.
+- The only constructor is `CqrsServiceException(string errorType, string? message, string? source, string? stackTrace)`. v5's `(message)` and `(message, innerException)` are gone.
 
 ## 11. Static Bus and Log
 
@@ -518,5 +519,5 @@ Replace them in this order and stop where the change would spread through too mu
    - `Bus not initialized. Call Bus.New to initialize.`: a static `Bus` call ran before `Bus.New`, often in a static field initializer or in background work started from a handler's static constructor.
 3. Exercise one query, one command, and one event across each pair of services, and check the event consumer mode chosen for each subscriber.
 4. Read existing encrypted data through the repository to confirm the encryption providers use `ZerraEncryptorOld` with the v5 password.
-5. Make a call that fails in another service and check the caller still handles it, since the exception now arrives as a `RemoteServiceException` (see [Remote Exceptions](#remote-exceptions)).
+5. Make a call that fails in another service and check the caller still handles it, since the exception now arrives as a `CqrsServiceException` (see [Handler Exceptions](#handler-exceptions)).
 6. Run the unit tests. Failures such as `Handler not initialized`, `No handler or client registered for ...`, `Cannot create instance of ...` and `method not found` in a type initializer point back to [Handlers](#4-handlers), [Serialization and Mapping](#serialization-and-mapping) and [Reflection](#reflection).
