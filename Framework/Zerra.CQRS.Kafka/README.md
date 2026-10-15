@@ -8,6 +8,8 @@ Kafka transport for [Zerra](https://www.nuget.org/packages/Zerra) commands and e
 dotnet add package Zerra.CQRS.Kafka
 ```
 
+It needs Kafka 2.4 or later. Topics are created with one partition and the broker's `default.replication.factor`.
+
 ## Producer
 
 The sending side registers a `KafkaProducer` for the interfaces whose commands and events it sends:

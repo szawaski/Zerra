@@ -8,6 +8,8 @@ RabbitMQ transport for [Zerra](https://www.nuget.org/packages/Zerra) commands an
 dotnet add package Zerra.CQRS.RabbitMQ
 ```
 
+It needs RabbitMQ 3.4 or later.
+
 ## Producer
 
 The sending side registers a `RabbitMQProducer` for the interfaces whose commands and events it sends:

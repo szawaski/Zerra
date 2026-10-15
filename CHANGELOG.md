@@ -29,6 +29,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Streams as query arguments (uploads) as well as results.
 - Connection tests for each broker (`KafkaConnectionTest`, `RabbitMQConnectionTest`, `AzureServiceBusConnectionTest`) to fall back to direct TCP or HTTP.
 - RabbitMQ accepts AMQP URIs, including TLS with `amqps://`. Kafka connects with TLS through `useTls`.
+- Kafka topics use the broker's `default.replication.factor` instead of 1, which needs Kafka 2.4 or later.
 - `Zerra.CQRS.RabbitMQ` uses RabbitMQ.Client 7, and `RabbitMQConnectionTest.Test` is now `TestAsync`. Creating a RabbitMQ consumer or producer no longer throws when the broker is down: the consumer logs it and keeps retrying, and sends fail until the broker is back.
 - `Zerra.CQRS.AzureEventHub` is removed; use Kafka, RabbitMQ, or Azure Service Bus.
 - Kafka and Azure Service Bus recover when a producer's acknowledgement topic or queue is deleted: the producer creates it again and the consumer retries the reply, so awaited commands no longer hang.
