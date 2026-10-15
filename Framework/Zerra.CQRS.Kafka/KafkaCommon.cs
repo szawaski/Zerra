@@ -82,7 +82,6 @@ namespace Zerra.CQRS.Kafka
                     var topicSpecification = new TopicSpecification()
                     {
                         Name = topic,
-                        ReplicationFactor = 1,
                         NumPartitions = 1
                     };
                     try
@@ -112,7 +111,6 @@ namespace Zerra.CQRS.Kafka
             var topicSpecification = new TopicSpecification()
             {
                 Name = topic,
-                ReplicationFactor = 1,
                 NumPartitions = 1
             };
             try
