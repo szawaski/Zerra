@@ -271,14 +271,17 @@ namespace Zerra.Test.CQRS.Network
             Assert.StartsWith(contentType == ContentType.Json ? HttpCommon.ContentTypeJson : HttpCommon.ContentTypeJsonNameless, received);
         }
 
-        [Fact(Timeout = timeout)]
-        public async Task Route_IsAppendedToTheEndpoint()
+        [Theory(Timeout = timeout)]
+        [InlineData("api")]
+        [InlineData("/api")]
+        public async Task Route_IsAppendedToTheEndpoint(string route)
         {
             using var server = new FakeGateway(_ => serializer.SerializeBytes(42), route: "api");
-            using var client = new ApiClient(server.Url, serializer, null, null, "api");
+            using var client = new ApiClient(server.Url, serializer, null, null, route);
             ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
 
             Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+            Assert.Equal("/api", Assert.Single(server.Paths));
         }
 
         private sealed class TestAuthorizer : ICqrsAuthorizer
@@ -313,6 +316,7 @@ namespace Zerra.Test.CQRS.Network
             public ConcurrentQueue<string?> Origins { get; } = new();
             public ConcurrentQueue<string?> Authorizations { get; } = new();
             public ConcurrentQueue<byte[]> Uploads { get; } = new();
+            public ConcurrentQueue<string?> Paths { get; } = new();
             public string Url { get; }
 
             public FakeGateway(Func<ApiRequestData, byte[]> respond, int statusCode = 200, string? route = null)
@@ -347,6 +351,7 @@ namespace Zerra.Test.CQRS.Network
                             data = await serializer.DeserializeAsync<ApiRequestData>(context.Request.InputStream, default);
                         }
                         Requests.Enqueue(data!);
+                        Paths.Enqueue(context.Request.RawUrl);
                         Origins.Enqueue(context.Request.Headers["Origin"]);
                         Authorizations.Enqueue(context.Request.Headers["Authorization"]);
 

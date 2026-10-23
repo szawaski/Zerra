@@ -51,7 +51,7 @@ namespace Zerra.Web
             this.authorizer = authorizer;
 
             if (route is not null)
-                routeUri = new Uri($"{base.serviceUri.AbsoluteUri}{route}");
+                routeUri = new Uri($"{base.serviceUri.AbsoluteUri.TrimEnd('/')}/{route.TrimStart('/')}");
             else
                 routeUri = base.serviceUri;
 

@@ -254,6 +254,31 @@ namespace Zerra.Test.Web
             Assert.Equal([("/cqrs", contentType, "Bearer async"), ("/cqrs", contentType, "Bearer sync")], requests.ToArray());
         }
 
+        [Theory(Timeout = timeout)]
+        [InlineData("cqrs")]
+        [InlineData("/cqrs")]
+        public async Task Route_JoinedToTheEndpointWithOneSlash(string route)
+        {
+            using var listener = Zerra.Test.CQRS.TestNetwork.StartHttpListener("", out var baseUrl);
+            string? path = null;
+            var serving = Task.Run(async () =>
+            {
+                var context = await listener.GetContextAsync();
+                path = context.Request.RawUrl;
+                var body = serializer.SerializeBytes(42);
+                context.Response.ContentLength64 = body.Length;
+                await context.Response.OutputStream.WriteAsync(body);
+                context.Response.Close();
+            }, TestContext.Current.CancellationToken);
+            using var client = new KestrelCqrsClient(baseUrl, serializer, null, null, null, null, route);
+            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+            await serving;
+
+            Assert.Equal("/cqrs", path);
+        }
+
         [Fact(Timeout = timeout)]
         public async Task PrincipalClaims_SentWithEachRequest()
         {

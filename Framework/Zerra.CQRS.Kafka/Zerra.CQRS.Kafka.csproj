@@ -40,7 +40,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Confluent.Kafka" Version="2.15.1" />
+        <PackageReference Include="Confluent.Kafka" Version="2.16.0" />
     </ItemGroup>
 
     <ItemGroup>
