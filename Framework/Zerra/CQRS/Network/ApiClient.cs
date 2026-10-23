@@ -39,10 +39,12 @@ namespace Zerra.CQRS.Network
             else
                 routeUri = base.serviceUri;
 
-            this.handler = new HttpClientHandler()
-            {
-                CookieContainer = new CookieContainer()
-            };
+            this.handler = new HttpClientHandler();
+#if !NETSTANDARD2_0
+            //in Blazor WebAssembly the browser keeps the cookies and setting a CookieContainer throws PlatformNotSupportedException
+            if (!OperatingSystem.IsBrowser())
+#endif
+                this.handler.CookieContainer = new CookieContainer();
             this.client = new HttpClient(this.handler);
         }
 
