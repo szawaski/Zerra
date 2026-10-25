@@ -37,13 +37,13 @@ namespace Zerra.CQRS.Network
         public ContentType ContentType => contentType;
 
         /// <inheritdoc />
-        public byte[] SerializeBytes(object? obj) => JsonSerializer.SerializeBytes(obj, options);
+        public byte[] SerializeBytes(object? obj) => JsonSerializer.SerializeToUtf8Bytes(obj, options);
 
         /// <inheritdoc />
-        public byte[] SerializeBytes(object? obj, Type type) => JsonSerializer.SerializeBytes(obj, type, options);
+        public byte[] SerializeBytes(object? obj, Type type) => JsonSerializer.SerializeToUtf8Bytes(obj, type, options);
 
         /// <inheritdoc />
-        public byte[] SerializeBytes<T>(T? obj) => JsonSerializer.SerializeBytes<T>(obj, options);
+        public byte[] SerializeBytes<T>(T? obj) => JsonSerializer.SerializeToUtf8Bytes<T>(obj, options);
 
         /// <inheritdoc />
         public object? Deserialize(ReadOnlySpan<byte> bytes, Type type) => JsonSerializer.Deserialize(bytes, type, options);

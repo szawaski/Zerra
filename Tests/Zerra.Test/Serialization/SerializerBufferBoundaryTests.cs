@@ -105,7 +105,7 @@ namespace Zerra.Test.Serialization
                 var expected = JsonSerializer.Serialize(model);
 
                 Assert.Equal(expected, JsonSerializer.Serialize(JsonSerializer.Deserialize<Padded<T>>(expected)));
-                var bytes = JsonSerializer.SerializeBytes(model);
+                var bytes = JsonSerializer.SerializeToUtf8Bytes(model);
                 Assert.Equal(expected, JsonSerializer.Serialize(JsonSerializer.Deserialize<Padded<T>>(bytes)));
 
                 using var stream = new MemoryStream();

@@ -57,9 +57,9 @@ namespace Zerra.Test.Serialization
             var expected = System.Text.Json.JsonSerializer.Serialize(value);
 
             Assert.Equal(expected, JsonSerializer.Serialize(value));
-            Assert.Equal(expected, Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(value)));
+            Assert.Equal(expected, Encoding.UTF8.GetString(JsonSerializer.SerializeToUtf8Bytes(value)));
 
-            var result = JsonSerializer.Deserialize<DateTime>(JsonSerializer.SerializeBytes(value));
+            var result = JsonSerializer.Deserialize<DateTime>(JsonSerializer.SerializeToUtf8Bytes(value));
             if (value.Kind == DateTimeKind.Local)
                 Assert.Equal(value, result.ToLocalTime());
             else
@@ -73,9 +73,9 @@ namespace Zerra.Test.Serialization
             var expected = System.Text.Json.JsonSerializer.Serialize(value);
 
             Assert.Equal(expected, JsonSerializer.Serialize(value));
-            Assert.Equal(expected, Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(value)));
+            Assert.Equal(expected, Encoding.UTF8.GetString(JsonSerializer.SerializeToUtf8Bytes(value)));
 
-            var result = JsonSerializer.Deserialize<DateTimeOffset>(JsonSerializer.SerializeBytes(value));
+            var result = JsonSerializer.Deserialize<DateTimeOffset>(JsonSerializer.SerializeToUtf8Bytes(value));
             Assert.Equal(value, result);
             Assert.Equal(value.Offset, result.Offset);
         }
@@ -94,7 +94,7 @@ namespace Zerra.Test.Serialization
         public void String_Escapes(string value, string expected)
         {
             Assert.Equal(expected, JsonSerializer.Serialize(value));
-            Assert.Equal(expected, Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(value)));
+            Assert.Equal(expected, Encoding.UTF8.GetString(JsonSerializer.SerializeToUtf8Bytes(value)));
         }
 
         [Theory]
@@ -108,8 +108,8 @@ namespace Zerra.Test.Serialization
         public void String_RoundTrips(string value)
         {
             Assert.Equal(value, JsonSerializer.Deserialize<string>(JsonSerializer.Serialize(value)));
-            Assert.Equal(value, JsonSerializer.Deserialize<string>(JsonSerializer.SerializeBytes(value)));
-            Assert.Equal(value, System.Text.Json.JsonSerializer.Deserialize<string>(JsonSerializer.SerializeBytes(value)));
+            Assert.Equal(value, JsonSerializer.Deserialize<string>(JsonSerializer.SerializeToUtf8Bytes(value)));
+            Assert.Equal(value, System.Text.Json.JsonSerializer.Deserialize<string>(JsonSerializer.SerializeToUtf8Bytes(value)));
         }
 
         [Fact]
@@ -118,8 +118,8 @@ namespace Zerra.Test.Serialization
             var value = new Dictionary<string, int>() { ["a\"b"] = 1, ["plain"] = 2, ["😀\\"] = 3, ["café"] = 4 };
 
             Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<string, int>>(JsonSerializer.Serialize(value)));
-            Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<string, int>>(JsonSerializer.SerializeBytes(value)));
-            Assert.Equal(value, System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(JsonSerializer.SerializeBytes(value)));
+            Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<string, int>>(JsonSerializer.SerializeToUtf8Bytes(value)));
+            Assert.Equal(value, System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(JsonSerializer.SerializeToUtf8Bytes(value)));
         }
 
         [Fact]
@@ -143,7 +143,7 @@ namespace Zerra.Test.Serialization
             var expected = System.Text.Json.JsonSerializer.Serialize(value);
 
             Assert.Equal(expected, JsonSerializer.Serialize(value));
-            Assert.Equal(expected, Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(value)));
+            Assert.Equal(expected, Encoding.UTF8.GetString(JsonSerializer.SerializeToUtf8Bytes(value)));
             Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<SignedEnum, int>>(expected));
             Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<SignedEnum, int>>(Encoding.UTF8.GetBytes(expected)));
             Assert.Equal(value, JsonSerializer.Deserialize<IDictionary<SignedEnum, int>>(expected));
@@ -179,7 +179,7 @@ namespace Zerra.Test.Serialization
                 ConcurrentDictionary = new ConcurrentDictionary<SimpleModel, int?>(new Dictionary<SimpleModel, int?>() { [new() { Value1 = 5, Value2 = "E" }] = 5, [new() { Value1 = 6, Value2 = "F" }] = 6 }),
             };
 
-            foreach (var result in new[] { JsonSerializer.Deserialize<ComplexKeyDictionaries>(JsonSerializer.Serialize(value))!, JsonSerializer.Deserialize<ComplexKeyDictionaries>(JsonSerializer.SerializeBytes(value))! })
+            foreach (var result in new[] { JsonSerializer.Deserialize<ComplexKeyDictionaries>(JsonSerializer.Serialize(value))!, JsonSerializer.Deserialize<ComplexKeyDictionaries>(JsonSerializer.SerializeToUtf8Bytes(value))! })
             {
                 Assert.Equal(Flatten(value.Dictionary), Flatten(result.Dictionary));
                 Assert.Equal(Flatten(value.IDictionary), Flatten(result.IDictionary));
@@ -246,11 +246,11 @@ namespace Zerra.Test.Serialization
             TimeOnly[] times = [TimeOnly.MinValue, new TimeOnly(13, 45, 30), new TimeOnly(13, 45, 30, 123), new TimeOnly(1, 2, 3).Add(TimeSpan.FromTicks(1)), TimeOnly.MaxValue];
 
             Assert.Equal(System.Text.Json.JsonSerializer.Serialize(dates), JsonSerializer.Serialize(dates));
-            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(dates), Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(dates)));
+            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(dates), Encoding.UTF8.GetString(JsonSerializer.SerializeToUtf8Bytes(dates)));
             Assert.Equal(System.Text.Json.JsonSerializer.Serialize(times), JsonSerializer.Serialize(times));
-            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(times), Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(times)));
+            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(times), Encoding.UTF8.GetString(JsonSerializer.SerializeToUtf8Bytes(times)));
             Assert.Equal(dates, JsonSerializer.Deserialize<DateOnly[]>(JsonSerializer.Serialize(dates)));
-            Assert.Equal(times, JsonSerializer.Deserialize<TimeOnly[]>(JsonSerializer.SerializeBytes(times)));
+            Assert.Equal(times, JsonSerializer.Deserialize<TimeOnly[]>(JsonSerializer.SerializeToUtf8Bytes(times)));
         }
 #endif
 
@@ -259,7 +259,7 @@ namespace Zerra.Test.Serialization
             var value = new Dictionary<TKey, int>() { [key] = 1 };
 
             Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<TKey, int>>(JsonSerializer.Serialize(value)));
-            Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<TKey, int>>(JsonSerializer.SerializeBytes(value)));
+            Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<TKey, int>>(JsonSerializer.SerializeToUtf8Bytes(value)));
             Assert.Equal(value, System.Text.Json.JsonSerializer.Deserialize<Dictionary<TKey, int>>(JsonSerializer.Serialize(value)));
             Assert.Equal(value, JsonSerializer.Deserialize<Dictionary<TKey, int>>(System.Text.Json.JsonSerializer.Serialize(value)));
         }
@@ -305,7 +305,7 @@ namespace Zerra.Test.Serialization
                 Children = [new Collections() { Array = [1] }, new Collections() { List = ["z"] }],
             };
 
-            foreach (var json in new[] { JsonSerializer.Serialize(value), Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(value)) })
+            foreach (var json in new[] { JsonSerializer.Serialize(value), Encoding.UTF8.GetString(JsonSerializer.SerializeToUtf8Bytes(value)) })
             {
                 var result = JsonSerializer.Deserialize<Collections>(json)!;
                 Assert.Equal(value.Array, result.Array);
@@ -334,7 +334,7 @@ namespace Zerra.Test.Serialization
         {
             var value = new Collections() { Array = Enumerable.Range(0, 5000).ToArray(), List = Enumerable.Range(0, 2000).Select(x => $"item\"{x}").ToList() };
 
-            using var stream = new MemoryStream(JsonSerializer.SerializeBytes(value));
+            using var stream = new MemoryStream(JsonSerializer.SerializeToUtf8Bytes(value));
             var result = JsonSerializer.Deserialize<Collections>(stream)!;
             Assert.Equal(value.Array, result.Array);
             Assert.Equal(value.List, result.List);
@@ -448,11 +448,11 @@ namespace Zerra.Test.Serialization
             foreach (var value in values)
             {
                 Assert.Equal(value, JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value)));
-                Assert.Equal(value, JsonSerializer.Deserialize<T>(JsonSerializer.SerializeBytes(value)));
+                Assert.Equal(value, JsonSerializer.Deserialize<T>(JsonSerializer.SerializeToUtf8Bytes(value)));
                 Assert.Equal(value, JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value, numbers), numbers));
-                Assert.Equal(value, JsonSerializer.Deserialize<T>(JsonSerializer.SerializeBytes(value, numbers), numbers));
+                Assert.Equal(value, JsonSerializer.Deserialize<T>(JsonSerializer.SerializeToUtf8Bytes(value, numbers), numbers));
                 Assert.Equal(value, JsonSerializer.Deserialize<T?>(JsonSerializer.Serialize<T?>(value, numbers), numbers));
-                Assert.Equal(value, JsonSerializer.Deserialize<T?>(JsonSerializer.SerializeBytes<T?>(value)));
+                Assert.Equal(value, JsonSerializer.Deserialize<T?>(JsonSerializer.SerializeToUtf8Bytes<T?>(value)));
 
                 var dictionary = new Dictionary<T, int>() { [value] = 1 };
                 Assert.Equal(dictionary, JsonSerializer.Deserialize<Dictionary<T, int>>(JsonSerializer.Serialize(dictionary)));
@@ -587,7 +587,7 @@ namespace Zerra.Test.Serialization
 
                 var json = JsonSerializer.Serialize(value);
                 Assert.Equal(expected, json);
-                Assert.Equal(expected, Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(value)));
+                Assert.Equal(expected, Encoding.UTF8.GetString(JsonSerializer.SerializeToUtf8Bytes(value)));
 
                 var result = JsonSerializer.Deserialize<CultureModel>(json)!;
                 var resultBytes = JsonSerializer.Deserialize<CultureModel>(Encoding.UTF8.GetBytes(json))!;

@@ -23,7 +23,7 @@ namespace Zerra.Benchmark.Benchmarks
         {
             normalJsonModel = NormalJsonModel.Create();
             normalJsonModelJson = JsonSerializer.Serialize(normalJsonModel);
-            normalJsonModelJsonBytes = JsonSerializer.SerializeBytes(normalJsonModel);
+            normalJsonModelJsonBytes = JsonSerializer.SerializeToUtf8Bytes(normalJsonModel);
             normalJsonModelBytes = ByteSerializer.Serialize(normalJsonModel);
         }
 
@@ -36,7 +36,7 @@ namespace Zerra.Benchmark.Benchmarks
         [Benchmark]
         public byte[] Serialize_Json_Zerra_ByteArray()
         {
-            return JsonSerializer.SerializeBytes(normalJsonModel);
+            return JsonSerializer.SerializeToUtf8Bytes(normalJsonModel);
         }
 
         [Benchmark]

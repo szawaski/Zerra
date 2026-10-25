@@ -53,9 +53,9 @@ namespace Zerra.Test.Serialization
             Assert.Equal(json, JsonSerializer.Serialize((object)model));
             Assert.Equal(json, JsonSerializer.Serialize(model, typeof(SimpleModel)));
 
-            Assert.Equal(json, Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(model)));
-            Assert.Equal(json, Encoding.UTF8.GetString(JsonSerializer.SerializeBytes((object)model)));
-            Assert.Equal(json, Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(model, typeof(SimpleModel))));
+            Assert.Equal(json, Encoding.UTF8.GetString(JsonSerializer.SerializeToUtf8Bytes(model)));
+            Assert.Equal(json, Encoding.UTF8.GetString(JsonSerializer.SerializeToUtf8Bytes((object)model)));
+            Assert.Equal(json, Encoding.UTF8.GetString(JsonSerializer.SerializeToUtf8Bytes(model, typeof(SimpleModel))));
 
             Assert.Equal(json, WriteToString(x => JsonSerializer.Serialize(x, model)));
             Assert.Equal(json, WriteToString(x => JsonSerializer.Serialize(x, (object)model)));
@@ -140,7 +140,7 @@ namespace Zerra.Test.Serialization
         public async Task DeserializePatch_LargerThanBuffer()
         {
             var model = TypesAllModel.Create();
-            var bytes = JsonSerializer.SerializeBytes(model);
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(model);
             Assert.True(bytes.Length > 16 * 1024);
 
             var (result1, graph1) = JsonSerializer.DeserializePatch<TypesAllModel>(new MemoryStream(bytes));
@@ -260,7 +260,7 @@ namespace Zerra.Test.Serialization
             _ = await Assert.ThrowsAsync<ArgumentNullException>(() => JsonSerializer.DeserializeJsonObjectAsync(null!, cancellationToken: token));
 
             _ = Assert.Throws<ArgumentNullException>(() => JsonSerializer.Serialize(model, (Type)null!));
-            _ = Assert.Throws<ArgumentNullException>(() => JsonSerializer.SerializeBytes(model, (Type)null!));
+            _ = Assert.Throws<ArgumentNullException>(() => JsonSerializer.SerializeToUtf8Bytes(model, (Type)null!));
             _ = Assert.Throws<ArgumentNullException>(() => JsonSerializer.Serialize(new MemoryStream(), model, (Type)null!));
             _ = Assert.Throws<ArgumentNullException>(() => JsonSerializer.Serialize<SimpleModel>(null!, model));
             _ = await Assert.ThrowsAsync<ArgumentNullException>(() => JsonSerializer.SerializeAsync(new MemoryStream(), model, (Type)null!, cancellationToken: token));
@@ -280,9 +280,9 @@ namespace Zerra.Test.Serialization
             Assert.Equal("null", JsonSerializer.Serialize((SimpleModel?)null));
             Assert.Equal("null", JsonSerializer.Serialize((object?)null));
             Assert.Equal("null", JsonSerializer.Serialize((object?)null, typeof(SimpleModel)));
-            Assert.Equal("null"u8.ToArray(), JsonSerializer.SerializeBytes((SimpleModel?)null));
-            Assert.Equal("null"u8.ToArray(), JsonSerializer.SerializeBytes((object?)null));
-            Assert.Equal("null"u8.ToArray(), JsonSerializer.SerializeBytes((object?)null, typeof(SimpleModel)));
+            Assert.Equal("null"u8.ToArray(), JsonSerializer.SerializeToUtf8Bytes((SimpleModel?)null));
+            Assert.Equal("null"u8.ToArray(), JsonSerializer.SerializeToUtf8Bytes((object?)null));
+            Assert.Equal("null"u8.ToArray(), JsonSerializer.SerializeToUtf8Bytes((object?)null, typeof(SimpleModel)));
 
             //and so is what a stream gets
             var writes = new Func<Stream, Task>[]
@@ -406,7 +406,7 @@ namespace Zerra.Test.Serialization
         public void RootDeclaredAsInterface_WritesTheRuntimeType()
         {
             Assert.Equal(JsonSerializer.Serialize(model), JsonSerializer.Serialize((object)model, typeof(IBasicModel)));
-            Assert.Equal(JsonSerializer.SerializeBytes(model), JsonSerializer.SerializeBytes((object)model, typeof(IBasicModel)));
+            Assert.Equal(JsonSerializer.SerializeToUtf8Bytes(model), JsonSerializer.SerializeToUtf8Bytes((object)model, typeof(IBasicModel)));
             Assert.Equal("null", JsonSerializer.Serialize((object?)null, typeof(IBasicModel)));
         }
 

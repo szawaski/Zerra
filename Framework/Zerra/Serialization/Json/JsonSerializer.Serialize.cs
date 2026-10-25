@@ -101,7 +101,7 @@ namespace Zerra.Serialization.Json
 
             return result;
         }
-
+        
         /// <summary>
         /// Serializes an object to a UTF-8 encoded byte array using the default or provided serialization options.
         /// </summary>
@@ -111,7 +111,7 @@ namespace Zerra.Serialization.Json
         /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
         /// <returns>A byte array containing the JSON representation of the object, or the encoding of "null" if the object is null.</returns>
         /// <exception cref="EndOfStreamException">Thrown if there is insufficient space for serialization.</exception>
-        public static byte[] SerializeBytes<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static byte[] SerializeToUtf8Bytes<T>(T? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj is null)
                 return nullBytes.ToArray();
@@ -138,7 +138,7 @@ namespace Zerra.Serialization.Json
         /// <param name="graph">Optional graph for handling circular references. If null, no circular reference detection is performed.</param>
         /// <returns>A byte array containing the JSON representation of the object, or the encoding of "null" if the object is null.</returns>
         /// <exception cref="EndOfStreamException">Thrown if there is insufficient space for serialization.</exception>
-        public static byte[] SerializeBytes(object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static byte[] SerializeToUtf8Bytes(object? obj, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (obj is null)
                 return nullBytes.ToArray();
@@ -168,7 +168,7 @@ namespace Zerra.Serialization.Json
         /// <returns>A byte array containing the JSON representation of the object, or the encoding of "null" if the object is null.</returns>
         /// <exception cref="ArgumentNullException">Thrown if type is null.</exception>
         /// <exception cref="EndOfStreamException">Thrown if there is insufficient space for serialization.</exception>
-        public static byte[] SerializeBytes(object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
+        public static byte[] SerializeToUtf8Bytes(object? obj, Type type, JsonSerializerOptions? options = null, Graph? graph = null)
         {
             if (type is null)
                 throw new ArgumentNullException(nameof(type));

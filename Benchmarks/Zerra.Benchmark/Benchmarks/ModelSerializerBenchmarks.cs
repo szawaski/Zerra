@@ -49,7 +49,7 @@ namespace Zerra.Benchmark.Benchmarks
                 _ => throw new NotSupportedException(),
             };
             json = JsonSerializer.Serialize(model, type);
-            jsonBytes = JsonSerializer.SerializeBytes(model, type);
+            jsonBytes = JsonSerializer.SerializeToUtf8Bytes(model, type);
             systemTextJson = System.Text.Json.JsonSerializer.Serialize(model, type, systemTextJsonOptions);
             systemTextJsonBytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(model, type, systemTextJsonOptions);
         }
@@ -61,7 +61,7 @@ namespace Zerra.Benchmark.Benchmarks
         public string Serialize_Json_SystemTextJson() => System.Text.Json.JsonSerializer.Serialize(model, type, systemTextJsonOptions);
 
         [Benchmark]
-        public byte[] Serialize_Json_Zerra_ByteArray() => JsonSerializer.SerializeBytes(model, type);
+        public byte[] Serialize_Json_Zerra_ByteArray() => JsonSerializer.SerializeToUtf8Bytes(model, type);
 
         [Benchmark]
         public byte[] Serialize_Json_SystemTextJson_ByteArray() => System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(model, type, systemTextJsonOptions);

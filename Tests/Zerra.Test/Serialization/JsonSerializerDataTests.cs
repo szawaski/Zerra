@@ -3310,7 +3310,7 @@ namespace Zerra.Test.Serialization
             var model = new JsonEscapedNamesModel() { Escaped = 1, Long = "value", Plain = 3 };
 
             var json = JsonSerializer.Serialize(model);
-            Assert.Equal(json, Encoding.UTF8.GetString(JsonSerializer.SerializeBytes(model)));
+            Assert.Equal(json, Encoding.UTF8.GetString(JsonSerializer.SerializeToUtf8Bytes(model)));
 
             using var document = System.Text.Json.JsonDocument.Parse(json);
             Assert.Equal(1, document.RootElement.GetProperty(JsonEscapedNamesModel.EscapedName).GetInt32());
