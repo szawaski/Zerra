@@ -23,7 +23,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
+            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
             var localGraph = BuildLocalGraph(type, graph);
             return whereQuery.Select(x => x.Copy(localGraph)).ToArray();
         }
@@ -32,7 +32,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
+            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
             var localGraph = BuildLocalGraph(type, graph);
             var result = whereQuery.FirstOrDefault();
             if (result == null)
@@ -44,7 +44,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
+            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
             var localGraph = BuildLocalGraph(type, graph);
             var result = whereQuery.SingleOrDefault();
             if (result == null)
@@ -56,7 +56,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
+            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
             return whereQuery.Count();
         }
         /// <inheritdoc/>
@@ -64,7 +64,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
+            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
             return whereQuery.Any();
         }
 
@@ -73,7 +73,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
+            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
             var localGraph = BuildLocalGraph(type, graph);
             return Task.FromResult<IReadOnlyCollection<TModel>>(whereQuery.Select(x => x.Copy(localGraph)).ToArray());
         }
@@ -82,7 +82,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
+            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
             var localGraph = BuildLocalGraph(type, graph);
             var result = whereQuery.FirstOrDefault();
             if (result == null)
@@ -94,7 +94,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
+            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
             var localGraph = BuildLocalGraph(type, graph);
             var result = whereQuery.SingleOrDefault();
             if (result == null)
@@ -106,7 +106,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
+            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
             return Task.FromResult<long>(whereQuery.Count());
         }
         /// <inheritdoc/>
@@ -114,7 +114,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take);
+            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
             return Task.FromResult(whereQuery.Any());
         }
 

@@ -43,9 +43,9 @@ namespace Zerra.Repository
                 throw new ArgumentException($"Type mismatch between source and order expression. Source Generic Argument: {typeof(T).FullName}, Order Expression: {typeof(TSource).FullName}");
 
             if (!descending)
-                return (IOrderedEnumerable<T>)enumerable.OrderBy(SpanContainsRewriter.Rewrite(expression).Compile());
+                return (IOrderedEnumerable<T>)enumerable.OrderBy(MemoryExpressionRewriter.Rewrite(expression, false).Compile());
             else
-                return (IOrderedEnumerable<T>)enumerable.OrderByDescending(SpanContainsRewriter.Rewrite(expression).Compile());
+                return (IOrderedEnumerable<T>)enumerable.OrderByDescending(MemoryExpressionRewriter.Rewrite(expression, false).Compile());
         }
 
         /// <inheritdoc/>

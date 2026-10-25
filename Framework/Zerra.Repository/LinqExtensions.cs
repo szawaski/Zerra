@@ -49,9 +49,10 @@ namespace Zerra.Repository
         /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
         /// <param name="source">The sequence to query.</param>
         /// <param name="query">The <see cref="Zerra.Repository.Query"/> containing the where, order, skip, and take clauses.</param>
+        /// <param name="caseSensitive">Indicates if string comparisons should be case sensitive.</param>
         /// <returns>An <see cref="IEnumerable{TSource}"/> that contains elements from the input sequence that satisfy the query.</returns>
         /// <exception cref="ArgumentException">Thrown when <see cref="Query.Where"/> is not of type <c>Expression&lt;Func&lt;TSource, bool&gt;&gt;</c>.</exception>
-        public static IEnumerable<TSource> Query<TSource>(this IEnumerable<TSource> source, Query query)
+        public static IEnumerable<TSource> Query<TSource>(this IEnumerable<TSource> source, Query query, bool caseSensitive = false)
            where TSource : class, new()
         {
             var whereQuery = source;
@@ -60,7 +61,7 @@ namespace Zerra.Repository
                 var whereExpression = query.Where as Expression<Func<TSource, bool>>;
                 if (whereExpression == null)
                     throw new ArgumentException($"Where must be of type Expression<Func<TSource, bool>>");
-                whereQuery = whereQuery.Where(SpanContainsRewriter.Rewrite(whereExpression).Compile());
+                whereQuery = whereQuery.Where(MemoryExpressionRewriter.Rewrite(whereExpression, caseSensitive).Compile());
             }
 
             var orderQuery = whereQuery;
@@ -87,9 +88,10 @@ namespace Zerra.Repository
         /// <param name="order">The <see cref="QueryOrder"/> that defines the ordering expressions, or null for no ordering.</param>
         /// <param name="skip">The number of elements to skip, or null to skip none.</param>
         /// <param name="take">The number of elements to take, or null to take all.</param>
+        /// <param name="caseSensitive">Indicates if string comparisons should be case sensitive.</param>
         /// <returns>An <see cref="IEnumerable{TSource}"/> that contains elements from the input sequence that satisfy the query.</returns>
         /// <exception cref="ArgumentException">Thrown when <paramref name="where"/> is not of type <c>Expression&lt;Func&lt;TSource, bool&gt;&gt;</c>.</exception>
-        public static IEnumerable<TSource> Query<TSource>(this IEnumerable<TSource> source, LambdaExpression? where, QueryOrder? order, int? skip, int? take)
+        public static IEnumerable<TSource> Query<TSource>(this IEnumerable<TSource> source, LambdaExpression? where, QueryOrder? order, int? skip, int? take, bool caseSensitive = false)
            where TSource : class, new()
         {
             var whereQuery = source;
@@ -98,7 +100,7 @@ namespace Zerra.Repository
                 var whereExpression = where as Expression<Func<TSource, bool>>;
                 if (whereExpression == null)
                     throw new ArgumentException($"Where must be of type Expression<Func<TSource, bool>>");
-                whereQuery = whereQuery.Where(SpanContainsRewriter.Rewrite(whereExpression).Compile());
+                whereQuery = whereQuery.Where(MemoryExpressionRewriter.Rewrite(whereExpression, caseSensitive).Compile());
             }
 
             var orderQuery = whereQuery;
@@ -122,9 +124,10 @@ namespace Zerra.Repository
         /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
         /// <param name="source">The queryable to query.</param>
         /// <param name="query">The <see cref="Zerra.Repository.Query"/> containing the where, order, skip, and take clauses.</param>
+        /// <param name="caseSensitive">Indicates if string comparisons should be case sensitive.</param>
         /// <returns>An <see cref="IQueryable{TSource}"/> that contains elements from the input queryable that satisfy the query.</returns>
         /// <exception cref="ArgumentException">Thrown when <see cref="Query.Where"/> is not of type <c>Expression&lt;Func&lt;TSource, bool&gt;&gt;</c>.</exception>
-        public static IQueryable<TSource> Query<TSource>(this IQueryable<TSource> source, Query query)
+        public static IQueryable<TSource> Query<TSource>(this IQueryable<TSource> source, Query query, bool caseSensitive = false)
             where TSource : class, new()
         {
             var whereQuery = source;
@@ -134,6 +137,7 @@ namespace Zerra.Repository
                 if (whereExpression == null)
                     throw new ArgumentException($"Where must be of type Expression<Func<TSource, bool>>");
                 whereQuery = whereQuery.Where(whereExpression);
+                whereQuery = whereQuery.Where(MemoryExpressionRewriter.Rewrite(whereExpression, caseSensitive));
             }
 
             var orderQuery = whereQuery;
@@ -160,9 +164,10 @@ namespace Zerra.Repository
         /// <param name="order">The <see cref="QueryOrder"/> that defines the ordering expressions, or null for no ordering.</param>
         /// <param name="skip">The number of elements to skip, or null to skip none.</param>
         /// <param name="take">The number of elements to take, or null to take all.</param>
+        /// <param name="caseSensitive">Indicates if string comparisons should be case sensitive.</param>
         /// <returns>An <see cref="IQueryable{TSource}"/> that contains elements from the input queryable that satisfy the query.</returns>
         /// <exception cref="ArgumentException">Thrown when <paramref name="where"/> is not of type <c>Expression&lt;Func&lt;TSource, bool&gt;&gt;</c>.</exception>
-        public static IQueryable<TSource> Query<TSource>(this IQueryable<TSource> source, LambdaExpression? where, QueryOrder? order, int? skip, int? take)
+        public static IQueryable<TSource> Query<TSource>(this IQueryable<TSource> source, LambdaExpression? where, QueryOrder? order, int? skip, int? take, bool caseSensitive = false)
             where TSource : class, new()
         {
             var whereQuery = source;
@@ -171,7 +176,7 @@ namespace Zerra.Repository
                 var whereExpression = where as Expression<Func<TSource, bool>>;
                 if (whereExpression == null)
                     throw new ArgumentException($"Where must be of type Expression<Func<TSource, bool>>");
-                whereQuery = whereQuery.Where(whereExpression);
+                whereQuery = whereQuery.Where(MemoryExpressionRewriter.Rewrite(whereExpression, caseSensitive));
             }
 
             var orderQuery = whereQuery;

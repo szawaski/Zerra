@@ -14,6 +14,16 @@ namespace Zerra.Repository.Memory
     /// </remarks>
     public sealed partial class MemoryEngine : ITransactStoreEngine, IEventStoreEngine
     {
+        private readonly bool caseSensitive;
+        /// <summary>
+        /// Initializes a new instance of <see cref="MemoryEngine"/>.
+        /// </summary>
+        /// <param name="caseSensitive">Indicates if string comparisons should be case sensitive.</param>
+        public MemoryEngine(bool caseSensitive = false)
+        {
+            this.caseSensitive = caseSensitive;
+        }
+
         /// <inheritdoc />
         public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetail)
         {
