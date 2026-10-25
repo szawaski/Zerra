@@ -8,7 +8,6 @@ using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Buffers;
 using Zerra.Logging;
-using Zerra.Serialization;
 using Zerra.CQRS.Reflection;
 
 namespace Zerra.CQRS.Network
@@ -18,7 +17,7 @@ namespace Zerra.CQRS.Network
     /// </summary>
     public sealed class HttpCqrsServer : CqrsServerBase
     {
-        private readonly ISerializer serializer;
+        private readonly INetworkSerializer serializer;
         private readonly IEncryptor? encryptor;
         private readonly ICompressor? compressor;
         private readonly ICqrsAuthorizer? authorizer;
@@ -34,7 +33,7 @@ namespace Zerra.CQRS.Network
         /// <param name="authorizer">Optional authorizer for validating requests.</param>
         /// <param name="allowOrigins">Optional CORS HTTP headers for allowed origins.</param>
         /// <param name="log">Optional logging provider.</param>
-        public HttpCqrsServer(string serverUrl, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ICqrsAuthorizer? authorizer, string[]? allowOrigins, ILogger? log = null)
+        public HttpCqrsServer(string serverUrl, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ICqrsAuthorizer? authorizer, string[]? allowOrigins, ILogger? log = null)
             : base(serverUrl, log)
         {
             this.serializer = serializer;

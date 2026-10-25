@@ -4,9 +4,9 @@
 
 using Microsoft.AspNetCore.Builder;
 using Zerra.Compression;
+using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Serialization;
 
 namespace Zerra.Web
 {
@@ -29,7 +29,7 @@ namespace Zerra.Web
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="settings">The server settings shared with the query server and consumers.</param>
         /// <returns>The application builder for method chaining.</returns>
-        public static IApplicationBuilder UseKestrelCqrsServer(this IApplicationBuilder builder, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, KestrelCqrsServerLinkedSettings settings)
+        public static IApplicationBuilder UseKestrelCqrsServer(this IApplicationBuilder builder, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, KestrelCqrsServerLinkedSettings settings)
         {
             //built here instead of UseMiddleware, which picks the constructor by argument type and a null encryptor or log matches none
             return builder.Use(next => new KestrelCqrsServerMiddleware(next, serializer, encryptor, compressor, log, settings).Invoke);

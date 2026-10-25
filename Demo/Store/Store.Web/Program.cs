@@ -67,7 +67,7 @@ bus.AddCommandProducer<IShippingCommandHandler>(shippingClient);
 
 //The gateway middleware resolves the bus, serializer, and logger from DI, browsers send and receive JSON
 builder.Services.AddSingleton<IBus>(bus);
-builder.Services.AddSingleton<ISerializer>(new ZerraJsonSerializer());
+builder.Services.AddSingleton<INetworkSerializer>(new NetworkJsonSerializer());
 builder.Services.AddSingleton(log);
 
 var app = builder.Build();

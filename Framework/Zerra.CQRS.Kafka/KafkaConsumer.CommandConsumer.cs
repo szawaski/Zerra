@@ -27,7 +27,7 @@ namespace Zerra.CQRS.Kafka
             private readonly string topic;
             private readonly string clientID;
             private readonly ConcurrentDictionary<string, Type> commandTypes;
-            private readonly Zerra.Serialization.ISerializer serializer;
+            private readonly INetworkSerializer serializer;
             private readonly IEncryptor? encryptor;
             private readonly ICompressor? compressor;
             private readonly ILogger? log;
@@ -81,7 +81,7 @@ namespace Zerra.CQRS.Kafka
                 }
             }
 
-            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string topic, ConcurrentDictionary<string, Type> commandTypes, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync, int? maxPollIntervalMs, bool resilient)
+            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string topic, ConcurrentDictionary<string, Type> commandTypes, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync, int? maxPollIntervalMs, bool resilient)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 

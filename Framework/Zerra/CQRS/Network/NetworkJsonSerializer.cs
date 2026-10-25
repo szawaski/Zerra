@@ -2,10 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.CQRS.Network;
 using Zerra.Serialization.Json;
 
-namespace Zerra.Serialization
+namespace Zerra.CQRS.Network
 {
     /// <summary>
     /// Human-readable JSON serializer implementation.
@@ -14,16 +13,16 @@ namespace Zerra.Serialization
     /// Provides serialization to and from JSON format with optional customization.
     /// All operations delegate to the JsonSerializer for actual serialization logic.
     /// </remarks>
-    public sealed class ZerraJsonSerializer : ISerializer
+    public sealed class NetworkJsonSerializer : INetworkSerializer
     {
         private readonly JsonSerializerOptions? options;
         private readonly ContentType contentType;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ZerraJsonSerializer"/> class.
+        /// Initializes a new instance of the <see cref="NetworkJsonSerializer"/> class.
         /// </summary>
         /// <param name="options">Optional JSON serialization options for customizing output format and behavior.</param>
-        public ZerraJsonSerializer(JsonSerializerOptions? options = null)
+        public NetworkJsonSerializer(JsonSerializerOptions? options = null)
         {
             this.options = options;
             contentType = options != null && options.Nameless ? ContentType.JsonNameless : ContentType.Json;

@@ -19,7 +19,7 @@ namespace Zerra.Test.Web
         private const int timeout = 10000;
         private const string source = "test-source";
 
-        private static readonly ISerializer serializer = new ZerraByteSerializer();
+        private static readonly INetworkSerializer serializer = new NetworkByteSerializer();
         private static readonly IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
         [Theory(Timeout = timeout)]
@@ -228,7 +228,7 @@ namespace Zerra.Test.Web
         [InlineData(true)]
         public async Task JsonSerializerRouteAndAuthorizer_SentWithEachRequest(bool nameless)
         {
-            var json = new ZerraJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = nameless });
+            var json = new NetworkJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = nameless });
             using var listener = Zerra.Test.CQRS.TestNetwork.StartHttpListener("", out var baseUrl);
             var requests = new ConcurrentQueue<(string Path, string? ContentType, string? Authorization)>();
             var serving = Task.Run(async () =>

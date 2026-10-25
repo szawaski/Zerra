@@ -3,8 +3,8 @@
 // Licensed to you under the MIT license
 
 using System.Diagnostics.CodeAnalysis;
+using Zerra.CQRS.Network;
 using Zerra.Logging;
-using Zerra.Serialization;
 
 namespace Zerra.CQRS
 {
@@ -109,7 +109,7 @@ namespace Zerra.CQRS
         /// <param name="serializer">The serializer to use for deserializing arguments and serializing results.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
         /// <returns>A task that returns the query call response.</returns>
-        Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, ISerializer serializer, CancellationToken cancellationToken);
+        Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, INetworkSerializer serializer, CancellationToken cancellationToken);
         /// <summary>
         /// Handle a remote command dispatch without awaiting completion.
         /// </summary>

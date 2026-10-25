@@ -14,7 +14,7 @@ namespace Zerra.Test.CQRS.Network
     [Collection(nameof(TimingSensitive))]
     public class TcpCqrsClientTimingTests
     {
-        private static readonly ISerializer serializer = new ZerraByteSerializer();
+        private static readonly INetworkSerializer serializer = new NetworkByteSerializer();
 
         [Fact(Timeout = 10000)]
         public async Task CallTaskGeneric_CanceledDuringRequest_DoesNotWaitForAbort()

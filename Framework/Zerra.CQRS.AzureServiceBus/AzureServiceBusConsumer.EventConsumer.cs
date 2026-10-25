@@ -9,7 +9,7 @@ using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using System.Collections.Concurrent;
-using Zerra.Serialization;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
@@ -23,7 +23,7 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly string topic;
             private readonly string subscription;
             private readonly ConcurrentDictionary<string, Type> eventTypes;
-            private readonly ISerializer serializer;
+            private readonly INetworkSerializer serializer;
             private readonly IEncryptor? encryptor;
             private readonly ICompressor? compressor;
             private readonly ILogger? log;
@@ -36,7 +36,7 @@ namespace Zerra.CQRS.AzureServiceBus
             //PerService gets a subscription named for the service so its replicas compete for the events, it's shared so it's never deleted
             private readonly bool deleteSubscriptionOnStop;
 
-            public EventConsumer(int maxConcurrent, string topic, ConcurrentDictionary<string, Type> eventTypes, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, ConcurrentDictionary<string, Type> eventTypes, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 

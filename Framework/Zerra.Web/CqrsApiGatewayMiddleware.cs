@@ -8,7 +8,6 @@ using System.Security;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Logging;
-using Zerra.Serialization;
 
 namespace Zerra.Web
 {
@@ -24,13 +23,13 @@ namespace Zerra.Web
     {
         private readonly RequestDelegate requestDelegate;
         private readonly IBus bus;
-        private readonly ISerializer serializer;
+        private readonly INetworkSerializer serializer;
         private readonly ILogger? log;
         private readonly string? route;
         private readonly ICqrsAuthorizer? authorizer;
         private readonly string[]? allowOrigins;
 
-        private ISerializer? namelessSerializer = null;
+        private INetworkSerializer? namelessSerializer = null;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CqrsApiGatewayMiddleware"/> class with authorization support.
@@ -42,7 +41,7 @@ namespace Zerra.Web
         /// <param name="authorizer">Optional authorizer for custom request authentication and authorization. If null, no authorization is performed.</param>
         /// <param name="route">Optional route path to restrict the middleware to specific requests (e.g., "/cqrs"). If null, all POST/OPTIONS requests are processed.</param>
         /// <param name="allowOrigins">Optional CORS origins allowed to call the gateway, as scheme://host[:port] or host. If null, empty, or containing "*", all origins are allowed.</param>
-        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, ISerializer serializer, ILogger? log = null, ICqrsAuthorizer? authorizer = null, string? route = null, string[]? allowOrigins = null)
+        public CqrsApiGatewayMiddleware(RequestDelegate requestDelegate, IBus bus, INetworkSerializer serializer, ILogger? log = null, ICqrsAuthorizer? authorizer = null, string? route = null, string[]? allowOrigins = null)
         {
             this.requestDelegate = requestDelegate;
             this.bus = bus;
@@ -156,13 +155,13 @@ namespace Zerra.Web
                 acceptContentType = null;
             }
 
-            ISerializer acceptSerializer = serializer;
+            INetworkSerializer acceptSerializer = serializer;
             if (acceptContentType.HasValue && acceptContentType.Value != serializer.ContentType)
             {
-                if (acceptContentType == ContentType.JsonNameless && serializer.ContentType == ContentType.Json && serializer.ContentType != ContentType.JsonNameless && serializer is ZerraJsonSerializer zerraJsonSerializer)
+                if (acceptContentType == ContentType.JsonNameless && serializer.ContentType == ContentType.Json && serializer.ContentType != ContentType.JsonNameless && serializer is NetworkJsonSerializer zerraJsonSerializer)
                 {
                     //special case
-                    namelessSerializer ??= new ZerraJsonSerializer(new Serialization.Json.JsonSerializerOptions()
+                    namelessSerializer ??= new NetworkJsonSerializer(new Serialization.Json.JsonSerializerOptions()
                     {
                         Nameless = true,
                         DoNotWriteNullProperties = zerraJsonSerializer.Options?.DoNotWriteNullProperties ?? default,

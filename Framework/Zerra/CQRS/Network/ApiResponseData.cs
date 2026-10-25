@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Serialization;
-
 namespace Zerra.CQRS.Network
 {
     /// <summary>
@@ -24,7 +22,7 @@ namespace Zerra.CQRS.Network
         /// <summary>
         /// The serializer for <see cref="Model"/>, null when the response has no model.
         /// </summary>
-        public ISerializer? Serializer { get; }
+        public INetworkSerializer? Serializer { get; }
         /// <summary>
         /// Indicates if there a void response from the API.
         /// </summary>
@@ -48,7 +46,7 @@ namespace Zerra.CQRS.Network
         /// </summary>
         /// <param name="model">The model for the response, which may be null.</param>
         /// <param name="serializer">The serializer that writes the model to the response.</param>
-        public ApiResponseData(object? model, ISerializer serializer)
+        public ApiResponseData(object? model, INetworkSerializer serializer)
         {
             this.Model = model;
             this.Serializer = serializer;

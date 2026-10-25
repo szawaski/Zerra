@@ -9,6 +9,7 @@ using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using System.Collections.Concurrent;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.Kafka
 {
@@ -21,7 +22,7 @@ namespace Zerra.CQRS.Kafka
             private readonly int maxConcurrent;
             private readonly string topic;
             private readonly ConcurrentDictionary<string, Type> eventTypes;
-            private readonly Zerra.Serialization.ISerializer serializer;
+            private readonly INetworkSerializer serializer;
             private readonly IEncryptor? encryptor;
             private readonly ICompressor? compressor;
             private readonly ILogger? log;
@@ -37,7 +38,7 @@ namespace Zerra.CQRS.Kafka
             private readonly int? maxPollIntervalMs;
             private readonly TimeSpan busyPollInterval;
 
-            public EventConsumer(int maxConcurrent, string topic, ConcurrentDictionary<string, Type> eventTypes, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync, int? maxPollIntervalMs)
+            public EventConsumer(int maxConcurrent, string topic, ConcurrentDictionary<string, Type> eventTypes, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync, int? maxPollIntervalMs)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 

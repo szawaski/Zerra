@@ -11,7 +11,6 @@ using Zerra.Encryption;
 using Zerra.Logging;
 using System.Collections.Concurrent;
 using Zerra.CQRS.Network;
-using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMQ
 {
@@ -25,7 +24,7 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly CommandCounter? commandCounter;
             private readonly string topic;
             private readonly ConcurrentDictionary<string, Type> commandTypes;
-            private readonly ISerializer serializer;
+            private readonly INetworkSerializer serializer;
             private readonly IEncryptor? encryptor;
             private readonly ICompressor? compressor;
             private readonly ILogger? log;
@@ -52,7 +51,7 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly ConcurrentHashSet<Task> handling = new();
             private static readonly Action<Task, object?> removeHandling = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
 
-            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string topic, ConcurrentDictionary<string, Type> commandTypes, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync, bool resilient)
+            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string topic, ConcurrentDictionary<string, Type> commandTypes, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync, bool resilient)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 

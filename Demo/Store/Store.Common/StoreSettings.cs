@@ -1,4 +1,5 @@
 using Zerra.Compression;
+using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Serialization;
 
@@ -49,7 +50,7 @@ namespace Store.Common
         /// <summary>
         /// Serializer for traffic between the gateway and the services, and between services.
         /// </summary>
-        public static ISerializer CreateServiceSerializer() => new ZerraByteSerializer();
+        public static INetworkSerializer CreateServiceSerializer() => new NetworkByteSerializer();
 
         /// <summary>
         /// Internal traffic is encrypted so only callers holding the key can send messages to a service.

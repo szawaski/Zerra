@@ -5,7 +5,6 @@
 using System.Net;
 using System.Net.Http.Headers;
 using Zerra.Logging;
-using Zerra.Serialization;
 using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Network
@@ -15,7 +14,7 @@ namespace Zerra.CQRS.Network
     /// </summary>
     public sealed class ApiClient : CqrsClientBase
     {
-        private readonly ISerializer serializer;
+        private readonly INetworkSerializer serializer;
         private readonly ICqrsAuthorizer? authorizer;
         private readonly Uri routeUri;
         private readonly HttpClientHandler handler;
@@ -29,7 +28,7 @@ namespace Zerra.CQRS.Network
         /// <param name="log">An optional logger for diagnostic messages.</param>
         /// <param name="authorizer">An optional authorizer for adding headers needed for the server to validate requests.</param>
         /// <param name="route">An optional route argument to append to the base endpoint URL.</param>
-        public ApiClient(string endpoint, ISerializer serializer, ILogger? log, ICqrsAuthorizer? authorizer, string? route = null) : base(endpoint, log)
+        public ApiClient(string endpoint, INetworkSerializer serializer, ILogger? log, ICqrsAuthorizer? authorizer, string? route = null) : base(endpoint, log)
         {
             this.serializer = serializer;
             this.authorizer = authorizer;

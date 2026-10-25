@@ -5,6 +5,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using Zerra.Compression;
+using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
 
@@ -22,7 +23,7 @@ namespace Zerra.CQRS.Kafka
     public sealed partial class KafkaConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private readonly KafkaCommonHost commonHost;
-        private readonly Zerra.Serialization.ISerializer serializer;
+        private readonly INetworkSerializer serializer;
         private readonly IEncryptor? encryptor;
         private readonly ICompressor? compressor;
         private readonly ILogger? log;
@@ -67,7 +68,7 @@ namespace Zerra.CQRS.Kafka
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Alpine", "Confluent.Kafka")]
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Centos8", "Confluent.Kafka")]
 #endif
-        public KafkaConsumer(string host, Zerra.Serialization.ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName = null, string? password = null, bool useTls = false, bool resilientCommands = false)
+        public KafkaConsumer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName = null, string? password = null, bool useTls = false, bool resilientCommands = false)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 

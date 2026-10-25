@@ -10,7 +10,6 @@ using Zerra.CQRS.Reflection;
 using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
@@ -19,7 +18,7 @@ namespace Zerra.CQRS.Network
     /// </summary>
     public sealed class TcpCqrsServer : CqrsServerBase
     {
-        private readonly ISerializer serializer;
+        private readonly INetworkSerializer serializer;
         private readonly IEncryptor? encryptor;
         private readonly ICompressor? compressor;
 
@@ -31,7 +30,7 @@ namespace Zerra.CQRS.Network
         /// <param name="encryptor">Optional encryption provider for encrypting request and response data.</param>
         /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logging provider.</param>
-        public TcpCqrsServer(string serverUrl, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log)
+        public TcpCqrsServer(string serverUrl, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log)
             : base(serverUrl, log)
         {
             this.serializer = serializer;

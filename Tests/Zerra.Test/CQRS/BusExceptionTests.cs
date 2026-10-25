@@ -95,7 +95,7 @@ namespace Zerra.Test.CQRS
         public async Task Remote_HandlerThrows_MatchesLocalErrorTypeAndMessage()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var busLocal = Bus.New("test-local", null, null, null);

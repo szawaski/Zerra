@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 using Zerra.CQRS.Network;
 using Zerra.CQRS.Reflection;
 using Zerra.Logging;
-using Zerra.Serialization;
 
 namespace Zerra.CQRS
 {
@@ -456,7 +455,7 @@ namespace Zerra.CQRS
         }
 
         /// <inheritdoc />
-        public async Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, ISerializer serializer, CancellationToken cancellationToken)
+        public async Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, INetworkSerializer serializer, CancellationToken cancellationToken)
         {
             var info = BusHandlers.GetMethod(interfaceType, methodName);
 

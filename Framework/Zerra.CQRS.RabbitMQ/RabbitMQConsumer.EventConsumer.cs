@@ -10,7 +10,7 @@ using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using System.Collections.Concurrent;
-using Zerra.Serialization;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.RabbitMQ
 {
@@ -23,7 +23,7 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly int maxConcurrent;
             private readonly string topic;
             private readonly ConcurrentDictionary<string, Type> eventTypes;
-            private readonly ISerializer serializer;
+            private readonly INetworkSerializer serializer;
             private readonly IEncryptor? encryptor;
             private readonly ICompressor? compressor;
             private readonly ILogger? log;
@@ -37,7 +37,7 @@ namespace Zerra.CQRS.RabbitMQ
             private readonly ConcurrentHashSet<Task> handling = new();
             private static readonly Action<Task, object?> removeHandling = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
 
-            public EventConsumer(int maxConcurrent, string topic, ConcurrentDictionary<string, Type> eventTypes, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
+            public EventConsumer(int maxConcurrent, string topic, ConcurrentDictionary<string, Type> eventTypes, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string serviceName, EventConsumerMode eventConsumerMode, HandleRemoteEventDispatch handlerAsync)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 

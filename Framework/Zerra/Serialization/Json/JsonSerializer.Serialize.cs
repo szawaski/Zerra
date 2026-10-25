@@ -11,7 +11,7 @@ using Zerra.Buffers;
 
 namespace Zerra.Serialization.Json
 {
-    public partial class JsonSerializer
+    public static partial class JsonSerializer
     {
         private static ReadOnlyMemory<byte> nullBytes = Encoding.UTF8.GetBytes("null");
 

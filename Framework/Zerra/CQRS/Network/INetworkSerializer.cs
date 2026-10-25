@@ -2,9 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.CQRS.Network;
-
-namespace Zerra.Serialization
+namespace Zerra.CQRS.Network
 {
     /// <summary>
     /// Defines serialization and deserialization operations for converting objects to/from various formats.
@@ -14,7 +12,7 @@ namespace Zerra.Serialization
     /// Supports both synchronous and asynchronous operations for stream-based I/O.
     /// Implementations handle specific serialization formats (JSON, binary, etc.).
     /// </remarks>
-    public interface ISerializer
+    public interface INetworkSerializer
     {
         /// <summary>
         /// Gets the content type (serialization format) of this serializer.

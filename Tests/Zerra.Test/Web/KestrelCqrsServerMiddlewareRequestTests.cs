@@ -32,7 +32,7 @@ namespace Zerra.Test.Web
             public Dictionary<string, List<string?>> GetAuthorizationHeaders(CancellationToken cancellationToken = default) => new();
         }
 
-        private static KestrelCqrsServerMiddleware CreateMiddleware(ISerializer serializer, QueryHandlerDelegate query, ICqrsAuthorizer? authorizer = null, ICompressor? compressor = null)
+        private static KestrelCqrsServerMiddleware CreateMiddleware(INetworkSerializer serializer, QueryHandlerDelegate query, ICqrsAuthorizer? authorizer = null, ICompressor? compressor = null)
         {
             var settings = new KestrelCqrsServerLinkedSettings(null, authorizer, serializer.ContentType);
             IQueryServer queryServer = new KestrelCqrsServerQueryServer(settings);
@@ -41,7 +41,7 @@ namespace Zerra.Test.Web
             return new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, null, compressor, null, settings);
         }
 
-        private static DefaultHttpContext CreateContext(ISerializer serializer, CqrsRequestData data, string? contentType, CancellationToken cancellationToken, bool providerHeader = true, ICompressor? compressor = null)
+        private static DefaultHttpContext CreateContext(INetworkSerializer serializer, CqrsRequestData data, string? contentType, CancellationToken cancellationToken, bool providerHeader = true, ICompressor? compressor = null)
         {
             var context = new DefaultHttpContext();
             context.RequestAborted = cancellationToken;
@@ -56,7 +56,7 @@ namespace Zerra.Test.Web
             return context;
         }
 
-        private static CqrsRequestData Request(ISerializer serializer, string method, params object[] arguments) => new()
+        private static CqrsRequestData Request(INetworkSerializer serializer, string method, params object[] arguments) => new()
         {
             ProviderType = nameof(IRequestQueryHandler),
             ProviderMethod = method,
@@ -64,7 +64,7 @@ namespace Zerra.Test.Web
             Source = "test",
         };
 
-        private static Task<RemoteQueryCallResponse> Double(ISerializer serializer, byte[]?[] arguments)
+        private static Task<RemoteQueryCallResponse> Double(INetworkSerializer serializer, byte[]?[] arguments)
             => Task.FromResult(new RemoteQueryCallResponse(serializer.Deserialize<int>(arguments[0]!) * 2));
 
         [Theory(Timeout = timeout)]
@@ -75,7 +75,7 @@ namespace Zerra.Test.Web
         public async Task BadRequest_Returns400(string? contentType, bool providerHeader)
         {
             //no content type, an unknown one, one the server doesn't use, or no provider header
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var called = false;
             using var middleware = CreateMiddleware(serializer, (_, _, _, _, _, _, _) => { called = true; return Task.FromResult(new RemoteQueryCallResponse(1)); });
             var context = CreateContext(serializer, Request(serializer, nameof(IRequestQueryHandler.Double), 2), contentType, TestContext.Current.CancellationToken, providerHeader);
@@ -92,7 +92,7 @@ namespace Zerra.Test.Web
         [MemberData(nameof(Nameless))]
         public async Task JsonServer_RespondsWithJsonContentType(bool nameless)
         {
-            var serializer = new ZerraJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = nameless });
+            var serializer = new NetworkJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = nameless });
             using var middleware = CreateMiddleware(serializer, (_, _, arguments, _, _, _, _) => Double(serializer, arguments));
             var context = CreateContext(serializer, Request(serializer, nameof(IRequestQueryHandler.Double), 21), nameless ? HttpCommon.ContentTypeJsonNameless : HttpCommon.ContentTypeJson, TestContext.Current.CancellationToken);
 
@@ -106,7 +106,7 @@ namespace Zerra.Test.Web
         [Fact(Timeout = timeout)]
         public async Task Authorizer_ReceivesTheRequestHeaders()
         {
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var authorizer = new RecordingAuthorizer();
             using var middleware = CreateMiddleware(serializer, (_, _, arguments, _, _, _, _) => Double(serializer, arguments), authorizer);
             var context = CreateContext(serializer, Request(serializer, nameof(IRequestQueryHandler.Double), 1), HttpCommon.ContentTypeBytes, TestContext.Current.CancellationToken);
@@ -121,7 +121,7 @@ namespace Zerra.Test.Web
         public async Task WithoutAuthorizer_ClaimsBecomeThePrincipal()
         {
             //the client sends its principal's claims and the handler sees them
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             string? name = null;
             using var middleware = CreateMiddleware(serializer, (_, _, arguments, _, _, _, _) =>
             {
@@ -155,7 +155,7 @@ namespace Zerra.Test.Web
             public string? How;
         }
 
-        private static KestrelCqrsServerMiddleware CreateMessageMiddleware(ISerializer serializer, Handled handled, QueryHandlerDelegate? query = null)
+        private static KestrelCqrsServerMiddleware CreateMessageMiddleware(INetworkSerializer serializer, Handled handled, QueryHandlerDelegate? query = null)
         {
             var settings = new KestrelCqrsServerLinkedSettings(null, null, serializer.ContentType);
             IQueryServer queryServer = new KestrelCqrsServerQueryServer(settings);
@@ -174,7 +174,7 @@ namespace Zerra.Test.Web
             return new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, null, null, null, settings);
         }
 
-        private static CqrsRequestData Message(ISerializer serializer, object message, bool messageAwait = false, bool messageResult = false) => new()
+        private static CqrsRequestData Message(INetworkSerializer serializer, object message, bool messageAwait = false, bool messageResult = false) => new()
         {
             MessageType = message.GetType().Name,
             MessageData = serializer.SerializeBytes(message, message.GetType()),
@@ -195,7 +195,7 @@ namespace Zerra.Test.Web
         [MemberData(nameof(Messages))]
         public async Task JsonServer_HandlesMessages(int kind, string how)
         {
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
             var handled = new Handled();
             using var middleware = CreateMessageMiddleware(serializer, handled);
             var request = kind switch
@@ -234,7 +234,7 @@ namespace Zerra.Test.Web
         [MemberData(nameof(InvalidRequests))]
         public async Task InvalidRequest_RespondsWithError(string invalid)
         {
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
             var handled = new Handled();
             using var middleware = CreateMessageMiddleware(serializer, handled);
             var request = invalid switch
@@ -280,7 +280,7 @@ namespace Zerra.Test.Web
         [Fact(Timeout = timeout)]
         public async Task NoProviderOrMessage_RespondsBadRequest()
         {
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
             var handled = new Handled();
             using var middleware = CreateMessageMiddleware(serializer, handled);
             var context = CreateContext(serializer, new CqrsRequestData() { Source = "test" }, HttpCommon.ContentTypeJson, TestContext.Current.CancellationToken, providerHeader: false);
@@ -295,7 +295,7 @@ namespace Zerra.Test.Web
         [Fact(Timeout = timeout)]
         public async Task EncryptedStreamResponse_Decrypts()
         {
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test-key", SymmetricAlgorithmType.AES_GCM);
             var streamData = Enumerable.Range(0, 5000).Select(x => (byte)x).ToArray();
             var settings = new KestrelCqrsServerLinkedSettings(null, null, serializer.ContentType);
@@ -337,7 +337,7 @@ namespace Zerra.Test.Web
         public async Task CompressedStreamResponse_SourceFails_RespondsWithError()
         {
             //the compress stream is still disposed when the source fails partway
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var compressor = new ZerraCompressor(CompressionAlgorithmType.GZip);
             using var middleware = CreateMiddleware(serializer, (_, _, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(new FailingStream())), compressor: compressor);
             var context = CreateContext(serializer, Request(serializer, nameof(IRequestQueryHandler.GetStream)), HttpCommon.ContentTypeBytes, TestContext.Current.CancellationToken, compressor: compressor);
@@ -355,7 +355,7 @@ namespace Zerra.Test.Web
         [Fact(Timeout = timeout)]
         public async Task CompressedModelResponse_SerializeFails_RespondsWithError()
         {
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var compressor = new ZerraCompressor(CompressionAlgorithmType.GZip);
             using var middleware = CreateMiddleware(serializer, (_, _, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(new ThrowingModel())), compressor: compressor);
             var context = CreateContext(serializer, Request(serializer, nameof(IRequestQueryHandler.Double), 1), HttpCommon.ContentTypeBytes, TestContext.Current.CancellationToken, compressor: compressor);
@@ -376,7 +376,7 @@ namespace Zerra.Test.Web
         [Fact(Timeout = timeout)]
         public async Task Compressor_CompressesModelAndStreamResponses()
         {
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var compressor = new ZerraCompressor(CompressionAlgorithmType.GZip);
             var streamData = Enumerable.Range(0, 5000).Select(x => (byte)x).ToArray();
             using var middleware = CreateMiddleware(serializer, (_, method, arguments, _, _, _, _) => method == nameof(IRequestQueryHandler.GetStream)

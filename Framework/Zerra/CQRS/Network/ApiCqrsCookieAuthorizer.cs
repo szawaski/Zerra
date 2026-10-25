@@ -7,6 +7,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using Zerra.CQRS.Network;
 using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
@@ -18,7 +19,7 @@ namespace Zerra.CQRS.Network
     {
         private const string cookieHeader = "Cookie";
 
-        private readonly ISerializer serializer;
+        private readonly INetworkSerializer serializer;
         private readonly Uri endpoint;
         private readonly string loginRequestBody;
         private readonly string contentType;
@@ -32,7 +33,7 @@ namespace Zerra.CQRS.Network
         /// <param name="loginRequestBody">The request body to send to the login endpoint.</param>
         /// <param name="contentType">The content type for the login request.</param>
         /// <exception cref="ArgumentException">Thrown when the serializer is not a JSON serializer.</exception>
-        public ApiCqrsCookieAuthorizer(ISerializer serializer, string loginEndpoint, string loginRequestBody, string contentType)
+        public ApiCqrsCookieAuthorizer(INetworkSerializer serializer, string loginEndpoint, string loginRequestBody, string contentType)
         {
             if (serializer.ContentType != ContentType.Json)
                 throw new ArgumentException("Must be JSON serializer", nameof(serializer));
@@ -47,7 +48,7 @@ namespace Zerra.CQRS.Network
             this.contentType = contentType;
         }
 
-        private static async Task<CookieCollection> GetCookiesRequestAsync(ISerializer serializer, Uri endpoint, string body, string contentType, CancellationToken cancellationToken)
+        private static async Task<CookieCollection> GetCookiesRequestAsync(INetworkSerializer serializer, Uri endpoint, string body, string contentType, CancellationToken cancellationToken)
         {
             using var handler = new HttpClientHandler()
             {
@@ -93,7 +94,7 @@ namespace Zerra.CQRS.Network
             }
         }
 
-        private static CookieCollection GetCookiesRequest(ISerializer serializer, Uri endpoint, string body, string contentType, CancellationToken cancellationToken)
+        private static CookieCollection GetCookiesRequest(INetworkSerializer serializer, Uri endpoint, string body, string contentType, CancellationToken cancellationToken)
         {
             using var handler = new HttpClientHandler()
             {

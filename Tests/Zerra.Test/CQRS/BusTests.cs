@@ -89,7 +89,7 @@ namespace Zerra.Test.CQRS
         public async Task BusQueryClientServerTcp()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var busServer = Bus.New("test-server", null, null, null);
@@ -109,7 +109,7 @@ namespace Zerra.Test.CQRS
         public async Task BusQueryClientServerHttp()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var busServer = Bus.New("test-server", null, null, null);
@@ -129,7 +129,7 @@ namespace Zerra.Test.CQRS
         public async Task BusQueryClientServerTcpUnencrypted()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
 
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<ITestQueryHandler>(new TestQueryHandler());
@@ -148,7 +148,7 @@ namespace Zerra.Test.CQRS
         public async Task BusQueryClientServerHttpUnencrypted()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
 
             var busServer = Bus.New("test-server", null, null, null);
             busServer.AddHandler<ITestQueryHandler>(new TestQueryHandler());
@@ -171,7 +171,7 @@ namespace Zerra.Test.CQRS
         public async Task BusQueryClientServerTcpCompressed(bool encrypt, bool exactEnd)
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = encrypt ? new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM) : null;
             ICompressor compressor = exactEnd ? new ExactEndCompressor() : new ZerraCompressor(CompressionAlgorithmType.Brotli);
 
@@ -196,7 +196,7 @@ namespace Zerra.Test.CQRS
         public async Task BusQueryClientServerHttpCompressed(bool encrypt, bool exactEnd)
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = encrypt ? new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM) : null;
             ICompressor compressor = exactEnd ? new ExactEndCompressor() : new ZerraCompressor(CompressionAlgorithmType.GZip);
 
@@ -225,7 +225,7 @@ namespace Zerra.Test.CQRS
         public async Task BusProducerConsumerCompressed(bool encrypt, bool http, bool exactEnd)
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = encrypt ? new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM) : null;
             ICompressor compressor = exactEnd ? new ExactEndCompressor() : new ZerraCompressor(CompressionAlgorithmType.Deflate);
 
@@ -251,7 +251,7 @@ namespace Zerra.Test.CQRS
         public async Task BusProducerConsumerTcp()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             using var waiter = new SemaphoreSlim(0, 1);
@@ -276,7 +276,7 @@ namespace Zerra.Test.CQRS
         public async Task BusProducerConsumerTcp_WithBusLogger()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             using var waiter = new SemaphoreSlim(0, 1);
@@ -348,7 +348,7 @@ namespace Zerra.Test.CQRS
         {
             const int maxConcurrent = 10;
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
 
             var handler = new LoadHandler();
             var busServer = Bus.New("load-server", null, null, null, maxConcurrentCommandsPerTopic: maxConcurrent, maxConcurrentEventsPerTopic: maxConcurrent);
@@ -383,7 +383,7 @@ namespace Zerra.Test.CQRS
         {
             const int maxConcurrent = 10;
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
 
             var handler = new LoadQueryHandler();
             var busServer = Bus.New("query-load-server", null, null, null, maxConcurrentQueries: maxConcurrent);
@@ -465,7 +465,7 @@ namespace Zerra.Test.CQRS
         {
             const int count = 3;
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
 
             var handler = new LoadHandler();
             var busServer = Bus.New("exit-server", null, null, null);
@@ -591,7 +591,7 @@ namespace Zerra.Test.CQRS
         public async Task BusProducerConsumerHttp()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             using var waiter = new SemaphoreSlim(0, 1);
@@ -617,7 +617,7 @@ namespace Zerra.Test.CQRS
         {
             var url1 = TestNetwork.NewUrl();
             var url2 = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             using var waiter1 = new SemaphoreSlim(0, 1);

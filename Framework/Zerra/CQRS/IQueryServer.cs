@@ -2,7 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Serialization;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS
 {
@@ -41,5 +41,5 @@ namespace Zerra.CQRS
     /// A delegate that a query server will use to handle a received call.
     /// <see cref="Bus"/> will provide the delegate.
     /// </summary>
-    public delegate Task<RemoteQueryCallResponse> QueryHandlerDelegate(Type interfaceName, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, ISerializer serializer, CancellationToken cancellationToken);
+    public delegate Task<RemoteQueryCallResponse> QueryHandlerDelegate(Type interfaceName, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, INetworkSerializer serializer, CancellationToken cancellationToken);
 }

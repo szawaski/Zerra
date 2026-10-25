@@ -11,6 +11,7 @@ using Zerra.CQRS.RabbitMQ;
 using Zerra.Reflection;
 using Zerra.Encryption;
 using Zerra.Serialization;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.Test.RabbitMQ
 {
@@ -33,7 +34,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var compressor = new ZerraCompressor(CompressionAlgorithmType.Brotli);
             var log = new TestLogger();
@@ -61,7 +62,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
             var commandTopicA = MessageTest.NewTopic("CommandA");
             var commandTopicB = MessageTest.NewTopic("CommandB");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -84,7 +85,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -108,7 +109,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         public async Task TestReceiveLimitHandsOff()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -131,7 +132,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         public async Task TestResilientCommandDeliveredAgain()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -159,7 +160,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         public async Task TestCommandSentBeforeConsumer()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -184,7 +185,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var log = new TestLogger();
 
@@ -207,7 +208,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         public async Task TestEventConsumerModePerService()
         {
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var log = new TestLogger();
 
@@ -234,7 +235,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -258,7 +259,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
             const string serviceName = "ZerraTestService";
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var log = new TestLogger();
             var cancellationToken = TestContext.Current.CancellationToken;
@@ -311,7 +312,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         {
             var commandTopic = MessageTest.NewTopic("Rules");
             var eventTopic = MessageTest.NewTopic("RulesEvent");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             try
             {
                 using var consumer = new RabbitMQConsumer(host, serializer, null, null, new TestLogger(), null);
@@ -331,7 +332,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
             const string environment = "ZerraEdge";
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             try
             {
@@ -353,7 +354,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         public async Task TestReceiveLimitAwaited()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             try
             {
@@ -375,7 +376,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             await using var connection = await RabbitMQCommon.CreateConnectionFactory(host).CreateConnectionAsync(TestContext.Current.CancellationToken);
             await using var channel = await connection.CreateChannelAsync(cancellationToken: TestContext.Current.CancellationToken);
@@ -408,7 +409,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         public void TestLongNamesTruncated()
         {
             //nothing is created until a consumer opens or a producer sends
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             var environment = new string('e', 300);
             using (var producer = new RabbitMQProducer(host, serializer, null, null, log, environment))
@@ -468,7 +469,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             var commands = new ConcurrentDictionary<Guid, bool>();
             var events = new ConcurrentDictionary<Guid, bool>();
@@ -507,7 +508,7 @@ namespace Zerra.CQRS.Test.RabbitMQ
         public async Task TestProducerConnectionDroppedWhileAwaiting()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -22,7 +22,7 @@ namespace Zerra.Test.Web
         private const int timeout = 10000;
         private const string source = "test-source";
 
-        private static readonly ISerializer serializer = new ZerraByteSerializer();
+        private static readonly INetworkSerializer serializer = new NetworkByteSerializer();
 
         [Fact(Timeout = timeout)]
         public async Task Command_Await_RunsHandler()

@@ -11,7 +11,6 @@ using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.CQRS.Network;
-using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMQ
 {
@@ -32,7 +31,7 @@ namespace Zerra.CQRS.RabbitMQ
         private readonly SemaphoreSlim locker = new(1, 1);
 
         private readonly string host;
-        private readonly ISerializer serializer;
+        private readonly INetworkSerializer serializer;
         private readonly IEncryptor? encryptor;
         private readonly ICompressor? compressor;
         private readonly ILogger? log;
@@ -58,7 +57,7 @@ namespace Zerra.CQRS.RabbitMQ
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="environment">Optional environment name to prefix exchange names for isolation.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public RabbitMQProducer(string host, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment)
+        public RabbitMQProducer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 

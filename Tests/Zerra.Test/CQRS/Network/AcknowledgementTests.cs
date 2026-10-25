@@ -11,9 +11,9 @@ namespace Zerra.Test.CQRS.Network
 {
     public class AcknowledgementTests
     {
-        private static ISerializer CreateTestSerializer()
+        private static INetworkSerializer CreateTestSerializer()
         {
-            return new ZerraByteSerializer();
+            return new NetworkByteSerializer();
         }
 
         [Fact]

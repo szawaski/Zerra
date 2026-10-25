@@ -8,6 +8,7 @@ using Zerra.Compression;
 using Zerra.CQRS.AzureServiceBus;
 using Zerra.Encryption;
 using Zerra.Serialization;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.Test.AzureServiceBus
 {
@@ -31,7 +32,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var compressor = new ZerraCompressor(CompressionAlgorithmType.Brotli);
             var log = new TestLogger();
@@ -60,7 +61,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             var commandTopicA = MessageTest.NewTopic("CommandA");
             var commandTopicB = MessageTest.NewTopic("CommandB");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -84,7 +85,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -108,7 +109,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         public async Task TestReceiveLimitHandsOff()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -130,7 +131,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         public async Task TestResilientCommandDeliveredAgain()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -154,7 +155,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         public async Task TestCommandSentBeforeConsumer()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -176,7 +177,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -198,7 +199,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         public async Task TestConsumesAgainAfterQueueDeleted()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
 
             try
@@ -229,7 +230,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
 
             try
             {
-                var producer = new AzureServiceBusProducer(host, new ZerraByteSerializer(), null, null, new TestLogger(), null);
+                var producer = new AzureServiceBusProducer(host, new NetworkByteSerializer(), null, null, new TestLogger(), null);
                 ackQueue = (string)typeof(AzureServiceBusProducer).GetField("ackQueue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producer)!;
                 ((ICommandProducer)producer).RegisterCommandType(1, commandTopic, typeof(TestCommand));
 
@@ -263,7 +264,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var log = new TestLogger();
 
@@ -287,7 +288,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         public async Task TestEventConsumerModePerService()
         {
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var log = new TestLogger();
 
@@ -345,7 +346,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         {
             var commandTopic = MessageTest.NewTopic("Rules");
             var eventTopic = MessageTest.NewTopic("RulesEvent");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             try
             {
                 await using var consumer = new AzureServiceBusConsumer(host, serializer, null, null, new TestLogger(), null);
@@ -365,7 +366,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             const string environment = "ZerraEdge";
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             try
             {
@@ -387,7 +388,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         public async Task TestReceiveLimitAwaited()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             try
             {
@@ -408,7 +409,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             await using var client = new Azure.Messaging.ServiceBus.ServiceBusClient(host);
             async Task Send(string queueOrTopic, byte[] body)
@@ -443,7 +444,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         public async Task TestInvalidAcknowledgement()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -494,7 +495,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         public async Task TestAckQueueDeleted()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackQueue = null;
             try
@@ -526,7 +527,7 @@ namespace Zerra.CQRS.Test.AzureServiceBus
         public async Task TestLongNamesTruncated()
         {
             //nothing is created until a consumer opens or a producer sends
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             var environment = new string('e', 300);
             await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, environment))

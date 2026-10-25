@@ -19,7 +19,7 @@ namespace Zerra.Test.CQRS.Network
         private const int timeout = 10000;
         private const string source = "test-source";
 
-        private static readonly ISerializer serializer = new ZerraByteSerializer();
+        private static readonly INetworkSerializer serializer = new NetworkByteSerializer();
 
         [Fact(Timeout = timeout)]
         public async Task CallTaskGeneric_CanBeCalledRepeatedly()
@@ -250,7 +250,7 @@ namespace Zerra.Test.CQRS.Network
         [InlineData(ContentType.JsonNameless)]
         public async Task CallTaskGeneric_JsonSerializer_SendsJsonContentType(ContentType contentType)
         {
-            ISerializer jsonSerializer = new ZerraJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = contentType == ContentType.JsonNameless });
+            INetworkSerializer jsonSerializer = new NetworkJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = contentType == ContentType.JsonNameless });
             Assert.Equal(contentType, jsonSerializer.ContentType);
             string? received = null;
             using var listener = Zerra.Test.CQRS.TestNetwork.StartHttpListener("", out var listenerUrl);

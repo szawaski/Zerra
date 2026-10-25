@@ -21,7 +21,7 @@ namespace Zerra.Test.Web
         private const int timeout = 10000;
         private const string source = "test-source";
 
-        private static readonly ISerializer serializer = new ZerraByteSerializer();
+        private static readonly INetworkSerializer serializer = new NetworkByteSerializer();
 
         [Fact(Timeout = timeout)]
         public async Task Query_ReturnsModel()
@@ -144,8 +144,8 @@ namespace Zerra.Test.Web
         [Fact(Timeout = timeout)]
         public async Task Query_AcceptJsonNameless_RespondsNameless()
         {
-            var jsonSerializer = new ZerraJsonSerializer();
-            var namelessSerializer = new ZerraJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = true });
+            var jsonSerializer = new NetworkJsonSerializer();
+            var namelessSerializer = new NetworkJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = true });
             var model = new TestModel { Id = 7, Name = "Seven" };
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(model) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, jsonSerializer);
@@ -411,7 +411,7 @@ namespace Zerra.Test.Web
         [Fact(Timeout = timeout)]
         public async Task NamelessServer_JsonNamelessRequest_RespondsNameless()
         {
-            var namelessSerializer = new ZerraJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = true });
+            var namelessSerializer = new NetworkJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions() { Nameless = true });
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(new TestModel { Id = 3, Name = "Three" }) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, namelessSerializer);
             var context = CreateContext(namelessSerializer, new ApiRequestData() { ProviderType = nameof(ITestQueryHandler), ProviderMethod = nameof(ITestQueryHandler.GetModel), ProviderArguments = [], Source = source }, HttpCommon.ContentTypeJsonNameless, TestContext.Current.CancellationToken);
@@ -428,7 +428,7 @@ namespace Zerra.Test.Web
         [Fact(Timeout = timeout)]
         public async Task JsonServer_RespondsJson()
         {
-            var jsonSerializer = new ZerraJsonSerializer();
+            var jsonSerializer = new NetworkJsonSerializer();
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(new TestModel { Id = 4 }) };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, jsonSerializer);
             var context = CreateContext(jsonSerializer, new ApiRequestData() { ProviderType = nameof(ITestQueryHandler), ProviderMethod = nameof(ITestQueryHandler.GetModel), ProviderArguments = [], Source = source }, HttpCommon.ContentTypeJson, TestContext.Current.CancellationToken);
@@ -655,7 +655,7 @@ namespace Zerra.Test.Web
             Assert.Empty(ReadResponse(context));
         }
 
-        private static DefaultHttpContext CreateContext(ISerializer requestSerializer, ApiRequestData data, string contentType, CancellationToken cancellationToken)
+        private static DefaultHttpContext CreateContext(INetworkSerializer requestSerializer, ApiRequestData data, string contentType, CancellationToken cancellationToken)
         {
             var context = new DefaultHttpContext();
             context.RequestAborted = cancellationToken;
@@ -710,7 +710,7 @@ namespace Zerra.Test.Web
             public ILogger? Log => null;
             public string ServiceName => "Mock";
 
-            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, ISerializer serializer, CancellationToken cancellationToken)
+            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, INetworkSerializer serializer, CancellationToken cancellationToken)
             {
                 QueryInterfaceType = interfaceType;
                 QueryMethodName = methodName;

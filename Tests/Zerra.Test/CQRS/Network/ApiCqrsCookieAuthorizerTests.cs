@@ -48,10 +48,10 @@ namespace Zerra.Test.CQRS.Network
         [Fact]
         public void Constructor_Validates()
         {
-            _ = Assert.Throws<ArgumentException>(() => new ApiCqrsCookieAuthorizer(new ZerraByteSerializer(), "http://localhost/login", loginBody, "application/json"));
+            _ = Assert.Throws<ArgumentException>(() => new ApiCqrsCookieAuthorizer(new NetworkByteSerializer(), "http://localhost/login", loginBody, "application/json"));
 
             //without a scheme the endpoint is http
-            var authorizer = new ApiCqrsCookieAuthorizer(new ZerraJsonSerializer(), "localhost:9999/login", loginBody, "application/json");
+            var authorizer = new ApiCqrsCookieAuthorizer(new NetworkJsonSerializer(), "localhost:9999/login", loginBody, "application/json");
             _ = Assert.Throws<NotImplementedException>(() => authorizer.Authorize(new Dictionary<string, List<string?>>()));
         }
 
@@ -98,7 +98,7 @@ namespace Zerra.Test.CQRS.Network
             public Dictionary<string, string>? ReceivedCookies { get; private set; }
 
             public TestCookieAuthorizer(string loginEndpoint)
-                : base(new ZerraJsonSerializer(), loginEndpoint, loginBody, "application/json") { }
+                : base(new NetworkJsonSerializer(), loginEndpoint, loginBody, "application/json") { }
 
             public override void AuthorizeCookies(Dictionary<string, string>? cookies) => ReceivedCookies = cookies;
         }

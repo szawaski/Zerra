@@ -8,7 +8,7 @@ using Zerra.Serialization.Json.Converters;
 
 namespace Zerra.Serialization.Json
 {
-    public partial class JsonSerializer
+    public static partial class JsonSerializer
     {
 #if NETSTANDARD2_0
         /// <summary>

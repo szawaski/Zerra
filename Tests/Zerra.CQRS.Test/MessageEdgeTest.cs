@@ -60,7 +60,7 @@ namespace Zerra.CQRS.Test
         /// <param name="sendRawCommand">Sends a body as it is to the command topic.</param>
         /// <param name="sendRawEvent">Sends a body as it is to the event topic.</param>
         /// <param name="extraErrors">Sends anything else the transport rejects, returning how many errors it causes.</param>
-        public static async Task TestMalformedMessages(ICommandProducer commandProducer, IEventProducer eventProducer, ICommandConsumer commandConsumer, IEventConsumer eventConsumer, string commandTopic, string eventTopic, Zerra.Serialization.ISerializer serializer, TestLogger log,
+        public static async Task TestMalformedMessages(ICommandProducer commandProducer, IEventProducer eventProducer, ICommandConsumer commandConsumer, IEventConsumer eventConsumer, string commandTopic, string eventTopic, Network.INetworkSerializer serializer, TestLogger log,
             Func<string?, byte[]?, string?, byte[]> buildBody, Func<byte[], Task> sendRawCommand, Func<byte[], Task> sendRawEvent, Func<Task<int>>? extraErrors, CancellationToken cancellationToken)
         {
             RegisterTypes();

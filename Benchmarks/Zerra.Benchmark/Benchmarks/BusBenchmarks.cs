@@ -84,7 +84,7 @@ namespace Zerra.Benchmark.Benchmarks
                 socket.Bind(new IPEndPoint(IPAddress.IPv6Any, 0));
                 url = $"http://localhost:{((IPEndPoint)socket.LocalEndPoint!).Port}";
             }
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
 
             var server = Bus.New("server");
             server.AddHandler<IBenchmarkQueryHandler>(handler);

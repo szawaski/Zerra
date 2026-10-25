@@ -8,14 +8,13 @@ using System.Net.Sockets;
 using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
-using Zerra.Serialization;
 using Zerra.Test.Helpers;
 
 namespace Zerra.Test.CQRS
 {
     public class BusRoutingTests
     {
-        private static readonly ZerraByteSerializer serializer = new();
+        private static readonly NetworkByteSerializer serializer = new();
 
         [Fact]
         public async Task Failures_AreLogged()

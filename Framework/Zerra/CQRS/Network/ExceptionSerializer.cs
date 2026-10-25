@@ -2,8 +2,6 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
-using Zerra.Serialization;
-
 namespace Zerra.CQRS.Network
 {
     /// <summary>
@@ -17,7 +15,7 @@ namespace Zerra.CQRS.Network
         /// <param name="serializer">The serializer to use for serialization.</param>
         /// <param name="stream">The destination stream of the bytes.</param>
         /// <param name="ex">The Exception to be serialized.</param>
-        public static void Serialize(ISerializer serializer, Stream stream, Exception ex)
+        public static void Serialize(INetworkSerializer serializer, Stream stream, Exception ex)
         {
             var baseException = ex.GetBaseException();
 
@@ -38,7 +36,7 @@ namespace Zerra.CQRS.Network
         /// <param name="serializer">The serializer to use for serialization.</param>
         /// <param name="ex">The Exception to be serialized.</param>
         /// <returns>The serialized exception as a byte array.</returns>
-        public static byte[] Serialize(ISerializer serializer, Exception ex)
+        public static byte[] Serialize(INetworkSerializer serializer, Exception ex)
         {
             var baseException = ex.GetBaseException();
 
@@ -59,7 +57,7 @@ namespace Zerra.CQRS.Network
         /// <param name="serializer">The serializer to use for serialization.</param>
         /// <param name="errorMessage">The error message describing the failure.</param>
         /// <returns>The serialized exception as a byte array.</returns>
-        public static byte[] Serialize(ISerializer serializer, string errorMessage)
+        public static byte[] Serialize(INetworkSerializer serializer, string errorMessage)
         {
             var content = new ExceptionContent()
             {
@@ -78,7 +76,7 @@ namespace Zerra.CQRS.Network
         /// <param name="serializer">The serializer to use for deserialization.</param>
         /// <param name="stream">The source stream of the bytes.</param>
         /// <returns>The deserialized Exception.</returns>
-        public static CqrsServiceException Deserialize(string source, ISerializer serializer, Stream stream)
+        public static CqrsServiceException Deserialize(string source, INetworkSerializer serializer, Stream stream)
         {
             var content = serializer.Deserialize<ExceptionContent>(stream);
             if (content is null)
@@ -94,7 +92,7 @@ namespace Zerra.CQRS.Network
         /// <param name="serializer">The serializer to use for deserialization.</param>
         /// <param name="bytes">The source byte array of the serialized exception.</param>
         /// <returns>The deserialized Exception.</returns>
-        public static CqrsServiceException Deserialize(string source, ISerializer serializer, byte[] bytes)
+        public static CqrsServiceException Deserialize(string source, INetworkSerializer serializer, byte[] bytes)
         {
             var content = serializer.Deserialize<ExceptionContent>(bytes);
             if (content is null)
@@ -111,7 +109,7 @@ namespace Zerra.CQRS.Network
         /// <param name="ex">The Exception to be serialized.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task representing the asynchronous serialization operation.</returns>
-        public static Task SerializeAsync(ISerializer serializer, Stream stream, Exception ex, CancellationToken cancellationToken)
+        public static Task SerializeAsync(INetworkSerializer serializer, Stream stream, Exception ex, CancellationToken cancellationToken)
         {
             var baseException = ex.GetBaseException();
 
@@ -133,7 +131,7 @@ namespace Zerra.CQRS.Network
         /// <param name="stream">The source stream of the bytes.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task representing the asynchronous deserialization operation that returns the deserialized Exception.</returns>
-        public static async Task<CqrsServiceException> DeserializeAsync(string source, ISerializer serializer, Stream stream, CancellationToken cancellationToken)
+        public static async Task<CqrsServiceException> DeserializeAsync(string source, INetworkSerializer serializer, Stream stream, CancellationToken cancellationToken)
         {
             var content = await serializer.DeserializeAsync<ExceptionContent>(stream, cancellationToken);
             if (content is null)

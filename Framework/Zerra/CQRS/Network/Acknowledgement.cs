@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Reflection;
-using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
@@ -33,7 +32,7 @@ namespace Zerra.CQRS.Network
         /// </summary>
         /// <param name="serializer">The serializer to use for serializing the exception.</param>
         /// <param name="errorMessage">The error message describing the failure.</param>
-        public Acknowledgement(ISerializer serializer, string errorMessage)
+        public Acknowledgement(INetworkSerializer serializer, string errorMessage)
         {
             this.Exception = ExceptionSerializer.Serialize(serializer, errorMessage);
         }
@@ -44,7 +43,7 @@ namespace Zerra.CQRS.Network
         /// <param name="serializer">The serializer to use for serializing the result or exception.</param>
         /// <param name="result">The successful result.</param>
         /// <param name="ex">The exception indicating a failure.</param>
-        public Acknowledgement(ISerializer serializer, object? result, Exception? ex)
+        public Acknowledgement(INetworkSerializer serializer, object? result, Exception? ex)
         {
             if (ex is not null)
             {
@@ -66,7 +65,7 @@ namespace Zerra.CQRS.Network
         /// <param name="serializer">The serializer to use for deserializing the result or exception.</param>
         /// <param name="ack">The acknowledgement to check for a failure.</param>
         /// <exception cref="CqrsServiceException"></exception>
-        public static void ThrowIfFailed(string source, ISerializer serializer, Acknowledgement? ack)
+        public static void ThrowIfFailed(string source, INetworkSerializer serializer, Acknowledgement? ack)
         {
             if (ack is null)
                 throw new CqrsNetworkException($"Failed to deserialize acknowledgement from remote service for {source}");
@@ -89,7 +88,7 @@ namespace Zerra.CQRS.Network
         /// <param name="resultType">The expected type of the result to deserialize.</param>
         /// <returns>The result if successful which may be a null.  A failure will throw an exception.</returns>
         /// <exception cref="CqrsServiceException"></exception>
-        public static object? GetResultOrThrowIfFailed(string source, ISerializer serializer, Acknowledgement? ack, Type resultType)
+        public static object? GetResultOrThrowIfFailed(string source, INetworkSerializer serializer, Acknowledgement? ack, Type resultType)
         {
             if (ack is null)
                 throw new CqrsNetworkException($"Failed to deserialize acknowledgement from remote service for {source}");

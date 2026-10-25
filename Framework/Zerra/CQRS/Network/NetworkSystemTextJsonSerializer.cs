@@ -4,9 +4,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using Zerra.CQRS.Network;
 
-namespace Zerra.Serialization
+namespace Zerra.CQRS.Network
 {
     /// <summary>
     /// JSON serializer using System.Text.Json for compatibility with .NET's standard library.
@@ -21,12 +20,12 @@ namespace Zerra.Serialization
     [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
     [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
 #endif
-    public sealed class SystemTextJsonSerializer : ISerializer
+    public sealed class NetworkSystemTextJsonSerializer : INetworkSerializer
     {
         private readonly JsonSerializerOptions? options;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SystemTextJsonSerializer"/> class.
+        /// Initializes a new instance of the <see cref="NetworkSystemTextJsonSerializer"/> class.
         /// </summary>
         /// <remarks>
         /// This implementation uses reflection-based serialization and is not compatible with AOT compilation.
@@ -35,7 +34,7 @@ namespace Zerra.Serialization
         /// </remarks>
         /// <param name="options">Optional JSON serialization options from System.Text.Json for customizing output format and behavior. 
         /// For AOT support, provide options that use a source-generated serializer context.</param>
-        public SystemTextJsonSerializer(JsonSerializerOptions? options = null)
+        public NetworkSystemTextJsonSerializer(JsonSerializerOptions? options = null)
         {
             this.options = options;
         }

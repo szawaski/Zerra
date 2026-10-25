@@ -11,7 +11,6 @@ using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.IO;
 using Zerra.Logging;
-using Zerra.Serialization;
 
 namespace Zerra.Web
 {
@@ -25,7 +24,7 @@ namespace Zerra.Web
     /// </remarks>
     public sealed class KestrelCqrsClient : CqrsClientBase
     {
-        private readonly ISerializer serializer;
+        private readonly INetworkSerializer serializer;
         private readonly IEncryptor? encryptor;
         private readonly ICompressor? compressor;
         private readonly ICqrsAuthorizer? authorizer;
@@ -43,7 +42,7 @@ namespace Zerra.Web
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="authorizer">Optional authorizer for providing custom authentication headers.</param>
         /// <param name="route">Optional route path to append to the endpoint (e.g., "/cqrs").</param>
-        public KestrelCqrsClient(string endpoint, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, ICqrsAuthorizer? authorizer, string? route) : base(endpoint, log)
+        public KestrelCqrsClient(string endpoint, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, ICqrsAuthorizer? authorizer, string? route) : base(endpoint, log)
         {
             this.serializer = serializer;
             this.encryptor = encryptor;

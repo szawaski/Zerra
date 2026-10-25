@@ -49,7 +49,7 @@ namespace Zerra.Test.CQRS.Network
             public void AddQueryClient<TInterface>(IQueryClient queryClient) => throw new NotImplementedException();
             public void AddQueryServer<TInterface>(IQueryServer queryServer) => throw new NotImplementedException();
 
-            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, ISerializer serializer, CancellationToken cancellationToken)
+            public Task<RemoteQueryCallResponse> RemoteHandleQueryCallAsync(Type interfaceType, string methodName, byte[]?[] arguments, Stream? argumentStream, string source, INetworkSerializer serializer, CancellationToken cancellationToken)
             {
                 return Task.FromResult(QueryResponse ?? new RemoteQueryCallResponse(null));
             }
@@ -105,7 +105,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithNullData_ReturnsNull()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
             var data = new ApiRequestData();
 
             var result = await ApiServerHandler.HandleRequestAsync(bus, serializer, data, CancellationToken.None);
@@ -117,7 +117,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithProviderType_CallsRemoteQueryCall()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
             bus.QueryResponse = new RemoteQueryCallResponse("test response");
 
             var data = new ApiRequestData
@@ -137,7 +137,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithProviderTypeReturningStream_ReturnsStreamResponse()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
             var testStream = new MemoryStream(new byte[] { 1, 2, 3 });
             bus.QueryResponse = new RemoteQueryCallResponse(testStream);
 
@@ -160,7 +160,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithProviderTypeReturningModel_ReturnsSerializedResponse()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
             bus.QueryResponse = new RemoteQueryCallResponse("test model");
 
             var data = new ApiRequestData
@@ -183,7 +183,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithMessageType_DispatchesCommand()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
 
             var commandJson = JsonSerializer.Serialize(new TestCommand());
             var data = new ApiRequestData
@@ -204,7 +204,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithMessageTypeAndAwait_DispatchesCommandWithAwait()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
 
             var commandJson = JsonSerializer.Serialize(new TestCommand());
             var data = new ApiRequestData
@@ -225,7 +225,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithMessageTypeAndResult_DispatchesCommandWithResult()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
             bus.CommandResult = "test result";
 
             var commandJson = JsonSerializer.Serialize(new TestCommandWithResult());
@@ -249,7 +249,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithMessageTypeAndNullResult_SerializesNull()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
             bus.CommandResult = null;
 
             var data = new ApiRequestData
@@ -273,7 +273,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithProviderTypeReturningNull_ReturnsVoid()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
             bus.QueryResponse = new RemoteQueryCallResponse((object?)null);
 
             var data = new ApiRequestData
@@ -295,7 +295,7 @@ namespace Zerra.Test.CQRS.Network
         [Fact]
         public async Task SerializeAsync_Null_MatchesSerializeBytes()
         {
-            foreach (var serializer in new ISerializer[] { new ZerraJsonSerializer(), new ZerraByteSerializer() })
+            foreach (var serializer in new INetworkSerializer[] { new NetworkJsonSerializer(), new NetworkByteSerializer() })
             {
                 using var stream = new MemoryStream();
                 await serializer.SerializeAsync(stream, null, CancellationToken.None);
@@ -307,7 +307,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithProviderTypeAndNullProviderMethod_ThrowsArgumentNullException()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
 
             var data = new ApiRequestData
             {
@@ -325,7 +325,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithMessageTypeAndNullMessageData_ThrowsArgumentNullException()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
 
             var data = new ApiRequestData
             {
@@ -344,7 +344,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithCancellationToken_PassesTokenToBus()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
             var cts = new CancellationTokenSource();
 
             var data = new ApiRequestData
@@ -364,7 +364,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithEmptyProviderArguments_ReturnsResponse()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
             bus.QueryResponse = new RemoteQueryCallResponse("result");
 
             var data = new ApiRequestData
@@ -384,7 +384,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithProviderArgumentsNull_ThrowsArgumentNullException()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
 
             var data = new ApiRequestData
             {
@@ -402,7 +402,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithSourceNull_ThrowsArgumentNullException()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
 
             var data = new ApiRequestData
             {
@@ -420,7 +420,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithProviderTypeEmpty_ReturnsNull()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
 
             var data = new ApiRequestData
             {
@@ -438,7 +438,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithMessageTypeEmpty_ReturnsNull()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
 
             var data = new ApiRequestData
             {
@@ -456,7 +456,7 @@ namespace Zerra.Test.CQRS.Network
         public async Task HandleRequestAsync_WithProviderTypeAndNullSource_ThrowsArgumentNullException()
         {
             var bus = new MockBus();
-            var serializer = new ZerraJsonSerializer();
+            var serializer = new NetworkJsonSerializer();
 
             var data = new ApiRequestData
             {

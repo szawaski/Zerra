@@ -5,9 +5,9 @@
 using System.Collections.Concurrent;
 using Azure.Messaging.ServiceBus;
 using Zerra.Compression;
+using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Serialization;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
@@ -22,7 +22,7 @@ namespace Zerra.CQRS.AzureServiceBus
     public sealed partial class AzureServiceBusConsumer : ICommandConsumer, IEventConsumer, IDisposable, IAsyncDisposable
     {
         private readonly AzureServiceBusCommonNamespace commonNamespace;
-        private readonly ISerializer serializer;
+        private readonly INetworkSerializer serializer;
         private readonly IEncryptor? encryptor;
         private readonly ICompressor? compressor;
         private readonly ILogger? log;
@@ -64,7 +64,7 @@ namespace Zerra.CQRS.AzureServiceBus
         /// <param name="environment">Optional environment name to match queue and topic name prefixes for isolation.</param>
         /// <param name="resilientCommands">True to complete a command once its handler finishes instead of removing it when it's received, so a command being handled when the process stops is delivered again once its lock expires. A command can then run more than once.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public AzureServiceBusConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, bool resilientCommands = false)
+        public AzureServiceBusConsumer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, bool resilientCommands = false)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 

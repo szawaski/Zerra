@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using Zerra.Reflection;
-using Zerra.Serialization;
 using Zerra.Serialization.Json;
 
 namespace Zerra.CQRS.Network
@@ -22,7 +21,7 @@ namespace Zerra.CQRS.Network
         /// <param name="data">The API request data containing the provider type, method, message type, or other routing information.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The response from the API request, or null if the request could not be routed.</returns>
-        public static Task<ApiResponseData?> HandleRequestAsync(IBus bus, ISerializer serializer, ApiRequestData data, CancellationToken cancellationToken)
+        public static Task<ApiResponseData?> HandleRequestAsync(IBus bus, INetworkSerializer serializer, ApiRequestData data, CancellationToken cancellationToken)
             => HandleRequestAsync(bus, serializer, serializer, data, null, cancellationToken);
 
         /// <summary>
@@ -36,7 +35,7 @@ namespace Zerra.CQRS.Network
         /// <param name="argumentStream">The uploaded stream for the query method's <see cref="Stream"/> parameter, null if there isn't one.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The response from the API request, or null if the request could not be routed.</returns>
-        public static async Task<ApiResponseData?> HandleRequestAsync(IBus bus, ISerializer serializer, ISerializer responseSerializer, ApiRequestData data, Stream? argumentStream, CancellationToken cancellationToken)
+        public static async Task<ApiResponseData?> HandleRequestAsync(IBus bus, INetworkSerializer serializer, INetworkSerializer responseSerializer, ApiRequestData data, Stream? argumentStream, CancellationToken cancellationToken)
         {
             if (!String.IsNullOrWhiteSpace(data.ProviderType))
             {
@@ -74,7 +73,7 @@ namespace Zerra.CQRS.Network
             return null;
         }
 
-        private static Task<RemoteQueryCallResponse> Call(IBus bus, ISerializer serializer, ApiRequestData data, Stream? argumentStream, CancellationToken cancellationToken)
+        private static Task<RemoteQueryCallResponse> Call(IBus bus, INetworkSerializer serializer, ApiRequestData data, Stream? argumentStream, CancellationToken cancellationToken)
         {
             if (String.IsNullOrWhiteSpace(data.ProviderType)) throw new ArgumentNullException(nameof(ApiRequestData.ProviderType));
             if (String.IsNullOrWhiteSpace(data.ProviderMethod)) throw new ArgumentNullException(nameof(ApiRequestData.ProviderMethod));

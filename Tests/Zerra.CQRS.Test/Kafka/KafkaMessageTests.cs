@@ -11,6 +11,7 @@ using Zerra.CQRS.Kafka;
 using Zerra.Encryption;
 using Zerra.Reflection;
 using Zerra.Serialization;
+using Zerra.CQRS.Network;
 
 namespace Zerra.CQRS.Test.Kafka
 {
@@ -50,7 +51,7 @@ namespace Zerra.CQRS.Test.Kafka
         [Fact]
         public async Task TestTlsProducerAndConsumerUseTlsHost()
         {
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             await using var producer = new KafkaProducer(host, serializer, null, null, null, null, null, null, useTls: true);
             await using var consumer = new KafkaConsumer(host, serializer, null, null, null, null, null, null, useTls: true);
 
@@ -65,7 +66,7 @@ namespace Zerra.CQRS.Test.Kafka
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var compressor = new ZerraCompressor(CompressionAlgorithmType.Brotli);
             var log = new TestLogger();
@@ -96,7 +97,7 @@ namespace Zerra.CQRS.Test.Kafka
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var log = new TestLogger();
             string? ackTopic = null;
@@ -120,7 +121,7 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestEventConsumerModePerService()
         {
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
             var log = new TestLogger();
 
@@ -153,7 +154,7 @@ namespace Zerra.CQRS.Test.Kafka
             var commandTopicA = MessageTest.NewTopic("CommandA");
             var commandTopicB = MessageTest.NewTopic("CommandB");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackTopic = null;
 
@@ -181,7 +182,7 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestBusyHandlersStayInGroup(bool events)
         {
             var topic = MessageTest.NewTopic(events ? "Event" : "Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackTopic = null;
             TypeFinder.Register(typeof(TestCommand));
@@ -259,7 +260,7 @@ namespace Zerra.CQRS.Test.Kafka
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackTopic = null;
 
@@ -284,7 +285,7 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestReceiveLimitHandsOff()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackTopic = null;
 
@@ -311,7 +312,7 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestResilientCommandDeliveredAgain()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackTopic = null;
 
@@ -346,7 +347,7 @@ namespace Zerra.CQRS.Test.Kafka
 
             try
             {
-                var producer = new KafkaProducer(host, new ZerraByteSerializer(), null, null, new TestLogger(), null, null, null);
+                var producer = new KafkaProducer(host, new NetworkByteSerializer(), null, null, new TestLogger(), null, null, null);
                 ackTopic = AckTopic(producer);
                 ((ICommandProducer)producer).RegisterCommandType(1, commandTopic, typeof(TestCommand));
 
@@ -373,7 +374,7 @@ namespace Zerra.CQRS.Test.Kafka
         {
             var commandTopic = MessageTest.NewTopic("Rules");
             var eventTopic = MessageTest.NewTopic("RulesEvent");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             string? ackTopic = null;
             try
             {
@@ -394,7 +395,7 @@ namespace Zerra.CQRS.Test.Kafka
             const string environment = "ZerraEdge";
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackTopic = null;
             try
@@ -417,7 +418,7 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestReceiveLimitAwaited()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackTopic = null;
             try
@@ -443,7 +444,7 @@ namespace Zerra.CQRS.Test.Kafka
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackTopic = null;
             using var raw = new ProducerBuilder<string, byte[]>(new ProducerConfig { BootstrapServers = host }).Build();
@@ -480,7 +481,7 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestInvalidAcknowledgement()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -534,7 +535,7 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestAckTopicDeleted()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackTopic = null;
             try
@@ -567,7 +568,7 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestLongNamesTruncated()
         {
             //nothing is created until a consumer opens or a producer sends
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             var environment = new string('e', 300);
             await using (var producer = new KafkaProducer(host, serializer, null, null, log, environment, null, null))
@@ -588,7 +589,7 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestCredentialsConfigure()
         {
             //a user name and password set up SASL, plain or over TLS, nothing connects until a message is sent
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             await using (var producer = new KafkaProducer(host, serializer, null, null, null, null, "user", "password"))
             await using (var tlsProducer = new KafkaProducer(host, serializer, null, null, null, null, "user", "password", useTls: true))
             {
@@ -616,7 +617,7 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestCommandSentBeforeConsumer()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackTopic = null;
 
@@ -643,7 +644,7 @@ namespace Zerra.CQRS.Test.Kafka
         {
             var commandTopic = MessageTest.NewTopic("Command");
             var eventTopic = MessageTest.NewTopic("Event");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackTopic = null;
 
@@ -671,7 +672,7 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestConsumesAgainAfterTopicDeleted()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             string? ackTopic = null;
 
@@ -702,7 +703,7 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestAckProducerReplacedAfterManyTopics()
         {
             var commandTopic = MessageTest.NewTopic("Command");
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             var ackTopics = new List<string>();
             var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance;

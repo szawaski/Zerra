@@ -10,7 +10,6 @@ using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.CQRS.Network;
-using Zerra.Serialization;
 
 namespace Zerra.CQRS.AzureServiceBus
 {
@@ -24,7 +23,7 @@ namespace Zerra.CQRS.AzureServiceBus
             private readonly CommandCounter? commandCounter;
             private readonly string queue;
             private readonly ConcurrentDictionary<string, Type> commandTypes;
-            private readonly ISerializer serializer;
+            private readonly INetworkSerializer serializer;
             private readonly IEncryptor? encryptor;
             private readonly ICompressor? compressor;
             private readonly ILogger? log;
@@ -57,7 +56,7 @@ namespace Zerra.CQRS.AzureServiceBus
                 }
             }
 
-            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string queue, ConcurrentDictionary<string, Type> commandTypes, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync, bool resilient)
+            public CommandConsumer(int maxConcurrent, CommandCounter? commandCounter, string queue, ConcurrentDictionary<string, Type> commandTypes, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync, bool resilient)
             {
                 if (maxConcurrent < 1) throw new ArgumentException("cannot be less than 1", nameof(maxConcurrent));
 

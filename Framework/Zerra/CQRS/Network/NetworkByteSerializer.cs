@@ -1,7 +1,6 @@
-﻿using Zerra.CQRS.Network;
-using Zerra.Serialization.Bytes;
+﻿using Zerra.Serialization.Bytes;
 
-namespace Zerra.Serialization
+namespace Zerra.CQRS.Network
 {
     /// <summary>
     /// High-performance binary serializer implementation using compact byte format.
@@ -10,15 +9,15 @@ namespace Zerra.Serialization
     /// Provides efficient serialization to and from binary format.
     /// All operations delegate to the ByteSerializer for actual serialization logic.
     /// </remarks>
-    public sealed class ZerraByteSerializer : ISerializer
+    public sealed class NetworkByteSerializer : INetworkSerializer
     {
         private readonly ByteSerializerOptions? options;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ZerraByteSerializer"/> class.
+        /// Initializes a new instance of the <see cref="NetworkByteSerializer"/> class.
         /// </summary>
         /// <param name="options">Optional serialization options for customizing binary output format and behavior.</param>
-        public ZerraByteSerializer(ByteSerializerOptions? options = null)
+        public NetworkByteSerializer(ByteSerializerOptions? options = null)
         {
             this.options = options;
         }

@@ -13,7 +13,6 @@ using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
 using Zerra.Reflection;
-using Zerra.Serialization;
 
 namespace Zerra.Web
 {
@@ -29,7 +28,7 @@ namespace Zerra.Web
     public sealed class KestrelCqrsServerMiddleware : IDisposable
     {
         private readonly RequestDelegate requestDelegate;
-        private readonly ISerializer serializer;
+        private readonly INetworkSerializer serializer;
         private readonly IEncryptor? encryptor;
         private readonly ICompressor? compressor;
         private readonly ILogger? log;
@@ -44,7 +43,7 @@ namespace Zerra.Web
         /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="settings">The server settings including route, allowed origins, handler configurations, and registered CQRS types.</param>
-        public KestrelCqrsServerMiddleware(RequestDelegate requestDelegate, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, KestrelCqrsServerLinkedSettings settings)
+        public KestrelCqrsServerMiddleware(RequestDelegate requestDelegate, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, KestrelCqrsServerLinkedSettings settings)
         {
             this.requestDelegate = requestDelegate;
             this.serializer = serializer;

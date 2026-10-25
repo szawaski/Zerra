@@ -21,7 +21,7 @@ namespace Zerra.Test.CQRS.Network
         private const int timeout = 10000;
         private const string source = "test-source";
 
-        private static readonly ISerializer serializer = new ZerraByteSerializer();
+        private static readonly INetworkSerializer serializer = new NetworkByteSerializer();
         private static readonly IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
         [Theory(Timeout = timeout)]

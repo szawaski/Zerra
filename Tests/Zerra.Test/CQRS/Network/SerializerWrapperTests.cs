@@ -9,17 +9,17 @@ using Zerra.Serialization.Bytes;
 using Zerra.Serialization.Json;
 using Zerra.Test.Helpers.Models;
 
-namespace Zerra.Test.Serialization
+namespace Zerra.Test.CQRS.Network
 {
     public class SerializerWrapperTests
     {
         public static TheoryData<string> Serializers => new() { "ZerraJson", "ZerraByte", "SystemTextJson" };
 
-        private static ISerializer Create(string name) => name switch
+        private static INetworkSerializer Create(string name) => name switch
         {
-            "ZerraJson" => new ZerraJsonSerializer(new JsonSerializerOptions()),
-            "ZerraByte" => new ZerraByteSerializer(new ByteSerializerOptions()),
-            _ => new SystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions()),
+            "ZerraJson" => new NetworkJsonSerializer(new JsonSerializerOptions()),
+            "ZerraByte" => new NetworkByteSerializer(new ByteSerializerOptions()),
+            _ => new NetworkSystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions()),
         };
 
         private static void AssertModel(object? value)
@@ -87,12 +87,12 @@ namespace Zerra.Test.Serialization
         public void ZerraByteSerializer_ExposesOptions()
         {
             var options = new ByteSerializerOptions();
-            Assert.Same(options, new ZerraByteSerializer(options).Options);
-            Assert.Null(new ZerraByteSerializer().Options);
+            Assert.Same(options, new NetworkByteSerializer(options).Options);
+            Assert.Null(new NetworkByteSerializer().Options);
 
             var jsonOptions = new JsonSerializerOptions();
-            Assert.Same(jsonOptions, new ZerraJsonSerializer(jsonOptions).Options);
-            Assert.Null(new ZerraJsonSerializer().Options);
+            Assert.Same(jsonOptions, new NetworkJsonSerializer(jsonOptions).Options);
+            Assert.Null(new NetworkJsonSerializer().Options);
         }
     }
 }

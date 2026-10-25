@@ -10,7 +10,7 @@ namespace Zerra.Serialization.Json
     /// <summary>
     /// Converts objects to JSON and back with comprehensive formatting and type support options.
     /// </summary>
-    public partial class JsonSerializer
+    public static partial class JsonSerializer
     {
         private const int defaultBufferSize = 16 * 1024;
 

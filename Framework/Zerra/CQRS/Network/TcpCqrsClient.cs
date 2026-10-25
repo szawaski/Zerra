@@ -8,7 +8,6 @@ using Zerra.Encryption;
 using Zerra.Logging;
 using System.Security.Claims;
 using Zerra.Buffers;
-using Zerra.Serialization;
 
 namespace Zerra.CQRS.Network
 {
@@ -17,7 +16,7 @@ namespace Zerra.CQRS.Network
     /// </summary>
     public sealed class TcpCqrsClient : CqrsClientBase
     {
-        private readonly ISerializer serializer;
+        private readonly INetworkSerializer serializer;
         private readonly IEncryptor? encryptor;
         private readonly ICompressor? compressor;
         private readonly SocketClientPool socketPool;
@@ -30,7 +29,7 @@ namespace Zerra.CQRS.Network
         /// <param name="encryptor">Optional encryption provider for encrypting request and response data.</param>
         /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logging provider.</param>
-        public TcpCqrsClient(string serviceUrl, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log)
+        public TcpCqrsClient(string serviceUrl, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log)
             : base(serviceUrl, log)
         {
             this.serializer = serializer;

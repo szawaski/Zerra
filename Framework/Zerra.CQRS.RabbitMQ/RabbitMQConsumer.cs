@@ -5,9 +5,9 @@
 using System.Collections.Concurrent;
 using RabbitMQ.Client;
 using Zerra.Compression;
+using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Serialization;
 
 namespace Zerra.CQRS.RabbitMQ
 {
@@ -22,7 +22,7 @@ namespace Zerra.CQRS.RabbitMQ
     public sealed partial class RabbitMQConsumer : ICommandConsumer, IEventConsumer, IDisposable
     {
         private readonly string host;
-        private readonly ISerializer serializer;
+        private readonly INetworkSerializer serializer;
         private readonly IEncryptor? encryptor;
         private readonly ICompressor? compressor;
         private readonly ILogger? log;
@@ -58,7 +58,7 @@ namespace Zerra.CQRS.RabbitMQ
         /// <param name="environment">Optional environment name to match exchange name prefixes for isolation.</param>
         /// <param name="resilientCommands">True to acknowledge a command once its handler finishes instead of when it's received, so a command being handled when the process stops is delivered again. A command can then run more than once.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public RabbitMQConsumer(string host, ISerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, bool resilientCommands = false)
+        public RabbitMQConsumer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, bool resilientCommands = false)
         {
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 

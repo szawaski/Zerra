@@ -13,7 +13,7 @@ namespace Zerra.Test.CQRS
         public async Task StopServicesAsync_FinishesQueryInProgress_Tcp()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var handler = new ShutdownQueryHandler();
@@ -41,7 +41,7 @@ namespace Zerra.Test.CQRS
         public async Task StopServicesAsync_FinishesQueryInProgress_Http()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var handler = new ShutdownQueryHandler();
@@ -67,7 +67,7 @@ namespace Zerra.Test.CQRS
         public async Task StopServices_FinishesQueryInProgress_Tcp()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var handler = new ShutdownQueryHandler();
@@ -93,7 +93,7 @@ namespace Zerra.Test.CQRS
         public async Task StopServicesAsync_FinishesFireAndForgetCommand_Tcp()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var handler = new ShutdownCommandHandler();
@@ -120,7 +120,7 @@ namespace Zerra.Test.CQRS
         public async Task StopServicesAsync_StopsWaitingAfterTheTimeoutWithoutCancelling_Tcp()
         {
             var url = TestNetwork.NewUrl();
-            var serializer = new ZerraByteSerializer();
+            var serializer = new NetworkByteSerializer();
             var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
 
             var handler = new ShutdownCommandHandler();
