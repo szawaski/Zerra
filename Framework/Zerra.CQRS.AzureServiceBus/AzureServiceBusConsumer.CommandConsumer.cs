@@ -363,6 +363,13 @@ namespace Zerra.CQRS.AzureServiceBus
                                     log?.Warn($"{nameof(AzureServiceBusConsumer)} failed to send an acknowledgement to {ackTopic}, trying again until its producer creates it again: {ex.Message}");
                                 await Task.Delay(AzureServiceBusCommon.RetryDelay);
                             }
+                            catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.ServiceBusy)
+                            {
+                                //throttled, the reply wasn't taken and the producer is waiting for it
+                                log?.Warn($"{nameof(AzureServiceBusConsumer)} is throttled sending an acknowledgement to {ackTopic}, trying again: {ex.Message}");
+                                attempt--;
+                                await Task.Delay(AzureServiceBusCommon.RetryDelay);
+                            }
                         }
                     }
 

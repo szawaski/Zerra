@@ -16,6 +16,9 @@ namespace Zerra.CQRS.Kafka
 
         public const int RetryDelay = 5000;
 
+        private const int topicPropagationTimeoutMilliseconds = 10000;
+        private const int topicPropagationPollMilliseconds = 100;
+
         public const string MessageKey = "Body";
         public const string MessageWithAckKey = "BodyAck";
         public const string AckTopicHeader = "AckTopic";
@@ -73,6 +76,20 @@ namespace Zerra.CQRS.Kafka
                     {
                         //another service created it first
                     }
+
+                    //creating is asynchronous, a consumer subscribing before the broker's metadata has the topic fails with an unknown topic
+                    var propagationStarted = Environment.TickCount;
+                    for (; ; )
+                    {
+                        var created = kafkaHost.Client.GetMetadata(topic, TimeSpan.FromSeconds(10)).Topics.FirstOrDefault(x => x.Topic == topic);
+                        if (created is not null && created.Error.Code == ErrorCode.NoError && created.Partitions.Count > 0 && created.Partitions.All(x => x.Leader >= 0))
+                            break;
+                        //a subscriber that fails still retries, this only keeps it from failing in the common case
+                        if (unchecked(Environment.TickCount - propagationStarted) > topicPropagationTimeoutMilliseconds)
+                            break;
+                        await Task.Delay(topicPropagationPollMilliseconds);
+                    }
+
                     kafkaHost.Topics = new HashSet<string>(kafkaHost.Topics!) { topic };
                 }
                 catch (Exception ex)
@@ -104,6 +121,18 @@ namespace Zerra.CQRS.Kafka
             catch (Exception ex)
             {
                 throw new Exception($"{nameof(KafkaCommon)} failed to create topic {topic}", ex);
+            }
+
+            //the same wait as EnsureTopic, a consumer assigned before the broker's metadata has the topic fails with an unknown topic
+            var propagationStarted = Environment.TickCount;
+            for (; ; )
+            {
+                var created = kafkaHost.Client.GetMetadata(topic, TimeSpan.FromSeconds(10)).Topics.FirstOrDefault(x => x.Topic == topic);
+                if (created is not null && created.Error.Code == ErrorCode.NoError && created.Partitions.Count > 0 && created.Partitions.All(x => x.Leader >= 0))
+                    break;
+                if (unchecked(Environment.TickCount - propagationStarted) > topicPropagationTimeoutMilliseconds)
+                    break;
+                await Task.Delay(topicPropagationPollMilliseconds);
             }
         }
 

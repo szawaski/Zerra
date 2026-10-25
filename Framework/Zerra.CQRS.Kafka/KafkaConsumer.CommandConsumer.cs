@@ -524,7 +524,8 @@ namespace Zerra.CQRS.Kafka
                                 _ = await ackProducer.Producer.ProduceAsync(ackTopic, ackMessage);
                                 break;
                             }
-                            catch (ProduceException<string, byte[]> ex) when (attempt < maxAckAttempts && (ex.Error.Code == ErrorCode.Local_UnknownTopic || ex.Error.Code == ErrorCode.UnknownTopicOrPart || ex.Error.Code == ErrorCode.Local_UnknownPartition))
+                            //a deleted topic can also have librdkafka drop the broker handle the reply was sent on, a reply sent twice is ignored by its producer
+                            catch (ProduceException<string, byte[]> ex) when (attempt < maxAckAttempts && (ex.Error.Code == ErrorCode.Local_UnknownTopic || ex.Error.Code == ErrorCode.UnknownTopicOrPart || ex.Error.Code == ErrorCode.Local_UnknownPartition || ex.Error.Code == ErrorCode.Local_DestroyBroker))
                             {
                                 if (attempt == 1)
                                     log?.Warn($"{nameof(KafkaConsumer)} failed to send an acknowledgement to {ackTopic}, trying again until its sender creates it again: {ex.Error.Code} {ex.Message}");

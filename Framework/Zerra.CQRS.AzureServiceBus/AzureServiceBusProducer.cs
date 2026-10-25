@@ -302,30 +302,43 @@ namespace Zerra.CQRS.AzureServiceBus
         private async Task SendMessageAsync(string queueOrTopic, bool isTopic, ServiceBusMessage serviceBusMessage, CancellationToken cancellationToken)
         {
             var sender = senderByQueueOrTopic[queueOrTopic];
-            bool notFound;
-            try
+            var recovered = false;
+            var busy = false;
+            for (; ; )
             {
-                await sender.SendMessageAsync(serviceBusMessage, cancellationToken);
-                return;
-            }
-            catch (ServiceBusException ex) when (!ex.IsTransient)
-            {
-                log?.Warn($"{nameof(AzureServiceBusProducer)} failed to send to {queueOrTopic}, ensuring it and trying again: {ex.Reason} {ex.Message}");
-                notFound = ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound;
-            }
+                bool notFound;
+                try
+                {
+                    await sender.SendMessageAsync(serviceBusMessage, cancellationToken);
+                    return;
+                }
+                catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.ServiceBusy)
+                {
+                    //the client's own retries ran out while the namespace is throttled, the message wasn't taken so it's sent again until it is
+                    if (!busy)
+                        log?.Warn($"{nameof(AzureServiceBusProducer)} is throttled sending to {queueOrTopic}, trying again: {ex.Message}");
+                    busy = true;
+                    await Task.Delay(AzureServiceBusCommon.RetryDelay, cancellationToken);
+                    continue;
+                }
+                catch (ServiceBusException ex) when (!ex.IsTransient && !recovered)
+                {
+                    log?.Warn($"{nameof(AzureServiceBusProducer)} failed to send to {queueOrTopic}, ensuring it and trying again: {ex.Reason} {ex.Message}");
+                    notFound = ex.Reason == ServiceBusFailureReason.MessagingEntityNotFound;
+                }
 
-            //sends failing at the same time share one recovery
-            var recovery = recoveryByQueueOrTopic.GetOrAdd(queueOrTopic, _ => new Lazy<Task>(() => RecoverAsync(queueOrTopic, isTopic, notFound)));
-            try
-            {
-                await recovery.Value;
+                //sends failing at the same time share one recovery
+                var recovery = recoveryByQueueOrTopic.GetOrAdd(queueOrTopic, _ => new Lazy<Task>(() => RecoverAsync(queueOrTopic, isTopic, notFound)));
+                try
+                {
+                    await recovery.Value;
+                }
+                finally
+                {
+                    _ = ((ICollection<KeyValuePair<string, Lazy<Task>>>)recoveryByQueueOrTopic).Remove(new(queueOrTopic, recovery));
+                }
+                recovered = true;
             }
-            finally
-            {
-                _ = ((ICollection<KeyValuePair<string, Lazy<Task>>>)recoveryByQueueOrTopic).Remove(new(queueOrTopic, recovery));
-            }
-
-            await sender.SendMessageAsync(serviceBusMessage, cancellationToken);
         }
 
         private async Task RecoverAsync(string queueOrTopic, bool isTopic, bool notFound)

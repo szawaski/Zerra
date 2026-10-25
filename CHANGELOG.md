@@ -33,6 +33,8 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `Zerra.CQRS.RabbitMQ` uses RabbitMQ.Client 7, and `RabbitMQConnectionTest.Test` is now `TestAsync`. Creating a RabbitMQ consumer or producer no longer throws when the broker is down: the consumer logs it and keeps retrying, and sends fail until the broker is back.
 - `Zerra.CQRS.AzureEventHub` is removed; use Kafka, RabbitMQ, or Azure Service Bus.
 - Kafka and Azure Service Bus recover when a producer's acknowledgement topic or queue is deleted: the producer creates it again and the consumer retries the reply, so awaited commands no longer hang.
+- Azure Service Bus sends wait out throttling instead of failing once the client's retries run out.
+- Kafka waits for a topic it creates to be ready before using it, so consumers no longer log an unknown topic error when they first start.
 - `WriteStreamContent` made with an async delegate throws `NotSupportedException` when sent synchronously, instead of blocking a thread on the delegate. Use the synchronous delegate constructor for synchronous sends.
 - Remote queries and commands over TCP and HTTP are about 20% faster. The server no longer throws and catches an exception on every request when it stops watching for the caller to cancel.
 
