@@ -1,7 +1,5 @@
 # Zerra.Repository.MariaDb
 
-> ⚠️ **Experimental:** the Repository is still experimental and may change.
-
 MariaDB provider for [Zerra.Repository](https://www.nuget.org/packages/Zerra.Repository).
 
 ## Installation

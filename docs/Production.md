@@ -73,7 +73,7 @@ How Zerra itself is tested is described in [Testing](Testing.md).
 
 ## Repository
 
-`Zerra.Repository` is experimental. The CQRS packages don't depend on it, so it's adopted separately. See [Repository](Repository.md).
+The CQRS packages don't depend on `Zerra.Repository`, so it's adopted separately. See [Repository](Repository.md).
 
 ## See Also
 

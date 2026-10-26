@@ -17,7 +17,7 @@ Handlers are called the same way whether they live in the same process, across T
 - **Clear message semantics.** Queries read, commands change state and are handled by one replica, events notify every subscriber. Per-replica or per-service delivery is an explicit choice for each subscriber, and the [delivery guarantees](docs/Reliability.md) are documented for each transport. Zerra never retries a failed handler, and [resilient commands](docs/Reliability.md#resilient-commands) can survive a crash mid-handler, at the cost of possibly running twice, so those handlers should be [idempotent](docs/Commands.md#idempotency).
 - **Fast by design.** Source generators replace runtime reflection, the binary serializer is compact, everything is [Native AOT](docs/AOT.md) compatible, and [benchmarks](docs/Benchmarks.md) cover the serializers, the bus with P95 latency, and encryption.
 - **No external dependencies.** Nothing beyond .NET itself on .NET 10. The .NET Standard 2.0 build, which also runs on .NET Framework 4.7.2+, adds only Microsoft's System.* compatibility packages.
-- **Complete toolkit.** Built-in binary and JSON serializers, message compression and encryption, with tamper-proof modes checked before anything is deserialized and [key rotation](docs/Encryptors.md#rotating-keys), claims propagation, a browser API gateway with generated JavaScript and TypeScript clients, and an experimental LINQ repository across SQL Server, PostgreSQL, MySQL, MariaDB, and KurrentDB.
+- **Complete toolkit.** Built-in binary and JSON serializers, message compression and encryption, with tamper-proof modes checked before anything is deserialized and [key rotation](docs/Encryptors.md#rotating-keys), claims propagation, a browser API gateway with generated JavaScript and TypeScript clients, and a LINQ repository across SQL Server, PostgreSQL, MySQL, MariaDB, and KurrentDB.
 
 ## At a Glance
 
@@ -95,7 +95,7 @@ Zerra runs in production in private commercial applications, across in-process, 
 | `Zerra.CQRS.Kafka` | Kafka transport |
 | `Zerra.CQRS.RabbitMQ` | RabbitMQ transport |
 | `Zerra.CQRS.AzureServiceBus` | Azure Service Bus transport |
-| `Zerra.Repository.*` (experimental) | LINQ data access for SQL Server, PostgreSQL, MySQL, MariaDB, in-memory, and KurrentDB ([Repository](docs/Repository.md)) |
+| `Zerra.Repository.*` | LINQ data access for SQL Server, PostgreSQL, MySQL, MariaDB, in-memory, and KurrentDB ([Repository](docs/Repository.md)) |
 
 Zerra targets .NET 10. `Zerra`, `Zerra.Web`, and the `Zerra.CQRS.*` transports also target .NET Standard 2.0.
 

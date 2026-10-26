@@ -1,7 +1,5 @@
 # Zerra.Repository.MySql
 
-> ⚠️ **Experimental:** the Repository is still experimental and may change.
-
 MySQL provider for [Zerra.Repository](https://www.nuget.org/packages/Zerra.Repository).
 
 ## Installation

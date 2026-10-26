@@ -326,5 +326,5 @@ Stopping closes the servers and consumers so nothing new arrives, waits for the 
 - [Queries](Queries.md), [Commands](Commands.md), [Events](Events.md): the details of each message type
 - [Security](Security.md): claims from the caller to the handler
 - [AOT](AOT.md): source generation and Native AOT
-- [Repository](Repository.md): data store agnostic LINQ data access (experimental)
+- [Repository](Repository.md): data store agnostic LINQ data access
 - [Documentation Index](Index.md)

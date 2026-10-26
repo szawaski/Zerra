@@ -1,7 +1,5 @@
 # Zerra.Repository.PostgreSql
 
-> ⚠️ **Experimental:** the Repository is still experimental and may change.
-
 PostgreSQL provider for [Zerra.Repository](https://www.nuget.org/packages/Zerra.Repository).
 
 ## Installation

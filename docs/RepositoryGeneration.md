@@ -2,8 +2,6 @@
 
 # Repository Generation
 
-> ⚠️ **Experimental:** The Repository feature is still experimental and subject to change.
-
 Zerra Repository supports two approaches to manage your data store schema and model classes:
 
 | Approach | Direction | Description |

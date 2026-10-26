@@ -1,7 +1,5 @@
 # Zerra.Repository.Memory
 
-> ⚠️ **Experimental:** the Repository is still experimental and may change.
-
 In-memory provider for [Zerra.Repository](https://www.nuget.org/packages/Zerra.Repository), for tests, prototyping, and as a fallback when a database isn't running.
 
 ## Installation

@@ -75,7 +75,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `AsynmmetricEncryptor` is renamed `AsymmetricEncryptor`.
 - The concurrent collections follow the standard `IList` and `IDictionary` rules, like `List<T>` and `ConcurrentDictionary`. For example, `Add` throws on a duplicate key and `Insert` at the end works.
 
-### Repository (Experimental)
+### Repository
 
 - `IRepo` from `Repo.New()` with providers added explicitly, replacing the static `Repo` and data contexts.
 - Engines for SQL Server (`Microsoft.Data.SqlClient`), PostgreSQL, MySQL, MariaDB, in-memory, and KurrentDB (replacing EventStoreDB), each with a connection test.

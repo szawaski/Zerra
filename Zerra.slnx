@@ -93,27 +93,34 @@
     <Project Path="Tests/Zerra.Test.NetStandard/Zerra.Test.NetStandard.csproj" />
   </Folder>
   <Folder Name="/Docs/">
-    <File Path="CLAUDE.md" />
+    <File Path="AGENTS.md" />
+    <File Path="CHANGELOG.md" />
     <File Path="docs/Agents.md" />
     <File Path="docs/AOT.md" />
+    <File Path="docs/ApiClient.md" />
     <File Path="docs/AzureServiceBusSetup.md" />
     <File Path="docs/Benchmarks.md" />
     <File Path="docs/ByteSerializer.md" />
     <File Path="docs/ClientSetup.md" />
     <File Path="docs/Collections.md" />
     <File Path="docs/Commands.md" />
+    <File Path="docs/Compressors.md" />
     <File Path="docs/Encryptors.md" />
     <File Path="docs/EnumName.md" />
     <File Path="docs/Events.md" />
+    <File Path="docs/FrontEndScripts.md" />
+    <File Path="docs/GettingStarted.md" />
     <File Path="docs/Graph.md" />
     <File Path="docs/Index.md" />
     <File Path="docs/JsonSerializer.md" />
     <File Path="docs/KafkaSetup.md" />
     <File Path="docs/Logging.md" />
     <File Path="docs/Mapper.md" />
+    <File Path="docs/Production.md" />
     <File Path="docs/Queries.md" />
     <File Path="docs/RabbitMQSetup.md" />
     <File Path="docs/Reflection.md" />
+    <File Path="docs/Reliability.md" />
     <File Path="docs/Repository.md" />
     <File Path="docs/RepositoryGeneration.md" />
     <File Path="docs/Security.md" />
@@ -126,5 +133,6 @@
     <File Path="docs/UpgradeV5ToV6.md" />
     <File Path="docs/ZerraWeb.md" />
     <File Path="README.md" />
+    <File Path="SECURITY.md" />
   </Folder>
 </Solution>

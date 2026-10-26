@@ -1,7 +1,5 @@
 # Zerra.Repository.KurrentDB
 
-> ⚠️ **Experimental:** the Repository is still experimental and may change.
-
 KurrentDB event store provider for [Zerra.Repository](https://www.nuget.org/packages/Zerra.Repository), for event-sourced aggregates.
 
 ## Installation

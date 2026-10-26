@@ -2,8 +2,6 @@
 
 # Repository
 
-> ⚠️ **Experimental:** the Repository is still experimental and may change.
-
 `Zerra.Repository` is LINQ data access that doesn't depend on the data store. Handlers read and write data models through one `IRepo` interface, and each model type can live in a different store: SQL Server, PostgreSQL, MySQL, MariaDB, or in memory. It also supports event-sourced aggregates on KurrentDB. It is AOT compatible.
 
 ## Compared with Entity Framework
@@ -20,7 +18,7 @@ It is a lighter alternative designed for Zerra services, not a replacement for E
 | **Loading related data** | ✅ A `Graph<T>` per call | ⚠️ `.Include()` chains |
 | **Query complexity** | ⚠️ CRUD and filtered reads | ✅ Joins, groupings, projections |
 | **Migrations** | ⚠️ Code First generation, no migration history | ✅ Rich migration tooling |
-| **Maturity** | ⚠️ Experimental | ✅ Mature, large community |
+| **Maturity** | ⚠️ Newer, small community | ✅ Mature, large community |
 
 Against SQL Server, with `AsNoTracking()` and a new `DbContext` per query on the EF side, BenchmarkDotNet's median times put Zerra at approximately:
 

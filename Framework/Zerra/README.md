@@ -221,7 +221,7 @@ For comprehensive guides and examples, visit the [GitHub repository](https://git
 - **Zerra.CQRS.RabbitMQ** - RabbitMQ message broker support
 - **Zerra.CQRS.AzureServiceBus** - Azure Service Bus support
 - **Zerra.Web** - ASP.NET Core integration and API gateway
-- **Zerra.Repository** (experimental) - Data store agnostic LINQ-based repository with SQL Server, MySQL, MariaDB, PostgreSQL, in-memory, and KurrentDB providers
+- **Zerra.Repository** - Data store agnostic LINQ-based repository with SQL Server, MySQL, MariaDB, PostgreSQL, in-memory, and KurrentDB providers
 
 ## License
 

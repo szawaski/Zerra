@@ -1,7 +1,5 @@
 # Zerra.Repository.MsSql
 
-> ⚠️ **Experimental:** the Repository is still experimental and may change.
-
 SQL Server provider for [Zerra.Repository](https://www.nuget.org/packages/Zerra.Repository).
 
 ## Installation

@@ -1,7 +1,5 @@
 # Zerra.Repository
 
-> ⚠️ **Experimental:** the Repository is still experimental and may change.
-
 LINQ data access for [Zerra](https://www.nuget.org/packages/Zerra) that doesn't depend on the data store. Handlers read and write data models through one `IRepo` interface, and each model type can live in a different store. It also supports event-sourced aggregates, and it is Native AOT compatible.
 
 ## Installation

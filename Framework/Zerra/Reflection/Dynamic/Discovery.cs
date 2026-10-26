@@ -97,16 +97,14 @@ namespace Zerra.Reflection.Dynamic
 
                     try
                     {
-                        var assembly = Assembly.Load(assemblyName);
-                        Console.WriteLine($"Discovery Loaded: {assembly.ToString()}");
+                        _ = Assembly.Load(assemblyName);
                     }
                     catch (FileNotFoundException)
                     {
                         try
                         {
                             //the full path, since a bare file name resolves against the current directory rather than the base directory
-                            var assembly = Assembly.LoadFrom(assemblyFilePath);
-                            Console.WriteLine($"Discovery Loaded: {assembly.ToString()}");
+                            _ = Assembly.LoadFrom(assemblyFilePath);
                         }
                         catch (Exception)
                         {

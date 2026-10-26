@@ -53,7 +53,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - [String Extensions](StringExtensions.md) - String manipulation, truncation, and type conversion helpers
 - [Stream Wrappers](StreamWrappers.md) - Stream interception, transformation, and monitoring
 
-### Repository (Experimental)
+### Repository
 - [Repository](Repository.md) - Data store agnostic LINQ-based data access with AOT support
 - [Repository Generation](RepositoryGeneration.md) - Code First schema generation and Database First T4 reverse engineering
 
