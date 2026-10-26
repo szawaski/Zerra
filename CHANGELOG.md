@@ -83,6 +83,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `AggregateRoot` for event-sourced aggregates.
 - SQL queries compare null columns the way C# does, so `x.Maybe != 4` and `!(x.Maybe > 1)` include rows where `Maybe` is null, matching the in-memory engine.
 - `saveStateEvery` sets how often the event store saves a model's state, or 0 to never save it.
+- `[StoreIndex]` adds a column to an index in the SQL engines. Members with the same name form one combined index, with `Unique`, `Order`, and `Descending` options.
 
 ## 5.x
 

@@ -8,12 +8,14 @@ namespace Store.Reviews.Service.Data
         [Identity(false)]
         public Guid ID { get; set; }
 
+        [StoreIndex("CustomerProduct", Unique = true, Order = 1)]
         public Guid ProductID { get; set; }
 
         //a snapshot of the name at review time, the same pattern OrderItemDataModel uses for its product name
         [StoreProperties(true, 128)]
         public string? ProductName { get; set; }
 
+        [StoreIndex("CustomerProduct", Unique = true)]
         public Guid CustomerID { get; set; }
 
         [StoreProperties(true, 128)]

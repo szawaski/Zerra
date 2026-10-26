@@ -1223,6 +1223,7 @@ namespace Zerra.Repository.MariaDb
 
             var columnsToCheck = new List<ModelDetail>();
             var droppedConstraints = new HashSet<string>();
+            var sqlIndexesByModel = new Dictionary<ModelDetail, SqlIndex[]>();
             foreach (var model in modelDetails)
             {
                 var needCreateTable = AssureTable(create, sql, needCreateDatabase, model);
@@ -1234,6 +1235,7 @@ namespace Zerra.Repository.MariaDb
             {
                 var sqlColumns = GetSqlColumns(model);
                 var sqlConstraints = GetSqlConstraints(model);
+                sqlIndexesByModel.Add(model, GetSqlIndexes(model));
                 AssureColumns(create, update, delete, sql, model, sqlColumns, sqlConstraints, droppedConstraints);
             }
 
@@ -1241,6 +1243,13 @@ namespace Zerra.Repository.MariaDb
             {
                 var sqlConstraints = needCreateDatabase ? Array.Empty<SqlConstraint>() : GetSqlConstraints(model);
                 AssureConstraints(create, update, delete, sql, model, sqlConstraints, droppedConstraints);
+            }
+
+            foreach (var model in modelDetails)
+            {
+                if (!sqlIndexesByModel.TryGetValue(model, out var sqlIndexes))
+                    sqlIndexes = Array.Empty<SqlIndex>();
+                AssureIndexes(create, update, delete, sql, model, sqlIndexes);
             }
 
             var plan = new MariaDbDataStoreGenerationPlan(this, needCreateDatabase ? databaseName : null, sql);
@@ -1524,6 +1533,63 @@ namespace Zerra.Repository.MariaDb
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }
+                }
+            }
+        }
+
+        private void AssureIndexes(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlIndex[] sqlIndexes)
+        {
+            var sb = new StringBuilder();
+
+            var usedSqlIndexes = new List<SqlIndex>();
+            foreach (var index in model.Indexes)
+            {
+                var sqlIndex = sqlIndexes.FirstOrDefault(x => String.Equals(x.Name, index.StoreName, StringComparison.OrdinalIgnoreCase));
+                if (sqlIndex is not null)
+                {
+                    usedSqlIndexes.Add(sqlIndex);
+                    var matches = sqlIndex.IsUnique == index.IsUnique && sqlIndex.Columns.Count == index.Members.Count;
+                    for (var i = 0; matches && i < index.Members.Count; i++)
+                        matches = String.Equals(sqlIndex.Columns[i], index.Members[i].StoreName, StringComparison.OrdinalIgnoreCase) && sqlIndex.Descending[i] == index.Descending[i];
+                    if (matches || !update)
+                        continue;
+
+                    //one statement so a foreign key using the index is never without one
+                    _ = sb.Append("ALTER TABLE `").Append(model.DataSourceEntityName).Append("` DROP INDEX `").Append(sqlIndex.Name).Append(index.IsUnique ? "`, ADD UNIQUE INDEX `" : "`, ADD INDEX `").Append(index.StoreName).Append('`');
+                }
+                else if (create)
+                {
+                    _ = sb.Append(index.IsUnique ? "CREATE UNIQUE INDEX `" : "CREATE INDEX `").Append(index.StoreName).Append("` ON `").Append(model.DataSourceEntityName).Append('`');
+                }
+                else
+                {
+                    continue;
+                }
+
+                _ = sb.Append('(');
+                for (var i = 0; i < index.Members.Count; i++)
+                {
+                    if (i > 0)
+                        _ = sb.Append(", ");
+                    _ = sb.Append('`').Append(index.Members[i].StoreName).Append('`');
+                    if (index.Descending[i])
+                        _ = sb.Append(" DESC");
+                }
+                _ = sb.Append(");");
+                sql.Add(sb.ToString());
+                _ = sb.Clear();
+            }
+
+            if (delete)
+            {
+                //indexes not in model, MariaDB keeps an index on each foreign key
+                foreach (var sqlIndex in sqlIndexes)
+                {
+                    if (usedSqlIndexes.Contains(sqlIndex) || model.RelatedNonEnumerableMembers.Any(x => String.Equals(x.ForeignIdentity, sqlIndex.Columns[0], StringComparison.OrdinalIgnoreCase)))
+                        continue;
+                    _ = sb.Append("DROP INDEX `").Append(sqlIndex.Name).Append("` ON `").Append(model.DataSourceEntityName).Append("`;");
+                    sql.Add(sb.ToString());
+                    _ = sb.Clear();
                 }
             }
         }
@@ -1883,6 +1949,35 @@ AND KF.TABLE_SCHEMA = DATABASE() AND LOWER(KF.TABLE_NAME) = '{model.DataSourceEn
             }).ToArray();
 
             return sqlConstrains;
+        }
+        private SqlIndex[] GetSqlIndexes(ModelDetail model)
+        {
+            var query = $@"SELECT INDEX_NAME, NON_UNIQUE, COLUMN_NAME, COLLATION
+FROM INFORMATION_SCHEMA.STATISTICS
+WHERE TABLE_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = '{model.DataSourceEntityName.ToLower()}' AND INDEX_NAME <> 'PRIMARY'
+ORDER BY INDEX_NAME, SEQ_IN_INDEX";
+
+            var sqlIndexes = new List<SqlIndex>();
+            SqlIndex? sqlIndex = null;
+            foreach (var x in ExecuteSqlQuery(query).Select(x => (IList<object>)x))
+            {
+                var name = (string)x[0];
+                if (sqlIndex is null || sqlIndex.Name != name)
+                {
+                    sqlIndex = new SqlIndex()
+                    {
+                        Name = name,
+                        Columns = new(),
+                        Descending = new(),
+                        IsUnique = Convert.ToInt64(x[1]) == 0,
+                    };
+                    sqlIndexes.Add(sqlIndex);
+                }
+                sqlIndex.Columns.Add(x[2] != DBNull.Value ? (string)x[2] : String.Empty);
+                sqlIndex.Descending.Add(x[3] != DBNull.Value && (string)x[3] == "D");
+            }
+
+            return sqlIndexes.ToArray();
         }
     }
 }

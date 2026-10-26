@@ -56,6 +56,7 @@ public sealed class PetDataModel
 | `[Identity]` | Property | Marks the primary key. Pass `true` for auto-generated (identity/serial). |
 | `[StoreProperties(notNull, length)]` | Property | Controls nullability, max length, precision, scale, text encoding, or date part. |
 | `[Relation("ForeignKeyPropertyName")]` | Property | Marks a navigation property linked by the named foreign key property. |
+| `[StoreIndex]` or `[StoreIndex("Name")]` | Property | Indexes the column. Members with the same name form one combined index. Set `Unique`, `Order`, or `Descending`. Indexed strings and `byte[]` need a length. |
 
 ### 2. Call `CodeFirstGeneration.Generate`
 

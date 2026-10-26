@@ -61,6 +61,7 @@ public sealed class OrderDataModel
     [StoreProperties(true, 32)]                 // not null, max length 32
     public string? OrderNumber { get; set; }
 
+    [StoreIndex]                                // index this column
     public Guid CustomerID { get; set; }
 
     [Relation(nameof(CustomerID))]              // many-to-one: this model's foreign key
@@ -74,6 +75,7 @@ public sealed class OrderDataModel
 - Data models need a parameterless constructor. `[Entity]` also has the source generator produce their type details.
 - One-to-many properties can be arrays, `List<T>`, or interfaces such as `IReadOnlyList<T>`.
 - Without a precision, PostgreSQL, MySQL, and MariaDB store date and time columns to the microsecond, and SQL Server stores `DateTime` as `datetime` (about 3 ms). Set `[StoreProperties(notNull, precision)]` to choose.
+- `[StoreIndex]` indexes a column in the SQL engines; the in-memory and KurrentDB engines ignore it. Members with the same `[StoreIndex("Name")]` form one combined index, ordered by `Order` and then by declaration. `Unique = true` allows any number of rows with a null in the index. Indexed strings and `byte[]` need a length from `[StoreProperties]`. Without `NoDelete`, code first generation drops indexes that aren't in the model, except primary keys, unique constraints, and the indexes MySQL and MariaDB keep for foreign keys.
 
 ## Setup
 

@@ -10,6 +10,7 @@ namespace Store.Catalog.Service.Data
 
         public Guid CategoryID { get; set; }
 
+        [StoreIndex(Unique = true)]
         [StoreProperties(true, 32)]
         public string? Sku { get; set; }
 

@@ -8,8 +8,10 @@ namespace Store.Orders.Service.Data
         [Identity(false)]
         public Guid ID { get; set; }
 
+        [StoreIndex("OrderProduct")]
         public Guid OrderID { get; set; }
 
+        [StoreIndex("OrderProduct", Order = 1)]
         public Guid ProductID { get; set; }
 
         [StoreProperties(true, 128)]

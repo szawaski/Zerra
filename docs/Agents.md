@@ -220,6 +220,7 @@ public sealed class OrderDataModel
 - With `PersistLinking => false`, related models aren't saved with their parent. Create the order and then its lines.
 - Pass collections to `CreateAsync`/`UpdateAsync`/`DeleteAsync` as arrays or with an explicit type argument. A `List<T>` binds to the single-model overload.
 - Without a precision, PostgreSQL, MySQL, and MariaDB store date and time columns to the microsecond, and SQL Server stores `DateTime` as `datetime` (about 3 ms). Set `[StoreProperties(notNull, precision)]` to choose.
+- `[StoreIndex]` indexes a column, and members sharing `[StoreIndex("Name")]` form one combined index (`Unique`, `Order`, `Descending`). Indexed strings need a length from `[StoreProperties]`.
 
 ## Core Concepts
 

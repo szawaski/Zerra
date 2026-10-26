@@ -11,11 +11,13 @@ namespace Store.Orders.Service.Data
         [StoreProperties(true, 32)]
         public string? OrderNumber { get; set; }
 
+        [StoreIndex("CustomerStatus")]
         public Guid CustomerID { get; set; }
 
         [StoreProperties(true, 6)]
         public DateTime PlacedOn { get; set; }
 
+        [StoreIndex("CustomerStatus", Order = 1)]
         [StoreProperties(true, 16)]
         public string? Status { get; set; }
 

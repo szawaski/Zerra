@@ -9,7 +9,7 @@ namespace Zerra.Repository.Test
     //code first generation run again after the models change, each version must leave the store matching its models with the rows kept
     public static class SchemaChangeTests
     {
-        public static readonly string[] Tables = ["SchemaChange", "SchemaChangeParent", "SchemaStoreProperties"];
+        public static readonly string[] Tables = ["SchemaIndex", "SchemaChange", "SchemaChangeParent", "SchemaStoreProperties"];
 
         [Entity("SchemaChangeParent")]
         public sealed class Parent
@@ -114,6 +114,97 @@ namespace Zerra.Repository.Test
             RepoTest.AssertSchemaMatchesModels(engine, v1Types);
 
             TestStoreProperties(engine);
+            TestIndexes(engine);
+        }
+
+        public static class IndexV1
+        {
+            [Entity("SchemaIndex")]
+            public sealed class Model
+            {
+                [Identity]
+                public Guid ID { get; set; }
+                [StoreIndex]
+                public int Number { get; set; }
+                [StoreIndex(Unique = true)]
+                [StoreProperties(50)]
+                public string? Code { get; set; }
+                [StoreIndex("CustomerDate", Order = 1, Descending = true)]
+                public DateTime Date { get; set; }
+                [StoreIndex("CustomerDate")]
+                public Guid CustomerID { get; set; }
+                [StoreIndex]
+                public long BecomesUnique { get; set; }
+                [StoreIndex]
+                public int Removed { get; set; }
+                [StoreIndex]
+                public int TypeChanged { get; set; }
+                public Guid? ParentID { get; set; }
+                [Relation(nameof(ParentID))]
+                public Parent? Parent { get; set; }
+            }
+        }
+
+        public static class IndexV2
+        {
+            [Entity("SchemaIndex")]
+            public sealed class Model
+            {
+                [Identity]
+                public Guid ID { get; set; }
+                [StoreIndex]
+                public int Number { get; set; }
+                [StoreIndex(Unique = true)]
+                [StoreProperties(50)]
+                public string? Code { get; set; }
+                //now ascending and the column order is swapped
+                [StoreIndex("CustomerDate")]
+                public DateTime Date { get; set; }
+                [StoreIndex("CustomerDate", Order = 1)]
+                public Guid CustomerID { get; set; }
+                [StoreIndex(Unique = true)]
+                public long BecomesUnique { get; set; }
+                //the index is gone, the column stays
+                public int Removed { get; set; }
+                //a different type, the index stays
+                [StoreIndex]
+                public long TypeChanged { get; set; }
+                [StoreIndex]
+                public int Added { get; set; }
+                //an index on the foreign key column
+                [StoreIndex]
+                public Guid? ParentID { get; set; }
+                [Relation(nameof(ParentID))]
+                public Parent? Parent { get; set; }
+            }
+        }
+
+        private static void TestIndexes(ITransactStoreEngine engine)
+        {
+            var v1Types = new[] { typeof(Parent), typeof(IndexV1.Model) };
+            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, v1Types);
+            RepoTest.AssertSchemaMatchesModels(engine, v1Types);
+
+            var repo1 = Repo.New();
+            repo1.AddProvider(new TransactStoreProvider<IndexV1.Model>(engine));
+            repo1.Create(new IndexV1.Model() { ID = Guid.NewGuid(), Number = 1, Code = "a", Date = new DateTime(2024, 1, 1), CustomerID = Guid.NewGuid(), BecomesUnique = 1, Removed = 1, TypeChanged = 1 });
+            repo1.Create(new IndexV1.Model() { ID = Guid.NewGuid(), Number = 1, Code = null, Date = new DateTime(2024, 1, 1), CustomerID = Guid.NewGuid(), BecomesUnique = 2, Removed = 1, TypeChanged = 1 });
+            //a unique index allows many nulls
+            repo1.Create(new IndexV1.Model() { ID = Guid.NewGuid(), Number = 1, Code = null, Date = new DateTime(2024, 1, 1), CustomerID = Guid.NewGuid(), BecomesUnique = 3, Removed = 1, TypeChanged = 1 });
+            _ = Assert.ThrowsAny<Exception>(() => repo1.Create(new IndexV1.Model() { ID = Guid.NewGuid(), Number = 1, Code = "a", Date = new DateTime(2024, 1, 1), CustomerID = Guid.NewGuid(), BecomesUnique = 4, Removed = 1, TypeChanged = 1 }));
+
+            var v2Types = new[] { typeof(Parent), typeof(IndexV2.Model) };
+            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, v2Types);
+            RepoTest.AssertSchemaMatchesModels(engine, v2Types);
+
+            var repo2 = Repo.New();
+            repo2.AddProvider(new TransactStoreProvider<IndexV2.Model>(engine));
+            Assert.Equal(3L, repo2.Count<IndexV2.Model>());
+            _ = Assert.ThrowsAny<Exception>(() => repo2.Create(new IndexV2.Model() { ID = Guid.NewGuid(), Code = "b", BecomesUnique = 1 }));
+
+            //back to the first version, the indexes it had come back
+            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, v1Types);
+            RepoTest.AssertSchemaMatchesModels(engine, v1Types);
         }
 
         [Entity("SchemaStoreProperties")]

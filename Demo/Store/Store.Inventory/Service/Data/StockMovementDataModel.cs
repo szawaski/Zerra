@@ -19,6 +19,7 @@ namespace Store.Inventory.Service.Data
         public string? OrderNumber { get; set; }
 
         //fractional seconds so movements in the same second still sort in order
+        [StoreIndex(Descending = true)]
         [StoreProperties(true, 6)]
         public DateTime OccurredOn { get; set; }
     }

@@ -1214,6 +1214,7 @@ namespace Zerra.Repository.PostgreSql
 
             var columnsToCheck = new List<ModelDetail>();
             var droppedConstraints = new HashSet<string>();
+            var sqlIndexesByModel = new Dictionary<ModelDetail, SqlIndex[]>();
             foreach (var model in modelDetails)
             {
                 var needCreateTable = AssureTable(create, sql, needCreateDatabase, model);
@@ -1225,6 +1226,7 @@ namespace Zerra.Repository.PostgreSql
             {
                 var sqlColumns = GetSqlColumns(model);
                 var sqlConstraints = GetSqlConstraints(model);
+                sqlIndexesByModel.Add(model, GetSqlIndexes(model));
                 AssureColumns(create, update, delete, sql, model, sqlColumns, sqlConstraints, droppedConstraints);
             }
 
@@ -1232,6 +1234,13 @@ namespace Zerra.Repository.PostgreSql
             {
                 var sqlConstraints = needCreateDatabase ? Array.Empty<SqlConstraint>() : GetSqlConstraints(model);
                 AssureConstraints(create, update, delete, sql, model, sqlConstraints, droppedConstraints);
+            }
+
+            foreach (var model in modelDetails)
+            {
+                if (!sqlIndexesByModel.TryGetValue(model, out var sqlIndexes))
+                    sqlIndexes = Array.Empty<SqlIndex>();
+                AssureIndexes(create, update, delete, sql, model, sqlIndexes);
             }
 
             var plan = new PostgreSqlDataStoreGenerationPlan(this, needCreateDatabase ? databaseName : null, sql);
@@ -1546,6 +1555,60 @@ namespace Zerra.Repository.PostgreSql
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }
+                }
+            }
+        }
+
+        private void AssureIndexes(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlIndex[] sqlIndexes)
+        {
+            var sb = new StringBuilder();
+
+            var usedSqlIndexes = new List<SqlIndex>();
+            foreach (var index in model.Indexes)
+            {
+                var sqlIndex = sqlIndexes.FirstOrDefault(x => String.Equals(x.Name, index.StoreName, StringComparison.OrdinalIgnoreCase));
+                if (sqlIndex is not null)
+                {
+                    usedSqlIndexes.Add(sqlIndex);
+                    var matches = sqlIndex.IsUnique == index.IsUnique && sqlIndex.Columns.Count == index.Members.Count;
+                    for (var i = 0; matches && i < index.Members.Count; i++)
+                        matches = String.Equals(sqlIndex.Columns[i], index.Members[i].StoreName, StringComparison.OrdinalIgnoreCase) && sqlIndex.Descending[i] == index.Descending[i];
+                    if (matches || !update)
+                        continue;
+
+                    _ = sb.Append("DROP INDEX \"").Append(sqlIndex.Name).Append("\";");
+                    sql.Add(sb.ToString());
+                    _ = sb.Clear();
+                }
+                else if (!create)
+                {
+                    continue;
+                }
+
+                _ = sb.Append(index.IsUnique ? "CREATE UNIQUE INDEX " : "CREATE INDEX ").Append(index.StoreName.ToLower()).Append(" ON ").Append(model.DataSourceEntityName.ToLower()).Append('(');
+                for (var i = 0; i < index.Members.Count; i++)
+                {
+                    if (i > 0)
+                        _ = sb.Append(", ");
+                    _ = sb.Append(index.Members[i].StoreName.ToLower());
+                    if (index.Descending[i])
+                        _ = sb.Append(" DESC");
+                }
+                _ = sb.Append(");");
+                sql.Add(sb.ToString());
+                _ = sb.Clear();
+            }
+
+            if (delete)
+            {
+                //indexes not in model
+                foreach (var sqlIndex in sqlIndexes)
+                {
+                    if (usedSqlIndexes.Contains(sqlIndex))
+                        continue;
+                    _ = sb.Append("DROP INDEX \"").Append(sqlIndex.Name).Append("\";");
+                    sql.Add(sb.ToString());
+                    _ = sb.Clear();
                 }
             }
         }
@@ -1887,6 +1950,40 @@ AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
             }).ToArray();
 
             return sqlConstrains;
+        }
+        private SqlIndex[] GetSqlIndexes(ModelDetail model)
+        {
+            var query = $@"SELECT I.relname, IX.indisunique, A.attname, (IX.indoption[(K.ord - 1)::int] & 1) = 1
+FROM pg_index IX
+JOIN pg_class T ON T.oid = IX.indrelid
+JOIN pg_class I ON I.oid = IX.indexrelid
+CROSS JOIN LATERAL unnest(IX.indkey::int2[]) WITH ORDINALITY AS K(attnum, ord)
+JOIN pg_attribute A ON A.attrelid = T.oid AND A.attnum = K.attnum
+WHERE T.relname = '{model.DataSourceEntityName.ToLower()}' AND pg_table_is_visible(T.oid) AND NOT IX.indisprimary AND K.ord <= IX.indnkeyatts
+AND NOT EXISTS (SELECT 1 FROM pg_constraint C WHERE C.conindid = IX.indexrelid AND C.conrelid = T.oid)
+ORDER BY I.relname, K.ord";
+
+            var sqlIndexes = new List<SqlIndex>();
+            SqlIndex? sqlIndex = null;
+            foreach (var x in ExecuteSqlQuery(query).Select(x => (IList<object>)x))
+            {
+                var name = (string)x[0];
+                if (sqlIndex is null || sqlIndex.Name != name)
+                {
+                    sqlIndex = new SqlIndex()
+                    {
+                        Name = name,
+                        Columns = new(),
+                        Descending = new(),
+                        IsUnique = (bool)x[1],
+                    };
+                    sqlIndexes.Add(sqlIndex);
+                }
+                sqlIndex.Columns.Add((string)x[2]);
+                sqlIndex.Descending.Add((bool)x[3]);
+            }
+
+            return sqlIndexes.ToArray();
         }
     }
 }
