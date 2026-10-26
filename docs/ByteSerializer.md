@@ -4,7 +4,7 @@
 
 `ByteSerializer` (in `Zerra.Serialization.Bytes`) is Zerra's binary serializer: the fastest and most compact option, for traffic where both sides are .NET. Member names aren't written, integers are variable-length, and type details come from the [source generator](AOT.md), so it works under Native AOT.
 
-To use it with the bus, a server, or a client, pass `ZerraByteSerializer`, the `ISerializer` wrapper around it. See [Serializers](Serializers.md).
+To use it with the bus, a server, or a client, pass `NetworkByteSerializer`, the `INetworkSerializer` wrapper around it. The wrapper is only for transports; call `ByteSerializer` directly for everything else. See [Serializers](Serializers.md).
 
 ## Serializing
 
@@ -44,7 +44,7 @@ var options = new ByteSerializerOptions
 };
 
 byte[] bytes = ByteSerializer.Serialize(command, options);
-var serializer = new ZerraByteSerializer(options);
+var serializer = new NetworkByteSerializer(options);
 ```
 
 The same options must be used to serialize and deserialize.

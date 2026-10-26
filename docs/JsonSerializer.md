@@ -4,7 +4,7 @@
 
 `JsonSerializer` (in `Zerra.Serialization.Json`) is Zerra's JSON serializer. Beyond ordinary JSON, it can write or read only the members a [Graph](Graph.md) selects, report which members a JSON document contained (for PATCH), and write compact nameless JSON.
 
-To use it with the bus, a server, or a client, pass `ZerraJsonSerializer`, the `ISerializer` wrapper around it. See [Serializers](Serializers.md).
+To use it with the bus, a server, or a client, pass `NetworkJsonSerializer`, the `INetworkSerializer` wrapper around it. The wrapper is only for transports; call `JsonSerializer` directly for everything else. See [Serializers](Serializers.md).
 
 ## Serializing
 
@@ -64,7 +64,7 @@ var options = new JsonSerializerOptions
 };
 
 string json = JsonSerializer.Serialize(obj, options: options);
-var serializer = new ZerraJsonSerializer(options); // the same options for the bus
+var serializer = new NetworkJsonSerializer(options); // the same options for the bus
 ```
 
 Output is always compact; there is no indented option.

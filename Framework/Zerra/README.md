@@ -22,7 +22,7 @@ A high-performance, distributed CQRS (Command Query Responsibility Segregation) 
 
 📊 **Observable** - Optional `IBusLogger` for cross-service message lifecycle tracking
 
-📦 **Built-in Serialization** - High-performance ZerraByteSerializer for compact binary serialization and flexible ZerraJsonSerializer for human-readable JSON format
+📦 **Built-in Serialization** - High-performance `ByteSerializer` for compact binary serialization and flexible `JsonSerializer` for human-readable JSON format
 
 🔐 **Message Encryption** - Transparent symmetric encryption with AES-GCM or AES-CBC with HMAC, which also reject changed messages, or a custom algorithm
 
@@ -45,11 +45,10 @@ dotnet add package Zerra
 ```csharp
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
-using Zerra.Serialization;
 using Zerra.Encryption;
 
 // Configure services
-ISerializer serializer = new ZerraByteSerializer();
+INetworkSerializer serializer = new NetworkByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AES_GCM);
 BusServices busServices = new BusServices();
 busServices.AddService<IUserRepository>(userRepository);
@@ -78,11 +77,10 @@ await bus.WaitForExitAsync(cancellationToken);
 ```csharp
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
-using Zerra.Serialization;
 using Zerra.Encryption;
 
 // Configure services (must match server)
-ISerializer serializer = new ZerraByteSerializer();
+INetworkSerializer serializer = new NetworkByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AES_GCM);
 
 // Create the bus
@@ -189,8 +187,9 @@ Zerra supports multiple message transports:
 ## Additional Features
 
 ### Serialization
-- **ZerraByteSerializer** - High-performance binary serialization
-- **ZerraJsonSerializer** - JSON serialization with Graph-based property control
+- **ByteSerializer** - High-performance binary serialization
+- **JsonSerializer** - JSON serialization with Graph-based property control
+- **NetworkByteSerializer**, **NetworkJsonSerializer** - The `INetworkSerializer` wrappers passed to servers, clients, producers, and consumers
 
 ### Utilities
 - **TypeAnalyzer** - Fast reflection and type inspection

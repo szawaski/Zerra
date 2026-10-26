@@ -115,7 +115,7 @@ IImportQueryHandler.ExportCsv(function (blob) {
 
 Dates are sent as ISO 8601 strings and turned back into `Date` objects using the generated model types, including in nested objects and arrays.
 
-When a call has a model type, the scripts ask for nameless JSON (`Accept: application/jsonnameless`), a compact form that sends values without property names, and rebuild the objects from the model type. The requests themselves are always standard JSON (`Content-Type: application/json`), so register the standard `ZerraJsonSerializer` with the gateway, not one with `Nameless = true`. Error responses are always standard JSON. See [Content Type Support](ZerraWeb.md#content-type-support).
+When a call has a model type, the scripts ask for nameless JSON (`Accept: application/jsonnameless`), a compact form that sends values without property names, and rebuild the objects from the model type. The requests themselves are always standard JSON (`Content-Type: application/json`), so register the standard `NetworkJsonSerializer` with the gateway, not one with `Nameless = true`. Error responses are always standard JSON. See [Content Type Support](ZerraWeb.md#content-type-support).
 
 ## See Also
 

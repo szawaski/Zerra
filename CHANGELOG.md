@@ -40,22 +40,22 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 
 ### Serialization
 
-- `ZerraJsonSerializer` is faster than System.Text.Json on every benchmarked model, and `ZerraByteSerializer` is faster than before, both with less memory ([Benchmarks](docs/Benchmarks.md)).
-- `ZerraJsonSerializer` writes dictionaries with enum keys as objects, like System.Text.Json (`{"Friday":1}`). The old array form is still read.
-- `ZerraJsonSerializer` reads enums from numeric strings too.
-- `ZerraJsonSerializer` deserializes `IEnumerable<T>`, `IReadOnlyCollection<T>`, `IEnumerable`, and `ICollection` members as a `List` instead of an array.
-- `ZerraJsonSerializer` reads a JSON object into a value typed as `object` as a `JsonObject` instead of an empty `object`, numbers into `object` as `double` instead of `decimal`, writes and reads `JsonObject` members, and supports non-generic dictionaries such as `Hashtable`, which threw before.
-- `ZerraByteSerializer` throws a `NotSupportedException` when a value typed as `object`, including the items of a non-generic collection, is serialized without `UseTypes`. Before, it came back as an empty `object`.
-- `ZerraJsonSerializer` rejects enum numbers out of the enum's range.
-- `ZerraByteSerializer` throws on bytes after the value, like `ZerraJsonSerializer`. Before, they were ignored or rejected depending on where the stream's read buffer ended.
-- Fixed `ZerraByteSerializer` failing to skip members missing from the target type when they hold custom collections, hash sets, or records.
-- Fixed `ZerraByteSerializer` without `UseTypes` failing to read a value declared as an interface when its class has members the interface doesn't. The value is written with the interface's members.
-- Fixed `ZerraJsonSerializer` throwing `ArgumentOutOfRangeException` instead of a `FormatException` for some invalid JSON at the end of the input.
-- Fixed `ZerraJsonSerializer` reading a dictionary written as an array of key and value pairs when an item isn't a pair, such as `[1]`. It threw `ArgumentNullException` or added an empty entry, and now skips the item.
-- Fixed `ZerraJsonSerializer` failing on dictionaries with `string` or number keys written as an array of key-value pairs.
-- Fixed `ZerraJsonSerializer` throwing `NullReferenceException` when writing a dictionary to a stream if its closing `}` or `]` landed exactly at the end of the write buffer.
+- `JsonSerializer` is faster than System.Text.Json on every benchmarked model, and `ByteSerializer` is faster than before, both with less memory ([Benchmarks](docs/Benchmarks.md)).
+- `JsonSerializer` writes dictionaries with enum keys as objects, like System.Text.Json (`{"Friday":1}`). The old array form is still read.
+- `JsonSerializer` reads enums from numeric strings too.
+- `JsonSerializer` deserializes `IEnumerable<T>`, `IReadOnlyCollection<T>`, `IEnumerable`, and `ICollection` members as a `List` instead of an array.
+- `JsonSerializer` reads a JSON object into a value typed as `object` as a `JsonObject` instead of an empty `object`, numbers into `object` as `double` instead of `decimal`, writes and reads `JsonObject` members, and supports non-generic dictionaries such as `Hashtable`, which threw before.
+- `ByteSerializer` throws a `NotSupportedException` when a value typed as `object`, including the items of a non-generic collection, is serialized without `UseTypes`. Before, it came back as an empty `object`.
+- `JsonSerializer` rejects enum numbers out of the enum's range.
+- `ByteSerializer` throws on bytes after the value, like `JsonSerializer`. Before, they were ignored or rejected depending on where the stream's read buffer ended.
+- Fixed `ByteSerializer` failing to skip members missing from the target type when they hold custom collections, hash sets, or records.
+- Fixed `ByteSerializer` without `UseTypes` failing to read a value declared as an interface when its class has members the interface doesn't. The value is written with the interface's members.
+- Fixed `JsonSerializer` throwing `ArgumentOutOfRangeException` instead of a `FormatException` for some invalid JSON at the end of the input.
+- Fixed `JsonSerializer` reading a dictionary written as an array of key and value pairs when an item isn't a pair, such as `[1]`. It threw `ArgumentNullException` or added an empty entry, and now skips the item.
+- Fixed `JsonSerializer` failing on dictionaries with `string` or number keys written as an array of key-value pairs.
+- Fixed `JsonSerializer` throwing `NullReferenceException` when writing a dictionary to a stream if its closing `}` or `]` landed exactly at the end of the write buffer.
 - Fixed on .NET Framework: reading records and `init` properties, `float` and `double` values that didn't round trip, numbers too large for `float` or `double` throwing instead of reading as infinity, and `[JsonIgnore(Condition = ...)]` being treated as always ignored.
-- `ZerraJsonSerializer` throws on anything after the JSON value other than whitespace, and every type follows one rule for values that don't match it ([Mismatched Values](docs/JsonSerializer.md#mismatched-values)).
+- `JsonSerializer` throws on anything after the JSON value other than whitespace, and every type follows one rule for values that don't match it ([Mismatched Values](docs/JsonSerializer.md#mismatched-values)).
 - `JsonSerializerOptions.ErrorOnTypeMismatch` is renamed `ErrorOnReadMismatchedData`. With it off, the default, valid JSON that doesn't fit the type no longer throws: `1.5` for an `int`, an unparseable date, an unknown enum name, or extra values in a nameless array read as the default or are skipped, and a repeated dictionary key keeps the last value. Invalid JSON still throws.
 
 ### Mapping

@@ -14,7 +14,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 
 ### Configuration & Setup
 - [AOT (Ahead-of-Time Compilation)](AOT.md) - Automatic source generator for precompiled reflection and Native AOT support (included with Zerra package)
-- [Serializers](Serializers.md) - Configure serialization with ZerraByteSerializer and ZerraJsonSerializer
+- [Serializers](Serializers.md) - Configure serialization with NetworkByteSerializer and NetworkJsonSerializer
   - [ByteSerializer](ByteSerializer.md) - High-performance binary serialization
   - [JsonSerializer](JsonSerializer.md) - JSON serialization with Graph-based property control
 - [Encryptors](Encryptors.md) - Secure message encryption with ZerraEncryptor and key rotation
@@ -72,7 +72,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 [Getting Started](GettingStarted.md) walks through all of these in one guide.
 
 1. **[Add Zerra Package](AOT.md)** - Reference Zerra NuGet package (includes automatic source generation for CQRS types)
-2. **[Configure Serializer](Serializers.md)** - Choose ZerraByteSerializer (binary) or ZerraJsonSerializer (JSON)
+2. **[Configure Serializer](Serializers.md)** - Choose NetworkByteSerializer (binary) or NetworkJsonSerializer (JSON)
 3. **[Set Up Server](ServerSetup.md)** - Register handlers and start consumers
 4. **[Set Up Client](ClientSetup.md)** - Configure remote connections
 

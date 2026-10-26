@@ -11,7 +11,6 @@ using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Serialization;
 
 ILogger log = new ConsoleLogger();          // your ILogger implementation, see Logging.md
 IBusLogger busLog = new ConsoleBusLogger(); // optional
@@ -25,7 +24,7 @@ bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
 bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
 bus.AddHandler<IUserEventHandler>(new UserEventHandler());
 
-var serializer = new ZerraByteSerializer();
+var serializer = new NetworkByteSerializer();
 var encryptor = new ZerraEncryptor(encryptionKey, SymmetricAlgorithmType.AES_GCM);
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);   // null: no compressor, see Compressors.md
 bus.AddCommandConsumer<IUserCommandHandler>(server);

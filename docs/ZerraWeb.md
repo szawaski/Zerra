@@ -16,11 +16,11 @@ dotnet add package Zerra.Web
 
 ## The CQRS API Gateway
 
-The gateway exposes a bus's queries and commands to outside callers, who don't need to know which service handles what. It resolves `IBus` and `ISerializer` from DI, and optionally a `Zerra.Logging.ILogger` and an `ICqrsAuthorizer`.
+The gateway exposes a bus's queries and commands to outside callers, who don't need to know which service handles what. It resolves `IBus` and `INetworkSerializer` from DI, and optionally a `Zerra.Logging.ILogger` and an `ICqrsAuthorizer`.
 
 ```csharp
 using Zerra.CQRS;
-using Zerra.Serialization;
+using Zerra.CQRS.Network;
 using Zerra.Web;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,7 +33,7 @@ bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
 bus.AddHandler<IUserQueryHandler>(new UserQueryHandler());
 
 builder.Services.AddSingleton<IBus>(bus);   // Bus.New returns IBusSetup, so register it as IBus
-builder.Services.AddSingleton<ISerializer>(new ZerraJsonSerializer());
+builder.Services.AddSingleton<INetworkSerializer>(new NetworkJsonSerializer());
 builder.Services.AddSingleton(log);
 
 var app = builder.Build();
@@ -144,17 +144,17 @@ app.UseCqrsApiGateway(route: "/api/v1/gateway");
 app.UseCqrsApiGateway(route: null);
 ```
 
-Every gateway resolves the same `IBus` and `ISerializer` from DI, so multiple routes expose the same bus.
+Every gateway resolves the same `IBus` and `INetworkSerializer` from DI, so multiple routes expose the same bus.
 
 ### Content Type Support
 
-The request `Content-Type` must match the `ContentType` of the `ISerializer` registered in DI; a missing or different content type gets `400 Bad Request`:
+The request `Content-Type` must match the `ContentType` of the `INetworkSerializer` registered in DI; a missing or different content type gets `400 Bad Request`:
 
 | Registered serializer | Required `Content-Type` |
 |---|---|
-| `ZerraJsonSerializer` | `application/json` |
-| `ZerraJsonSerializer` with `Nameless = true` | `application/jsonnameless` |
-| `ZerraByteSerializer` | `application/octet-stream` |
+| `NetworkJsonSerializer` | `application/json` |
+| `NetworkJsonSerializer` with `Nameless = true` | `application/jsonnameless` |
+| `NetworkByteSerializer` | `application/octet-stream` |
 
 With a standard JSON serializer, clients may also send `Accept: application/jsonnameless` to receive nameless JSON responses (the front end scripts do this automatically when a model type is supplied). An `Accept` type the gateway can't produce also gets `400 Bad Request`.
 
@@ -193,16 +193,16 @@ The usual gateway has no handlers of its own. It registers a client for each bac
 ```csharp
 var bus = Bus.New("Gateway", log, busLog);
 
-var users = new TcpCqrsClient("user-service:9001", new ZerraByteSerializer(), encryptor, null, log);
+var users = new TcpCqrsClient("user-service:9001", new NetworkByteSerializer(), encryptor, null, log);
 bus.AddCommandProducer<IUserCommandHandler>(users);
 bus.AddQueryClient<IUserQueryHandler>(users);
 
-var orders = new TcpCqrsClient("order-service:9002", new ZerraByteSerializer(), encryptor, null, log);
+var orders = new TcpCqrsClient("order-service:9002", new NetworkByteSerializer(), encryptor, null, log);
 bus.AddCommandProducer<IOrderCommandHandler>(orders);
 bus.AddQueryClient<IOrderQueryHandler>(orders);
 
 builder.Services.AddSingleton<IBus>(bus);
-builder.Services.AddSingleton<ISerializer>(new ZerraJsonSerializer()); // what outside callers speak
+builder.Services.AddSingleton<INetworkSerializer>(new NetworkJsonSerializer()); // what outside callers speak
 builder.Services.AddSingleton(log);
 
 var app = builder.Build();
@@ -267,7 +267,7 @@ Browsers call the gateway with `Bus.js` or `Bus.ts`, using JavaScript or TypeScr
 - Check the request path matches the gateway's `route`, since other paths don't get its CORS headers.
 - Check no other CORS middleware adds a conflicting `Access-Control-Allow-Origin`.
 
-**Slow under load:** check Kestrel's limits and response compression. .NET callers can use a separate gateway app registered with `ZerraByteSerializer`, since one gateway accepts only its registered serializer's content type.
+**Slow under load:** check Kestrel's limits and response compression. .NET callers can use a separate gateway app registered with `NetworkByteSerializer`, since one gateway accepts only its registered serializer's content type.
 
 ## See Also
 

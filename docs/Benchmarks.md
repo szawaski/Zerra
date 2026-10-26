@@ -12,11 +12,11 @@ Environment: BenchmarkDotNet 0.15.8, .NET 10.0.12, Windows 11, Intel Core i9-149
 
 ## Serializers
 
-One `NormalJsonModel` from `Tests/Zerra.Test` (41 properties: strings, decimals, bools, and dates, plus arrays of child models). The JSON serializers write JSON as a string or as UTF-8 bytes; `ZerraByteSerializer` writes its compact binary format.
+One `NormalJsonModel` from `Tests/Zerra.Test` (41 properties: strings, decimals, bools, and dates, plus arrays of child models). The JSON serializers write JSON as a string or as UTF-8 bytes; `ByteSerializer` writes its compact binary format.
 
 **Time** (lower is better)
 
-| | `ZerraJsonSerializer` | System.Text.Json | Newtonsoft.Json | `ZerraByteSerializer` |
+| | `JsonSerializer` | System.Text.Json | Newtonsoft.Json | `ByteSerializer` |
 |---|---:|---:|---:|---:|
 | Serialize to string | **5.0 µs** | 6.0 µs | 12.8 µs | |
 | Serialize to bytes | 4.3 µs | 5.4 µs | | **3.0 µs** |
@@ -25,19 +25,19 @@ One `NormalJsonModel` from `Tests/Zerra.Test` (41 properties: strings, decimals,
 
 **Memory allocated**
 
-| | `ZerraJsonSerializer` | System.Text.Json | Newtonsoft.Json | `ZerraByteSerializer` |
+| | `JsonSerializer` | System.Text.Json | Newtonsoft.Json | `ByteSerializer` |
 |---|---:|---:|---:|---:|
 | Serialize to string | **17.8 KB** | 18.0 KB | 55.8 KB | |
 | Serialize to bytes | 9.0 KB | 9.2 KB | | **5.4 KB** |
 | Deserialize from string | **13.4 KB** | 13.6 KB | 21.1 KB | |
 | Deserialize from bytes | 13.4 KB | 13.6 KB | | **12.8 KB** |
 
-- `ZerraByteSerializer`, the serializer services use between themselves, serializes in about half of System.Text.Json's time and deserializes in about a third, with less memory.
-- `ZerraJsonSerializer`, for browsers and outside callers, is faster than System.Text.Json in all four comparisons, by 10–20%, and about twice as fast as Newtonsoft.Json. It adds [Graph](Graph.md) member selection, nameless JSON, and PATCH tracking.
+- `ByteSerializer`, the serializer services use between themselves, serializes in about half of System.Text.Json's time and deserializes in about a third, with less memory.
+- `JsonSerializer`, for browsers and outside callers, is faster than System.Text.Json in all four comparisons, by 10–20%, and about twice as fast as Newtonsoft.Json. It adds [Graph](Graph.md) member selection, nameless JSON, and PATCH tracking.
 
 ### Other Models
 
-`ModelSerializerBenchmarks` compares `ZerraJsonSerializer` with System.Text.Json on other kinds of data, both writing enums as names. Each cell is Zerra's time relative to System.Text.Json; negative is faster. Memory is the same or lower, within 1%.
+`ModelSerializerBenchmarks` compares `JsonSerializer` with System.Text.Json on other kinds of data, both writing enums as names. Each cell is Zerra's time relative to System.Text.Json; negative is faster. Memory is the same or lower, within 1%.
 
 | Model | Serialize to string | Serialize to bytes | Deserialize from string | Deserialize from bytes |
 |---|---:|---:|---:|---:|
@@ -59,7 +59,7 @@ One `NormalJsonModel` from `Tests/Zerra.Test` (41 properties: strings, decimals,
 
 ## Bus
 
-`BusBenchmarks` calls a handler that returns a `NormalJsonModel` directly, through an in-process bus, and through `TcpCqrsServer` and `TcpCqrsClient` over loopback with `ZerraByteSerializer`. Measured October 10, 2026.
+`BusBenchmarks` calls a handler that returns a `NormalJsonModel` directly, through an in-process bus, and through `TcpCqrsServer` and `TcpCqrsClient` over loopback with `NetworkByteSerializer`. Measured October 10, 2026.
 
 | | Mean | Median | P95 |
 |---|---:|---:|---:|

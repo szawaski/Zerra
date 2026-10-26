@@ -17,10 +17,10 @@ The sending side registers a `RabbitMQProducer` for the interfaces whose command
 ```csharp
 using Zerra.CQRS;
 using Zerra.Encryption;
-using Zerra.Serialization;
+using Zerra.CQRS.Network;
 using Zerra.CQRS.RabbitMQ;
 
-ISerializer serializer = new ZerraByteSerializer();
+INetworkSerializer serializer = new NetworkByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AES_GCM);
 
 var bus = Bus.New("OrderService");

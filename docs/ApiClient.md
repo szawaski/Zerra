@@ -9,11 +9,10 @@
 ```csharp
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
-using Zerra.Serialization;
 
 var apiClient = new ApiClient(
     endpoint: "https://myapp.example.com",
-    serializer: new ZerraJsonSerializer(),   // must match the gateway's registered serializer
+    serializer: new NetworkJsonSerializer(), // must match the gateway's registered serializer
     log: log,
     authorizer: authorizer,                  // optional ICqrsAuthorizer supplying request headers
     route: "/CQRS"                           // the gateway's route
@@ -35,7 +34,7 @@ In ASP.NET Core or a MAUI app, build the client and bus once at startup and regi
 
 - **Authorization:** the authorizer's `GetAuthorizationHeadersAsync` supplies headers such as an API key or bearer token for each request. [Security](Security.md) has complete API key and JWT authorizers.
 - **Origin:** `ApiClient` sends the gateway's host name as its `Origin`. If the gateway sets `allowOrigins`, include that host, or the gateway answers `401`. See [CORS Configuration](ZerraWeb.md#cors-configuration).
-- **Serializer:** the gateway accepts only its registered serializer's content type, usually JSON. A gateway registered with `ZerraByteSerializer` serves .NET callers only.
+- **Serializer:** the gateway accepts only its registered serializer's content type, usually JSON. A gateway registered with `NetworkByteSerializer` serves .NET callers only.
 - **Synchronous queries:** on .NET Standard 2.0 they throw `PlatformNotSupportedException`, because `HttpClient` has no synchronous send there. Use async query methods.
 - **Errors:** a handler's exception arrives as a `CqrsServiceException`, as over any other transport. See [Commands](Commands.md#errors).
 

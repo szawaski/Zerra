@@ -41,7 +41,7 @@ The contracts are the query interfaces, commands, events, the models they carry,
 Choosing between them:
 
 - **Shared** keeps each contract in one place. A change is made once, and the compiler catches every caller it breaks. The services build against each other's projects, so they're tied together in source control and releases.
-- **Copies** isolate the services. Each one builds and deploys from its own repository and pipeline with no shared project to version, and a copy holds only what that service uses, such as an interface trimmed to the methods it calls. A contract change has to be made in every copy. A copy keeps its members in the same order as the original, since `ZerraByteSerializer` matches members by order unless they have `[SerializerIndex]`.
+- **Copies** isolate the services. Each one builds and deploys from its own repository and pipeline with no shared project to version, and a copy holds only what that service uses, such as an interface trimmed to the methods it calls. A contract change has to be made in every copy. A copy keeps its members in the same order as the original, since `ByteSerializer` matches members by order unless they have `[SerializerIndex]`.
 
 ### Project Setup
 
@@ -110,7 +110,7 @@ var bus = Bus.New("Catalog", log, busLog, busServices);
 bus.AddHandler<ICatalogQueryHandler>(new CatalogQueryHandler());
 bus.AddHandler<ICatalogCommandHandler>(new CatalogCommandHandler());
 
-var serializer = new ZerraByteSerializer();
+var serializer = new NetworkByteSerializer();
 var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AES_GCM);
 var server = new TcpCqrsServer("localhost:9101", serializer, encryptor, null, log);   //null: no compressor, see Compressors.md
 bus.AddQueryServer<ICatalogQueryHandler>(server);
@@ -123,6 +123,8 @@ bus.AddEventProducer<IOrderEventHandler>(inventory);
 
 await bus.WaitForExitAsync(exitToken);
 ```
+
+`INetworkSerializer` (`NetworkByteSerializer`, `NetworkJsonSerializer`) is only for servers, clients, producers, consumers, and the gateway. To serialize anything else, call `ByteSerializer` or `JsonSerializer` directly.
 
 Handler instances are created once and shared by concurrent messages, so keep them stateless. Inside a handler, use `Bus.Call<IOtherQueryHandler>().Method(...)`, `Bus.DispatchAsync(...)`, `Bus.DispatchAwaitAsync(...)`, `Repo`, `Log`, and `Context.GetService<T>()`. More in [Server Setup](ServerSetup.md), [Client Setup](ClientSetup.md), and [Service Injection](ServiceInjection.md).
 
@@ -168,7 +170,7 @@ bus.AddQueryClient<ICatalogQueryHandler>(catalogClient);
 bus.AddCommandProducer<ICatalogCommandHandler>(catalogClient);
 
 builder.Services.AddSingleton<IBus>(bus);
-builder.Services.AddSingleton<ISerializer>(new ZerraJsonSerializer());
+builder.Services.AddSingleton<INetworkSerializer>(new NetworkJsonSerializer());
 builder.Services.AddSingleton(log);
 ...
 app.UseCqrsApiGateway("/CQRS");

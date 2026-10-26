@@ -155,7 +155,6 @@ using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Encryption;
 using Zerra.Logging;
-using Zerra.Serialization;
 
 ILogger log = new ConsoleLogger();          // your ILogger implementation (see Logging.md)
 IBusLogger busLog = new ConsoleBusLogger(); // optional, see Logging.md
@@ -172,7 +171,7 @@ bus.AddHandler<IUserCommandHandler>(new UserCommandHandler());
 bus.AddHandler<IEmailEventHandler>(new EmailEventHandler());
 
 // Expose them over TCP, serialized in binary and encrypted with a shared key
-var serializer = new ZerraByteSerializer();
+var serializer = new NetworkByteSerializer();
 var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AES_GCM);
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);   // null: no compressor, see Compressors.md
 bus.AddQueryServer<IUserQueryHandler>(server);
@@ -191,7 +190,7 @@ The client builds its own bus and registers where each interface lives. The seri
 ```csharp
 var bus = Bus.New("ClientService", log, busLog);
 
-var serializer = new ZerraByteSerializer();
+var serializer = new NetworkByteSerializer();
 var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AES_GCM);
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log);
 bus.AddQueryClient<IUserQueryHandler>(client);
@@ -296,7 +295,7 @@ app.UseCqrsApiGateway("/CQRS");
 - **Timeouts, concurrency limits, and shutdown:** the [Bus options](ClientSetup.md#bus-options).
 - **Services for handlers:** register them by interface in `BusServices` and get them with `Context.GetService<T>()`. See [Service Injection](ServiceInjection.md).
 - **Logging:** `ILogger` for messages, and `IBusLogger` for the start and end of every command, event, and query. See [Logging](Logging.md).
-- **Serialization, encryption, and compression:** `ZerraByteSerializer` between services, `ZerraJsonSerializer` for browsers, `ZerraEncryptor` with a shared key, and optionally `ZerraCompressor` for large payloads. See [Serializers](Serializers.md), [Encryptors](Encryptors.md), and [Compressors](Compressors.md).
+- **Serialization, encryption, and compression:** `NetworkByteSerializer` between services, `NetworkJsonSerializer` for browsers, `ZerraEncryptor` with a shared key, and optionally `ZerraCompressor` for large payloads. See [Serializers](Serializers.md), [Encryptors](Encryptors.md), and [Compressors](Compressors.md).
 ## Lifecycle
 
 Servers, consumers, clients, and producers start when they are added to the bus.

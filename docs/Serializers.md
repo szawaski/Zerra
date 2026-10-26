@@ -2,35 +2,37 @@
 
 # Serializers
 
-Servers, clients, producers, and consumers turn messages into bytes with an `ISerializer`. Both ends of a connection must use the same serializer with the same options.
+Servers, clients, producers, and consumers turn messages into bytes with an `INetworkSerializer`. Both ends of a connection must use the same serializer with the same options.
+
+`INetworkSerializer` is only for handing to these transports and the API gateway. Everywhere else, such as files, caches, or HTTP bodies you write yourself, call [`ByteSerializer`](ByteSerializer.md) or [`JsonSerializer`](JsonSerializer.md) directly.
 
 | Serializer | Format | Use for |
 |---|---|---|
-| `ZerraByteSerializer` | compact binary | service-to-service traffic, where both sides are .NET. The fastest and smallest. See [ByteSerializer](ByteSerializer.md) |
-| `ZerraJsonSerializer` | JSON | browsers and other outside callers through the API gateway, and messages you want to read. Supports [graphs](Graph.md) and nameless JSON. See [JsonSerializer](JsonSerializer.md) |
-| `SystemTextJsonSerializer` | JSON via System.Text.Json | when you need System.Text.Json's behavior, options, or converters |
+| `NetworkByteSerializer` | compact binary | service-to-service traffic, where both sides are .NET. The fastest and smallest. See [ByteSerializer](ByteSerializer.md) |
+| `NetworkJsonSerializer` | JSON | browsers and other outside callers through the API gateway, and messages you want to read. Supports [graphs](Graph.md) and nameless JSON. See [JsonSerializer](JsonSerializer.md) |
+| `NetworkSystemTextJsonSerializer` | JSON via System.Text.Json | when you need System.Text.Json's behavior, options, or converters |
 
-All three are in `Zerra.Serialization`.
+All three are in `Zerra.CQRS.Network`.
 
 ```csharp
-using Zerra.Serialization;
+using Zerra.CQRS.Network;
 
-ISerializer serializer = new ZerraByteSerializer();                                        // optional ByteSerializerOptions
-ISerializer json = new ZerraJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions { IgnoreCase = true });
-ISerializer stj = new SystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+INetworkSerializer serializer = new NetworkByteSerializer();                                 // optional ByteSerializerOptions
+INetworkSerializer json = new NetworkJsonSerializer(new Zerra.Serialization.Json.JsonSerializerOptions { IgnoreCase = true });
+INetworkSerializer stj = new NetworkSystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
 var server = new TcpCqrsServer("localhost:9001", serializer, encryptor, null, log);
 var client = new TcpCqrsClient("localhost:9001", serializer, encryptor, null, log);
 ```
 
-A serializer is passed to each server, client, producer, and consumer, not to `Bus.New`. A typical system uses `ZerraByteSerializer` between services and `ZerraJsonSerializer` at the API gateway.
+A serializer is passed to each server, client, producer, and consumer, not to `Bus.New`. A typical system uses `NetworkByteSerializer` between services and `NetworkJsonSerializer` at the API gateway.
 
-`ZerraJsonSerializer` takes `Zerra.Serialization.Json.JsonSerializerOptions`, not System.Text.Json's type of the same name. With `Nameless = true`, its content type becomes `application/jsonnameless`.
+`NetworkJsonSerializer` takes `Zerra.Serialization.Json.JsonSerializerOptions`, not System.Text.Json's type of the same name. With `Nameless = true`, its content type becomes `application/jsonnameless`.
 
-## ISerializer
+## INetworkSerializer
 
 ```csharp
-public interface ISerializer
+public interface INetworkSerializer
 {
     ContentType ContentType { get; }
 

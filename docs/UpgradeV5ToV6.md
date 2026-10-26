@@ -23,7 +23,7 @@ Zerra 6 does no scanning. Each service's `Program.cs` builds everything itself: 
 | Configuration | `Zerra.Config` | Removed. Bring your own (see [Configuration](#9-configuration)) |
 | Network encryption | `SymmetricConfig` built from an `EncryptionKey` string | `IEncryptor`, normally `new ZerraEncryptor(key, SymmetricAlgorithmType.AES_GCM)` |
 | Network compression | None | Optional `ICompressor`, such as `new ZerraCompressor(CompressionAlgorithmType.Brotli)`, passed after the encryptor; `null` for none |
-| Serialization choice | `ContentType` passed to clients and servers | `ISerializer` instance: `ZerraByteSerializer` or `ZerraJsonSerializer` |
+| Serialization choice | `ContentType` passed to clients and servers | `INetworkSerializer` instance: `NetworkByteSerializer` or `NetworkJsonSerializer` |
 
 v5 and v6 services can't talk to each other, since the wire format and the encryption changed. Upgrade every service that shares messages at the same time.
 
@@ -267,7 +267,7 @@ Transport types from v5 and what replaces them:
 
 | Zerra 5 | Zerra 6 |
 |---|---|
-| `TcpServiceCreator` (TCP, bytes) | `new TcpCqrsServer(url, serializer, encryptor, compressor, log)` / `new TcpCqrsClient(url, serializer, encryptor, compressor, log)` with `new ZerraByteSerializer()` |
+| `TcpServiceCreator` (TCP, bytes) | `new TcpCqrsServer(url, serializer, encryptor, compressor, log)` / `new TcpCqrsClient(url, serializer, encryptor, compressor, log)` with `new NetworkByteSerializer()` |
 | `HttpServiceCreator(contentType, authorizer, allowOrigins)` | `new HttpCqrsServer(url, serializer, encryptor, compressor, authorizer, allowOrigins, log)` / `new HttpCqrsClient(url, serializer, encryptor, compressor, authorizer, log)` |
 | `KestrelServiceCreator(app, route, contentType, authorizer)` | `KestrelCqrsServerQueryServer` / `KestrelCqrsServerCommandConsumer` / `KestrelCqrsServerEventConsumer` sharing one `KestrelCqrsServerLinkedSettings`, plus `app.UseKestrelCqrsServer(serializer, encryptor, compressor, log, settings)`. Callers use `KestrelCqrsClient`. See [Agents.md](Agents.md#hosting-a-service-in-aspnet-core-instead-of-tcp) |
 | `KafkaServiceCreator(queryCreator, env, user, pwd)` | Queries: the TCP/HTTP types above. Messages: `new KafkaProducer(host, serializer, encryptor, compressor, log, env, user, pwd)` / `new KafkaConsumer(...)` |
@@ -298,7 +298,7 @@ bus.AddHandler<ILogNoteQueryProvider>(new LogNoteQueryProvider());
 bus.AddHandler<ILogNoteCommandProvider>(new LogNoteCommandProvider());
 
 //2. what this service hosts
-var serializer = new ZerraByteSerializer();
+var serializer = new NetworkByteSerializer();
 var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AES_GCM);
 var server = new TcpCqrsServer(domainServiceUrl, serializer, encryptor, null, log);
 bus.AddQueryServer<ILogNoteQueryProvider>(server);
@@ -334,7 +334,7 @@ public static IBusSetup StartServices(string serviceName, IRepo? repo)
         busServices.AddRepo(repo);
     var bus = Bus.New(serviceName, logger, new BusLogger(), busServices);
 
-    var serializer = new ZerraByteSerializer();
+    var serializer = new NetworkByteSerializer();
     var encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AES_GCM);
 
     if (serviceName == "MyApp.Service.Email")
@@ -377,11 +377,11 @@ Startup order for a service:
 
 ## 8. ASP.NET Projects
 
-- **Gateway.** `UseCqrsApiGateway` now resolves `IBus`, `ISerializer`, and optionally `Zerra.Logging.ILogger` and `ICqrsAuthorizer` from dependency injection. The overloads that took an authorizer were removed:
+- **Gateway.** `UseCqrsApiGateway` now resolves `IBus`, `INetworkSerializer`, and optionally `Zerra.Logging.ILogger` and `ICqrsAuthorizer` from dependency injection. The overloads that took an authorizer were removed:
   ```csharp
   var bus = ServiceManager.StartServices("MyApp.Web", null);   //a bus with query clients and command producers, no handlers
   builder.Services.AddSingleton<IBus>(bus);
-  builder.Services.AddSingleton<ISerializer>(new ZerraJsonSerializer());   //browsers send JSON
+  builder.Services.AddSingleton<INetworkSerializer>(new NetworkJsonSerializer());   //browsers send JSON
   builder.Services.AddSingleton<Zerra.Logging.ILogger>(log);
   builder.Services.AddSingleton<ICqrsAuthorizer>(authorizer);              //if v5 passed one to UseCqrsApiGateway
   ...
@@ -396,9 +396,9 @@ Startup order for a service:
   public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken)
       => ValueTask.FromResult(GetAuthorizationHeaders(cancellationToken));
   ```
-- **`ApiClient`**: `new ApiClient(endpoint, ContentType.Json, authorizer)` → `new ApiClient(endpoint, new ZerraJsonSerializer(), log, authorizer)`. `ApiCqrsCookieAuthorizer` takes a serializer as its first argument.
+- **`ApiClient`**: `new ApiClient(endpoint, ContentType.Json, authorizer)` → `new ApiClient(endpoint, new NetworkJsonSerializer(), log, authorizer)`. `ApiCqrsCookieAuthorizer` takes a serializer as its first argument.
 - **Controllers and middleware**: take `IBus` through the constructor instead of calling the static `Bus`.
-- **Custom gateways calling `ApiServerHandler` directly** (for example an `IHttpHandler` in an ASP.NET Web Forms app): `HandleRequestAsync(ContentType? accept, data, token)` became `HandleRequestAsync(bus, serializer, responseSerializer, data, argumentStream, token)`. Deserialize the `ApiRequestData` yourself with the `ISerializer` that matches the request's content type (`ZerraByteSerializer`, `ZerraJsonSerializer`, or `new ZerraJsonSerializer(new JsonSerializerOptions() { Nameless = true })`). `ApiResponseData.Bytes` is gone: write `response.Stream` when it's set, otherwise `await response.Serializer.SerializeAsync(outputStream, response.Model, token)`. `Void` still means an empty 200.
+- **Custom gateways calling `ApiServerHandler` directly** (for example an `IHttpHandler` in an ASP.NET Web Forms app): `HandleRequestAsync(ContentType? accept, data, token)` became `HandleRequestAsync(bus, serializer, responseSerializer, data, argumentStream, token)`. Deserialize the `ApiRequestData` yourself with the `INetworkSerializer` that matches the request's content type (`NetworkByteSerializer`, `NetworkJsonSerializer`, or `new NetworkJsonSerializer(new JsonSerializerOptions() { Nameless = true })`). `ApiResponseData.Bytes` is gone: write `response.Stream` when it's set, otherwise `await response.Serializer.SerializeAsync(outputStream, response.Model, token)`. `Void` still means an empty 200.
 - **.NET Framework web apps** have no `Program.cs`. Build the bus in `Application_Start`, keep it in a static property for handlers and pages, and call `StopServices` in `Application_End`. Interfaces the app handled in-process in v5 (found by discovery, with no client in `cqrssettings.json`) need `AddHandler` there.
 - **In ASP.NET projects `ILogger` is ambiguous** with Microsoft's, so write `Zerra.Logging.ILogger`.
 - Cookie or token protectors that used `SymmetricAlgorithmType.AESwithShift` can switch to `SymmetricEncryptor` with `AES_GCM`. Values issued before the switch stop decrypting, so users sign in again. If that isn't acceptable, keep `SymmetricEncryptorOld` with `SymmetricAlgorithmTypeOld.AESwithShift`.
@@ -483,8 +483,8 @@ Other changes:
 - **The JSON serializer creates objects the same way**: through a public parameterless constructor or a public one whose parameters match members. A type with get-only properties and an `internal` constructor deserializes with those properties left null, without an error. Make that constructor public.
 - `Mapper.Copy(object source, Type sourceType)` replaces generic `Copy<T>` calls made through reflection.
 - **JSON output.** Numbers and dates no longer depend on the machine's culture. Dictionaries with enum keys are written as objects (`{"Friday":1}`); the old array form is still read. `IEnumerable<T>`, `IReadOnlyCollection<T>`, `IEnumerable`, and `ICollection` members deserialize as a `List`, so casts to an array must change. Reading is stricter: anything after the JSON value other than whitespace throws, `true`/`false` no longer read into numbers or numbers into `bool`, and an object read into a `string` gives `null` instead of `""`. `ErrorOnTypeMismatch` is renamed `ErrorOnReadMismatchedData`; with it off, valid JSON that doesn't fit the type (an unparseable date, `1.5` for an `int`) reads as the default, and with it on, `null` for a non-nullable value type throws too. A JSON object read into a member typed as `object` is a `JsonObject` instead of an empty `object`, and a number is a `double` instead of a `decimal`.
-- **Byte serialization of `object`.** Without `UseTypes`, `ZerraByteSerializer` throws on a value typed as `object`, including the items of `ArrayList` or `Hashtable`, instead of sending an empty object. Set `UseTypes = true` on both sides for those members.
-- **Byte reading.** `ZerraByteSerializer` throws `EndOfStreamException` on bytes after the value.
+- **Byte serialization of `object`.** Without `UseTypes`, `ByteSerializer` throws on a value typed as `object`, including the items of `ArrayList` or `Hashtable`, instead of sending an empty object. Set `UseTypes = true` on both sides for those members.
+- **Byte reading.** `ByteSerializer` throws `EndOfStreamException` on bytes after the value.
 
 ### Handler Exceptions
 

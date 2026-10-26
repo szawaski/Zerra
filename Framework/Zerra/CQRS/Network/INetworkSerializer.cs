@@ -5,11 +5,10 @@
 namespace Zerra.CQRS.Network
 {
     /// <summary>
-    /// Defines serialization and deserialization operations for converting objects to/from various formats.
+    /// Serializes CQRS messages for the network servers, clients, producers, consumers, and the API gateway.
     /// </summary>
     /// <remarks>
-    /// Provides methods to serialize objects to strings, bytes, or streams, and deserialize them back.
-    /// Supports both synchronous and asynchronous operations for stream-based I/O.
+    /// Only for passing to those transports. To serialize anything else, use ByteSerializer or JsonSerializer directly.
     /// Implementations handle specific serialization formats (JSON, binary, etc.).
     /// </remarks>
     public interface INetworkSerializer

@@ -14,23 +14,22 @@ dotnet add package Zerra.Web
 
 ## The CQRS API Gateway
 
-The gateway resolves `IBus` and `ISerializer` from DI, and optionally a `Zerra.Logging.ILogger` and an `ICqrsAuthorizer`. A typical gateway has no handlers of its own and forwards to the backend services:
+The gateway resolves `IBus` and `INetworkSerializer` from DI, and optionally a `Zerra.Logging.ILogger` and an `ICqrsAuthorizer`. A typical gateway has no handlers of its own and forwards to the backend services:
 
 ```csharp
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
-using Zerra.Serialization;
 using Zerra.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var bus = Bus.New("Gateway");
-var users = new TcpCqrsClient("user-service:9001", new ZerraByteSerializer(), encryptor, null, log: null);
+var users = new TcpCqrsClient("user-service:9001", new NetworkByteSerializer(), encryptor, null, log: null);
 bus.AddCommandProducer<IUserCommandHandler>(users);
 bus.AddQueryClient<IUserQueryHandler>(users);
 
 builder.Services.AddSingleton<IBus>(bus);   // Bus.New returns IBusSetup, so register it as IBus
-builder.Services.AddSingleton<ISerializer>(new ZerraJsonSerializer());   // what outside callers speak
+builder.Services.AddSingleton<INetworkSerializer>(new NetworkJsonSerializer());   // what outside callers speak
 builder.Services.AddSingleton<ICqrsAuthorizer, MyAuthorizer>();
 
 var app = builder.Build();

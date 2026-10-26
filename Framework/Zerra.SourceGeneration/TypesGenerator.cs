@@ -858,6 +858,9 @@ namespace Zerra.SourceGeneration
                     continue;
                 if (attributeSymbol.ConstructorArguments.Any(x => x.Type is null || !Helper.CanBeReferencedAsCode(x.Type)))
                     continue;
+                //a named argument that can't be written as code would change what the attribute says, so it's left out whole
+                if (attributeSymbol.NamedArguments.Any(x => x.Value.Type is null || !Helper.CanBeReferencedAsCode(x.Value.Type)))
+                    continue;
 
                 if (hasFirst)
                     _ = sb.Append(", ");
@@ -890,6 +893,20 @@ namespace Zerra.SourceGeneration
                 }
                 //}
                 _ = sb.Append(')');
+
+                //named arguments, such as [StoreIndex(Unique = true)], are set after the constructor
+                if (attributeSymbol.NamedArguments.Length > 0)
+                {
+                    _ = sb.Append(" { ");
+                    for (var i = 0; i < attributeSymbol.NamedArguments.Length; i++)
+                    {
+                        if (i > 0)
+                            _ = sb.Append(", ");
+                        _ = sb.Append(attributeSymbol.NamedArguments[i].Key).Append(" = ");
+                        Helper.TypedConstantToString(attributeSymbol.NamedArguments[i].Value, sb);
+                    }
+                    _ = sb.Append(" }");
+                }
             }
 
             _ = sb.Append("]");
