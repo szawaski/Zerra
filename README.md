@@ -1,6 +1,6 @@
 # Zerra
 
-[![NuGet](https://img.shields.io/nuget/v/Zerra.svg)](https://www.nuget.org/packages/Zerra)
+[![NuGet](https://img.shields.io/nuget/vpre/Zerra.svg)](https://www.nuget.org/packages/Zerra)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **A high-performance CQRS framework for .NET that lets you write services once and decide later where they run.**
