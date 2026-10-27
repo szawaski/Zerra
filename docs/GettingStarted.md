@@ -319,6 +319,7 @@ Stopping closes the servers and consumers so nothing new arrives, waits for the 
 5. **Throw exceptions with messages for the user.** They reach the caller across service hops.
 6. **Make handlers idempotent** where a message may be redelivered.
 7. **Put service-to-service commands on their own interface** that the web gateway doesn't register, so browsers can't send them.
+8. **Give each contract its own models.** A command, event, or query result carries a model made for it, even when that means near copies of another model with a field or two different. Reusing a model across contracts, or sending a data model, ties them together, so a change for one leaks into the others.
 
 ## Next Steps
 

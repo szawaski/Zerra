@@ -94,6 +94,7 @@ public interface IOrderEventHandler : IEventHandler<OrderShippedEvent> { }
 - Put `CancellationToken` last on query methods. Cancelling the caller's token cancels the call, including the handler's token on the remote service.
 - Command handler methods are `Handle(TCommand command, CancellationToken cancellationToken)`, event handler methods are `Handle(TEvent @event)`.
 - Models are plain classes with public properties. `required` members work with the serializers and the generated clients, but a value missing from a browser's JSON arrives as its default, so handlers still validate their input.
+- Give each contract its own clear models, even when that means near copies with only slight differences. `ProductModel` for a listing and `ProductDetailModel` for one product's page are separate classes, and a command doesn't reuse a query's model or carry a data model. Don't reuse a model because it already has the right fields: each contract changes on its own, and a shared model hides what each one really sends.
 
 ### Service Program.cs
 
@@ -505,6 +506,10 @@ When working with Zerra code:
 - Design for multiple subscribers, **and for every replica of each subscriber receiving a copy**; a subscriber that needs one replica per event instead registers its consumer with `EventConsumerMode.PerService`
 - Never change shared state in a `PerReplica` event handler: anything that must happen exactly once needs a command, or a consumer registered `PerService`
 - Handle duplicate events gracefully (idempotent handlers), which is a separate concern from the replica fanout above
+
+### When Creating Contract Models
+- Write a model for each contract instead of reusing one that has similar fields. Near copies are expected; clear, separate contracts matter more than fewer classes
+- Never return or accept data models (`[Entity]` classes) in contracts; map to and from contract models in the handler
 
 ### When Creating Query Interfaces
 - Keep interfaces focused (single responsibility)
