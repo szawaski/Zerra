@@ -2,7 +2,11 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+#if NETSTANDARD2_0
 using Zerra.Buffers;
+#else
+using System.Buffers.Text;
+#endif
 
 namespace Zerra.Encryption
 {
@@ -19,45 +23,42 @@ namespace Zerra.Encryption
         public static string ToBase64UrlString(ReadOnlySpan<byte> inArray)
         {
 #if NETSTANDARD2_0
-            var arrayString = Convert.ToBase64String(inArray.ToArray());
-#else
-            var arrayString = Convert.ToBase64String(inArray);
-#endif
-            var chars = arrayString.AsSpan();
+            if (inArray.Length == 0)
+                return String.Empty;
 
-            var length = chars.Length;
-            if (chars.Length > 0 && chars[chars.Length - 1] == '=')
+            var rentedBytes = ArrayPoolHelper<byte>.Rent(inArray.Length);
+            inArray.CopyTo(rentedBytes);
+            var rentedChars = ArrayPoolHelper<char>.Rent((inArray.Length + 2) / 3 * 4);
+
+            var length = Convert.ToBase64CharArray(rentedBytes, 0, inArray.Length, rentedChars, 0);
+            ArrayPoolHelper<byte>.Return(rentedBytes);
+
+            if (rentedChars[length - 1] == '=')
             {
                 length--;
-                if (chars.Length > 1 && chars[chars.Length - 2] == '=')
+                if (rentedChars[length - 1] == '=')
                     length--;
             }
 
-            scoped Span<char> filtered;
-            char[]? rentedArray = null;
-            if (length <= 128)
-            {
-                filtered = stackalloc char[length];
-            }
-            else
-            {
-                rentedArray = ArrayPoolHelper<char>.Rent(length);
-                filtered = rentedArray;
-            }
             for (var i = 0; i < length; i++)
             {
-                var c = chars[i];
-                filtered[i] = c switch
+                switch (rentedChars[i])
                 {
-                    '+' => '-',
-                    '/' => '_',
-                    _ => c,
-                };
+                    case '+':
+                        rentedChars[i] = '-';
+                        break;
+                    case '/':
+                        rentedChars[i] = '_';
+                        break;
+                }
             }
-            var filteredString = filtered.Slice(0, length).ToString();
-            if (rentedArray != null)
-                ArrayPoolHelper<char>.Return(rentedArray);
-            return filteredString;
+
+            var result = new string(rentedChars, 0, length);
+            ArrayPoolHelper<char>.Return(rentedChars);
+            return result;
+#else
+            return Base64Url.EncodeToString(inArray);
+#endif
         }
 
         /// <summary>
@@ -68,6 +69,7 @@ namespace Zerra.Encryption
         /// <exception cref="FormatException">Thrown when the string format is invalid.</exception>
         public static byte[] FromBase64UrlString(ReadOnlySpan<char> chars)
         {
+#if NETSTANDARD2_0
             var filteredLength = (chars.Length % 4) switch
             {
                 0 => chars.Length,
@@ -76,22 +78,15 @@ namespace Zerra.Encryption
                 _ => throw new FormatException("Invalid string"),
             };
 
-            scoped Span<char> filtered;
-            char[]? rentedArray = null;
-            if (filteredLength <= 128)
-            {
-                filtered = stackalloc char[filteredLength];
-            }
-            else
-            {
-                rentedArray = ArrayPoolHelper<char>.Rent(filteredLength);
-                filtered = rentedArray;
-            }
+            if (filteredLength == 0)
+                return Array.Empty<byte>();
+
+            var rentedChars = ArrayPoolHelper<char>.Rent(filteredLength);
 
             for (var i = 0; i < chars.Length; i++)
             {
                 var c = chars[i];
-                filtered[i] = c switch
+                rentedChars[i] = c switch
                 {
                     '-' => '+',
                     '_' => '/',
@@ -99,21 +94,20 @@ namespace Zerra.Encryption
                 };
             }
 
-            switch (chars.Length % 4)
-            {
-                case 2:
-                    filtered[filteredLength - 2] = '=';
-                    filtered[filteredLength - 1] = '=';
-                    break;
-                case 3:
-                    filtered[filteredLength - 1] = '=';
-                    break;
-            }
+            for (var i = chars.Length; i < filteredLength; i++)
+                rentedChars[i] = '=';
 
-            var filteredString = filtered.Slice(0, filteredLength).ToString();
-            if (rentedArray != null)
-                ArrayPoolHelper<char>.Return(rentedArray);
-            return Convert.FromBase64String(filteredString);
+            try
+            {
+                return Convert.FromBase64CharArray(rentedChars, 0, filteredLength);
+            }
+            finally
+            {
+                ArrayPoolHelper<char>.Return(rentedChars);
+            }
+#else
+            return Base64Url.DecodeFromChars(chars);
+#endif
         }
     }
 }

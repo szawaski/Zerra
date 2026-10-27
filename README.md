@@ -1,14 +1,13 @@
 # Zerra
 
 [![NuGet](https://img.shields.io/nuget/v/Zerra.svg)](https://www.nuget.org/packages/Zerra)
-[![Next: v6.0.0 in development](https://img.shields.io/badge/next-v6.0.0%20in%20development-orange.svg)](docs/UpgradeV5ToV6.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **A high-performance CQRS framework for .NET that lets you write services once and decide later where they run.**
 
 Handlers are called the same way whether they live in the same process, across TCP or HTTP, or behind Kafka, RabbitMQ, or Azure Service Bus. Moving a handler from a monolith into its own service changes a few lines of registration, not the code that calls it.
 
-> **Version 6.0.0 is in development.** This branch and its documentation describe v6; the current NuGet release is v5. Moving a v5 solution to v6? Follow the [upgrade guide](docs/UpgradeV5ToV6.md); the two use different wire formats, so services that share messages upgrade together.
+> **Upgrading from Zerra 5?** Follow the [upgrade guide](docs/UpgradeV5ToV6.md). Zerra 5 and 6 use different wire formats, so services that share messages upgrade together.
 
 ## Why Zerra
 
@@ -84,7 +83,7 @@ dotnet add package Zerra
 
 ## In Production
 
-Zerra runs in production in private commercial applications, across in-process, TCP, and broker deployments. Zerra 6 is the version in development here; Zerra 5 is the current NuGet release. Changes are in the [changelog](CHANGELOG.md), security reports go through the [security policy](SECURITY.md), and the [trust model](docs/Security.md#trust-model) says what encryption and claims protect and what they don't.
+Zerra runs in production in private commercial applications, across in-process, TCP, and broker deployments. Changes are in the [changelog](CHANGELOG.md), security reports go through the [security policy](SECURITY.md), and the [trust model](docs/Security.md#trust-model) says what encryption and claims protect and what they don't.
 
 ## Packages
 

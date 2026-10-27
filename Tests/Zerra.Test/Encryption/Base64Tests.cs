@@ -24,7 +24,7 @@ namespace Zerra.Test.Encryption
         [Fact]
         public void Base64Url_EveryLength()
         {
-            //each remainder of the length, short ones on the stack and long ones rented
+            //each remainder of the length, checked against the standard base64 output
             for (var length = 0; length <= 120; length++)
             {
                 var bytes = Enumerable.Range(0, length).Select(x => (byte)(x * 37 + 251)).ToArray();
@@ -32,6 +32,7 @@ namespace Zerra.Test.Encryption
                 Assert.DoesNotContain('=', encoded);
                 Assert.DoesNotContain('+', encoded);
                 Assert.DoesNotContain('/', encoded);
+                Assert.Equal(Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_'), encoded);
                 Assert.Equal(bytes, Base64UrlEncoder.FromBase64UrlString(encoded));
             }
             _ = Assert.Throws<FormatException>(() => Base64UrlEncoder.FromBase64UrlString("abcde"));

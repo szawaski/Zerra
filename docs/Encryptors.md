@@ -150,7 +150,7 @@ if (Hasher.PBKDF2VerifyHash(attempt, stored) && Hasher.PBKDF2NeedsRehash(stored)
     stored = Hasher.PBKDF2GenerateHash(attempt);
 ```
 
-`Hasher.GenerateHash` is a single fast SHA-2 hash for checking data, not for passwords. `HasherOld` checks hashes stored in the old format, including MD5 and SHA-1 ones. `Password.GeneratePassword` makes random passwords with at least one character from each set chosen.
+`Hasher.GenerateHash` is a single fast SHA-2 hash for checking data, not for passwords. `HasherOld` checks hashes stored in the old format, including MD5 and SHA-1 ones.
 
 ## See Also
 

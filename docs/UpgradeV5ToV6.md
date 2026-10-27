@@ -59,7 +59,7 @@ Search the solution (skip `bin`/`obj`) and write down which of these appear. Eac
 | `Log.` with `Async(`, `ILoggingProvider`, `Zerra.Logger`, `BusLoggingProvider`, `IBusLogger`, `Bus.AddLogger`, `AddZerraLogger` | [7](#7-logging) |
 | `UseCqrsApiGateway`, `ICqrsAuthorizer`, `ApiClient`, `KestrelServiceCreator` | [8](#8-aspnet-projects) |
 | `Config.` | [9](#9-configuration) |
-| `Resolver.`, `Discovery.`, `Instantiator.`, `.ForEach(`, `.Batch(`, `AppendAnd`, `AppendOr`, `WhereBuilder`, `ToLinqString`, `WaitAsync`, `Zerra.Threading`, `Zerra.Mathematics`, `SymmetricConfig`, `SymmetricKey`, `GetKey`, `AESwithShift`, `TcpRawCqrs`, `QueryStringSerializer`, `MapperWithLog`, `using Zerra.Linq` | [10](#10-other-removed-apis) |
+| `Resolver.`, `Discovery.`, `Instantiator.`, `.ForEach(`, `.Batch(`, `AppendAnd`, `AppendOr`, `WhereBuilder`, `ToLinqString`, `WaitAsync`, `Zerra.Threading`, `Zerra.Mathematics`, `SymmetricConfig`, `SymmetricKey`, `GetKey`, `AESwithShift`, `TcpRawCqrs`, `QueryStringSerializer`, `MapperWithLog`, `Password.`, `using Zerra.Linq` | [10](#10-other-removed-apis) |
 | `Bus.Call`, `Bus.Dispatch`, static `Log.` calls outside handlers | [11](#11-static-bus-and-log) |
 | `MemberDetails`, `SerializableMemberDetails`, `MethodDetailsBoxed`, `ParameterDetails`, `TypeDetailBoxed`, `GetMethodBoxed`, `GetGenericMethodDetail`, `GetGenericTypeDetail`, `GetNiceName`, `CoreTypeLookup`, `IsTask` | [10](#reflection) |
 | `JsonConverter<`, `JsonValueType`, `JsonSerializer.AddConverter`, `Mapper.Copy` on types without a public parameterless constructor | [10](#serialization-and-mapping) |
@@ -438,6 +438,7 @@ A solution that relies heavily on a removed helper can keep it. Examples are `Co
 | `Misc/Zerra.Tools`: `Locker<T>`, `TaskThrottler`, `ZerraThreadPool`, `Concurrent`, `MathParser`, `Secret` | Removed. If used, copy the source from `release/5.4.0` `Misc/Zerra.Tools` into the solution, following [Copying removed code](#copying-removed-code) |
 | `QueryStringSerializer` | Removed |
 | `MapperWithLog`, `IMapLogger` | Removed. `Mapper.Map`/`MapTo`/`Copy` remain |
+| `Password.GeneratePassword`, `Password.GetRandomNumber` | Removed. Use `RandomNumberGenerator.GetString(characters, length)` and `RandomNumberGenerator.GetInt32` |
 | `SymmetricConfig` for network encryption | `IEncryptor` (`ZerraEncryptor`) |
 | `SymmetricAlgorithmType.AESwithShift` and plain `AES` | Moved to `SymmetricAlgorithmTypeOld`, used by `SymmetricEncryptorOld` and `ZerraEncryptorOld` for data v5 encrypted. Use `AES_GCM` for new data, or `AES_CBC_HMAC` when a .NET Framework service shares the key |
 | `DES`, `TripleDES`, `RC2`, and their `withShift` modes | Removed. Decrypt that data with v5 and encrypt it again with `AES_GCM` before upgrading |

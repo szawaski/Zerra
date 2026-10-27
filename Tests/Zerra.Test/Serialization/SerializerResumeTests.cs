@@ -58,7 +58,7 @@ namespace Zerra.Test.Serialization
                 JsonWriter.Testing = false;
                 JsonReader.Testing = false;
                 var expected = JsonSerializer.Serialize(model, type, options);
-                var expectedBytes = JsonSerializer.SerializeBytes(model, type, options);
+                var expectedBytes = JsonSerializer.SerializeToUtf8Bytes(model, type, options);
                 var expectedModel = JsonSerializer.Deserialize(expected, type, options)!;
 
                 JsonWriter.Testing = true;
@@ -66,7 +66,7 @@ namespace Zerra.Test.Serialization
                 try
                 {
                     Assert.Equal(expected, JsonSerializer.Serialize(model, type, options));
-                    Assert.Equal(expectedBytes, JsonSerializer.SerializeBytes(model, type, options));
+                    Assert.Equal(expectedBytes, JsonSerializer.SerializeToUtf8Bytes(model, type, options));
                     using (var stream = new MemoryStream())
                     {
                         await JsonSerializer.SerializeAsync(stream, model, type, options, cancellationToken: token);
@@ -111,7 +111,7 @@ namespace Zerra.Test.Serialization
             try
             {
                 Assert.Equal(expected, JsonSerializer.Serialize(model));
-                Assert.Equal(expectedBytes, JsonSerializer.SerializeBytes(model));
+                Assert.Equal(expectedBytes, JsonSerializer.SerializeToUtf8Bytes(model));
                 using (var stream = new MemoryStream())
                 {
                     await JsonSerializer.SerializeAsync(stream, model, cancellationToken: token);
