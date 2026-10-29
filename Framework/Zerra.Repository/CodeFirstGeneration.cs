@@ -30,6 +30,11 @@ namespace Zerra.Repository
                 log?.Info($"{engine.GetType().Name} Initializing {dataStoreGenerationType.EnumName()}");
 
                 var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
+                foreach (var modelDetail in modelDetails)
+                {
+                    if (!modelDetail.IsDataSourceEntity)
+                        throw new Exception($"{modelDetail.Type.Name} does not have an EntityAttribute");
+                }
                 var create = !dataStoreGenerationType.HasFlag(DataStoreGenerationType.NoCreate);
                 var update = !dataStoreGenerationType.HasFlag(DataStoreGenerationType.NoUpdate);
                 var delete = !dataStoreGenerationType.HasFlag(DataStoreGenerationType.NoDelete);

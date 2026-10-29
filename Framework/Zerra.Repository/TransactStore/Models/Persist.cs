@@ -22,6 +22,10 @@ namespace Zerra.Repository
         public Graph? Graph { get; init; }
         /// <summary>Gets the CLR type of the model being persisted.</summary>
         public Type ModelType { get; init; }
+        /// <summary>Gets the condition selecting the records to update or delete, or <see langword="null"/> when <see cref="Models"/> or <see cref="IDs"/> name them.</summary>
+        public System.Linq.Expressions.LambdaExpression? Where { get; set; }
+        /// <summary>Gets or sets how many records an update or delete by <see cref="Where"/> changed. The provider sets it.</summary>
+        public int RowsAffected { get; set; }
 
         private string GetEventName(PersistOperation operation) => $"{operation} {ModelType.FullName}";
 
@@ -77,6 +81,46 @@ namespace Zerra.Repository
             this.IDs = persist.IDs;
             this.Graph = persist.Graph is null ? null : new Graph(persist.Graph);
             this.Event = persist.Event;
+            this.Where = persist.Where;
+        }
+
+        /// <summary>
+        /// Initializes an update or delete of every record matching a condition.
+        /// </summary>
+        /// <param name="operation"><see cref="PersistOperation.Update"/> or <see cref="PersistOperation.Delete"/>.</param>
+        /// <param name="eventName">The name of the persist event, or <see langword="null"/> for a default.</param>
+        /// <param name="source">The source object that triggered the persist, or <see langword="null"/>.</param>
+        /// <param name="modelType">The CLR type of the model.</param>
+        /// <param name="where">The condition selecting the records.</param>
+        /// <param name="model">For an update, the model holding the values to set; <see langword="null"/> for a delete.</param>
+        /// <param name="graph">For an update, the members to set.</param>
+        public Persist(PersistOperation operation, string? eventName, object? source, Type modelType, System.Linq.Expressions.LambdaExpression where, object? model, Graph? graph)
+        {
+            this.Operation = operation;
+            this.ModelType = modelType;
+            this.Where = where;
+            this.Models = model is null ? null : [model];
+            this.Graph = graph;
+            this.Event = new PersistEvent(Guid.NewGuid(), String.IsNullOrWhiteSpace(eventName) ? GetEventName(operation) : eventName, source);
+        }
+
+        /// <summary>
+        /// Initializes an update or delete of every record matching a condition, with an existing persist event.
+        /// </summary>
+        /// <param name="operation"><see cref="PersistOperation.Update"/> or <see cref="PersistOperation.Delete"/>.</param>
+        /// <param name="event">The persist event.</param>
+        /// <param name="modelType">The CLR type of the model.</param>
+        /// <param name="where">The condition selecting the records.</param>
+        /// <param name="model">For an update, the model holding the values to set; <see langword="null"/> for a delete.</param>
+        /// <param name="graph">For an update, the members to set.</param>
+        public Persist(PersistOperation operation, PersistEvent @event, Type modelType, System.Linq.Expressions.LambdaExpression where, object? model, Graph? graph)
+        {
+            this.Operation = operation;
+            this.ModelType = modelType;
+            this.Where = where;
+            this.Models = model is null ? null : [model];
+            this.Graph = graph;
+            this.Event = @event;
         }
     }
 }

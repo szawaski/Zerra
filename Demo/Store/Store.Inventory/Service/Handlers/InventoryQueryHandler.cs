@@ -14,14 +14,14 @@ namespace Store.Inventory.Service.Handlers
 
         public async Task<StockLevelModel[]> GetStockLevels(CancellationToken cancellationToken)
         {
-            var items = await Repo.ManyAsync<StockItemDataModel>();
-            return items.Select(x => new StockLevelModel()
+            var levels = await Repo.SelectAsync((StockItemDataModel x) => new StockLevelModel()
             {
                 ProductID = x.ProductID,
                 OnHand = x.OnHand,
                 Reserved = x.Reserved,
                 Available = x.OnHand - x.Reserved
-            }).ToArray();
+            });
+            return levels.ToArray();
         }
 
         public async Task<StockMovementModel[]> GetRecentMovements(int count, CancellationToken cancellationToken)

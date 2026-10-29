@@ -1,0 +1,68 @@
+// Copyright © KaKush LLC
+// Written By Steven Zawaski
+// Licensed to you under the MIT license
+
+using System.Linq.Expressions;
+using Zerra.Reflection;
+
+namespace Zerra.Repository.Linq
+{
+    /// <summary>
+    /// Finds whether an expression reads given members of its parameter, so a layer can refuse to work on a column it transforms.
+    /// </summary>
+    public static class LinqMemberFinder
+    {
+        /// <summary>
+        /// Returns whether <paramref name="expression"/> reads any of <paramref name="members"/> directly from its first parameter.
+        /// A member of a related model, a nested lambda's parameter, or a captured variable doesn't count.
+        /// </summary>
+        /// <param name="expression">The expression to search, or <see langword="null"/>.</param>
+        /// <param name="members">The members to look for.</param>
+        /// <returns><see langword="true"/> if the expression reads one of the members.</returns>
+        public static bool ReadsMember(LambdaExpression? expression, MemberDetail[] members)
+        {
+            if (expression is null || members.Length == 0)
+                return false;
+            var finder = new MemberFinder(expression.Parameters[0], null, members);
+            _ = finder.Visit(expression.Body);
+            return finder.Found;
+        }
+
+        /// <summary>
+        /// Returns whether <paramref name="expression"/> reads any of <paramref name="members"/> from a parameter of <paramref name="parameterType"/>, its own or a nested lambda's,
+        /// such as the model inside a group projection's <c>g.Sum(x => x.Price)</c>.
+        /// </summary>
+        /// <param name="expression">The expression to search, or <see langword="null"/>.</param>
+        /// <param name="parameterType">The type of the parameters to look at.</param>
+        /// <param name="members">The members to look for.</param>
+        /// <returns><see langword="true"/> if the expression reads one of the members.</returns>
+        public static bool ReadsMember(LambdaExpression? expression, Type parameterType, MemberDetail[] members)
+        {
+            if (expression is null || members.Length == 0)
+                return false;
+            var finder = new MemberFinder(null, parameterType, members);
+            _ = finder.Visit(expression.Body);
+            return finder.Found;
+        }
+
+        private sealed class MemberFinder(ParameterExpression? parameter, Type? parameterType, MemberDetail[] members) : ExpressionVisitor
+        {
+            public bool Found;
+            protected override Expression VisitMember(MemberExpression node)
+            {
+                if (parameter is not null ? node.Expression == parameter : node.Expression is ParameterExpression p && p.Type == parameterType)
+                {
+                    foreach (var member in members)
+                    {
+                        if (member.Name == node.Member.Name)
+                        {
+                            Found = true;
+                            break;
+                        }
+                    }
+                }
+                return base.VisitMember(node);
+            }
+        }
+    }
+}

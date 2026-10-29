@@ -27,6 +27,52 @@ namespace Zerra.Repository.MySql
         {
             return instance.ConvertInternal(select, where, order, skip, take, graph, modelDetail);
         }
+        /// <summary>Converts a projection of each record to SQL. The result columns are the projection's members in order.</summary>
+        /// <param name="members">The members from <see cref="LinqExtensions.GetProjectionMembers"/>.</param>
+        /// <param name="where">An optional filter expression.</param>
+        /// <param name="order">An optional ordering of the records.</param>
+        /// <param name="skip">An optional number of records to skip.</param>
+        /// <param name="take">An optional maximum number of records to return.</param>
+        /// <param name="modelDetail">Metadata about the model being queried.</param>
+        /// <returns>The SQL.</returns>
+        public static string ConvertSelect(ProjectionMember[] members, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail)
+        {
+            return instance.ConvertSelectInternal(members, where, order, skip, take, modelDetail);
+        }
+        /// <summary>Converts a projection of each group to SQL. The result columns are the projection's members in order.</summary>
+        /// <param name="groupBy">The group key expression.</param>
+        /// <param name="members">The members from <see cref="LinqExtensions.GetProjectionMembers"/>.</param>
+        /// <param name="where">An optional filter expression on the records.</param>
+        /// <param name="having">An optional filter on the results.</param>
+        /// <param name="order">An optional ordering of the results.</param>
+        /// <param name="skip">An optional number of results to skip.</param>
+        /// <param name="take">An optional maximum number of results to return.</param>
+        /// <param name="modelDetail">Metadata about the model being queried.</param>
+        /// <param name="resultType">The result type, which names the derived table the having and the order select from.</param>
+        /// <returns>The SQL.</returns>
+        public static string ConvertGroup(LambdaExpression groupBy, ProjectionMember[] members, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, Type resultType)
+        {
+            return instance.ConvertGroupInternal(groupBy, members, where, having, order, skip, take, modelDetail, resultType);
+        }
+        /// <summary>Converts the condition of an update or delete to its SQL, starting with WHERE, for the engine to append to its UPDATE or DELETE statement.</summary>
+        /// <param name="where">The condition selecting the rows.</param>
+        /// <param name="modelDetail">Metadata about the model being changed.</param>
+        /// <returns>The SQL from WHERE on.</returns>
+        public static string ConvertPersistWhere(LambdaExpression where, ModelDetail modelDetail)
+        {
+            return instance.ConvertPersistWhereInternal(where, modelDetail);
+        }
+        /// <summary>Converts a calculation (a count per group, or a sum, average, minimum, or maximum over all records or per group) to SQL. The result columns are the key parts in order, then the value.</summary>
+        /// <param name="operation">The calculation.</param>
+        /// <param name="where">An optional filter expression.</param>
+        /// <param name="groupBy">The group key expression, or <see langword="null"/> to calculate over all records.</param>
+        /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
+        /// <param name="modelDetail">Metadata about the model being queried.</param>
+        /// <returns>The SQL.</returns>
+        public static string ConvertCalculation(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail)
+        {
+            return instance.ConvertCalculationInternal(operation, where, groupBy, value, modelDetail);
+        }
 
         /// <inheritdoc/>
         protected override void ConvertToSqlLambda(Expression exp, ref CharWriter sb, BuilderContext context)
@@ -1267,6 +1313,302 @@ namespace Zerra.Repository.MySql
             throw new NotImplementedException($"{type.Name} value {value?.ToString()} not converted");
         }
 
+        /// <inheritdoc/>
+        protected override void ConvertCalculation(ref CharWriter sb, QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail, MemberContext operationContext)
+        {
+            var rootDependant = new ParameterDependant(modelDetail, null);
+            var keyParts = groupBy is null ? Array.Empty<Expression>() : CalculationCommon.GetKeyParts(groupBy);
+
+            //the inner select makes the keys and the value plain columns, so the aggregate works over joins and subqueries
+            var sbInner = new CharWriter();
+            var sbWhere = new CharWriter();
+            try
+            {
+                sbInner.Write("SELECT ");
+                for (var i = 0; i < keyParts.Length; i++)
+                {
+                    if (i > 0)
+                        sbInner.Write(',');
+                    ConvertModelExpression(keyParts[i], groupBy!.Parameters[0], ref sbInner, rootDependant, modelDetail, operationContext);
+                    sbInner.Write(" AS `K");
+                    sbInner.Write(i);
+                    sbInner.Write("`");
+                }
+                if (value is not null)
+                {
+                    if (keyParts.Length > 0)
+                        sbInner.Write(',');
+                    ConvertToSql(value, ref sbInner, new BuilderContext(rootDependant, operationContext) { IsOrderBy = true });
+                    sbInner.Write(" AS `V`");
+                }
+                else if (keyParts.Length == 0)
+                {
+                    sbInner.Write('1');
+                }
+                GenerateFrom(modelDetail, ref sbInner);
+                GenerateWhere(where, ref sbWhere, rootDependant, operationContext);
+                GenerateJoin(rootDependant, ref sbInner);
+                sbInner.Write(sbWhere);
+
+                sb.Write("SELECT ");
+                for (var i = 0; i < keyParts.Length; i++)
+                {
+                    sb.Write("`K");
+                    sb.Write(i);
+                    sb.Write("`,");
+                }
+                switch (operation)
+                {
+                    case QueryOperation.Count:
+                        sb.Write("COUNT(1)");
+                        break;
+                    case QueryOperation.Sum:
+                        //SUM of no rows is NULL where the LINQ sum is 0
+                        sb.Write("COALESCE(SUM(`V`),0)");
+                        break;
+                    case QueryOperation.Average:
+                        var valueType = Nullable.GetUnderlyingType(value!.ReturnType) ?? value.ReturnType;
+                        if (valueType == typeof(int) || valueType == typeof(long) || valueType == typeof(short) || valueType == typeof(byte) || valueType == typeof(uint) || valueType == typeof(ulong) || valueType == typeof(ushort) || valueType == typeof(sbyte))
+                            sb.Write("AVG(CAST(`V` AS DOUBLE))");
+                        else
+                            sb.Write("AVG(`V`)");
+                        break;
+                    case QueryOperation.Min:
+                        sb.Write("MIN(`V`)");
+                        break;
+                    case QueryOperation.Max:
+                        sb.Write("MAX(`V`)");
+                        break;
+                    default:
+                        throw new NotSupportedException($"{operation} is not a calculation");
+                }
+                AppendLineBreak(ref sb);
+                sb.Write(" FROM (");
+                sb.Write(sbInner);
+                sb.Write(") AS `Z`");
+                AppendLineBreak(ref sb);
+                if (keyParts.Length > 0)
+                {
+                    sb.Write("GROUP BY ");
+                    for (var i = 0; i < keyParts.Length; i++)
+                    {
+                        if (i > 0)
+                            sb.Write(',');
+                        sb.Write("`K");
+                        sb.Write(i);
+                        sb.Write("`");
+                    }
+                    AppendLineBreak(ref sb);
+                }
+            }
+            finally
+            {
+                sbInner.Dispose();
+                sbWhere.Dispose();
+            }
+        }
+        /// <inheritdoc/>
+        protected override void ConvertPersistWhere(ref CharWriter sb, LambdaExpression where, ModelDetail modelDetail, MemberContext operationContext)
+        {
+            var rootDependant = new ParameterDependant(modelDetail, null);
+            var sbWhere = new CharWriter();
+            try
+            {
+                GenerateWhere(where, ref sbWhere, rootDependant, operationContext);
+                if (rootDependant.Dependants.Count == 0)
+                {
+                    sb.Write(' ');
+                    sb.Write(sbWhere);
+                    return;
+                }
+
+                //a related model in the condition needs its join, which UPDATE and DELETE write differently in each database, so the matching rows are selected instead
+                if (modelDetail.IdentityMembers.Count != 1)
+                    throw new NotSupportedException($"Relational conditions support only one identity on {modelDetail.Type.Name}");
+                var identity = modelDetail.IdentityMembers[0];
+
+                sb.Write(" WHERE `");
+                sb.Write(modelDetail.DataSourceEntityName);
+                sb.Write("`.`");
+                sb.Write(identity.StoreName);
+                sb.Write("` IN (");
+                //MySQL refuses to read the table being changed in the subquery unless it is a derived table
+                sb.Write("SELECT `");
+                sb.Write(identity.StoreName);
+                sb.Write("` FROM (");
+                sb.Write("SELECT `");
+                sb.Write(modelDetail.DataSourceEntityName);
+                sb.Write("`.`");
+                sb.Write(identity.StoreName);
+                sb.Write("`");
+                GenerateFrom(modelDetail, ref sb);
+                GenerateJoin(rootDependant, ref sb);
+                sb.Write(sbWhere);
+                sb.Write(") AS `Z`");
+                sb.Write(')');
+            }
+            finally
+            {
+                sbWhere.Dispose();
+            }
+        }
+        /// <inheritdoc/>
+        protected override void ConvertSelect(ref CharWriter sb, ProjectionMember[] members, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, MemberContext operationContext)
+        {
+            var rootDependant = new ParameterDependant(modelDetail, null);
+            var sbWhereOrder = new CharWriter();
+            try
+            {
+                sb.Write("SELECT ");
+                for (var i = 0; i < members.Length; i++)
+                {
+                    if (i > 0)
+                        sb.Write(',');
+                    ConvertModelExpression(members[i].Expression!, members[i].Parameter!, ref sb, rootDependant, modelDetail, operationContext);
+                    sb.Write(" AS `");
+                    sb.Write(members[i].MemberDetail.Name);
+                    sb.Write("`");
+                }
+                GenerateFrom(modelDetail, ref sb);
+                GenerateWhere(where, ref sbWhereOrder, rootDependant, operationContext);
+                GenerateOrderSkipTake(order, skip, take, ref sbWhereOrder, rootDependant, operationContext);
+                GenerateJoin(rootDependant, ref sb);
+                sb.Write(sbWhereOrder);
+            }
+            finally
+            {
+                sbWhereOrder.Dispose();
+            }
+        }
+        /// <inheritdoc/>
+        protected override void ConvertGroup(ref CharWriter sb, Expression[] keyParts, ParameterExpression groupParameter, ProjectionMember[] members, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, ModelDetail resultDetail, MemberContext operationContext)
+        {
+            var rootDependant = new ParameterDependant(modelDetail, null);
+            var sbInner = new CharWriter();
+            var sbWhere = new CharWriter();
+            var sbGroup = new CharWriter();
+            try
+            {
+                sbInner.Write("SELECT ");
+                for (var i = 0; i < keyParts.Length; i++)
+                {
+                    if (i > 0)
+                        sbInner.Write(',');
+                    ConvertModelExpression(keyParts[i], groupParameter, ref sbInner, rootDependant, modelDetail, operationContext);
+                    sbInner.Write(" AS `K");
+                    sbInner.Write(i);
+                    sbInner.Write("`");
+                }
+                var valueIndex = 0;
+                foreach (var member in members)
+                {
+                    if (member.Expression is null)
+                        continue;
+                    sbInner.Write(',');
+                    ConvertModelExpression(member.Expression, member.Parameter!, ref sbInner, rootDependant, modelDetail, operationContext);
+                    sbInner.Write(" AS `V");
+                    sbInner.Write(valueIndex++);
+                    sbInner.Write("`");
+                }
+                GenerateFrom(modelDetail, ref sbInner);
+                GenerateWhere(where, ref sbWhere, rootDependant, operationContext);
+                GenerateJoin(rootDependant, ref sbInner);
+                sbInner.Write(sbWhere);
+
+                sbGroup.Write("SELECT ");
+                valueIndex = 0;
+                for (var i = 0; i < members.Length; i++)
+                {
+                    var member = members[i];
+                    if (i > 0)
+                        sbGroup.Write(',');
+                    switch (member.Kind)
+                    {
+                        case ProjectionMemberKind.KeyPart:
+                            sbGroup.Write("`K");
+                            sbGroup.Write(member.KeyPart);
+                            sbGroup.Write("`");
+                            break;
+                        case ProjectionMemberKind.Count:
+                            sbGroup.Write("COUNT(1)");
+                            break;
+                        case ProjectionMemberKind.Sum:
+                            sbGroup.Write("COALESCE(SUM(`V");
+                            sbGroup.Write(valueIndex++);
+                            sbGroup.Write("`),0)");
+                            break;
+                        case ProjectionMemberKind.Average:
+                            var valueType = Nullable.GetUnderlyingType(member.Expression!.Type) ?? member.Expression.Type;
+                            if (valueType == typeof(int) || valueType == typeof(long) || valueType == typeof(short) || valueType == typeof(byte) || valueType == typeof(uint) || valueType == typeof(ulong) || valueType == typeof(ushort) || valueType == typeof(sbyte))
+                            {
+                                sbGroup.Write("AVG(CAST(`V");
+                                sbGroup.Write(valueIndex++);
+                                sbGroup.Write("` AS DOUBLE))");
+                            }
+                            else
+                            {
+                                sbGroup.Write("AVG(`V");
+                                sbGroup.Write(valueIndex++);
+                                sbGroup.Write("`)");
+                            }
+                            break;
+                        case ProjectionMemberKind.Min:
+                            sbGroup.Write("MIN(`V");
+                            sbGroup.Write(valueIndex++);
+                            sbGroup.Write("`)");
+                            break;
+                        case ProjectionMemberKind.Max:
+                            sbGroup.Write("MAX(`V");
+                            sbGroup.Write(valueIndex++);
+                            sbGroup.Write("`)");
+                            break;
+                        default:
+                            throw new NotSupportedException($"{member.Kind} is not a group calculation");
+                    }
+                    sbGroup.Write(" AS `");
+                    sbGroup.Write(resultDetail.GetMember(member.MemberDetail.Name).StoreName);
+                    sbGroup.Write("`");
+                }
+                AppendLineBreak(ref sbGroup);
+                sbGroup.Write(" FROM (");
+                sbGroup.Write(sbInner);
+                sbGroup.Write(") AS `Z`");
+                AppendLineBreak(ref sbGroup);
+                sbGroup.Write("GROUP BY ");
+                for (var i = 0; i < keyParts.Length; i++)
+                {
+                    if (i > 0)
+                        sbGroup.Write(',');
+                    sbGroup.Write("`K");
+                    sbGroup.Write(i);
+                    sbGroup.Write("`");
+                }
+                AppendLineBreak(ref sbGroup);
+
+                if (having is null && !(order?.OrderExpressions.Length > 0) && !skip.HasValue && !take.HasValue)
+                {
+                    sb.Write(sbGroup);
+                    return;
+                }
+
+                //the results are a derived table named after the result type, so the having and the order convert like a where on a model
+                var resultDependant = new ParameterDependant(resultDetail, null);
+                sb.Write("SELECT * FROM (");
+                sb.Write(sbGroup);
+                sb.Write(") AS `");
+                sb.Write(resultDetail.DataSourceEntityName);
+                sb.Write("`");
+                AppendLineBreak(ref sb);
+                GenerateWhere(having, ref sb, resultDependant, operationContext);
+                GenerateOrderSkipTake(order, skip, take, ref sb, resultDependant, operationContext);
+            }
+            finally
+            {
+                sbInner.Dispose();
+                sbWhere.Dispose();
+                sbGroup.Dispose();
+            }
+        }
         /// <inheritdoc/>
         protected override void GenerateWhere(LambdaExpression? where, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {

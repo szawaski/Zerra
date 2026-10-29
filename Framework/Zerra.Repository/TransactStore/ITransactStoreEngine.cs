@@ -63,6 +63,37 @@ namespace Zerra.Repository
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns><see langword="true"/> if any matching model exists; otherwise <see langword="false"/>.</returns>
         bool ExecuteAny<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
+        /// <summary>Executes a calculation (a count per group, or a sum, average, minimum, or maximum) over the matching models, in all or per group.</summary>
+        /// <typeparam name="TModel">The model type to query.</typeparam>
+        /// <param name="operation">The calculation.</param>
+        /// <param name="where">An optional filter expression.</param>
+        /// <param name="groupBy">The group key expression, or <see langword="null"/> to calculate over all matching models.</param>
+        /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>The boxed result of the type from <see cref="CalculationCommon.GetResultType"/>, or <see langword="null"/> when nothing matched; with a group, an <see cref="IReadOnlyList{T}"/> of <c>(object?[] Key, object? Value)</c> rows.</returns>
+        object? ExecuteCalculation<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new();
+        /// <summary>Builds a result from each matching model with a projection, reading only what it sets.</summary>
+        /// <typeparam name="TModel">The model type to query.</typeparam>
+        /// <param name="select">The projection, <c>x => new TResult { Member = ..., ... }</c>, as <see cref="LinqExtensions.GetProjectionMembers"/> reads it.</param>
+        /// <param name="where">An optional filter expression.</param>
+        /// <param name="order">An optional ordering of the models.</param>
+        /// <param name="skip">An optional number of models to skip.</param>
+        /// <param name="take">An optional maximum number of models to return.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>The results, one per row in the order the store returns them, each member set from its column.</returns>
+        IReadOnlyList<object> ExecuteSelect<TModel>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new();
+        /// <summary>Builds a result from each group of matching models with a projection of the key and aggregates, then filters, orders, and pages the results.</summary>
+        /// <typeparam name="TModel">The model type to query.</typeparam>
+        /// <param name="groupBy">The group key expression.</param>
+        /// <param name="select">The projection of a group, as <see cref="LinqExtensions.GetProjectionMembers"/> reads it.</param>
+        /// <param name="where">An optional filter expression on the models.</param>
+        /// <param name="having">An optional filter on the results.</param>
+        /// <param name="order">An optional ordering of the results.</param>
+        /// <param name="skip">An optional number of results to skip.</param>
+        /// <param name="take">An optional maximum number of results to return.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>The results, one per row in the order the store returns them, each member set from its column.</returns>
+        IReadOnlyList<object> ExecuteGroup<TModel>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new();
 
         /// <summary>Asynchronously executes a query and returns all matching models.</summary>
         /// <typeparam name="TModel">The model type to query.</typeparam>
@@ -114,6 +145,37 @@ namespace Zerra.Repository
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>A task containing <see langword="true"/> if any matching model exists; otherwise <see langword="false"/>.</returns>
         Task<bool> ExecuteAnyAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
+        /// <summary>Asynchronously executes a calculation (a count per group, or a sum, average, minimum, or maximum) over the matching models, in all or per group.</summary>
+        /// <typeparam name="TModel">The model type to query.</typeparam>
+        /// <param name="operation">The calculation.</param>
+        /// <param name="where">An optional filter expression.</param>
+        /// <param name="groupBy">The group key expression, or <see langword="null"/> to calculate over all matching models.</param>
+        /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>A task containing the boxed result of the type from <see cref="CalculationCommon.GetResultType"/>, or <see langword="null"/> when nothing matched; with a group, an <see cref="IReadOnlyList{T}"/> of <c>(object?[] Key, object? Value)</c> rows.</returns>
+        Task<object?> ExecuteCalculationAsync<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new();
+        /// <summary>Asynchronously builds a result from each matching model with a projection, reading only what it sets.</summary>
+        /// <typeparam name="TModel">The model type to query.</typeparam>
+        /// <param name="select">The projection, <c>x => new TResult { Member = ..., ... }</c>, as <see cref="LinqExtensions.GetProjectionMembers"/> reads it.</param>
+        /// <param name="where">An optional filter expression.</param>
+        /// <param name="order">An optional ordering of the models.</param>
+        /// <param name="skip">An optional number of models to skip.</param>
+        /// <param name="take">An optional maximum number of models to return.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>A task containing the results, one per row in the order the store returns them, each member set from its column.</returns>
+        Task<IReadOnlyList<object>> ExecuteSelectAsync<TModel>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new();
+        /// <summary>Asynchronously builds a result from each group of matching models with a projection of the key and aggregates, then filters, orders, and pages the results.</summary>
+        /// <typeparam name="TModel">The model type to query.</typeparam>
+        /// <param name="groupBy">The group key expression.</param>
+        /// <param name="select">The projection of a group, as <see cref="LinqExtensions.GetProjectionMembers"/> reads it.</param>
+        /// <param name="where">An optional filter expression on the models.</param>
+        /// <param name="having">An optional filter on the results.</param>
+        /// <param name="order">An optional ordering of the results.</param>
+        /// <param name="skip">An optional number of results to skip.</param>
+        /// <param name="take">An optional maximum number of results to return.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>A task containing the results, one per row in the order the store returns them, each member set from its column.</returns>
+        Task<IReadOnlyList<object>> ExecuteGroupAsync<TModel>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new();
 
         /// <summary>Executes an insert and returns the auto-generated identities.</summary>
         /// <typeparam name="TModel">The model type to insert.</typeparam>
@@ -142,6 +204,20 @@ namespace Zerra.Repository
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>The number of rows affected.</returns>
         int ExecuteDelete<TModel>(ICollection ids, ModelDetail modelDetail) where TModel : class, new();
+        /// <summary>Sets the graph's members to the values on every row matching the condition and returns the number of rows affected.</summary>
+        /// <typeparam name="TModel">The model type.</typeparam>
+        /// <param name="model">The model holding the values to set.</param>
+        /// <param name="graph">The members to set; never an identity or a relation.</param>
+        /// <param name="where">The condition selecting the rows.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>The number of rows affected.</returns>
+        int ExecuteUpdateWhere<TModel>(TModel model, Graph graph, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new();
+        /// <summary>Deletes every row matching the condition and returns the number of rows affected.</summary>
+        /// <typeparam name="TModel">The model type.</typeparam>
+        /// <param name="where">The condition selecting the rows.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>The number of rows affected.</returns>
+        int ExecuteDeleteWhere<TModel>(LambdaExpression where, ModelDetail modelDetail) where TModel : class, new();
 
         /// <summary>Asynchronously executes an insert and returns the auto-generated identities.</summary>
         /// <typeparam name="TModel">The model type to insert.</typeparam>
@@ -170,6 +246,20 @@ namespace Zerra.Repository
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>A task containing the number of rows affected.</returns>
         Task<int> ExecuteDeleteAsync<TModel>(ICollection ids, ModelDetail modelDetail) where TModel : class, new();
+        /// <summary>Asynchronously sets the graph's members to the values on every row matching the condition and returns the number of rows affected.</summary>
+        /// <typeparam name="TModel">The model type.</typeparam>
+        /// <param name="model">The model holding the values to set.</param>
+        /// <param name="graph">The members to set; never an identity or a relation.</param>
+        /// <param name="where">The condition selecting the rows.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>A task containing the number of rows affected.</returns>
+        Task<int> ExecuteUpdateWhereAsync<TModel>(TModel model, Graph graph, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new();
+        /// <summary>Asynchronously deletes every row matching the condition and returns the number of rows affected.</summary>
+        /// <typeparam name="TModel">The model type.</typeparam>
+        /// <param name="where">The condition selecting the rows.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>A task containing the number of rows affected.</returns>
+        Task<int> ExecuteDeleteWhereAsync<TModel>(LambdaExpression where, ModelDetail modelDetail) where TModel : class, new();
 
         /// <summary>
         /// Builds a plan for generating or modifying the data store structure based on the provided model details.

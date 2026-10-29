@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Linq.Expressions;
 using Zerra.Reflection;
 
 namespace Zerra.Repository
@@ -29,6 +30,9 @@ namespace Zerra.Repository
             this.deleteBatchSize = ModelTypeDetail.IdentityMembers.Count == 1 ? deleteBatchSizeSingleIdentity : deleteBatchSizeManyIdentity;
             this.engine = engine;
         }
+
+        /// <inheritdoc/>
+        protected override sealed object? Engine => engine;
 
         /// <inheritdoc/>
         protected override sealed IReadOnlyCollection<TModel> Many(Query query)
@@ -74,6 +78,25 @@ namespace Zerra.Repository
 
             var any = engine.ExecuteAny<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return any;
+        }
+        /// <inheritdoc/>
+        protected override sealed object? Calculate(Query query)
+        {
+            if (query.IsTemporal)
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
+
+            var result = engine.ExecuteCalculation<TModel>(query.Operation, query.Where, query.GroupBy, query.Value, ModelTypeDetail);
+            return result;
+        }
+        /// <inheritdoc/>
+        protected override sealed object? Project(Query query)
+        {
+            if (query.IsTemporal)
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
+
+            if (query.Operation == QueryOperation.Group)
+                return engine.ExecuteGroup<TModel>(query.GroupBy!, query.Select!, query.Where, query.Having, query.Order, query.Skip, query.Take, ModelTypeDetail);
+            return engine.ExecuteSelect<TModel>(query.Select!, query.Where, query.Order, query.Skip, query.Take, ModelTypeDetail);
         }
         /// <inheritdoc/>
         protected override sealed IReadOnlyCollection<EventModel<TModel>> EventMany(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
@@ -130,6 +153,25 @@ namespace Zerra.Repository
 
             var any = engine.ExecuteAnyAsync<TModel>(query.Where, query.Order, query.Skip, query.Take, query.Graph, ModelTypeDetail);
             return any;
+        }
+        /// <inheritdoc/>
+        protected override sealed Task<object?> CalculateAsync(Query query)
+        {
+            if (query.IsTemporal)
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
+
+            var result = engine.ExecuteCalculationAsync<TModel>(query.Operation, query.Where, query.GroupBy, query.Value, ModelTypeDetail);
+            return result;
+        }
+        /// <inheritdoc/>
+        protected override sealed async Task<object?> ProjectAsync(Query query)
+        {
+            if (query.IsTemporal)
+                throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
+
+            if (query.Operation == QueryOperation.Group)
+                return await engine.ExecuteGroupAsync<TModel>(query.GroupBy!, query.Select!, query.Where, query.Having, query.Order, query.Skip, query.Take, ModelTypeDetail);
+            return await engine.ExecuteSelectAsync<TModel>(query.Select!, query.Where, query.Order, query.Skip, query.Take, ModelTypeDetail);
         }
         /// <inheritdoc/>
         protected override sealed Task<IReadOnlyCollection<EventModel<TModel>>> EventManyAsync(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
@@ -194,6 +236,16 @@ namespace Zerra.Repository
                     throw new Exception($"No rows affected: {(String.IsNullOrWhiteSpace(@event.Name) ? defaultEventName : @event.Name)}");
             }
         }
+        /// <inheritdoc/>
+        protected override sealed int UpdateModelsWhere(PersistEvent @event, LambdaExpression where, object model, Graph graph)
+        {
+            return engine.ExecuteUpdateWhere<TModel>((TModel)model, graph, where, ModelTypeDetail);
+        }
+        /// <inheritdoc/>
+        protected override sealed int DeleteModelsWhere(PersistEvent @event, LambdaExpression where)
+        {
+            return engine.ExecuteDeleteWhere<TModel>(where, ModelTypeDetail);
+        }
 
         /// <inheritdoc/>
         protected override sealed async Task PersistModelAsync(PersistEvent @event, object model, Graph? graph, bool create)
@@ -247,6 +299,16 @@ namespace Zerra.Repository
                 if (rowsAffected == 0)
                     throw new Exception($"No rows affected: {(String.IsNullOrWhiteSpace(@event.Name) ? defaultEventName : @event.Name)}");
             }
+        }
+        /// <inheritdoc/>
+        protected override sealed Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, object model, Graph graph)
+        {
+            return engine.ExecuteUpdateWhereAsync<TModel>((TModel)model, graph, where, ModelTypeDetail);
+        }
+        /// <inheritdoc/>
+        protected override sealed Task<int> DeleteModelsWhereAsync(PersistEvent @event, LambdaExpression where)
+        {
+            return engine.ExecuteDeleteWhereAsync<TModel>(where, ModelTypeDetail);
         }
     }
 }

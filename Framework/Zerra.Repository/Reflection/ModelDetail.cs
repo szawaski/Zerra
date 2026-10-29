@@ -38,10 +38,9 @@ namespace Zerra.Repository.Reflection
         /// </summary>
         public bool IsDataSourceEntity => dataSourceEntityName is not null;
         /// <summary>
-        /// The store or table name for this model, as specified by <see cref="EntityAttribute"/> or defaulting to the type name.
+        /// The store or table name for this model, as specified by <see cref="EntityAttribute"/> or defaulting to the type name, which a projection result uses as its alias.
         /// </summary>
-        /// <exception cref="Exception">Thrown when the type does not have an <see cref="EntityAttribute"/>.</exception>
-        public string DataSourceEntityName => dataSourceEntityName ?? throw new Exception($"{Type.Name} does not have an EntityAttribute");
+        public string DataSourceEntityName => dataSourceEntityName ?? Type.Name;
         /// <summary>
         /// All model members that are not excluded by <see cref="StoreExcludeAttribute"/>.
         /// </summary>

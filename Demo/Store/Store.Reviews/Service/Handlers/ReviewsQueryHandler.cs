@@ -10,8 +10,6 @@ namespace Store.Reviews.Service.Handlers
 {
     public sealed class ReviewsQueryHandler : BaseHandlerWithRepo, IReviewsQueryHandler
     {
-        private const int recentReviewCount = 50;
-
         public Task<string> GetDataStoreName(CancellationToken cancellationToken) => Task.FromResult(Context.GetService<IDataStoreInfo>().Description);
         public Task<string> GetMessagingName(CancellationToken cancellationToken) => Task.FromResult(Context.GetService<IMessagingInfo>().Description);
 
@@ -30,17 +28,16 @@ namespace Store.Reviews.Service.Handlers
 
         public async Task<ProductRatingModel[]> GetProductRatings(CancellationToken cancellationToken)
         {
-            //a handful of reviews at a time, computing the average here keeps every page that wants a rating from redoing it
-            var items = await Repo.ManyAsync<ReviewDataModel>(0, recentReviewCount * 20);
-            return items
-                .GroupBy(x => x.ProductID)
-                .Select(g => new ProductRatingModel()
-                {
-                    ProductID = g.Key,
-                    AverageRating = Math.Round(g.Average(x => x.Rating), 1),
-                    ReviewCount = g.Count()
-                })
-                .ToArray();
+            //the store groups the reviews and averages them, so one row per product comes back instead of every review
+            var ratings = await Repo.GroupAsync((ReviewDataModel x) => x.ProductID, g => new ProductRatingModel()
+            {
+                ProductID = g.Key,
+                AverageRating = g.Average(x => x.Rating),
+                ReviewCount = g.Count()
+            });
+            foreach (var rating in ratings)
+                rating.AverageRating = Math.Round(rating.AverageRating, 1);
+            return ratings.ToArray();
         }
 
         private static ReviewModel ToModel(ReviewDataModel item) => new()

@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Linq.Expressions;
 using Zerra.Map;
 using Zerra.Repository.Reflection;
 
@@ -30,6 +31,9 @@ namespace Zerra.Repository
             this.engine = engine;
             this.saveStateEvery = saveStateEvery;
         }
+
+        /// <inheritdoc/>
+        protected override sealed object? Engine => engine;
 
         /// <inheritdoc/>
         protected override sealed IReadOnlyCollection<TModel> Many(Query query)
@@ -85,6 +89,32 @@ namespace Zerra.Repository
             var any = queriedSet.Any();
 
             return any;
+        }
+        /// <inheritdoc/>
+        protected override sealed object? Calculate(Query query)
+        {
+            if (query.IsTemporal)
+                throw new NotSupportedException($"Temporal calculations not supported with {nameof(EventStoreAsTransactStoreProvider<TModel>)}");
+
+            //calculates on the current state of each model, not on every state it had
+            var models = ReadModels(query, false);
+
+            var queriedSet = models.Query(query);
+
+            return queriedSet.Calculate(query.Operation, query.GroupBy, query.Value);
+        }
+        /// <inheritdoc/>
+        protected override sealed object? Project(Query query)
+        {
+            if (query.IsTemporal)
+                throw new NotSupportedException($"Temporal projections not supported with {nameof(EventStoreAsTransactStoreProvider<TModel>)}");
+
+            //projects the current state of each model, not every state it had
+            var models = ReadModels(query, false);
+
+            if (query.Operation == QueryOperation.Group)
+                return models.Query(query.Where, null, null, null).Group(query.GroupBy!, query.Select!, query.Having, query.Order, query.Skip, query.Take);
+            return models.Query(query).Select(query.Select!);
         }
         /// <inheritdoc/>
         protected override sealed IReadOnlyCollection<EventModel<TModel>> EventMany(Query query)
@@ -218,6 +248,32 @@ namespace Zerra.Repository
             return any;
         }
         /// <inheritdoc/>
+        protected override sealed async Task<object?> CalculateAsync(Query query)
+        {
+            if (query.IsTemporal)
+                throw new NotSupportedException($"Temporal calculations not supported with {nameof(EventStoreAsTransactStoreProvider<TModel>)}");
+
+            //calculates on the current state of each model, not on every state it had
+            var models = await ReadModelsAsync(query, false);
+
+            var queriedSet = models.Query(query);
+
+            return queriedSet.Calculate(query.Operation, query.GroupBy, query.Value);
+        }
+        /// <inheritdoc/>
+        protected override sealed async Task<object?> ProjectAsync(Query query)
+        {
+            if (query.IsTemporal)
+                throw new NotSupportedException($"Temporal projections not supported with {nameof(EventStoreAsTransactStoreProvider<TModel>)}");
+
+            //projects the current state of each model, not every state it had
+            var models = await ReadModelsAsync(query, false);
+
+            if (query.Operation == QueryOperation.Group)
+                return models.Query(query.Where, null, null, null).Group(query.GroupBy!, query.Select!, query.Having, query.Order, query.Skip, query.Take);
+            return models.Query(query).Select(query.Select!);
+        }
+        /// <inheritdoc/>
         protected override sealed async Task<IReadOnlyCollection<EventModel<TModel>>> EventManyAsync(Query query)
         {
             var eventModels = await ReadEventModelsAsync(query);
@@ -294,8 +350,9 @@ namespace Zerra.Repository
         }
 
         private ICollection<TModel> ReadModels(Query query)
+            => ReadModels(query, query.Operation == QueryOperation.Many || query.Operation == QueryOperation.Count);
+        private ICollection<TModel> ReadModels(Query query, bool many)
         {
-            var many = query.Operation == QueryOperation.Many || query.Operation == QueryOperation.Count;
             var ids = GetIDs(query);
 
             var models = new List<TModel>();
@@ -313,9 +370,10 @@ namespace Zerra.Repository
             }
             return models;
         }
-        private async Task<ICollection<TModel>> ReadModelsAsync(Query query)
+        private Task<ICollection<TModel>> ReadModelsAsync(Query query)
+            => ReadModelsAsync(query, query.Operation == QueryOperation.Many || query.Operation == QueryOperation.Count);
+        private async Task<ICollection<TModel>> ReadModelsAsync(Query query, bool many)
         {
-            var many = query.Operation == QueryOperation.Many || query.Operation == QueryOperation.Count;
             var ids = GetIDs(query);
 
             var models = new List<TModel>();
@@ -978,6 +1036,58 @@ namespace Zerra.Repository
 
                 await SaveModelStateAsync(id, null, eventNumber, null);
             }
+        }
+
+        /// <inheritdoc/>
+        protected override sealed int UpdateModelsWhere(PersistEvent @event, LambdaExpression where, object model, Graph graph)
+        {
+            //each matching stream gets the change as an update event, the condition names the identities as every event store query does
+            var ids = GetIDsWhere(where);
+            foreach (var id in ids)
+            {
+                var copy = Mapper.Copy((TModel)model);
+                ModelAnalyzer.SetIdentity(modelType, copy, id);
+                PersistModel(@event, copy, graph, false);
+            }
+            return ids.Length;
+        }
+        /// <inheritdoc/>
+        protected override sealed int DeleteModelsWhere(PersistEvent @event, LambdaExpression where)
+        {
+            var ids = GetIDsWhere(where);
+            DeleteModel(@event, ids);
+            return ids.Length;
+        }
+        /// <inheritdoc/>
+        protected override sealed async Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, object model, Graph graph)
+        {
+            var ids = await GetIDsWhereAsync(where);
+            foreach (var id in ids)
+            {
+                var copy = Mapper.Copy((TModel)model);
+                ModelAnalyzer.SetIdentity(modelType, copy, id);
+                await PersistModelAsync(@event, copy, graph, false);
+            }
+            return ids.Length;
+        }
+        /// <inheritdoc/>
+        protected override sealed async Task<int> DeleteModelsWhereAsync(PersistEvent @event, LambdaExpression where)
+        {
+            var ids = await GetIDsWhereAsync(where);
+            await DeleteModelAsync(@event, ids);
+            return ids.Length;
+        }
+        private object[] GetIDsWhere(LambdaExpression where)
+        {
+            var query = new Query(QueryOperation.Many, modelType, where, null, null, null, null);
+            var models = ReadModels(query, false);
+            return models.Query(query).Select(x => ModelAnalyzer.GetIdentity(modelType, x)).ToArray();
+        }
+        private async Task<object[]> GetIDsWhereAsync(LambdaExpression where)
+        {
+            var query = new Query(QueryOperation.Many, modelType, where, null, null, null, null);
+            var models = await ReadModelsAsync(query, false);
+            return models.Query(query).Select(x => ModelAnalyzer.GetIdentity(modelType, x)).ToArray();
         }
 
         private void SaveModelState(object id, TModel? model, ulong eventNumber, DateTime? date)

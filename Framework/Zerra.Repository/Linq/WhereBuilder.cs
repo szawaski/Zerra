@@ -28,42 +28,52 @@ namespace Zerra.Linq
         /// Appends a predicate combined with a logical AND.
         /// </summary>
         /// <param name="expression">The predicate expression to AND with the current expression.</param>
-        public void And(Expression<Func<TModel, bool>> expression)
+        /// <returns>This builder, so calls can chain.</returns>
+        public WhereBuilder<TModel> And(Expression<Func<TModel, bool>> expression)
         {
             this.expressionStack.Add(new ExpressionStackItem(expression, true, false, false, false));
+            return this;
         }
 
         /// <summary>
         /// Appends a predicate combined with a logical OR.
         /// </summary>
         /// <param name="expression">The predicate expression to OR with the current expression.</param>
-        public void Or(Expression<Func<TModel, bool>> expression)
+        /// <returns>This builder, so calls can chain.</returns>
+        public WhereBuilder<TModel> Or(Expression<Func<TModel, bool>> expression)
         {
             this.expressionStack.Add(new ExpressionStackItem(expression, false, true, false, false));
+            return this;
         }
 
         /// <summary>
         /// Begins a grouped sub-expression combined with a logical AND.
         /// </summary>
-        public void StartGroupAnd()
+        /// <returns>This builder, so calls can chain.</returns>
+        public WhereBuilder<TModel> StartGroupAnd()
         {
             this.expressionStack.Add(new ExpressionStackItem(null, true, false, true, false));
+            return this;
         }
 
         /// <summary>
         /// Begins a grouped sub-expression combined with a logical OR.
         /// </summary>
-        public void StartGroupOr()
+        /// <returns>This builder, so calls can chain.</returns>
+        public WhereBuilder<TModel> StartGroupOr()
         {
             this.expressionStack.Add(new ExpressionStackItem(null, false, true, true, false));
+            return this;
         }
 
         /// <summary>
         /// Ends the current grouped sub-expression.
         /// </summary>
-        public void EndGroup()
+        /// <returns>This builder, so calls can chain.</returns>
+        public WhereBuilder<TModel> EndGroup()
         {
             this.expressionStack.Add(new ExpressionStackItem(null, false, false, false, true));
+            return this;
         }
 
         /// <summary>
@@ -91,49 +101,51 @@ namespace Zerra.Linq
             var lambda = Expression.Lambda<Func<TModel, bool>>(exp, parameter);
             return lambda;
         }
+        //And binds tighter than Or as in C#, so the items are an Or of And runs, with a group as one term; the first item's And or Or has nothing before it to join
         private Expression? BuildGroup(ref int i, ParameterExpression parameter)
         {
-            Expression? exp = null;
+            Expression? ored = null;
+            Expression? run = null;
             while (i < expressionStack.Count)
             {
                 var item = expressionStack[i];
                 if (item.EndGroup)
-                {
                     break;
+
+                Expression? term;
+                if (item.StartGroup)
+                {
+                    i++;
+                    term = BuildGroup(ref i, parameter);
                 }
-                else if (exp is null)
+                else
                 {
                     if (item.Expression is null)
                         throw new ArgumentException("Invalid Linq Where grouping structure");
-                    exp = WhereBuilder<TModel>.Rebind(item.Expression, parameter);
+                    term = WhereBuilder<TModel>.Rebind(item.Expression, parameter);
                 }
-                else if (item.StartGroup)
+
+                if (term is not null)
                 {
-                    i++;
-                    var group = BuildGroup(ref i, parameter);
-                    if (group is not null)
+                    if (run is null)
                     {
-                        if (item.And)
-                        {
-                            exp = Expression.AndAlso(exp, group);
-                        }
-                        else if (item.Or)
-                        {
-                            exp = Expression.OrElse(exp, group);
-                        }
+                        run = term;
                     }
-                }
-                else if (item.And)
-                {
-                    exp = Expression.AndAlso(exp, WhereBuilder<TModel>.Rebind(item.Expression!, parameter));
-                }
-                else if (item.Or)
-                {
-                    exp = Expression.OrElse(exp, WhereBuilder<TModel>.Rebind(item.Expression!, parameter));
+                    else if (item.Or)
+                    {
+                        ored = ored is null ? run : Expression.OrElse(ored, run);
+                        run = term;
+                    }
+                    else
+                    {
+                        run = Expression.AndAlso(run, term);
+                    }
                 }
                 i++;
             }
-            return exp;
+            if (run is null)
+                return ored;
+            return ored is null ? run : Expression.OrElse(ored, run);
         }
         private static Expression Rebind(Expression<Func<TModel, bool>> expression, ParameterExpression parameter)
         {

@@ -64,6 +64,7 @@ To run the real databases and brokers in Docker, use `Demo/Infrastructure/start-
 | Message brokers with a fallback to direct calls | `Program.cs` in Orders, Inventory, Shipping, Reviews, and Store.Web |
 | Event sourcing with `AggregateRoot` | `Store.Carts/Service/Aggregates/CartAggregate.cs` |
 | Repository with a database per service and in-memory fallback | `Store.*/Service/Data/`, `Store.Common/Data/DataStoreSetup.cs` |
+| Calculations and projections done by the store | `CatalogQueryHandler.GetProducts` projects products with their category's name through the relation, `ReviewsQueryHandler.GetProductRatings` groups reviews into an average and count per product, `InventoryQueryHandler.GetStockLevels` projects stock items with `Available` computed in the query |
 | Streaming queries, download and upload | `ICatalogQueryHandler.ExportProductsCsv` and `PreviewProductImport` |
 | Browser calls with generated clients | `Store.Web/wwwroot/js/` |
 | Each service's own contracts, and its copies of the contracts it uses from other services | `Store.*/Domain/`, for example `Store.Carts/Domain/Catalog/` |

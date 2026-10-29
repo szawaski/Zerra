@@ -69,6 +69,30 @@ namespace Zerra.Repository.Memory
         }
 
         /// <inheritdoc/>
+        public object? ExecuteCalculation<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
+            return whereQuery.Calculate(operation, groupBy, value, caseSensitive);
+        }
+        /// <inheritdoc/>
+        public IReadOnlyList<object> ExecuteSelect<TModel>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
+            return whereQuery.Select(select, caseSensitive);
+        }
+        /// <inheritdoc/>
+        public IReadOnlyList<object> ExecuteGroup<TModel>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
+            return whereQuery.Group(groupBy, select, having, order, skip, take, caseSensitive);
+        }
+        /// <inheritdoc/>
         public Task<IReadOnlyCollection<TModel>> ExecuteManyAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var type = typeof(TModel);
@@ -118,6 +142,30 @@ namespace Zerra.Repository.Memory
             return Task.FromResult(whereQuery.Any());
         }
 
+        /// <inheritdoc/>
+        public Task<object?> ExecuteCalculationAsync<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
+            return Task.FromResult(whereQuery.Calculate(operation, groupBy, value, caseSensitive));
+        }
+        /// <inheritdoc/>
+        public Task<IReadOnlyList<object>> ExecuteSelectAsync<TModel>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
+            return Task.FromResult<IReadOnlyList<object>>(whereQuery.Select(select, caseSensitive));
+        }
+        /// <inheritdoc/>
+        public Task<IReadOnlyList<object>> ExecuteGroupAsync<TModel>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
+            return Task.FromResult<IReadOnlyList<object>>(whereQuery.Group(groupBy, select, having, order, skip, take, caseSensitive));
+        }
         /// <inheritdoc/>
         public object ExecuteInsertGetIdentities<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
@@ -206,6 +254,35 @@ namespace Zerra.Repository.Memory
         }
 
         /// <inheritdoc/>
+        public int ExecuteUpdateWhere<TModel>(TModel model, Graph graph, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var localGraph = BuildLocalGraph(type, graph);
+            var count = 0;
+            foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
+            {
+                model.MapTo(existing, localGraph);
+                MapRelated(existing, modelDetail, false);
+                count++;
+            }
+            return count;
+        }
+        /// <inheritdoc/>
+        public int ExecuteDeleteWhere<TModel>(LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var count = 0;
+            foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
+            {
+                if (source.Remove(existing))
+                    count++;
+                MapRelated(existing, modelDetail, true);
+            }
+            return count;
+        }
+        /// <inheritdoc/>
         public Task<object> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
         {
             var type = typeof(TModel);
@@ -290,6 +367,35 @@ namespace Zerra.Repository.Memory
             }
             return Task.FromResult(deleteCount);
         }
+        /// <inheritdoc/>
+        public Task<int> ExecuteUpdateWhereAsync<TModel>(TModel model, Graph graph, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var localGraph = BuildLocalGraph(type, graph);
+            var count = 0;
+            foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
+            {
+                model.MapTo(existing, localGraph);
+                MapRelated(existing, modelDetail, false);
+                count++;
+            }
+            return Task.FromResult(count);
+        }
+        /// <inheritdoc/>
+        public Task<int> ExecuteDeleteWhereAsync<TModel>(LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var count = 0;
+            foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
+            {
+                if (source.Remove(existing))
+                    count++;
+                MapRelated(existing, modelDetail, true);
+            }
+            return Task.FromResult(count);
+        }
 
         private static Graph GetAllLocalMemberGraph(Type type)
         {
@@ -357,37 +463,35 @@ namespace Zerra.Repository.Memory
             {
                 if (!isDelete && member.IsRelated)
                 {
-                    if (data.TryGetValue(member.ActualType, out var sourceObject))
-                    {
-                        var source = (IList)sourceObject;
+                    //a related type nothing was stored for yet has no list; the relation is then empty rather than null so queries over it behave as in a database
+                    var source = data.TryGetValue(member.ActualType, out var sourceObject) ? (IList)sourceObject : Array.Empty<object>();
 
-                        if (member.IsEnumerable)
+                    if (member.IsEnumerable)
+                    {
+                        var id = ModelAnalyzer.GetIdentity(modelDetail.Type, model);
+                        var relatedEnumerable = source.Cast<object>().Where(x => ModelAnalyzer.CompareIdentities(id, ModelAnalyzer.GetForeignIdentity(member.ActualType, member.ForeignIdentity!, x)));
+                        //collections with a creator (List<T>) are filled directly, arrays and the interfaces an array satisfies are filled as arrays
+                        if (member.MemberDetail.TypeDetail.HasCreator)
                         {
-                            var id = ModelAnalyzer.GetIdentity(modelDetail.Type, model);
-                            var relatedEnumerable = source.Cast<object>().Where(x => ModelAnalyzer.CompareIdentities(id, ModelAnalyzer.GetForeignIdentity(member.ActualType, member.ForeignIdentity!, x)));
-                            //collections with a creator (List<T>) are filled directly, arrays and the interfaces an array satisfies are filled as arrays
-                            if (member.MemberDetail.TypeDetail.HasCreator)
-                            {
-                                var list = (IList)member.CreatorBoxed();
-                                foreach (var related in relatedEnumerable)
-                                    _ = list.Add(related);
-                                member.SetterBoxed(model, list);
-                            }
-                            else
-                            {
-                                var matches = relatedEnumerable.ToArray();
-                                var array = Array.CreateInstanceFromArrayType(member.Type.IsArray ? member.Type : member.ActualType.MakeArrayType(), matches.Length);
-                                for (var i = 0; i < matches.Length; i++)
-                                    array.SetValue(matches[i], i);
-                                member.SetterBoxed(model, array);
-                            }
+                            var list = (IList)member.CreatorBoxed();
+                            foreach (var related in relatedEnumerable)
+                                _ = list.Add(related);
+                            member.SetterBoxed(model, list);
                         }
                         else
                         {
-                            var foreignId = ModelAnalyzer.GetForeignIdentity(modelDetail.Type, member.ForeignIdentity!, model);
-                            var related = source.Cast<object>().FirstOrDefault(x => ModelAnalyzer.CompareIdentities(foreignId, ModelAnalyzer.GetIdentity(member.ActualType, x)));
-                            member.SetterBoxed(model, related);
+                            var matches = relatedEnumerable.ToArray();
+                            var array = Array.CreateInstanceFromArrayType(member.Type.IsArray ? member.Type : member.ActualType.MakeArrayType(), matches.Length);
+                            for (var i = 0; i < matches.Length; i++)
+                                array.SetValue(matches[i], i);
+                            member.SetterBoxed(model, array);
                         }
+                    }
+                    else
+                    {
+                        var foreignId = ModelAnalyzer.GetForeignIdentity(modelDetail.Type, member.ForeignIdentity!, model);
+                        var related = source.Cast<object>().FirstOrDefault(x => ModelAnalyzer.CompareIdentities(foreignId, ModelAnalyzer.GetIdentity(member.ActualType, x)));
+                        member.SetterBoxed(model, related);
                     }
                 }
 

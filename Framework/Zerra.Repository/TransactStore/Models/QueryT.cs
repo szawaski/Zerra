@@ -57,5 +57,35 @@ namespace Zerra.Repository
         {
             
         }
+
+        /// <summary>
+        /// Initializes a calculation query, over all matching records or per group.
+        /// </summary>
+        /// <param name="operation">The calculation: <see cref="QueryOperation.Count"/>, <see cref="QueryOperation.Sum"/>, <see cref="QueryOperation.Average"/>, <see cref="QueryOperation.Min"/>, or <see cref="QueryOperation.Max"/>.</param>
+        /// <param name="where">An optional filter expression.</param>
+        /// <param name="groupBy">The group key expression, or <see langword="null"/> to calculate over all matching records.</param>
+        /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
+        public Query(QueryOperation operation, Expression<Func<TModel, bool>>? where, LambdaExpression? groupBy, LambdaExpression? value)
+            : base(operation, typeof(TModel), where, groupBy, value)
+        {
+
+        }
+
+        /// <summary>
+        /// Initializes a projection query, of each model or of each group.
+        /// </summary>
+        /// <param name="operation"><see cref="QueryOperation.Select"/> or <see cref="QueryOperation.Group"/>.</param>
+        /// <param name="where">An optional filter expression on the models.</param>
+        /// <param name="groupBy">The group key expression for <see cref="QueryOperation.Group"/>, otherwise <see langword="null"/>.</param>
+        /// <param name="select">The projection building a result from each model or group.</param>
+        /// <param name="having">An optional filter on the results of a grouped query.</param>
+        /// <param name="order">An optional sort order, on the models for a select and on the results for a group.</param>
+        /// <param name="skip">The number of models or results to skip.</param>
+        /// <param name="take">The maximum number of models or results to return.</param>
+        public Query(QueryOperation operation, Expression<Func<TModel, bool>>? where, LambdaExpression? groupBy, LambdaExpression select, LambdaExpression? having, QueryOrder? order, int? skip, int? take)
+            : base(operation, typeof(TModel), where, groupBy, select, having, order, skip, take)
+        {
+
+        }
     }
 }

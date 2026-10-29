@@ -45,5 +45,32 @@ namespace Zerra.Repository
             : base(persist)
         {
         }
+
+        /// <summary>
+        /// Initializes an update or delete of every model matching a condition.
+        /// </summary>
+        /// <param name="operation"><see cref="PersistOperation.Update"/> or <see cref="PersistOperation.Delete"/>.</param>
+        /// <param name="eventName">The name of the persist event, or <see langword="null"/> for a default.</param>
+        /// <param name="source">The source object that triggered the persist, or <see langword="null"/>.</param>
+        /// <param name="where">The condition selecting the models.</param>
+        /// <param name="model">For an update, the model holding the values to set; <see langword="null"/> for a delete.</param>
+        /// <param name="graph">For an update, the members to set.</param>
+        public Persist(PersistOperation operation, string? eventName, object? source, System.Linq.Expressions.Expression<Func<TModel, bool>> where, TModel? model, Graph<TModel>? graph)
+            : base(operation, eventName, source, typeof(TModel), where, model, graph)
+        {
+        }
+
+        /// <summary>
+        /// Initializes an update or delete of every model matching a condition, with an existing persist event.
+        /// </summary>
+        /// <param name="operation"><see cref="PersistOperation.Update"/> or <see cref="PersistOperation.Delete"/>.</param>
+        /// <param name="event">The persist event.</param>
+        /// <param name="where">The condition selecting the models.</param>
+        /// <param name="model">For an update, the model holding the values to set; <see langword="null"/> for a delete.</param>
+        /// <param name="graph">For an update, the members to set.</param>
+        public Persist(PersistOperation operation, PersistEvent @event, System.Linq.Expressions.Expression<Func<TModel, bool>> where, TModel? model, Graph<TModel>? graph)
+            : base(operation, @event, typeof(TModel), where, model, graph)
+        {
+        }
     }
 }

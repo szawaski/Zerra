@@ -15,6 +15,10 @@ namespace Zerra.Repository.Test
 
         protected abstract string ConvertToSql(QueryOperation select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
         protected abstract SqlDialectExpectations GetDialect();
+        protected abstract string ConvertCalculationToSql(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail);
+        protected abstract string ConvertPersistWhereToSql(LambdaExpression where, ModelDetail modelDetail);
+        protected abstract string ConvertSelectToSql(ProjectionMember[] members, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail);
+        protected abstract string ConvertGroupToSql(LambdaExpression groupBy, ProjectionMember[] members, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, Type resultType);
 
         #region Basic Select
 
@@ -837,6 +841,212 @@ namespace Zerra.Repository.Test
         public void Convert_UnsupportedPartOfMixedExpression_Throws()
         {
             _ = Assert.Throws<NotSupportedException>(() => ConvertToSql(QueryOperation.Many, (Expression<Func<TestTypesModel, bool>>)(x => (x.BooleanThing ? x.DateTimeThing : partDate).Ticks == 1), null, null, null, null, testTypesModelDetail));
+        }
+
+        #endregion
+
+        #region Calculations
+
+        private static readonly Expression<Func<TestTypesModel, int>> int32Value = x => x.Int32Thing;
+        private static readonly Expression<Func<TestTypesModel, decimal>> decimalValue = x => x.DecimalThing;
+        private static readonly Expression<Func<TestTypesModel, bool>> boolKey = x => x.BooleanThing;
+        private static readonly Expression<Func<TestTypesModel, bool>> calculationWhere = x => x.Int32Thing > 1;
+        private static LambdaExpression Key<TKey>(Expression<Func<TestTypesModel, TKey>> groupBy) => groupBy;
+
+        [Fact]
+        public void ConvertCalculation_Sum_AggregatesAnInnerSelect()
+        {
+            var d = GetDialect();
+            var sql = ConvertCalculationToSql(QueryOperation.Sum, null, null, int32Value, testTypesModelDetail);
+
+            Assert.StartsWith("SELECT COALESCE(SUM(", sql);
+            Assert.Contains("FROM (", sql);
+            Assert.Contains(d.From("TestTypes"), sql);
+            Assert.Contains(d.Column("TestTypes", "Int32Thing"), sql);
+            Assert.DoesNotContain("GROUP BY", sql);
+            Assert.DoesNotContain("WHERE", sql);
+        }
+
+        [Fact]
+        public void ConvertCalculation_GroupedCount_GroupsAndFilters()
+        {
+            var d = GetDialect();
+            var sql = ConvertCalculationToSql(QueryOperation.Count, calculationWhere, boolKey, null, testTypesModelDetail);
+
+            Assert.Contains("COUNT(1)", sql);
+            Assert.Contains("WHERE", sql);
+            Assert.Contains("GROUP BY", sql);
+            Assert.Contains(d.Column("TestTypes", "BooleanThing"), sql);
+            Assert.DoesNotContain("SUM(", sql);
+        }
+
+        [Fact]
+        public void ConvertCalculation_AverageOfIntegers_CastsToFloatingPoint()
+        {
+            var sql = ConvertCalculationToSql(QueryOperation.Average, null, null, int32Value, testTypesModelDetail);
+            Assert.Contains("AVG(CAST(", sql);
+        }
+
+        [Fact]
+        public void ConvertCalculation_AverageOfDecimals_DoesNotCast()
+        {
+            var sql = ConvertCalculationToSql(QueryOperation.Average, null, null, decimalValue, testTypesModelDetail);
+            Assert.Contains("AVG(", sql);
+            Assert.DoesNotContain("CAST(", sql);
+        }
+
+        [Fact]
+        public void ConvertCalculation_MinAndMax()
+        {
+            Assert.Contains("MIN(", ConvertCalculationToSql(QueryOperation.Min, null, null, int32Value, testTypesModelDetail));
+            Assert.Contains("MAX(", ConvertCalculationToSql(QueryOperation.Max, null, boolKey, int32Value, testTypesModelDetail));
+        }
+
+        [Fact]
+        public void ConvertCalculation_TupleKey_OneColumnPerPart()
+        {
+            var sql = ConvertCalculationToSql(QueryOperation.Count, null, Key(x => new { x.BooleanThing, x.Int32Thing }), null, testTypesModelDetail);
+
+            Assert.Contains("K0", sql, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("K1", sql, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("K2", sql, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("GROUP BY", sql);
+        }
+
+        [Fact]
+        public void ConvertCalculation_RelationKey_Joins()
+        {
+            Expression<Func<TestTypesModel, string>> key = x => x.RelationA.SomeValue;
+            var sql = ConvertCalculationToSql(QueryOperation.Count, null, key, null, testTypesModelDetail);
+
+            Assert.Contains("LEFT JOIN", sql);
+            Assert.Contains("GROUP BY", sql);
+        }
+
+        public sealed class TypesProjection
+        {
+            public int Number { get; set; }
+            public string? Text { get; set; }
+            public string? Related { get; set; }
+            public long Rows { get; set; }
+            public double Average { get; set; }
+            public decimal Total { get; set; }
+            public bool Big { get; set; }
+        }
+
+        [Fact]
+        public void ConvertSelect_ColumnsAliasedByMember_WithWhereOrderAndPaging()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, TypesProjection>> select = x => new TypesProjection { Number = x.Int32Thing * 2, Text = x.StringThing, Related = x.RelationA.SomeValue, Big = x.Int32Thing > 1 };
+            var sql = ConvertSelectToSql(select.GetProjectionMembers(null), calculationWhere, QueryOrder<TestTypesModel>.Create(x => x.Int32Thing, true), 2, 5, testTypesModelDetail);
+
+            Assert.StartsWith("SELECT ", sql);
+            Assert.Contains("Number", sql);
+            Assert.Contains("Text", sql);
+            Assert.Contains("Related", sql);
+            if (d.HasBooleanValues)
+                Assert.DoesNotContain("CASE WHEN", sql);
+            else
+                Assert.Contains("CASE WHEN", sql);
+            Assert.Contains(d.Column("TestTypes", "Int32Thing"), sql);
+            Assert.Contains("LEFT JOIN", sql);
+            Assert.Contains("WHERE", sql);
+            Assert.Contains("ORDER BY", sql);
+            Assert.DoesNotContain("GROUP BY", sql);
+        }
+
+        [Fact]
+        public void ConvertGroup_WithoutHaving_IsTheGroupedSelect()
+        {
+            var d = GetDialect();
+            Expression<Func<IGrouping<bool, TestTypesModel>, TypesProjection>> select = g => new TypesProjection { Rows = g.Count(), Average = g.Average(x => x.Int32Thing), Total = g.Sum(x => x.DecimalThing) };
+            var sql = ConvertGroupToSql(boolKey, select.GetProjectionMembers(boolKey), calculationWhere, null, null, null, null, testTypesModelDetail, typeof(TypesProjection));
+
+            Assert.StartsWith("SELECT COUNT(1)", sql);
+            Assert.Contains("AVG(CAST(", sql);
+            Assert.Contains("COALESCE(SUM(", sql);
+            Assert.Contains("GROUP BY", sql);
+            Assert.Contains("WHERE", sql);
+            Assert.Contains(d.Column("TestTypes", "BooleanThing"), sql);
+            Assert.DoesNotContain("SELECT * FROM", sql);
+            Assert.DoesNotContain("TypesProjection", sql);
+        }
+
+        [Fact]
+        public void ConvertGroup_WithHavingAndOrder_WrapsTheResultsAsTheResultType()
+        {
+            var d = GetDialect();
+            Expression<Func<IGrouping<bool, TestTypesModel>, TypesProjection>> select = g => new TypesProjection { Rows = g.Count(), Total = g.Sum(x => x.DecimalThing) };
+            Expression<Func<TypesProjection, bool>> having = r => r.Rows > 1;
+            var sql = ConvertGroupToSql(boolKey, select.GetProjectionMembers(boolKey), null, having, QueryOrder<TypesProjection>.Create(r => r.Total, true), null, 10, testTypesModelDetail, typeof(TypesProjection));
+
+            Assert.StartsWith("SELECT * FROM (", sql);
+            Assert.Contains(d.Column("TypesProjection", "Rows"), sql);
+            Assert.Contains(d.Column("TypesProjection", "Total"), sql);
+            Assert.Contains("GROUP BY", sql);
+            Assert.Contains("ORDER BY", sql);
+            var groupBy = sql.IndexOf("GROUP BY", StringComparison.Ordinal);
+            Assert.True(sql.IndexOf("WHERE", StringComparison.Ordinal) > groupBy, "the having is a where after the grouping");
+        }
+
+        [Fact]
+        public void ConvertGroup_RelationKey_Joins()
+        {
+            Expression<Func<TestTypesModel, string>> key = x => x.RelationA.SomeValue;
+            Expression<Func<IGrouping<string, TestTypesModel>, TypesProjection>> select = g => new TypesProjection { Text = g.Key, Rows = g.Count() };
+            var sql = ConvertGroupToSql(key, select.GetProjectionMembers(key), null, null, null, null, null, testTypesModelDetail, typeof(TypesProjection));
+
+            Assert.Contains("LEFT JOIN", sql);
+            Assert.Contains("GROUP BY", sql);
+        }
+
+        [Fact]
+        public void ConvertPersistWhere_PlainCondition_IsAWhereClause()
+        {
+            var d = GetDialect();
+            var sql = ConvertPersistWhereToSql(calculationWhere, testTypesModelDetail);
+
+            Assert.StartsWith(" WHERE", sql);
+            Assert.Contains(d.Column("TestTypes", "Int32Thing"), sql);
+            Assert.DoesNotContain("SELECT", sql);
+            Assert.DoesNotContain(" IN (", sql);
+        }
+
+        [Fact]
+        public void ConvertPersistWhere_RelatedCondition_SelectsTheIdentities()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationA.SomeValue == "a";
+            var sql = ConvertPersistWhereToSql(where, testTypesModelDetail);
+
+            Assert.StartsWith(" WHERE", sql);
+            Assert.Contains(" IN (", sql);
+            Assert.Contains("SELECT", sql);
+            Assert.Contains("LEFT JOIN", sql);
+            Assert.Contains(d.Column("TestTypes", "KeyA"), sql);
+            Assert.Contains(d.Column("TestRelations", "SomeValue"), sql);
+        }
+
+        [Fact]
+        public void ConvertPersistWhere_RelatedCollectionCondition_StaysASubqueryWhere()
+        {
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationB.Any(r => r.SomeValue == "a");
+            var sql = ConvertPersistWhereToSql(where, testTypesModelDetail);
+
+            Assert.StartsWith(" WHERE", sql);
+            Assert.DoesNotContain("LEFT JOIN", sql);
+        }
+
+        [Fact]
+        public void ConvertCalculation_RelatedCollectionValue_IsASubquery()
+        {
+            Expression<Func<TestTypesModel, int>> value = x => x.RelationB.Count();
+            var sql = ConvertCalculationToSql(QueryOperation.Sum, calculationWhere, boolKey, value, testTypesModelDetail);
+
+            Assert.Contains("COUNT(1)", sql);
+            Assert.Contains("SUM(", sql);
+            Assert.Contains("GROUP BY", sql);
         }
 
         #endregion

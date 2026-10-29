@@ -38,6 +38,9 @@ namespace Zerra.Repository
         /// <returns>A lambda where expression, or <see langword="null"/> if none applies.</returns>
         public abstract LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph);
 
+        /// <inheritdoc/>
+        public object? Engine => ProviderRelation?.Engine;
+
         /// <summary>Propagates the query event to the next provider in the chain.</summary>
         /// <param name="graph">The graph for the current query.</param>
         public abstract void OnQueryIncludingBase(Graph? graph);
@@ -58,6 +61,10 @@ namespace Zerra.Repository
         /// <returns>The query result, or <see langword="null"/> if no result is found.</returns>
         public object? Query(Query query)
         {
+            if (query.Select is not null)
+                return Project(query);
+            if (query.GroupBy is not null)
+                return Calculate(query);
             return query.Operation switch
             {
                 QueryOperation.Many => Many(query),
@@ -70,15 +77,19 @@ namespace Zerra.Repository
                 QueryOperation.EventSingle => EventSingle(query),
                 QueryOperation.EventCount => EventCount(query),
                 QueryOperation.EventAny => EventAny(query),
+                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max => Calculate(query),
                 _ => throw new NotImplementedException(),
             };
-            ;
         }
         /// <summary>Executes an asynchronous query operation and returns the result.</summary>
         /// <param name="query">The query to execute.</param>
         /// <returns>A task containing the query result, or <see langword="null"/>.</returns>
         public Task<object?> QueryAsync(Query query)
         {
+            if (query.Select is not null)
+                return ProjectAsync(query);
+            if (query.GroupBy is not null)
+                return CalculateAsync(query);
             return query.Operation switch
             {
                 QueryOperation.Many => ManyAsync(query),
@@ -91,9 +102,9 @@ namespace Zerra.Repository
                 QueryOperation.EventSingle => EventSingleAsync(query),
                 QueryOperation.EventCount => EventCountAsync(query),
                 QueryOperation.EventAny => EventAnyAsync(query),
+                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max => CalculateAsync(query),
                 _ => throw new NotImplementedException(),
             };
-            ;
         }
 
         /// <summary>Executes a many query and returns the matching models.</summary>
@@ -136,6 +147,14 @@ namespace Zerra.Repository
         /// <param name="query">The query parameters.</param>
         /// <returns>A boolean result as an object.</returns>
         public abstract object? EventAny(Query query);
+        /// <summary>Calculates a count per group, or a sum, average, minimum, or maximum over all matching models or per group.</summary>
+        /// <param name="query">The query parameters, with <see cref="Query.GroupBy"/> and <see cref="Query.Value"/>.</param>
+        /// <returns>The boxed result, or the <c>(object?[] Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
+        public abstract object? Calculate(Query query);
+        /// <summary>Builds a result from each matching model, or from each group of them, with the query's projection.</summary>
+        /// <param name="query">The query parameters, with <see cref="Query.Select"/>, and for groups <see cref="Query.GroupBy"/> and <see cref="Query.Having"/>.</param>
+        /// <returns>The results as <c>IReadOnlyList&lt;object&gt;</c>, as <see cref="ITransactStoreEngine.ExecuteSelect{TModel}"/> describes.</returns>
+        public abstract object? Project(Query query);
 
         /// <summary>Asynchronously executes a many query and returns the matching models.</summary>
         /// <param name="query">The query parameters.</param>
@@ -177,6 +196,14 @@ namespace Zerra.Repository
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing a boolean result.</returns>
         public abstract Task<object?> EventAnyAsync(Query query);
+        /// <summary>Asynchronously calculates a count per group, or a sum, average, minimum, or maximum over all matching models or per group.</summary>
+        /// <param name="query">The query parameters, with <see cref="Query.GroupBy"/> and <see cref="Query.Value"/>.</param>
+        /// <returns>A task containing the boxed result, or the <c>(object?[] Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
+        public abstract Task<object?> CalculateAsync(Query query);
+        /// <summary>Asynchronously builds a result from each matching model, or from each group of them, with the query's projection.</summary>
+        /// <param name="query">The query parameters, with <see cref="Query.Select"/>, and for groups <see cref="Query.GroupBy"/> and <see cref="Query.Having"/>.</param>
+        /// <returns>A task containing the results as <c>IReadOnlyList&lt;object&gt;</c>, as <see cref="ITransactStoreEngine.ExecuteSelect{TModel}"/> describes.</returns>
+        public abstract Task<object?> ProjectAsync(Query query);
 
         /// <summary>Executes a synchronous persist operation (create, update, or delete).</summary>
         /// <param name="persist">The persist operation to execute.</param>

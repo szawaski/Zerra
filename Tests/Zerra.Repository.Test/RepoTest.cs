@@ -75,7 +75,56 @@ namespace Zerra.Repository.Test
             relationBModelCheck = repo.Single<TestRelationsModel>(x => x.RelationAKey == relationBModel.RelationAKey);
             Assert.Null(relationBModelCheck);
 
+            TestPersistWhere(repo);
+            TestPersistWhere(repoWithRules);
+
             TestRelatedMany(repo);
+        }
+
+        /// <summary>
+        /// An update or delete by condition changes the rows in the store without loading them, returns how many, and reaches through relations.
+        /// </summary>
+        private static void TestPersistWhere(IRepo repo)
+        {
+            var relationX = TestRelationsModel.Create();
+            relationX.SomeValue = "where x";
+            repo.Create<TestRelationsModel>(relationX);
+            var relationY = TestRelationsModel.Create();
+            relationY.SomeValue = "where y";
+            repo.Create<TestRelationsModel>(relationY);
+
+            var models = new[] { TestTypesModel.Create(), TestTypesModel.Create(), TestTypesModel.Create() };
+            for (var i = 0; i < models.Length; i++)
+            {
+                models[i].Int32Thing = 101 + i;
+                models[i].StringThing = "before";
+                models[i].RelationAKey = i < 2 ? relationX.RelationAKey : relationY.RelationAKey;
+            }
+            repo.Create<TestTypesModel>(models);
+            var keys = models.Select(x => x.KeyA).ToArray();
+
+            //only the graph's members change on the matching rows
+            var updated = repo.Update<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 101, new TestTypesModel { StringThing = "bulk", Int32Thing = 7 }, new Graph<TestTypesModel>(x => x.StringThing));
+            Assert.Equal(2, updated);
+            var after = repo.Many<TestTypesModel>(x => keys.Contains(x.KeyA));
+            Assert.Equal(3, after.Count);
+            Assert.Equal("before", after.Single(x => x.Int32Thing == 101).StringThing);
+            Assert.All(after.Where(x => x.Int32Thing > 101), x => Assert.Equal("bulk", x.StringThing));
+
+            //nothing matching is zero, not an error
+            Assert.Equal(0, repo.Update<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 1000, new TestTypesModel { StringThing = "none" }, new Graph<TestTypesModel>(x => x.StringThing)));
+            Assert.Equal(0, repo.Delete<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 1000));
+
+            //a condition through a relation
+            Assert.Equal(1, repo.Update<TestTypesModel>(x => keys.Contains(x.KeyA) && x.RelationA.SomeValue == "where y", new TestTypesModel { StringThing = "related" }, new Graph<TestTypesModel>(x => x.StringThing)));
+            Assert.Equal("related", repo.Single<TestTypesModel>(x => x.KeyA == models[2].KeyA).StringThing);
+            Assert.Equal(1, repo.Delete<TestTypesModel>(x => keys.Contains(x.KeyA) && x.RelationA.SomeValue == "where y"));
+            Assert.Null(repo.Single<TestTypesModel>(x => x.KeyA == models[2].KeyA));
+
+            Assert.Equal(2, repo.Delete<TestTypesModel>(x => keys.Contains(x.KeyA)));
+            Assert.Equal(0, repo.Count<TestTypesModel>(x => keys.Contains(x.KeyA)));
+            repo.Delete<TestRelationsModel>(relationX);
+            repo.Delete<TestRelationsModel>(relationY);
         }
 
         private static void TestRelatedMany(IRepo repo)
@@ -202,7 +251,36 @@ namespace Zerra.Repository.Test
             relationBModelCheck = await repo.SingleAsync<TestRelationsModel>(x => x.RelationAKey == relationBModel.RelationAKey);
             Assert.Null(relationBModelCheck);
 
+            await TestPersistWhereAsync(repo);
+
             await TestRelatedManyAsync(repo);
+        }
+
+        private static async Task TestPersistWhereAsync(IRepo repo)
+        {
+            var relation = TestRelationsModel.Create();
+            relation.SomeValue = "where async";
+            await repo.CreateAsync<TestRelationsModel>(relation);
+
+            var models = new[] { TestTypesModel.Create(), TestTypesModel.Create(), TestTypesModel.Create() };
+            for (var i = 0; i < models.Length; i++)
+            {
+                models[i].Int32Thing = 201 + i;
+                models[i].StringThing = "before";
+                models[i].RelationAKey = relation.RelationAKey;
+            }
+            await repo.CreateAsync<TestTypesModel>(models);
+            var keys = models.Select(x => x.KeyA).ToArray();
+
+            Assert.Equal(2, await repo.UpdateAsync<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 201, new TestTypesModel { StringThing = "bulk" }, new Graph<TestTypesModel>(x => x.StringThing)));
+            var after = await repo.ManyAsync<TestTypesModel>(x => keys.Contains(x.KeyA));
+            Assert.Equal("before", after.Single(x => x.Int32Thing == 201).StringThing);
+            Assert.All(after.Where(x => x.Int32Thing > 201), x => Assert.Equal("bulk", x.StringThing));
+
+            Assert.Equal(0, await repo.DeleteAsync<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 1000));
+            Assert.Equal(3, await repo.DeleteAsync<TestTypesModel>(x => keys.Contains(x.KeyA) && x.RelationA.SomeValue == "where async"));
+            Assert.Equal(0, await repo.CountAsync<TestTypesModel>(x => keys.Contains(x.KeyA)));
+            await repo.DeleteAsync<TestRelationsModel>(relation);
         }
 
         /// <summary>
@@ -280,6 +358,20 @@ namespace Zerra.Repository.Test
 
             //reading newest first starts from the saved state, which records the delete
             Assert.Null(repo.EventFirst<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
+
+            //an update or delete by condition finds the streams the condition names and records the change on each
+            var byCondition = TestTypesModel.Create();
+            repo.Create<TestTypesModel>("Created", byCondition);
+            Assert.Equal(1, repo.Update<TestTypesModel>("UpdatedByCondition", x => x.KeyA == byCondition.KeyA, new TestTypesModel { Int32Thing = 77 }, new Graph<TestTypesModel>(x => x.Int32Thing)));
+            var changed = repo.Single<TestTypesModel>(x => x.KeyA == byCondition.KeyA);
+            Assert.Equal(77, changed.Int32Thing);
+            Assert.Equal(byCondition.StringThing, changed.StringThing);
+            var conditionEvent = repo.EventFirst<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == byCondition.KeyA);
+            Assert.Equal("UpdatedByCondition", conditionEvent.EventName);
+            Assert.True(conditionEvent.GraphChange.HasMember(nameof(TestTypesModel.Int32Thing)));
+            Assert.Equal(0, repo.Delete<TestTypesModel>(x => x.KeyA == byCondition.KeyA && x.Int32Thing == 1));
+            Assert.Equal(1, repo.Delete<TestTypesModel>("DeletedByCondition", x => x.KeyA == byCondition.KeyA));
+            Assert.Null(repo.Single<TestTypesModel>(x => x.KeyA == byCondition.KeyA));
         }
 
         /// <summary>
@@ -357,6 +449,19 @@ namespace Zerra.Repository.Test
 
             //reading newest first starts from the saved state, which records the delete
             Assert.Null(await repo.EventFirstAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
+
+            //an update or delete by condition finds the streams the condition names and records the change on each
+            var byCondition = TestTypesModel.Create();
+            await repo.CreateAsync<TestTypesModel>("Created", byCondition);
+            Assert.Equal(1, await repo.UpdateAsync<TestTypesModel>("UpdatedByCondition", x => x.KeyA == byCondition.KeyA, new TestTypesModel { Int32Thing = 77 }, new Graph<TestTypesModel>(x => x.Int32Thing)));
+            var changed = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == byCondition.KeyA);
+            Assert.Equal(77, changed.Int32Thing);
+            Assert.Equal(byCondition.StringThing, changed.StringThing);
+            var conditionEvent = await repo.EventFirstAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == byCondition.KeyA);
+            Assert.Equal("UpdatedByCondition", conditionEvent.EventName);
+            Assert.Equal(0, await repo.DeleteAsync<TestTypesModel>(x => x.KeyA == byCondition.KeyA && x.Int32Thing == 1));
+            Assert.Equal(1, await repo.DeleteAsync<TestTypesModel>("DeletedByCondition", x => x.KeyA == byCondition.KeyA));
+            Assert.Null(await repo.SingleAsync<TestTypesModel>(x => x.KeyA == byCondition.KeyA));
         }
 
         private static void TestQueryEventStore(IRepo repo, TestTypesModel createdModel, TestTypesModel model)

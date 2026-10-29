@@ -29,6 +29,20 @@ namespace Zerra.Repository
         /// <summary>Determines whether any event-store records match the criteria.</summary>
         EventAny,
         /// <summary>Returns the count of matching event-store records.</summary>
-        EventCount
+        EventCount,
+
+        /// <summary>Adds the value of each matching record, in all or per group.</summary>
+        Sum,
+        /// <summary>Averages the value of each matching record, in all or per group.</summary>
+        Average,
+        /// <summary>Returns the smallest value of the matching records, in all or per group.</summary>
+        Min,
+        /// <summary>Returns the largest value of the matching records, in all or per group.</summary>
+        Max,
+
+        /// <summary>Returns a projection of each matching record.</summary>
+        Select,
+        /// <summary>Returns a projection of each group of matching records, with the key and aggregates.</summary>
+        Group
     }
 }

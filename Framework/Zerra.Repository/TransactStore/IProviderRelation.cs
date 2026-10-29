@@ -31,5 +31,8 @@ namespace Zerra.Repository
         /// <param name="graph">The graph for the current query.</param>
         /// <returns>A combined lambda where expression, or <see langword="null"/> if none applies.</returns>
         LambdaExpression? GetWhereExpressionIncludingBase(Graph? graph);
+
+        /// <summary>The store the provider writes to, compared by reference with a related model's to tell whether a condition through the relation can run in one statement; <see langword="null"/> when unknown.</summary>
+        object? Engine { get; }
     }
 }

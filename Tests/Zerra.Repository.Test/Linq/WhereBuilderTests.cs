@@ -94,6 +94,50 @@ namespace Zerra.Repository.Test.Linq
             Assert.False(compiled(new SampleModel { Value = 5 }));
         }
 
+        //And binds tighter than Or as in C#, however the calls are ordered, and groups are the parentheses
+        [Fact]
+        public void Build_AndBindsTighterThanOr()
+        {
+            var compiled = new WhereBuilder<SampleModel>(x => x.Value == 1)
+                .Or(x => x.Value > 10)
+                .And(x => x.Value < 20)
+                .Build().Compile();
+
+            Assert.True(compiled(new SampleModel { Value = 1 }));     // 1 || (>10 && <20)
+            Assert.True(compiled(new SampleModel { Value = 15 }));
+            Assert.False(compiled(new SampleModel { Value = 25 }));
+            Assert.False(compiled(new SampleModel { Value = 5 }));
+
+            var grouped = new WhereBuilder<SampleModel>(x => x.Name == "a")
+                .StartGroupAnd()
+                    .And(x => x.Value == 1)
+                    .StartGroupOr()
+                        .And(x => x.Value > 10)
+                        .And(x => x.Value < 20)
+                    .EndGroup()
+                .EndGroup()
+                .Build().Compile();
+
+            Assert.True(grouped(new SampleModel { Value = 1, Name = "a" }));   // a && (1 || (>10 && <20))
+            Assert.False(grouped(new SampleModel { Value = 1, Name = "b" }));
+            Assert.True(grouped(new SampleModel { Value = 15, Name = "a" }));
+            Assert.False(grouped(new SampleModel { Value = 15, Name = "b" }));
+            Assert.False(grouped(new SampleModel { Value = 25, Name = "a" }));
+        }
+
+        [Fact]
+        public void Build_GroupFirst_AndChaining()
+        {
+            var builder = new WhereBuilder<SampleModel>(x => x.Value > 0);
+            Assert.Same(builder, builder.StartGroupAnd().Or(x => x.Value == 1).Or(x => x.Value == 2).EndGroup());
+            var compiled = builder.Build().Compile();
+
+            Assert.True(compiled(new SampleModel { Value = 1 }));
+            Assert.True(compiled(new SampleModel { Value = 2 }));
+            Assert.False(compiled(new SampleModel { Value = 3 }));
+            Assert.False(compiled(new SampleModel { Value = 0 }));
+        }
+
         [Fact]
         public void Build_ReturnedExpressionHasSingleParameter()
         {

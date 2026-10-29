@@ -9,7 +9,7 @@ namespace Zerra
     /// <summary>
     /// A key that combines a string and/or a type for use as a dictionary or hash key.
     /// </summary>
-    public class TypeKey
+    internal class TypeKey
     {
         private readonly string? str;
         private readonly Type? type;

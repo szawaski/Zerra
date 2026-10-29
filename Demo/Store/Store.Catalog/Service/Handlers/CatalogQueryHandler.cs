@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO.Pipelines;
+using System.Linq.Expressions;
 using System.Text;
 using Store.Catalog.Domain;
 using Store.Catalog.Domain.Models;
@@ -24,22 +25,22 @@ namespace Store.Catalog.Service.Handlers
 
         public async Task<ProductModel[]> GetProducts(CancellationToken cancellationToken)
         {
-            var items = await Repo.ManyAsync(QueryOrder<ProductDataModel>.Create(x => x.Name), WithCategory());
-            return items.Select(ToModel).ToArray();
+            var items = await Repo.SelectAsync(SelectModel(), order: QueryOrder<ProductDataModel>.Create(x => x.Name));
+            return items.ToArray();
         }
 
         public async Task<ProductModel[]> GetProductsByCategory(Guid categoryID, CancellationToken cancellationToken)
         {
-            var items = await Repo.ManyAsync(x => x.CategoryID == categoryID, QueryOrder<ProductDataModel>.Create(x => x.Name), WithCategory());
-            return items.Select(ToModel).ToArray();
+            var items = await Repo.SelectAsync(SelectModel(), x => x.CategoryID == categoryID, QueryOrder<ProductDataModel>.Create(x => x.Name));
+            return items.ToArray();
         }
 
         public async Task<ProductModel[]> GetProductsByIDs(Guid[] productIDs, CancellationToken cancellationToken)
         {
             if (productIDs.Length == 0)
                 return [];
-            var items = await Repo.ManyAsync(x => productIDs.Contains(x.ID), WithCategory());
-            return items.Select(ToModel).ToArray();
+            var items = await Repo.SelectAsync(SelectModel(), x => productIDs.Contains(x.ID));
+            return items.ToArray();
         }
 
         public async Task<Stream> ExportProductsCsv(CancellationToken cancellationToken)
@@ -190,19 +191,20 @@ namespace Store.Catalog.Service.Handlers
             return fields;
         }
 
-        //all product columns plus the related category for its name
+        //all product columns plus the related category for its name, for the export
         private static Graph<ProductDataModel> WithCategory() => new(true, x => x.Category);
 
-        private static ProductModel ToModel(ProductDataModel item) => new()
+        //the store builds each product with its category's name from a join, no graph to load and nothing to map
+        private static Expression<Func<ProductDataModel, ProductModel>> SelectModel() => x => new ProductModel()
         {
-            ID = item.ID,
-            CategoryID = item.CategoryID,
-            CategoryName = item.Category?.Name,
-            Sku = item.Sku,
-            Name = item.Name,
-            Description = item.Description,
-            Price = item.Price,
-            IsActive = item.Status == nameof(ProductStatus.Active)
+            ID = x.ID,
+            CategoryID = x.CategoryID,
+            CategoryName = x.Category!.Name,
+            Sku = x.Sku,
+            Name = x.Name,
+            Description = x.Description,
+            Price = x.Price,
+            IsActive = x.Status == nameof(ProductStatus.Active)
         };
     }
 }

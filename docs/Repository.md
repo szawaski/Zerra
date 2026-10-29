@@ -16,7 +16,7 @@ It is a lighter alternative designed for Zerra services, not a replacement for E
 | **Bus integration** | ✅ `BaseHandlerWithRepo` | ❌ Manual wiring |
 | **Change tracking** | ✅ None; every operation is explicit | ⚠️ Automatic, with overhead |
 | **Loading related data** | ✅ A `Graph<T>` per call | ⚠️ `.Include()` chains |
-| **Query complexity** | ⚠️ CRUD and filtered reads | ✅ Joins, groupings, projections |
+| **Query complexity** | ⚠️ Filters, calculations, groupings, and projections through a model's relations | ✅ Any LINQ, including joins between unrelated models |
 | **Migrations** | ⚠️ Code First generation, no migration history | ✅ Rich migration tooling |
 | **Maturity** | ⚠️ Newer, small community | ✅ Mature, large community |
 
@@ -91,7 +91,7 @@ Each database also has a connection test: `MsSqlConnectionTest`, `PostgreSqlConn
 
 A provider connects a model type to an engine. Register a `TransactStoreProvider<TModel>` for each model (step 3).
 
-Each in-memory engine is its own store, so a test can start from an empty one with `new MemoryEngine()`. Related models can use different engines: graphs load relations through each model's own provider. A `where` that reaches into a relation, such as `x.Customer.Name == name`, becomes one SQL statement, so it needs the related table in the same database.
+Each in-memory engine is its own store, so a test can start from an empty one with `new MemoryEngine()`. Related models can use different engines: graphs load relations through each model's own provider, and a `where` that reaches into a relation on another engine is split. Its part on the related model, such as `x.Customer.Name == name` or `x.Lines.Any(l => l.Quantity > 1)`, runs on that engine first and the identities it matched filter this one. `Count`, `Sum`, `Average`, `Min`, and `Max` of a related collection compared to a value work the same way, with a model that has nothing related counting as zero. One part of a condition can't mix the two sides, such as `x.Quantity > x.Customer.Limit`, and a calculation key or value, a projected member, or an order through such a relation isn't split; those throw `NotSupportedException`. Related models on the same engine run as one statement.
 
 `EventStoreAsTransactStoreProvider<TModel>` stores a model in an event store (KurrentDB or `MemoryEngine`) instead of a table. Each change is an event, so the model's history can be read with the `Temporal` and `Event` queries, and queries must name the model's identity. Every 100 events it saves the model's state so reads don't replay the whole stream; pass `saveStateEvery` to change that, or 0 to never save it.
 
@@ -142,6 +142,53 @@ public sealed class OrdersQueryHandler : BaseHandlerWithRepo, IOrdersQueryHandle
 | `Many<T>(where?, order?, skip?, take?, graph?)` | the matching models |
 | `Any<T>(where?)` | whether any match |
 | `Count<T>(where?)` | how many match |
+| `Sum<T>(value, where?)`, `Average`, `Min<T, TResult>`, `Max` | the sum, average, smallest, or largest of a value |
+| `Count<T, TKey>(groupBy, where?)`, `Sum<T, TKey>(groupBy, value, where?)`, `Average`, `Min`, `Max` | the same per group, as `(Key, Value)` pairs |
+| `Select<T, TResult>(select, where?, order?, skip?, take?)` | a result built from each model, reading only what it uses |
+| `Group<T, TKey, TResult>(groupBy, select, where?, having?, order?, skip?, take?)` | a result built from each group: its key and aggregates |
+
+### Calculations
+
+The database does the arithmetic and returns only the results:
+
+```csharp
+decimal revenue = await Repo.SumAsync<OrderLineDataModel>(x => x.UnitPrice * x.Quantity, x => x.OrderID == orderID);
+double rating   = await Repo.AverageAsync<ReviewDataModel>(x => x.Rating, x => x.ProductID == productID);   // an average of integers is a double
+DateTime? last  = await Repo.MaxAsync<OrderDataModel, DateTime?>(x => x.ClosedOn);
+
+var perStatus = await Repo.CountAsync<OrderDataModel, string?>(x => x.Status);                               // (Key: "Placed", Value: 42), ...
+var perDay    = await Repo.SumAsync<OrderDataModel, DateTime>(x => x.PlacedOn.Date, x => x.Total, x => x.PlacedOn >= monthStart);
+var perPair   = await Repo.CountAsync((OrderDataModel x) => new { x.CustomerID, x.Status });                 // several members: an anonymous object
+```
+
+- The value and the key take what a `where` takes, including arithmetic, date parts, and related models, which become joins or subqueries.
+- The results follow LINQ: `Sum` of nothing is 0, `Average`/`Min`/`Max` of nothing are `null` or throw when the type can't be null, and nulls are skipped. A null key is a group.
+- Groups come back in no particular order.
+- On a `MemoryEngine`, string keys that differ only in case are one group unless the engine is case sensitive, like its `where`.
+- An encryption or compression layer refuses a key or value that reads one of its properties, and a rule's `WhereExpression` applies.
+- On an event store, a calculation uses each model's current state, while `Count` and `Many` count every state it had.
+- Under Native AOT an anonymous key works but the compiler warns `IL2026` at that line; `new ValueTuple<Guid, string?>(x.CustomerID, x.Status)` is the same key without the warning, read back as `Key.Item1` and `Key.Item2`.
+
+### Projections
+
+When a handler needs a few columns, or a summary per group, project in the store instead of loading models. The result is a class with a settable member for each value, built as `new TResult { … }`:
+
+```csharp
+public sealed class OrderSummary { public Guid ID { get; set; } public string? Customer { get; set; } public decimal Total { get; set; } }
+public sealed class ProductSales { public Guid ProductID { get; set; } public int Lines { get; set; } public decimal Revenue { get; set; } }
+
+var summaries = await Repo.SelectAsync((OrderDataModel x) => new OrderSummary { ID = x.ID, Customer = x.Customer!.Name, Total = x.Lines!.Sum(l => l.UnitPrice * l.Quantity) },
+    x => x.Status == "Placed", QueryOrder<OrderDataModel>.Create(x => x.PlacedOn, true), 0, 50);
+
+var sales = await Repo.GroupAsync((OrderLineDataModel x) => x.ProductID,
+    g => new ProductSales { ProductID = g.Key, Lines = g.Count(), Revenue = g.Sum(l => l.UnitPrice * l.Quantity) },
+    having: r => r.Lines >= 10, order: QueryOrder<ProductSales>.Create(r => r.Revenue, true), take: 20);
+```
+
+- In `Select`, each member takes what a `where` takes, related models included, and a `bool` member can be a condition such as `IsActive = x.Status == "Active"`. The `where`, `order`, and paging apply to the models.
+- In `Group`, each member is the group's `Key`, a part of it such as `Key.CustomerID` for a key of several members, `Count()`, or `Sum`, `Average`, `Min`, or `Max` of a value. The `having`, `order`, and paging apply to the results, so `take` gives a top-N in the store.
+- Anonymous results aren't supported: the result is built through its members' setters, which also keeps it AOT safe. A member wider than its value, such as a `long` set to `Count()`, is fine.
+- The layers behave as for calculations: a rule's `WhereExpression` applies, an encryption or compression layer refuses a projection that reads one of its properties, and an event store projects each model's current state.
 
 ### Changes
 
@@ -151,8 +198,27 @@ public sealed class OrdersQueryHandler : BaseHandlerWithRepo, IOrdersQueryHandle
 | `Update<T>(model, graph?)` | updates, only the graph's columns when one is given |
 | `Delete<T>(model)` | deletes |
 | `DeleteByID<T>(id)` | deletes by key |
+| `Update<T>(where, model, graph)` | sets the graph's members on every matching row without loading them, and returns how many |
+| `Delete<T>(where)` | deletes every matching row without loading them, and returns how many |
 
 Every method has an `Async` version. Use the async ones in handlers. Pass collections to `Create`, `Update`, and `Delete` as arrays or with an explicit type argument, since a `List<T>` binds to the single-model overload.
+
+### Changing Many Rows
+
+An update or delete by condition is one statement in the database, so nothing is read first:
+
+```csharp
+int archived = await Repo.UpdateAsync<OrderDataModel>(x => x.PlacedOn < cutoff && x.Status == "Closed", new OrderDataModel { Status = "Archived" }, new Graph<OrderDataModel>(x => x.Status));
+int removed  = await Repo.DeleteAsync<OrderLineDataModel>(x => x.OrderID == orderID);
+```
+
+- The graph says which members take the model's values, so it is required and can't name the identity or a relation. The other members of the model are ignored.
+- Zero matching rows is a normal result of 0, not an error.
+- The condition takes what a `where` takes. One through a related model becomes a subquery selecting the identities, which needs a single identity.
+- A rule's `WhereExpression` is added to the condition. Rules see the condition in `OnUpdateWhere`/`OnDeleteWhere` instead of the rows in `OnUpdate`/`OnDelete`, since the rows aren't loaded.
+- An encryption or compression layer encrypts the values it sets and refuses a condition on one of its properties.
+- Related models named in a persist graph aren't deleted along with the rows, as they are with `Delete(model, graph)`; delete them first with their own condition.
+- On an event store, the condition names the identities as every event store query does, and each matching stream gets the change as an event.
 
 ### LINQ Support
 
@@ -185,7 +251,7 @@ if (search is not null)
 var orders = await Repo.ManyAsync<OrderDataModel>(where.Build());
 ```
 
-Conditions combine in the order they are added, not by C# precedence: `a`, then `Or(b)`, then `And(c)` means `(a || b) && c`. Use `StartGroupAnd`/`StartGroupOr` and `EndGroup` for parentheses. The first condition inside a group can use either `And` or `Or`.
+Each call returns the builder, so conditions can chain: `HostedRunning().And(x => x.JoinCode == code).Build()`. `And` binds tighter than `Or`, as in C#: `a`, then `Or(b)`, then `And(c)` means `a || (b && c)`. Use `StartGroupAnd`/`StartGroupOr` and `EndGroup` for parentheses. The first condition inside a group can use either `And` or `Or`.
 
 To join two existing expressions, `LinqAppender.AppendAnd<T>(first, second)` returns `first && second`. To log an expression, `LinqStringConverter.Convert(expression)` (or `where.ToString()`) writes it as readable C#-like text.
 

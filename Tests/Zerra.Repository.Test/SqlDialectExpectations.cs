@@ -19,6 +19,7 @@ namespace Zerra.Repository.Test
         public bool HasLimitOffset { get; init; } = false;
         public string BooleanTrue { get; init; } = "1";
         public string BooleanFalse { get; init; } = "0";
+        public bool HasBooleanValues { get; init; } = true;
 
         public string Table(string name)
         {
