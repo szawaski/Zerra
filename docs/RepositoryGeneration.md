@@ -52,7 +52,9 @@ public sealed class PetDataModel
 |---|---|---|
 | `[Entity("StoreName")]` | Class | Maps the class to a data store table. `StoreName` defaults to class name if omitted. |
 | `[Identity]` | Property | Marks the primary key. Pass `true` for auto-generated (identity/serial). |
-| `[StoreProperties(notNull, length)]` | Property | Controls nullability, max length, precision, scale, text encoding, or date part. |
+| `[StoreProperties(notNull, length)]` | Property | Controls nullability, max length, precision, scale, text encoding, or date part. `StoreTextEncoding.NonUnicode` stores a string without Unicode (such as `varchar` instead of `nvarchar`); Unicode is the default. `StoreDatePart.Date` stores only the date of a `DateTime`. |
+| `[StoreName("Name")]` | Property | Names the column, when it differs from the property. Letters, digits, and underscores only. |
+| `[StoreExclude]` | Property | Leaves the property out of the store: no column, never read or saved. |
 | `[Relation("ForeignKeyPropertyName")]` | Property | Marks a navigation property linked by the named foreign key property. |
 | `[StoreIndex]` or `[StoreIndex("Name")]` | Property | Indexes the column. Members with the same name form one combined index. Set `Unique`, `Order`, or `Descending`. Indexed strings and `byte[]` need a length. |
 

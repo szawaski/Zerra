@@ -152,6 +152,10 @@ if (Hasher.PBKDF2VerifyHash(attempt, stored) && Hasher.PBKDF2NeedsRehash(stored)
 
 `Hasher.GenerateHash` is a single fast SHA-2 hash for checking data, not for passwords. `HasherOld` checks hashes stored in the old format, including MD5 and SHA-1 ones.
 
+## URL-Safe Base64
+
+`Base64UrlEncoder.ToBase64UrlString(bytes)` and `FromBase64UrlString(text)` convert bytes to and from Base64 that can go in a URL or file name: `-` and `_` instead of `+` and `/`, with no `=` padding.
+
 ## See Also
 
 - [Serializers](Serializers.md) - What gets encrypted

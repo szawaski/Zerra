@@ -241,6 +241,19 @@ Browsers call the gateway with `Bus.js` or `Bus.ts`, using JavaScript or TypeScr
 
 .NET applications call the gateway with `ApiClient`, registered on their own bus like any other query client and command producer. See [ApiClient](ApiClient.md).
 
+### Cookies
+
+`CookieManager` reads and writes cookies on an `HttpContext`. Values too long for one cookie are split across several and joined again when read. With an `IDataProtectionProvider`, `AddSecure` and `GetSecure` encrypt the value, and `GetSecure` returns `null` when it can't be decrypted, such as after the keys changed:
+
+```csharp
+var cookies = new CookieManager(context, dataProtectionProvider);
+cookies.AddSecure("session", token, TimeSpan.FromHours(8));   // HttpOnly, Secure, SameSite=Strict
+var saved = cookies.GetSecure("session");
+cookies.Remove("session");
+```
+
+`Add` and `Get` store the value as it is, and `Add` isn't `HttpOnly` or `Secure` unless you pass them.
+
 ## Production Checklist
 
 - **Authorize every request.** Register an `ICqrsAuthorizer`; without one, anyone who can reach the gateway can call every command it exposes. See [Security](Security.md).

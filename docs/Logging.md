@@ -75,6 +75,25 @@ public interface IBusLogger
 
 Because every service logs both the messages it sends and the ones it handles, with `source` and `service`, the bus logs of all services together trace a request across service hops. An `IBusLogger` is also the natural place to start OpenTelemetry activities or record metrics.
 
+### Less Logging for a Contract
+
+Put `[ServiceLog]` on a command or event class, or a query interface, to choose who logs it, such as a frequent health check query:
+
+```csharp
+[ServiceLog(BusLogging.None)]
+public interface IHealthQueries
+{
+    Task<bool> IsHealthy(CancellationToken cancellationToken);
+}
+```
+
+| `BusLogging` | Logged by |
+|---|---|
+| `SenderAndHandler` | both (the default) |
+| `HandlerOnly` | the service that handles it |
+| `SenderOnly` | the service that sends it |
+| `None` | neither |
+
 ## Console Implementations
 
 ```csharp
