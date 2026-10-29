@@ -5,12 +5,34 @@
 using System.Linq.Expressions;
 using Xunit;
 using Zerra.Map;
+using Zerra.Repository.Memory;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.Test
 {
     public static class RepoTest
     {
+        public sealed class TestTypesSelection
+        {
+            public Guid KeyA { get; set; }
+            public int Int32Thing { get; set; }
+            public int Doubled { get; set; }
+            public string? StringThing { get; set; }
+            public bool HasWorld { get; set; }
+            public string? RelationAValue { get; set; }
+            public int RelationBCount { get; set; }
+            public bool RelationBHasModel { get; set; }
+        }
+        public sealed class TestTypesGrouping
+        {
+            public bool Flag { get; set; }
+            public string? RelationAValue { get; set; }
+            public int Rows { get; set; }
+            public int Total { get; set; }
+            public double Average { get; set; }
+            public int Max { get; set; }
+        }
+
         public static void TestSequenceTransactStore(ITransactStoreEngine engine)
         {
             var repo = Repo.New();
@@ -55,6 +77,13 @@ namespace Zerra.Repository.Test
             repoWithRules.AddProvider(new TestRelationsRule2Provider(engine));
 
             TestQuery(repoWithRules, model, relationBModelCheck);
+
+            //the model on its own engine and its relations on this one, so everything through a relation crosses engines
+            var repoCrossEngine = Repo.New();
+            repoCrossEngine.AddProvider(new TransactStoreProvider<TestTypesModel>(new MemoryEngine()));
+            repoCrossEngine.AddProvider(new TransactStoreProvider<TestRelationsModel>(engine));
+            repoCrossEngine.Create<TestTypesModel>(model);
+            TestQuery(repoCrossEngine, model, relationBModelCheck);
 
             model.RelationAKey = null;
             repo.Update<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey));
@@ -231,6 +260,13 @@ namespace Zerra.Repository.Test
             repoWithRules.AddProvider(new TestRelationsRule2Provider(engine));
 
             await TestQueryAsync(repoWithRules, model, relationBModelCheck);
+
+            //the model on its own engine and its relations on this one, so everything through a relation crosses engines
+            var repoCrossEngine = Repo.New();
+            repoCrossEngine.AddProvider(new TransactStoreProvider<TestTypesModel>(new MemoryEngine()));
+            repoCrossEngine.AddProvider(new TransactStoreProvider<TestRelationsModel>(engine));
+            await repoCrossEngine.CreateAsync<TestTypesModel>(model);
+            await TestQueryAsync(repoCrossEngine, model, relationBModelCheck);
 
             model.RelationAKey = null;
             await repo.UpdateAsync<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey));
@@ -775,6 +811,49 @@ namespace Zerra.Repository.Test
             Assert.Contains(connect1ManyWhereResult, m => m.KeyA == model.KeyA);
             var connect1ManyWhereMatch = connect1ManyWhereResult.First(m => m.KeyA == model.KeyA);
             AssertAreEqual(model, connect1ManyWhereMatch);
+
+            //select, with members through the relations and an order through one
+            var selectResult = repo.Select((TestTypesModel x) => new TestTypesSelection
+            {
+                KeyA = x.KeyA,
+                Int32Thing = x.Int32Thing,
+                Doubled = x.Int32Thing * 2,
+                StringThing = x.StringThing,
+                HasWorld = x.StringThing.Contains("World"),
+                RelationAValue = x.RelationA.SomeValue,
+                RelationBCount = x.RelationB.Count(),
+                RelationBHasModel = x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey)
+            }, x => x.KeyA == model.KeyA, QueryOrder<TestTypesModel>.Create(x => x.RelationA.SomeValue), 0, 1);
+            var selected = Assert.Single(selectResult);
+            Assert.Equal(model.KeyA, selected.KeyA);
+            Assert.Equal(model.Int32Thing, selected.Int32Thing);
+            Assert.Equal(model.Int32Thing * 2, selected.Doubled);
+            Assert.Equal(model.StringThing, selected.StringThing);
+            Assert.True(selected.HasWorld);
+            Assert.StartsWith(relationModel.SomeValue, selected.RelationAValue);
+            Assert.Equal(1, selected.RelationBCount);
+            Assert.True(selected.RelationBHasModel);
+
+            //group, keyed by a member with having, order, and paging, then keyed through a relation
+            var groupResult = repo.Group((TestTypesModel x) => x.BooleanThing, g => new TestTypesGrouping { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Int32Thing), Average = g.Average(x => x.Int32Thing), Max = g.Max(x => x.Int32Thing) },
+                x => x.KeyA == model.KeyA, having: r => r.Rows > 0, order: QueryOrder<TestTypesGrouping>.Create(r => r.Total), take: 1);
+            var group = Assert.Single(groupResult);
+            Assert.Equal(model.BooleanThing, group.Flag);
+            Assert.Equal(1, group.Rows);
+            Assert.Equal(model.Int32Thing, group.Total);
+            Assert.Equal((double)model.Int32Thing, group.Average);
+            Assert.Equal(model.Int32Thing, group.Max);
+            var relationGroupResult = repo.Group((TestTypesModel x) => x.RelationA.SomeValue, g => new TestTypesGrouping { RelationAValue = g.Key, Rows = g.Count(), Total = g.Sum(x => x.RelationB.Count()) }, x => x.KeyA == model.KeyA);
+            var relationGroup = Assert.Single(relationGroupResult);
+            Assert.StartsWith(relationModel.SomeValue, relationGroup.RelationAValue);
+            Assert.Equal(1, relationGroup.Rows);
+            Assert.Equal(1, relationGroup.Total);
+
+            //calculations through the relations
+            Assert.Equal(1, repo.Sum<TestTypesModel>(x => x.RelationB.Count(), x => x.KeyA == model.KeyA));
+            var countByRelation = Assert.Single(repo.Count<TestTypesModel, string>(x => x.RelationA.SomeValue, x => x.KeyA == model.KeyA));
+            Assert.StartsWith(relationModel.SomeValue, countByRelation.Key);
+            Assert.Equal(1, countByRelation.Value);
         }
 
         private static void TestQueryExpressions(IRepo repo, TestTypesModel model, TestRelationsModel relationModel)
@@ -1016,6 +1095,49 @@ namespace Zerra.Repository.Test
             Assert.Contains(connect1ManyWhereResult, m => m.KeyA == model.KeyA);
             var connect1ManyWhereMatch = connect1ManyWhereResult.First(m => m.KeyA == model.KeyA);
             AssertAreEqual(model, connect1ManyWhereMatch);
+
+            //select, with members through the relations and an order through one
+            var selectResult = await repo.SelectAsync((TestTypesModel x) => new TestTypesSelection
+            {
+                KeyA = x.KeyA,
+                Int32Thing = x.Int32Thing,
+                Doubled = x.Int32Thing * 2,
+                StringThing = x.StringThing,
+                HasWorld = x.StringThing.Contains("World"),
+                RelationAValue = x.RelationA.SomeValue,
+                RelationBCount = x.RelationB.Count(),
+                RelationBHasModel = x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey)
+            }, x => x.KeyA == model.KeyA, QueryOrder<TestTypesModel>.Create(x => x.RelationA.SomeValue), 0, 1);
+            var selected = Assert.Single(selectResult);
+            Assert.Equal(model.KeyA, selected.KeyA);
+            Assert.Equal(model.Int32Thing, selected.Int32Thing);
+            Assert.Equal(model.Int32Thing * 2, selected.Doubled);
+            Assert.Equal(model.StringThing, selected.StringThing);
+            Assert.True(selected.HasWorld);
+            Assert.StartsWith(relationModel.SomeValue, selected.RelationAValue);
+            Assert.Equal(1, selected.RelationBCount);
+            Assert.True(selected.RelationBHasModel);
+
+            //group, keyed by a member with having, order, and paging, then keyed through a relation
+            var groupResult = await repo.GroupAsync((TestTypesModel x) => x.BooleanThing, g => new TestTypesGrouping { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Int32Thing), Average = g.Average(x => x.Int32Thing), Max = g.Max(x => x.Int32Thing) },
+                x => x.KeyA == model.KeyA, having: r => r.Rows > 0, order: QueryOrder<TestTypesGrouping>.Create(r => r.Total), take: 1);
+            var group = Assert.Single(groupResult);
+            Assert.Equal(model.BooleanThing, group.Flag);
+            Assert.Equal(1, group.Rows);
+            Assert.Equal(model.Int32Thing, group.Total);
+            Assert.Equal((double)model.Int32Thing, group.Average);
+            Assert.Equal(model.Int32Thing, group.Max);
+            var relationGroupResult = await repo.GroupAsync((TestTypesModel x) => x.RelationA.SomeValue, g => new TestTypesGrouping { RelationAValue = g.Key, Rows = g.Count(), Total = g.Sum(x => x.RelationB.Count()) }, x => x.KeyA == model.KeyA);
+            var relationGroup = Assert.Single(relationGroupResult);
+            Assert.StartsWith(relationModel.SomeValue, relationGroup.RelationAValue);
+            Assert.Equal(1, relationGroup.Rows);
+            Assert.Equal(1, relationGroup.Total);
+
+            //calculations through the relations
+            Assert.Equal(1, await repo.SumAsync<TestTypesModel>(x => x.RelationB.Count(), x => x.KeyA == model.KeyA));
+            var countByRelation = Assert.Single(await repo.CountAsync<TestTypesModel, string>(x => x.RelationA.SomeValue, x => x.KeyA == model.KeyA));
+            Assert.StartsWith(relationModel.SomeValue, countByRelation.Key);
+            Assert.Equal(1, countByRelation.Value);
         }
 
         private static void UpdateModel(TestTypesModel model)

@@ -30,25 +30,155 @@ namespace Zerra.Repository
             });
         }
 
-        //a calculation or projection can't be split, so one reaching a related model on another engine is refused
-        private void ThrowIfCrossEngine(LambdaExpression? expression)
+        //a calculation key or value, a projected member, or an order through a relation on another engine can't join, so the models load with the members those read, the relations through their own providers, and the query runs in memory
+        private Graph? CrossEngineGraph(Query query, out bool orderCrosses)
         {
-            if (expression is null || ModelTypeDetail.RelatedMembers.Count == 0)
-                return;
-            var finder = new RelationFinder(this, expression.Parameters[0]);
-            _ = finder.Visit(expression.Body);
-            if (finder.CrossMember is not null)
-                throw new NotSupportedException($"{ModelTypeDetail.Name}.{finder.CrossMember.Name} is stored on another engine, so a calculation or projection can't reach it; query it on its own");
+            orderCrosses = false;
+            var finder = new GraphFinder(this, query.Graph is null ? new Graph() : new Graph(query.Graph));
+            finder.Read(query.GroupBy);
+            finder.Read(query.Value);
+            finder.Read(query.Select);
+            var crosses = finder.Crosses;
+            if (query.Order is not null && query.GroupBy is null && query.Operation is QueryOperation.Many or QueryOperation.First or QueryOperation.Single or QueryOperation.Select)
+            {
+                finder.Crosses = false;
+                foreach (var orderExpression in query.Order.OrderExpressions)
+                    finder.Read(orderExpression.Expression);
+                orderCrosses = finder.Crosses;
+                crosses |= orderCrosses;
+            }
+            return crosses ? finder.Graph : null;
         }
 
-        private sealed class RelationFinder(RootTransactStoreProvider<TModel> provider, ParameterExpression parameter) : ExpressionVisitor
+        private object? QueryCrossEngine(Query query, Graph graph, bool orderCrosses)
         {
-            public ModelMemberDetail? CrossMember;
+            //a projection's order and paging apply to the models, so they stay in the store unless the order is what crosses
+            var inStore = query.Operation == QueryOperation.Select && !orderCrosses;
+            var models = (IReadOnlyCollection<TModel>)Query(new Query(QueryOperation.Many, modelType, query.Where, inStore ? query.Order : null, inStore ? query.Skip : null, inStore ? query.Take : null, graph))!;
+            switch (query.Operation)
+            {
+                case QueryOperation.Many:
+                    return models.Query(null, query.Order, query.Skip, query.Take).ToArray();
+                case QueryOperation.First:
+                    return models.Query(null, query.Order, query.Skip, query.Take).FirstOrDefault();
+                case QueryOperation.Single:
+                    return models.Query(null, query.Order, query.Skip, query.Take).SingleOrDefault();
+                case QueryOperation.Select:
+                    return inStore ? models.Select(query.Select!) : models.Query(null, query.Order, query.Skip, query.Take).Select(query.Select!);
+                case QueryOperation.Group:
+                    return models.Group(query.GroupBy!, query.Select!, query.Having, query.Order, query.Skip, query.Take);
+                default:
+                    return models.Calculate(query.Operation, query.GroupBy, query.Value);
+            }
+        }
+        private async Task<object?> QueryCrossEngineAsync(Query query, Graph graph, bool orderCrosses)
+        {
+            var inStore = query.Operation == QueryOperation.Select && !orderCrosses;
+            var models = (IReadOnlyCollection<TModel>)(await QueryAsync(new Query(QueryOperation.Many, modelType, query.Where, inStore ? query.Order : null, inStore ? query.Skip : null, inStore ? query.Take : null, graph)))!;
+            switch (query.Operation)
+            {
+                case QueryOperation.Many:
+                    return models.Query(null, query.Order, query.Skip, query.Take).ToArray();
+                case QueryOperation.First:
+                    return models.Query(null, query.Order, query.Skip, query.Take).FirstOrDefault();
+                case QueryOperation.Single:
+                    return models.Query(null, query.Order, query.Skip, query.Take).SingleOrDefault();
+                case QueryOperation.Select:
+                    return inStore ? models.Select(query.Select!) : models.Query(null, query.Order, query.Skip, query.Take).Select(query.Select!);
+                case QueryOperation.Group:
+                    return models.Group(query.GroupBy!, query.Select!, query.Having, query.Order, query.Skip, query.Take);
+                default:
+                    return models.Calculate(query.Operation, query.GroupBy, query.Value);
+            }
+        }
+
+        //the members the expressions read, as a graph: a relation becomes a child graph with what is read of it, and one whose model is on another engine marks the graph as crossing
+        private sealed class GraphFinder(RootTransactStoreProvider<TModel> provider, Graph graph) : ExpressionVisitor
+        {
+            public readonly Graph Graph = graph;
+            public bool Crosses;
+            private readonly Dictionary<ParameterExpression, (Graph Graph, ModelDetail Model)> parameters = new();
+            private ParameterExpression? grouping;
+
+            public void Read(LambdaExpression? lambda)
+            {
+                if (lambda is null)
+                    return;
+                if (lambda.Parameters[0].Type == modelType)
+                    parameters[lambda.Parameters[0]] = (Graph, modelTypeDetail);
+                else
+                    grouping = lambda.Parameters[0];
+                _ = Visit(lambda.Body);
+            }
+
             protected override Expression VisitMember(MemberExpression node)
             {
-                if (node.Expression == parameter && CrossMember is null && modelTypeDetail.TryGetProperty(node.Member.Name, out var member) && member.IsRelated && provider.IsCrossEngine(member))
-                    CrossMember = member;
-                return base.VisitMember(node);
+                //the group's Key is read from the key expression already
+                if (node.Expression == grouping)
+                    return node;
+                var owner = Resolve(node.Expression);
+                if (owner is null)
+                    return base.VisitMember(node);
+                if (owner.Value.Model.TryGetProperty(node.Member.Name, out var member) && member.IsRelated)
+                    _ = Relate(owner.Value.Graph, member);
+                else
+                    owner.Value.Graph.AddMember(node.Member.Name);
+                return node;
+            }
+
+            protected override Expression VisitMethodCall(MethodCallExpression node)
+            {
+                //a lambda over a related collection, or over the group's models, reads from that model
+                if (node.Method.DeclaringType == typeof(Enumerable) && node.Arguments.Count > 1)
+                {
+                    var element = node.Arguments[0] == grouping ? (Graph, modelTypeDetail) : Resolve(node.Arguments[0]);
+                    if (element is not null)
+                    {
+                        for (var i = 1; i < node.Arguments.Count; i++)
+                        {
+                            var argument = node.Arguments[i];
+                            if (argument.NodeType == ExpressionType.Quote)
+                                argument = ((UnaryExpression)argument).Operand;
+                            if (argument is LambdaExpression lambda)
+                                parameters[lambda.Parameters[0]] = element.Value;
+                        }
+                    }
+                }
+                return base.VisitMethodCall(node);
+            }
+
+            private (Graph Graph, ModelDetail Model)? Resolve(Expression? expression)
+            {
+                switch (expression)
+                {
+                    case ParameterExpression parameter:
+                        return parameters.TryGetValue(parameter, out var found) ? found : null;
+                    case MemberExpression member:
+                        {
+                            var owner = Resolve(member.Expression);
+                            if (owner is null || !owner.Value.Model.TryGetProperty(member.Member.Name, out var detail) || !detail.IsRelated)
+                                return null;
+                            return Relate(owner.Value.Graph, detail);
+                        }
+                    case UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } conversion:
+                        return Resolve(conversion.Operand);
+                    default:
+                        return null;
+                }
+            }
+
+            private (Graph Graph, ModelDetail Model) Relate(Graph graph, ModelMemberDetail member)
+            {
+                var relatedType = member.IsEnumerable ? TypeAnalyzer.GetTypeDetail(member.Type).InnerType! : member.Type;
+                if (!Crosses && provider.Engine is not null && provider.GetRelatedProvider(relatedType) is IProviderRelation relation && relation.Engine is not null && !ReferenceEquals(relation.Engine, provider.Engine))
+                    Crosses = true;
+                var child = graph.GetChildGraph(member.Name);
+                if (child is null)
+                {
+                    child = new Graph();
+                    graph.AddChildGraph(member.Name, child);
+                }
+                return (child, ModelAnalyzer.GetModel(relatedType));
             }
         }
 

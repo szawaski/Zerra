@@ -40,6 +40,12 @@ namespace Zerra.Repository.Test
             public int Qty { get; set; }
             public string? ParentName { get; set; }
         }
+        public sealed class ParentSummary
+        {
+            public string? ParentName { get; set; }
+            public int Children { get; set; }
+            public int Qty { get; set; }
+        }
 
         private static (IRepo Repo, Parent[] Parents, Child[] Children) Repos(bool sameEngine = false)
         {
@@ -123,18 +129,41 @@ namespace Zerra.Repository.Test
         }
 
         [Fact]
+        public async Task KeysValuesMembersAndOrdersThroughARelationRunInMemory()
+        {
+            var (repo, _, _) = Repos();
+
+            //the models load with what the key, value, projected member, or order reads, the relation through its own provider, and the query runs in memory
+            Assert.Equal([("a", 2L), ("b", 1L)], repo.Count<Child, string?>(x => x.Parent!.Name).OrderBy(x => x.Key).ToArray());
+            Assert.Equal(8, repo.Sum<Parent>(x => x.Children!.Sum(c => c.Qty)));
+            Assert.Equal(6, await repo.SumAsync<Parent>(x => x.Children!.Sum(c => c.Qty), x => x.Rank == 1));
+            Assert.Equal(5, repo.Max<Parent, string?, int>(x => x.Name, x => x.Children!.Max(c => c.Qty), x => x.Children!.Any()).Single(x => x.Key == "a").Value);
+
+            //a projection keeps its order and paging in the store when only the members cross
+            var rows = repo.Select((Child x) => new ChildRow { Qty = x.Qty, ParentName = x.Parent!.Name }, x => x.Qty > 1, QueryOrder<Child>.Create(x => x.Qty, true), 0, 1);
+            Assert.Equal([(5, "a")], rows.Select(r => (r.Qty, r.ParentName)).ToArray());
+            var summaries = await repo.GroupAsync((Child x) => x.Parent!.Name, g => new ParentSummary { ParentName = g.Key, Children = g.Count(), Qty = g.Sum(c => c.Qty) },
+                having: r => r.Qty > 1, order: QueryOrder<ParentSummary>.Create(r => r.Qty, true), take: 1);
+            Assert.Equal([("a", 2, 6)], summaries.Select(r => (r.ParentName, r.Children, r.Qty)).ToArray());
+
+            //an order through the relation sorts and pages in memory
+            var order = QueryOrder<Child>.Create(x => x.Parent!.Name, true, x => x.Qty);
+            Assert.Equal([2, 1, 5], repo.Many<Child>(x => true, order).Select(x => x.Qty));
+            Assert.Equal([1, 5], (await repo.SelectAsync((Child x) => new ChildRow { Qty = x.Qty, ParentName = x.Parent!.Name }, null, order, 1, 2)).Select(r => r.Qty));
+            Assert.Equal(2, repo.First<Child>(x => true, order)!.Qty);
+            var withTag = repo.Many<Child>(x => true, order, new Graph<Child>(x => x.Tag));
+            Assert.Equal(["x", "x", "y"], withTag.Select(x => x.Tag));
+        }
+
+        [Fact]
         public void WhatCannotBeSplitIsRefused()
         {
             var (repo, _, _) = Repos();
 
-            //a leaf mixing the related model with this one, a key, a value, a projected member, or an order through the relation
+            //a leaf mixing the related model with this one
             _ = Assert.Throws<NotSupportedException>(() => repo.Many<Child>(x => x.Qty > x.Parent!.Rank));
             _ = Assert.Throws<NotSupportedException>(() => repo.Many<Parent>(x => x.Children!.Count() > x.Rank));
             _ = Assert.Throws<NotSupportedException>(() => repo.Many<Parent>(x => x.Children!.Any(c => c.Qty > x.Rank)));
-            _ = Assert.Throws<NotSupportedException>(() => repo.Count<Child, string?>(x => x.Parent!.Name));
-            _ = Assert.Throws<NotSupportedException>(() => repo.Sum<Parent>(x => x.Children!.Sum(c => c.Qty)));
-            _ = Assert.Throws<NotSupportedException>(() => repo.Select((Child x) => new ChildRow { ParentName = x.Parent!.Name }));
-            _ = Assert.Throws<NotSupportedException>(() => repo.Many<Child>(x => true, QueryOrder<Child>.Create(x => x.Parent!.Name)));
         }
 
         [Fact]

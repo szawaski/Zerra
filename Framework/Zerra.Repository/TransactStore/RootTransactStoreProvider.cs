@@ -516,14 +516,9 @@ namespace Zerra.Repository
         {
             if (ModelTypeDetail.RelatedMembers.Count > 0)
             {
-                ThrowIfCrossEngine(query.GroupBy);
-                ThrowIfCrossEngine(query.Value);
-                ThrowIfCrossEngine(query.Select);
-                if (query.Order is not null)
-                {
-                    foreach (var orderExpression in query.Order.OrderExpressions)
-                        ThrowIfCrossEngine(orderExpression.Expression);
-                }
+                var graph = CrossEngineGraph(query, out var orderCrosses);
+                if (graph is not null)
+                    return QueryCrossEngine(query, graph, orderCrosses);
                 query.Where = SplitCrossEngineWhere(query.Where);
             }
 
@@ -554,14 +549,9 @@ namespace Zerra.Repository
         {
             if (ModelTypeDetail.RelatedMembers.Count > 0)
             {
-                ThrowIfCrossEngine(query.GroupBy);
-                ThrowIfCrossEngine(query.Value);
-                ThrowIfCrossEngine(query.Select);
-                if (query.Order is not null)
-                {
-                    foreach (var orderExpression in query.Order.OrderExpressions)
-                        ThrowIfCrossEngine(orderExpression.Expression);
-                }
+                var graph = CrossEngineGraph(query, out var orderCrosses);
+                if (graph is not null)
+                    return QueryCrossEngineAsync(query, graph, orderCrosses);
                 if (query.Where is not null)
                 {
                     var lookups = FindCrossEngineLookups(query.Where);

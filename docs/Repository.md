@@ -16,7 +16,7 @@ It is a lighter alternative designed for Zerra services, not a replacement for E
 | **Bus integration** | ✅ `BaseHandlerWithRepo` | ❌ Manual wiring |
 | **Change tracking** | ✅ None; every operation is explicit | ⚠️ Automatic, with overhead |
 | **Loading related data** | ✅ A `Graph<T>` per call | ⚠️ `.Include()` chains |
-| **Query complexity** | ⚠️ Filters, calculations, groupings, and projections through a model's relations | ✅ Any LINQ, including joins between unrelated models |
+| **Query complexity** | ⚠️ Filters, calculations, groupings, and projections, through relations, even across stores | ✅ Any LINQ, including joins between unrelated models |
 | **Migrations** | ⚠️ Code First generation, no migration history | ✅ Rich migration tooling |
 | **Maturity** | ⚠️ Newer, small community | ✅ Mature, large community |
 
@@ -91,7 +91,7 @@ Each database also has a connection test: `MsSqlConnectionTest`, `PostgreSqlConn
 
 A provider connects a model type to an engine. Register a `TransactStoreProvider<TModel>` for each model (step 3).
 
-Each in-memory engine is its own store, so a test can start from an empty one with `new MemoryEngine()`. Related models can use different engines: graphs load relations through each model's own provider, and a `where` that reaches into a relation on another engine is split. Its part on the related model, such as `x.Customer.Name == name` or `x.Lines.Any(l => l.Quantity > 1)`, runs on that engine first and the identities it matched filter this one. `Count`, `Sum`, `Average`, `Min`, and `Max` of a related collection compared to a value work the same way, with a model that has nothing related counting as zero. One part of a condition can't mix the two sides, such as `x.Quantity > x.Customer.Limit`, and a calculation key or value, a projected member, or an order through such a relation isn't split; those throw `NotSupportedException`. Related models on the same engine run as one statement.
+Each in-memory engine is its own store, so a test can start from an empty one with `new MemoryEngine()`. Related models can use different engines: graphs load relations through each model's own provider, and a `where` that reaches into a relation on another engine is split. Its part on the related model, such as `x.Customer.Name == name` or `x.Lines.Any(l => l.Quantity > 1)`, runs on that engine first and the identities it matched filter this one. `Count`, `Sum`, `Average`, `Min`, and `Max` of a related collection compared to a value work the same way, with a model that has nothing related counting as zero. One part of a condition can't mix the two sides, such as `x.Quantity > x.Customer.Limit`. A calculation key or value, a projected member, or an order through such a relation can't be split, so the matching models load with just the members it reads, the relation through its own provider, and the calculation, projection, or ordering and paging run in memory. That is the work a handler would do by hand, so keep it off large tables. Related models on the same engine run as one statement.
 
 `EventStoreAsTransactStoreProvider<TModel>` stores a model in an event store (KurrentDB or `MemoryEngine`) instead of a table. Each change is an event, so the model's history can be read with the `Temporal` and `Event` queries, and queries must name the model's identity. Every 100 events it saves the model's state so reads don't replay the whole stream; pass `saveStateEvery` to change that, or 0 to never save it.
 

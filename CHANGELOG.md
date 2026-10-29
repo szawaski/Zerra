@@ -87,7 +87,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `Sum`, `Average`, `Min`, and `Max` on `IRepo`, and all of them and `Count` per group with a key such as `x => x.Status` or `x => new { x.CustomerID, x.Status }`. The database does the arithmetic, including over related models. See [Calculations](docs/Repository.md#calculations).
 - `Update<T>(where, model, graph)` and `Delete<T>(where)` change every matching row in one statement without loading them, and return how many. See [Changing Many Rows](docs/Repository.md#changing-many-rows).
 - `Select<T, TResult>(x => new TResult { … })` builds results in the store from the columns a handler needs, related models included, and `Group<T, TKey, TResult>` builds one per group with its key and `Count`/`Sum`/`Average`/`Min`/`Max`, with `having`, ordering, and paging of the results for top-N queries. See [Projections](docs/Repository.md#projections).
-- A `where` through a relation whose model is on another engine now works: the related part runs on its engine first and the identities it matched filter the query, calculation, projection, or update and delete by condition.
+- A `where` through a relation whose model is on another engine now works: the related part runs on its engine first and the identities it matched filter the query, calculation, projection, or update and delete by condition. A calculation key or value, a projected member, or an order through such a relation loads the matching models with what it reads and runs in memory.
 - `WhereBuilder` calls chain, and `And` now binds tighter than `Or` as in C#. Before, conditions combined in the order they were added, so a builder that mixed `Or` and `And` without groups can mean something else now.
 
 ## 5.x
