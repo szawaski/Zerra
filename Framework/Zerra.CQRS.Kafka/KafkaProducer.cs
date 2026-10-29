@@ -410,6 +410,7 @@ namespace Zerra.CQRS.Kafka
             {
             retry:
 
+                var topicDeleted = false;
                 try
                 {
                     //librdkafka only reports a deleted topic as an error and keeps waiting, so it ends the consume and the retry creates the topic again
@@ -417,7 +418,10 @@ namespace Zerra.CQRS.Kafka
                     using (var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).SetErrorHandler((_, error) =>
                     {
                         if (error.Code == ErrorCode.UnknownTopicOrPart || error.Code == ErrorCode.Local_UnknownPartition)
+                        {
+                            topicDeleted = true;
                             topicMissing.Cancel();
+                        }
                     }).Build())
                     {
                         //the topic is new, so reading from the start catches acknowledgements sent before the assignment
@@ -463,7 +467,10 @@ namespace Zerra.CQRS.Kafka
                 {
                     if (!canceller.IsCancellationRequested)
                     {
-                        log?.Error(ex);
+                        if (topicDeleted)
+                            log?.Warn($"{nameof(KafkaProducer)} acknowledgement topic {ackTopic} was deleted, creating it again");
+                        else
+                            log?.Error(ex);
                         await Task.Delay(KafkaCommon.RetryDelay);
                         try
                         {
