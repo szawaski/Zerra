@@ -8,7 +8,5 @@ namespace Store.Reviews.Service.Data
         public ReviewsStoreProvider(ITransactStoreEngine engine) : base(engine) { }
 
         protected override bool EventLinking => false;
-        protected override bool QueryLinking => true;
-        protected override bool PersistLinking => false;
     }
 }

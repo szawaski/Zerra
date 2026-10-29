@@ -31,10 +31,6 @@ namespace Zerra.Repository
 
         /// <summary>Gets a value indicating whether event-based relation linking is enabled. Defaults to <see langword="true"/>.</summary>
         protected virtual bool EventLinking { get { return true; } }
-        /// <summary>Gets a value indicating whether query-based relation linking is enabled. Defaults to <see langword="true"/>.</summary>
-        protected virtual bool QueryLinking { get { return true; } }
-        /// <summary>Gets a value indicating whether persist-based relation linking is enabled. Defaults to <see langword="true"/>.</summary>
-        protected virtual bool PersistLinking { get { return true; } }
 
         /// <summary>The analyzed model metadata for <typeparamref name="TModel"/>.</summary>
         protected ModelDetail ModelTypeDetail => modelTypeDetail;
@@ -109,7 +105,7 @@ namespace Zerra.Repository
         /// <param name="graph">The graph specifying which members are being queried.</param>
         public void OnQuery(Graph? graph)
         {
-            if (!EventLinking || graph is null)
+            if (!EventLinking || graph is null || graph.IsEmpty || ModelTypeDetail.RelatedMembers.Count == 0)
                 return;
 
             foreach (var property in ModelTypeDetail.RelatedMembers)
@@ -142,13 +138,13 @@ namespace Zerra.Repository
         /// <param name="graph">The graph to augment with relation members.</param>
         public void OnQueryWithRelations(Graph? graph)
         {
-            if (EventLinking)
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedMembers.Count > 0)
             {
-                OnQuery(graph);
-            }
+                if (EventLinking)
+                {
+                    OnQuery(graph);
+                }
 
-            if (QueryLinking && graph is not null)
-            {
                 foreach (var modelPropertyInfo in ModelTypeDetail.RelatedMembers)
                 {
                     if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
@@ -180,7 +176,7 @@ namespace Zerra.Repository
         {
             var returnModels = models;
 
-            if (QueryLinking && graph is not null)
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedMembers.Count > 0)
             {
                 //Get related
                 //var tasks = new HashSet<Task>();
@@ -347,7 +343,7 @@ namespace Zerra.Repository
         {
             var returnModels = models;
 
-            if (QueryLinking && graph is not null)
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedMembers.Count > 0)
             {
                 //Get related
                 //var tasks = new List<Task>();
@@ -962,14 +958,14 @@ namespace Zerra.Repository
 
             foreach (var model in persist.Models)
             {
-                if (PersistLinking && graph is not null && !graph.IsEmpty)
+                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
                 {
                     PersistSingleRelations(persist.Event, model, graph, true);
                 }
 
                 PersistModel(persist.Event, model, graph, true);
 
-                if (PersistLinking && graph is not null && !graph.IsEmpty)
+                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
                 {
                     PersistManyRelations(persist.Event, model, graph, true);
                 }
@@ -984,14 +980,14 @@ namespace Zerra.Repository
 
             foreach (var model in persist.Models)
             {
-                if (PersistLinking && graph is not null && !graph.IsEmpty)
+                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
                 {
                     PersistSingleRelations(persist.Event, model, graph, false);
                 }
 
                 PersistModel(persist.Event, model, graph, false);
 
-                if (PersistLinking && graph is not null && !graph.IsEmpty)
+                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
                 {
                     PersistManyRelations(persist.Event, model, graph, false);
                 }
@@ -1024,7 +1020,7 @@ namespace Zerra.Repository
 
             var graph = persist.Graph is null ? null : new Graph<TModel>(persist.Graph);
 
-            if (PersistLinking && graph is not null && !graph.IsEmpty)
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
             {
                 foreach (var id in ids)
                 {
@@ -1044,14 +1040,14 @@ namespace Zerra.Repository
 
             foreach (var model in persist.Models)
             {
-                if (PersistLinking && graph is not null && !graph.IsEmpty)
+                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
                 {
                     await PersistSingleRelationsAsync(persist.Event, model, graph, true);
                 }
 
                 await PersistModelAsync(persist.Event, model, graph, true);
 
-                if (PersistLinking && graph is not null && !graph.IsEmpty)
+                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
                 {
                     await PersistManyRelationsAsync(persist.Event, model, graph, true);
                 }
@@ -1066,14 +1062,14 @@ namespace Zerra.Repository
 
             foreach (var model in persist.Models)
             {
-                if (PersistLinking && graph is not null && !graph.IsEmpty)
+                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
                 {
                     await PersistSingleRelationsAsync(persist.Event, model, graph, false);
                 }
 
                 await PersistModelAsync(persist.Event, model, graph, false);
 
-                if (PersistLinking && graph is not null && !graph.IsEmpty)
+                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
                 {
                     await PersistManyRelationsAsync(persist.Event, model, graph, false);
                 }
@@ -1106,7 +1102,7 @@ namespace Zerra.Repository
 
             var graph = persist.Graph is null ? null : new Graph<TModel>(persist.Graph);
 
-            if (PersistLinking && graph is not null && !graph.IsEmpty)
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
             {
                 foreach (var id in ids)
                 {
@@ -1124,6 +1120,9 @@ namespace Zerra.Repository
         /// <param name="create"><see langword="true"/> to create related models; <see langword="false"/> to update.</param>
         protected void PersistSingleRelations(PersistEvent @event, object model, Graph graph, bool create)
         {
+            if (ModelTypeDetail.RelatedNonEnumerableMembers.Count == 0)
+                return;
+
             //var tasks = new List<Task>();
 
             foreach (var modelPropertyInfo in ModelTypeDetail.RelatedNonEnumerableMembers)

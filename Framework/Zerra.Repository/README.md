@@ -50,8 +50,6 @@ public sealed class OrdersStoreProvider<TModel> : TransactStoreProvider<TModel>
     public OrdersStoreProvider(ITransactStoreEngine engine) : base(engine) { }
 
     protected override bool EventLinking => false;
-    protected override bool QueryLinking => true;    // load relations named in a graph
-    protected override bool PersistLinking => true;  // save related models with their parent
 }
 
 var engine = new MsSqlEngine(connectionString);

@@ -98,8 +98,6 @@ public sealed class OrdersStoreProvider<TModel> : TransactStoreProvider<TModel>
     public OrdersStoreProvider(ITransactStoreEngine engine) : base(engine) { }
 
     protected override bool EventLinking => false;
-    protected override bool QueryLinking => true;    // load relations named in a graph
-    protected override bool PersistLinking => true;  // save related models with their parent
 }
 ```
 
@@ -188,7 +186,7 @@ var orders = await Repo.ManyAsync<OrderDataModel>(new Graph<OrderDataModel>(true
 await Repo.UpdateAsync(order, new Graph<OrderDataModel>(x => x.Status));   // writes only Status
 ```
 
-With `PersistLinking => false`, related models aren't saved with their parent: create the order, then its lines.
+Related models named in the graph are saved or deleted with their parent.
 
 ## Event-Sourced Aggregates
 

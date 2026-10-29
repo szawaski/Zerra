@@ -8,7 +8,5 @@ namespace Pets.Service.Data
         public ZerraPetsSqlProvider(ITransactStoreEngine engine) : base(engine) { }
 
         protected override bool EventLinking => false;
-        protected override bool QueryLinking => true;
-        protected override bool PersistLinking => true;
     }
 }
