@@ -41,21 +41,13 @@ public sealed class OrderDataModel
 
 ## Setup
 
-A provider connects model types to an engine, and the repo holds the providers:
+A provider connects a model type to an engine, and the repo holds the providers:
 
 ```csharp
-public sealed class OrdersStoreProvider<TModel> : TransactStoreProvider<TModel>
-    where TModel : class, new()
-{
-    public OrdersStoreProvider(ITransactStoreEngine engine) : base(engine) { }
-
-    protected override bool EventLinking => false;
-}
-
 var engine = new MsSqlEngine(connectionString);
 var repo = Repo.New();
-repo.AddProvider(new OrdersStoreProvider<OrderDataModel>(engine));
-repo.AddProvider(new OrdersStoreProvider<OrderLineDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<OrderDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<OrderLineDataModel>(engine));
 
 var busServices = new BusServices();
 busServices.AddRepo(repo);

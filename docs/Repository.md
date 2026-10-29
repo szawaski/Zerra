@@ -89,17 +89,7 @@ Each database also has a connection test: `MsSqlConnectionTest`, `PostgreSqlConn
 
 ### 2. A Provider
 
-A provider connects model types to an engine:
-
-```csharp
-public sealed class OrdersStoreProvider<TModel> : TransactStoreProvider<TModel>
-    where TModel : class, new()
-{
-    public OrdersStoreProvider(ITransactStoreEngine engine) : base(engine) { }
-
-    protected override bool EventLinking => false;
-}
-```
+A provider connects a model type to an engine. Register a `TransactStoreProvider<TModel>` for each model (step 3).
 
 Each in-memory engine is its own store, so a test can start from an empty one with `new MemoryEngine()`. Providers for related models must share an engine.
 
@@ -114,9 +104,9 @@ ITransactStoreEngine ordersEngine = MsSqlConnectionTest.Test(ordersConnectionStr
     : new MemoryEngine();
 
 var repo = Repo.New();
-repo.AddProvider(new OrdersStoreProvider<OrderDataModel>(ordersEngine));
-repo.AddProvider(new OrdersStoreProvider<OrderLineDataModel>(ordersEngine));
-repo.AddProvider(new CatalogStoreProvider<ProductDataModel>(new PostgreSqlEngine(catalogConnectionString)));   // a different store, same IRepo
+repo.AddProvider(new TransactStoreProvider<OrderDataModel>(ordersEngine));
+repo.AddProvider(new TransactStoreProvider<OrderLineDataModel>(ordersEngine));
+repo.AddProvider(new TransactStoreProvider<ProductDataModel>(new PostgreSqlEngine(catalogConnectionString)));   // a different store, same IRepo
 
 
 var busServices = new BusServices();

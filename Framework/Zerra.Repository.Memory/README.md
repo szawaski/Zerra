@@ -18,7 +18,7 @@ using Zerra.Repository.Memory;
 var engine = new MemoryEngine();
 
 var repo = Repo.New();
-repo.AddProvider(new MyStoreProvider<OrderDataModel>(engine));   // a TransactStoreProvider<TModel>
+repo.AddProvider(new TransactStoreProvider<OrderDataModel>(engine));
 ```
 
 `MemoryEngine` is also an `IEventStoreEngine`, so it can stand in for KurrentDB under an `AggregateRoot`.

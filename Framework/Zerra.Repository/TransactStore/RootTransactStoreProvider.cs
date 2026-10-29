@@ -29,9 +29,6 @@ namespace Zerra.Repository
         private static readonly Type hashSetObjectType = typeof(HashSet<object>);
         private static readonly MethodInfo hashSetContainsMethod = typeof(HashSet<object>).GetMethods().First(m => m.Name == nameof(HashSet<>.Contains));
 
-        /// <summary>Gets a value indicating whether event-based relation linking is enabled. Defaults to <see langword="true"/>.</summary>
-        protected virtual bool EventLinking { get { return true; } }
-
         /// <summary>The analyzed model metadata for <typeparamref name="TModel"/>.</summary>
         protected ModelDetail ModelTypeDetail => modelTypeDetail;
 
@@ -101,32 +98,6 @@ namespace Zerra.Repository
             return GetWhereExpression(graph);
         }
 
-        /// <summary>Invoked during a query to propagate query events to related providers via event linking.</summary>
-        /// <param name="graph">The graph specifying which members are being queried.</param>
-        public void OnQuery(Graph? graph)
-        {
-            if (!EventLinking || graph is null || graph.IsEmpty || ModelTypeDetail.RelatedMembers.Count == 0)
-                return;
-
-            foreach (var property in ModelTypeDetail.RelatedMembers)
-            {
-                if (graph.HasMemberExplicitly(property.Name))
-                {
-                    var relatedProvider = GetRelatedProvider(property.Type);
-
-                    if (relatedProvider is not null)
-                    {
-                        if (relatedProvider is IProviderRelation relatedProviderGeneric)
-                        {
-                            var relatedGraph = graph.GetChildGraph(property.Name);
-                            relatedProviderGeneric.OnQueryIncludingBase(relatedGraph);
-                            if (relatedGraph is not null)
-                                graph.AddOrReplaceChildGraph(property.Name, relatedGraph);
-                        }
-                    }
-                }
-            }
-        }
         /// <summary>Invoked during a query including base type handling, delegating to <see cref="OnQueryWithRelations"/>.</summary>
         /// <param name="graph">The graph specifying which members are being queried.</param>
         public void OnQueryIncludingBase(Graph? graph)
@@ -140,11 +111,6 @@ namespace Zerra.Repository
         {
             if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedMembers.Count > 0)
             {
-                if (EventLinking)
-                {
-                    OnQuery(graph);
-                }
-
                 foreach (var modelPropertyInfo in ModelTypeDetail.RelatedMembers)
                 {
                     if (graph.HasMemberExplicitly(modelPropertyInfo.Name))
@@ -965,7 +931,7 @@ namespace Zerra.Repository
 
                 PersistModel(persist.Event, model, graph, true);
 
-                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
+                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
                 {
                     PersistManyRelations(persist.Event, model, graph, true);
                 }
@@ -987,7 +953,7 @@ namespace Zerra.Repository
 
                 PersistModel(persist.Event, model, graph, false);
 
-                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
+                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
                 {
                     PersistManyRelations(persist.Event, model, graph, false);
                 }
@@ -1020,7 +986,7 @@ namespace Zerra.Repository
 
             var graph = persist.Graph is null ? null : new Graph<TModel>(persist.Graph);
 
-            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
             {
                 foreach (var id in ids)
                 {
@@ -1047,7 +1013,7 @@ namespace Zerra.Repository
 
                 await PersistModelAsync(persist.Event, model, graph, true);
 
-                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
+                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
                 {
                     await PersistManyRelationsAsync(persist.Event, model, graph, true);
                 }
@@ -1069,7 +1035,7 @@ namespace Zerra.Repository
 
                 await PersistModelAsync(persist.Event, model, graph, false);
 
-                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
+                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
                 {
                     await PersistManyRelationsAsync(persist.Event, model, graph, false);
                 }
@@ -1102,7 +1068,7 @@ namespace Zerra.Repository
 
             var graph = persist.Graph is null ? null : new Graph<TModel>(persist.Graph);
 
-            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
             {
                 foreach (var id in ids)
                 {

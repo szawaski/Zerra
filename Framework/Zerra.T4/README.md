@@ -3,7 +3,7 @@
 T4 helpers for [Zerra](https://www.nuget.org/packages/Zerra), run from `.tt` templates in Visual Studio:
 
 - **`CQRSClientDomain`** generates JavaScript or TypeScript models, commands, and query functions from your C# contracts, for the `Bus.js` and `Bus.ts` clients that call the Zerra.Web API gateway.
-- **`MsSqlFirst`** reverse-engineers an existing SQL Server database into Zerra.Repository data models and providers.
+- **`MsSqlFirst`** reverse-engineers an existing SQL Server database into Zerra.Repository data models.
 
 ## Installation
 
@@ -40,7 +40,7 @@ T4 templates load assemblies by path, so point the template's `assembly` directi
 #>
 ```
 
-`MsSqlFirst.GenerateProviders` writes a typed provider per model.
+Register a `TransactStoreProvider<TModel>` for each generated model.
 
 ## Documentation
 

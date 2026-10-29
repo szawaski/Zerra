@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Zerra.T4.Test
 {
-    //GenerateModels and GenerateProviders read the schema from a live SQL Server, only the naming is covered here
+    //GenerateModels reads the schema from a live SQL Server, only the naming is covered here
     public class MsSqlFirstTests
     {
         [Theory]

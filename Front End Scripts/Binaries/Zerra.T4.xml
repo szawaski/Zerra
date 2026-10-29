@@ -738,17 +738,6 @@
             <param name="modelSuffix">The suffix to append to each generated model class name.</param>
             <returns>A string containing the generated C# model classes.</returns>
         </member>
-        <member name="M:Zerra.T4.MsSqlFirst.GenerateProviders(System.String,System.String,System.String,System.String,System.String)">
-            <summary>
-            Generates C# provider classes from SQL Server database schema.
-            </summary>
-            <param name="connectionString">The SQL Server connection string.</param>
-            <param name="namespaceString">The namespace for the generated provider classes.</param>
-            <param name="modelSuffix">The suffix appended to model class names that the providers reference.</param>
-            <param name="baseProvider">The base provider class that the generated providers inherit from.</param>
-            <param name="usingNamespace">Optional namespace to include in using directives.</param>
-            <returns>A string containing the generated C# provider classes.</returns>
-        </member>
         <member name="M:Zerra.T4.MsSqlFirst.IsSafeName(System.String,System.String@)">
             <summary>
             Determines if a name is a safe C# identifier and converts it to a safe name if necessary.

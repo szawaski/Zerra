@@ -24,9 +24,9 @@ namespace Store.Inventory.Test
             //an engine of its own is an in-memory store of its own, so no other test sees this one's rows
             var engine = new MemoryEngine();
             var repo = Zerra.Repository.Repo.New();
-            repo.AddProvider(new InventoryStoreProvider<StockItemDataModel>(engine));
-            repo.AddProvider(new InventoryStoreProvider<StockReservationDataModel>(engine));
-            repo.AddProvider(new InventoryStoreProvider<StockMovementDataModel>(engine));
+            repo.AddProvider(new TransactStoreProvider<StockItemDataModel>(engine));
+            repo.AddProvider(new TransactStoreProvider<StockReservationDataModel>(engine));
+            repo.AddProvider(new TransactStoreProvider<StockMovementDataModel>(engine));
             Repo = repo;
 
             var busServices = new BusServices();

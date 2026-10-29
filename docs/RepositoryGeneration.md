@@ -103,10 +103,7 @@ CodeFirstGeneration.Generate(
 
 ## Database First (T4 Reverse Engineering)
 
-The `Zerra.T4` project provides T4 templates that connect to an existing SQL Server database and generate:
-
-- **Data model classes** — C# classes with the appropriate Zerra attributes
-- **Provider classes** — Typed `TransactStoreProvider` classes ready to register with `Repo`
+The `Zerra.T4` project provides T4 templates that connect to an existing SQL Server database and generate data model classes with the appropriate Zerra attributes.
 
 > **Note:** The T4 templates currently support **SQL Server (MsSql)** only.
 
@@ -133,34 +130,15 @@ Add a `.tt` file to your project with the following content, filling in your con
 
 Saving or running the template generates a `.cs` file containing one model class per database table.
 
-### Generate Provider Classes
+### Registering the Models
 
-Add a second `.tt` file to generate the corresponding providers:
-
-```
-<#@ template language="C#" debug="false" hostspecific="true" #>
-<#@ assembly name="Front End Scripts\Binaries\Zerra.T4.dll" #>
-<#
-    const string connectionString = "data source=.;initial catalog=MyDatabase;integrated security=True;MultipleActiveResultSets=True;";
-    const string namespaceString = "MyProject.Domain.Sql";
-    const string modelSuffix = "DataModel";
-    const string baseProvider = "MyProjectSqlBaseProvider";
-    const string usingNamespace = "MyProject.Domain.DataModels";
-    var result = Zerra.T4.MsSqlFirst.GenerateProviders(connectionString, namespaceString, modelSuffix, baseProvider, usingNamespace);
-    #><#=result#><#
-#>
-```
-
-This generates a typed provider class for every model, inheriting from `baseProvider`.
-
-### Registering Generated Providers
-
-After generation, register the providers with the repo as normal in `Program.cs`:
+Register a `TransactStoreProvider<TModel>` for each generated model in `Program.cs`:
 
 ```csharp
+var engine = new MsSqlEngine(connectionString);
 var repo = Repo.New();
-repo.AddProvider(new PetTypeDataModelSqlProvider());
-repo.AddProvider(new PetDataModelSqlProvider());
+repo.AddProvider(new TransactStoreProvider<PetTypeDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<PetDataModel>(engine));
 
 var busServices = new BusServices();
 busServices.AddRepo(repo);

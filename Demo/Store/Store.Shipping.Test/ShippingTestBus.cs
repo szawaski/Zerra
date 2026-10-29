@@ -24,7 +24,7 @@ namespace Store.Shipping.Test
             //an engine of its own is an in-memory store of its own, so no other test sees this one's rows
             var engine = new MemoryEngine();
             var repo = Zerra.Repository.Repo.New();
-            repo.AddProvider(new ShippingStoreProvider<ShipmentDataModel>(engine));
+            repo.AddProvider(new TransactStoreProvider<ShipmentDataModel>(engine));
             Repo = repo;
 
             var busServices = new BusServices();

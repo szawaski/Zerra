@@ -39,9 +39,9 @@ databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 var repo = Repo.New();
-repo.AddProvider(new OrdersStoreProvider<CustomerDataModel>(engine));
-repo.AddProvider(new OrdersStoreProvider<OrderDataModel>(engine));
-repo.AddProvider(new OrdersStoreProvider<OrderItemDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<CustomerDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<OrderDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<OrderItemDataModel>(engine));
 var seeding = Stopwatch.StartNew();
 await OrdersSeeder.SeedAsync(repo, log);
 seeding.Stop();

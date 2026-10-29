@@ -32,7 +32,7 @@ databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 var repo = Repo.New();
-repo.AddProvider(new ReviewsStoreProvider<ReviewDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<ReviewDataModel>(engine));
 var seeding = Stopwatch.StartNew();
 await ReviewsSeeder.SeedAsync(repo, log);
 seeding.Stop();

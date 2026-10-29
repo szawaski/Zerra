@@ -42,8 +42,8 @@ else
     engine = new MemoryEngine();
 
 var repo = Repo.New();
-repo.AddProvider(new ZerraPetsSqlProvider<PetDataModel>(engine));
-repo.AddProvider(new ZerraPetsSqlProvider<PetTypeDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<PetDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<PetTypeDataModel>(engine));
 
 INetworkSerializer serializer = new NetworkByteSerializer();
 IEncryptor encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);

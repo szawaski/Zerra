@@ -21,7 +21,7 @@ ITransactStoreEngine engine = MsSqlConnectionTest.Test(connectionString, log)
     : new MemoryEngine();
 
 var repo = Repo.New();
-repo.AddProvider(new MyStoreProvider<OrderDataModel>(engine));   // a TransactStoreProvider<TModel>
+repo.AddProvider(new TransactStoreProvider<OrderDataModel>(engine));
 ```
 
 The engine doesn't connect until it's used. Create the schema at startup with Code First generation:

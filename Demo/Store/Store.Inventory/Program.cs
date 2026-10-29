@@ -31,9 +31,9 @@ databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 var repo = Repo.New();
-repo.AddProvider(new InventoryStoreProvider<StockItemDataModel>(engine));
-repo.AddProvider(new InventoryStoreProvider<StockReservationDataModel>(engine));
-repo.AddProvider(new InventoryStoreProvider<StockMovementDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<StockItemDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<StockReservationDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<StockMovementDataModel>(engine));
 var seeding = Stopwatch.StartNew();
 await InventorySeeder.SeedAsync(repo, log);
 seeding.Stop();

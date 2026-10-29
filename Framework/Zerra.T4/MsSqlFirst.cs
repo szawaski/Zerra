@@ -451,63 +451,6 @@ AND ((KF.TABLE_SCHEMA = '{0}' AND KF.TABLE_NAME = '{1}') OR (KP.TABLE_SCHEMA = '
         }
 
         /// <summary>
-        /// Generates C# provider classes from SQL Server database schema.
-        /// </summary>
-        /// <param name="connectionString">The SQL Server connection string.</param>
-        /// <param name="namespaceString">The namespace for the generated provider classes.</param>
-        /// <param name="modelSuffix">The suffix appended to model class names that the providers reference.</param>
-        /// <param name="baseProvider">The base provider class that the generated providers inherit from.</param>
-        /// <param name="usingNamespace">Optional namespace to include in using directives.</param>
-        /// <returns>A string containing the generated C# provider classes.</returns>
-        public static string GenerateProviders(string connectionString, string namespaceString, string modelSuffix, string baseProvider, string usingNamespace)
-        {
-            var sb = new StringBuilder();
-            var tableNames = new List<string>();
-            using (var connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = tableQuery;
-                    using (var reader = command.ExecuteReader())
-                    {
-                        if (reader.HasRows)
-                        {
-                            var tableNameIndex = reader.GetOrdinal("TABLE_NAME");
-                            while (reader.Read())
-                            {
-                                var tableName = reader.GetString(tableNameIndex);
-                                tableNames.Add(tableName);
-                            }
-                        }
-                    }
-                }
-
-                if (!String.IsNullOrWhiteSpace(usingNamespace))
-                    _ = sb.Append("using ").Append(usingNamespace).Append(';').Append(Environment.NewLine);
-                _ = sb.Append(Environment.NewLine);
-                _ = sb.Append("namespace ").Append(namespaceString).Append(Environment.NewLine);
-                _ = sb.Append("{").Append(Environment.NewLine);
-
-                var usedFirst = false;
-                foreach (var tableName in tableNames)
-                {
-                    var usedNames = new Dictionary<string, int>();
-
-                    if (usedFirst)
-                        _ = sb.Append(Environment.NewLine);
-                    else
-                        usedFirst = true;
-
-                    _ = sb.Append(tab).Append("public class ").Append(tableName).Append("Provider : ").Append(baseProvider).Append('<').Append(tableName).Append(modelSuffix).Append("> { }");
-                }
-                _ = sb.Append(Environment.NewLine).Append("}");
-            }
-
-            return sb.ToString();
-        }
-
-        /// <summary>
         /// Determines if a name is a safe C# identifier and converts it to a safe name if necessary.
         /// </summary>
         /// <param name="name">The name to check.</param>

@@ -12,20 +12,11 @@ namespace Zerra.Repository
     /// enabling temporal queries over event-sourced data.
     /// </summary>
     /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
-    public class EventStoreAsTransactStoreProvider<TModel> : RootTransactStoreProvider<TModel>
+    public sealed class EventStoreAsTransactStoreProvider<TModel> : RootTransactStoreProvider<TModel>
         where TModel : class, new()
     {
         private readonly ulong saveStateEvery;
-
-        /// <summary>
-        /// Gets the number of events after which the model's state is saved so reads replay from it instead of from the first event. Defaults to 100, 0 never saves the state.
-        /// </summary>
-        protected virtual ulong SaveStateEvery => saveStateEvery;
-
-        /// <summary>
-        /// Gets the underlying event store engine used for reading and appending events.
-        /// </summary>
-        protected readonly IEventStoreEngine Engine;
+        private readonly IEventStoreEngine engine;
 
         /// <summary>
         /// Initializes a new instance on <paramref name="engine"/>.
@@ -36,7 +27,7 @@ namespace Zerra.Repository
         {
             if (engine is null)
                 throw new ArgumentNullException(nameof(engine));
-            this.Engine = engine;
+            this.engine = engine;
             this.saveStateEvery = saveStateEvery;
         }
 
@@ -314,7 +305,7 @@ namespace Zerra.Repository
 
                 var (modelState, modelEventNumber) = ReadModelState(id, query, many);
 
-                var eventDatas = Engine.ReadBackwards(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
+                var eventDatas = engine.ReadBackwards(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
 
                 var items = LoadModelsFromEventDatas(eventDatas, modelState, many, query);
 
@@ -334,7 +325,7 @@ namespace Zerra.Repository
 
                 var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query, many);
 
-                var eventDatas = await Engine.ReadBackwardsAsync(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
+                var eventDatas = await engine.ReadBackwardsAsync(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
 
                 var items = LoadModelsFromEventDatas(eventDatas, modelState, many, query);
 
@@ -355,7 +346,7 @@ namespace Zerra.Repository
 
                 var (modelState, modelEventNumber) = ReadModelState(id, query, many);
 
-                var eventDatas = Engine.ReadBackwards(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
+                var eventDatas = engine.ReadBackwards(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
 
                 var items = LoadEventModelsFromEventDatas(eventDatas, modelState, many, query);
 
@@ -375,7 +366,7 @@ namespace Zerra.Repository
 
                 var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query, many);
 
-                var eventDatas = await Engine.ReadBackwardsAsync(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
+                var eventDatas = await engine.ReadBackwardsAsync(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
 
                 var items = LoadEventModelsFromEventDatas(eventDatas, modelState, many, query);
 
@@ -774,7 +765,7 @@ namespace Zerra.Repository
 
             var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
             var bounded = numberAtOrBefore.HasValue || dateBefore.HasValue || dateAtOrBefore.HasValue;
-            var eventDatas = Engine.ReadBackwards(streamName, null, bounded ? null : 1, null, null, null);
+            var eventDatas = engine.ReadBackwards(streamName, null, bounded ? null : 1, null, null, null);
 
             foreach (var eventData in eventDatas)
             {
@@ -816,7 +807,7 @@ namespace Zerra.Repository
 
             var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
             var bounded = numberAtOrBefore.HasValue || dateBefore.HasValue || dateAtOrBefore.HasValue;
-            var eventDatas = await Engine.ReadBackwardsAsync(streamName, null, bounded ? null : 1, null, null, null);
+            var eventDatas = await engine.ReadBackwardsAsync(streamName, null, bounded ? null : 1, null, null, null);
 
             foreach (var eventData in eventDatas)
             {
@@ -917,12 +908,11 @@ namespace Zerra.Repository
 
             var data = EventStoreCommon.Serialize(eventStoreModel);
 
-            var eventNumber = Engine.Append(@event.ID, @event.Name, streamName, null, create ? EventStoreState.NotExisting : EventStoreState.Existing, data);
+            var eventNumber = engine.Append(@event.ID, @event.Name, streamName, null, create ? EventStoreState.NotExisting : EventStoreState.Existing, data);
 
-            var saveStateEvery = SaveStateEvery;
             if (saveStateEvery > 0 && eventNumber > 0 && eventNumber % saveStateEvery == 0)
             {
-                var thisEventData = Engine.ReadBackwards(streamName, eventNumber, 1, null, null, null)[0];
+                var thisEventData = engine.ReadBackwards(streamName, eventNumber, 1, null, null, null)[0];
 
                 //read from this provider, the state is saved as stored and not as the layers above it change it
                 var where = ModelAnalyzer.GetIdentityExpression<TModel>(id);
@@ -939,7 +929,7 @@ namespace Zerra.Repository
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var eventNumber = Engine.Terminate(@event.ID, "Delete", streamName, null, EventStoreState.Existing);
+                var eventNumber = engine.Terminate(@event.ID, "Delete", streamName, null, EventStoreState.Existing);
 
                 SaveModelState(id, null, eventNumber, null);
             }
@@ -964,12 +954,11 @@ namespace Zerra.Repository
 
             var data = EventStoreCommon.Serialize(eventStoreModel);
 
-            var eventNumber = await Engine.AppendAsync(@event.ID, @event.Name, streamName, null, create ? EventStoreState.NotExisting : EventStoreState.Existing, data);
+            var eventNumber = await engine.AppendAsync(@event.ID, @event.Name, streamName, null, create ? EventStoreState.NotExisting : EventStoreState.Existing, data);
 
-            var saveStateEvery = SaveStateEvery;
             if (saveStateEvery > 0 && eventNumber > 0 && eventNumber % saveStateEvery == 0)
             {
-                var thisEventData = (await Engine.ReadBackwardsAsync(streamName, eventNumber, 1, null, null, null))[0];
+                var thisEventData = (await engine.ReadBackwardsAsync(streamName, eventNumber, 1, null, null, null))[0];
 
                 var where = ModelAnalyzer.GetIdentityExpression<TModel>(id);
                 var stateQuery = new Query(QueryOperation.Single, modelType, TemporalOrder.Newest, null, null, null, eventNumber, null, null, where, null, null, null, null);
@@ -985,7 +974,7 @@ namespace Zerra.Repository
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var eventNumber = await Engine.TerminateAsync(@event.ID, "Delete", streamName, null, EventStoreState.Existing);
+                var eventNumber = await engine.TerminateAsync(@event.ID, "Delete", streamName, null, EventStoreState.Existing);
 
                 await SaveModelStateAsync(id, null, eventNumber, null);
             }
@@ -1004,7 +993,7 @@ namespace Zerra.Repository
             };
             var data = EventStoreCommon.Serialize(eventState);
 
-            _ = Engine.Append(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
+            _ = engine.Append(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
         }
         private async Task SaveModelStateAsync(object id, TModel? model, ulong eventNumber, DateTime? date)
         {
@@ -1019,7 +1008,7 @@ namespace Zerra.Repository
             };
             var data = EventStoreCommon.Serialize(eventState);
 
-            _ = await Engine.AppendAsync(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
+            _ = await engine.AppendAsync(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
         }
     }
 }

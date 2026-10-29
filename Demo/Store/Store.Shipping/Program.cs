@@ -31,7 +31,7 @@ IDataStoreInfo dataStore = new DataStoreInfo("In-memory (by design, this service
 log.Info($"Data store: {dataStore.Description}");
 
 var repo = Repo.New();
-repo.AddProvider(new ShippingStoreProvider<ShipmentDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<ShipmentDataModel>(engine));
 
 //Commands come from the gateway over HTTP/Kestrel. The order events from Orders take RabbitMQ when it's running, HTTP/Kestrel when it isn't
 var useRabbitMQ = !StoreSettings.DirectMessagingOnly && await RabbitMQConnectionTest.TestAsync(StoreSettings.RabbitMQHost, log: log);

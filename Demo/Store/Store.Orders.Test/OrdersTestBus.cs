@@ -30,9 +30,9 @@ namespace Store.Orders.Test
             //an engine of its own is an in-memory store of its own, so no other test sees this one's rows
             var engine = new MemoryEngine();
             var repo = Zerra.Repository.Repo.New();
-            repo.AddProvider(new OrdersStoreProvider<CustomerDataModel>(engine));
-            repo.AddProvider(new OrdersStoreProvider<OrderDataModel>(engine));
-            repo.AddProvider(new OrdersStoreProvider<OrderItemDataModel>(engine));
+            repo.AddProvider(new TransactStoreProvider<CustomerDataModel>(engine));
+            repo.AddProvider(new TransactStoreProvider<OrderDataModel>(engine));
+            repo.AddProvider(new TransactStoreProvider<OrderItemDataModel>(engine));
             Repo = repo;
 
             var busServices = new BusServices();

@@ -103,7 +103,7 @@ ILogger log = new ConsoleLogger();          //your Zerra.Logging.ILogger impleme
 
 var engine = new PostgreSqlEngine(connectionString);   //one engine shared by every provider on the store
 var repo = Repo.New();
-repo.AddProvider(new CatalogStoreProvider<ProductDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<ProductDataModel>(engine));
 var busServices = new BusServices();
 busServices.AddRepo(repo);                  //handlers deriving from BaseHandlerWithRepo get it as Repo
 

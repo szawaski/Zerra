@@ -30,8 +30,8 @@ databaseSetup.Stop();
 log.Info($"Database setup done in {databaseSetup.ElapsedMilliseconds} ms");
 
 var repo = Repo.New();
-repo.AddProvider(new CatalogStoreProvider<CategoryDataModel>(engine));
-repo.AddProvider(new CatalogStoreProvider<ProductDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<CategoryDataModel>(engine));
+repo.AddProvider(new TransactStoreProvider<ProductDataModel>(engine));
 var seeding = Stopwatch.StartNew();
 await CatalogSeeder.SeedAsync(repo, log);
 seeding.Stop();
