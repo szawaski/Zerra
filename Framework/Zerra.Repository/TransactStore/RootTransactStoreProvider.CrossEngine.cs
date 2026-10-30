@@ -34,6 +34,8 @@ namespace Zerra.Repository
         private Graph? CrossEngineGraph(Query query, out bool orderCrosses)
         {
             orderCrosses = false;
+            if (query.GroupBy is null && query.Value is null && query.Select is null && query.Order is null)
+                return null;
             var finder = new GraphFinder(this, query.Graph is null ? new Graph() : new Graph(query.Graph));
             finder.Read(query.GroupBy);
             finder.Read(query.Value);
@@ -182,10 +184,33 @@ namespace Zerra.Repository
             }
         }
 
+        //whether any relation of the model is on another engine, so a condition on a model whose relations share its engine isn't walked
+        private bool? anyCrossEngine;
+        private bool AnyCrossEngine
+        {
+            get
+            {
+                if (anyCrossEngine is null)
+                {
+                    var any = false;
+                    foreach (var member in ModelTypeDetail.RelatedMembers)
+                    {
+                        if (IsCrossEngine(member))
+                        {
+                            any = true;
+                            break;
+                        }
+                    }
+                    anyCrossEngine = any;
+                }
+                return anyCrossEngine.Value;
+            }
+        }
+
         //a condition through a relation on another engine can't join, so its part of the condition runs there first and the identities it matched replace it
         private LambdaExpression? SplitCrossEngineWhere(LambdaExpression? where)
         {
-            if (where is null || ModelTypeDetail.RelatedMembers.Count == 0)
+            if (where is null || !AnyCrossEngine)
                 return where;
             var lookups = FindCrossEngineLookups(where);
             if (lookups is null)
@@ -196,7 +221,7 @@ namespace Zerra.Repository
         }
         private async Task<LambdaExpression?> SplitCrossEngineWhereAsync(LambdaExpression? where)
         {
-            if (where is null || ModelTypeDetail.RelatedMembers.Count == 0)
+            if (where is null || !AnyCrossEngine)
                 return where;
             var lookups = FindCrossEngineLookups(where);
             if (lookups is null)

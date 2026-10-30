@@ -31,6 +31,8 @@ namespace Zerra.Repository.Test
             public int Total { get; set; }
             public double Average { get; set; }
             public int Max { get; set; }
+            public int Flagged { get; set; }
+            public int Distinct { get; set; }
         }
 
         public static void TestSequenceTransactStore(ITransactStoreEngine engine)
@@ -835,7 +837,7 @@ namespace Zerra.Repository.Test
             Assert.True(selected.RelationBHasModel);
 
             //group, keyed by a member with having, order, and paging, then keyed through a relation
-            var groupResult = repo.Group((TestTypesModel x) => x.BooleanThing, g => new TestTypesGrouping { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Int32Thing), Average = g.Average(x => x.Int32Thing), Max = g.Max(x => x.Int32Thing) },
+            var groupResult = repo.Group((TestTypesModel x) => x.BooleanThing, g => new TestTypesGrouping { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Int32Thing), Average = g.Average(x => x.Int32Thing), Max = g.Max(x => x.Int32Thing), Flagged = g.Count(x => x.BooleanThing), Distinct = g.Select(x => x.StringThing).Distinct().Count() },
                 x => x.KeyA == model.KeyA, having: r => r.Rows > 0, order: QueryOrder<TestTypesGrouping>.Create(r => r.Total), take: 1);
             var group = Assert.Single(groupResult);
             Assert.Equal(model.BooleanThing, group.Flag);
@@ -843,6 +845,8 @@ namespace Zerra.Repository.Test
             Assert.Equal(model.Int32Thing, group.Total);
             Assert.Equal((double)model.Int32Thing, group.Average);
             Assert.Equal(model.Int32Thing, group.Max);
+            Assert.Equal(model.BooleanThing ? 1 : 0, group.Flagged);
+            Assert.Equal(1, group.Distinct);
             var relationGroupResult = repo.Group((TestTypesModel x) => x.RelationA.SomeValue, g => new TestTypesGrouping { RelationAValue = g.Key, Rows = g.Count(), Total = g.Sum(x => x.RelationB.Count()) }, x => x.KeyA == model.KeyA);
             var relationGroup = Assert.Single(relationGroupResult);
             Assert.StartsWith(relationModel.SomeValue, relationGroup.RelationAValue);
@@ -851,6 +855,8 @@ namespace Zerra.Repository.Test
 
             //calculations through the relations
             Assert.Equal(1, repo.Sum<TestTypesModel>(x => x.RelationB.Count(), x => x.KeyA == model.KeyA));
+            Assert.Equal(1, repo.CountDistinct<TestTypesModel, string>(x => x.StringThing, x => x.KeyA == model.KeyA));
+            Assert.Equal([model.BooleanThing], repo.Distinct<TestTypesModel, bool>(x => x.BooleanThing, x => x.KeyA == model.KeyA));
             var countByRelation = Assert.Single(repo.Count<TestTypesModel, string>(x => x.RelationA.SomeValue, x => x.KeyA == model.KeyA));
             Assert.StartsWith(relationModel.SomeValue, countByRelation.Key);
             Assert.Equal(1, countByRelation.Value);
@@ -1119,7 +1125,7 @@ namespace Zerra.Repository.Test
             Assert.True(selected.RelationBHasModel);
 
             //group, keyed by a member with having, order, and paging, then keyed through a relation
-            var groupResult = await repo.GroupAsync((TestTypesModel x) => x.BooleanThing, g => new TestTypesGrouping { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Int32Thing), Average = g.Average(x => x.Int32Thing), Max = g.Max(x => x.Int32Thing) },
+            var groupResult = await repo.GroupAsync((TestTypesModel x) => x.BooleanThing, g => new TestTypesGrouping { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Int32Thing), Average = g.Average(x => x.Int32Thing), Max = g.Max(x => x.Int32Thing), Flagged = g.Count(x => x.BooleanThing), Distinct = g.Select(x => x.StringThing).Distinct().Count() },
                 x => x.KeyA == model.KeyA, having: r => r.Rows > 0, order: QueryOrder<TestTypesGrouping>.Create(r => r.Total), take: 1);
             var group = Assert.Single(groupResult);
             Assert.Equal(model.BooleanThing, group.Flag);
@@ -1127,6 +1133,8 @@ namespace Zerra.Repository.Test
             Assert.Equal(model.Int32Thing, group.Total);
             Assert.Equal((double)model.Int32Thing, group.Average);
             Assert.Equal(model.Int32Thing, group.Max);
+            Assert.Equal(model.BooleanThing ? 1 : 0, group.Flagged);
+            Assert.Equal(1, group.Distinct);
             var relationGroupResult = await repo.GroupAsync((TestTypesModel x) => x.RelationA.SomeValue, g => new TestTypesGrouping { RelationAValue = g.Key, Rows = g.Count(), Total = g.Sum(x => x.RelationB.Count()) }, x => x.KeyA == model.KeyA);
             var relationGroup = Assert.Single(relationGroupResult);
             Assert.StartsWith(relationModel.SomeValue, relationGroup.RelationAValue);
@@ -1135,6 +1143,8 @@ namespace Zerra.Repository.Test
 
             //calculations through the relations
             Assert.Equal(1, await repo.SumAsync<TestTypesModel>(x => x.RelationB.Count(), x => x.KeyA == model.KeyA));
+            Assert.Equal(1, await repo.CountDistinctAsync<TestTypesModel, string>(x => x.StringThing, x => x.KeyA == model.KeyA));
+            Assert.Equal([model.BooleanThing], await repo.DistinctAsync<TestTypesModel, bool>(x => x.BooleanThing, x => x.KeyA == model.KeyA));
             var countByRelation = Assert.Single(await repo.CountAsync<TestTypesModel, string>(x => x.RelationA.SomeValue, x => x.KeyA == model.KeyA));
             Assert.StartsWith(relationModel.SomeValue, countByRelation.Key);
             Assert.Equal(1, countByRelation.Value);

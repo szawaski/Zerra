@@ -24,14 +24,14 @@ Against SQL Server, with `AsNoTracking()` and a new `DbContext` per query on the
 
 | Scenario | Speed | Memory |
 |---|---|---|
-| Query many (all rows) | ~45% faster | ~70% less |
+| Query many (all rows) | ~45% faster | ~45% less |
 | Query many with a where clause | ~2.3× faster | ~80% less |
 | Query first with a where clause | ~2× faster | ~80% less |
-| Query many with a one-to-one include | ~20% faster | ~65% less |
-| Query many with a one-to-many include | ~3.8× faster | ~90% less |
+| Query many with a one-to-one include | ~20% faster | ~35% less |
+| Query many with a one-to-many include | ~3.8× faster | ~70% less |
 | Update | ~40% faster | ~95% less |
 
-For one-to-many includes, Zerra loads the related rows of every parent in one additional query, while EF joins them into one query by default. With EF's `AsSplitQuery()`, which loads them separately like Zerra, Zerra is ~30% faster with ~65% less memory. Results vary by environment. The benchmarks are in [`EFBenchmark.cs`](../Benchmarks/Zerra.Repository.Benchmark/Benchmarks/EFBenchmark.cs).
+For one-to-many includes, Zerra loads the related rows of every parent in one additional query, while EF joins them into one query by default. With EF's `AsSplitQuery()`, which loads them separately like Zerra, Zerra is ~25% faster with ~40% less memory. Results vary by environment. The benchmarks are in [`EFBenchmark.cs`](../Benchmarks/Zerra.Repository.Benchmark/Benchmarks/EFBenchmark.cs).
 
 ## Packages
 
@@ -159,6 +159,9 @@ DateTime? last  = await Repo.MaxAsync<OrderDataModel, DateTime?>(x => x.ClosedOn
 var perStatus = await Repo.CountAsync<OrderDataModel, string?>(x => x.Status);                               // (Key: "Placed", Value: 42), ...
 var perDay    = await Repo.SumAsync<OrderDataModel, DateTime>(x => x.PlacedOn.Date, x => x.Total, x => x.PlacedOn >= monthStart);
 var perPair   = await Repo.CountAsync((OrderDataModel x) => new { x.CustomerID, x.Status });                 // several members: an anonymous object
+
+long customers = await Repo.CountDistinctAsync<OrderDataModel, Guid>(x => x.CustomerID, x => x.PlacedOn >= monthStart);          // nulls aren't counted
+var statuses   = await Repo.DistinctAsync<OrderDataModel, string?>(x => x.Status);                                               // the different values, a null among them if it occurs
 ```
 
 - The value and the key take what a `where` takes, including arithmetic, date parts, and related models, which become joins or subqueries.
@@ -186,7 +189,7 @@ var sales = await Repo.GroupAsync((OrderLineDataModel x) => x.ProductID,
 ```
 
 - In `Select`, each member takes what a `where` takes, related models included, and a `bool` member can be a condition such as `IsActive = x.Status == "Active"`. The `where`, `order`, and paging apply to the models.
-- In `Group`, each member is the group's `Key`, a part of it such as `Key.CustomerID` for a key of several members, `Count()`, or `Sum`, `Average`, `Min`, or `Max` of a value. The `having`, `order`, and paging apply to the results, so `take` gives a top-N in the store.
+- In `Group`, each member is the group's `Key`, a part of it such as `Key.CustomerID` for a key of several members, `Count()`, `Count(x => condition)`, `Select(x => x.Member).Distinct().Count()`, or `Sum`, `Average`, `Min`, or `Max` of a value. The `having`, `order`, and paging apply to the results, so `take` gives a top-N in the store.
 - Anonymous results aren't supported: the result is built through its members' setters, which also keeps it AOT safe. A member wider than its value, such as a `long` set to `Count()`, is fine.
 - The layers behave as for calculations: a rule's `WhereExpression` applies, an encryption or compression layer refuses a projection that reads one of its properties, and an event store projects each model's current state.
 

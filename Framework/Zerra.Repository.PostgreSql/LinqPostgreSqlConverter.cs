@@ -1341,17 +1341,25 @@ namespace Zerra.Repository.PostgreSql
                 GenerateJoin(rootDependant, ref sbInner);
                 sbInner.Write(sbWhere);
 
-                sb.Write("SELECT ");
+                sb.Write(operation == QueryOperation.Distinct ? "SELECT DISTINCT " : "SELECT ");
                 for (var i = 0; i < keyParts.Length; i++)
                 {
+                    if (i > 0)
+                        sb.Write(',');
                     sb.Write("k");
                     sb.Write(i);
-                    sb.Write(",");
                 }
+                if (keyParts.Length > 0 && operation != QueryOperation.Distinct)
+                    sb.Write(',');
                 switch (operation)
                 {
+                    case QueryOperation.Distinct:
+                        break;
                     case QueryOperation.Count:
                         sb.Write("COUNT(1)");
+                        break;
+                    case QueryOperation.CountDistinct:
+                        sb.Write("COUNT(DISTINCT v)");
                         break;
                     case QueryOperation.Sum:
                         //SUM of no rows is NULL where the LINQ sum is 0
@@ -1378,7 +1386,7 @@ namespace Zerra.Repository.PostgreSql
                 sb.Write(sbInner);
                 sb.Write(") AS z");
                 AppendLineBreak(ref sb);
-                if (keyParts.Length > 0)
+                if (keyParts.Length > 0 && operation != QueryOperation.Distinct)
                 {
                     sb.Write("GROUP BY ");
                     for (var i = 0; i < keyParts.Length; i++)
@@ -1512,6 +1520,16 @@ namespace Zerra.Repository.PostgreSql
                             break;
                         case ProjectionMemberKind.Count:
                             sbGroup.Write("COUNT(1)");
+                            break;
+                        case ProjectionMemberKind.CountIf:
+                            sbGroup.Write("COUNT(*) FILTER (WHERE V");
+                            sbGroup.Write(valueIndex++);
+                            sbGroup.Write(")");
+                            break;
+                        case ProjectionMemberKind.CountDistinct:
+                            sbGroup.Write("COUNT(DISTINCT V");
+                            sbGroup.Write(valueIndex++);
+                            sbGroup.Write(")");
                             break;
                         case ProjectionMemberKind.Sum:
                             sbGroup.Write("COALESCE(SUM(V");

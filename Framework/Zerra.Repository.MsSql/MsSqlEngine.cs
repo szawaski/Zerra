@@ -831,7 +831,7 @@ namespace Zerra.Repository.MsSql
         public object? ExecuteCalculation<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMsSqlConverter.ConvertCalculation(operation, where, groupBy, value, modelDetail);
-            var resultType = CalculationCommon.GetResultType(operation, value);
+            var resultType = operation == QueryOperation.Distinct ? typeof(object) : CalculationCommon.GetResultType(operation, value);
             var keyParts = groupBy is null ? null : CalculationCommon.GetKeyParts(groupBy);
 
             using (var connection = new SqlConnection(connectionString))
@@ -850,13 +850,46 @@ namespace Zerra.Repository.MsSql
                             return reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), resultType);
                         }
 
-                        var rows = new List<(object?[] Key, object? Value)>();
+                        if (operation == QueryOperation.Distinct)
+                        {
+                            var distinct = new List<object?>();
+                            while (reader.Read())
+                            {
+                                //a key of one member is its value, a key of several is its parts
+                                object? key;
+                                if (keyParts.Length == 1)
+                                {
+                                    key = reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), keyParts[0].Type);
+                                }
+                                else
+                                {
+                                    var parts = new object?[keyParts.Length];
+                                    for (var i = 0; i < parts.Length; i++)
+                                        parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
+                                    key = parts;
+                                }
+                                distinct.Add(key);
+                            }
+                            return distinct;
+                        }
+
+                        var rows = new List<(object? Key, object? Value)>();
                         while (reader.Read())
                         {
-                            var key = new object?[keyParts.Length];
-                            for (var i = 0; i < key.Length; i++)
-                                key[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
-                            rows.Add((key, reader.IsDBNull(key.Length) ? null : TypeAnalyzer.Convert(reader.GetValue(key.Length), resultType)));
+                            //a key of one member is its value, a key of several is its parts
+                            object? key;
+                            if (keyParts.Length == 1)
+                            {
+                                key = reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), keyParts[0].Type);
+                            }
+                            else
+                            {
+                                var parts = new object?[keyParts.Length];
+                                for (var i = 0; i < parts.Length; i++)
+                                    parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
+                                key = parts;
+                            }
+                            rows.Add((key, reader.IsDBNull(keyParts.Length) ? null : TypeAnalyzer.Convert(reader.GetValue(keyParts.Length), resultType)));
                         }
                         return rows;
                     }
@@ -1089,7 +1122,7 @@ namespace Zerra.Repository.MsSql
         public async Task<object?> ExecuteCalculationAsync<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMsSqlConverter.ConvertCalculation(operation, where, groupBy, value, modelDetail);
-            var resultType = CalculationCommon.GetResultType(operation, value);
+            var resultType = operation == QueryOperation.Distinct ? typeof(object) : CalculationCommon.GetResultType(operation, value);
             var keyParts = groupBy is null ? null : CalculationCommon.GetKeyParts(groupBy);
 
             using (var connection = new SqlConnection(connectionString))
@@ -1108,13 +1141,46 @@ namespace Zerra.Repository.MsSql
                             return reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), resultType);
                         }
 
-                        var rows = new List<(object?[] Key, object? Value)>();
+                        if (operation == QueryOperation.Distinct)
+                        {
+                            var distinct = new List<object?>();
+                            while (await reader.ReadAsync())
+                            {
+                                //a key of one member is its value, a key of several is its parts
+                                object? key;
+                                if (keyParts.Length == 1)
+                                {
+                                    key = reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), keyParts[0].Type);
+                                }
+                                else
+                                {
+                                    var parts = new object?[keyParts.Length];
+                                    for (var i = 0; i < parts.Length; i++)
+                                        parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
+                                    key = parts;
+                                }
+                                distinct.Add(key);
+                            }
+                            return distinct;
+                        }
+
+                        var rows = new List<(object? Key, object? Value)>();
                         while (await reader.ReadAsync())
                         {
-                            var key = new object?[keyParts.Length];
-                            for (var i = 0; i < key.Length; i++)
-                                key[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
-                            rows.Add((key, reader.IsDBNull(key.Length) ? null : TypeAnalyzer.Convert(reader.GetValue(key.Length), resultType)));
+                            //a key of one member is its value, a key of several is its parts
+                            object? key;
+                            if (keyParts.Length == 1)
+                            {
+                                key = reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), keyParts[0].Type);
+                            }
+                            else
+                            {
+                                var parts = new object?[keyParts.Length];
+                                for (var i = 0; i < parts.Length; i++)
+                                    parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
+                                key = parts;
+                            }
+                            rows.Add((key, reader.IsDBNull(keyParts.Length) ? null : TypeAnalyzer.Convert(reader.GetValue(keyParts.Length), resultType)));
                         }
                         return rows;
                     }

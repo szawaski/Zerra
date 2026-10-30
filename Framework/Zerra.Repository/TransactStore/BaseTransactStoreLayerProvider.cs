@@ -77,7 +77,7 @@ namespace Zerra.Repository
                 QueryOperation.EventSingle => EventSingle(query),
                 QueryOperation.EventCount => EventCount(query),
                 QueryOperation.EventAny => EventAny(query),
-                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max => Calculate(query),
+                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max or QueryOperation.CountDistinct => Calculate(query),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -102,7 +102,7 @@ namespace Zerra.Repository
                 QueryOperation.EventSingle => EventSingleAsync(query),
                 QueryOperation.EventCount => EventCountAsync(query),
                 QueryOperation.EventAny => EventAnyAsync(query),
-                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max => CalculateAsync(query),
+                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max or QueryOperation.CountDistinct => CalculateAsync(query),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -149,7 +149,7 @@ namespace Zerra.Repository
         public abstract object? EventAny(Query query);
         /// <summary>Calculates a count per group, or a sum, average, minimum, or maximum over all matching models or per group.</summary>
         /// <param name="query">The query parameters, with <see cref="Query.GroupBy"/> and <see cref="Query.Value"/>.</param>
-        /// <returns>The boxed result, or the <c>(object?[] Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
+        /// <returns>The boxed result, or the <c>(object? Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
         public abstract object? Calculate(Query query);
         /// <summary>Builds a result from each matching model, or from each group of them, with the query's projection.</summary>
         /// <param name="query">The query parameters, with <see cref="Query.Select"/>, and for groups <see cref="Query.GroupBy"/> and <see cref="Query.Having"/>.</param>
@@ -198,7 +198,7 @@ namespace Zerra.Repository
         public abstract Task<object?> EventAnyAsync(Query query);
         /// <summary>Asynchronously calculates a count per group, or a sum, average, minimum, or maximum over all matching models or per group.</summary>
         /// <param name="query">The query parameters, with <see cref="Query.GroupBy"/> and <see cref="Query.Value"/>.</param>
-        /// <returns>A task containing the boxed result, or the <c>(object?[] Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
+        /// <returns>A task containing the boxed result, or the <c>(object? Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
         public abstract Task<object?> CalculateAsync(Query query);
         /// <summary>Asynchronously builds a result from each matching model, or from each group of them, with the query's projection.</summary>
         /// <param name="query">The query parameters, with <see cref="Query.Select"/>, and for groups <see cref="Query.GroupBy"/> and <see cref="Query.Having"/>.</param>

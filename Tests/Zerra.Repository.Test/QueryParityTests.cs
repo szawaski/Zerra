@@ -75,6 +75,8 @@ namespace Zerra.Repository.Test
             public decimal MaxMoney { get; set; }
             public string? MinName { get; set; }
             public int LineQuantity { get; set; }
+            public int Flagged { get; set; }
+            public int DistinctOthers { get; set; }
         }
         public sealed class ParityLineGroupResult
         {
@@ -346,6 +348,13 @@ namespace Zerra.Repository.Test
             AssertGroups("count by nullable", models.GroupBy(x => x.Other).Select(g => (g.Key, (long)g.Count())), repo.Count<ParityModel, int?>(x => x.Other));
             AssertGroups("count by string", models.GroupBy(x => x.Name).Select(g => (g.Key, (long)g.Count())), repo.Count<ParityModel, string?>(x => x.Name));
             AssertGroups("count by year", models.GroupBy(x => x.Date.Year).Select(g => (g.Key, (long)g.Count())), repo.Count<ParityModel, int>(x => x.Date.Year));
+
+            Assert.Equal(models.Where(x => x.Other is not null).Select(x => x.Other).Distinct().Count(), repo.CountDistinct<ParityModel, int?>(x => x.Other));
+            Assert.Equal(models.Where(x => x.Number > 0).Select(x => x.Flag).Distinct().Count(), repo.CountDistinct<ParityModel, bool>(x => x.Flag, x => x.Number > 0));
+            AssertGroups("distinct others by flag", models.GroupBy(x => x.Flag).Select(g => (g.Key, (long)g.Where(x => x.Other is not null).Select(x => x.Other).Distinct().Count())), repo.CountDistinct<ParityModel, bool, int?>(x => x.Flag, x => x.Other));
+            Assert.Equal(models.Select(x => x.Other).Distinct().Order().ToArray(), repo.Distinct<ParityModel, int?>(x => x.Other).Order().ToArray());
+            Assert.Equal(models.Where(x => x.Flag).Select(x => x.Name).Distinct().Order().ToArray(), repo.Distinct<ParityModel, string?>(x => x.Name, x => x.Flag).Order().ToArray());
+            Assert.Equal(models.Select(x => (x.Flag, x.Other)).Distinct().Order().ToArray(), repo.Distinct((ParityModel x) => new { x.Flag, x.Other }).Select(k => (k.Flag, k.Other)).Order().ToArray());
             AssertGroups("count by two members", models.GroupBy(x => new { x.Flag, x.Other }).Select(g => (g.Key, (long)g.Count())), repo.Count((ParityModel x) => new { x.Flag, x.Other }));
             AssertGroups("count some", someModels.GroupBy(x => x.Flag).Select(g => (g.Key, (long)g.Count())), repo.Count<ParityModel, bool>(x => x.Flag, some));
             Assert.Empty(repo.Count<ParityModel, bool>(x => x.Flag, none));
@@ -389,6 +398,8 @@ namespace Zerra.Repository.Test
                 MaxMoney = g.Max(x => x.Money),
                 MinName = g.Min(x => x.Name),
                 LineQuantity = g.Sum(x => x.Lines!.Sum(l => l.Quantity)),
+                Flagged = g.Count(x => x.Number > 2),
+                DistinctOthers = g.Select(x => x.Other).Distinct().Count(),
             });
             Assert.Equal(2, byFlag.Count);
             foreach (var group in models.GroupBy(x => x.Flag))
@@ -400,6 +411,8 @@ namespace Zerra.Repository.Test
                 Assert.Equal(group.Max(x => x.Money), actual.MaxMoney);
                 Assert.Equal(group.Min(x => x.Name), actual.MinName);
                 Assert.Equal(group.Sum(x => LinesOf(x).Sum(l => l.Quantity)), actual.LineQuantity);
+                Assert.Equal(group.Count(x => x.Number > 2), actual.Flagged);
+                Assert.Equal(group.Where(x => x.Other is not null).Select(x => x.Other).Distinct().Count(), actual.DistinctOthers);
             }
 
             var byTwo = repo.Group((ParityModel x) => new { x.Flag, x.Other }, g => new ParityGroupResult { Flag = g.Key.Flag, Other = g.Key.Other, Rows = g.Count() });

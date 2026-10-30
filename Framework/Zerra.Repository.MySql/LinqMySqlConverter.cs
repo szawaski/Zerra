@@ -1350,17 +1350,26 @@ namespace Zerra.Repository.MySql
                 GenerateJoin(rootDependant, ref sbInner);
                 sbInner.Write(sbWhere);
 
-                sb.Write("SELECT ");
+                sb.Write(operation == QueryOperation.Distinct ? "SELECT DISTINCT " : "SELECT ");
                 for (var i = 0; i < keyParts.Length; i++)
                 {
+                    if (i > 0)
+                        sb.Write(',');
                     sb.Write("`K");
                     sb.Write(i);
-                    sb.Write("`,");
+                    sb.Write("`");
                 }
+                if (keyParts.Length > 0 && operation != QueryOperation.Distinct)
+                    sb.Write(',');
                 switch (operation)
                 {
+                    case QueryOperation.Distinct:
+                        break;
                     case QueryOperation.Count:
                         sb.Write("COUNT(1)");
+                        break;
+                    case QueryOperation.CountDistinct:
+                        sb.Write("COUNT(DISTINCT `V`)");
                         break;
                     case QueryOperation.Sum:
                         //SUM of no rows is NULL where the LINQ sum is 0
@@ -1387,7 +1396,7 @@ namespace Zerra.Repository.MySql
                 sb.Write(sbInner);
                 sb.Write(") AS `Z`");
                 AppendLineBreak(ref sb);
-                if (keyParts.Length > 0)
+                if (keyParts.Length > 0 && operation != QueryOperation.Distinct)
                 {
                     sb.Write("GROUP BY ");
                     for (var i = 0; i < keyParts.Length; i++)
@@ -1531,6 +1540,16 @@ namespace Zerra.Repository.MySql
                             break;
                         case ProjectionMemberKind.Count:
                             sbGroup.Write("COUNT(1)");
+                            break;
+                        case ProjectionMemberKind.CountIf:
+                            sbGroup.Write("COUNT(CASE WHEN `V");
+                            sbGroup.Write(valueIndex++);
+                            sbGroup.Write("` THEN 1 END)");
+                            break;
+                        case ProjectionMemberKind.CountDistinct:
+                            sbGroup.Write("COUNT(DISTINCT `V");
+                            sbGroup.Write(valueIndex++);
+                            sbGroup.Write("`)");
                             break;
                         case ProjectionMemberKind.Sum:
                             sbGroup.Write("COALESCE(SUM(`V");

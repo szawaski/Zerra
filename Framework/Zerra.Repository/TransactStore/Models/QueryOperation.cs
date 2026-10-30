@@ -39,6 +39,10 @@ namespace Zerra.Repository
         Min,
         /// <summary>Returns the largest value of the matching records, in all or per group.</summary>
         Max,
+        /// <summary>The number of different values of a member over all records or per group, nulls not counted.</summary>
+        CountDistinct,
+        /// <summary>The different values of a member, or of an anonymous object of several, over all records; the key is the value and there is no aggregate.</summary>
+        Distinct,
 
         /// <summary>Returns a projection of each matching record.</summary>
         Select,

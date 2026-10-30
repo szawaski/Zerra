@@ -36,7 +36,7 @@ namespace Zerra.Repository
         /// <returns>The key and result of each group, in no particular order.</returns>
         IReadOnlyCollection<(TKey Key, TResult Value)> Min<TModel, TKey, TResult>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, TResult>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object?[] Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Min, where, groupBy, value))!;
+            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Min, where, groupBy, value))!;
             var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
             var groups = new (TKey Key, TResult Value)[rows.Count];
             for (var i = 0; i < groups.Length; i++)
@@ -75,7 +75,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and result of each group, in no particular order.</returns>
         async Task<IReadOnlyCollection<(TKey Key, TResult Value)>> MinAsync<TModel, TKey, TResult>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, TResult>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object?[] Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Min, where, groupBy, value)))!;
+            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Min, where, groupBy, value)))!;
             var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
             var groups = new (TKey Key, TResult Value)[rows.Count];
             for (var i = 0; i < groups.Length; i++)

@@ -14,7 +14,8 @@ namespace Zerra.Repository
     /// </summary>
     /// <remarks>
     /// An engine returns a calculation over all records as the boxed result, or <see langword="null"/> when nothing matched (a sum returns 0),
-    /// and a calculation per group as an <see cref="IReadOnlyList{T}"/> of <c>(object?[] Key, object? Value)</c> with one key part per <see cref="GetKeyParts"/> element.
+    /// a calculation per group as an <see cref="IReadOnlyList{T}"/> of <c>(object? Key, object? Value)</c>, the key being the value of a one-member key or an <c>object?[]</c> of the parts of several, one per <see cref="GetKeyParts"/> element,
+    /// and <see cref="QueryOperation.Distinct"/> as an <see cref="IReadOnlyList{T}"/> of the keys alone.
     /// </remarks>
     public static class CalculationCommon
     {
@@ -41,6 +42,7 @@ namespace Zerra.Repository
             switch (operation)
             {
                 case QueryOperation.Count:
+                case QueryOperation.CountDistinct:
                     return typeof(long);
                 case QueryOperation.Sum:
                 case QueryOperation.Min:
@@ -60,20 +62,20 @@ namespace Zerra.Repository
         }
 
         /// <summary>
-        /// Returns a function that builds a <typeparamref name="TKey"/> from the key parts of a row: the tuple or anonymous object of the group expression, or the single part itself.
+        /// Returns a function that builds a <typeparamref name="TKey"/> from the key of a row: the value itself for a key of one member, or the tuple or anonymous object of the group expression from the <c>object?[]</c> of its parts.
         /// </summary>
         /// <typeparam name="TKey">The group key type.</typeparam>
         /// <param name="groupBy">The group key expression.</param>
         /// <returns>The key builder.</returns>
-        public static Func<object?[], TKey> GetKeyBuilder<TKey>(LambdaExpression groupBy)
+        public static Func<object?, TKey> GetKeyBuilder<TKey>(LambdaExpression groupBy)
         {
             if (groupBy.Body is not NewExpression newExpression)
-                return static parts => (TKey)parts[0]!;
+                return static key => (TKey)key!;
 
             var constructor = newExpression.Constructor ?? throw new NotSupportedException($"Cannot group by {newExpression.Type.Name}");
 
             //the parts are already the constructor's parameter types, and the compiler keeps the constructor it put in the expression, so this is plain reflection that AOT allows
-            return parts => (TKey)constructor.Invoke(parts);
+            return key => (TKey)constructor.Invoke((object?[])key!);
         }
 
         /// <summary>Compiles an expression over a model to a function returning the boxed value, with the memory engine's string rules.</summary>
@@ -87,7 +89,7 @@ namespace Zerra.Repository
             return MemoryExpressionRewriter.Rewrite(lambda, caseSensitive).Compile();
         }
 
-        /// <summary>Calculates one result over boxed values with the same empty and null rules as LINQ: a count of all of them, or a sum, average, minimum, or maximum of the ones that aren't null.</summary>
+        /// <summary>Calculates one result over boxed values with the same empty and null rules as LINQ: a count of all of them or of the different ones that aren't null, or a sum, average, minimum, or maximum of the ones that aren't null.</summary>
         /// <param name="operation">The calculation.</param>
         /// <param name="values">The values.</param>
         /// <param name="valueType">The type of the values.</param>
@@ -96,6 +98,14 @@ namespace Zerra.Repository
         {
             if (operation == QueryOperation.Count)
                 return (long)values.Count;
+            if (operation == QueryOperation.CountDistinct)
+            {
+                var distinct = new HashSet<object>();
+                foreach (var item in values)
+                    if (item is not null)
+                        _ = distinct.Add(item);
+                return (long)distinct.Count;
+            }
 
             var type = Nullable.GetUnderlyingType(valueType) ?? valueType;
             switch (operation)

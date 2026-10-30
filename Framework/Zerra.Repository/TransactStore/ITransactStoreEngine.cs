@@ -70,7 +70,7 @@ namespace Zerra.Repository
         /// <param name="groupBy">The group key expression, or <see langword="null"/> to calculate over all matching models.</param>
         /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
         /// <param name="modelDetail">The model metadata.</param>
-        /// <returns>The boxed result of the type from <see cref="CalculationCommon.GetResultType"/>, or <see langword="null"/> when nothing matched; with a group, an <see cref="IReadOnlyList{T}"/> of <c>(object?[] Key, object? Value)</c> rows.</returns>
+        /// <returns>The boxed result of the type from <see cref="CalculationCommon.GetResultType"/>, or <see langword="null"/> when nothing matched; with a group, an <see cref="IReadOnlyList{T}"/> of <c>(object? Key, object? Value)</c> rows, the key being the value of a one-member key or an <c>object?[]</c> of the parts of several; for <see cref="QueryOperation.Distinct"/>, an <see cref="IReadOnlyList{T}"/> of the keys alone.</returns>
         object? ExecuteCalculation<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new();
         /// <summary>Builds a result from each matching model with a projection, reading only what it sets.</summary>
         /// <typeparam name="TModel">The model type to query.</typeparam>
@@ -152,7 +152,7 @@ namespace Zerra.Repository
         /// <param name="groupBy">The group key expression, or <see langword="null"/> to calculate over all matching models.</param>
         /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
         /// <param name="modelDetail">The model metadata.</param>
-        /// <returns>A task containing the boxed result of the type from <see cref="CalculationCommon.GetResultType"/>, or <see langword="null"/> when nothing matched; with a group, an <see cref="IReadOnlyList{T}"/> of <c>(object?[] Key, object? Value)</c> rows.</returns>
+        /// <returns>A task containing the boxed result of the type from <see cref="CalculationCommon.GetResultType"/>, or <see langword="null"/> when nothing matched; with a group, an <see cref="IReadOnlyList{T}"/> of <c>(object? Key, object? Value)</c> rows, the key being the value of a one-member key or an <c>object?[]</c> of the parts of several; for <see cref="QueryOperation.Distinct"/>, an <see cref="IReadOnlyList{T}"/> of the keys alone.</returns>
         Task<object?> ExecuteCalculationAsync<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new();
         /// <summary>Asynchronously builds a result from each matching model with a projection, reading only what it sets.</summary>
         /// <typeparam name="TModel">The model type to query.</typeparam>

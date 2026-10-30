@@ -22,6 +22,10 @@ namespace Zerra.Repository
         /// <summary>The smallest value over the group's records.</summary>
         Min,
         /// <summary>The largest value over the group's records.</summary>
-        Max
+        Max,
+        /// <summary>The number of records in the group that meet a condition.</summary>
+        CountIf,
+        /// <summary>The number of different values over the group's records, nulls not counted.</summary>
+        CountDistinct
     }
 }

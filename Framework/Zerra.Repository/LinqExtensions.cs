@@ -204,7 +204,7 @@ namespace Zerra.Repository
         /// <param name="groupBy">The group key expression, or <see langword="null"/> to calculate over the whole sequence.</param>
         /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
         /// <param name="caseSensitive">Indicates if string keys that differ only in case are different groups.</param>
-        /// <returns>The boxed result, or the rows of key parts and results per group, as <see cref="CalculationCommon"/> describes.</returns>
+        /// <returns>The boxed result, the rows of keys and results per group, or the keys alone for <see cref="QueryOperation.Distinct"/>, as <see cref="CalculationCommon"/> describes.</returns>
         public static object? Calculate<TSource>(this IEnumerable<TSource> source, QueryOperation operation, LambdaExpression? groupBy, LambdaExpression? value, bool caseSensitive = false)
             where TSource : class, new()
         {
@@ -240,15 +240,26 @@ namespace Zerra.Repository
                 values.Add(getValue is null ? null : getValue(model));
             }
 
-            var rows = new (object?[] Key, object? Value)[keys.Count];
+            //a key of one member is its value, a key of several is its parts
+            if (operation == QueryOperation.Distinct)
+            {
+                if (parts.Length > 1)
+                    return keys;
+                var singles = new object?[keys.Count];
+                for (var i = 0; i < singles.Length; i++)
+                    singles[i] = keys[i][0];
+                return singles;
+            }
+
+            var rows = new (object? Key, object? Value)[keys.Count];
             for (var i = 0; i < rows.Length; i++)
-                rows[i] = (keys[i], CalculationCommon.Aggregate(operation, groups[keys[i]], valueType));
+                rows[i] = (parts.Length == 1 ? keys[i][0] : keys[i], CalculationCommon.Aggregate(operation, groups[keys[i]], valueType));
             return rows;
         }
 
         /// <summary>
         /// Reads a projection, <c>new TResult { Member = ..., ... }</c>, into the members it sets. For a group, each member is the group's <c>Key</c>, a part of it such as <c>Key.A</c>,
-        /// <c>Count()</c>, or <c>Sum</c>, <c>Average</c>, <c>Min</c>, or <c>Max</c> of a value.
+        /// <c>Count()</c>, <c>Count(x => condition)</c>, <c>Select(x => x.Member).Distinct().Count()</c>, or <c>Sum</c>, <c>Average</c>, <c>Min</c>, or <c>Max</c> of a value.
         /// </summary>
         /// <param name="select">The projection.</param>
         /// <param name="groupBy">The group key expression for a projection of groups, otherwise <see langword="null"/>.</param>
@@ -319,15 +330,37 @@ namespace Zerra.Repository
                             members[i] = new ProjectionMember(member, ProjectionMemberKind.KeyPart, null, null, index, keyParts[index].Type);
                             break;
                         }
+                    case MethodCallExpression { Method.Name: "Count" or "LongCount" } count when count.Method.DeclaringType == typeof(Enumerable) && count.Arguments.Count == 1
+                        && count.Arguments[0] is MethodCallExpression { Method.Name: "Distinct" } distinct && distinct.Method.DeclaringType == typeof(Enumerable) && distinct.Arguments.Count == 1
+                        && distinct.Arguments[0] is MethodCallExpression { Method.Name: "Select" } selectCall && selectCall.Method.DeclaringType == typeof(Enumerable) && selectCall.Arguments.Count == 2 && selectCall.Arguments[0] == parameter:
+                        {
+                            //g.Select(x => x.Member).Distinct().Count() counts the different values
+                            var selectorArgument = selectCall.Arguments[1];
+                            if (selectorArgument.NodeType == ExpressionType.Quote)
+                                selectorArgument = ((UnaryExpression)selectorArgument).Operand;
+                            var selector = (LambdaExpression)selectorArgument;
+                            members[i] = new ProjectionMember(member, ProjectionMemberKind.CountDistinct, selector.Body, selector.Parameters[0], 0, typeof(long));
+                            break;
+                        }
                     case MethodCallExpression call when call.Method.DeclaringType == typeof(Enumerable) && call.Arguments.Count > 0 && call.Arguments[0] == parameter:
                         switch (call.Method.Name)
                         {
                             case "Count":
                             case "LongCount":
-                                if (call.Arguments.Count != 1)
-                                    throw new NotSupportedException($"{select.ReturnType.Name}.{member.Name}: a group's Count takes no condition");
-                                members[i] = new ProjectionMember(member, ProjectionMemberKind.Count, null, null, 0, typeof(long));
-                                break;
+                                {
+                                    if (call.Arguments.Count == 1)
+                                    {
+                                        members[i] = new ProjectionMember(member, ProjectionMemberKind.Count, null, null, 0, typeof(long));
+                                        break;
+                                    }
+                                    var predicateArgument = call.Arguments[1];
+                                    if (predicateArgument.NodeType == ExpressionType.Quote)
+                                        predicateArgument = ((UnaryExpression)predicateArgument).Operand;
+                                    if (predicateArgument is not LambdaExpression predicate)
+                                        throw new NotSupportedException($"{select.ReturnType.Name}.{member.Name}: a group's Count takes a condition");
+                                    members[i] = new ProjectionMember(member, ProjectionMemberKind.CountIf, predicate.Body, predicate.Parameters[0], 0, typeof(long));
+                                    break;
+                                }
                             case "Sum":
                             case "Average":
                             case "Min":
@@ -353,7 +386,7 @@ namespace Zerra.Repository
                         }
                         break;
                     default:
-                        throw new NotSupportedException($"{select.ReturnType.Name}.{member.Name} must be the group's Key, a part of it, Count(), or Sum, Average, Min, or Max of a value");
+                        throw new NotSupportedException($"{select.ReturnType.Name}.{member.Name} must be the group's Key, a part of it, Count() with or without a condition, Select(..).Distinct().Count(), or Sum, Average, Min, or Max of a value");
                 }
             }
             return members;
@@ -455,6 +488,15 @@ namespace Zerra.Repository
                         case ProjectionMemberKind.Count:
                             value = (long)group.Count;
                             break;
+                        case ProjectionMemberKind.CountIf:
+                            {
+                                var count = 0L;
+                                foreach (var model in group)
+                                    if ((bool)getValues[c]!(model)!)
+                                        count++;
+                                value = count;
+                                break;
+                            }
                         default:
                             {
                                 var values = new List<object?>(group.Count);
@@ -462,6 +504,7 @@ namespace Zerra.Repository
                                     values.Add(getValues[c]!(model));
                                 var operation = member.Kind switch
                                 {
+                                    ProjectionMemberKind.CountDistinct => QueryOperation.CountDistinct,
                                     ProjectionMemberKind.Sum => QueryOperation.Sum,
                                     ProjectionMemberKind.Average => QueryOperation.Average,
                                     ProjectionMemberKind.Min => QueryOperation.Min,

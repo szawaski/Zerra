@@ -153,7 +153,7 @@ namespace Zerra.Repository.Test
             var (repo, _, _) = MemoryRepo();
 
             //a member must be the key, a part of it, Count, or an aggregate of a value
-            _ = Assert.Throws<NotSupportedException>(() => repo.Group((Model x) => x.Flag, g => new Summary { Rows = g.Select(x => x.Number).Distinct().Count() }));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Group((Model x) => x.Flag, g => new Summary { Rows = g.Select(x => x.Number).Count() }));
             _ = Assert.Throws<NotSupportedException>(() => repo.Group((Model x) => x.Flag, g => new Summary { Total = g.First().Number }));
             _ = Assert.Throws<NotSupportedException>(() => repo.Group((Model x) => new { x.Flag, x.Maybe }, g => new Summary { Flag = g.Key.Flag, First = g.Key.ToString() }));
             //and the whole key of several parts can't be set to a member

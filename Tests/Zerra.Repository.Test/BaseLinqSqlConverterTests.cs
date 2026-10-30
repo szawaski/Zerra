@@ -881,6 +881,42 @@ namespace Zerra.Repository.Test
         }
 
         [Fact]
+        public void ConvertCalculation_Distinct_SelectsTheDifferentKeys()
+        {
+            var sql = ConvertCalculationToSql(QueryOperation.Distinct, calculationWhere, boolKey, null, testTypesModelDetail);
+
+            Assert.Contains("SELECT DISTINCT", sql);
+            Assert.Contains("WHERE", sql);
+            Assert.DoesNotContain("GROUP BY", sql);
+            Assert.DoesNotContain("COUNT(", sql);
+        }
+
+        [Fact]
+        public void ConvertCalculation_CountDistinct_CountsTheDifferentValues()
+        {
+            Expression<Func<TestTypesModel, int>> value = x => x.Int32Thing;
+            var sql = ConvertCalculationToSql(QueryOperation.CountDistinct, calculationWhere, null, value, testTypesModelDetail);
+            Assert.Contains("COUNT(DISTINCT", sql);
+            Assert.Contains("WHERE", sql);
+            Assert.DoesNotContain("GROUP BY", sql);
+
+            var grouped = ConvertCalculationToSql(QueryOperation.CountDistinct, null, boolKey, value, testTypesModelDetail);
+            Assert.Contains("COUNT(DISTINCT", grouped);
+            Assert.Contains("GROUP BY", grouped);
+        }
+
+        [Fact]
+        public void ConvertGroup_ConditionalAndDistinctCounts()
+        {
+            Expression<Func<IGrouping<bool, TestTypesModel>, TypesProjection>> select = g => new TypesProjection { Flagged = g.Count(x => x.Int32Thing > 1), Distinct = g.Select(x => x.StringThing).Distinct().Count() };
+            var sql = ConvertGroupToSql(boolKey, select.GetProjectionMembers(boolKey), null, null, null, null, null, testTypesModelDetail, typeof(TypesProjection));
+
+            Assert.True(sql.Contains("FILTER (WHERE") || sql.Contains("CASE WHEN"), sql);
+            Assert.Contains("COUNT(DISTINCT", sql);
+            Assert.Contains("GROUP BY", sql);
+        }
+
+        [Fact]
         public void ConvertCalculation_AverageOfIntegers_CastsToFloatingPoint()
         {
             var sql = ConvertCalculationToSql(QueryOperation.Average, null, null, int32Value, testTypesModelDetail);
@@ -932,6 +968,8 @@ namespace Zerra.Repository.Test
             public double Average { get; set; }
             public decimal Total { get; set; }
             public bool Big { get; set; }
+            public long Flagged { get; set; }
+            public long Distinct { get; set; }
         }
 
         [Fact]

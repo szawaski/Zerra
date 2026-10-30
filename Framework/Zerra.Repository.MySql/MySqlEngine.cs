@@ -818,7 +818,7 @@ namespace Zerra.Repository.MySql
         public object? ExecuteCalculation<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.ConvertCalculation(operation, where, groupBy, value, modelDetail);
-            var resultType = CalculationCommon.GetResultType(operation, value);
+            var resultType = operation == QueryOperation.Distinct ? typeof(object) : CalculationCommon.GetResultType(operation, value);
             var keyParts = groupBy is null ? null : CalculationCommon.GetKeyParts(groupBy);
 
             using (var connection = new MySqlConnection(connectionString))
@@ -841,16 +841,54 @@ namespace Zerra.Repository.MySql
                             return read is byte[] bytes && (Nullable.GetUnderlyingType(resultType) ?? resultType) == typeof(Guid) ? new Guid(bytes, true) : TypeAnalyzer.Convert(read, resultType);
                         }
 
-                        var rows = new List<(object?[] Key, object? Value)>();
+                        if (operation == QueryOperation.Distinct)
+                        {
+                            var distinct = new List<object?>();
+                            while (reader.Read())
+                            {
+                                //a key of one member is its value, a key of several is its parts
+                                object? key;
+                                if (keyParts.Length == 1)
+                                {
+                                    var part = reader.IsDBNull(0) ? null : reader.GetValue(0);
+                                    key = part is byte[] partBytes && (Nullable.GetUnderlyingType(keyParts[0].Type) ?? keyParts[0].Type) == typeof(Guid) ? new Guid(partBytes, true) : part is null ? null : TypeAnalyzer.Convert(part, keyParts[0].Type);
+                                }
+                                else
+                                {
+                                    var parts = new object?[keyParts.Length];
+                                    for (var i = 0; i < parts.Length; i++)
+                                    {
+                                        var part = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                                        parts[i] = part is byte[] partBytes && (Nullable.GetUnderlyingType(keyParts[i].Type) ?? keyParts[i].Type) == typeof(Guid) ? new Guid(partBytes, true) : part is null ? null : TypeAnalyzer.Convert(part, keyParts[i].Type);
+                                    }
+                                    key = parts;
+                                }
+                                distinct.Add(key);
+                            }
+                            return distinct;
+                        }
+
+                        var rows = new List<(object? Key, object? Value)>();
                         while (reader.Read())
                         {
-                            var key = new object?[keyParts.Length];
-                            for (var i = 0; i < key.Length; i++)
+                            //a key of one member is its value, a key of several is its parts
+                            object? key;
+                            if (keyParts.Length == 1)
                             {
-                                var part = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                                key[i] = part is byte[] partBytes && (Nullable.GetUnderlyingType(keyParts[i].Type) ?? keyParts[i].Type) == typeof(Guid) ? new Guid(partBytes, true) : part is null ? null : TypeAnalyzer.Convert(part, keyParts[i].Type);
+                                var part = reader.IsDBNull(0) ? null : reader.GetValue(0);
+                                key = part is byte[] partBytes && (Nullable.GetUnderlyingType(keyParts[0].Type) ?? keyParts[0].Type) == typeof(Guid) ? new Guid(partBytes, true) : part is null ? null : TypeAnalyzer.Convert(part, keyParts[0].Type);
                             }
-                            var read = reader.IsDBNull(key.Length) ? null : reader.GetValue(key.Length);
+                            else
+                            {
+                                var parts = new object?[keyParts.Length];
+                                for (var i = 0; i < parts.Length; i++)
+                                {
+                                    var part = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                                    parts[i] = part is byte[] partBytes && (Nullable.GetUnderlyingType(keyParts[i].Type) ?? keyParts[i].Type) == typeof(Guid) ? new Guid(partBytes, true) : part is null ? null : TypeAnalyzer.Convert(part, keyParts[i].Type);
+                                }
+                                key = parts;
+                            }
+                            var read = reader.IsDBNull(keyParts.Length) ? null : reader.GetValue(keyParts.Length);
                             rows.Add((key, read is byte[] bytes && (Nullable.GetUnderlyingType(resultType) ?? resultType) == typeof(Guid) ? new Guid(bytes, true) : read is null ? null : TypeAnalyzer.Convert(read, resultType)));
                         }
                         return rows;
@@ -1090,7 +1128,7 @@ namespace Zerra.Repository.MySql
         public async Task<object?> ExecuteCalculationAsync<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
         {
             var sql = LinqMySqlConverter.ConvertCalculation(operation, where, groupBy, value, modelDetail);
-            var resultType = CalculationCommon.GetResultType(operation, value);
+            var resultType = operation == QueryOperation.Distinct ? typeof(object) : CalculationCommon.GetResultType(operation, value);
             var keyParts = groupBy is null ? null : CalculationCommon.GetKeyParts(groupBy);
 
             using (var connection = new MySqlConnection(connectionString))
@@ -1113,16 +1151,54 @@ namespace Zerra.Repository.MySql
                             return read is byte[] bytes && (Nullable.GetUnderlyingType(resultType) ?? resultType) == typeof(Guid) ? new Guid(bytes, true) : TypeAnalyzer.Convert(read, resultType);
                         }
 
-                        var rows = new List<(object?[] Key, object? Value)>();
+                        if (operation == QueryOperation.Distinct)
+                        {
+                            var distinct = new List<object?>();
+                            while (await reader.ReadAsync())
+                            {
+                                //a key of one member is its value, a key of several is its parts
+                                object? key;
+                                if (keyParts.Length == 1)
+                                {
+                                    var part = reader.IsDBNull(0) ? null : reader.GetValue(0);
+                                    key = part is byte[] partBytes && (Nullable.GetUnderlyingType(keyParts[0].Type) ?? keyParts[0].Type) == typeof(Guid) ? new Guid(partBytes, true) : part is null ? null : TypeAnalyzer.Convert(part, keyParts[0].Type);
+                                }
+                                else
+                                {
+                                    var parts = new object?[keyParts.Length];
+                                    for (var i = 0; i < parts.Length; i++)
+                                    {
+                                        var part = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                                        parts[i] = part is byte[] partBytes && (Nullable.GetUnderlyingType(keyParts[i].Type) ?? keyParts[i].Type) == typeof(Guid) ? new Guid(partBytes, true) : part is null ? null : TypeAnalyzer.Convert(part, keyParts[i].Type);
+                                    }
+                                    key = parts;
+                                }
+                                distinct.Add(key);
+                            }
+                            return distinct;
+                        }
+
+                        var rows = new List<(object? Key, object? Value)>();
                         while (await reader.ReadAsync())
                         {
-                            var key = new object?[keyParts.Length];
-                            for (var i = 0; i < key.Length; i++)
+                            //a key of one member is its value, a key of several is its parts
+                            object? key;
+                            if (keyParts.Length == 1)
                             {
-                                var part = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                                key[i] = part is byte[] partBytes && (Nullable.GetUnderlyingType(keyParts[i].Type) ?? keyParts[i].Type) == typeof(Guid) ? new Guid(partBytes, true) : part is null ? null : TypeAnalyzer.Convert(part, keyParts[i].Type);
+                                var part = reader.IsDBNull(0) ? null : reader.GetValue(0);
+                                key = part is byte[] partBytes && (Nullable.GetUnderlyingType(keyParts[0].Type) ?? keyParts[0].Type) == typeof(Guid) ? new Guid(partBytes, true) : part is null ? null : TypeAnalyzer.Convert(part, keyParts[0].Type);
                             }
-                            var read = reader.IsDBNull(key.Length) ? null : reader.GetValue(key.Length);
+                            else
+                            {
+                                var parts = new object?[keyParts.Length];
+                                for (var i = 0; i < parts.Length; i++)
+                                {
+                                    var part = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                                    parts[i] = part is byte[] partBytes && (Nullable.GetUnderlyingType(keyParts[i].Type) ?? keyParts[i].Type) == typeof(Guid) ? new Guid(partBytes, true) : part is null ? null : TypeAnalyzer.Convert(part, keyParts[i].Type);
+                                }
+                                key = parts;
+                            }
+                            var read = reader.IsDBNull(keyParts.Length) ? null : reader.GetValue(keyParts.Length);
                             rows.Add((key, read is byte[] bytes && (Nullable.GetUnderlyingType(resultType) ?? resultType) == typeof(Guid) ? new Guid(bytes, true) : read is null ? null : TypeAnalyzer.Convert(read, resultType)));
                         }
                         return rows;

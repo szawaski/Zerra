@@ -538,7 +538,7 @@ namespace Zerra.Repository
                 QueryOperation.EventSingle => QueryEventSingle(query),
                 QueryOperation.EventCount => QueryEventCount(query),
                 QueryOperation.EventAny => QueryEventAny(query),
-                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max => Calculate(query),
+                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max or QueryOperation.CountDistinct => Calculate(query),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -552,7 +552,7 @@ namespace Zerra.Repository
                 var graph = CrossEngineGraph(query, out var orderCrosses);
                 if (graph is not null)
                     return QueryCrossEngineAsync(query, graph, orderCrosses);
-                if (query.Where is not null)
+                if (query.Where is not null && AnyCrossEngine)
                 {
                     var lookups = FindCrossEngineLookups(query.Where);
                     if (lookups is not null)
@@ -586,7 +586,7 @@ namespace Zerra.Repository
                 QueryOperation.EventSingle => QueryEventSingleAsync(query),
                 QueryOperation.EventCount => QueryEventCountAsync(query),
                 QueryOperation.EventAny => QueryEventAnyAsync(query),
-                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max => CalculateAsync(query),
+                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max or QueryOperation.CountDistinct => CalculateAsync(query),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -863,7 +863,7 @@ namespace Zerra.Repository
         protected abstract long Count(Query query);
         /// <summary>Calculates a count per group, or a sum, average, minimum, or maximum over all matching models or per group.</summary>
         /// <param name="query">The query parameters, with <see cref="Query.GroupBy"/> and <see cref="Query.Value"/>.</param>
-        /// <returns>The boxed result, or the <c>(object?[] Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
+        /// <returns>The boxed result, or the <c>(object? Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
         protected abstract object? Calculate(Query query);
         /// <summary>Builds a result from each matching model, or from each group of them, with the query's projection.</summary>
         /// <param name="query">The query parameters, with <see cref="Query.Select"/>, and for groups <see cref="Query.GroupBy"/> and <see cref="Query.Having"/>.</param>
@@ -912,7 +912,7 @@ namespace Zerra.Repository
         protected abstract Task<long> CountAsync(Query query);
         /// <summary>Asynchronously calculates a count per group, or a sum, average, minimum, or maximum over all matching models or per group.</summary>
         /// <param name="query">The query parameters, with <see cref="Query.GroupBy"/> and <see cref="Query.Value"/>.</param>
-        /// <returns>A task containing the boxed result, or the <c>(object?[] Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
+        /// <returns>A task containing the boxed result, or the <c>(object? Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
         protected abstract Task<object?> CalculateAsync(Query query);
         /// <summary>Asynchronously builds a result from each matching model, or from each group of them, with the query's projection.</summary>
         /// <param name="query">The query parameters, with <see cref="Query.Select"/>, and for groups <see cref="Query.GroupBy"/> and <see cref="Query.Having"/>.</param>
@@ -973,7 +973,7 @@ namespace Zerra.Repository
         /// <returns>A task representing the asynchronous operation.</returns>
         public Task PersistAsync(Persist persist)
         {
-            if (persist.Where is not null && ModelTypeDetail.RelatedMembers.Count > 0)
+            if (persist.Where is not null && AnyCrossEngine)
             {
                 var lookups = FindCrossEngineLookups(persist.Where);
                 if (lookups is not null)
