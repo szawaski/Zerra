@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Linq.Expressions;
+using Zerra.Linq;
 using Zerra.Repository.IO;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
@@ -38,6 +39,17 @@ namespace Zerra.Repository.PostgreSql
         {
             return instance.ConvertSelectInternal(members, where, order, skip, take, modelDetail);
         }
+        /// <summary>
+        /// Converts the projection of the rows of a related collection, a <see cref="ProjectionMemberKind.Collection"/> member of a projection, to SQL. The columns are its members in order, then the foreign identity matching each row to its model.
+        /// </summary>
+        /// <param name="collection">The collection member.</param>
+        /// <param name="where">The condition selecting the rows: the models' identities, and the collection's own condition.</param>
+        /// <param name="relatedDetail">Metadata about the related model.</param>
+        /// <returns>The SQL.</returns>
+        public static string ConvertSelectElements(ProjectionMember collection, LambdaExpression where, ModelDetail relatedDetail)
+        {
+            return instance.ConvertSelectElementsInternal(collection, where, relatedDetail);
+        }
         /// <summary>Converts a projection of each group to SQL. The result columns are the projection's members in order.</summary>
         /// <param name="groupBy">The group key expression.</param>
         /// <param name="members">The members from <see cref="LinqExtensions.GetProjectionMembers"/>.</param>
@@ -60,6 +72,17 @@ namespace Zerra.Repository.PostgreSql
         public static string ConvertPersistWhere(LambdaExpression where, ModelDetail modelDetail)
         {
             return instance.ConvertPersistWhereInternal(where, modelDetail);
+        }
+        /// <summary>
+        /// Converts an update of every row matching a condition to values computed from the row into its SQL statement.
+        /// </summary>
+        /// <param name="sets">The members to set from <see cref="LinqExtensions.GetProjectionMembers"/>, each with its value in terms of the row.</param>
+        /// <param name="where">The condition selecting the rows.</param>
+        /// <param name="modelDetail">Metadata about the model being changed.</param>
+        /// <returns>The SQL.</returns>
+        public static string ConvertPersistUpdate(ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail)
+        {
+            return instance.ConvertPersistUpdateInternal(sets, where, modelDetail);
         }
         /// <summary>Converts a calculation (a count per group, or a sum, average, minimum, or maximum over all records or per group) to SQL. The result columns are the key parts in order, then the value.</summary>
         /// <param name="operation">The calculation.</param>
@@ -408,6 +431,185 @@ namespace Zerra.Repository.PostgreSql
                             finally
                             {
                                 sbSelector.Dispose();
+                            }
+                            break;
+                        }
+                    case "First":
+                    case "FirstOrDefault":
+                    case "Single":
+                    case "SingleOrDefault":
+                    case "Last":
+                    case "LastOrDefault":
+                    case "ElementAt":
+                    case "ElementAtOrDefault":
+                        {
+                            //a member of one related row, read after the call: a subquery of one row over the related rows filtered, ordered, and paged by the calls before it
+                            if (context.MemberContext.MemberAccessStack.Count == 0)
+                                throw new NotSupportedException($"{call.Method.Name} of a related collection reads a member of the row, such as .{call.Method.Name}().Name");
+
+                            var last = call.Method.Name is "Last" or "LastOrDefault";
+                            int? skip = null;
+                            LambdaExpression? subWhere = null;
+                            var orders = new List<(LambdaExpression Expression, bool Descending)>();
+                            if (call.Method.Name is "ElementAt" or "ElementAtOrDefault")
+                            {
+                                if (call.Arguments.Count != 2)
+                                    throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
+                                skip = (int)Evaluate(call.Arguments[1])!;
+                            }
+                            else if (call.Arguments.Count == 2)
+                            {
+                                var predicateArgument = call.Arguments[1];
+                                if (predicateArgument.NodeType == ExpressionType.Quote)
+                                    predicateArgument = ((UnaryExpression)predicateArgument).Operand;
+                                subWhere = (LambdaExpression)predicateArgument;
+                            }
+                            else if (call.Arguments.Count != 1)
+                            {
+                                throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
+                            }
+
+                            var source = call.Arguments[0];
+                            while (source is MethodCallExpression chain && (chain.Method.DeclaringType == typeof(Enumerable) || chain.Method.DeclaringType == typeof(Queryable)) && chain.Arguments.Count == 2)
+                            {
+                                var argument = chain.Arguments[1];
+                                if (argument.NodeType == ExpressionType.Quote)
+                                    argument = ((UnaryExpression)argument).Operand;
+                                switch (chain.Method.Name)
+                                {
+                                    case "Where":
+                                        {
+                                            var where = (LambdaExpression)argument;
+                                            subWhere = subWhere is null ? where : Expression.Lambda(where.Type, Expression.AndAlso(where.Body, LinqRebinder.RebindExpression(subWhere.Body, subWhere.Parameters[0], where.Parameters[0])), where.Parameters);
+                                            break;
+                                        }
+                                    case "OrderBy":
+                                    case "ThenBy":
+                                        orders.Insert(0, ((LambdaExpression)argument, false));
+                                        break;
+                                    case "OrderByDescending":
+                                    case "ThenByDescending":
+                                        orders.Insert(0, ((LambdaExpression)argument, true));
+                                        break;
+                                    case "Skip":
+                                        skip = (skip ?? 0) + (int)Evaluate(chain.Arguments[1])!;
+                                        break;
+                                    default:
+                                        throw new NotSupportedException($"{chain.Method.Name} before {call.Method.Name} of a related collection is not supported");
+                                }
+                                source = chain.Arguments[0];
+                            }
+                            if (source is not MemberExpression subMember || subMember.Expression is null)
+                                throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
+                            if (last)
+                            {
+                                //the last row is the first in the reverse order
+                                if (orders.Count == 0)
+                                    throw new NotSupportedException($"{call.Method.Name} of a related collection needs an order");
+                                for (var i = 0; i < orders.Count; i++)
+                                    orders[i] = (orders[i].Expression, !orders[i].Descending);
+                            }
+
+                            var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
+                            var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
+                            if (propertyInfo.ForeignIdentity is null)
+                                throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
+                            if (subMemberModel.IdentityMembers.Count != 1)
+                                throw new NotSupportedException($"Relational queries support only one identity on {subMemberModel.Type.Name}");
+                            var subMemberModelIdentity = subMemberModel.IdentityMembers[0];
+
+                            var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
+
+                            context.MemberContext.InCallNoRender++;
+                            ConvertToSqlMember(subMember, ref sb, context);
+                            context.MemberContext.InCallNoRender--;
+
+                            //the member read from the row is the pending member accesses over a parameter for the row, written with the condition and the order first so the joins they need are known before the FROM
+                            var accesses = new MemberExpression[context.MemberContext.MemberAccessStack.Count];
+                            for (var i = 0; i < accesses.Length; i++)
+                                accesses[i] = context.MemberContext.MemberAccessStack.Pop();
+                            var rowParameter = Expression.Parameter(subModelInfo.Type, "row");
+                            Expression selector = rowParameter;
+                            for (var i = 0; i < accesses.Length; i++)
+                                selector = Expression.MakeMemberAccess(selector, accesses[i].Member);
+
+                            var subDependant = new ParameterDependant(subModelInfo, null);
+                            var sbSelector = new CharWriter();
+                            var sbWhere = new CharWriter();
+                            var sbOrder = new CharWriter();
+                            try
+                            {
+                                context.MemberContext.DependantStack.Push(subDependant);
+                                context.MemberContext.ModelStack.Push(subModelInfo);
+                                context.MemberContext.OperatorStack.Push(Operator.Lambda);
+
+                                context.MemberContext.ModelContexts.Add(rowParameter, subModelInfo);
+                                ConvertToSql(selector, ref sbSelector, new BuilderContext(subDependant, context.MemberContext) { IsOrderBy = true });
+                                _ = context.MemberContext.ModelContexts.Remove(rowParameter);
+
+                                if (subWhere is not null)
+                                {
+                                    context.MemberContext.ModelContexts.Add(subWhere.Parameters[0], subModelInfo);
+                                    sbWhere.Write('(');
+                                    ConvertToSql(subWhere.Body, ref sbWhere, new BuilderContext(subDependant, context.MemberContext));
+                                    sbWhere.Write(')');
+                                    _ = context.MemberContext.ModelContexts.Remove(subWhere.Parameters[0]);
+                                }
+
+                                foreach (var (orderExpression, descending) in orders)
+                                {
+                                    if (sbOrder.Length > 0)
+                                        sbOrder.Write(',');
+                                    context.MemberContext.ModelContexts.Add(orderExpression.Parameters[0], subModelInfo);
+                                    sbOrder.Write('(');
+                                    ConvertToSql(orderExpression.Body, ref sbOrder, new BuilderContext(subDependant, context.MemberContext) { IsOrderBy = true });
+                                    sbOrder.Write(')');
+                                    _ = context.MemberContext.ModelContexts.Remove(orderExpression.Parameters[0]);
+                                    if (descending)
+                                        sbOrder.Write("DESC");
+                                }
+
+                                _ = context.MemberContext.OperatorStack.Pop();
+                                _ = context.MemberContext.ModelStack.Pop();
+                                _ = context.MemberContext.DependantStack.Pop();
+
+                                sb.Write("(SELECT ");
+                                sb.Write(sbSelector);
+                                GenerateFrom(subModelInfo, ref sb);
+                                GenerateJoin(subDependant, ref sb);
+                                sb.Write("WHERE ");
+                                sb.Write(subMemberModel.DataSourceEntityName.ToLower());
+                                sb.Write('.');
+                                sb.Write(subMemberModelIdentity.StoreName.ToLower());
+                                sb.Write('=');
+                                sb.Write(subModelInfo.DataSourceEntityName.ToLower());
+                                sb.Write('.');
+                                sb.Write(propertyInfo.ForeignIdentity.ToLower());
+                                if (sbWhere.Length > 0)
+                                {
+                                    sb.Write(" AND");
+                                    sb.Write(sbWhere);
+                                }
+                                if (sbOrder.Length > 0)
+                                {
+                                    sb.Write(" ORDER BY");
+                                    sb.Write(sbOrder);
+                                }
+                                sb.Write(" LIMIT 1");
+                                if (skip.HasValue)
+                                {
+                                    sb.Write(" OFFSET ");
+                                    sb.Write(skip.Value);
+                                }
+                                sb.Write(')');
+                            }
+                            finally
+                            {
+                                sbSelector.Dispose();
+                                sbWhere.Dispose();
+                                sbOrder.Dispose();
+                                for (var i = accesses.Length - 1; i >= 0; i--)
+                                    context.MemberContext.MemberAccessStack.Push(accesses[i]);
                             }
                             break;
                         }
@@ -1446,6 +1648,23 @@ namespace Zerra.Repository.PostgreSql
             }
         }
         /// <inheritdoc/>
+        protected override void ConvertPersistUpdate(ref CharWriter sb, ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail, MemberContext operationContext)
+        {
+            var rootDependant = new ParameterDependant(modelDetail, null);
+            sb.Write("UPDATE ");
+            sb.Write(modelDetail.DataSourceEntityName.ToLower());
+            sb.Write(" SET ");
+            for (var i = 0; i < sets.Length; i++)
+            {
+                if (i > 0)
+                    sb.Write(',');
+                sb.Write(modelDetail.GetMember(sets[i].MemberDetail.Name).StoreName.ToLower());
+                sb.Write('=');
+                ConvertModelExpression(sets[i].Expression!, sets[i].Parameter!, ref sb, rootDependant, modelDetail, operationContext);
+            }
+            ConvertPersistWhere(ref sb, where, modelDetail, operationContext);
+        }
+        /// <inheritdoc/>
         protected override void ConvertSelect(ref CharWriter sb, ProjectionMember[] members, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, MemberContext operationContext)
         {
             var rootDependant = new ParameterDependant(modelDetail, null);
@@ -1457,13 +1676,67 @@ namespace Zerra.Repository.PostgreSql
                 {
                     if (i > 0)
                         sb.Write(',');
-                    ConvertModelExpression(members[i].Expression!, members[i].Parameter!, ref sb, rootDependant, modelDetail, operationContext);
+                    if (members[i].Kind == ProjectionMemberKind.Collection)
+                    {
+                        //the rows of a related collection come from a second statement, matched by the identity, which takes the member's column
+                        if (modelDetail.IdentityMembers.Count != 1)
+                            throw new NotSupportedException($"A projection of a related collection needs one identity on {modelDetail.Type.Name}");
+                        sb.Write(modelDetail.DataSourceEntityName.ToLower());
+                        sb.Write('.');
+                        sb.Write(modelDetail.IdentityMembers[0].StoreName.ToLower());
+                    }
+                    else
+                    {
+                        ConvertModelExpression(members[i].Expression!, members[i].Parameter!, ref sb, rootDependant, modelDetail, operationContext);
+                    }
                     sb.Write(" AS ");
                     sb.Write(members[i].MemberDetail.Name);
                 }
                 GenerateFrom(modelDetail, ref sb);
                 GenerateWhere(where, ref sbWhereOrder, rootDependant, operationContext);
                 GenerateOrderSkipTake(order, skip, take, ref sbWhereOrder, rootDependant, operationContext);
+                GenerateJoin(rootDependant, ref sb);
+                sb.Write(sbWhereOrder);
+            }
+            finally
+            {
+                sbWhereOrder.Dispose();
+            }
+        }
+        /// <inheritdoc/>
+        protected override void ConvertSelectElements(ref CharWriter sb, ProjectionMember collection, LambdaExpression where, ModelDetail relatedDetail, MemberContext operationContext)
+        {
+            var rootDependant = new ParameterDependant(relatedDetail, null);
+            var sbWhereOrder = new CharWriter();
+            try
+            {
+                var members = collection.Members!;
+                sb.Write("SELECT ");
+                for (var i = 0; i < members.Length; i++)
+                {
+                    if (members[i].Kind == ProjectionMemberKind.Collection)
+                    {
+                        //the rows of a collection within a row come from a statement of their own, matched by the row's identity, which takes the member's column
+                        if (relatedDetail.IdentityMembers.Count != 1)
+                            throw new NotSupportedException($"A projection of a related collection needs one identity on {relatedDetail.Type.Name}");
+                        sb.Write(relatedDetail.DataSourceEntityName.ToLower());
+                        sb.Write('.');
+                        sb.Write(relatedDetail.IdentityMembers[0].StoreName.ToLower());
+                    }
+                    else
+                    {
+                        ConvertModelExpression(members[i].Expression!, members[i].Parameter!, ref sb, rootDependant, relatedDetail, operationContext);
+                    }
+                    sb.Write(" AS ");
+                    sb.Write(members[i].MemberDetail.Name);
+                    sb.Write(',');
+                }
+                sb.Write(relatedDetail.DataSourceEntityName.ToLower());
+                sb.Write('.');
+                sb.Write(relatedDetail.GetMember(collection.Relation!.ForeignIdentity!).StoreName.ToLower());
+                GenerateFrom(relatedDetail, ref sb);
+                GenerateWhere(where, ref sbWhereOrder, rootDependant, operationContext);
+                GenerateOrderSkipTake(collection.Order, null, null, ref sbWhereOrder, rootDependant, operationContext);
                 GenerateJoin(rootDependant, ref sb);
                 sb.Write(sbWhereOrder);
             }

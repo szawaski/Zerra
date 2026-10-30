@@ -21,8 +21,14 @@ namespace Zerra.Repository.Test.MsSql
         protected override string ConvertPersistWhereToSql(LambdaExpression where, ModelDetail modelDetail)
             => Zerra.Repository.MsSql.LinqMsSqlConverter.ConvertPersistWhere(where, modelDetail);
 
+        protected override string ConvertPersistUpdateToSql(ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail)
+            => Zerra.Repository.MsSql.LinqMsSqlConverter.ConvertPersistUpdate(sets, where, modelDetail);
+
         protected override string ConvertSelectToSql(ProjectionMember[] members, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail)
             => Zerra.Repository.MsSql.LinqMsSqlConverter.ConvertSelect(members, where, order, skip, take, modelDetail);
+
+        protected override string ConvertSelectElementsToSql(ProjectionMember collection, LambdaExpression where, ModelDetail relatedDetail)
+            => Zerra.Repository.MsSql.LinqMsSqlConverter.ConvertSelectElements(collection, where, relatedDetail);
 
         protected override string ConvertGroupToSql(LambdaExpression groupBy, ProjectionMember[] members, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, Type resultType)
             => Zerra.Repository.MsSql.LinqMsSqlConverter.ConvertGroup(groupBy, members, where, having, order, skip, take, modelDetail, resultType);

@@ -21,8 +21,14 @@ namespace Zerra.Repository.Test.PostgreSql
         protected override string ConvertPersistWhereToSql(LambdaExpression where, ModelDetail modelDetail)
             => Zerra.Repository.PostgreSql.LinqPostgreSqlConverter.ConvertPersistWhere(where, modelDetail);
 
+        protected override string ConvertPersistUpdateToSql(ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail)
+            => Zerra.Repository.PostgreSql.LinqPostgreSqlConverter.ConvertPersistUpdate(sets, where, modelDetail);
+
         protected override string ConvertSelectToSql(ProjectionMember[] members, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail)
             => Zerra.Repository.PostgreSql.LinqPostgreSqlConverter.ConvertSelect(members, where, order, skip, take, modelDetail);
+
+        protected override string ConvertSelectElementsToSql(ProjectionMember collection, LambdaExpression where, ModelDetail relatedDetail)
+            => Zerra.Repository.PostgreSql.LinqPostgreSqlConverter.ConvertSelectElements(collection, where, relatedDetail);
 
         protected override string ConvertGroupToSql(LambdaExpression groupBy, ProjectionMember[] members, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, Type resultType)
             => Zerra.Repository.PostgreSql.LinqPostgreSqlConverter.ConvertGroup(groupBy, members, where, having, order, skip, take, modelDetail, resultType);

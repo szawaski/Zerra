@@ -73,7 +73,7 @@ namespace Zerra.Repository
         /// <param name="order">An optional ordering specification.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the first model, or <c>null</c> if no model is found.</returns>
         async Task<TModel?> FirstAsync<TModel>(QueryOrder<TModel>? order) where TModel : class, new()
-            => (TModel?)await QueryAsync(new Query<TModel>(QueryOperation.First, null, order, null, null, null));
+            => (TModel?)(await QueryAsync(new Query<TModel>(QueryOperation.First, null, order, null, null, null)));
 
         /// <summary>
         /// Asynchronously retrieves the first model matching the specified filter criteria.
@@ -82,7 +82,7 @@ namespace Zerra.Repository
         /// <param name="where">An optional filter expression to apply to the query.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the first model matching the criteria, or <c>null</c> if no match is found.</returns>
         async Task<TModel?> FirstAsync<TModel>(Expression<Func<TModel, bool>>? where) where TModel : class, new()
-            => (TModel?)await QueryAsync(new Query<TModel>(QueryOperation.First, where, null, null, null, null));
+            => (TModel?)(await QueryAsync(new Query<TModel>(QueryOperation.First, where, null, null, null, null)));
 
         /// <summary>
         /// Asynchronously retrieves the first model with eager loading of related data.
@@ -91,7 +91,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the first model, or <c>null</c> if no model is found.</returns>
         async Task<TModel?> FirstAsync<TModel>(Graph<TModel>? graph) where TModel : class, new()
-            => (TModel?)await QueryAsync(new Query<TModel>(QueryOperation.First, null, null, null, null, graph));
+            => (TModel?)(await QueryAsync(new Query<TModel>(QueryOperation.First, null, null, null, null, graph)));
 
         /// <summary>
         /// Asynchronously retrieves the first model using the specified ordering with eager loading of related data.
@@ -101,7 +101,7 @@ namespace Zerra.Repository
         /// <param name="graph">A graph specification for eager loading related data.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the first model, or <c>null</c> if no model is found.</returns>
         async Task<TModel?> FirstAsync<TModel>(QueryOrder<TModel>? order, Graph<TModel> graph) where TModel : class, new()
-            => (TModel?)await QueryAsync(new Query<TModel>(QueryOperation.First, null, order, null, null, graph));
+            => (TModel?)(await QueryAsync(new Query<TModel>(QueryOperation.First, null, order, null, null, graph)));
 
         /// <summary>
         /// Asynchronously retrieves the first model matching the specified filter criteria with eager loading of related data.
@@ -111,7 +111,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the first model matching the criteria, or <c>null</c> if no match is found.</returns>
         async Task<TModel?> FirstAsync<TModel>(Expression<Func<TModel, bool>>? where, Graph<TModel>? graph) where TModel : class, new()
-            => (TModel?)await QueryAsync(new Query<TModel>(QueryOperation.First, where, null, null, null, graph));
+            => (TModel?)(await QueryAsync(new Query<TModel>(QueryOperation.First, where, null, null, null, graph)));
 
         /// <summary>
         /// Asynchronously retrieves the first model matching the specified filter criteria and ordering with eager loading of related data.
@@ -122,6 +122,6 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the first model matching the criteria, or <c>null</c> if no match is found.</returns>
         async Task<TModel?> FirstAsync<TModel>(Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, Graph<TModel>? graph = null) where TModel : class, new()
-            => (TModel?)await QueryAsync(new Query<TModel>(QueryOperation.First, where, order, null, null, graph));
+            => (TModel?)(await QueryAsync(new Query<TModel>(QueryOperation.First, where, order, null, null, graph)));
     }
 }

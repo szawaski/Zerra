@@ -24,11 +24,7 @@ namespace Zerra.Repository
             where TModel : class, new()
             where TResult : class, new()
         {
-            var objects = (IReadOnlyList<object>)Query(new Query<TModel>(QueryOperation.Select, where, null, select, null, order, skip, take))!;
-            var results = new TResult[objects.Count];
-            for (var i = 0; i < results.Length; i++)
-                results[i] = (TResult)objects[i];
-            return results;
+            return (IReadOnlyCollection<TResult>)Query(new ProjectionQuery<TModel, TResult>(QueryOperation.Select, where, null, select, null, order, skip, take))!;
         }
 
         /// <summary>
@@ -47,11 +43,7 @@ namespace Zerra.Repository
             where TModel : class, new()
             where TResult : class, new()
         {
-            var objects = (IReadOnlyList<object>)(await QueryAsync(new Query<TModel>(QueryOperation.Select, where, null, select, null, order, skip, take)))!;
-            var results = new TResult[objects.Count];
-            for (var i = 0; i < results.Length; i++)
-                results[i] = (TResult)objects[i];
-            return results;
+            return (IReadOnlyCollection<TResult>)(await QueryAsync(new ProjectionQuery<TModel, TResult>(QueryOperation.Select, where, null, select, null, order, skip, take)))!;
         }
 
         /// <summary>
@@ -73,11 +65,7 @@ namespace Zerra.Repository
             where TModel : class, new()
             where TResult : class, new()
         {
-            var objects = (IReadOnlyList<object>)Query(new Query<TModel>(QueryOperation.Group, where, groupBy, select, having, order, skip, take))!;
-            var results = new TResult[objects.Count];
-            for (var i = 0; i < results.Length; i++)
-                results[i] = (TResult)objects[i];
-            return results;
+            return (IReadOnlyCollection<TResult>)Query(new ProjectionQuery<TModel, TResult>(QueryOperation.Group, where, groupBy, select, having, order, skip, take))!;
         }
 
         /// <summary>
@@ -99,11 +87,7 @@ namespace Zerra.Repository
             where TModel : class, new()
             where TResult : class, new()
         {
-            var objects = (IReadOnlyList<object>)(await QueryAsync(new Query<TModel>(QueryOperation.Group, where, groupBy, select, having, order, skip, take)))!;
-            var results = new TResult[objects.Count];
-            for (var i = 0; i < results.Length; i++)
-                results[i] = (TResult)objects[i];
-            return results;
+            return (IReadOnlyCollection<TResult>)(await QueryAsync(new ProjectionQuery<TModel, TResult>(QueryOperation.Group, where, groupBy, select, having, order, skip, take)))!;
         }
     }
 }

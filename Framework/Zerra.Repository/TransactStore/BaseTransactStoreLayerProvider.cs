@@ -56,15 +56,14 @@ namespace Zerra.Repository
         /// <returns>A task containing the processed models.</returns>
         public abstract Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph);
 
-        /// <summary>Executes a synchronous query operation and returns the result.</summary>
+        /// <summary>Executes a query and returns its result as the type the operation produces: the models, a model, a count, a calculation, or the typed results of a projection, calculation per group, or distinct values.</summary>
         /// <param name="query">The query to execute.</param>
-        /// <returns>The query result, or <see langword="null"/> if no result is found.</returns>
+        /// <returns>The result, boxed when it is a value.</returns>
         public object? Query(Query query)
         {
-            if (query.Select is not null)
+            //a projection, the different values of a member, or a calculation per group is built as the result types the query carries
+            if (query.Select is not null || query.GroupBy is not null)
                 return Project(query);
-            if (query.GroupBy is not null)
-                return Calculate(query);
             return query.Operation switch
             {
                 QueryOperation.Many => Many(query),
@@ -81,28 +80,26 @@ namespace Zerra.Repository
                 _ => throw new NotImplementedException(),
             };
         }
-        /// <summary>Executes an asynchronous query operation and returns the result.</summary>
+        /// <summary>Asynchronously executes a query and returns its result as the type the operation produces.</summary>
         /// <param name="query">The query to execute.</param>
-        /// <returns>A task containing the query result, or <see langword="null"/>.</returns>
-        public Task<object?> QueryAsync(Query query)
+        /// <returns>A task containing the result.</returns>
+        public async Task<object?> QueryAsync(Query query)
         {
-            if (query.Select is not null)
-                return ProjectAsync(query);
-            if (query.GroupBy is not null)
-                return CalculateAsync(query);
+            if (query.Select is not null || query.GroupBy is not null)
+                return await ProjectAsync(query);
             return query.Operation switch
             {
-                QueryOperation.Many => ManyAsync(query),
-                QueryOperation.First => FirstAsync(query),
-                QueryOperation.Single => SingleAsync(query),
-                QueryOperation.Count => CountAsync(query),
-                QueryOperation.Any => AnyAsync(query),
-                QueryOperation.EventMany => EventManyAsync(query),
-                QueryOperation.EventFirst => EventFirstAsync(query),
-                QueryOperation.EventSingle => EventSingleAsync(query),
-                QueryOperation.EventCount => EventCountAsync(query),
-                QueryOperation.EventAny => EventAnyAsync(query),
-                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max or QueryOperation.CountDistinct => CalculateAsync(query),
+                QueryOperation.Many => await ManyAsync(query),
+                QueryOperation.First => await FirstAsync(query),
+                QueryOperation.Single => await SingleAsync(query),
+                QueryOperation.Count => await CountAsync(query),
+                QueryOperation.Any => await AnyAsync(query),
+                QueryOperation.EventMany => await EventManyAsync(query),
+                QueryOperation.EventFirst => await EventFirstAsync(query),
+                QueryOperation.EventSingle => await EventSingleAsync(query),
+                QueryOperation.EventCount => await EventCountAsync(query),
+                QueryOperation.EventAny => await EventAnyAsync(query),
+                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max or QueryOperation.CountDistinct => await CalculateAsync(query),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -147,13 +144,13 @@ namespace Zerra.Repository
         /// <param name="query">The query parameters.</param>
         /// <returns>A boolean result as an object.</returns>
         public abstract object? EventAny(Query query);
-        /// <summary>Calculates a count per group, or a sum, average, minimum, or maximum over all matching models or per group.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.GroupBy"/> and <see cref="Query.Value"/>.</param>
-        /// <returns>The boxed result, or the <c>(object? Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
+        /// <summary>Calculates a sum, average, minimum, maximum, or count of different values over all matching models.</summary>
+        /// <param name="query">The query parameters, with <see cref="Query.Value"/>.</param>
+        /// <returns>The boxed result, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
         public abstract object? Calculate(Query query);
-        /// <summary>Builds a result from each matching model, or from each group of them, with the query's projection.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.Select"/>, and for groups <see cref="Query.GroupBy"/> and <see cref="Query.Having"/>.</param>
-        /// <returns>The results as <c>IReadOnlyList&lt;object&gt;</c>, as <see cref="ITransactStoreEngine.ExecuteSelect{TModel}"/> describes.</returns>
+        /// <summary>Runs a query whose results are built as a type other than the model: a projection of each model or group, the different values of a member, or a calculation per group. The query carries the result types, so a layer swaps its where onto the query for the call and puts the original back.</summary>
+        /// <param name="query">The query parameters, with <see cref="Query.Select"/> or <see cref="Query.GroupBy"/>.</param>
+        /// <returns>The results.</returns>
         public abstract object? Project(Query query);
 
         /// <summary>Asynchronously executes a many query and returns the matching models.</summary>
@@ -196,13 +193,13 @@ namespace Zerra.Repository
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing a boolean result.</returns>
         public abstract Task<object?> EventAnyAsync(Query query);
-        /// <summary>Asynchronously calculates a count per group, or a sum, average, minimum, or maximum over all matching models or per group.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.GroupBy"/> and <see cref="Query.Value"/>.</param>
-        /// <returns>A task containing the boxed result, or the <c>(object? Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
+        /// <summary>Asynchronously calculates a sum, average, minimum, maximum, or count of different values over all matching models.</summary>
+        /// <param name="query">The query parameters, with <see cref="Query.Value"/>.</param>
+        /// <returns>A task containing the boxed result, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
         public abstract Task<object?> CalculateAsync(Query query);
-        /// <summary>Asynchronously builds a result from each matching model, or from each group of them, with the query's projection.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.Select"/>, and for groups <see cref="Query.GroupBy"/> and <see cref="Query.Having"/>.</param>
-        /// <returns>A task containing the results as <c>IReadOnlyList&lt;object&gt;</c>, as <see cref="ITransactStoreEngine.ExecuteSelect{TModel}"/> describes.</returns>
+        /// <summary>Asynchronously runs a query whose results are built as a type other than the model: a projection of each model or group, the different values of a member, or a calculation per group. The query carries the result types, so a layer swaps its where onto the query for the call and puts the original back.</summary>
+        /// <param name="query">The query parameters, with <see cref="Query.Select"/> or <see cref="Query.GroupBy"/>.</param>
+        /// <returns>A task containing the results.</returns>
         public abstract Task<object?> ProjectAsync(Query query);
 
         /// <summary>Executes a synchronous persist operation (create, update, or delete).</summary>

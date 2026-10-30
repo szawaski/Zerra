@@ -27,15 +27,7 @@ namespace Zerra.Repository
         /// <returns>The key and result of each group, in no particular order.</returns>
         IReadOnlyCollection<(TKey Key, int Value)> Sum<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, int>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Sum, where, groupBy, value))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, int Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (int)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, int Value)>)Query(new CalculationGroupsQuery<TModel, TKey, int>(QueryOperation.Sum, where, groupBy, value))!;
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -57,15 +49,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and result of each group, in no particular order.</returns>
         async Task<IReadOnlyCollection<(TKey Key, int Value)>> SumAsync<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, int>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, groupBy, value)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, int Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (int)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, int Value)>)(await QueryAsync(new CalculationGroupsQuery<TModel, TKey, int>(QueryOperation.Sum, where, groupBy, value)))!;
         }
 
         /// <summary>Adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -75,7 +59,7 @@ namespace Zerra.Repository
         /// <returns>The sum, or 0 when no models match.</returns>
         int? Sum<TModel>(Expression<Func<TModel, int?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            return (int?)Query(new Query<TModel>(QueryOperation.Sum, where, null, value))!;
+            return (int?)Query(new Query<TModel>(QueryOperation.Sum, where, null, value));
         }
 
         /// <summary>Adds <paramref name="value"/> per group of the models matching <paramref name="where"/>.</summary>
@@ -87,15 +71,7 @@ namespace Zerra.Repository
         /// <returns>The key and result of each group, in no particular order.</returns>
         IReadOnlyCollection<(TKey Key, int? Value)> Sum<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, int?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Sum, where, groupBy, value))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, int? Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (int?)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, int? Value)>)Query(new CalculationGroupsQuery<TModel, TKey, int?>(QueryOperation.Sum, where, groupBy, value))!;
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -105,7 +81,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The sum, or 0 when no models match.</returns>
         async Task<int?> SumAsync<TModel>(Expression<Func<TModel, int?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            return (int?)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, null, value)))!;
+            return (int?)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, null, value)));
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> per group of the models matching <paramref name="where"/>.</summary>
@@ -117,15 +93,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and result of each group, in no particular order.</returns>
         async Task<IReadOnlyCollection<(TKey Key, int? Value)>> SumAsync<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, int?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, groupBy, value)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, int? Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (int?)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, int? Value)>)(await QueryAsync(new CalculationGroupsQuery<TModel, TKey, int?>(QueryOperation.Sum, where, groupBy, value)))!;
         }
 
         /// <summary>Adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -147,15 +115,7 @@ namespace Zerra.Repository
         /// <returns>The key and result of each group, in no particular order.</returns>
         IReadOnlyCollection<(TKey Key, long Value)> Sum<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, long>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Sum, where, groupBy, value))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, long Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (long)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, long Value)>)Query(new CalculationGroupsQuery<TModel, TKey, long>(QueryOperation.Sum, where, groupBy, value))!;
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -177,15 +137,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and result of each group, in no particular order.</returns>
         async Task<IReadOnlyCollection<(TKey Key, long Value)>> SumAsync<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, long>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, groupBy, value)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, long Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (long)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, long Value)>)(await QueryAsync(new CalculationGroupsQuery<TModel, TKey, long>(QueryOperation.Sum, where, groupBy, value)))!;
         }
 
         /// <summary>Adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -195,7 +147,7 @@ namespace Zerra.Repository
         /// <returns>The sum, or 0 when no models match.</returns>
         long? Sum<TModel>(Expression<Func<TModel, long?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            return (long?)Query(new Query<TModel>(QueryOperation.Sum, where, null, value))!;
+            return (long?)Query(new Query<TModel>(QueryOperation.Sum, where, null, value));
         }
 
         /// <summary>Adds <paramref name="value"/> per group of the models matching <paramref name="where"/>.</summary>
@@ -207,15 +159,7 @@ namespace Zerra.Repository
         /// <returns>The key and result of each group, in no particular order.</returns>
         IReadOnlyCollection<(TKey Key, long? Value)> Sum<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, long?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Sum, where, groupBy, value))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, long? Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (long?)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, long? Value)>)Query(new CalculationGroupsQuery<TModel, TKey, long?>(QueryOperation.Sum, where, groupBy, value))!;
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -225,7 +169,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The sum, or 0 when no models match.</returns>
         async Task<long?> SumAsync<TModel>(Expression<Func<TModel, long?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            return (long?)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, null, value)))!;
+            return (long?)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, null, value)));
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> per group of the models matching <paramref name="where"/>.</summary>
@@ -237,15 +181,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and result of each group, in no particular order.</returns>
         async Task<IReadOnlyCollection<(TKey Key, long? Value)>> SumAsync<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, long?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, groupBy, value)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, long? Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (long?)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, long? Value)>)(await QueryAsync(new CalculationGroupsQuery<TModel, TKey, long?>(QueryOperation.Sum, where, groupBy, value)))!;
         }
 
         /// <summary>Adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -267,15 +203,7 @@ namespace Zerra.Repository
         /// <returns>The key and result of each group, in no particular order.</returns>
         IReadOnlyCollection<(TKey Key, float Value)> Sum<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, float>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Sum, where, groupBy, value))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, float Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (float)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, float Value)>)Query(new CalculationGroupsQuery<TModel, TKey, float>(QueryOperation.Sum, where, groupBy, value))!;
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -297,15 +225,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and result of each group, in no particular order.</returns>
         async Task<IReadOnlyCollection<(TKey Key, float Value)>> SumAsync<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, float>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, groupBy, value)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, float Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (float)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, float Value)>)(await QueryAsync(new CalculationGroupsQuery<TModel, TKey, float>(QueryOperation.Sum, where, groupBy, value)))!;
         }
 
         /// <summary>Adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -315,7 +235,7 @@ namespace Zerra.Repository
         /// <returns>The sum, or 0 when no models match.</returns>
         float? Sum<TModel>(Expression<Func<TModel, float?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            return (float?)Query(new Query<TModel>(QueryOperation.Sum, where, null, value))!;
+            return (float?)Query(new Query<TModel>(QueryOperation.Sum, where, null, value));
         }
 
         /// <summary>Adds <paramref name="value"/> per group of the models matching <paramref name="where"/>.</summary>
@@ -327,15 +247,7 @@ namespace Zerra.Repository
         /// <returns>The key and result of each group, in no particular order.</returns>
         IReadOnlyCollection<(TKey Key, float? Value)> Sum<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, float?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Sum, where, groupBy, value))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, float? Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (float?)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, float? Value)>)Query(new CalculationGroupsQuery<TModel, TKey, float?>(QueryOperation.Sum, where, groupBy, value))!;
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -345,7 +257,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The sum, or 0 when no models match.</returns>
         async Task<float?> SumAsync<TModel>(Expression<Func<TModel, float?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            return (float?)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, null, value)))!;
+            return (float?)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, null, value)));
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> per group of the models matching <paramref name="where"/>.</summary>
@@ -357,15 +269,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and result of each group, in no particular order.</returns>
         async Task<IReadOnlyCollection<(TKey Key, float? Value)>> SumAsync<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, float?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, groupBy, value)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, float? Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (float?)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, float? Value)>)(await QueryAsync(new CalculationGroupsQuery<TModel, TKey, float?>(QueryOperation.Sum, where, groupBy, value)))!;
         }
 
         /// <summary>Adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -387,15 +291,7 @@ namespace Zerra.Repository
         /// <returns>The key and result of each group, in no particular order.</returns>
         IReadOnlyCollection<(TKey Key, double Value)> Sum<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, double>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Sum, where, groupBy, value))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, double Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (double)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, double Value)>)Query(new CalculationGroupsQuery<TModel, TKey, double>(QueryOperation.Sum, where, groupBy, value))!;
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -417,15 +313,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and result of each group, in no particular order.</returns>
         async Task<IReadOnlyCollection<(TKey Key, double Value)>> SumAsync<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, double>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, groupBy, value)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, double Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (double)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, double Value)>)(await QueryAsync(new CalculationGroupsQuery<TModel, TKey, double>(QueryOperation.Sum, where, groupBy, value)))!;
         }
 
         /// <summary>Adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -435,7 +323,7 @@ namespace Zerra.Repository
         /// <returns>The sum, or 0 when no models match.</returns>
         double? Sum<TModel>(Expression<Func<TModel, double?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            return (double?)Query(new Query<TModel>(QueryOperation.Sum, where, null, value))!;
+            return (double?)Query(new Query<TModel>(QueryOperation.Sum, where, null, value));
         }
 
         /// <summary>Adds <paramref name="value"/> per group of the models matching <paramref name="where"/>.</summary>
@@ -447,15 +335,7 @@ namespace Zerra.Repository
         /// <returns>The key and result of each group, in no particular order.</returns>
         IReadOnlyCollection<(TKey Key, double? Value)> Sum<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, double?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Sum, where, groupBy, value))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, double? Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (double?)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, double? Value)>)Query(new CalculationGroupsQuery<TModel, TKey, double?>(QueryOperation.Sum, where, groupBy, value))!;
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -465,7 +345,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The sum, or 0 when no models match.</returns>
         async Task<double?> SumAsync<TModel>(Expression<Func<TModel, double?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            return (double?)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, null, value)))!;
+            return (double?)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, null, value)));
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> per group of the models matching <paramref name="where"/>.</summary>
@@ -477,15 +357,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and result of each group, in no particular order.</returns>
         async Task<IReadOnlyCollection<(TKey Key, double? Value)>> SumAsync<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, double?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, groupBy, value)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, double? Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (double?)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, double? Value)>)(await QueryAsync(new CalculationGroupsQuery<TModel, TKey, double?>(QueryOperation.Sum, where, groupBy, value)))!;
         }
 
         /// <summary>Adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -507,15 +379,7 @@ namespace Zerra.Repository
         /// <returns>The key and result of each group, in no particular order.</returns>
         IReadOnlyCollection<(TKey Key, decimal Value)> Sum<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, decimal>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Sum, where, groupBy, value))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, decimal Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (decimal)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, decimal Value)>)Query(new CalculationGroupsQuery<TModel, TKey, decimal>(QueryOperation.Sum, where, groupBy, value))!;
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -537,15 +401,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and result of each group, in no particular order.</returns>
         async Task<IReadOnlyCollection<(TKey Key, decimal Value)>> SumAsync<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, decimal>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, groupBy, value)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, decimal Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (decimal)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, decimal Value)>)(await QueryAsync(new CalculationGroupsQuery<TModel, TKey, decimal>(QueryOperation.Sum, where, groupBy, value)))!;
         }
 
         /// <summary>Adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -555,7 +411,7 @@ namespace Zerra.Repository
         /// <returns>The sum, or 0 when no models match.</returns>
         decimal? Sum<TModel>(Expression<Func<TModel, decimal?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            return (decimal?)Query(new Query<TModel>(QueryOperation.Sum, where, null, value))!;
+            return (decimal?)Query(new Query<TModel>(QueryOperation.Sum, where, null, value));
         }
 
         /// <summary>Adds <paramref name="value"/> per group of the models matching <paramref name="where"/>.</summary>
@@ -567,15 +423,7 @@ namespace Zerra.Repository
         /// <returns>The key and result of each group, in no particular order.</returns>
         IReadOnlyCollection<(TKey Key, decimal? Value)> Sum<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, decimal?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Sum, where, groupBy, value))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, decimal? Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (decimal?)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, decimal? Value)>)Query(new CalculationGroupsQuery<TModel, TKey, decimal?>(QueryOperation.Sum, where, groupBy, value))!;
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -585,7 +433,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The sum, or 0 when no models match.</returns>
         async Task<decimal?> SumAsync<TModel>(Expression<Func<TModel, decimal?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            return (decimal?)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, null, value)))!;
+            return (decimal?)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, null, value)));
         }
 
         /// <summary>Asynchronously adds <paramref name="value"/> per group of the models matching <paramref name="where"/>.</summary>
@@ -597,15 +445,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and result of each group, in no particular order.</returns>
         async Task<IReadOnlyCollection<(TKey Key, decimal? Value)>> SumAsync<TModel, TKey>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, decimal?>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Sum, where, groupBy, value)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, decimal? Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (decimal?)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, decimal? Value)>)(await QueryAsync(new CalculationGroupsQuery<TModel, TKey, decimal?>(QueryOperation.Sum, where, groupBy, value)))!;
         }
     }
 }

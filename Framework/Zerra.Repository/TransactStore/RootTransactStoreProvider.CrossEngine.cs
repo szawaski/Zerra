@@ -36,7 +36,8 @@ namespace Zerra.Repository
             orderCrosses = false;
             if (query.GroupBy is null && query.Value is null && query.Select is null && query.Order is null)
                 return null;
-            var finder = new GraphFinder(this, query.Graph is null ? new Graph() : new Graph(query.Graph));
+            //models that are the result keep every member, models a calculation or projection reads from load with just those
+            var finder = new GraphFinder(this, query.Graph is not null ? new Graph(query.Graph) : query.Operation is QueryOperation.Many or QueryOperation.First or QueryOperation.Single ? new Graph(true) : new Graph());
             finder.Read(query.GroupBy);
             finder.Read(query.Value);
             finder.Read(query.Select);
@@ -57,41 +58,29 @@ namespace Zerra.Repository
             //a projection's order and paging apply to the models, so they stay in the store unless the order is what crosses
             var inStore = query.Operation == QueryOperation.Select && !orderCrosses;
             var models = (IReadOnlyCollection<TModel>)Query(new Query(QueryOperation.Many, modelType, query.Where, inStore ? query.Order : null, inStore ? query.Skip : null, inStore ? query.Take : null, graph))!;
-            switch (query.Operation)
+            if (query.Select is not null || query.GroupBy is not null)
+                return query.Execute(inStore || query.Operation != QueryOperation.Select ? models : models.Query(null, query.Order, query.Skip, query.Take));
+            return query.Operation switch
             {
-                case QueryOperation.Many:
-                    return models.Query(null, query.Order, query.Skip, query.Take).ToArray();
-                case QueryOperation.First:
-                    return models.Query(null, query.Order, query.Skip, query.Take).FirstOrDefault();
-                case QueryOperation.Single:
-                    return models.Query(null, query.Order, query.Skip, query.Take).SingleOrDefault();
-                case QueryOperation.Select:
-                    return inStore ? models.Select(query.Select!) : models.Query(null, query.Order, query.Skip, query.Take).Select(query.Select!);
-                case QueryOperation.Group:
-                    return models.Group(query.GroupBy!, query.Select!, query.Having, query.Order, query.Skip, query.Take);
-                default:
-                    return models.Calculate(query.Operation, query.GroupBy, query.Value);
-            }
+                QueryOperation.Many => models.Query(null, query.Order, query.Skip, query.Take).ToArray(),
+                QueryOperation.First => models.Query(null, query.Order, query.Skip, query.Take).FirstOrDefault(),
+                QueryOperation.Single => models.Query(null, query.Order, query.Skip, query.Take).SingleOrDefault(),
+                _ => models.Calculate(query.Operation, query.Value),
+            };
         }
         private async Task<object?> QueryCrossEngineAsync(Query query, Graph graph, bool orderCrosses)
         {
             var inStore = query.Operation == QueryOperation.Select && !orderCrosses;
             var models = (IReadOnlyCollection<TModel>)(await QueryAsync(new Query(QueryOperation.Many, modelType, query.Where, inStore ? query.Order : null, inStore ? query.Skip : null, inStore ? query.Take : null, graph)))!;
-            switch (query.Operation)
+            if (query.Select is not null || query.GroupBy is not null)
+                return query.Execute(inStore || query.Operation != QueryOperation.Select ? models : models.Query(null, query.Order, query.Skip, query.Take));
+            return query.Operation switch
             {
-                case QueryOperation.Many:
-                    return models.Query(null, query.Order, query.Skip, query.Take).ToArray();
-                case QueryOperation.First:
-                    return models.Query(null, query.Order, query.Skip, query.Take).FirstOrDefault();
-                case QueryOperation.Single:
-                    return models.Query(null, query.Order, query.Skip, query.Take).SingleOrDefault();
-                case QueryOperation.Select:
-                    return inStore ? models.Select(query.Select!) : models.Query(null, query.Order, query.Skip, query.Take).Select(query.Select!);
-                case QueryOperation.Group:
-                    return models.Group(query.GroupBy!, query.Select!, query.Having, query.Order, query.Skip, query.Take);
-                default:
-                    return models.Calculate(query.Operation, query.GroupBy, query.Value);
-            }
+                QueryOperation.Many => models.Query(null, query.Order, query.Skip, query.Take).ToArray(),
+                QueryOperation.First => models.Query(null, query.Order, query.Skip, query.Take).FirstOrDefault(),
+                QueryOperation.Single => models.Query(null, query.Order, query.Skip, query.Take).SingleOrDefault(),
+                _ => models.Calculate(query.Operation, query.Value),
+            };
         }
 
         //the members the expressions read, as a graph: a relation becomes a child graph with what is read of it, and one whose model is on another engine marks the graph as crossing
@@ -164,6 +153,9 @@ namespace Zerra.Repository
                         }
                     case UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } conversion:
                         return Resolve(conversion.Operand);
+                    case MethodCallExpression call when call.Method.DeclaringType == typeof(Enumerable) && call.Arguments.Count > 0:
+                        //one row of a related collection, read after the calls that filter, order, and page it
+                        return Resolve(call.Arguments[0]);
                     default:
                         return null;
                 }

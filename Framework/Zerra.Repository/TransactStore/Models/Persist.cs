@@ -24,6 +24,8 @@ namespace Zerra.Repository
         public Type ModelType { get; init; }
         /// <summary>Gets the condition selecting the records to update or delete, or <see langword="null"/> when <see cref="Models"/> or <see cref="IDs"/> name them.</summary>
         public System.Linq.Expressions.LambdaExpression? Where { get; set; }
+        /// <summary>Gets or sets the values of an update by <see cref="Where"/> computed from each record, as a projection of the model to itself such as <c>x => new Model { Price = x.Price * 1.1m }</c>; <see langword="null"/> when <see cref="Models"/> and <see cref="Graph"/> hold the values.</summary>
+        public System.Linq.Expressions.LambdaExpression? Set { get; set; }
         /// <summary>Gets or sets how many records an update or delete by <see cref="Where"/> changed. The provider sets it.</summary>
         public int RowsAffected { get; set; }
 
@@ -82,6 +84,7 @@ namespace Zerra.Repository
             this.Graph = persist.Graph is null ? null : new Graph(persist.Graph);
             this.Event = persist.Event;
             this.Where = persist.Where;
+            this.Set = persist.Set;
         }
 
         /// <summary>
@@ -120,6 +123,41 @@ namespace Zerra.Repository
             this.Where = where;
             this.Models = model is null ? null : [model];
             this.Graph = graph;
+            this.Event = @event;
+        }
+
+        /// <summary>
+        /// Initializes an update of every record matching a condition to values computed from each record.
+        /// </summary>
+        /// <param name="operation"><see cref="PersistOperation.Update"/>.</param>
+        /// <param name="eventName">The name of the persist event, or <see langword="null"/> for a default.</param>
+        /// <param name="source">The source object that triggered the persist, or <see langword="null"/>.</param>
+        /// <param name="modelType">The CLR type of the model.</param>
+        /// <param name="where">The condition selecting the records.</param>
+        /// <param name="set">The members to set and their values in terms of the current record, as <c>x => new Model { Member = ..., ... }</c>.</param>
+        public Persist(PersistOperation operation, string? eventName, object? source, Type modelType, System.Linq.Expressions.LambdaExpression where, System.Linq.Expressions.LambdaExpression set)
+        {
+            this.Operation = operation;
+            this.ModelType = modelType;
+            this.Where = where;
+            this.Set = set;
+            this.Event = new PersistEvent(Guid.NewGuid(), String.IsNullOrWhiteSpace(eventName) ? GetEventName(operation) : eventName, source);
+        }
+
+        /// <summary>
+        /// Initializes an update of every record matching a condition to values computed from each record, with an existing persist event.
+        /// </summary>
+        /// <param name="operation"><see cref="PersistOperation.Update"/>.</param>
+        /// <param name="event">The persist event.</param>
+        /// <param name="modelType">The CLR type of the model.</param>
+        /// <param name="where">The condition selecting the records.</param>
+        /// <param name="set">The members to set and their values in terms of the current record, as <c>x => new Model { Member = ..., ... }</c>.</param>
+        public Persist(PersistOperation operation, PersistEvent @event, Type modelType, System.Linq.Expressions.LambdaExpression where, System.Linq.Expressions.LambdaExpression set)
+        {
+            this.Operation = operation;
+            this.ModelType = modelType;
+            this.Where = where;
+            this.Set = set;
             this.Event = @event;
         }
     }

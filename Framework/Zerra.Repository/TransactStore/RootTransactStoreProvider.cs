@@ -509,9 +509,9 @@ namespace Zerra.Repository
             return OnGetWithRelationsAsync(models, graph);
         }
 
-        /// <summary>Executes a synchronous query operation and returns the result.</summary>
+        /// <summary>Executes a query and returns its result as the type the operation produces: the models, a model, a count, a calculation, or the typed results of a projection, calculation per group, or distinct values.</summary>
         /// <param name="query">The query to execute.</param>
-        /// <returns>The query result, or <see langword="null"/> if no result is found.</returns>
+        /// <returns>The result, boxed when it is a value.</returns>
         public object? Query(Query query)
         {
             if (ModelTypeDetail.RelatedMembers.Count > 0)
@@ -522,10 +522,9 @@ namespace Zerra.Repository
                 query.Where = SplitCrossEngineWhere(query.Where);
             }
 
-            if (query.Select is not null)
+            //a projection, the different values of a member, or a calculation per group is built as the result types the query carries
+            if (query.Select is not null || query.GroupBy is not null)
                 return Project(query);
-            if (query.GroupBy is not null)
-                return Calculate(query);
             return query.Operation switch
             {
                 QueryOperation.Many => QueryMany(query),
@@ -542,9 +541,9 @@ namespace Zerra.Repository
                 _ => throw new NotImplementedException(),
             };
         }
-        /// <summary>Executes an asynchronous query operation and returns the result.</summary>
+        /// <summary>Asynchronously executes a query and returns its result as the type the operation produces.</summary>
         /// <param name="query">The query to execute.</param>
-        /// <returns>A task representing the asynchronous operation, containing the query result or <see langword="null"/>.</returns>
+        /// <returns>A task containing the result, boxed when it is a value.</returns>
         public Task<object?> QueryAsync(Query query)
         {
             if (ModelTypeDetail.RelatedMembers.Count > 0)
@@ -568,30 +567,28 @@ namespace Zerra.Repository
             query.Where = ReplaceCrossEngineLookups(query.Where!, lookups);
             return await QueryAsyncCore(query);
         }
-        private Task<object?> QueryAsyncCore(Query query)
+        private async Task<object?> QueryAsyncCore(Query query)
         {
-            if (query.Select is not null)
-                return ProjectAsync(query);
-            if (query.GroupBy is not null)
-                return CalculateAsync(query);
+            if (query.Select is not null || query.GroupBy is not null)
+                return await ProjectAsync(query);
             return query.Operation switch
             {
-                QueryOperation.Many => QueryManyAsync(query),
-                QueryOperation.First => QueryFirstAsync(query),
-                QueryOperation.Single => QuerySingleAsync(query),
-                QueryOperation.Count => QueryCountAsync(query),
-                QueryOperation.Any => QueryAnyAsync(query),
-                QueryOperation.EventMany => QueryEventManyAsync(query),
-                QueryOperation.EventFirst => QueryEventFirstAsync(query),
-                QueryOperation.EventSingle => QueryEventSingleAsync(query),
-                QueryOperation.EventCount => QueryEventCountAsync(query),
-                QueryOperation.EventAny => QueryEventAnyAsync(query),
-                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max or QueryOperation.CountDistinct => CalculateAsync(query),
+                QueryOperation.Many => await QueryManyAsync(query),
+                QueryOperation.First => await QueryFirstAsync(query),
+                QueryOperation.Single => await QuerySingleAsync(query),
+                QueryOperation.Count => await QueryCountAsync(query),
+                QueryOperation.Any => await QueryAnyAsync(query),
+                QueryOperation.EventMany => await QueryEventManyAsync(query),
+                QueryOperation.EventFirst => await QueryEventFirstAsync(query),
+                QueryOperation.EventSingle => await QueryEventSingleAsync(query),
+                QueryOperation.EventCount => await QueryEventCountAsync(query),
+                QueryOperation.EventAny => await QueryEventAnyAsync(query),
+                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max or QueryOperation.CountDistinct => await CalculateAsync(query),
                 _ => throw new NotImplementedException(),
             };
         }
 
-        private object QueryMany(Query query)
+        private IReadOnlyCollection<TModel> QueryMany(Query query)
         {
             if (query.Graph is not null)
             {
@@ -609,7 +606,7 @@ namespace Zerra.Repository
 
             return models;
         }
-        private object? QueryFirst(Query query)
+        private TModel? QueryFirst(Query query)
         {
             if (query.Graph is not null)
             {
@@ -627,7 +624,7 @@ namespace Zerra.Repository
 
             return returnModel;
         }
-        private object? QuerySingle(Query query)
+        private TModel? QuerySingle(Query query)
         {
             if (query.Graph is not null)
             {
@@ -645,15 +642,15 @@ namespace Zerra.Repository
 
             return returnModel;
         }
-        private object QueryCount(Query query)
+        private long QueryCount(Query query)
         {
             return Count(query);
         }
-        private object QueryAny(Query query)
+        private bool QueryAny(Query query)
         {
             return Any(query);
         }
-        private object QueryEventMany(Query query)
+        private IReadOnlyCollection<EventModel<TModel>> QueryEventMany(Query query)
         {
             if (query.Graph is not null)
             {
@@ -671,7 +668,7 @@ namespace Zerra.Repository
 
             return models;
         }
-        private object? QueryEventFirst(Query query)
+        private EventModel<TModel>? QueryEventFirst(Query query)
         {
             if (query.Graph is not null)
             {
@@ -690,7 +687,7 @@ namespace Zerra.Repository
 
             return model;
         }
-        private object? QueryEventSingle(Query query)
+        private EventModel<TModel>? QueryEventSingle(Query query)
         {
             if (query.Graph is not null)
             {
@@ -709,16 +706,16 @@ namespace Zerra.Repository
 
             return model;
         }
-        private object QueryEventCount(Query query)
+        private long QueryEventCount(Query query)
         {
             return EventCount(query);
         }
-        private object QueryEventAny(Query query)
+        private bool QueryEventAny(Query query)
         {
             return EventAny(query);
         }
 
-        private async Task<object?> QueryManyAsync(Query query)
+        private async Task<IReadOnlyCollection<TModel>> QueryManyAsync(Query query)
         {
             if (query.Graph is not null)
             {
@@ -736,7 +733,7 @@ namespace Zerra.Repository
 
             return models;
         }
-        private async Task<object?> QueryFirstAsync(Query query)
+        private async Task<TModel?> QueryFirstAsync(Query query)
         {
             if (query.Graph is not null)
             {
@@ -754,7 +751,7 @@ namespace Zerra.Repository
 
             return returnModel;
         }
-        private async Task<object?> QuerySingleAsync(Query query)
+        private async Task<TModel?> QuerySingleAsync(Query query)
         {
             if (query.Graph is not null)
             {
@@ -772,15 +769,15 @@ namespace Zerra.Repository
 
             return returnModel;
         }
-        private async Task<object?> QueryCountAsync(Query query)
+        private Task<long> QueryCountAsync(Query query)
         {
-            return await CountAsync(query);
+            return CountAsync(query);
         }
-        private async Task<object?> QueryAnyAsync(Query query)
+        private Task<bool> QueryAnyAsync(Query query)
         {
-            return await AnyAsync(query);
+            return AnyAsync(query);
         }
-        private async Task<object?> QueryEventManyAsync(Query query)
+        private async Task<IReadOnlyCollection<EventModel<TModel>>> QueryEventManyAsync(Query query)
         {
             if (query.Graph is not null)
             {
@@ -798,7 +795,7 @@ namespace Zerra.Repository
 
             return models;
         }
-        private async Task<object?> QueryEventFirstAsync(Query query)
+        private async Task<EventModel<TModel>?> QueryEventFirstAsync(Query query)
         {
             if (query.Graph is not null)
             {
@@ -817,7 +814,7 @@ namespace Zerra.Repository
 
             return model;
         }
-        private async Task<object?> QueryEventSingleAsync(Query query)
+        private async Task<EventModel<TModel>?> QueryEventSingleAsync(Query query)
         {
             if (query.Graph is not null)
             {
@@ -836,13 +833,13 @@ namespace Zerra.Repository
 
             return model;
         }
-        private async Task<object?> QueryEventCountAsync(Query query)
+        private Task<long> QueryEventCountAsync(Query query)
         {
-            return await EventCountAsync(query);
+            return EventCountAsync(query);
         }
-        private async Task<object?> QueryEventAnyAsync(Query query)
+        private Task<bool> QueryEventAnyAsync(Query query)
         {
-            return await EventAnyAsync(query);
+            return EventAnyAsync(query);
         }
 
         /// <summary>Queries and returns multiple models matching the given query.</summary>
@@ -861,13 +858,13 @@ namespace Zerra.Repository
         /// <param name="query">The query parameters.</param>
         /// <returns>The count of matching models.</returns>
         protected abstract long Count(Query query);
-        /// <summary>Calculates a count per group, or a sum, average, minimum, or maximum over all matching models or per group.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.GroupBy"/> and <see cref="Query.Value"/>.</param>
-        /// <returns>The boxed result, or the <c>(object? Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
+        /// <summary>Calculates a sum, average, minimum, maximum, or count of different values over all matching models.</summary>
+        /// <param name="query">The query parameters, with <see cref="Query.Value"/>.</param>
+        /// <returns>The boxed result, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
         protected abstract object? Calculate(Query query);
-        /// <summary>Builds a result from each matching model, or from each group of them, with the query's projection.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.Select"/>, and for groups <see cref="Query.GroupBy"/> and <see cref="Query.Having"/>.</param>
-        /// <returns>The results as <c>IReadOnlyList&lt;object&gt;</c>, as <see cref="ITransactStoreEngine.ExecuteSelect{TModel}"/> describes.</returns>
+        /// <summary>Runs a query whose results are built as a type other than the model: a projection of each model or group, the different values of a member, or a calculation per group. The query carries the result types and runs itself with <see cref="Query.Execute(ITransactStoreEngine, ModelDetail)"/> on an engine or <see cref="Query.Execute(IEnumerable{object})"/> over loaded models.</summary>
+        /// <param name="query">The query parameters, with <see cref="Query.Select"/> or <see cref="Query.GroupBy"/>.</param>
+        /// <returns>The results.</returns>
         protected abstract object? Project(Query query);
         /// <summary>Returns whether any model exists matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
@@ -910,13 +907,13 @@ namespace Zerra.Repository
         /// <param name="query">The query parameters.</param>
         /// <returns>A task containing the count of matching models.</returns>
         protected abstract Task<long> CountAsync(Query query);
-        /// <summary>Asynchronously calculates a count per group, or a sum, average, minimum, or maximum over all matching models or per group.</summary>
+        /// <summary>Asynchronously calculates a sum, average, minimum, maximum, or count of different values over all matching models.</summary>
         /// <param name="query">The query parameters, with <see cref="Query.GroupBy"/> and <see cref="Query.Value"/>.</param>
-        /// <returns>A task containing the boxed result, or the <c>(object? Key, object? Value)</c> rows per group, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
+        /// <returns>A task containing the boxed result, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
         protected abstract Task<object?> CalculateAsync(Query query);
-        /// <summary>Asynchronously builds a result from each matching model, or from each group of them, with the query's projection.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.Select"/>, and for groups <see cref="Query.GroupBy"/> and <see cref="Query.Having"/>.</param>
-        /// <returns>A task containing the results as <c>IReadOnlyList&lt;object&gt;</c>, as <see cref="ITransactStoreEngine.ExecuteSelect{TModel}"/> describes.</returns>
+        /// <summary>Asynchronously runs a query whose results are built as a type other than the model: a projection of each model or group, the different values of a member, or a calculation per group. The query carries the result types and runs itself with <see cref="Query.ExecuteAsync(ITransactStoreEngine, ModelDetail)"/> on an engine or <see cref="Query.Execute(IEnumerable{object})"/> over loaded models.</summary>
+        /// <param name="query">The query parameters, with <see cref="Query.Select"/> or <see cref="Query.GroupBy"/>.</param>
+        /// <returns>A task containing the results.</returns>
         protected abstract Task<object?> ProjectAsync(Query query);
         /// <summary>Asynchronously returns whether any model exists matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
@@ -1023,6 +1020,31 @@ namespace Zerra.Repository
         }
         private void Update(Persist persist)
         {
+            if (persist.Set is not null)
+            {
+                if (persist.Where is null)
+                    throw new ArgumentException($"An update of {ModelTypeDetail.Name} to computed values needs a condition");
+                if (persist.Set.Body is not MemberInitExpression set)
+                    throw new ArgumentException($"An update of {ModelTypeDetail.Name} by condition computes its values with x => new {ModelTypeDetail.Name} {{ Member = ..., ... }}");
+                if (set.Bindings.Count == 0)
+                    throw new ArgumentException($"An update of {ModelTypeDetail.Name} by condition needs a member to set");
+                foreach (var binding in set.Bindings)
+                {
+                    var member = ModelTypeDetail.GetMember(binding.Member.Name);
+                    if (member.IsIdentity)
+                        throw new ArgumentException($"An update of {ModelTypeDetail.Name} by condition cannot set the identity {member.Name}");
+                    if (member.IsRelated)
+                        throw new ArgumentException($"An update of {ModelTypeDetail.Name} by condition cannot set the relation {member.Name}");
+                }
+                foreach (var related in ModelTypeDetail.RelatedMembers)
+                {
+                    if (LinqMemberFinder.ReadsMember(persist.Set, [related.MemberDetail]))
+                        throw new NotSupportedException($"An update of {ModelTypeDetail.Name} by condition computes its values from the model's own members, not from {related.Name}");
+                }
+
+                persist.RowsAffected = UpdateModelsWhere(persist.Event, persist.Where, persist.Set);
+                return;
+            }
             if (persist.Where is not null)
             {
                 if (persist.Models is null || persist.Models.Length != 1)
@@ -1132,6 +1154,31 @@ namespace Zerra.Repository
         }
         private async Task UpdateAsync(Persist persist)
         {
+            if (persist.Set is not null)
+            {
+                if (persist.Where is null)
+                    throw new ArgumentException($"An update of {ModelTypeDetail.Name} to computed values needs a condition");
+                if (persist.Set.Body is not MemberInitExpression set)
+                    throw new ArgumentException($"An update of {ModelTypeDetail.Name} by condition computes its values with x => new {ModelTypeDetail.Name} {{ Member = ..., ... }}");
+                if (set.Bindings.Count == 0)
+                    throw new ArgumentException($"An update of {ModelTypeDetail.Name} by condition needs a member to set");
+                foreach (var binding in set.Bindings)
+                {
+                    var member = ModelTypeDetail.GetMember(binding.Member.Name);
+                    if (member.IsIdentity)
+                        throw new ArgumentException($"An update of {ModelTypeDetail.Name} by condition cannot set the identity {member.Name}");
+                    if (member.IsRelated)
+                        throw new ArgumentException($"An update of {ModelTypeDetail.Name} by condition cannot set the relation {member.Name}");
+                }
+                foreach (var related in ModelTypeDetail.RelatedMembers)
+                {
+                    if (LinqMemberFinder.ReadsMember(persist.Set, [related.MemberDetail]))
+                        throw new NotSupportedException($"An update of {ModelTypeDetail.Name} by condition computes its values from the model's own members, not from {related.Name}");
+                }
+
+                persist.RowsAffected = await UpdateModelsWhereAsync(persist.Event, persist.Where, persist.Set);
+                return;
+            }
             if (persist.Where is not null)
             {
                 if (persist.Models is null || persist.Models.Length != 1)
@@ -1710,6 +1757,12 @@ namespace Zerra.Repository
         /// <param name="graph">The members to set, never empty and never an identity or relation.</param>
         /// <returns>How many models were updated.</returns>
         protected abstract int UpdateModelsWhere(PersistEvent @event, LambdaExpression where, object model, Graph graph);
+        /// <summary>Sets members on every model matching the condition to values computed from each one, without loading them.</summary>
+        /// <param name="event">The persist event.</param>
+        /// <param name="where">The condition selecting the models.</param>
+        /// <param name="set">The members to set and their values in terms of the model, as a projection of the model to itself; never an identity or relation, and reading only the model's own members.</param>
+        /// <returns>How many models were updated.</returns>
+        protected abstract int UpdateModelsWhere(PersistEvent @event, LambdaExpression where, LambdaExpression set);
         /// <summary>Deletes every model matching the condition, without loading them.</summary>
         /// <param name="event">The persist event.</param>
         /// <param name="where">The condition selecting the models.</param>
@@ -1735,6 +1788,12 @@ namespace Zerra.Repository
         /// <param name="graph">The members to set, never empty and never an identity or relation.</param>
         /// <returns>A task containing how many models were updated.</returns>
         protected abstract Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, object model, Graph graph);
+        /// <summary>Asynchronously sets members on every model matching the condition to values computed from each one, without loading them.</summary>
+        /// <param name="event">The persist event.</param>
+        /// <param name="where">The condition selecting the models.</param>
+        /// <param name="set">The members to set and their values in terms of the model, as a projection of the model to itself; never an identity or relation, and reading only the model's own members.</param>
+        /// <returns>A task containing how many models were updated.</returns>
+        protected abstract Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, LambdaExpression set);
         /// <summary>Asynchronously deletes every model matching the condition, without loading them.</summary>
         /// <param name="event">The persist event.</param>
         /// <param name="where">The condition selecting the models.</param>

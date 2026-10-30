@@ -18,12 +18,7 @@ namespace Zerra.Repository
         /// <returns>The different values, in no particular order.</returns>
         IReadOnlyCollection<TValue> Distinct<TModel, TValue>(Expression<Func<TModel, TValue>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<object?>)Query(new Query<TModel>(QueryOperation.Distinct, where, value, null))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TValue>(value);
-            var values = new TValue[rows.Count];
-            for (var i = 0; i < values.Length; i++)
-                values[i] = buildKey(rows[i]);
-            return values;
+            return (IReadOnlyCollection<TValue>)Query(new DistinctQuery<TModel, TValue>(where, value))!;
         }
 
         /// <summary>
@@ -36,12 +31,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The different values, in no particular order.</returns>
         async Task<IReadOnlyCollection<TValue>> DistinctAsync<TModel, TValue>(Expression<Func<TModel, TValue>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<object?>)(await QueryAsync(new Query<TModel>(QueryOperation.Distinct, where, value, null)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TValue>(value);
-            var values = new TValue[rows.Count];
-            for (var i = 0; i < values.Length; i++)
-                values[i] = buildKey(rows[i]);
-            return values;
+            return (IReadOnlyCollection<TValue>)(await QueryAsync(new DistinctQuery<TModel, TValue>(where, value)))!;
         }
     }
 }

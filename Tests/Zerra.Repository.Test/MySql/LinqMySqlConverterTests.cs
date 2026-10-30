@@ -21,8 +21,14 @@ namespace Zerra.Repository.Test.MySql
         protected override string ConvertPersistWhereToSql(LambdaExpression where, ModelDetail modelDetail)
             => Zerra.Repository.MySql.LinqMySqlConverter.ConvertPersistWhere(where, modelDetail);
 
+        protected override string ConvertPersistUpdateToSql(ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail)
+            => Zerra.Repository.MySql.LinqMySqlConverter.ConvertPersistUpdate(sets, where, modelDetail);
+
         protected override string ConvertSelectToSql(ProjectionMember[] members, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail)
             => Zerra.Repository.MySql.LinqMySqlConverter.ConvertSelect(members, where, order, skip, take, modelDetail);
+
+        protected override string ConvertSelectElementsToSql(ProjectionMember collection, LambdaExpression where, ModelDetail relatedDetail)
+            => Zerra.Repository.MySql.LinqMySqlConverter.ConvertSelectElements(collection, where, relatedDetail);
 
         protected override string ConvertGroupToSql(LambdaExpression groupBy, ProjectionMember[] members, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, Type resultType)
             => Zerra.Repository.MySql.LinqMySqlConverter.ConvertGroup(groupBy, members, where, having, order, skip, take, modelDetail, resultType);

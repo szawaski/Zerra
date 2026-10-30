@@ -69,28 +69,44 @@ namespace Zerra.Repository.Memory
         }
 
         /// <inheritdoc/>
-        public object? ExecuteCalculation<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
+        public object? ExecuteCalculation<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
-            return whereQuery.Calculate(operation, groupBy, value, caseSensitive);
+            return whereQuery.Calculate(operation, value, caseSensitive);
         }
         /// <inheritdoc/>
-        public IReadOnlyList<object> ExecuteSelect<TModel>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        public IReadOnlyCollection<(TKey Key, TValue Value)> ExecuteCalculationGroups<TModel, TKey, TValue>(QueryOperation operation, LambdaExpression? where, LambdaExpression groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
+            return whereQuery.CalculateGroups<TModel, TKey, TValue>(operation, groupBy, value, caseSensitive);
+        }
+        /// <inheritdoc/>
+        public IReadOnlyCollection<TValue> ExecuteDistinct<TModel, TValue>(LambdaExpression value, LambdaExpression? where, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
+            return whereQuery.Distinct<TModel, TValue>(value, caseSensitive);
+        }
+        /// <inheritdoc/>
+        public IReadOnlyCollection<TResult> ExecuteSelect<TModel, TResult>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            return whereQuery.Select(select, caseSensitive);
+            return whereQuery.Select<TModel, TResult>(select, caseSensitive);
         }
         /// <inheritdoc/>
-        public IReadOnlyList<object> ExecuteGroup<TModel>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        public IReadOnlyCollection<TResult> ExecuteGroup<TModel, TResult>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
-            return whereQuery.Group(groupBy, select, having, order, skip, take, caseSensitive);
+            return whereQuery.Group<TModel, TResult>(groupBy, select, having, order, skip, take, caseSensitive);
         }
         /// <inheritdoc/>
         public Task<IReadOnlyCollection<TModel>> ExecuteManyAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
@@ -143,28 +159,44 @@ namespace Zerra.Repository.Memory
         }
 
         /// <inheritdoc/>
-        public Task<object?> ExecuteCalculationAsync<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
+        public Task<object?> ExecuteCalculationAsync<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
-            return Task.FromResult(whereQuery.Calculate(operation, groupBy, value, caseSensitive));
+            return Task.FromResult<object?>(whereQuery.Calculate(operation, value, caseSensitive));
         }
         /// <inheritdoc/>
-        public Task<IReadOnlyList<object>> ExecuteSelectAsync<TModel>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        public Task<IReadOnlyCollection<(TKey Key, TValue Value)>> ExecuteCalculationGroupsAsync<TModel, TKey, TValue>(QueryOperation operation, LambdaExpression? where, LambdaExpression groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
+            return Task.FromResult<IReadOnlyCollection<(TKey Key, TValue Value)>>(whereQuery.CalculateGroups<TModel, TKey, TValue>(operation, groupBy, value, caseSensitive));
+        }
+        /// <inheritdoc/>
+        public Task<IReadOnlyCollection<TValue>> ExecuteDistinctAsync<TModel, TValue>(LambdaExpression value, LambdaExpression? where, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
+            return Task.FromResult<IReadOnlyCollection<TValue>>(whereQuery.Distinct<TModel, TValue>(value, caseSensitive));
+        }
+        /// <inheritdoc/>
+        public Task<IReadOnlyCollection<TResult>> ExecuteSelectAsync<TModel, TResult>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            return Task.FromResult<IReadOnlyList<object>>(whereQuery.Select(select, caseSensitive));
+            return Task.FromResult<IReadOnlyCollection<TResult>>(whereQuery.Select<TModel, TResult>(select, caseSensitive));
         }
         /// <inheritdoc/>
-        public Task<IReadOnlyList<object>> ExecuteGroupAsync<TModel>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        public Task<IReadOnlyCollection<TResult>> ExecuteGroupAsync<TModel, TResult>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
-            return Task.FromResult<IReadOnlyList<object>>(whereQuery.Group(groupBy, select, having, order, skip, take, caseSensitive));
+            return Task.FromResult<IReadOnlyCollection<TResult>>(whereQuery.Group<TModel, TResult>(groupBy, select, having, order, skip, take, caseSensitive));
         }
         /// <inheritdoc/>
         public object ExecuteInsertGetIdentities<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
@@ -263,6 +295,33 @@ namespace Zerra.Repository.Memory
             foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
             {
                 model.MapTo(existing, localGraph);
+                MapRelated(existing, modelDetail, false);
+                count++;
+            }
+            return count;
+        }
+        /// <inheritdoc/>
+        public int ExecuteUpdateWhere<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var sets = set.GetProjectionMembers(null);
+            var getters = new Func<TModel, object?>[sets.Length];
+            var members = new ModelMemberDetail[sets.Length];
+            for (var i = 0; i < sets.Length; i++)
+            {
+                getters[i] = CalculationCommon.CompileBoxed<TModel>(sets[i].Expression!, sets[i].Parameter!, caseSensitive);
+                members[i] = modelDetail.GetMember(sets[i].MemberDetail.Name);
+            }
+            var values = new object?[sets.Length];
+            var count = 0;
+            foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
+            {
+                //every value is computed from the model as it was, as a database computes them from the row
+                for (var i = 0; i < values.Length; i++)
+                    values[i] = getters[i](existing);
+                for (var i = 0; i < values.Length; i++)
+                    members[i].SetterBoxed(existing, values[i]);
                 MapRelated(existing, modelDetail, false);
                 count++;
             }
@@ -377,6 +436,33 @@ namespace Zerra.Repository.Memory
             foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
             {
                 model.MapTo(existing, localGraph);
+                MapRelated(existing, modelDetail, false);
+                count++;
+            }
+            return Task.FromResult(count);
+        }
+        /// <inheritdoc/>
+        public Task<int> ExecuteUpdateWhereAsync<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
+            var sets = set.GetProjectionMembers(null);
+            var getters = new Func<TModel, object?>[sets.Length];
+            var members = new ModelMemberDetail[sets.Length];
+            for (var i = 0; i < sets.Length; i++)
+            {
+                getters[i] = CalculationCommon.CompileBoxed<TModel>(sets[i].Expression!, sets[i].Parameter!, caseSensitive);
+                members[i] = modelDetail.GetMember(sets[i].MemberDetail.Name);
+            }
+            var values = new object?[sets.Length];
+            var count = 0;
+            foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
+            {
+                //every value is computed from the model as it was, as a database computes them from the row
+                for (var i = 0; i < values.Length; i++)
+                    values[i] = getters[i](existing);
+                for (var i = 0; i < values.Length; i++)
+                    members[i].SetterBoxed(existing, values[i]);
                 MapRelated(existing, modelDetail, false);
                 count++;
             }

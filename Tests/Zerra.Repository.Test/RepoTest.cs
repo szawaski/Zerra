@@ -142,6 +142,12 @@ namespace Zerra.Repository.Test
             Assert.Equal("before", after.Single(x => x.Int32Thing == 101).StringThing);
             Assert.All(after.Where(x => x.Int32Thing > 101), x => Assert.Equal("bulk", x.StringThing));
 
+            //values computed from each row in the store
+            Assert.Equal(2, repo.Update<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 101, x => new TestTypesModel { Int32Thing = x.Int32Thing + 10, StringThing = x.StringThing + "+" }));
+            after = repo.Many<TestTypesModel>(x => keys.Contains(x.KeyA));
+            Assert.Equal([101, 112, 113], after.Select(x => x.Int32Thing).OrderBy(x => x));
+            Assert.Equal(2, after.Count(x => x.StringThing == "bulk+"));
+
             //nothing matching is zero, not an error
             Assert.Equal(0, repo.Update<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 1000, new TestTypesModel { StringThing = "none" }, new Graph<TestTypesModel>(x => x.StringThing)));
             Assert.Equal(0, repo.Delete<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 1000));
@@ -314,6 +320,9 @@ namespace Zerra.Repository.Test
             var after = await repo.ManyAsync<TestTypesModel>(x => keys.Contains(x.KeyA));
             Assert.Equal("before", after.Single(x => x.Int32Thing == 201).StringThing);
             Assert.All(after.Where(x => x.Int32Thing > 201), x => Assert.Equal("bulk", x.StringThing));
+
+            Assert.Equal(2, await repo.UpdateAsync<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 201, x => new TestTypesModel { Int32Thing = x.Int32Thing + 10 }));
+            Assert.Equal([201, 212, 213], (await repo.ManyAsync<TestTypesModel>(x => keys.Contains(x.KeyA))).Select(x => x.Int32Thing).OrderBy(x => x));
 
             Assert.Equal(0, await repo.DeleteAsync<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 1000));
             Assert.Equal(3, await repo.DeleteAsync<TestTypesModel>(x => keys.Contains(x.KeyA) && x.RelationA.SomeValue == "where async"));

@@ -72,6 +72,12 @@ namespace Zerra.Repository.Test
                 return identities;
             }
             protected override void OnUpdateWhereComplete(LambdaExpression where, object model, Graph? graph, int rowsAffected) => Calls.Add($"updated {rowsAffected}");
+            protected override LambdaExpression OnUpdateWhere(LambdaExpression where, LambdaExpression set)
+            {
+                Calls.Add("update set");
+                return where;
+            }
+            protected override void OnUpdateWhereComplete(LambdaExpression where, LambdaExpression set, int rowsAffected) => Calls.Add($"updated {rowsAffected}");
             protected override void OnDeleteWhereComplete(LambdaExpression where, int rowsAffected) => Calls.Add($"deleted {rowsAffected}");
         }
 
@@ -99,6 +105,13 @@ namespace Zerra.Repository.Test
             raw.AddProvider(root);
             Assert.Equal([1, 3, 4], raw.Many<WhereModel>().OrderBy(x => x.Number).Select(x => x.Number));
             Assert.Equal(["start", "start", "even"], raw.Many<WhereModel>().OrderBy(x => x.Number).Select(x => x.Note));
+
+            //values computed from each model go through the same condition
+            rules.Calls.Clear();
+            Assert.Equal(1, repo.Update<WhereModel>(x => x.Number > 0, x => new WhereModel { Number = x.Number + 10, Note = x.Name + "!" }));
+            Assert.Equal(["update set", "updated 1"], rules.Calls);
+            Assert.Equal([1, 3, 14], raw.Many<WhereModel>().OrderBy(x => x.Number).Select(x => x.Number));
+            Assert.Equal("n4!", raw.Single<WhereModel>(x => x.Number == 14)!.Note);
         }
 
         private static readonly IEncryptor encryptor = new ZerraEncryptor("where-test", SymmetricAlgorithmType.AES_GCM);
@@ -131,6 +144,13 @@ namespace Zerra.Repository.Test
                 Assert.All(layered.Many<WhereModel>(x => x.Number > 2), x => Assert.Equal("secret note that is long enough to change", x.Note));
                 Assert.All(raw.Many<WhereModel>(x => x.Number > 2), x => Assert.NotEqual("secret note that is long enough to change", x.Note));
 
+                //values computed in the store can't read or set the transformed property, other members are fine
+                Assert.Equal(2, await layered.UpdateAsync<WhereModel>(x => x.Number > 2, x => new WhereModel { Number = x.Number + 10 }));
+                Assert.Equal([1, 2, 13, 14], raw.Many<WhereModel>().OrderBy(x => x.Number).Select(x => x.Number));
+                _ = Assert.Throws<NotSupportedException>(() => layered.Update<WhereModel>(x => x.Number > 2, x => new WhereModel { Note = x.Name }));
+                _ = Assert.Throws<NotSupportedException>(() => layered.Update<WhereModel>(x => x.Number > 2, x => new WhereModel { Name = x.Note }));
+                _ = await Assert.ThrowsAsync<NotSupportedException>(() => layered.UpdateAsync<WhereModel>(x => x.Note == "start", x => new WhereModel { Number = 1 }));
+
                 //a condition on the transformed property can't match what is stored, so it is refused
                 _ = Assert.Throws<NotSupportedException>(() => layered.Update<WhereModel>(x => x.Note == "start", new WhereModel { Note = "x" }, new Graph<WhereModel>(x => x.Note)));
                 _ = Assert.Throws<NotSupportedException>(() => layered.Delete<WhereModel>(x => x.Note == "start"));
@@ -159,6 +179,15 @@ namespace Zerra.Repository.Test
             Assert.True(history.Last().GraphChange!.HasMember(nameof(WhereModel.Note)));
             Assert.Equal("n4", history.Last().Model.Name);
 
+            //values computed from each model's current state
+            Assert.Equal(2, repo.Update<WhereModel>("Scaled", x => ids.Contains(x.ID) && x.Number > 2, x => new WhereModel { Number = x.Number * 2 }));
+            Assert.Equal([1, 2, 6, 8], models.Select(m => repo.Single<WhereModel>(x => x.ID == m.ID)!.Number));
+            history = repo.EventMany<WhereModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == models[3].ID);
+            Assert.Equal(3, history.Count);
+            Assert.Equal("Scaled", history.Last().EventName);
+            Assert.True(history.Last().GraphChange!.HasMember(nameof(WhereModel.Number)));
+            Assert.Equal("bulk", history.Last().Model.Note);
+
             Assert.Equal(1, await repo.DeleteAsync<WhereModel>(x => ids.Contains(x.ID) && x.Number == 1));
             Assert.Null(repo.Single<WhereModel>(x => x.ID == models[0].ID));
             Assert.Equal(3, ids.Count(id => repo.Any<WhereModel>(x => x.ID == id)));
@@ -184,6 +213,11 @@ namespace Zerra.Repository.Test
             Assert.Equal(4, repo.Single<WhereParent>(x => x.ID == parents[1].ID, new Graph<WhereParent>(true, x => x.Children))!.Children!.Length);
             Assert.Equal(2, repo.Delete<WhereModel>(x => x.Parent!.Name == "b" && x.Number > 2));
             Assert.Equal(2, repo.Single<WhereParent>(x => x.ID == parents[1].ID, new Graph<WhereParent>(true, x => x.Children))!.Children!.Length);
+
+            //values computed from the model, selected through a relation, and never from a relation
+            Assert.Equal(2, repo.Update<WhereModel>(x => x.Parent!.Name == "b", x => new WhereModel { Number = x.Number * 100 }));
+            Assert.Equal([100, 200], repo.Many<WhereModel>().OrderBy(x => x.Number).Select(x => x.Number));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Update<WhereModel>(x => x.Number > 0, x => new WhereModel { Name = x.Parent!.Name }));
         }
 
         private sealed class RecordingProvider : ITransactStoreProvider<WhereModel>
@@ -239,6 +273,21 @@ namespace Zerra.Repository.Test
             Assert.Equal("named", provider.Persist!.Event.Name);
             Assert.Equal(6, await repo.UpdateAsync(evt, where, values, graph));
             Assert.Same(evt, provider.Persist!.Event);
+
+            Expression<Func<WhereModel, WhereModel>> set = x => new WhereModel { Number = x.Number + 1 };
+            Assert.Equal(5, repo.Update(where, set));
+            Assert.Equal(PersistOperation.Update, provider.Persist!.Operation);
+            Assert.Same(where, provider.Persist.Where);
+            Assert.Same(set, provider.Persist.Set);
+            Assert.Null(provider.Persist.Models);
+            Assert.Null(provider.Persist.Graph);
+            Assert.Equal(6, await repo.UpdateAsync("named", source, where, set));
+            Assert.Equal("named", provider.Persist!.Event.Name);
+            Assert.Same(source, provider.Persist.Event.Source);
+            Assert.Equal(5, repo.Update(evt, where, set));
+            Assert.Same(evt, provider.Persist!.Event);
+            Assert.Equal(6, await repo.UpdateAsync("named", where, set));
+            Assert.Equal("named", provider.Persist!.Event.Name);
         }
 
         [Fact]
@@ -252,6 +301,13 @@ namespace Zerra.Repository.Test
             _ = Assert.Throws<ArgumentException>(() => repo.Update<WhereModel>(x => true, new WhereModel(), new Graph<WhereModel>(x => x.ID)));
             _ = Assert.Throws<ArgumentException>(() => repo.Update<WhereModel>(x => true, new WhereModel(), new Graph<WhereModel>(x => x.Parent)));
             Assert.Equal(4, repo.Update<WhereModel>(x => true, new WhereModel { Note = "all" }, new Graph<WhereModel>(x => x.Note)));
+
+            _ = Assert.Throws<ArgumentException>(() => repo.Update<WhereModel>(x => true, x => new WhereModel { ID = Guid.NewGuid() }));
+            _ = Assert.Throws<ArgumentException>(() => repo.Update<WhereModel>(x => true, x => new WhereModel { Parent = null }));
+            _ = Assert.Throws<ArgumentException>(() => repo.Update<WhereModel>(x => true, x => new WhereModel()));
+            _ = Assert.Throws<ArgumentException>(() => repo.Update<WhereModel>(x => true, x => x));
+            Assert.Equal(4, repo.Update<WhereModel>(x => true, x => new WhereModel { Number = x.Number + 1 }));
+            Assert.Equal([2, 3, 4, 5], repo.Many<WhereModel>().OrderBy(x => x.Number).Select(x => x.Number));
         }
     }
 }

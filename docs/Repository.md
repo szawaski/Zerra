@@ -189,6 +189,7 @@ var sales = await Repo.GroupAsync((OrderLineDataModel x) => x.ProductID,
 ```
 
 - In `Select`, each member takes what a `where` takes, related models included, and a `bool` member can be a condition such as `IsActive = x.Status == "Active"`. The `where`, `order`, and paging apply to the models.
+- A member can be the results built from the rows of a related collection: `Lines = x.Lines.Where(l => l.Quantity > 0).OrderBy(l => l.PlacedOn).Select(l => new LineRow { … }).ToArray()`, into an array, a `List<T>`, or a collection interface. The rows come from a second statement matched by the model's identity, so the paging of the models stands. A row's result is built from the row alone, which can't read the model, and can have collections of its own the same way, each read with a statement of its own, as long as no row's model repeats one above it, so a model with a collection of itself nests one level.
 - In `Group`, each member is the group's `Key`, a part of it such as `Key.CustomerID` for a key of several members, `Count()`, `Count(x => condition)`, `Select(x => x.Member).Distinct().Count()`, or `Sum`, `Average`, `Min`, or `Max` of a value. The `having`, `order`, and paging apply to the results, so `take` gives a top-N in the store.
 - Anonymous results aren't supported: the result is built through its members' setters, which also keeps it AOT safe. A member wider than its value, such as a `long` set to `Count()`, is fine.
 - The layers behave as for calculations: a rule's `WhereExpression` applies, an encryption or compression layer refuses a projection that reads one of its properties, and an event store projects each model's current state.
@@ -202,6 +203,7 @@ var sales = await Repo.GroupAsync((OrderLineDataModel x) => x.ProductID,
 | `Delete<T>(model)` | deletes |
 | `DeleteByID<T>(id)` | deletes by key |
 | `Update<T>(where, model, graph)` | sets the graph's members on every matching row without loading them, and returns how many |
+| `Update<T>(where, x => new T { … })` | sets members on every matching row to values computed from the row, such as `Price = x.Price * 1.1m`, and returns how many |
 | `Delete<T>(where)` | deletes every matching row without loading them, and returns how many |
 
 Every method has an `Async` version. Use the async ones in handlers. Pass collections to `Create`, `Update`, and `Delete` as arrays or with an explicit type argument, since a `List<T>` binds to the single-model overload.
@@ -212,14 +214,16 @@ An update or delete by condition is one statement in the database, so nothing is
 
 ```csharp
 int archived = await Repo.UpdateAsync<OrderDataModel>(x => x.PlacedOn < cutoff && x.Status == "Closed", new OrderDataModel { Status = "Archived" }, new Graph<OrderDataModel>(x => x.Status));
+int repriced = await Repo.UpdateAsync<ProductDataModel>(x => x.CategoryID == categoryID, x => new ProductDataModel { Price = x.Price * 1.1m, UpdatedOn = DateTime.UtcNow });
 int removed  = await Repo.DeleteAsync<OrderLineDataModel>(x => x.OrderID == orderID);
 ```
 
 - The graph says which members take the model's values, so it is required and can't name the identity or a relation. The other members of the model are ignored.
+- A computed update sets each member from the row as the database reads it, so `Total = x.Price * x.Quantity` is one statement. A value takes what a `where` takes of the model's own members, not a relation, and can't set the identity or a relation.
 - Zero matching rows is a normal result of 0, not an error.
 - The condition takes what a `where` takes. One through a related model becomes a subquery selecting the identities, which needs a single identity.
 - A rule's `WhereExpression` is added to the condition. Rules see the condition in `OnUpdateWhere`/`OnDeleteWhere` instead of the rows in `OnUpdate`/`OnDelete`, since the rows aren't loaded.
-- An encryption or compression layer encrypts the values it sets and refuses a condition on one of its properties.
+- An encryption or compression layer encrypts the values it sets and refuses a condition on one of its properties, and refuses a computed update that reads or sets one.
 - Related models named in a persist graph aren't deleted along with the rows, as they are with `Delete(model, graph)`; delete them first with their own condition.
 - On an event store, the condition names the identities as every event store query does, and each matching stream gets the change as an event.
 
@@ -231,7 +235,7 @@ int removed  = await Repo.DeleteAsync<OrderLineDataModel>(x => x.OrderID == orde
 - **Strings:** `Contains`, `StartsWith`, `EndsWith` (wildcards in the text are matched literally, and a `StringComparison` ignoring case is honored), `Equals`, `string.IsNullOrEmpty`/`IsNullOrWhiteSpace`, `Length`, `ToUpper`/`ToLower`, `Trim`/`TrimStart`/`TrimEnd`, `Substring`, `IndexOf`, `Replace`, `string.Concat`, and `+`.
 - **Math:** `Math.Abs`/`Ceiling`/`Floor`/`Round`/`Pow`/`Sqrt`. SQL rounds midpoints away from zero.
 - **Dates and times:** parts such as `.Year`, `.Date`, and `.DayOfWeek` on `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, and `TimeSpan`, including `TotalHours` and the other totals.
-- **Related collections:** `Any`, `All`, `Count`/`LongCount`, and `Sum`/`Min`/`Max`/`Average` with a selector.
+- **Related collections:** `Any`, `All`, `Count`/`LongCount`, `Sum`/`Min`/`Max`/`Average` with a selector, and a member of one row picked with `First`, `FirstOrDefault`, `Single`, `Last`, or `ElementAt` after `Where`, `OrderBy`/`OrderByDescending`/`ThenBy`, and `Skip`, such as `x.Lines.OrderByDescending(l => l.PlacedOn).First().Status`. The row becomes a subquery of one row, so `Single` takes the first and `Last` needs an order. A row that isn't there reads as null, in memory too, so a comparison with it is false and `!=` is true as with a null column. The row's own relations can be read as well, except one back to the queried model.
 
 Anything that doesn't use the model, such as `DateTime.Now.Date`, is evaluated before the query. Comparisons with null columns give the same results as C#, so `x.Maybe != 4` includes rows where `Maybe` is null on every engine. Case sensitivity of `==`, `Contains`, `StartsWith`, and `EndsWith` follows the database collation, and `Trim`/`IsNullOrWhiteSpace` only trim spaces.
 

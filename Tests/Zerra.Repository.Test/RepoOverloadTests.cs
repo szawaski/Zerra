@@ -30,6 +30,8 @@ namespace Zerra.Repository.Test
             private object? Result(Query query)
             {
                 Query = query;
+                if (query.Select is not null || query.GroupBy is not null)
+                    return query.Execute(Array.Empty<Model>());
                 return query.Operation switch
                 {
                     QueryOperation.Many => Array.Empty<Model>(),

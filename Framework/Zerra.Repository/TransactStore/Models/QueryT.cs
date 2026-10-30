@@ -22,6 +22,15 @@ namespace Zerra.Repository
         }
 
         /// <summary>
+        /// Initializes a new strongly-typed query as a deep copy of an existing query of this model.
+        /// </summary>
+        /// <param name="query">The query to copy.</param>
+        public Query(Query query)
+            : base(query)
+        {
+        }
+
+        /// <summary>
         /// Initializes a standard (non-temporal) query with full parameters.
         /// </summary>
         /// <param name="operation">The query operation type.</param>

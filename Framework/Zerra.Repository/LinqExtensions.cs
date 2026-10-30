@@ -2,8 +2,11 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
 using System.Linq.Expressions;
+using Zerra.Linq;
 using Zerra.Reflection;
+using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
@@ -201,28 +204,41 @@ namespace Zerra.Repository
         /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
         /// <param name="source">The sequence to calculate over, already filtered.</param>
         /// <param name="operation">The calculation.</param>
-        /// <param name="groupBy">The group key expression, or <see langword="null"/> to calculate over the whole sequence.</param>
+        /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
+        /// <param name="caseSensitive">Indicates if string comparisons should be case sensitive.</param>
+        /// <returns>The boxed result, as <see cref="CalculationCommon"/> describes.</returns>
+        public static object? Calculate<TSource>(this IEnumerable<TSource> source, QueryOperation operation, LambdaExpression? value, bool caseSensitive = false)
+            where TSource : class, new()
+        {
+            var getValue = value is null ? null : CalculationCommon.CompileBoxed<TSource>(value.Body, value.Parameters[0], caseSensitive);
+            var values = new List<object?>();
+            foreach (var model in source)
+                values.Add(getValue is null ? null : getValue(model));
+            return CalculationCommon.Aggregate(operation, values, value?.ReturnType ?? typeof(long));
+        }
+
+        /// <summary>
+        /// Calculates per group of a sequence, the way the memory engine and the event store do, with the same empty and null rules as LINQ.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
+        /// <typeparam name="TKey">The group key type.</typeparam>
+        /// <typeparam name="TValue">The calculated value type.</typeparam>
+        /// <param name="source">The sequence to calculate over, already filtered.</param>
+        /// <param name="operation">The calculation.</param>
+        /// <param name="groupBy">The group key expression.</param>
         /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
         /// <param name="caseSensitive">Indicates if string keys that differ only in case are different groups.</param>
-        /// <returns>The boxed result, the rows of keys and results per group, or the keys alone for <see cref="QueryOperation.Distinct"/>, as <see cref="CalculationCommon"/> describes.</returns>
-        public static object? Calculate<TSource>(this IEnumerable<TSource> source, QueryOperation operation, LambdaExpression? groupBy, LambdaExpression? value, bool caseSensitive = false)
+        /// <returns>The key and value of each group.</returns>
+        public static IReadOnlyCollection<(TKey Key, TValue Value)> CalculateGroups<TSource, TKey, TValue>(this IEnumerable<TSource> source, QueryOperation operation, LambdaExpression groupBy, LambdaExpression? value, bool caseSensitive = false)
             where TSource : class, new()
         {
             var getValue = value is null ? null : CalculationCommon.CompileBoxed<TSource>(value.Body, value.Parameters[0], caseSensitive);
             var valueType = value?.ReturnType ?? typeof(long);
-
-            if (groupBy is null)
-            {
-                var values = new List<object?>();
-                foreach (var model in source)
-                    values.Add(getValue is null ? null : getValue(model));
-                return CalculationCommon.Aggregate(operation, values, valueType);
-            }
-
             var parts = CalculationCommon.GetKeyParts(groupBy);
             var getParts = new Func<TSource, object?>[parts.Length];
             for (var i = 0; i < parts.Length; i++)
                 getParts[i] = CalculationCommon.CompileBoxed<TSource>(parts[i], groupBy.Parameters[0], caseSensitive);
+            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
 
             var groups = new Dictionary<object?[], List<object?>>(new CalculationCommon.KeyComparer(caseSensitive));
             var keys = new List<object?[]>();
@@ -241,20 +257,44 @@ namespace Zerra.Repository
             }
 
             //a key of one member is its value, a key of several is its parts
-            if (operation == QueryOperation.Distinct)
-            {
-                if (parts.Length > 1)
-                    return keys;
-                var singles = new object?[keys.Count];
-                for (var i = 0; i < singles.Length; i++)
-                    singles[i] = keys[i][0];
-                return singles;
-            }
-
-            var rows = new (object? Key, object? Value)[keys.Count];
+            var rows = new (TKey Key, TValue Value)[keys.Count];
             for (var i = 0; i < rows.Length; i++)
-                rows[i] = (parts.Length == 1 ? keys[i][0] : keys[i], CalculationCommon.Aggregate(operation, groups[keys[i]], valueType));
+            {
+                var aggregate = CalculationCommon.Aggregate(operation, groups[keys[i]], valueType);
+                rows[i] = (buildKey(parts.Length == 1 ? keys[i][0] : keys[i]), aggregate is null ? default! : (TValue)aggregate);
+            }
             return rows;
+        }
+
+        /// <summary>
+        /// Returns the different values of an expression over a sequence, the way the memory engine and the event store do.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
+        /// <typeparam name="TValue">The value type.</typeparam>
+        /// <param name="source">The sequence, already filtered.</param>
+        /// <param name="value">The value expression, a member or an anonymous object of several.</param>
+        /// <param name="caseSensitive">Indicates if string values that differ only in case are different values.</param>
+        /// <returns>The different values.</returns>
+        public static IReadOnlyCollection<TValue> Distinct<TSource, TValue>(this IEnumerable<TSource> source, LambdaExpression value, bool caseSensitive = false)
+            where TSource : class, new()
+        {
+            var parts = CalculationCommon.GetKeyParts(value);
+            var getParts = new Func<TSource, object?>[parts.Length];
+            for (var i = 0; i < parts.Length; i++)
+                getParts[i] = CalculationCommon.CompileBoxed<TSource>(parts[i], value.Parameters[0], caseSensitive);
+            var buildKey = CalculationCommon.GetKeyBuilder<TValue>(value);
+
+            var seen = new HashSet<object?[]>(new CalculationCommon.KeyComparer(caseSensitive));
+            var values = new List<TValue>();
+            foreach (var model in source)
+            {
+                var key = new object?[parts.Length];
+                for (var i = 0; i < key.Length; i++)
+                    key[i] = getParts[i](model);
+                if (seen.Add(key))
+                    values.Add(buildKey(parts.Length == 1 ? key[0] : key));
+            }
+            return values;
         }
 
         /// <summary>
@@ -264,7 +304,9 @@ namespace Zerra.Repository
         /// <param name="select">The projection.</param>
         /// <param name="groupBy">The group key expression for a projection of groups, otherwise <see langword="null"/>.</param>
         /// <returns>The members in the order the projection sets them.</returns>
-        public static ProjectionMember[] GetProjectionMembers(this LambdaExpression select, LambdaExpression? groupBy)
+        public static ProjectionMember[] GetProjectionMembers(this LambdaExpression select, LambdaExpression? groupBy) => ReadProjectionMembers(select, groupBy, Type.EmptyTypes);
+        //path is the row models above this one, so a collection within a row whose rows repeat one of them is refused rather than followed round and round; a model with a collection of itself nests one level
+        private static ProjectionMember[] ReadProjectionMembers(LambdaExpression select, LambdaExpression? groupBy, Type[] path)
         {
             if (select.Body is not MemberInitExpression init)
                 throw new NotSupportedException($"A projection builds its result with new {select.ReturnType.Name} {{ Member = ..., ... }}");
@@ -286,6 +328,61 @@ namespace Zerra.Repository
 
                 if (keyParts is null)
                 {
+                    //the results built from the rows of a related collection, after the calls that filter and order them, as an array or a list; a row's result can have collections of its own
+                    var collectionCall = expression;
+                    if (collectionCall is MethodCallExpression { Method.Name: "ToArray" or "ToList" } wrap && wrap.Method.DeclaringType == typeof(Enumerable) && wrap.Arguments.Count == 1)
+                        collectionCall = wrap.Arguments[0];
+                    if (collectionCall is MethodCallExpression { Method.Name: "Select" } selectCall && selectCall.Method.DeclaringType == typeof(Enumerable) && selectCall.Arguments.Count == 2)
+                    {
+                        LambdaExpression? where = null;
+                        var orders = new List<OrderExpression>();
+                        var source = selectCall.Arguments[0];
+                        while (source is MethodCallExpression chain && chain.Method.DeclaringType == typeof(Enumerable) && chain.Arguments.Count == 2)
+                        {
+                            var argument = chain.Arguments[1];
+                            if (argument.NodeType == ExpressionType.Quote)
+                                argument = ((UnaryExpression)argument).Operand;
+                            if (argument is not LambdaExpression lambda)
+                                throw new NotSupportedException($"{select.ReturnType.Name}.{member.Name}: {chain.Method.Name} before the Select of a related collection takes a lambda");
+                            if (ParameterFinder.Uses(lambda.Body, parameter))
+                                throw new NotSupportedException($"{select.ReturnType.Name}.{member.Name}: the rows of a related collection are filtered and ordered by themselves alone, not by the model");
+                            switch (chain.Method.Name)
+                            {
+                                case "Where":
+                                    where = where is null ? lambda : Expression.Lambda(lambda.Type, Expression.AndAlso(lambda.Body, LinqRebinder.RebindExpression(where.Body, where.Parameters[0], lambda.Parameters[0])), lambda.Parameters);
+                                    break;
+                                case "OrderBy":
+                                case "ThenBy":
+                                    orders.Insert(0, new ProjectionOrderExpression(lambda, false));
+                                    break;
+                                case "OrderByDescending":
+                                case "ThenByDescending":
+                                    orders.Insert(0, new ProjectionOrderExpression(lambda, true));
+                                    break;
+                                default:
+                                    throw new NotSupportedException($"{select.ReturnType.Name}.{member.Name}: {chain.Method.Name} before the Select of a related collection is not supported, filter the rows with Where and sort them with OrderBy");
+                            }
+                            source = chain.Arguments[0];
+                        }
+                        if (source is not MemberExpression relationMember || relationMember.Expression != parameter || !ModelAnalyzer.GetModel(parameter.Type).TryGetProperty(relationMember.Member.Name, out var relation) || !relation.IsRelated || !relation.IsEnumerable)
+                            throw new NotSupportedException($"{select.ReturnType.Name}.{member.Name}: results are built from a related collection of the model, such as x.Lines.Select(l => new LineResult {{ .. }})");
+                        var selectorArgument = selectCall.Arguments[1];
+                        if (selectorArgument.NodeType == ExpressionType.Quote)
+                            selectorArgument = ((UnaryExpression)selectorArgument).Operand;
+                        if (selectorArgument is not LambdaExpression selector)
+                            throw new NotSupportedException($"{select.ReturnType.Name}.{member.Name}: the Select of a related collection takes a lambda building a result from each row");
+                        if (ParameterFinder.Uses(selector.Body, parameter))
+                            throw new NotSupportedException($"{select.ReturnType.Name}.{member.Name}: the result of a related row is built from the row alone, not from the model");
+                        var rowType = relation.ActualType;
+                        if (Array.IndexOf(path, rowType) >= 0)
+                            throw new NotSupportedException($"{select.ReturnType.Name}.{member.Name}: the rows of {rowType.Name} lead back to a model already projected above them");
+                        var elementType = selector.ReturnType;
+                        var memberTypeDetail = TypeAnalyzer.GetTypeDetail(member.Type);
+                        if (member.Type.IsArray ? member.Type.GetElementType() != elementType : memberTypeDetail.InnerType != elementType || !(memberTypeDetail.IsListGeneric || memberTypeDetail.IsIEnumerableGeneric || memberTypeDetail.IsICollectionGeneric || memberTypeDetail.IsIListGeneric || memberTypeDetail.IsIReadOnlyCollectionGeneric || memberTypeDetail.IsIReadOnlyListGeneric))
+                            throw new NotSupportedException($"{select.ReturnType.Name}.{member.Name} takes {elementType.Name}[], List<{elementType.Name}>, or a collection interface of it");
+                        members[i] = new ProjectionMember(member, selectCall.Arguments[0], parameter, elementType, ReadProjectionMembers(selector, null, [.. path, rowType]), relation, where, orders.Count == 0 ? null : new ProjectionOrder(orders.ToArray()));
+                        continue;
+                    }
                     members[i] = new ProjectionMember(member, ProjectionMemberKind.Value, expression, parameter, 0, expression.Type);
                     continue;
                 }
@@ -396,40 +493,105 @@ namespace Zerra.Repository
         /// Projects each element of a sequence, the way the memory engine and the event store do.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
+        /// <typeparam name="TResult">The projection's result type.</typeparam>
         /// <param name="source">The sequence to project, already filtered, ordered, and paged.</param>
         /// <param name="select">The projection, <c>new TResult { Member = ..., ... }</c>.</param>
         /// <param name="caseSensitive">Indicates if string comparisons should be case sensitive.</param>
         /// <returns>The results.</returns>
-        public static IReadOnlyList<object> Select<TSource>(this IEnumerable<TSource> source, LambdaExpression select, bool caseSensitive = false)
+        public static IReadOnlyCollection<TResult> Select<TSource, TResult>(this IEnumerable<TSource> source, LambdaExpression select, bool caseSensitive = false)
             where TSource : class, new()
         {
             var members = select.GetProjectionMembers(null);
-            var resultDetail = TypeAnalyzer.GetTypeDetail(select.ReturnType);
+            var resultDetail = TypeAnalyzer<TResult>.GetTypeDetail();
             var getters = new Func<TSource, object?>[members.Length];
+            //a collection member reads the related rows filtered and ordered, and builds a result from each with its own getters, and so on for the collections within each row
+            CollectionBuilder?[]? collections = null;
             for (var i = 0; i < getters.Length; i++)
+            {
                 getters[i] = CalculationCommon.CompileBoxed<TSource>(members[i].Expression!, members[i].Parameter!, caseSensitive);
+                if (members[i].Kind != ProjectionMemberKind.Collection)
+                    continue;
+                collections ??= new CollectionBuilder?[members.Length];
+                collections[i] = new CollectionBuilder(members[i], caseSensitive);
+            }
 
-            var results = new List<object>();
+            var results = new List<TResult>();
             foreach (var model in source)
             {
-                var result = resultDetail.CreatorBoxed!();
+                var result = resultDetail.Creator!();
                 for (var i = 0; i < members.Length; i++)
                 {
                     var value = getters[i](model);
+                    var memberDetail = members[i].MemberDetail;
+                    if (members[i].Kind == ProjectionMemberKind.Collection)
+                    {
+                        memberDetail.SetterBoxed!(result!, collections![i]!.Build(value));
+                        continue;
+                    }
                     if (value is null)
                         continue;
-                    var memberDetail = members[i].MemberDetail;
-                    memberDetail.SetterBoxed!(result, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                    memberDetail.SetterBoxed!(result!, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
                 }
                 results.Add(result);
             }
             return results;
+        }
+        //builds the results of a collection member from its related rows, already filtered and ordered, with the collections within each row built the same way
+        private sealed class CollectionBuilder
+        {
+            private readonly ProjectionMember collection;
+            private readonly ProjectionMember[] members;
+            private readonly Func<object, object?>[] getters;
+            private readonly CollectionBuilder?[]? collections;
+            private readonly TypeDetail rowDetail;
+            public CollectionBuilder(ProjectionMember collection, bool caseSensitive)
+            {
+                this.collection = collection;
+                this.members = collection.Members!;
+                this.getters = new Func<object, object?>[members.Length];
+                this.rowDetail = TypeAnalyzer.GetTypeDetail(collection.Type);
+                for (var j = 0; j < members.Length; j++)
+                {
+                    getters[j] = CalculationCommon.CompileBoxed(members[j].Expression!, members[j].Parameter!, caseSensitive);
+                    if (members[j].Kind != ProjectionMemberKind.Collection)
+                        continue;
+                    collections ??= new CollectionBuilder?[members.Length];
+                    collections[j] = new CollectionBuilder(members[j], caseSensitive);
+                }
+            }
+            public object Build(object? related)
+            {
+                var rows = new List<object>();
+                if (related is IEnumerable relatedModels)
+                {
+                    foreach (var relatedModel in relatedModels)
+                    {
+                        var row = rowDetail.CreatorBoxed!();
+                        for (var j = 0; j < members.Length; j++)
+                        {
+                            var value = getters[j](relatedModel);
+                            var memberDetail = members[j].MemberDetail;
+                            if (members[j].Kind == ProjectionMemberKind.Collection)
+                            {
+                                memberDetail.SetterBoxed!(row, collections![j]!.Build(value));
+                                continue;
+                            }
+                            if (value is null)
+                                continue;
+                            memberDetail.SetterBoxed!(row, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                        }
+                        rows.Add(row);
+                    }
+                }
+                return collection.CreateCollection(rows);
+            }
         }
 
         /// <summary>
         /// Groups a sequence and projects each group, the way the memory engine and the event store do, then filters, orders, and pages the results.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
+        /// <typeparam name="TResult">The projection's result type.</typeparam>
         /// <param name="source">The sequence to group, already filtered.</param>
         /// <param name="groupBy">The group key expression.</param>
         /// <param name="select">The projection of a group.</param>
@@ -439,11 +601,11 @@ namespace Zerra.Repository
         /// <param name="take">The number of results to take, or null to take all.</param>
         /// <param name="caseSensitive">Indicates if string keys that differ only in case are different groups.</param>
         /// <returns>The results.</returns>
-        public static IReadOnlyList<object> Group<TSource>(this IEnumerable<TSource> source, LambdaExpression groupBy, LambdaExpression select, LambdaExpression? having, QueryOrder? order, int? skip, int? take, bool caseSensitive = false)
+        public static IReadOnlyCollection<TResult> Group<TSource, TResult>(this IEnumerable<TSource> source, LambdaExpression groupBy, LambdaExpression select, LambdaExpression? having, QueryOrder? order, int? skip, int? take, bool caseSensitive = false)
             where TSource : class, new()
         {
             var members = select.GetProjectionMembers(groupBy);
-            var resultDetail = TypeAnalyzer.GetTypeDetail(select.ReturnType);
+            var resultDetail = TypeAnalyzer<TResult>.GetTypeDetail();
             var parts = CalculationCommon.GetKeyParts(groupBy);
             var getParts = new Func<TSource, object?>[parts.Length];
             for (var i = 0; i < parts.Length; i++)
@@ -471,11 +633,11 @@ namespace Zerra.Repository
                 group.Add(model);
             }
 
-            var built = new List<object>(keys.Count);
+            var built = new List<TResult>(keys.Count);
             foreach (var key in keys)
             {
                 var group = groups[key];
-                var result = resultDetail.CreatorBoxed!();
+                var result = resultDetail.Creator!();
                 for (var c = 0; c < members.Length; c++)
                 {
                     var member = members[c];
@@ -517,7 +679,7 @@ namespace Zerra.Repository
                     if (value is null)
                         continue;
                     var memberDetail = member.MemberDetail;
-                    memberDetail.SetterBoxed!(result, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                    memberDetail.SetterBoxed!(result!, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
                 }
                 built.Add(result);
             }
@@ -525,22 +687,20 @@ namespace Zerra.Repository
             if (having is null && order is null && !skip.HasValue && !take.HasValue)
                 return built;
 
-            IEnumerable<object> results = built;
+            IEnumerable<TResult> results = built;
             if (having is not null)
             {
-                var parameter = Expression.Parameter(typeof(object), "result");
-                var body = Expression.Invoke(MemoryExpressionRewriter.Rewrite(having, caseSensitive), Expression.Convert(parameter, select.ReturnType));
-                results = results.Where(Expression.Lambda<Func<object, bool>>(body, parameter).Compile());
+                results = results.Where(((Expression<Func<TResult, bool>>)MemoryExpressionRewriter.Rewrite(having, caseSensitive)).Compile());
             }
             if (order is not null)
             {
-                IOrderedEnumerable<object>? ordered = null;
+                IOrderedEnumerable<TResult>? ordered = null;
                 foreach (var orderExpression in order.OrderExpressions)
                 {
-                    var parameter = Expression.Parameter(typeof(object), "result");
+                    var parameter = Expression.Parameter(typeof(TResult), "result");
                     var lambda = MemoryExpressionRewriter.Rewrite(orderExpression.Expression, caseSensitive);
-                    var body = Expression.Convert(Expression.Invoke(lambda, Expression.Convert(parameter, lambda.Parameters[0].Type)), typeof(object));
-                    var key = Expression.Lambda<Func<object, object?>>(body, parameter).Compile();
+                    var body = Expression.Convert(Expression.Invoke(lambda, parameter), typeof(object));
+                    var key = Expression.Lambda<Func<TResult, object?>>(body, parameter).Compile();
                     var comparer = Comparer<object?>.Default;
                     if (ordered is null)
                         ordered = orderExpression.Descending ? results.OrderByDescending(key, comparer) : results.OrderBy(key, comparer);
@@ -554,6 +714,24 @@ namespace Zerra.Repository
             if (take.HasValue)
                 results = results.Take(take.Value);
             return results.ToList();
+        }
+
+        //whether an expression reads a parameter
+        private sealed class ParameterFinder(ParameterExpression parameter) : ExpressionVisitor
+        {
+            private bool found;
+            public static bool Uses(Expression expression, ParameterExpression parameter)
+            {
+                var finder = new ParameterFinder(parameter);
+                _ = finder.Visit(expression);
+                return finder.found;
+            }
+            protected override Expression VisitParameter(ParameterExpression node)
+            {
+                if (node == parameter)
+                    found = true;
+                return node;
+            }
         }
     }
 }

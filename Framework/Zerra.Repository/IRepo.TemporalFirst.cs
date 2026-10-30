@@ -54,7 +54,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the first model matching the criteria, or <c>null</c> if no match is found.</returns>
         async Task<TModel?> TemporalFirstAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where, Graph<TModel>? graph) where TModel : class, new()
-            => (TModel?)await QueryAsync(new Query<TModel>(QueryOperation.First, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, graph));
+            => (TModel?)(await QueryAsync(new Query<TModel>(QueryOperation.First, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, graph)));
 
         /// <summary>
         /// Asynchronously retrieves the first model matching the specified number-based temporal query criteria.
@@ -69,6 +69,6 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the first model matching the criteria, or <c>null</c> if no match is found.</returns>
         async Task<TModel?> TemporalFirstAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where, Graph<TModel>? graph) where TModel : class, new()
-            => (TModel?)await QueryAsync(new Query<TModel>(QueryOperation.First, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, graph));
+            => (TModel?)(await QueryAsync(new Query<TModel>(QueryOperation.First, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, graph)));
     }
 }

@@ -12,12 +12,15 @@ namespace Zerra.Repository.Test
     public abstract class BaseLinqSqlConverterTests
     {
         private static readonly ModelDetail testTypesModelDetail = ModelAnalyzer.GetModel(typeof(TestTypesModel));
+        private static readonly ModelDetail testRelationsModelDetail = ModelAnalyzer.GetModel(typeof(TestRelationsModel));
 
         protected abstract string ConvertToSql(QueryOperation select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail);
         protected abstract SqlDialectExpectations GetDialect();
         protected abstract string ConvertCalculationToSql(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail);
         protected abstract string ConvertPersistWhereToSql(LambdaExpression where, ModelDetail modelDetail);
+        protected abstract string ConvertPersistUpdateToSql(ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail);
         protected abstract string ConvertSelectToSql(ProjectionMember[] members, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail);
+        protected abstract string ConvertSelectElementsToSql(ProjectionMember collection, LambdaExpression where, ModelDetail relatedDetail);
         protected abstract string ConvertGroupToSql(LambdaExpression groupBy, ProjectionMember[] members, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, Type resultType);
 
         #region Basic Select
@@ -1077,6 +1080,34 @@ namespace Zerra.Repository.Test
         }
 
         [Fact]
+        public void ConvertPersistUpdate_ComputedValues_SetEachMemberFromTheRow()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, TestTypesModel>> set = x => new TestTypesModel { Int32Thing = x.Int32Thing + 1, StringThing = x.StringThing + "!" };
+            var sql = ConvertPersistUpdateToSql(set.GetProjectionMembers(null), calculationWhere, testTypesModelDetail);
+
+            Assert.StartsWith("UPDATE " + d.Table("TestTypes") + " SET ", sql);
+            var column = d.LowercaseIdentifiers ? "int32thing" : "Int32Thing";
+            Assert.Contains($"{d.ColumnQuoteOpen}{column}{d.ColumnQuoteClose}=(", sql);
+            Assert.Contains(d.Column("TestTypes", "Int32Thing"), sql);
+            Assert.Contains(d.Column("TestTypes", "StringThing"), sql);
+            Assert.Contains("WHERE", sql);
+            Assert.DoesNotContain("SELECT", sql);
+        }
+
+        [Fact]
+        public void ConvertPersistUpdate_RelatedCondition_SelectsTheIdentities()
+        {
+            Expression<Func<TestTypesModel, TestTypesModel>> set = x => new TestTypesModel { Int32Thing = x.Int32Thing * 2 };
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationA.SomeValue == "y";
+            var sql = ConvertPersistUpdateToSql(set.GetProjectionMembers(null), where, testTypesModelDetail);
+
+            Assert.StartsWith("UPDATE ", sql);
+            Assert.Contains(" IN (", sql);
+            Assert.Contains("SELECT", sql);
+        }
+
+        [Fact]
         public void ConvertCalculation_RelatedCollectionValue_IsASubquery()
         {
             Expression<Func<TestTypesModel, int>> value = x => x.RelationB.Count();
@@ -1085,6 +1116,116 @@ namespace Zerra.Repository.Test
             Assert.Contains("COUNT(1)", sql);
             Assert.Contains("SUM(", sql);
             Assert.Contains("GROUP BY", sql);
+        }
+
+        #endregion
+
+        #region Related Elements
+
+        public sealed class ElementResult
+        {
+            public string? Value { get; set; }
+            public int Number { get; set; }
+        }
+
+        [Fact]
+        public void Convert_RelatedElementMember_IsASubqueryOfOneRow()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationB.OrderByDescending(r => r.SomeValue).First().SomeValue == "a";
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains((d.HasTopClause ? "(SELECT TOP(1) " : "(SELECT ") + d.Column("TestRelations", "SomeValue"), sql);
+            Assert.Contains(d.Column("TestTypes", "KeyA") + "=" + d.Column("TestRelations", "RelationBKey"), sql);
+            Assert.Contains("ORDER BY(" + d.Column("TestRelations", "SomeValue") + ")DESC", sql);
+            if (!d.HasTopClause)
+                Assert.Contains("LIMIT 1", sql);
+        }
+
+        [Fact]
+        public void Convert_RelatedElementAfterWhereAndSkip_FiltersAndPagesTheSubquery()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationB.Where(r => r.SomeValue != null).OrderBy(r => r.RelationAKey).Skip(1).FirstOrDefault()!.RelationAKey > 0;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("AND(", sql);
+            Assert.Contains("IS NOT NULL", sql);
+            Assert.Contains("ORDER BY(" + d.Column("TestRelations", "RelationAKey") + ")", sql);
+            if (d.HasTopClause)
+                Assert.Contains("OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY", sql);
+            else
+                Assert.Contains("LIMIT 1 OFFSET 1", sql);
+        }
+
+        [Fact]
+        public void Convert_RelatedElementAt_SkipsToTheRow()
+        {
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationB.OrderBy(r => r.RelationAKey).ElementAt(2).RelationAKey == 1;
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("OFFSET 2", sql);
+        }
+
+        [Fact]
+        public void Convert_RelatedLast_ReversesTheOrder()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationB.OrderBy(r => r.SomeValue).ThenByDescending(r => r.RelationAKey).Last().SomeValue == "a";
+            var sql = ConvertToSql(QueryOperation.Many, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("ORDER BY(" + d.Column("TestRelations", "SomeValue") + ")DESC,(" + d.Column("TestRelations", "RelationAKey") + ")", sql);
+            Assert.DoesNotContain(")DESC)", sql);
+        }
+
+        [Fact]
+        public void Convert_RelatedElement_RefusesWhatHasNoSqlShape()
+        {
+            _ = Assert.Throws<NotSupportedException>(() => ConvertToSql(QueryOperation.Many, (Expression<Func<TestTypesModel, bool>>)(x => x.RelationB.Last().SomeValue == "a"), null, null, null, null, testTypesModelDetail));
+            _ = Assert.Throws<NotSupportedException>(() => ConvertToSql(QueryOperation.Many, (Expression<Func<TestTypesModel, bool>>)(x => x.RelationB.Take(1).First().SomeValue == "a"), null, null, null, null, testTypesModelDetail));
+            _ = Assert.Throws<NotSupportedException>(() => ConvertToSql(QueryOperation.Many, (Expression<Func<TestTypesModel, bool>>)(x => x.RelationB.OrderBy(r => r.RelationAKey).First() == x.RelationA), null, null, null, null, testTypesModelDetail));
+        }
+
+        [Fact]
+        public void ConvertSelect_RelatedElementMember_IsASubqueryColumn()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, ElementResult>> select = x => new ElementResult { Value = x.RelationB.OrderBy(r => r.SomeValue).First().SomeValue, Number = x.Int32Thing };
+            var sql = ConvertSelectToSql(select.GetProjectionMembers(null), null, null, null, null, testTypesModelDetail);
+
+            Assert.StartsWith("SELECT (", sql);
+            Assert.Contains("ORDER BY(" + d.Column("TestRelations", "SomeValue") + ")", sql);
+            Assert.Contains(d.Column("TestTypes", "KeyA") + "=" + d.Column("TestRelations", "RelationBKey"), sql);
+        }
+
+        public sealed class NestedProjection
+        {
+            public int Number { get; set; }
+            public ElementResult[]? Items { get; set; }
+        }
+
+        [Fact]
+        public void ConvertSelect_CollectionMember_TakesTheIdentityAndItsRowsAreASecondStatement()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, NestedProjection>> select = x => new NestedProjection { Number = x.Int32Thing, Items = x.RelationB.Where(r => r.RelationAKey > 0).OrderBy(r => r.SomeValue).Select(r => new ElementResult { Value = r.SomeValue, Number = r.RelationAKey }).ToArray() };
+            var members = select.GetProjectionMembers(null);
+            Assert.Equal(ProjectionMemberKind.Collection, members[1].Kind);
+            Assert.Equal(2, members[1].Members!.Length);
+            Assert.NotNull(members[1].Where);
+            Assert.Single(members[1].Order!.OrderExpressions);
+
+            var sql = ConvertSelectToSql(members, null, null, null, null, testTypesModelDetail);
+            Assert.Contains(d.Column("TestTypes", "KeyA") + " AS " + (d.LowercaseIdentifiers ? "Items" : d.ColumnQuoteOpen + "Items" + d.ColumnQuoteClose), sql);
+            Assert.DoesNotContain(d.From("TestRelations"), sql);
+
+            Expression<Func<TestRelationsModel, bool>> rowWhere = r => r.RelationAKey > 0;
+            var rowSql = ConvertSelectElementsToSql(members[1], rowWhere, testRelationsModelDetail);
+            Assert.StartsWith("SELECT (", rowSql);
+            Assert.Contains(d.Column("TestRelations", "RelationBKey"), rowSql);
+            Assert.Contains("ORDER BY(" + d.Column("TestRelations", "SomeValue") + ")", rowSql);
+            Assert.Contains(d.From("TestRelations"), rowSql);
+            Assert.DoesNotContain(d.From("TestTypes"), rowSql);
         }
 
         #endregion

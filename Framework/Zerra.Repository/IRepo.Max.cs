@@ -36,15 +36,7 @@ namespace Zerra.Repository
         /// <returns>The key and result of each group, in no particular order.</returns>
         IReadOnlyCollection<(TKey Key, TResult Value)> Max<TModel, TKey, TResult>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, TResult>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.Max, where, groupBy, value))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, TResult Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (TResult)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, TResult Value)>)Query(new CalculationGroupsQuery<TModel, TKey, TResult>(QueryOperation.Max, where, groupBy, value))!;
         }
 
         /// <summary>Asynchronously finds the largest <paramref name="value"/> over the models matching <paramref name="where"/>.</summary>
@@ -75,15 +67,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and result of each group, in no particular order.</returns>
         async Task<IReadOnlyCollection<(TKey Key, TResult Value)>> MaxAsync<TModel, TKey, TResult>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, TResult>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.Max, where, groupBy, value)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, TResult Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), result is null ? default! : (TResult)result);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, TResult Value)>)(await QueryAsync(new CalculationGroupsQuery<TModel, TKey, TResult>(QueryOperation.Max, where, groupBy, value)))!;
         }
     }
 }

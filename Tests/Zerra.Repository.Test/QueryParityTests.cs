@@ -50,9 +50,24 @@ namespace Zerra.Repository.Test
             public decimal Price { get; set; }
             [Relation(nameof(ParityID))]
             public ParityModel? Parent { get; set; }
+            [Relation(nameof(ParityNoteModel.LineID))]
+            public ParityNoteModel[]? Notes { get; set; }
         }
 
-        public static readonly Type[] ModelTypes = [typeof(ParityModel), typeof(ParityLineModel)];
+        [Entity("QueryParityNote")]
+        public sealed class ParityNoteModel
+        {
+            [Identity]
+            public Guid ID { get; set; }
+            public Guid LineID { get; set; }
+            public int Rank { get; set; }
+            [StoreProperties(false, 20)]
+            public string? Text { get; set; }
+            [Relation(nameof(LineID))]
+            public ParityLineModel? Line { get; set; }
+        }
+
+        public static readonly Type[] ModelTypes = [typeof(ParityModel), typeof(ParityLineModel), typeof(ParityNoteModel)];
 
         public sealed class ParitySelectResult
         {
@@ -78,6 +93,24 @@ namespace Zerra.Repository.Test
             public int Flagged { get; set; }
             public int DistinctOthers { get; set; }
         }
+        public sealed class ParityNestedResult
+        {
+            public int Number { get; set; }
+            public List<ParityLineResult>? Lines { get; set; }
+            public ParityLineResult[]? Cheap { get; set; }
+        }
+        public sealed class ParityLineResult
+        {
+            public int Quantity { get; set; }
+            public decimal Price { get; set; }
+            public string? ParentName { get; set; }
+            public List<ParityNoteResult>? Notes { get; set; }
+        }
+        public sealed class ParityNoteResult
+        {
+            public int Rank { get; set; }
+            public string? Text { get; set; }
+        }
         public sealed class ParityLineGroupResult
         {
             public Guid ParentID { get; set; }
@@ -96,6 +129,21 @@ namespace Zerra.Repository.Test
                 lines.Add(new ParityLineModel { ID = Guid.NewGuid(), ParityID = model.ID, Quantity = model.Number + 1, Price = 1.25m });
             }
             return lines.ToArray();
+        }
+
+        //a note per line, a second for an even quantity, and one ranked zero for a quantity of three
+        private static ParityNoteModel[] Notes(ParityLineModel[] lines)
+        {
+            var notes = new List<ParityNoteModel>();
+            foreach (var line in lines)
+            {
+                notes.Add(new ParityNoteModel { ID = Guid.NewGuid(), LineID = line.ID, Rank = 1, Text = $"a{line.Quantity}" });
+                if (line.Quantity % 2 == 0)
+                    notes.Add(new ParityNoteModel { ID = Guid.NewGuid(), LineID = line.ID, Rank = 2, Text = $"b{line.Quantity}" });
+                if (line.Quantity == 3)
+                    notes.Add(new ParityNoteModel { ID = Guid.NewGuid(), LineID = line.ID, Rank = 0, Text = "z" });
+            }
+            return notes.ToArray();
         }
 
         private static ParityModel[] Models()
@@ -255,11 +303,14 @@ namespace Zerra.Repository.Test
             var repo = Repo.New();
             repo.AddProvider(new TransactStoreProvider<ParityModel>(engine));
             repo.AddProvider(new TransactStoreProvider<ParityLineModel>(engine));
+            repo.AddProvider(new TransactStoreProvider<ParityNoteModel>(engine));
             var models = Models();
             foreach (var model in models)
                 repo.Create(model);
             var lines = Lines(models);
             repo.Create<ParityLineModel>(lines);
+            var notes = Notes(lines);
+            repo.Create<ParityNoteModel>(notes);
             try
             {
                 foreach (var (name, where) in Wheres())
@@ -274,7 +325,8 @@ namespace Zerra.Repository.Test
 
                 AssertCalculation(repo, models);
                 AssertCalculationRelations(repo, models, lines);
-                AssertProjections(repo, models, lines);
+                AssertProjections(repo, models, lines, notes);
+                AssertRelationElements(repo, models, lines);
 
                 //a member with a store name reads back, an excluded member isn't stored
                 var stored = repo.Single<ParityModel>(x => x.Number == 1)!;
@@ -288,6 +340,7 @@ namespace Zerra.Repository.Test
             }
             finally
             {
+                repo.Delete<ParityNoteModel>(notes);
                 repo.Delete<ParityLineModel>(lines);
                 foreach (var model in models)
                     repo.Delete(model);
@@ -309,6 +362,34 @@ namespace Zerra.Repository.Test
             AssertGroups("count of lines by parent name", lines.GroupBy(l => parents[l.ParityID].Name).Select(g => (g.Key, (long)g.Count())), repo.Count<ParityLineModel, string?>(x => x.Parent!.Name));
             AssertGroups("average price by parent flag", lines.GroupBy(l => parents[l.ParityID].Flag).Select(g => (g.Key, g.Average(l => l.Price))), repo.Average<ParityLineModel, bool>(x => x.Parent!.Flag, x => x.Price), (a, b) => Math.Abs(a - b) < 0.000001m);
             AssertGroups("max quantity by parent number", lines.Where(l => parents[l.ParityID].Flag).GroupBy(l => parents[l.ParityID].Number).Select(g => (g.Key, g.Max(l => l.Quantity))), repo.Max<ParityLineModel, int, int>(x => x.Parent!.Number, x => x.Quantity, x => x.Parent!.Flag));
+        }
+
+        //one row of a related collection after filtering, ordering, and paging it: a row that isn't there reads as null, in memory too
+        private static void AssertRelationElements(IRepo repo, ParityModel[] models, ParityLineModel[] lines)
+        {
+            ParityLineModel[] LinesOf(ParityModel model) => lines.Where(l => l.ParityID == model.ID).ToArray();
+            void Same(string name, Func<ParityModel, bool> expected, Expression<Func<ParityModel, bool>> where)
+            {
+                var expectedNumbers = models.Where(m => LinesOf(m).Length > 0 && expected(m)).Select(m => m.Number).Order().ToArray();
+                var actual = repo.Many(where).Select(x => x.Number).Order().ToArray();
+                Assert.True(expectedNumbers.SequenceEqual(actual), $"{name}: expected [{String.Join(",", expectedNumbers)}] found [{String.Join(",", actual)}]");
+            }
+
+            Same("first ordered", m => LinesOf(m).OrderBy(l => l.Price).First().Quantity == 2, x => x.Lines!.OrderBy(l => l.Price).First().Quantity == 2);
+            Same("last ordered", m => LinesOf(m).OrderBy(l => l.Quantity).Last().Price < 2m, x => x.Lines!.OrderBy(l => l.Quantity).Last().Price < 2m);
+            Same("element at", m => LinesOf(m).OrderByDescending(l => l.Quantity).ElementAt(1).Quantity == 3, x => x.Lines!.OrderByDescending(l => l.Quantity).ElementAt(1).Quantity == 3);
+            Same("filtered first", m => LinesOf(m).Any(l => l.Quantity > 2) && LinesOf(m).Where(l => l.Quantity > 2).OrderBy(l => l.Price).First().Quantity == 3, x => x.Lines!.Where(l => l.Quantity > 2).OrderBy(l => l.Price).First().Quantity == 3);
+            Same("first with condition", m => LinesOf(m).OrderBy(l => l.Price).FirstOrDefault(l => l.Quantity > 1)!.Quantity == 2, x => x.Lines!.OrderBy(l => l.Price).FirstOrDefault(l => l.Quantity > 1)!.Quantity == 2);
+            Same("skip then first", m => LinesOf(m).OrderBy(l => l.Price).Skip(1).First().Quantity == m.Number, x => x.Lines!.OrderBy(l => l.Price).Skip(1).First().Quantity == x.Number);
+            Same("condition on the model", m => LinesOf(m).Where(l => l.Quantity == m.Number).OrderBy(l => l.Price).First().Price > 2m, x => x.Lines!.Where(l => l.Quantity == x.Number).OrderBy(l => l.Price).First().Price > 2m);
+            Assert.Equal(5, repo.Count<ParityModel>(x => x.Lines!.OrderBy(l => l.Price).First().Quantity != 2));
+
+            //as a value, an order, and a projected member
+            Assert.Equal(models.Where(m => LinesOf(m).Length > 0).Sum(m => LinesOf(m).OrderBy(l => l.Price).First().Quantity), repo.Sum<ParityModel>(x => x.Lines!.OrderBy(l => l.Price).First().Quantity));
+            var order = QueryOrder<ParityModel>.Create(x => x.Lines!.OrderBy(l => l.Price).First().Quantity, true);
+            Assert.Equal([4, 3, 2, 1], repo.Many<ParityModel>(x => x.Lines!.Any(), order).Select(x => x.Number).ToArray());
+            var rows = repo.Select((ParityModel x) => new ParitySelectResult { Number = x.Number, LineCount = x.Lines!.OrderBy(l => l.Price).First().Quantity }, x => x.Lines!.Any());
+            Assert.Equal([(1, 2), (2, 3), (3, 4), (4, 5)], rows.OrderBy(r => r.Number).Select(r => (r.Number, r.LineCount)).ToArray());
         }
 
         //every calculation gives what LINQ gives over the same models, over all of them and per group
@@ -370,7 +451,7 @@ namespace Zerra.Repository.Test
         }
 
         //a projection of each model and of each group gives what LINQ gives, with the where, order, and paging where they apply
-        private static void AssertProjections(IRepo repo, ParityModel[] models, ParityLineModel[] lines)
+        private static void AssertProjections(IRepo repo, ParityModel[] models, ParityLineModel[] lines, ParityNoteModel[] notes)
         {
             var parents = models.ToDictionary(x => x.ID);
             ParityLineModel[] LinesOf(ParityModel model) => lines.Where(l => l.ParityID == model.ID).ToArray();
@@ -383,6 +464,44 @@ namespace Zerra.Repository.Test
 
             var lineParents = repo.Select((ParityLineModel x) => new ParityLineGroupResult { ParentID = x.ParityID, ParentName = x.Parent!.Name });
             Assert.Equal(lines.Select(l => (l.ParityID, parents[l.ParityID].Name)).OrderBy(x => x.Item1).ThenBy(x => x.Item2).ToArray(), lineParents.Select(r => (r.ParentID, r.ParentName)).OrderBy(x => x.Item1).ThenBy(x => x.Item2).ToArray());
+
+            //results built from the rows of a related collection, filtered and ordered, as a list and an array, with the models paged
+            var nested = repo.Select((ParityModel x) => new ParityNestedResult
+            {
+                Number = x.Number,
+                Lines = x.Lines!.OrderByDescending(l => l.Price).Select(l => new ParityLineResult { Quantity = l.Quantity, Price = l.Price, ParentName = l.Parent!.Name }).ToList(),
+                Cheap = x.Lines!.Where(l => l.Quantity > 1).OrderBy(l => l.Quantity).Select(l => new ParityLineResult { Quantity = l.Quantity }).ToArray(),
+            }, x => x.Number < 5, QueryOrder<ParityModel>.Create(x => x.Number), 1, 3);
+            Assert.Equal([1, 2, 3], nested.Select(r => r.Number).ToArray());
+            foreach (var result in nested)
+            {
+                var model = models.Single(m => m.Number == result.Number);
+                Assert.Equal(LinesOf(model).OrderByDescending(l => l.Price).Select(l => (l.Quantity, l.Price, model.Name)).ToArray(), result.Lines!.Select(l => (l.Quantity, l.Price, l.ParentName)).ToArray());
+                Assert.Equal(LinesOf(model).Where(l => l.Quantity > 1).OrderBy(l => l.Quantity).Select(l => l.Quantity).ToArray(), result.Cheap!.Select(l => l.Quantity).ToArray());
+            }
+            var none = repo.Select((ParityModel x) => new ParityNestedResult { Number = x.Number, Lines = x.Lines!.Select(l => new ParityLineResult { Quantity = l.Quantity }).ToList() }, x => x.Number == 0);
+            Assert.Empty(Assert.Single(none).Lines!);
+
+            //a row's result with a collection of its own, each level read with a statement of its own
+            ParityNoteModel[] NotesOf(ParityLineModel line) => notes.Where(n => n.LineID == line.ID).ToArray();
+            var deep = repo.Select((ParityModel x) => new ParityNestedResult
+            {
+                Number = x.Number,
+                Lines = x.Lines!.OrderBy(l => l.Quantity).Select(l => new ParityLineResult
+                {
+                    Quantity = l.Quantity,
+                    Notes = l.Notes!.Where(n => n.Rank > 0).OrderByDescending(n => n.Rank).Select(n => new ParityNoteResult { Rank = n.Rank, Text = n.Text }).ToList(),
+                }).ToList(),
+            }, x => x.Number < 5, QueryOrder<ParityModel>.Create(x => x.Number), 1, 3);
+            Assert.Equal([1, 2, 3], deep.Select(r => r.Number).ToArray());
+            foreach (var result in deep)
+            {
+                var model = models.Single(m => m.Number == result.Number);
+                var expectedLines = LinesOf(model).OrderBy(l => l.Quantity).ToArray();
+                Assert.Equal(expectedLines.Select(l => l.Quantity).ToArray(), result.Lines!.Select(l => l.Quantity).ToArray());
+                for (var i = 0; i < expectedLines.Length; i++)
+                    Assert.Equal(NotesOf(expectedLines[i]).Where(n => n.Rank > 0).OrderByDescending(n => n.Rank).Select(n => (n.Rank, n.Text)).ToArray(), result.Lines[i].Notes!.Select(n => (n.Rank, n.Text)).ToArray());
+            }
 
             //a Guid key and a Guid grouped calculation, which some stores keep as bytes
             var byParentID = repo.Group((ParityLineModel x) => x.ParityID, g => new ParityLineGroupResult { ParentID = g.Key, Lines = g.Count() });
@@ -452,11 +571,14 @@ namespace Zerra.Repository.Test
             var repo = Repo.New();
             repo.AddProvider(new TransactStoreProvider<ParityModel>(engine));
             repo.AddProvider(new TransactStoreProvider<ParityLineModel>(engine));
+            repo.AddProvider(new TransactStoreProvider<ParityNoteModel>(engine));
             var models = Models();
             foreach (var model in models)
                 await repo.CreateAsync(model);
             var lines = Lines(models);
             await repo.CreateAsync<ParityLineModel>(lines);
+            var notes = Notes(lines);
+            await repo.CreateAsync<ParityNoteModel>(notes);
             try
             {
                 foreach (var (name, where) in Wheres())
@@ -480,6 +602,7 @@ namespace Zerra.Repository.Test
             }
             finally
             {
+                await repo.DeleteAsync<ParityNoteModel>(notes);
                 await repo.DeleteAsync<ParityLineModel>(lines);
                 foreach (var model in models)
                     await repo.DeleteAsync(model);

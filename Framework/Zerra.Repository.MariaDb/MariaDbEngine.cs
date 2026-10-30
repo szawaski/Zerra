@@ -3,6 +3,8 @@
 // Licensed to you under the MIT license
 
 using System.Linq.Expressions;
+using System.Reflection;
+using Zerra.Linq;
 using Zerra.Repository.Reflection;
 using Zerra.Reflection;
 using System.Text;
@@ -20,6 +22,7 @@ namespace Zerra.Repository.MariaDb
     /// </summary>
     public sealed partial class MariaDbEngine : ITransactStoreEngine
     {
+        private static readonly MethodInfo hashSetContainsMethod = typeof(HashSet<object>).GetMethods().First(m => m.Name == nameof(HashSet<>.Contains));
         private readonly string connectionString;
         /// <summary>
         /// Initializes a new instance of <see cref="MariaDbEngine"/>.
@@ -844,11 +847,10 @@ namespace Zerra.Repository.MariaDb
         }
 
         /// <inheritdoc/>
-        public object? ExecuteCalculation<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
+        public object? ExecuteCalculation<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = LinqMariaDbConverter.ConvertCalculation(operation, where, groupBy, value, modelDetail);
-            var resultType = operation == QueryOperation.Distinct ? typeof(object) : CalculationCommon.GetResultType(operation, value);
-            var keyParts = groupBy is null ? null : CalculationCommon.GetKeyParts(groupBy);
+            var sql = LinqMariaDbConverter.ConvertCalculation(operation, where, null, value, modelDetail);
+            var resultType = CalculationCommon.GetResultType(operation, value);
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -859,37 +861,31 @@ namespace Zerra.Repository.MariaDb
                     command.CommandText = sql;
                     using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
                     {
-                        if (keyParts is null)
-                        {
-                            if (!reader.Read())
-                                return null;
-                            return reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), resultType);
-                        }
+                        if (!reader.Read())
+                            return null;
+                        return reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), resultType);
+                    }
+                }
+            }
+        }
+        /// <inheritdoc/>
+        public IReadOnlyCollection<(TKey Key, TValue Value)> ExecuteCalculationGroups<TModel, TKey, TValue>(QueryOperation operation, LambdaExpression? where, LambdaExpression groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var sql = LinqMariaDbConverter.ConvertCalculation(operation, where, groupBy, value, modelDetail);
+            var resultType = CalculationCommon.GetResultType(operation, value);
+            var keyParts = CalculationCommon.GetKeyParts(groupBy);
+            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
 
-                        if (operation == QueryOperation.Distinct)
-                        {
-                            var distinct = new List<object?>();
-                            while (reader.Read())
-                            {
-                                //a key of one member is its value, a key of several is its parts
-                                object? key;
-                                if (keyParts.Length == 1)
-                                {
-                                    key = reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), keyParts[0].Type);
-                                }
-                                else
-                                {
-                                    var parts = new object?[keyParts.Length];
-                                    for (var i = 0; i < parts.Length; i++)
-                                        parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
-                                    key = parts;
-                                }
-                                distinct.Add(key);
-                            }
-                            return distinct;
-                        }
-
-                        var rows = new List<(object? Key, object? Value)>();
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandTimeout = 0;
+                    command.CommandText = sql;
+                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
+                    {
+                        var rows = new List<(TKey Key, TValue Value)>();
                         while (reader.Read())
                         {
                             //a key of one member is its value, a key of several is its parts
@@ -905,7 +901,8 @@ namespace Zerra.Repository.MariaDb
                                     parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
                                 key = parts;
                             }
-                            rows.Add((key, reader.IsDBNull(keyParts.Length) ? null : TypeAnalyzer.Convert(reader.GetValue(keyParts.Length), resultType)));
+                            var read = reader.IsDBNull(keyParts.Length) ? null : TypeAnalyzer.Convert(reader.GetValue(keyParts.Length), resultType);
+                            rows.Add((buildKey(key), read is null ? default! : (TValue)read));
                         }
                         return rows;
                     }
@@ -913,11 +910,11 @@ namespace Zerra.Repository.MariaDb
             }
         }
         /// <inheritdoc/>
-        public IReadOnlyList<object> ExecuteSelect<TModel>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        public IReadOnlyCollection<TValue> ExecuteDistinct<TModel, TValue>(LambdaExpression value, LambdaExpression? where, ModelDetail modelDetail) where TModel : class, new()
         {
-            var members = select.GetProjectionMembers(null);
-            var resultDetail = TypeAnalyzer.GetTypeDetail(select.ReturnType);
-            var sql = LinqMariaDbConverter.ConvertSelect(members, where, order, skip, take, modelDetail);
+            var sql = LinqMariaDbConverter.ConvertCalculation(QueryOperation.Distinct, where, value, null, modelDetail);
+            var keyParts = CalculationCommon.GetKeyParts(value);
+            var buildKey = CalculationCommon.GetKeyBuilder<TValue>(value);
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -928,30 +925,172 @@ namespace Zerra.Repository.MariaDb
                     command.CommandText = sql;
                     using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
                     {
-                        var results = new List<object>();
+                        var values = new List<TValue>();
                         while (reader.Read())
                         {
-                            var result = resultDetail.CreatorBoxed!();
-                            for (var i = 0; i < members.Length; i++)
+                            //a key of one member is its value, a key of several is its parts
+                            object? key;
+                            if (keyParts.Length == 1)
                             {
-                                if (reader.IsDBNull(i))
-                                    continue;
-                                var value = reader.GetValue(i);
-                                var memberDetail = members[i].MemberDetail;
-                                memberDetail.SetterBoxed!(result, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                                key = reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), keyParts[0].Type);
                             }
-                            results.Add(result);
+                            else
+                            {
+                                var parts = new object?[keyParts.Length];
+                                for (var i = 0; i < parts.Length; i++)
+                                    parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
+                                key = parts;
+                            }
+                            values.Add(buildKey(key));
                         }
-                        return results;
+                        return values;
                     }
                 }
             }
         }
         /// <inheritdoc/>
-        public IReadOnlyList<object> ExecuteGroup<TModel>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        public IReadOnlyCollection<TResult> ExecuteSelect<TModel, TResult>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var members = select.GetProjectionMembers(null);
+            var resultDetail = TypeAnalyzer<TResult>.GetTypeDetail();
+            var sql = LinqMariaDbConverter.ConvertSelect(members, where, order, skip, take, modelDetail);
+            //a projection of a related collection reads the identity in the member's column, to match the rows a second statement reads
+            List<object>? identities = null;
+            foreach (var member in members)
+            {
+                if (member.Kind == ProjectionMemberKind.Collection)
+                    identities = new List<object>();
+            }
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+                var results = new List<TResult>();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandTimeout = 0;
+                    command.CommandText = sql;
+                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
+                    {
+                        while (reader.Read())
+                        {
+                            var result = resultDetail.Creator!();
+                            for (var i = 0; i < members.Length; i++)
+                            {
+                                if (reader.IsDBNull(i))
+                                    continue;
+                                var value = reader.GetValue(i);
+                                if (members[i].Kind == ProjectionMemberKind.Collection)
+                                {
+                                    if (identities!.Count == results.Count)
+                                        identities.Add(value);
+                                    continue;
+                                }
+                                var memberDetail = members[i].MemberDetail;
+                                if (value is byte[] bytes && (Nullable.GetUnderlyingType(memberDetail.Type) ?? memberDetail.Type) == typeof(Guid))
+                                    memberDetail.SetterBoxed!(result!, new Guid(bytes, true));
+                                else
+                                    memberDetail.SetterBoxed!(result!, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                            }
+                            results.Add(result);
+                        }
+                    }
+                }
+                if (identities is null)
+                    return results;
+
+                for (var i = 0; i < members.Length; i++)
+                {
+                    if (members[i].Kind == ProjectionMemberKind.Collection)
+                        ReadCollection(connection, members[i], modelDetail, results, identities);
+                }
+                return results;
+            }
+        }
+        //reads the rows of a collection member for the parents read, matched by their foreign identity, builds a result from each and sets the collections on the parents, then does the same for the collections within each row
+        private static void ReadCollection(MySqlConnection connection, ProjectionMember collection, ModelDetail parentDetail, IList parents, List<object> parentIdentities)
+        {
+            var identityType = parentDetail.IdentityMembers[0].Type;
+            for (var r = 0; r < parentIdentities.Count; r++)
+                parentIdentities[r] = parentIdentities[r] is byte[] identityBytes && (Nullable.GetUnderlyingType(identityType) ?? identityType) == typeof(Guid) ? new Guid(identityBytes, true) : parentIdentities[r].GetType() == identityType ? parentIdentities[r] : TypeAnalyzer.Convert(parentIdentities[r], identityType)!;
+            var keys = new HashSet<object>(parentIdentities);
+
+            var relatedDetail = ModelAnalyzer.GetModel(collection.Relation!.ActualType);
+            var foreignIdentity = relatedDetail.GetMember(collection.Relation.ForeignIdentity!);
+            var row = Expression.Parameter(relatedDetail.Type, "row");
+            Expression condition = Expression.Call(Expression.Constant(keys), hashSetContainsMethod, Expression.Convert(Expression.MakeMemberAccess(row, foreignIdentity.MemberDetail.MemberInfo), typeof(object)));
+            if (collection.Where is not null)
+                condition = Expression.AndAlso(condition, LinqRebinder.RebindExpression(collection.Where.Body, collection.Where.Parameters[0], row));
+            var rowWhere = Expression.Lambda(relatedDetail.LambdaDelegateType, condition, row);
+            var rowSql = LinqMariaDbConverter.ConvertSelectElements(collection, rowWhere, relatedDetail);
+            var rowMembers = collection.Members!;
+            var rowDetail = TypeAnalyzer.GetTypeDetail(collection.Type);
+            //a collection within a row reads the row's identity in the member's column, to match the rows its own statement reads
+            List<object>? rowIdentities = null;
+            List<object>? allRows = null;
+            foreach (var rowMember in rowMembers)
+            {
+                if (rowMember.Kind == ProjectionMemberKind.Collection)
+                {
+                    rowIdentities = new List<object>();
+                    allRows = new List<object>();
+                }
+            }
+            var rows = new Dictionary<object, List<object>>();
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandTimeout = 0;
+                command.CommandText = rowSql;
+                using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
+                {
+                    while (reader.Read())
+                    {
+                        var rowResult = rowDetail.CreatorBoxed!();
+                        for (var j = 0; j < rowMembers.Length; j++)
+                        {
+                            if (reader.IsDBNull(j))
+                                continue;
+                            var value = reader.GetValue(j);
+                            if (rowMembers[j].Kind == ProjectionMemberKind.Collection)
+                            {
+                                if (rowIdentities!.Count == allRows!.Count)
+                                    rowIdentities.Add(value);
+                                continue;
+                            }
+                            var memberDetail = rowMembers[j].MemberDetail;
+                            if (value is byte[] bytes && (Nullable.GetUnderlyingType(memberDetail.Type) ?? memberDetail.Type) == typeof(Guid))
+                                memberDetail.SetterBoxed!(rowResult, new Guid(bytes, true));
+                            else
+                                memberDetail.SetterBoxed!(rowResult, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                        }
+                        var keyValue = reader.GetValue(rowMembers.Length);
+                        var key = keyValue is byte[] keyBytes && (Nullable.GetUnderlyingType(identityType) ?? identityType) == typeof(Guid) ? (object)new Guid(keyBytes, true) : keyValue.GetType() == identityType ? keyValue : TypeAnalyzer.Convert(keyValue, identityType)!;
+                        if (!rows.TryGetValue(key, out var list))
+                        {
+                            list = new List<object>();
+                            rows.Add(key, list);
+                        }
+                        list.Add(rowResult);
+                        allRows?.Add(rowResult);
+                    }
+                }
+            }
+            for (var r = 0; r < parents.Count; r++)
+                collection.MemberDetail.SetterBoxed!(parents[r]!, collection.CreateCollection(rows.TryGetValue(parentIdentities[r], out var list) ? list : Array.Empty<object>()));
+            if (rowIdentities is null)
+                return;
+
+            for (var j = 0; j < rowMembers.Length; j++)
+            {
+                if (rowMembers[j].Kind == ProjectionMemberKind.Collection)
+                    ReadCollection(connection, rowMembers[j], relatedDetail, allRows!, rowIdentities);
+            }
+        }
+        /// <inheritdoc/>
+        public IReadOnlyCollection<TResult> ExecuteGroup<TModel, TResult>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
         {
             var members = select.GetProjectionMembers(groupBy);
-            var resultDetail = TypeAnalyzer.GetTypeDetail(select.ReturnType);
+            var resultDetail = TypeAnalyzer<TResult>.GetTypeDetail();
             var sql = LinqMariaDbConverter.ConvertGroup(groupBy, members, where, having, order, skip, take, modelDetail, select.ReturnType);
 
             using (var connection = new MySqlConnection(connectionString))
@@ -963,17 +1102,17 @@ namespace Zerra.Repository.MariaDb
                     command.CommandText = sql;
                     using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
                     {
-                        var results = new List<object>();
+                        var results = new List<TResult>();
                         while (reader.Read())
                         {
-                            var result = resultDetail.CreatorBoxed!();
+                            var result = resultDetail.Creator!();
                             for (var i = 0; i < members.Length; i++)
                             {
                                 if (reader.IsDBNull(i))
                                     continue;
                                 var value = reader.GetValue(i);
                                 var memberDetail = members[i].MemberDetail;
-                                memberDetail.SetterBoxed!(result, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                                memberDetail.SetterBoxed!(result!, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
                             }
                             results.Add(result);
                         }
@@ -1135,11 +1274,10 @@ namespace Zerra.Repository.MariaDb
         }
 
         /// <inheritdoc/>
-        public async Task<object?> ExecuteCalculationAsync<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<object?> ExecuteCalculationAsync<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = LinqMariaDbConverter.ConvertCalculation(operation, where, groupBy, value, modelDetail);
-            var resultType = operation == QueryOperation.Distinct ? typeof(object) : CalculationCommon.GetResultType(operation, value);
-            var keyParts = groupBy is null ? null : CalculationCommon.GetKeyParts(groupBy);
+            var sql = LinqMariaDbConverter.ConvertCalculation(operation, where, null, value, modelDetail);
+            var resultType = CalculationCommon.GetResultType(operation, value);
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -1150,37 +1288,31 @@ namespace Zerra.Repository.MariaDb
                     command.CommandText = sql;
                     using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
                     {
-                        if (keyParts is null)
-                        {
-                            if (!await reader.ReadAsync())
-                                return null;
-                            return reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), resultType);
-                        }
+                        if (!await reader.ReadAsync())
+                            return null;
+                        return reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), resultType);
+                    }
+                }
+            }
+        }
+        /// <inheritdoc/>
+        public async Task<IReadOnlyCollection<(TKey Key, TValue Value)>> ExecuteCalculationGroupsAsync<TModel, TKey, TValue>(QueryOperation operation, LambdaExpression? where, LambdaExpression groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var sql = LinqMariaDbConverter.ConvertCalculation(operation, where, groupBy, value, modelDetail);
+            var resultType = CalculationCommon.GetResultType(operation, value);
+            var keyParts = CalculationCommon.GetKeyParts(groupBy);
+            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
 
-                        if (operation == QueryOperation.Distinct)
-                        {
-                            var distinct = new List<object?>();
-                            while (await reader.ReadAsync())
-                            {
-                                //a key of one member is its value, a key of several is its parts
-                                object? key;
-                                if (keyParts.Length == 1)
-                                {
-                                    key = reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), keyParts[0].Type);
-                                }
-                                else
-                                {
-                                    var parts = new object?[keyParts.Length];
-                                    for (var i = 0; i < parts.Length; i++)
-                                        parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
-                                    key = parts;
-                                }
-                                distinct.Add(key);
-                            }
-                            return distinct;
-                        }
-
-                        var rows = new List<(object? Key, object? Value)>();
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                await connection.OpenAsync();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandTimeout = 0;
+                    command.CommandText = sql;
+                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
+                    {
+                        var rows = new List<(TKey Key, TValue Value)>();
                         while (await reader.ReadAsync())
                         {
                             //a key of one member is its value, a key of several is its parts
@@ -1196,7 +1328,8 @@ namespace Zerra.Repository.MariaDb
                                     parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
                                 key = parts;
                             }
-                            rows.Add((key, reader.IsDBNull(keyParts.Length) ? null : TypeAnalyzer.Convert(reader.GetValue(keyParts.Length), resultType)));
+                            var read = reader.IsDBNull(keyParts.Length) ? null : TypeAnalyzer.Convert(reader.GetValue(keyParts.Length), resultType);
+                            rows.Add((buildKey(key), read is null ? default! : (TValue)read));
                         }
                         return rows;
                     }
@@ -1204,11 +1337,11 @@ namespace Zerra.Repository.MariaDb
             }
         }
         /// <inheritdoc/>
-        public async Task<IReadOnlyList<object>> ExecuteSelectAsync<TModel>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<IReadOnlyCollection<TValue>> ExecuteDistinctAsync<TModel, TValue>(LambdaExpression value, LambdaExpression? where, ModelDetail modelDetail) where TModel : class, new()
         {
-            var members = select.GetProjectionMembers(null);
-            var resultDetail = TypeAnalyzer.GetTypeDetail(select.ReturnType);
-            var sql = LinqMariaDbConverter.ConvertSelect(members, where, order, skip, take, modelDetail);
+            var sql = LinqMariaDbConverter.ConvertCalculation(QueryOperation.Distinct, where, value, null, modelDetail);
+            var keyParts = CalculationCommon.GetKeyParts(value);
+            var buildKey = CalculationCommon.GetKeyBuilder<TValue>(value);
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -1219,30 +1352,172 @@ namespace Zerra.Repository.MariaDb
                     command.CommandText = sql;
                     using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
                     {
-                        var results = new List<object>();
+                        var values = new List<TValue>();
                         while (await reader.ReadAsync())
                         {
-                            var result = resultDetail.CreatorBoxed!();
-                            for (var i = 0; i < members.Length; i++)
+                            //a key of one member is its value, a key of several is its parts
+                            object? key;
+                            if (keyParts.Length == 1)
                             {
-                                if (reader.IsDBNull(i))
-                                    continue;
-                                var value = reader.GetValue(i);
-                                var memberDetail = members[i].MemberDetail;
-                                memberDetail.SetterBoxed!(result, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                                key = reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), keyParts[0].Type);
                             }
-                            results.Add(result);
+                            else
+                            {
+                                var parts = new object?[keyParts.Length];
+                                for (var i = 0; i < parts.Length; i++)
+                                    parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
+                                key = parts;
+                            }
+                            values.Add(buildKey(key));
                         }
-                        return results;
+                        return values;
                     }
                 }
             }
         }
         /// <inheritdoc/>
-        public async Task<IReadOnlyList<object>> ExecuteGroupAsync<TModel>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<IReadOnlyCollection<TResult>> ExecuteSelectAsync<TModel, TResult>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var members = select.GetProjectionMembers(null);
+            var resultDetail = TypeAnalyzer<TResult>.GetTypeDetail();
+            var sql = LinqMariaDbConverter.ConvertSelect(members, where, order, skip, take, modelDetail);
+            //a projection of a related collection reads the identity in the member's column, to match the rows a second statement reads
+            List<object>? identities = null;
+            foreach (var member in members)
+            {
+                if (member.Kind == ProjectionMemberKind.Collection)
+                    identities = new List<object>();
+            }
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                await connection.OpenAsync();
+                var results = new List<TResult>();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandTimeout = 0;
+                    command.CommandText = sql;
+                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            var result = resultDetail.Creator!();
+                            for (var i = 0; i < members.Length; i++)
+                            {
+                                if (reader.IsDBNull(i))
+                                    continue;
+                                var value = reader.GetValue(i);
+                                if (members[i].Kind == ProjectionMemberKind.Collection)
+                                {
+                                    if (identities!.Count == results.Count)
+                                        identities.Add(value);
+                                    continue;
+                                }
+                                var memberDetail = members[i].MemberDetail;
+                                if (value is byte[] bytes && (Nullable.GetUnderlyingType(memberDetail.Type) ?? memberDetail.Type) == typeof(Guid))
+                                    memberDetail.SetterBoxed!(result!, new Guid(bytes, true));
+                                else
+                                    memberDetail.SetterBoxed!(result!, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                            }
+                            results.Add(result);
+                        }
+                    }
+                }
+                if (identities is null)
+                    return results;
+
+                for (var i = 0; i < members.Length; i++)
+                {
+                    if (members[i].Kind == ProjectionMemberKind.Collection)
+                        await ReadCollectionAsync(connection, members[i], modelDetail, results, identities);
+                }
+                return results;
+            }
+        }
+        //reads the rows of a collection member for the parents read, matched by their foreign identity, builds a result from each and sets the collections on the parents, then does the same for the collections within each row
+        private static async Task ReadCollectionAsync(MySqlConnection connection, ProjectionMember collection, ModelDetail parentDetail, IList parents, List<object> parentIdentities)
+        {
+            var identityType = parentDetail.IdentityMembers[0].Type;
+            for (var r = 0; r < parentIdentities.Count; r++)
+                parentIdentities[r] = parentIdentities[r] is byte[] identityBytes && (Nullable.GetUnderlyingType(identityType) ?? identityType) == typeof(Guid) ? new Guid(identityBytes, true) : parentIdentities[r].GetType() == identityType ? parentIdentities[r] : TypeAnalyzer.Convert(parentIdentities[r], identityType)!;
+            var keys = new HashSet<object>(parentIdentities);
+
+            var relatedDetail = ModelAnalyzer.GetModel(collection.Relation!.ActualType);
+            var foreignIdentity = relatedDetail.GetMember(collection.Relation.ForeignIdentity!);
+            var row = Expression.Parameter(relatedDetail.Type, "row");
+            Expression condition = Expression.Call(Expression.Constant(keys), hashSetContainsMethod, Expression.Convert(Expression.MakeMemberAccess(row, foreignIdentity.MemberDetail.MemberInfo), typeof(object)));
+            if (collection.Where is not null)
+                condition = Expression.AndAlso(condition, LinqRebinder.RebindExpression(collection.Where.Body, collection.Where.Parameters[0], row));
+            var rowWhere = Expression.Lambda(relatedDetail.LambdaDelegateType, condition, row);
+            var rowSql = LinqMariaDbConverter.ConvertSelectElements(collection, rowWhere, relatedDetail);
+            var rowMembers = collection.Members!;
+            var rowDetail = TypeAnalyzer.GetTypeDetail(collection.Type);
+            //a collection within a row reads the row's identity in the member's column, to match the rows its own statement reads
+            List<object>? rowIdentities = null;
+            List<object>? allRows = null;
+            foreach (var rowMember in rowMembers)
+            {
+                if (rowMember.Kind == ProjectionMemberKind.Collection)
+                {
+                    rowIdentities = new List<object>();
+                    allRows = new List<object>();
+                }
+            }
+            var rows = new Dictionary<object, List<object>>();
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandTimeout = 0;
+                command.CommandText = rowSql;
+                using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var rowResult = rowDetail.CreatorBoxed!();
+                        for (var j = 0; j < rowMembers.Length; j++)
+                        {
+                            if (reader.IsDBNull(j))
+                                continue;
+                            var value = reader.GetValue(j);
+                            if (rowMembers[j].Kind == ProjectionMemberKind.Collection)
+                            {
+                                if (rowIdentities!.Count == allRows!.Count)
+                                    rowIdentities.Add(value);
+                                continue;
+                            }
+                            var memberDetail = rowMembers[j].MemberDetail;
+                            if (value is byte[] bytes && (Nullable.GetUnderlyingType(memberDetail.Type) ?? memberDetail.Type) == typeof(Guid))
+                                memberDetail.SetterBoxed!(rowResult, new Guid(bytes, true));
+                            else
+                                memberDetail.SetterBoxed!(rowResult, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                        }
+                        var keyValue = reader.GetValue(rowMembers.Length);
+                        var key = keyValue is byte[] keyBytes && (Nullable.GetUnderlyingType(identityType) ?? identityType) == typeof(Guid) ? (object)new Guid(keyBytes, true) : keyValue.GetType() == identityType ? keyValue : TypeAnalyzer.Convert(keyValue, identityType)!;
+                        if (!rows.TryGetValue(key, out var list))
+                        {
+                            list = new List<object>();
+                            rows.Add(key, list);
+                        }
+                        list.Add(rowResult);
+                        allRows?.Add(rowResult);
+                    }
+                }
+            }
+            for (var r = 0; r < parents.Count; r++)
+                collection.MemberDetail.SetterBoxed!(parents[r]!, collection.CreateCollection(rows.TryGetValue(parentIdentities[r], out var list) ? list : Array.Empty<object>()));
+            if (rowIdentities is null)
+                return;
+
+            for (var j = 0; j < rowMembers.Length; j++)
+            {
+                if (rowMembers[j].Kind == ProjectionMemberKind.Collection)
+                    await ReadCollectionAsync(connection, rowMembers[j], relatedDetail, allRows!, rowIdentities);
+            }
+        }
+        /// <inheritdoc/>
+        public async Task<IReadOnlyCollection<TResult>> ExecuteGroupAsync<TModel, TResult>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
         {
             var members = select.GetProjectionMembers(groupBy);
-            var resultDetail = TypeAnalyzer.GetTypeDetail(select.ReturnType);
+            var resultDetail = TypeAnalyzer<TResult>.GetTypeDetail();
             var sql = LinqMariaDbConverter.ConvertGroup(groupBy, members, where, having, order, skip, take, modelDetail, select.ReturnType);
 
             using (var connection = new MySqlConnection(connectionString))
@@ -1254,17 +1529,17 @@ namespace Zerra.Repository.MariaDb
                     command.CommandText = sql;
                     using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
                     {
-                        var results = new List<object>();
+                        var results = new List<TResult>();
                         while (await reader.ReadAsync())
                         {
-                            var result = resultDetail.CreatorBoxed!();
+                            var result = resultDetail.Creator!();
                             for (var i = 0; i < members.Length; i++)
                             {
                                 if (reader.IsDBNull(i))
                                     continue;
                                 var value = reader.GetValue(i);
                                 var memberDetail = members[i].MemberDetail;
-                                memberDetail.SetterBoxed!(result, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                                memberDetail.SetterBoxed!(result!, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
                             }
                             results.Add(result);
                         }
@@ -1373,6 +1648,22 @@ namespace Zerra.Repository.MariaDb
             var sql = GenerateSqlUpdateWhere(model, graph, modelDetail, sqlWhere);
             if (sql is null)
                 return 0;
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandTimeout = 0;
+                    command.CommandText = sql;
+                    return command.ExecuteNonQuery();
+                }
+            }
+        }
+        /// <inheritdoc/>
+        public int ExecuteUpdateWhere<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var sql = LinqMariaDbConverter.ConvertPersistUpdate(set.GetProjectionMembers(null), where, modelDetail);
 
             using (var connection = new MySqlConnection(connectionString))
             {
@@ -1499,6 +1790,22 @@ namespace Zerra.Repository.MariaDb
             var sql = GenerateSqlUpdateWhere(model, graph, modelDetail, sqlWhere);
             if (sql is null)
                 return 0;
+
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                await connection.OpenAsync();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandTimeout = 0;
+                    command.CommandText = sql;
+                    return await command.ExecuteNonQueryAsync();
+                }
+            }
+        }
+        /// <inheritdoc/>
+        public async Task<int> ExecuteUpdateWhereAsync<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var sql = LinqMariaDbConverter.ConvertPersistUpdate(set.GetProjectionMembers(null), where, modelDetail);
 
             using (var connection = new MySqlConnection(connectionString))
             {

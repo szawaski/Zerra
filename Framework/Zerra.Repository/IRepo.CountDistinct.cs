@@ -33,15 +33,7 @@ namespace Zerra.Repository
         /// <returns>The key and the number of different values of each group.</returns>
         IReadOnlyCollection<(TKey Key, long Value)> CountDistinct<TModel, TKey, TValue>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, TValue>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)Query(new Query<TModel>(QueryOperation.CountDistinct, where, groupBy, value))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, long Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), (long)result!);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, long Value)>)Query(new CalculationGroupsQuery<TModel, TKey, long>(QueryOperation.CountDistinct, where, groupBy, value))!;
         }
 
         /// <summary>
@@ -69,15 +61,7 @@ namespace Zerra.Repository
         /// <returns>A task that represents the asynchronous operation. The key and the number of different values of each group.</returns>
         async Task<IReadOnlyCollection<(TKey Key, long Value)>> CountDistinctAsync<TModel, TKey, TValue>(Expression<Func<TModel, TKey>> groupBy, Expression<Func<TModel, TValue>> value, Expression<Func<TModel, bool>>? where = null) where TModel : class, new()
         {
-            var rows = (IReadOnlyList<(object? Key, object? Value)>)(await QueryAsync(new Query<TModel>(QueryOperation.CountDistinct, where, groupBy, value)))!;
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-            var groups = new (TKey Key, long Value)[rows.Count];
-            for (var i = 0; i < groups.Length; i++)
-            {
-                var (key, result) = rows[i];
-                groups[i] = (buildKey(key), (long)result!);
-            }
-            return groups;
+            return (IReadOnlyCollection<(TKey Key, long Value)>)(await QueryAsync(new CalculationGroupsQuery<TModel, TKey, long>(QueryOperation.CountDistinct, where, groupBy, value)))!;
         }
     }
 }

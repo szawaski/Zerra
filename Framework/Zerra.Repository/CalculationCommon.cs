@@ -4,6 +4,7 @@
 
 using System.Globalization;
 using System.Linq.Expressions;
+using Zerra.Linq;
 using Zerra.Reflection;
 
 namespace Zerra.Repository
@@ -86,6 +87,19 @@ namespace Zerra.Repository
         public static Func<TModel, object?> CompileBoxed<TModel>(Expression body, ParameterExpression parameter, bool caseSensitive)
         {
             var lambda = Expression.Lambda<Func<TModel, object?>>(Expression.Convert(body, typeof(object)), parameter);
+            return MemoryExpressionRewriter.Rewrite(lambda, caseSensitive).Compile();
+        }
+
+        /// <summary>Compiles an expression over a model of any type to a function taking the model as an object and returning its boxed value, rewritten as <see cref="CompileBoxed{TModel}"/> rewrites it.</summary>
+        /// <param name="body">The expression.</param>
+        /// <param name="parameter">The parameter of the model.</param>
+        /// <param name="caseSensitive">Indicates if string comparisons are case sensitive.</param>
+        /// <returns>The compiled function.</returns>
+        public static Func<object, object?> CompileBoxed(Expression body, ParameterExpression parameter, bool caseSensitive)
+        {
+            var model = Expression.Parameter(typeof(object), "model");
+            var rebound = LinqRebinder.RebindExpression(body, parameter, Expression.Convert(model, parameter.Type));
+            var lambda = Expression.Lambda<Func<object, object?>>(Expression.Convert(rebound, typeof(object)), model);
             return MemoryExpressionRewriter.Rewrite(lambda, caseSensitive).Compile();
         }
 

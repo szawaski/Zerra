@@ -171,6 +171,38 @@ namespace Zerra.Repository
         protected abstract void ConvertSelect(ref CharWriter sb, ProjectionMember[] members, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, MemberContext operationContext);
 
         /// <summary>
+        /// Converts the projection of the rows of a related collection, a <see cref="ProjectionMemberKind.Collection"/> member of a projection, to SQL. The columns are its members in order, then the foreign identity matching each row to its model.
+        /// </summary>
+        /// <param name="collection">The collection member.</param>
+        /// <param name="where">The condition selecting the rows: the models' identities, and the collection's own condition.</param>
+        /// <param name="relatedDetail">Metadata about the related model.</param>
+        /// <returns>The SQL.</returns>
+        protected string ConvertSelectElementsInternal(ProjectionMember collection, LambdaExpression where, ModelDetail relatedDetail)
+        {
+            var operationContext = new MemberContext();
+            var sb = new CharWriter();
+            try
+            {
+                ConvertSelectElements(ref sb, collection, where, relatedDetail, operationContext);
+                return sb.ToString();
+            }
+            finally
+            {
+                sb.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Builds the SQL of the projection of the rows of a related collection into the provided <see cref="CharWriter"/>: each member's expression with the member's name as alias, the foreign identity, then the from, joins, where, and the collection's order.
+        /// </summary>
+        /// <param name="sb">The writer to append the SQL into.</param>
+        /// <param name="collection">The collection member.</param>
+        /// <param name="where">The condition selecting the rows.</param>
+        /// <param name="relatedDetail">Metadata about the related model.</param>
+        /// <param name="operationContext">The current member context for the operation.</param>
+        protected abstract void ConvertSelectElements(ref CharWriter sb, ProjectionMember collection, LambdaExpression where, ModelDetail relatedDetail, MemberContext operationContext);
+
+        /// <summary>
         /// Builds the SQL of a projection of each group into the provided <see cref="CharWriter"/>: the key parts and values as an inner select, the aggregates over it grouped by the key parts,
         /// and when there is a having, an order, or paging, that as a derived table named after the result type so they convert like a where on a model.
         /// </summary>
@@ -217,6 +249,38 @@ namespace Zerra.Repository
         /// <param name="modelDetail">Metadata about the model being changed.</param>
         /// <param name="operationContext">The current member context for the operation.</param>
         protected abstract void ConvertPersistWhere(ref CharWriter sb, LambdaExpression where, ModelDetail modelDetail, MemberContext operationContext);
+
+        /// <summary>
+        /// Converts an update of every row matching a condition to values computed from the row into its SQL statement.
+        /// </summary>
+        /// <param name="sets">The members to set from <see cref="LinqExtensions.GetProjectionMembers"/>, each with its value in terms of the row.</param>
+        /// <param name="where">The condition selecting the rows.</param>
+        /// <param name="modelDetail">Metadata about the model being changed.</param>
+        /// <returns>The SQL.</returns>
+        protected string ConvertPersistUpdateInternal(ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail)
+        {
+            var operationContext = new MemberContext();
+            var sb = new CharWriter();
+            try
+            {
+                ConvertPersistUpdate(ref sb, sets, where, modelDetail, operationContext);
+                return sb.ToString();
+            }
+            finally
+            {
+                sb.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Builds the UPDATE of every row matching a condition into the provided <see cref="CharWriter"/>: each member set to its value converted in terms of the row, which reads only the model's own columns, then the condition as <see cref="ConvertPersistWhere"/> writes it.
+        /// </summary>
+        /// <param name="sb">The writer to append the SQL into.</param>
+        /// <param name="sets">The members to set from <see cref="LinqExtensions.GetProjectionMembers"/>, each with its value in terms of the row.</param>
+        /// <param name="where">The condition selecting the rows.</param>
+        /// <param name="modelDetail">Metadata about the model being changed.</param>
+        /// <param name="operationContext">The current member context for the operation.</param>
+        protected abstract void ConvertPersistUpdate(ref CharWriter sb, ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail, MemberContext operationContext);
 
         /// <summary>
         /// Builds the SQL query into the provided <see cref="CharWriter"/>.
@@ -735,10 +799,31 @@ namespace Zerra.Repository
         protected virtual bool BitwiseResultUnsigned => false;
         private bool CanBeNull(Expression exp)
         {
+            //a value read from one row of a related collection is null when there is no row
             if (exp.Type.IsValueType && Nullable.GetUnderlyingType(exp.Type) is null)
-                return false;
+                return !IsEvaluatable(exp) && RelatedElementFinder.Reads(exp);
             //a value is known, a null value is written as IS NULL instead
             return !IsEvaluatable(exp);
+        }
+        //whether an expression reads one row of a related collection, such as x.Lines.OrderBy(l => l.Price).First().Quantity
+        private sealed class RelatedElementFinder : ExpressionVisitor
+        {
+            private bool found;
+            public static bool Reads(Expression exp)
+            {
+                var finder = new RelatedElementFinder();
+                _ = finder.Visit(exp);
+                return finder.found;
+            }
+            protected override Expression VisitMethodCall(MethodCallExpression node)
+            {
+                if (node.Method.DeclaringType == typeof(Enumerable) && node.Method.Name is "First" or "FirstOrDefault" or "Single" or "SingleOrDefault" or "Last" or "LastOrDefault" or "ElementAt" or "ElementAtOrDefault")
+                {
+                    found = true;
+                    return node;
+                }
+                return base.VisitMethodCall(node);
+            }
         }
         private void ConvertToSqlArrayIndex(Expression exp, ref CharWriter sb, BuilderContext context)
         {

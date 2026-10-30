@@ -85,7 +85,7 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
-            var result = engine.ExecuteCalculation<TModel>(query.Operation, query.Where, query.GroupBy, query.Value, ModelTypeDetail);
+            var result = engine.ExecuteCalculation<TModel>(query.Operation, query.Where, query.Value, ModelTypeDetail);
             return result;
         }
         /// <inheritdoc/>
@@ -94,9 +94,7 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
-            if (query.Operation == QueryOperation.Group)
-                return engine.ExecuteGroup<TModel>(query.GroupBy!, query.Select!, query.Where, query.Having, query.Order, query.Skip, query.Take, ModelTypeDetail);
-            return engine.ExecuteSelect<TModel>(query.Select!, query.Where, query.Order, query.Skip, query.Take, ModelTypeDetail);
+            return query.Execute(engine, ModelTypeDetail);
         }
         /// <inheritdoc/>
         protected override sealed IReadOnlyCollection<EventModel<TModel>> EventMany(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
@@ -160,18 +158,16 @@ namespace Zerra.Repository
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
-            var result = engine.ExecuteCalculationAsync<TModel>(query.Operation, query.Where, query.GroupBy, query.Value, ModelTypeDetail);
+            var result = engine.ExecuteCalculationAsync<TModel>(query.Operation, query.Where, query.Value, ModelTypeDetail);
             return result;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<object?> ProjectAsync(Query query)
+        protected override sealed Task<object?> ProjectAsync(Query query)
         {
             if (query.IsTemporal)
                 throw new NotSupportedException($"Temporal queries not supported with {nameof(TransactStoreProvider<TModel>)}");
 
-            if (query.Operation == QueryOperation.Group)
-                return await engine.ExecuteGroupAsync<TModel>(query.GroupBy!, query.Select!, query.Where, query.Having, query.Order, query.Skip, query.Take, ModelTypeDetail);
-            return await engine.ExecuteSelectAsync<TModel>(query.Select!, query.Where, query.Order, query.Skip, query.Take, ModelTypeDetail);
+            return query.ExecuteAsync(engine, ModelTypeDetail);
         }
         /// <inheritdoc/>
         protected override sealed Task<IReadOnlyCollection<EventModel<TModel>>> EventManyAsync(Query query) => throw new NotSupportedException("Event queries not supported with this provider");
@@ -242,6 +238,11 @@ namespace Zerra.Repository
             return engine.ExecuteUpdateWhere<TModel>((TModel)model, graph, where, ModelTypeDetail);
         }
         /// <inheritdoc/>
+        protected override sealed int UpdateModelsWhere(PersistEvent @event, LambdaExpression where, LambdaExpression set)
+        {
+            return engine.ExecuteUpdateWhere<TModel>(set, where, ModelTypeDetail);
+        }
+        /// <inheritdoc/>
         protected override sealed int DeleteModelsWhere(PersistEvent @event, LambdaExpression where)
         {
             return engine.ExecuteDeleteWhere<TModel>(where, ModelTypeDetail);
@@ -304,6 +305,11 @@ namespace Zerra.Repository
         protected override sealed Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, object model, Graph graph)
         {
             return engine.ExecuteUpdateWhereAsync<TModel>((TModel)model, graph, where, ModelTypeDetail);
+        }
+        /// <inheritdoc/>
+        protected override sealed Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, LambdaExpression set)
+        {
+            return engine.ExecuteUpdateWhereAsync<TModel>(set, where, ModelTypeDetail);
         }
         /// <inheritdoc/>
         protected override sealed Task<int> DeleteModelsWhereAsync(PersistEvent @event, LambdaExpression where)

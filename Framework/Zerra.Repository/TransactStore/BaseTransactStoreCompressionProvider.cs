@@ -288,16 +288,20 @@ namespace Zerra.Repository
             if (this.Enabled)
             {
                 var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
-                if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Select, typeof(TModel), properties))
-                    throw new NotSupportedException($"{GetType().Name} cannot project a compressed property");
+                if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties) || LinqMemberFinder.ReadsMember(query.Select, typeof(TModel), properties))
+                    throw new NotSupportedException($"{GetType().Name} cannot project or calculate on a compressed property");
             }
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var result = NextProvider.Query(appenedQuery);
-            return result;
+            //the query carries its result types, so the converted where is swapped onto it for the call and the original put back
+            var where = query.Where;
+            query.Where = CompressWhere(where);
+            try
+            {
+                return NextProvider.Query(query);
+            }
+            finally
+            {
+                query.Where = where;
+            }
         }
         /// <inheritdoc/>
         public override sealed object? EventMany(Query query)
@@ -473,21 +477,25 @@ namespace Zerra.Repository
             return result;
         }
         /// <inheritdoc/>
-        public override sealed Task<object?> ProjectAsync(Query query)
+        public override sealed async Task<object?> ProjectAsync(Query query)
         {
             if (this.Enabled)
             {
                 var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
-                if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Select, typeof(TModel), properties))
-                    throw new NotSupportedException($"{GetType().Name} cannot project a compressed property");
+                if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties) || LinqMemberFinder.ReadsMember(query.Select, typeof(TModel), properties))
+                    throw new NotSupportedException($"{GetType().Name} cannot project or calculate on a compressed property");
             }
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var result = NextProvider.QueryAsync(appenedQuery);
-            return result;
+            //the query carries its result types, so the converted where is swapped onto it for the call and the original put back
+            var where = query.Where;
+            query.Where = CompressWhere(where);
+            try
+            {
+                return await NextProvider.QueryAsync(query);
+            }
+            finally
+            {
+                query.Where = where;
+            }
         }
         /// <inheritdoc/>
         public override sealed async Task<object?> EventManyAsync(Query query)
@@ -651,6 +659,21 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed void Update(Persist persist)
         {
+            if (persist.Set is not null)
+            {
+                if (this.Enabled)
+                {
+                    var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
+                    if (LinqMemberFinder.ReadsMember(persist.Where, properties))
+                        throw new NotSupportedException($"{GetType().Name} cannot select the rows to change by a compressed property");
+                    if (LinqMemberFinder.ReadsMember(persist.Set, properties) || LinqMemberFinder.SetsMember(persist.Set, properties))
+                        throw new NotSupportedException($"{GetType().Name} cannot compute a value from or set a compressed property in the store");
+                }
+                var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, persist.Where!, persist.Set);
+                NextProvider.Persist(forwarded);
+                persist.RowsAffected = forwarded.RowsAffected;
+                return;
+            }
             if (persist.Models is null || persist.Models.Length == 0)
                 return;
 
@@ -691,6 +714,21 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed async Task UpdateAsync(Persist persist)
         {
+            if (persist.Set is not null)
+            {
+                if (this.Enabled)
+                {
+                    var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
+                    if (LinqMemberFinder.ReadsMember(persist.Where, properties))
+                        throw new NotSupportedException($"{GetType().Name} cannot select the rows to change by a compressed property");
+                    if (LinqMemberFinder.ReadsMember(persist.Set, properties) || LinqMemberFinder.SetsMember(persist.Set, properties))
+                        throw new NotSupportedException($"{GetType().Name} cannot compute a value from or set a compressed property in the store");
+                }
+                var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, persist.Where!, persist.Set);
+                await NextProvider.PersistAsync(forwarded);
+                persist.RowsAffected = forwarded.RowsAffected;
+                return;
+            }
             if (persist.Models is null || persist.Models.Length == 0)
                 return;
 

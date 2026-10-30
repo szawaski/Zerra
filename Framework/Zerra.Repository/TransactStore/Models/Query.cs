@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Linq.Expressions;
+using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
 {
@@ -195,5 +196,28 @@ namespace Zerra.Repository
             this.Skip = skip;
             this.Take = take;
         }
+
+        /// <summary>
+        /// Runs a query whose results are built as a type other than the model, a projection, the different values of a member, or a calculation per group, on an engine with the result types the query was made with.
+        /// A query of models, or of one calculation over all of them, is run by the provider itself.
+        /// </summary>
+        /// <param name="engine">The engine of the model's store.</param>
+        /// <param name="modelDetail">The model's detail.</param>
+        /// <returns>The results.</returns>
+        internal virtual object? Execute(ITransactStoreEngine engine, ModelDetail modelDetail) => throw new NotSupportedException($"{Operation} is run by the provider itself");
+        /// <summary>
+        /// Asynchronously runs a query whose results are built as a type other than the model on an engine with the result types the query was made with.
+        /// </summary>
+        /// <param name="engine">The engine of the model's store.</param>
+        /// <param name="modelDetail">The model's detail.</param>
+        /// <returns>A task containing the results.</returns>
+        internal virtual Task<object?> ExecuteAsync(ITransactStoreEngine engine, ModelDetail modelDetail) => throw new NotSupportedException($"{Operation} is run by the provider itself");
+        /// <summary>
+        /// Runs a query whose results are built as a type other than the model over models already loaded, with the result types the query was made with.
+        /// The models are those <see cref="Where"/> matches, and for <see cref="QueryOperation.Select"/> already in <see cref="Order"/> with <see cref="Skip"/> and <see cref="Take"/> applied; a group's order and paging apply to its results.
+        /// </summary>
+        /// <param name="models">The models.</param>
+        /// <returns>The results.</returns>
+        internal virtual object? Execute(IEnumerable<object> models) => throw new NotSupportedException($"{Operation} is run by the provider itself");
     }
 }

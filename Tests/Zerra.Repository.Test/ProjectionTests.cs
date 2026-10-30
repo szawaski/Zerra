@@ -50,6 +50,14 @@ namespace Zerra.Repository.Test
             public long Siblings { get; set; }
         }
 
+        public sealed class ParentRows
+        {
+            public string? Name { get; set; }
+            public Row[]? Children { get; set; }
+            public List<Row>? Sorted { get; set; }
+            public IReadOnlyCollection<Row>? Some { get; set; }
+            public IEnumerable<object>? Loose { get; set; }
+        }
         public sealed class Summary
         {
             public bool Flag { get; set; }
@@ -158,6 +166,78 @@ namespace Zerra.Repository.Test
             _ = Assert.Throws<NotSupportedException>(() => repo.Group((Model x) => new { x.Flag, x.Maybe }, g => new Summary { Flag = g.Key.Flag, First = g.Key.ToString() }));
             //and the whole key of several parts can't be set to a member
             _ = Assert.Throws<NotSupportedException>(() => repo.Group((Model x) => new { x.Flag, x.Maybe }, g => new Summary { First = g.Key.ToString() }));
+        }
+
+        [Fact]
+        public async Task CollectionsAreBuiltFromTheRelatedRows()
+        {
+            var (repo, models, parents) = MemoryRepo();
+
+            var rows = await repo.SelectAsync((Parent x) => new ParentRows
+            {
+                Name = x.Name,
+                Children = x.Children!.Select(c => new Row { Number = c.Number, Name = c.Name }).ToArray(),
+                Sorted = x.Children!.OrderByDescending(c => c.Number).Select(c => new Row { Number = c.Number, Twice = c.Number * 2 }).ToList(),
+                Some = x.Children!.Where(c => c.Flag).OrderBy(c => c.Number).Select(c => new Row { Number = c.Number }).ToList(),
+            }, null, QueryOrder<Parent>.Create(x => x.Name));
+            Assert.Equal(["pa", "pb"], rows.Select(r => r.Name));
+            foreach (var row in rows)
+            {
+                var parent = parents.Single(p => p.Name == row.Name);
+                var children = models.Where(m => m.ParentID == parent.ID).ToArray();
+                Assert.Equal(children.Select(c => (c.Number, c.Name)).Order(), row.Children!.Select(c => (c.Number, c.Name)).Order());
+                Assert.Equal(children.OrderByDescending(c => c.Number).Select(c => (c.Number, c.Number * 2)), row.Sorted!.Select(c => (c.Number, c.Twice)));
+                Assert.Equal(children.Where(c => c.Flag).OrderBy(c => c.Number).Select(c => c.Number), row.Some!.Select(c => c.Number));
+            }
+
+            //a parent without rows gets an empty collection
+            repo.Create(new Parent { ID = Guid.NewGuid(), Name = "pc" });
+            var empty = repo.Select((Parent x) => new ParentRows { Children = x.Children!.Select(c => new Row { Number = c.Number }).ToArray() }, x => x.Name == "pc");
+            Assert.Empty(Assert.Single(empty).Children!);
+
+            //paging and skipping the rows, a result reading the model, and an element type the member doesn't take are refused
+            _ = Assert.Throws<NotSupportedException>(() => repo.Select((Parent x) => new ParentRows { Children = x.Children!.Skip(1).Select(c => new Row { Number = c.Number }).ToArray() }));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Select((Parent x) => new ParentRows { Children = x.Children!.Select(c => new Row { Number = c.Number, ParentName = x.Name }).ToArray() }));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Select((Parent x) => new ParentRows { Children = x.Children!.Where(c => c.Name == x.Name).Select(c => new Row { Number = c.Number }).ToArray() }));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Select((Parent x) => new ParentRows { Loose = x.Children!.Select(c => new Row { Number = c.Number }).ToArray() }));
+        }
+
+        [Entity("ProjectionNode")]
+        public sealed class Node
+        {
+            [Identity]
+            public Guid ID { get; set; }
+            public Guid? ParentID { get; set; }
+            [StoreProperties(false, 50)]
+            public string? Name { get; set; }
+            [Relation(nameof(ParentID))]
+            public Node? Parent { get; set; }
+            [Relation(nameof(ParentID))]
+            public Node[]? Children { get; set; }
+        }
+        public sealed class NodeRow
+        {
+            public string? Name { get; set; }
+            public NodeRow[]? Children { get; set; }
+        }
+
+        [Fact]
+        public void CollectionsWithinRowsStopAtAModelAlreadyProjected()
+        {
+            var repo = Repo.New();
+            repo.AddProvider(new TransactStoreProvider<Node>(new MemoryEngine()));
+            var root = new Node { ID = Guid.NewGuid(), Name = "root" };
+            var children = new[] { new Node { ID = Guid.NewGuid(), ParentID = root.ID, Name = "c1" }, new Node { ID = Guid.NewGuid(), ParentID = root.ID, Name = "c2" } };
+            repo.Create(root);
+            repo.Create<Node>(children);
+            repo.Create(new Node { ID = Guid.NewGuid(), ParentID = children[0].ID, Name = "g1" });
+
+            var rows = repo.Select((Node x) => new NodeRow { Name = x.Name, Children = x.Children!.OrderBy(c => c.Name).Select(c => new NodeRow { Name = c.Name }).ToArray() }, x => x.Name == "root");
+            Assert.Equal(["c1", "c2"], Assert.Single(rows).Children!.Select(c => c.Name));
+
+            //the rows of a collection within a row can't be a row model above them, so a projection never follows a relation round and round; a model with a collection of itself nests one level
+            var refused = Assert.Throws<NotSupportedException>(() => repo.Select((Node x) => new NodeRow { Name = x.Name, Children = x.Children!.Select(c => new NodeRow { Name = c.Name, Children = c.Children!.Select(g => new NodeRow { Name = g.Name }).ToArray() }).ToArray() }));
+            Assert.Contains("already projected above them", refused.Message);
         }
 
         [Entity("ProjectionEvent")]

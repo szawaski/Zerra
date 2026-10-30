@@ -45,7 +45,7 @@ namespace Zerra.Repository
         /// Routes the query to the event store provider for temporal queries, or to the next provider for standard queries.
         /// </summary>
         /// <param name="query">The query to execute.</param>
-        /// <returns>The query result, or <see langword="null"/> if no result is produced.</returns>
+        /// <returns>The query result.</returns>
         public object? Query(Query query)
         {
             if (query.IsTemporal)
@@ -62,7 +62,7 @@ namespace Zerra.Repository
         /// Asynchronously routes the query to the event store provider for temporal queries, or to the next provider for standard queries.
         /// </summary>
         /// <param name="query">The query to execute.</param>
-        /// <returns>A task that resolves to the query result, or <see langword="null"/> if no result is produced.</returns>
+        /// <returns>A task that resolves to the query result.</returns>
         public Task<object?> QueryAsync(Query query)
         {
             if (query.IsTemporal)

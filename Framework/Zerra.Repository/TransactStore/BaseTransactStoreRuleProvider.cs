@@ -240,16 +240,19 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed object? Project(Query query)
         {
-            var appenedQuery = new Query(query);
+            OnQuery(query.Graph);
 
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var result = NextProvider.Query(appenedQuery);
-
-            return result;
+            //the query carries its result types, so the appended where is swapped onto it for the call and the original put back
+            var where = query.Where;
+            query.Where = AppendWhereExpression(where, query.Graph);
+            try
+            {
+                return NextProvider.Query(query);
+            }
+            finally
+            {
+                query.Where = where;
+            }
         }
 
         /// <inheritdoc/>
@@ -461,18 +464,21 @@ namespace Zerra.Repository
             return result;
         }
         /// <inheritdoc/>
-        public override sealed Task<object?> ProjectAsync(Query query)
+        public override sealed async Task<object?> ProjectAsync(Query query)
         {
-            var appenedQuery = new Query(query);
+            OnQuery(query.Graph);
 
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var result = NextProvider.QueryAsync(appenedQuery);
-
-            return result;
+            //the query carries its result types, so the appended where is swapped onto it for the call and the original put back
+            var where = query.Where;
+            query.Where = AppendWhereExpression(where, query.Graph);
+            try
+            {
+                return await NextProvider.QueryAsync(query);
+            }
+            finally
+            {
+                query.Where = where;
+            }
         }
 
         /// <inheritdoc/>
@@ -604,6 +610,11 @@ namespace Zerra.Repository
         /// <param name="graph">The members being set.</param>
         /// <returns>The condition to pass to the next provider.</returns>
         protected virtual LambdaExpression OnUpdateWhere(LambdaExpression where, object model, Graph? graph) { return where; }
+        /// <summary>Called before models are updated by a condition to values computed from each one. The models aren't loaded, so <see cref="OnUpdate"/> isn't called; override to change the condition, or throw to refuse.</summary>
+        /// <param name="where">The condition selecting the models.</param>
+        /// <param name="set">The members being set and their values, as a projection of the model to itself.</param>
+        /// <returns>The condition to pass to the next provider.</returns>
+        protected virtual LambdaExpression OnUpdateWhere(LambdaExpression where, LambdaExpression set) { return where; }
         /// <summary>Called before models are deleted by a condition. The models aren't loaded, so <see cref="OnDelete"/> isn't called; override to change the condition, or throw to refuse.</summary>
         /// <param name="where">The condition selecting the models.</param>
         /// <returns>The condition to pass to the next provider.</returns>
@@ -614,6 +625,11 @@ namespace Zerra.Repository
         /// <param name="graph">The members set.</param>
         /// <param name="rowsAffected">How many models were updated.</param>
         protected virtual void OnUpdateWhereComplete(LambdaExpression where, object model, Graph? graph, int rowsAffected) { }
+        /// <summary>Called after models have been updated by a condition to values computed from each one.</summary>
+        /// <param name="where">The condition that selected the models, with this provider's <see cref="WhereExpression"/> added.</param>
+        /// <param name="set">The members set and their values, as a projection of the model to itself.</param>
+        /// <param name="rowsAffected">How many models were updated.</param>
+        protected virtual void OnUpdateWhereComplete(LambdaExpression where, LambdaExpression set, int rowsAffected) { }
         /// <summary>Called after models have been deleted by a condition.</summary>
         /// <param name="where">The condition that selected the models, with this provider's <see cref="WhereExpression"/> added.</param>
         /// <param name="rowsAffected">How many models were deleted.</param>
@@ -634,6 +650,15 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed void Update(Persist persist)
         {
+            if (persist.Set is not null)
+            {
+                var where = AppendWhereExpression(OnUpdateWhere(persist.Where!, persist.Set), null)!;
+                var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, where, persist.Set);
+                NextProvider.Persist(forwarded);
+                persist.RowsAffected = forwarded.RowsAffected;
+                OnUpdateWhereComplete(where, persist.Set, forwarded.RowsAffected);
+                return;
+            }
             if (persist.Where is not null)
             {
                 var model = persist.Models is { Length: 1 } ? persist.Models[0] : throw new Exception($"Invalid {nameof(Persist)} for {nameof(Update)}");
@@ -709,6 +734,15 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed async Task UpdateAsync(Persist persist)
         {
+            if (persist.Set is not null)
+            {
+                var where = AppendWhereExpression(OnUpdateWhere(persist.Where!, persist.Set), null)!;
+                var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, where, persist.Set);
+                await NextProvider.PersistAsync(forwarded);
+                persist.RowsAffected = forwarded.RowsAffected;
+                OnUpdateWhereComplete(where, persist.Set, forwarded.RowsAffected);
+                return;
+            }
             if (persist.Where is not null)
             {
                 var model = persist.Models is { Length: 1 } ? persist.Models[0] : throw new Exception($"Invalid {nameof(Persist)} for {nameof(UpdateAsync)}");

@@ -40,6 +40,11 @@ namespace Zerra.Repository.Test
             public int Qty { get; set; }
             public string? ParentName { get; set; }
         }
+        public sealed class ParentChildren
+        {
+            public string? Name { get; set; }
+            public List<ChildRow>? Children { get; set; }
+        }
         public sealed class ParentSummary
         {
             public string? ParentName { get; set; }
@@ -153,6 +158,16 @@ namespace Zerra.Repository.Test
             Assert.Equal(2, repo.First<Child>(x => true, order)!.Qty);
             var withTag = repo.Many<Child>(x => true, order, new Graph<Child>(x => x.Tag));
             Assert.Equal(["x", "x", "y"], withTag.Select(x => x.Tag));
+
+            //one row of the related collection, picked in memory with the members it reads loaded, and null for a parent without one
+            var tops = repo.Select((Parent x) => new ParentSummary { ParentName = x.Name, Qty = x.Children!.OrderByDescending(c => c.Qty).First().Qty }, null, QueryOrder<Parent>.Create(x => x.Rank));
+            Assert.Equal([("a", 5), ("b", 2), ("c", 0)], tops.Select(r => (r.ParentName, r.Qty)).ToArray());
+            var byFirstTag = QueryOrder<Parent>.Create(x => x.Children!.OrderBy(c => c.Qty).First().Tag, false, x => x.Rank);
+            Assert.Equal(["c", "a", "b"], repo.Many<Parent>(x => true, byFirstTag).Select(x => x.Name));
+
+            //results built from the related rows, loaded with the members they read
+            var withChildren = repo.Select((Parent x) => new ParentChildren { Name = x.Name, Children = x.Children!.OrderByDescending(c => c.Qty).Select(c => new ChildRow { Qty = c.Qty, ParentName = c.Tag }).ToList() }, null, QueryOrder<Parent>.Create(x => x.Rank));
+            Assert.Equal([("a", "5y,1x"), ("b", "2x"), ("c", "")], withChildren.Select(r => (r.Name, String.Join(",", r.Children!.Select(c => $"{c.Qty}{c.ParentName}")))).ToArray());
         }
 
         [Fact]
@@ -164,6 +179,7 @@ namespace Zerra.Repository.Test
             _ = Assert.Throws<NotSupportedException>(() => repo.Many<Child>(x => x.Qty > x.Parent!.Rank));
             _ = Assert.Throws<NotSupportedException>(() => repo.Many<Parent>(x => x.Children!.Count() > x.Rank));
             _ = Assert.Throws<NotSupportedException>(() => repo.Many<Parent>(x => x.Children!.Any(c => c.Qty > x.Rank)));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Many<Parent>(x => x.Children!.OrderBy(c => c.Qty).First().Tag == "x"));
         }
 
         [Fact]

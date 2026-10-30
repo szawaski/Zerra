@@ -45,6 +45,25 @@ namespace Zerra.Repository.Linq
             return finder.Found;
         }
 
+        /// <summary>Returns whether a projection of a model to itself, as an update by condition sets its values with, assigns any of the members.</summary>
+        /// <param name="set">The projection, or <see langword="null"/> for none.</param>
+        /// <param name="members">The members to look for.</param>
+        /// <returns><see langword="true"/> if a member is assigned; otherwise <see langword="false"/>.</returns>
+        public static bool SetsMember(LambdaExpression? set, MemberDetail[] members)
+        {
+            if (set is null || members.Length == 0 || set.Body is not MemberInitExpression init)
+                return false;
+            foreach (var binding in init.Bindings)
+            {
+                foreach (var member in members)
+                {
+                    if (member.Name == binding.Member.Name)
+                        return true;
+                }
+            }
+            return false;
+        }
+
         private sealed class MemberFinder(ParameterExpression? parameter, Type? parameterType, MemberDetail[] members) : ExpressionVisitor
         {
             public bool Found;

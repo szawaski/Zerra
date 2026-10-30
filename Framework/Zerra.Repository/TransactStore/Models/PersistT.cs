@@ -72,5 +72,30 @@ namespace Zerra.Repository
             : base(operation, @event, typeof(TModel), where, model, graph)
         {
         }
+
+        /// <summary>
+        /// Initializes an update of every model matching a condition to values computed from each model.
+        /// </summary>
+        /// <param name="operation"><see cref="PersistOperation.Update"/>.</param>
+        /// <param name="eventName">The name of the persist event, or <see langword="null"/> for a default.</param>
+        /// <param name="source">The source object that triggered the persist, or <see langword="null"/>.</param>
+        /// <param name="where">The condition selecting the models.</param>
+        /// <param name="set">The members to set and their values in terms of the current model, as <c>x => new TModel { Member = ..., ... }</c>.</param>
+        public Persist(PersistOperation operation, string? eventName, object? source, System.Linq.Expressions.Expression<Func<TModel, bool>> where, System.Linq.Expressions.Expression<Func<TModel, TModel>> set)
+            : base(operation, eventName, source, typeof(TModel), where, set)
+        {
+        }
+
+        /// <summary>
+        /// Initializes an update of every model matching a condition to values computed from each model, with an existing persist event.
+        /// </summary>
+        /// <param name="operation"><see cref="PersistOperation.Update"/>.</param>
+        /// <param name="event">The persist event.</param>
+        /// <param name="where">The condition selecting the models.</param>
+        /// <param name="set">The members to set and their values in terms of the current model, as <c>x => new TModel { Member = ..., ... }</c>.</param>
+        public Persist(PersistOperation operation, PersistEvent @event, System.Linq.Expressions.Expression<Func<TModel, bool>> where, System.Linq.Expressions.Expression<Func<TModel, TModel>> set)
+            : base(operation, @event, typeof(TModel), where, set)
+        {
+        }
     }
 }

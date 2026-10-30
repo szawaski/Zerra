@@ -10,10 +10,10 @@ namespace Zerra.Repository
     public partial interface IRepo
     {
         /// <summary>
-        /// Executes a query and returns the result as an object.
+        /// Executes a query and returns its result as the type the operation produces: the models, a model, a count, a calculation, or the typed results of a projection, calculation per group, or distinct values.
         /// </summary>
         /// <param name="query">The query to execute.</param>
-        /// <returns>The query result, or <c>null</c> if no result is found.</returns>
+        /// <returns>The result, boxed when it is a value.</returns>
         object? Query(Query query);
 
         /// <summary>
@@ -23,10 +23,10 @@ namespace Zerra.Repository
         void Persist(Persist persist);
 
         /// <summary>
-        /// Asynchronously executes a query and returns the result as an object.
+        /// Asynchronously executes a query and returns its result as the type the operation produces: the models, a model, a count, a calculation, or the typed results of a projection, calculation per group, or distinct values.
         /// </summary>
         /// <param name="query">The query to execute.</param>
-        /// <returns>A task that represents the asynchronous operation, containing the query result or <c>null</c>.</returns>
+        /// <returns>A task that represents the asynchronous operation, containing the result, boxed when it is a value.</returns>
         Task<object?> QueryAsync(Query query);
 
         /// <summary>

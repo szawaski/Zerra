@@ -242,7 +242,9 @@ namespace Zerra.Repository.Test
             private object? Result(Query query)
             {
                 Query = query;
-                return models.Calculate(query.Operation, query.GroupBy, query.Value);
+                if (query.GroupBy is not null)
+                    return query.Execute(models);
+                return models.Calculate(query.Operation, query.Value);
             }
             object? ITransactStoreProvider.Query(Query query) => Result(query);
             Task<object?> ITransactStoreProvider.QueryAsync(Query query) => Task.FromResult(Result(query));

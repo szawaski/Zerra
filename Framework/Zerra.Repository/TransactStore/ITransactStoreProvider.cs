@@ -11,11 +11,11 @@ namespace Zerra.Repository
     {
         /// <summary>Executes a synchronous query operation and returns the result.</summary>
         /// <param name="query">The query to execute.</param>
-        /// <returns>The query result, or <see langword="null"/> if no result is found.</returns>
+        /// <returns>The query result, boxed when it is a value, or <see langword="null"/> if no result is found.</returns>
         object? Query(Query query);
         /// <summary>Executes an asynchronous query operation and returns the result.</summary>
         /// <param name="query">The query to execute.</param>
-        /// <returns>A task containing the query result, or <see langword="null"/>.</returns>
+        /// <returns>A task containing the query result, boxed when it is a value, or <see langword="null"/>.</returns>
         Task<object?> QueryAsync(Query query);
 
         /// <summary>Executes a synchronous persist operation (create, update, or delete).</summary>
