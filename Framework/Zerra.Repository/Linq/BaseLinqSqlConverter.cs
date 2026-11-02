@@ -50,8 +50,199 @@ namespace Zerra.Repository
         /// <returns>The statement, the plan of its rows, and the statements of the relations.</returns>
         protected LinqStatement ConvertLinqInternal(LinqQuery query, ModelDetail modelDetail)
         {
+            if (query.Set is not null)
+                return ConvertLinqSet(query);
             return ConvertLinq(query, LinqPlan.Read(query, modelDetail), modelDetail, null);
         }
+
+        //each query of a set is a derived table and the set is one too before it's combined again, so they combine in the order written where SQL's INTERSECT would bind tighter than UNION
+        private LinqStatement ConvertLinqSet(LinqQuery query)
+        {
+            List<object>? parameters = null;
+            var sql = ConvertSetSql(query.Set!, ref parameters, out var plan);
+            if (query.Having is not null || query.ResultOrder is not null || query.Skip.HasValue || query.Take.HasValue)
+                sql = ConvertSetResults(query, sql, plan, parameters);
+            sql = query.Terminal switch
+            {
+                LinqTerminal.Count or LinqTerminal.LongCount => $"SELECT COUNT(1) FROM({sql})AS Z",
+                LinqTerminal.Any => AnySql(sql),
+                _ => sql,
+            };
+            return new LinqStatement(sql, plan, null, parameters);
+        }
+        //the condition, order, and page of the elements on the combined rows, each member of an element the column holding it
+        private string ConvertSetResults(LinqQuery query, string sql, LinqPlan plan, List<object>? parameters)
+        {
+            var columns = new Dictionary<string, string>();
+            var enums = new HashSet<string>();
+            var shape = plan.Shape!;
+            switch (shape.Kind)
+            {
+                case LinqShapeKind.Column:
+                    AddSetColumn(columns, enums, String.Empty, shape);
+                    break;
+                case LinqShapeKind.Model:
+                    for (var i = 0; i < shape.ModelMembers!.Length; i++)
+                    {
+                        columns[shape.ModelMembers[i].Name] = QuoteColumn("Z", $"C{shape.ModelColumns![i].Index}");
+                        if (shape.ModelMembers[i].EnumType is not null)
+                            _ = enums.Add(shape.ModelMembers[i].Name);
+                    }
+                    break;
+                case LinqShapeKind.Object:
+                    for (var i = 0; i < (shape.ArgumentNames?.Length ?? 0); i++)
+                        AddSetColumn(columns, enums, shape.ArgumentNames![i], shape.Arguments![i]);
+                    for (var i = 0; i < (shape.Members?.Length ?? 0); i++)
+                        AddSetColumn(columns, enums, shape.Members![i].Name, shape.Values![i]);
+                    break;
+            }
+
+            var operationContext = new MemberContext() { Parameters = parameters, ResultEnums = enums };
+            var rootDependant = new ParameterDependant(ModelAnalyzer.GetModel(query.ModelType), null);
+            var sb = new CharWriter();
+            try
+            {
+                sb.Write("SELECT * FROM(");
+                sb.Write(sql);
+                sb.Write(")AS Z");
+                var none = query.Take == 0;
+                if (query.Having is not null || none)
+                {
+                    sb.Write(" WHERE");
+                    if (query.Having is not null)
+                        ConvertSetExpression(query.Having, columns, false, ref sb, rootDependant, operationContext);
+                    //a page of no rows is a condition of none, as SQL Server refuses to fetch none
+                    if (none)
+                        sb.Write(query.Having is null ? " 1=0" : " AND 1=0");
+                }
+                var paged = !none && (query.Skip.HasValue || query.Take.HasValue);
+                //an order only matters to the elements read or to a page of them
+                var ordered = query.ResultOrder is not null && (query.ReadsElements || paged);
+                if (ordered)
+                {
+                    sb.Write(" ORDER BY");
+                    var orders = query.ResultOrder!.OrderExpressions;
+                    for (var o = 0; o < orders.Length; o++)
+                    {
+                        if (o > 0)
+                            sb.Write(',');
+                        ConvertSetExpression(orders[o].Expression, columns, true, ref sb, rootDependant, operationContext);
+                        if (orders[o].Descending)
+                            sb.Write("DESC");
+                    }
+                }
+                if (paged)
+                    GeneratePage(query.Skip, query.Take, ordered, ref sb, operationContext);
+                return sb.ToString();
+            }
+            finally
+            {
+                sb.Dispose();
+            }
+        }
+        private void AddSetColumn(Dictionary<string, string> columns, HashSet<string> enums, string name, LinqShape value)
+        {
+            if (value.Kind == LinqShapeKind.Object && value.ArgumentNames is not null)
+            {
+                for (var i = 0; i < value.ArgumentNames.Length; i++)
+                    AddSetColumn(columns, enums, name.Length == 0 ? value.ArgumentNames[i] : $"{name}.{value.ArgumentNames[i]}", value.Arguments![i]);
+                return;
+            }
+            if (value.Kind != LinqShapeKind.Column)
+                return;
+            columns[name] = QuoteColumn("Z", $"C{value.Column!.Index}");
+            if (value.Column.Member is { EnumType: not null })
+                _ = enums.Add(name);
+        }
+        private void ConvertSetExpression(LambdaExpression lambda, Dictionary<string, string> columns, bool isOrder, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
+        {
+            operationContext.ResultColumns ??= new();
+            operationContext.ResultColumns[lambda.Parameters[0]] = columns;
+            operationContext.OperatorStack.Push(Operator.Lambda);
+            sb.Write('(');
+            ConvertToSql(lambda.Body, ref sb, new BuilderContext(rootDependant, operationContext) { IsOrderBy = isOrder, IsSort = isOrder });
+            sb.Write(')');
+            _ = operationContext.OperatorStack.Pop();
+            _ = operationContext.ResultColumns.Remove(lambda.Parameters[0]);
+        }
+        /// <summary>
+        /// Writes a page of a statement's rows after its order, which is none when <paramref name="ordered"/> is false.
+        /// </summary>
+        /// <param name="skip">The rows to skip.</param>
+        /// <param name="take">The rows to read.</param>
+        /// <param name="ordered">Whether the statement has an order.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="operationContext">The current member context for the operation.</param>
+        protected abstract void GeneratePage(int? skip, int? take, bool ordered, ref CharWriter sb, MemberContext operationContext);
+        private string ConvertSetSql(LinqSet set, ref List<object>? parameters, out LinqPlan plan)
+        {
+            var left = ConvertSetPart(set.Left, ref parameters, out plan);
+            var right = ConvertSetPart(set.Right, ref parameters, out var rightPlan);
+            if (!SameShape(plan.Shape!, rightPlan.Shape!))
+                throw new NotSupportedException($"The queries {set.Operation} combines build their elements from the same values in the same order, as rows combine by position");
+            var operation = set.Operation switch
+            {
+                LinqSetOperation.Union => "UNION",
+                LinqSetOperation.Concat => "UNION ALL",
+                LinqSetOperation.Intersect => "INTERSECT",
+                LinqSetOperation.Except => "EXCEPT",
+                _ => throw new NotSupportedException($"{set.Operation} isn't a set operation"),
+            };
+            return $"SELECT * FROM({left})AS Z {operation} SELECT * FROM({right})AS Z";
+        }
+        private string ConvertSetPart(LinqQuery part, ref List<object>? parameters, out LinqPlan plan)
+        {
+            if (part.Set is not null)
+                return ConvertSetSql(part.Set, ref parameters, out plan);
+            var modelDetail = ModelAnalyzer.GetModel(part.ModelType);
+            var statement = ConvertLinq(part, LinqPlan.Read(part, modelDetail), modelDetail, parameters);
+            if (statement.Pieces is not null)
+                throw new NotSupportedException("A query combined with a set operation reads its own rows, not a relation read after them");
+            parameters ??= statement.Parameters;
+            plan = statement.Plan;
+            return statement.Sql;
+        }
+        private static bool SameShape(LinqShape left, LinqShape right)
+        {
+            if (left.Kind != right.Kind || left.Type != right.Type)
+                return false;
+            switch (left.Kind)
+            {
+                case LinqShapeKind.Column:
+                    return left.Column!.Index == right.Column!.Index;
+                case LinqShapeKind.Model:
+                    if (left.Model != right.Model || left.ModelRelations is not null || right.ModelRelations is not null)
+                        return false;
+                    for (var i = 0; i < left.ModelColumns!.Length; i++)
+                    {
+                        if (left.ModelColumns[i].Index != right.ModelColumns![i].Index)
+                            return false;
+                    }
+                    return true;
+                case LinqShapeKind.Object:
+                    if ((left.Arguments?.Length ?? 0) != (right.Arguments?.Length ?? 0) || (left.Members?.Length ?? 0) != (right.Members?.Length ?? 0))
+                        return false;
+                    for (var i = 0; i < (left.Arguments?.Length ?? 0); i++)
+                    {
+                        if (!SameShape(left.Arguments![i], right.Arguments![i]))
+                            return false;
+                    }
+                    for (var i = 0; i < (left.Members?.Length ?? 0); i++)
+                    {
+                        if (left.Members![i].Name != right.Members![i].Name || !SameShape(left.Values![i], right.Values![i]))
+                            return false;
+                    }
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        /// <summary>
+        /// Writes whether a statement has any rows as a statement giving a row when it does and none when it doesn't.
+        /// </summary>
+        /// <param name="sql">The statement.</param>
+        /// <returns>The SQL.</returns>
+        protected virtual string AnySql(string sql) => $"SELECT 1 WHERE EXISTS({sql})";
 
         /// <summary>
         /// Builds the statements of a LINQ query. The statement over the model: the plan's columns, or the count, the one row of an any, or the calculation, then the from, joins, where, and for a grouped query the group by, having, and the order and paging of the results, otherwise the order and paging of the models. Then for each piece of the plan, nested: its plan's columns, the key matching each row to its parent among them, the from, joins, a where of the parents' keys as the parent's statement selects them and the relation's own condition, and the relation's order.
@@ -751,6 +942,99 @@ namespace Zerra.Repository
                 _ = context.MemberContext.MemberAccessStack.Pop();
             }
         }
+        //a key of several members isn't one value to look for, so a row of the query with each of them exists
+        private void ConvertToSqlSubqueryKeyRow(LinqSubquery subquery, MemberInitExpression keyRow, ref CharWriter sb, BuilderContext context)
+        {
+            var query = subquery.Query;
+            var modelDetail = ModelAnalyzer.GetModel(query.ModelType);
+            var statement = ConvertLinq(query, LinqPlan.Read(query, modelDetail), modelDetail, context.MemberContext.Parameters);
+            if (statement.Pieces is not null)
+                throw new NotSupportedException("A query a condition looks in selects values of its own row, not a relation");
+            var values = statement.Plan.Shape!.Values!;
+            var inverted = context.Inverted;
+            var invertStack = context.InvertStack;
+            context.InvertStack = 0;
+            sb.Write(inverted ? "NOT EXISTS(SELECT 1 FROM(" : "EXISTS(SELECT 1 FROM(");
+            sb.Write(statement.Sql);
+            sb.Write(")AS Z WHERE ");
+            context.MemberContext.OperatorStack.Push(Operator.Call);
+            for (var i = 0; i < keyRow.Bindings.Count; i++)
+            {
+                if (i > 0)
+                    sb.Write(" AND ");
+                sb.Write(QuoteColumn("Z", $"C{values[i].Column!.Index}"));
+                sb.Write('=');
+                ConvertToSql(WithoutConvert(((MemberAssignment)keyRow.Bindings[i]).Expression), ref sb, context);
+            }
+            _ = context.MemberContext.OperatorStack.Pop();
+            sb.Write(')');
+            context.InvertStack = invertStack;
+        }
+        /// <summary>
+        /// Converts looking for a key of several members, a <c>LinqKeyRow</c> built from the model, in a collection of keys known when the query is written: each key's members matched together, as SQL has no row of values to look for in a list.
+        /// </summary>
+        /// <param name="collection">The keys.</param>
+        /// <param name="value">The key looked for.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
+        /// <returns>Whether it was a key of several members and is written.</returns>
+        protected bool TryConvertToSqlKeyRows(Expression collection, Expression value, ref CharWriter sb, BuilderContext context)
+        {
+            if (WithoutConvert(value) is not MemberInitExpression keyRow || keyRow.Type != typeof(LinqKeyRow) || !IsEvaluatable(collection))
+                return false;
+            var inverted = context.Inverted;
+            var invertStack = context.InvertStack;
+            context.InvertStack = 0;
+            var columns = new string[keyRow.Bindings.Count];
+            for (var i = 0; i < columns.Length; i++)
+                columns[i] = Argument(WithoutConvert(((MemberAssignment)keyRow.Bindings[i]).Expression), context);
+            context.MemberContext.OperatorStack.Push(Operator.Call);
+            sb.Write(inverted ? "NOT(" : "(");
+            var any = false;
+            foreach (var item in (System.Collections.IEnumerable)Evaluate(collection)!)
+            {
+                var key = (LinqKeyRow)item;
+                if (any)
+                    sb.Write(" OR ");
+                any = true;
+                sb.Write('(');
+                for (var i = 0; i < columns.Length; i++)
+                {
+                    if (i > 0)
+                        sb.Write(" AND ");
+                    sb.Write(columns[i]);
+                    sb.Write('=');
+                    var part = key[i];
+                    ConvertToSqlValue(part?.GetType() ?? typeof(object), part, ref sb, context);
+                }
+                sb.Write(')');
+            }
+            if (!any)
+                sb.Write("1=0");
+            sb.Write(')');
+            _ = context.MemberContext.OperatorStack.Pop();
+            context.InvertStack = invertStack;
+            return true;
+        }
+        /// <summary>
+        /// Gets the columns of a relation's key in pairs, in the order of the identity referred to: the member holding the foreign key, on the related model for a collection and on the model for a single relation, and the identity member it refers to.
+        /// </summary>
+        /// <param name="relation">The relation member.</param>
+        /// <param name="model">The model the relation is a member of.</param>
+        /// <returns>The pairs of columns.</returns>
+        protected static (ModelMemberDetail Key, ModelMemberDetail Identity)[] RelationKey(ModelMemberDetail relation, ModelDetail model)
+        {
+            var related = ModelAnalyzer.GetModel(relation.ActualType);
+            var holder = relation.IsEnumerable ? related : model;
+            var referred = relation.IsEnumerable ? model : related;
+            var names = relation.ForeignIdentities ?? throw new Exception($"{relation.Type.Name} missing Foreign Identity");
+            if (names.Length != referred.IdentityMembers.Count)
+                throw new NotSupportedException($"{relation.Name} names {names.Length} foreign identities where {referred.Type.Name} has {referred.IdentityMembers.Count} identities");
+            var pairs = new (ModelMemberDetail Key, ModelMemberDetail Identity)[names.Length];
+            for (var i = 0; i < names.Length; i++)
+                pairs[i] = (holder.GetMember(names[i]), referred.IdentityMembers[i]);
+            return pairs;
+        }
         /// <summary>
         /// Gets the name in the statement of the table an expression reads a related collection from: an alias when a join needed one.
         /// </summary>
@@ -791,6 +1075,11 @@ namespace Zerra.Repository
         {
             if (value is UnaryExpression { NodeType: ExpressionType.Convert } boxed)
                 value = boxed.Operand;
+            if (value is MemberInitExpression keyRow && keyRow.Type == typeof(LinqKeyRow))
+            {
+                ConvertToSqlSubqueryKeyRow(subquery, keyRow, ref sb, context);
+                return;
+            }
             var inverted = context.Inverted;
             var invertStack = context.InvertStack;
             context.InvertStack = 0;
@@ -926,6 +1215,13 @@ namespace Zerra.Repository
         private void ConvertToSqlParameter(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             var parameter = (ParameterExpression)exp;
+
+            //an element of a set that is one value is the column holding it
+            if (context.MemberContext.ResultColumns is not null && context.MemberContext.ResultColumns.TryGetValue(parameter, out var resultColumns) && resultColumns.TryGetValue(String.Empty, out var resultColumn))
+            {
+                sb.Write(resultColumn);
+                return;
+            }
 
             if (parameter.Name is null)
                 throw new Exception($"Parameter has no name {parameter.Type.Name}");

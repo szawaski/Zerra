@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
 using System.Linq.Expressions;
 using Zerra.Linq;
 using Zerra.Repository.Linq;
@@ -55,6 +56,8 @@ namespace Zerra.Repository
         public bool ReadsElements => Terminal is LinqTerminal.Sequence or LinqTerminal.First or LinqTerminal.FirstOrDefault or LinqTerminal.Single or LinqTerminal.SingleOrDefault or LinqTerminal.Last or LinqTerminal.LastOrDefault or LinqTerminal.ElementAt or LinqTerminal.ElementAtOrDefault;
         /// <summary>Gets whether the condition looks in another query.</summary>
         public bool HasSubquery { get; private set; }
+        /// <summary>Gets the two queries a set operation combines into the elements, whose condition is <see cref="Having"/> and order <see cref="ResultOrder"/>, then paged by <see cref="Skip"/> and <see cref="Take"/>; <see langword="null"/> for none.</summary>
+        public LinqSet? Set { get; private set; }
         internal ModelMemberDetail? KeyMember { get; private set; }
         /// <summary>Gets whether the projection picks one value rather than building an object.</summary>
         public bool IsScalarSelect => Select is not null && Select.Body is not MemberInitExpression && Select.Body is not NewExpression;
@@ -82,6 +85,20 @@ namespace Zerra.Repository
             else if (node is not ConstantExpression { Value: IQueryable })
             {
                 throw new NotSupportedException("A repository query starts with IRepo.Query");
+            }
+            //a set operation combines the query before it with another, so only the ending follows it
+            for (var i = 0; i < calls.Count; i++)
+            {
+                if (calls[i].Method.DeclaringType != typeof(System.Linq.Queryable) || SetOperation(calls[i].Method.Name) is not { } operation)
+                    continue;
+                if (elements is not null || graph is not null)
+                    throw new NotSupportedException($"{calls[i].Method.Name} combines queries without a graph or SelectMany");
+                Set = ReadSet(operation, calls[i]);
+                for (var j = i - 1; j >= 0; j--)
+                    EndSet(calls[j]);
+                if (terminal.HasValue)
+                    EndSetTerminal(terminal.Value, argument);
+                return;
             }
             for (var i = calls.Count - 1; i >= 0; i--)
                 Apply(calls[i]);
@@ -339,6 +356,146 @@ namespace Zerra.Repository
 
         //a lambda over the model of what isn't known at compile time; only its body and parameter are read
         private protected abstract LambdaExpression ModelLambda(Expression body, ParameterExpression parameter);
+
+        private static LinqSetOperation? SetOperation(string name) => name switch
+        {
+            "Union" => LinqSetOperation.Union,
+            "Concat" => LinqSetOperation.Concat,
+            "Intersect" => LinqSetOperation.Intersect,
+            "Except" => LinqSetOperation.Except,
+            _ => null,
+        };
+        private LinqSet ReadSet(LinqSetOperation operation, MethodCallExpression call)
+        {
+            if (call.Arguments.Count != 2)
+                throw new NotSupportedException($"{call.Method.Name} with a comparer isn't supported in a repository query, elements compare by their values");
+            var left = SetPart(call.Arguments[0]);
+            object? source;
+            try
+            {
+                source = Expression.Lambda<Func<object?>>(Expression.Convert(call.Arguments[1], typeof(object))).Compile()();
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new NotSupportedException($"The query {call.Method.Name} combines with is built from itself alone", ex);
+            }
+            if (source is not IQueryable { Provider: RepoQueryProvider provider } queryable)
+                throw new NotSupportedException($"{call.Method.Name} combines queries from IRepo.Query");
+            return provider.ReadSet(operation, left, queryable.Expression);
+        }
+        //what follows a set is of its elements, as a grouped query's having and order are of its results
+        private void EndSet(MethodCallExpression call)
+        {
+            if (call.Method.DeclaringType != typeof(System.Linq.Queryable) || call.Arguments.Count > 2)
+                throw new NotSupportedException($"{call.Method.Name} after a set operation isn't supported in a repository query");
+            LambdaExpression? lambda = null;
+            if (call.Arguments.Count == 2)
+            {
+                var argument = call.Arguments[1];
+                if (argument.NodeType == ExpressionType.Quote)
+                    argument = ((UnaryExpression)argument).Operand;
+                lambda = argument as LambdaExpression;
+            }
+            switch (call.Method.Name)
+            {
+                case "Where":
+                    SetCondition(lambda ?? throw new NotSupportedException("Where takes a condition"));
+                    return;
+                case "OrderBy":
+                case "OrderByDescending":
+                case "ThenBy":
+                case "ThenByDescending":
+                    {
+                        if (lambda is null)
+                            throw new NotSupportedException($"{call.Method.Name} takes the key to order by");
+                        if (Skip.HasValue || Take.HasValue)
+                            throw new NotSupportedException("OrderBy after Skip or Take isn't supported, order before paging");
+                        var expression = new ProjectionOrderExpression(lambda, call.Method.Name is "OrderByDescending" or "ThenByDescending");
+                        if (ResultOrder is null || call.Method.Name is "OrderBy" or "OrderByDescending")
+                        {
+                            ResultOrder = new ProjectionOrder([expression]);
+                        }
+                        else
+                        {
+                            var expressions = new OrderExpression[ResultOrder.OrderExpressions.Length + 1];
+                            ResultOrder.OrderExpressions.CopyTo(expressions, 0);
+                            expressions[^1] = expression;
+                            ResultOrder = new ProjectionOrder(expressions);
+                        }
+                        return;
+                    }
+                case "Skip":
+                    if (Take.HasValue)
+                        throw new NotSupportedException("Skip after Take isn't supported, skip before taking");
+                    Skip = (Skip ?? 0) + Count(call.Arguments[1]);
+                    return;
+                case "Take":
+                    {
+                        var count = Count(call.Arguments[1]);
+                        Take = Take.HasValue ? Math.Min(Take.Value, count) : count;
+                        return;
+                    }
+                case "First":
+                    EndSetTerminal(LinqTerminal.First, lambda);
+                    return;
+                case "FirstOrDefault":
+                    EndSetTerminal(LinqTerminal.FirstOrDefault, lambda);
+                    return;
+                case "Single":
+                    EndSetTerminal(LinqTerminal.Single, lambda);
+                    return;
+                case "SingleOrDefault":
+                    EndSetTerminal(LinqTerminal.SingleOrDefault, lambda);
+                    return;
+                case "Count":
+                    EndSetTerminal(LinqTerminal.Count, lambda);
+                    return;
+                case "LongCount":
+                    EndSetTerminal(LinqTerminal.LongCount, lambda);
+                    return;
+                case "Any":
+                    EndSetTerminal(LinqTerminal.Any, lambda);
+                    return;
+            }
+            throw new NotSupportedException($"{call.Method.Name} after a set operation isn't supported, select in each query before combining them");
+        }
+        private void EndSetTerminal(LinqTerminal terminal, LambdaExpression? argument)
+        {
+            if (terminal is not (LinqTerminal.First or LinqTerminal.FirstOrDefault or LinqTerminal.Single or LinqTerminal.SingleOrDefault or LinqTerminal.Count or LinqTerminal.LongCount or LinqTerminal.Any))
+                throw new NotSupportedException($"{terminal} after a set operation isn't supported in a repository query");
+            Terminal = terminal;
+            if (argument is not null)
+                SetCondition(argument);
+            //one row says what is first, two whether there is a single one
+            if (terminal is LinqTerminal.First or LinqTerminal.FirstOrDefault or LinqTerminal.Single or LinqTerminal.SingleOrDefault)
+            {
+                var rows = terminal is LinqTerminal.Single or LinqTerminal.SingleOrDefault ? 2 : 1;
+                Take = Take.HasValue ? Math.Min(Take.Value, rows) : rows;
+            }
+        }
+        private void SetCondition(LambdaExpression condition)
+        {
+            if (Skip.HasValue || Take.HasValue)
+                throw new NotSupportedException("A condition after Skip or Take isn't supported, filter before paging");
+            Having = Having is null ? condition : AppendAnd(Having, condition);
+        }
+        //the query before a set operation, of this query's model and elements
+        private protected abstract LinqQuery SetPart(Expression expression);
+        /// <summary>Combines the elements of the two queries of <see cref="Set"/>, compared by their values, and ends them as the query does.</summary>
+        /// <param name="left">The elements of the first query.</param>
+        /// <param name="right">The elements of the second query.</param>
+        /// <param name="caseSensitive">Whether string comparisons in the condition and order after it are case sensitive.</param>
+        /// <returns>The elements as a list of the result type, the count boxed as a long, or whether there are any.</returns>
+        internal abstract object CombineSet(IEnumerable left, IEnumerable right, bool caseSensitive);
+
+        //a query combined with another reads only its rows, which have no order unless it pages them
+        internal void ReadAsSetPart()
+        {
+            if (Graph is not null)
+                throw new NotSupportedException("A query combined with a set operation reads without a graph");
+            if (!Skip.HasValue && !Take.HasValue)
+                Order = null;
+        }
 
         //the rows of a query another reads in a subquery: an order only matters to a page, and null is no value to look for
         internal void ReadAsSubquery(ModelMemberDetail? keyMember)

@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
 using System.Linq.Expressions;
 using Zerra.Repository.Reflection;
 
@@ -74,6 +75,8 @@ namespace Zerra.Repository
         }
 
         private protected override LambdaExpression ModelLambda(Expression body, ParameterExpression parameter) => throw new NotSupportedException("Models are loaded by their provider");
+        private protected override LinqQuery SetPart(Expression expression) => throw new NotSupportedException("Models are loaded by their provider");
+        internal override object CombineSet(IEnumerable left, IEnumerable right, bool caseSensitive) => throw new NotSupportedException("Models are loaded by their provider");
         internal override object? Execute(ITransactStoreEngine engine, ModelDetail modelDetail) => throw new NotSupportedException("Models are loaded by their provider");
         internal override Task<object?> ExecuteAsync(ITransactStoreEngine engine, ModelDetail modelDetail, CancellationToken cancellationToken) => throw new NotSupportedException("Models are loaded by their provider");
         /// <inheritdoc/>

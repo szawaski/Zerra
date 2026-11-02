@@ -777,7 +777,7 @@ namespace Zerra.Repository.Test
             var sql = ConvertToSql(LinqTerminal.Sequence, where, null, null, null, null, testTypesModelDetail);
 
             Assert.Contains("SELECT COUNT(1)", sql);
-            Assert.Contains($"{d.Column("TestTypes", "KeyA")}={d.Column("TestRelations", "RelationBKey")}", sql);
+            Assert.Contains($"{d.Column("TestRelations", "RelationBKey")}={d.Column("TestTypes", "KeyA")}", sql);
         }
 
         [Fact]
@@ -970,7 +970,7 @@ namespace Zerra.Repository.Test
             var sql = ConvertToSql(LinqTerminal.Sequence, where, null, null, null, null, testTypesModelDetail);
 
             Assert.Contains((d.HasTopClause ? "(SELECT TOP(1) " : "(SELECT ") + d.Column("TestRelations", "SomeValue"), sql);
-            Assert.Contains(d.Column("TestTypes", "KeyA") + "=" + d.Column("TestRelations", "RelationBKey"), sql);
+            Assert.Contains(d.Column("TestRelations", "RelationBKey") + "=" + d.Column("TestTypes", "KeyA"), sql);
             Assert.Contains("ORDER BY(" + d.Column("TestRelations", "SomeValue") + ")DESC", sql);
             if (!d.HasTopClause)
                 Assert.Contains("LIMIT 1", sql);

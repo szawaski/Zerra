@@ -153,7 +153,7 @@ namespace Zerra.Repository
                         return instance;
                     }
                 default:
-                    return pieces is null ? row[Column!.Index] : BuildRelation(row[Piece!.ParentColumn], pieces);
+                    return pieces is null ? row[Column!.Index] : BuildRelation(Piece!.CompositeKey ? LinqKey.Of(row, Piece.ParentColumns) : row[Piece.ParentColumn], pieces);
             }
         }
 
@@ -222,7 +222,7 @@ namespace Zerra.Repository
         {
             var valueType = value.GetType();
             var underlying = Nullable.GetUnderlyingType(type) ?? type;
-            if (valueType == underlying)
+            if (valueType == underlying || underlying == typeof(object))
                 return value;
             //an enum's smallest and largest are calculated as its number
             if (underlying.IsEnum)

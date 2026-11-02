@@ -71,22 +71,11 @@ namespace Zerra.Repository.MySql
                 var callingModel = context.MemberContext.ModelStack.Peek();
                 var property = context.MemberContext.MemberLambdaStack.Peek();
 
-                if (callingModel.IdentityMembers.Count != 1)
-                    throw new NotSupportedException($"Relational queries support only one identity on {callingModel.Type.Name}");
-                var callingModelIdentity = callingModel.IdentityMembers[0];
-
                 var modelProperty = callingModel.GetMember(property.Member.Name);
 
-                sb.Write('`');
-                sb.Write(CallingTable(property, callingModel, context));
-                sb.Write("`.`");
-                sb.Write(callingModelIdentity.StoreName);
-                sb.Write("`=");
-                sb.Write('`');
-                sb.Write(modelDetail.DataSourceEntityName);
-                sb.Write("`.`");
-                sb.Write(modelProperty.ForeignIdentity);
-                sb.Write("`AND");
+                WriteRelationKey(ref sb, modelDetail.DataSourceEntityName, CallingTable(property, callingModel, context), RelationKey(modelProperty, callingModel));
+
+                sb.Write("AND");
             }
 
             //All writes the related condition inverted to find a related row that fails it
@@ -172,23 +161,31 @@ namespace Zerra.Repository.MySql
 
                             var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                             var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
-                            if (propertyInfo.ForeignIdentity is null)
+                            if (propertyInfo.ForeignIdentities is null)
                                 throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
 
                             var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
 
-                            context.MemberContext.InCallRenderIdentity++;
+                            //the parent's identity is looked for among the related keys, a key of several members is a related row that exists with the match and the condition
+                            var severalKeys = propertyInfo.ForeignIdentities!.Length > 1;
+                            if (severalKeys)
+                                context.MemberContext.InCallNoRender++;
+                            else
+                                context.MemberContext.InCallRenderIdentity++;
                             ConvertToSqlMember(subMember, ref sb, context);
-                            context.MemberContext.InCallRenderIdentity--;
+                            if (severalKeys)
+                                context.MemberContext.InCallNoRender--;
+                            else
+                                context.MemberContext.InCallRenderIdentity--;
 
                             (context.MemberContext.CallingTables ??= new())[subMember] = RelationTable(subMember.Expression!, context);
 
                             context.MemberContext.MemberLambdaStack.Push(subMember);
                             context.MemberContext.ModelStack.Push(subMemberModel);
 
-                            sb.Write("=ANY(");
+                            sb.Write(severalKeys ? "EXISTS(" : "=ANY(");
                             context.MemberContext.InvertRelatedLambda = true;
-                            ConvertSubquery(ref sb, false, subWhere, new Graph(propertyInfo.ForeignIdentity), subModelInfo, context.MemberContext);
+                            ConvertSubquery(ref sb, false, severalKeys ? subWhere ?? Expression.Lambda(subModelInfo.LambdaDelegateType, Expression.Constant(true), Expression.Parameter(subModelInfo.Type, "x")) : subWhere, new Graph(propertyInfo.ForeignIdentities!), subModelInfo, context.MemberContext);
                             sb.Write(')');
 
                             _ = context.MemberContext.ModelStack.Pop();
@@ -216,22 +213,31 @@ namespace Zerra.Repository.MySql
 
                             var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                             var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
-                            if (propertyInfo.ForeignIdentity is null)
+                            if (propertyInfo.ForeignIdentities is null)
                                 throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
 
                             var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
 
-                            context.MemberContext.InCallRenderIdentity++;
+                            //the parent's identity is looked for among the related keys, a key of several members is a related row that exists with the match and the condition
+                            var severalKeys = propertyInfo.ForeignIdentities!.Length > 1;
+                            if (severalKeys)
+                                context.MemberContext.InCallNoRender++;
+                            else
+                                context.MemberContext.InCallRenderIdentity++;
                             ConvertToSqlMember(subMember, ref sb, context);
-                            context.MemberContext.InCallRenderIdentity--;
+                            if (severalKeys)
+                                context.MemberContext.InCallNoRender--;
+                            else
+                                context.MemberContext.InCallRenderIdentity--;
 
                             (context.MemberContext.CallingTables ??= new())[subMember] = RelationTable(subMember.Expression!, context);
 
                             context.MemberContext.MemberLambdaStack.Push(subMember);
                             context.MemberContext.ModelStack.Push(subMemberModel);
 
-                            sb.Write("=ANY(");
-                            ConvertSubquery(ref sb, false, subWhere, new Graph(propertyInfo.ForeignIdentity), subModelInfo, context.MemberContext);
+                            sb.Write(severalKeys ? "EXISTS(" : "=ANY(");
+
+                            ConvertSubquery(ref sb, false, severalKeys ? subWhere ?? Expression.Lambda(subModelInfo.LambdaDelegateType, Expression.Constant(true), Expression.Parameter(subModelInfo.Type, "x")) : subWhere, new Graph(propertyInfo.ForeignIdentities!), subModelInfo, context.MemberContext);
                             sb.Write(')');
 
                             _ = context.MemberContext.ModelStack.Pop();
@@ -262,7 +268,7 @@ namespace Zerra.Repository.MySql
 
                             var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                             var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
-                            if (propertyInfo.ForeignIdentity is null)
+                            if (propertyInfo.ForeignIdentities is null)
                                 throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
 
                             var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
@@ -270,21 +276,12 @@ namespace Zerra.Repository.MySql
                             if (subWhere is null)
                             {
                                 //without a condition there is no lambda to write the match to the related rows
-                                if (subMemberModel.IdentityMembers.Count != 1)
-                                    throw new NotSupportedException($"Relational queries support only one identity on {subMemberModel.Type.Name}");
-                                var subMemberModelIdentity = subMemberModel.IdentityMembers[0];
 
                                 sb.Write("(SELECT COUNT(1)");
                                 GenerateFrom(subModelInfo, ref sb);
-                                sb.Write("WHERE`");
-                                sb.Write(subMemberTable);
-                                sb.Write("`.`");
-                                sb.Write(subMemberModelIdentity.StoreName);
-                                sb.Write("`=`");
-                                sb.Write(subModelInfo.DataSourceEntityName);
-                                sb.Write("`.`");
-                                sb.Write(propertyInfo.ForeignIdentity);
-                                sb.Write("`)");
+                                sb.Write("WHERE");
+                                WriteRelationKey(ref sb, subModelInfo.DataSourceEntityName, subMemberTable, RelationKey(propertyInfo, subMemberModel));
+                                sb.Write(')');
                                 break;
                             }
 
@@ -294,7 +291,7 @@ namespace Zerra.Repository.MySql
                             context.MemberContext.ModelStack.Push(subMemberModel);
 
                             sb.Write('(');
-                            ConvertSubquery(ref sb, true, subWhere, new Graph(propertyInfo.ForeignIdentity), subModelInfo, context.MemberContext);
+                            ConvertSubquery(ref sb, true, subWhere, new Graph(propertyInfo.ForeignIdentities!), subModelInfo, context.MemberContext);
                             sb.Write(')');
 
                             _ = context.MemberContext.ModelStack.Pop();
@@ -321,11 +318,8 @@ namespace Zerra.Repository.MySql
 
                             var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                             var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
-                            if (propertyInfo.ForeignIdentity is null)
+                            if (propertyInfo.ForeignIdentities is null)
                                 throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
-                            if (subMemberModel.IdentityMembers.Count != 1)
-                                throw new NotSupportedException($"Relational queries support only one identity on {subMemberModel.Type.Name}");
-                            var subMemberModelIdentity = subMemberModel.IdentityMembers[0];
 
                             var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
 
@@ -387,15 +381,8 @@ namespace Zerra.Repository.MySql
                                 }
                                 GenerateFrom(subModelInfo, ref sb);
                                 GenerateJoin(subDependant, ref sb);
-                                sb.Write("WHERE`");
-                                sb.Write(subMemberTable);
-                                sb.Write("`.`");
-                                sb.Write(subMemberModelIdentity.StoreName);
-                                sb.Write("`=`");
-                                sb.Write(subModelInfo.DataSourceEntityName);
-                                sb.Write("`.`");
-                                sb.Write(propertyInfo.ForeignIdentity);
-                                sb.Write('`');
+                                sb.Write("WHERE");
+                                WriteRelationKey(ref sb, subModelInfo.DataSourceEntityName, subMemberTable, RelationKey(propertyInfo, subMemberModel));
                                 if (sbWhere.Length > 0)
                                 {
                                     sb.Write("AND(");
@@ -489,11 +476,8 @@ namespace Zerra.Repository.MySql
 
                             var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                             var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
-                            if (propertyInfo.ForeignIdentity is null)
+                            if (propertyInfo.ForeignIdentities is null)
                                 throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
-                            if (subMemberModel.IdentityMembers.Count != 1)
-                                throw new NotSupportedException($"Relational queries support only one identity on {subMemberModel.Type.Name}");
-                            var subMemberModelIdentity = subMemberModel.IdentityMembers[0];
 
                             var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
 
@@ -555,15 +539,8 @@ namespace Zerra.Repository.MySql
                                 sb.Write(sbSelector);
                                 GenerateFrom(subModelInfo, ref sb);
                                 GenerateJoin(subDependant, ref sb);
-                                sb.Write("WHERE`");
-                                sb.Write(subMemberTable);
-                                sb.Write("`.`");
-                                sb.Write(subMemberModelIdentity.StoreName);
-                                sb.Write("`=`");
-                                sb.Write(subModelInfo.DataSourceEntityName);
-                                sb.Write("`.`");
-                                sb.Write(propertyInfo.ForeignIdentity);
-                                sb.Write('`');
+                                sb.Write("WHERE");
+                                WriteRelationKey(ref sb, subModelInfo.DataSourceEntityName, subMemberTable, RelationKey(propertyInfo, subMemberModel));
                                 if (sbWhere.Length > 0)
                                 {
                                     sb.Write(" AND");
@@ -970,6 +947,11 @@ namespace Zerra.Repository.MySql
 
                                 var callingObject = call.Object;
                                 var lambda = call.Arguments[0];
+
+
+                                if (TryConvertToSqlKeyRows(callingObject, lambda, ref sb, context))
+
+                                    break;
 
                                 ConvertToSql(lambda, ref sb, context);
 
@@ -1497,24 +1479,42 @@ namespace Zerra.Repository.MySql
                 }
 
                 //a related model in the condition needs its join, which UPDATE and DELETE write differently in each database, so the matching rows are selected instead
-                if (modelDetail.IdentityMembers.Count != 1)
-                    throw new NotSupportedException($"Relational conditions support only one identity on {modelDetail.Type.Name}");
-                var identity = modelDetail.IdentityMembers[0];
-
-                sb.Write(" WHERE `");
-                sb.Write(modelDetail.DataSourceEntityName);
-                sb.Write("`.`");
-                sb.Write(identity.StoreName);
-                sb.Write("` IN (");
+                //an identity of several members is a row of values
+                var several = modelDetail.IdentityMembers.Count > 1;
+                sb.Write(several ? " WHERE (" : " WHERE ");
+                for (var i = 0; i < modelDetail.IdentityMembers.Count; i++)
+                {
+                    if (i > 0)
+                        sb.Write(',');
+                    sb.Write('`');
+                    sb.Write(modelDetail.DataSourceEntityName);
+                    sb.Write("`.`");
+                    sb.Write(modelDetail.IdentityMembers[i].StoreName);
+                    sb.Write('`');
+                }
+                sb.Write(several ? ") IN (" : " IN (");
                 //MySQL refuses to read the table being changed in the subquery unless it is a derived table
-                sb.Write("SELECT `");
-                sb.Write(identity.StoreName);
-                sb.Write("` FROM (");
-                sb.Write("SELECT `");
-                sb.Write(modelDetail.DataSourceEntityName);
-                sb.Write("`.`");
-                sb.Write(identity.StoreName);
-                sb.Write("`");
+                sb.Write("SELECT ");
+                for (var i = 0; i < modelDetail.IdentityMembers.Count; i++)
+                {
+                    if (i > 0)
+                        sb.Write(',');
+                    sb.Write('`');
+                    sb.Write(modelDetail.IdentityMembers[i].StoreName);
+                    sb.Write('`');
+                }
+                sb.Write(" FROM (");
+                sb.Write("SELECT ");
+                for (var i = 0; i < modelDetail.IdentityMembers.Count; i++)
+                {
+                    if (i > 0)
+                        sb.Write(',');
+                    sb.Write('`');
+                    sb.Write(modelDetail.DataSourceEntityName);
+                    sb.Write("`.`");
+                    sb.Write(modelDetail.IdentityMembers[i].StoreName);
+                    sb.Write('`');
+                }
                 GenerateFrom(modelDetail, ref sb);
                 GenerateJoin(rootDependant, ref sb);
                 sb.Write(sbWhere);
@@ -1731,23 +1731,35 @@ namespace Zerra.Repository.MySql
                 try
                 {
                     //MySQL and MariaDB refuse a LIMIT in an IN subquery unless it is a derived table
-                    if (paged)
+                    //a key of several columns is read from its own derived table already
+                    var keyTable = paged && !piece.CompositeKey;
+                    if (keyTable)
                         sbKeys.Write("SELECT `K` FROM (");
                     sbKeys.Write("SELECT ");
-                    sbKeys.Write('`');
-                    sbKeys.Write(modelDetail.DataSourceEntityName);
-                    sbKeys.Write("`.`");
-                    sbKeys.Write(piece.ParentKey.StoreName);
-                    sbKeys.Write('`');
-                    if (paged)
+                    for (var k = 0; k < piece.ParentKeys.Length; k++)
+                    {
+                        if (k > 0)
+                            sbKeys.Write(',');
+                        sbKeys.Write('`');
+                        sbKeys.Write(modelDetail.DataSourceEntityName);
+                        sbKeys.Write("`.`");
+                        sbKeys.Write(piece.ParentKeys[k].StoreName);
+                        sbKeys.Write('`');
+                        if (piece.CompositeKey)
+                        {
+                            sbKeys.Write(" AS `K");
+                            sbKeys.Write(k);
+                            sbKeys.Write('`');
+                        }
+                    }
+                    if (keyTable)
                         sbKeys.Write(" AS `K`");
                     sbKeys.Write(sbFrom);
                     sbKeys.Write(sbWhere);
                     if (paged)
-                    {
                         sbKeys.Write(sbEnd);
+                    if (keyTable)
                         sbKeys.Write(") AS `Z`");
-                    }
                     statements[p] = ConvertLinqPiece(piece, ref sbKeys);
                 }
                 finally
@@ -1795,15 +1807,38 @@ namespace Zerra.Repository.MySql
                     sb.Write('`');
                 }
                 GenerateFrom(modelDetail, ref sbFrom);
-                sbWhere.Write("WHERE ");
-                sbWhere.Write('`');
-                sbWhere.Write(modelDetail.DataSourceEntityName);
-                sbWhere.Write("`.`");
-                sbWhere.Write(piece.RelatedKey.StoreName);
-                sbWhere.Write('`');
-                sbWhere.Write(" IN (");
-                sbWhere.Write(sbKeys);
-                sbWhere.Write(')');
+                if (piece.CompositeKey)
+                {
+                    //a key of several columns isn't one value to look for, so a parent's row with each of them exists
+                    sbWhere.Write("WHERE EXISTS(SELECT 1 FROM (");
+                    sbWhere.Write(sbKeys);
+                    sbWhere.Write(") AS `P` WHERE ");
+                    for (var k = 0; k < piece.RelatedKeys.Length; k++)
+                    {
+                        if (k > 0)
+                            sbWhere.Write(" AND ");
+                        sbWhere.Write("`P`.`K");
+                        sbWhere.Write(k);
+                        sbWhere.Write("`=`");
+                        sbWhere.Write(modelDetail.DataSourceEntityName);
+                        sbWhere.Write("`.`");
+                        sbWhere.Write(piece.RelatedKeys[k].StoreName);
+                        sbWhere.Write('`');
+                    }
+                    sbWhere.Write(')');
+                }
+                else
+                {
+                    sbWhere.Write("WHERE ");
+                    sbWhere.Write('`');
+                    sbWhere.Write(modelDetail.DataSourceEntityName);
+                    sbWhere.Write("`.`");
+                    sbWhere.Write(piece.RelatedKey.StoreName);
+                    sbWhere.Write('`');
+                    sbWhere.Write(" IN (");
+                    sbWhere.Write(sbKeys);
+                    sbWhere.Write(')');
+                }
                 if (piece.Where is not null)
                 {
                     sbWhere.Write("AND(");
@@ -1814,11 +1849,18 @@ namespace Zerra.Repository.MySql
                 GenerateOrderSkipTake(piece.Order, null, null, ref sbEnd, rootDependant, operationContext);
                 if (numbered)
                 {
-                    sb.Write(",ROW_NUMBER() OVER (PARTITION BY `");
-                    sb.Write(modelDetail.DataSourceEntityName);
-                    sb.Write("`.`");
-                    sb.Write(piece.RelatedKey.StoreName);
-                    sb.Write("` ");
+                    sb.Write(",ROW_NUMBER() OVER (PARTITION BY ");
+                    for (var k = 0; k < piece.RelatedKeys.Length; k++)
+                    {
+                        if (k > 0)
+                            sb.Write(',');
+                        sb.Write('`');
+                        sb.Write(modelDetail.DataSourceEntityName);
+                        sb.Write("`.`");
+                        sb.Write(piece.RelatedKeys[k].StoreName);
+                        sb.Write('`');
+                    }
+                    sb.Write(' ');
                     if (piece.Order is null)
                     {
                         sb.Write("ORDER BY `");
@@ -2120,7 +2162,7 @@ namespace Zerra.Repository.MySql
                     if (graph is not null && !graph.HasMember(member.Name))
                         continue;
 
-                    if (member.StoreName is not null && member.ForeignIdentity is null)
+                    if (member.StoreName is not null && member.ForeignIdentities is null)
                     {
                         if (passedfirst)
                             sb.Write(',');
@@ -2149,6 +2191,8 @@ namespace Zerra.Repository.MySql
             AppendLineBreak(ref sb);
         }
         /// <inheritdoc/>
+        protected override string AnySql(string sql) => $"SELECT 1 FROM DUAL WHERE EXISTS({sql})";
+        /// <inheritdoc/>
         protected override string FunctionTemplate(Function function)
         {
             return function switch
@@ -2172,6 +2216,7 @@ namespace Zerra.Repository.MySql
                 Function.Modulo => "(({0})%{1})",
                 Function.RoundWhole => "ROUND({0},0)",
                 Function.RoundPlaces => "ROUND({0},{1})",
+                Function.PowerOfTen => "CAST(POWER(10,{0}) AS DECIMAL(65,0))",
                 Function.DateText => "DATE_FORMAT({0},{1})",
                 _ => throw new NotSupportedException(function.ToString()),
             };
@@ -2245,9 +2290,6 @@ namespace Zerra.Repository.MySql
         {
             foreach (var child in dependant.Dependants.Values)
             {
-                if (child.ModelDetail.IdentityMembers.Count != 1)
-                    throw new NotSupportedException($"Relational queries support only one identity on {child.ModelDetail.Type.Name}");
-                var dependantIdentity = child.ModelDetail.IdentityMembers[0];
 
                 sb.Write("LEFT JOIN`");
                 sb.Write(child.ModelDetail.DataSourceEntityName);
@@ -2258,15 +2300,8 @@ namespace Zerra.Repository.MySql
                     sb.Write(child.TableName);
                     sb.Write('`');
                 }
-                sb.Write("ON`");
-                sb.Write(dependant.TableName);
-                sb.Write("`.`");
-                sb.Write(child.ParentMember?.ForeignIdentity);
-                sb.Write("`=`");
-                sb.Write(child.TableName);
-                sb.Write("`.`");
-                sb.Write(dependantIdentity.StoreName);
-                sb.Write('`');
+                sb.Write("ON");
+                WriteRelationKey(ref sb, dependant.TableName, child.TableName, RelationKey(child.ParentMember!, dependant.ModelDetail));
 
                 AppendLineBreak(ref sb);
 
@@ -2274,6 +2309,36 @@ namespace Zerra.Repository.MySql
             }
         }
 
+        //the columns of a relation's key matched pair by pair, the foreign key of the table holding it to the identity of the table it refers to
+        private static void WriteRelationKey(ref CharWriter sb, string keyTable, string identityTable, (ModelMemberDetail Key, ModelMemberDetail Identity)[] pairs)
+        {
+            for (var i = 0; i < pairs.Length; i++)
+            {
+                if (i > 0)
+                    sb.Write("AND");
+                sb.Write("`");
+                sb.Write(keyTable);
+                sb.Write("`.`");
+                sb.Write(pairs[i].Key.StoreName);
+                sb.Write("`=`");
+                sb.Write(identityTable);
+                sb.Write("`.`");
+                sb.Write(pairs[i].Identity.StoreName);
+                sb.Write("`");
+            }
+        }
+        /// <inheritdoc/>
+        protected override void GeneratePage(int? skip, int? take, bool ordered, ref CharWriter sb, MemberContext operationContext)
+        {
+            //LIMIT needs a row count, so a skip on its own uses the largest one
+            sb.Write(" LIMIT ");
+            if (take.HasValue)
+                sb.Write(take.Value);
+            else
+                sb.Write("18446744073709551615");
+            sb.Write(" OFFSET ");
+            sb.Write(skip ?? 0);
+        }
         /// <inheritdoc/>
         protected override void AppendLineBreak(ref CharWriter sb)
         {

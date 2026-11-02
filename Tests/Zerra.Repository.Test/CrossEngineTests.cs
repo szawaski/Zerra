@@ -138,6 +138,28 @@ namespace Zerra.Repository.Test
             }
         }
 
+        //the queries of a set on different engines each run through their own providers, and their elements combine in memory by their values as rows would
+        [Fact]
+        public async Task SetsOnOtherEngine()
+        {
+            var (repo, parents, children) = Repos();
+            var ranks = repo.Query<Parent>().Select(x => x.Rank);
+            var quantities = repo.Query<Child>().Select(c => c.Qty);
+            Assert.Equal(parents.Select(x => x.Rank).Union(children.Select(c => c.Qty)).Order(), ranks.Union(quantities).ToArray().Order());
+            Assert.Equal(parents.Select(x => x.Rank).Intersect(children.Select(c => c.Qty)).Order(), ranks.Intersect(quantities).ToArray().Order());
+            Assert.Equal(parents.Select(x => x.Rank).Except(children.Select(c => c.Qty)).Order(), (await ranks.Except(quantities).ToArrayAsync(TestContext.Current.CancellationToken)).Order());
+            Assert.Equal(parents.Length + children.Length, await ranks.Concat(quantities).CountAsync(TestContext.Current.CancellationToken));
+            Assert.True(ranks.Intersect(quantities).Any());
+            Assert.Equal(parents.Select(x => x.Rank).Union(children.Select(c => c.Qty)).OrderByDescending(x => x).Take(2), ranks.Union(quantities).OrderByDescending(x => x).Take(2).ToArray());
+            Assert.Equal(parents.Select(x => x.Rank).Concat(children.Select(c => c.Qty)).Count(x => x > 1), ranks.Concat(quantities).Count(x => x > 1));
+
+            //objects compare by their members, and a part reads a relation on another engine through its provider
+            var named = repo.Query<Parent>().Select(x => new ChildRow { Qty = x.Rank, ParentName = x.Name });
+            var tagged = repo.Query<Child>().Select(c => new ChildRow { Qty = c.Qty, ParentName = c.Parent!.Name });
+            Assert.Equal(4, named.Union(tagged).Count());
+            Assert.Equal(2, named.Intersect(tagged).Count());
+        }
+
         private static (IRepo Repo, Parent[] Parents, Child[] Children) Repos(bool sameEngine = false)
         {
             var parentEngine = new MemoryEngine();

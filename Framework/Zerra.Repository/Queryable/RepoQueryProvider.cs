@@ -22,6 +22,7 @@ namespace Zerra.Repository
 
         /// <summary>Reads a query into what a condition of another query looks in.</summary>
         internal abstract LinqSubquery ReadSubquery(Expression expression);
+        internal abstract LinqSet ReadSet(LinqSetOperation operation, LinqQuery left, Expression expression);
 
         /// <summary>Runs a query ending in a value: a first or single result, a count, whether any, or a calculation.</summary>
         /// <typeparam name="TResult">The type of the value.</typeparam>

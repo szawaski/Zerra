@@ -13,6 +13,7 @@ namespace Zerra.Repository
         private static readonly MethodInfo arrayContainsMethod = typeof(MemoryExpressionRewriter).GetMethod(nameof(ArrayContains), BindingFlags.NonPublic | BindingFlags.Static)!;
         private static readonly MethodInfo stringEqualsMethod = typeof(MemoryExpressionRewriter).GetMethod(nameof(StringEquals), BindingFlags.NonPublic | BindingFlags.Static)!;
         private static readonly MethodInfo elementMethod = typeof(MemoryExpressionRewriter).GetMethod(nameof(Element), BindingFlags.NonPublic | BindingFlags.Static)!;
+        private static readonly MethodInfo enumNameMethod = typeof(EnumName).GetMethod(nameof(EnumName.GetName), [typeof(Type), typeof(object)])!;
 
         private readonly bool caseSensitive;
         public MemoryExpressionRewriter(bool caseSensitive)
@@ -100,6 +101,15 @@ namespace Zerra.Repository
                 var array = Visit(spanConversion.Arguments[0])!;
                 var value = Visit(node.Arguments[1])!;
                 return Expression.Call(arrayContainsMethod, array, Expression.Convert(value, typeof(object)));
+            }
+            //flags are written as EnumName writes them, the text a store keeps
+            if (node.Method.Name == nameof(ToString) && node.Arguments.Count == 0 && node.Object is not null)
+            {
+                var flags = node.Object;
+                while (flags is UnaryExpression { NodeType: ExpressionType.Convert } convert)
+                    flags = convert.Operand;
+                if (flags.Type.IsEnum && flags.Type.IsDefined(typeof(FlagsAttribute), false))
+                    return Expression.Call(enumNameMethod, Expression.Constant(flags.Type), Expression.Convert(Visit(flags)!, typeof(object)));
             }
             if (IsElement(node))
             {

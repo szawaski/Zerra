@@ -24,12 +24,20 @@ namespace Zerra.Repository
         public ModelDetail RelatedModel { get; }
         /// <summary>Whether the relation is one related model rather than a collection.</summary>
         public bool Single { get; }
-        /// <summary>The member of the parent the rows are matched by: its identity for a collection, its foreign key for a single relation.</summary>
+        /// <summary>The member of the parent the rows are matched by: its identity for a collection, its foreign key for a single relation; the first of <see cref="ParentKeys"/>.</summary>
         public ModelMemberDetail ParentKey { get; }
-        /// <summary>The member of the related model the rows are matched by: its foreign key for a collection, its identity for a single relation.</summary>
+        /// <summary>The member of the related model the rows are matched by: its foreign key for a collection, its identity for a single relation; the first of <see cref="RelatedKeys"/>.</summary>
         public ModelMemberDetail RelatedKey { get; }
+        /// <summary>The members of the parent the rows are matched by, several for a key of several, in the order of the identity referred to.</summary>
+        public ModelMemberDetail[] ParentKeys { get; }
+        /// <summary>The members of the related model the rows are matched by, paired with <see cref="ParentKeys"/>.</summary>
+        public ModelMemberDetail[] RelatedKeys { get; }
         /// <summary>The column of the parent's statement that holds <see cref="ParentKey"/>.</summary>
         public int ParentColumn { get; internal set; }
+        /// <summary>The columns of the parent's statement that hold <see cref="ParentKeys"/>.</summary>
+        public int[] ParentColumns { get; internal set; } = null!;
+        /// <summary>Whether the rows are matched by a key of several members.</summary>
+        public bool CompositeKey => ParentKeys.Length > 1;
         /// <summary>An optional condition on the rows.</summary>
         public LambdaExpression? Where { get; }
         /// <summary>An optional order of the rows.</summary>
@@ -41,14 +49,20 @@ namespace Zerra.Repository
         /// <summary>How the rows are read and built; its <see cref="LinqPlan.ParentKeyColumn"/> holds <see cref="RelatedKey"/>.</summary>
         public LinqPlan Plan { get; }
 
-        internal LinqPiece(ModelMemberDetail relation, ModelDetail parentModel, ModelDetail relatedModel, bool single, ModelMemberDetail parentKey, ModelMemberDetail relatedKey, LambdaExpression? where, QueryOrder? order, int? skip, int? take, LinqPlan plan)
+        /// <summary>A container for the rows by the key matching them to their parent, typed by the key's type, or by <see cref="LinqKey"/> for a key of several members.</summary>
+        /// <returns>The container.</returns>
+        public LinqPieceElements NewElements() => CompositeKey ? new LinqPieceElements<LinqKey>() : LinqPieceElements.New(RelatedKey.Type);
+
+        internal LinqPiece(ModelMemberDetail relation, ModelDetail parentModel, ModelDetail relatedModel, bool single, ModelMemberDetail[] parentKeys, ModelMemberDetail[] relatedKeys, LambdaExpression? where, QueryOrder? order, int? skip, int? take, LinqPlan plan)
         {
             this.Relation = relation;
             this.ParentModel = parentModel;
             this.RelatedModel = relatedModel;
             this.Single = single;
-            this.ParentKey = parentKey;
-            this.RelatedKey = relatedKey;
+            this.ParentKeys = parentKeys;
+            this.RelatedKeys = relatedKeys;
+            this.ParentKey = parentKeys[0];
+            this.RelatedKey = relatedKeys[0];
             this.Where = where;
             this.Order = order;
             this.Skip = skip;

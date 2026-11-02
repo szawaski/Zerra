@@ -229,6 +229,12 @@ namespace Zerra.Repository.Test
             public int Value { get; set; }
         }
 
+        public sealed class SetRow
+        {
+            public int Number { get; set; }
+            public string? Text { get; set; }
+        }
+
         private static Expression<Func<ParityModel, bool>> Build(Func<ParameterExpression, Expression> body)
         {
             var x = Expression.Parameter(typeof(ParityModel), "x");
@@ -506,12 +512,15 @@ namespace Zerra.Repository.Test
                 Same(ordered.Select(x => Math.Round(x.Number * 0.125m, 2, mode)), q.Select(x => Math.Round(x.Number * 0.125m, 2, mode)).ToArray(), $"round digits {mode}");
                 Same(ordered.Select(x => Math.Round(-x.Number * 0.125m, 2, mode)), q.Select(x => Math.Round(-x.Number * 0.125m, 2, mode)).ToArray(), $"round negative digits {mode}");
             }
-            if (inStore)
+            var digits = 2;
+            Same(ordered.Select(x => Math.Round(x.Money, digits)), q.Select(x => Math.Round(x.Money, digits)).ToArray(), "round digits from a variable");
+            //digits from the model
+            foreach (var mode in Enum.GetValues<MidpointRounding>())
             {
-                var digits = 2;
-                _ = Assert.Throws<NotSupportedException>(() => q.Select(x => Math.Round(x.Money, x.Number)).ToArray());
-                Assert.Equal(ordered.Select(x => Math.Round(x.Money, digits)), q.Select(x => Math.Round(x.Money, digits)).ToArray());
+                Same(ordered.Select(x => Math.Round(x.Number * 0.125m + 0.0625m, x.Number % 4, mode)), q.Select(x => Math.Round(x.Number * 0.125m + 0.0625m, x.Number % 4, mode)).ToArray(), $"round model digits {mode}");
+                Same(ordered.Select(x => Math.Round(-x.Number * 0.125m - 0.0625m, x.Number % 4, mode)), q.Select(x => Math.Round(-x.Number * 0.125m - 0.0625m, x.Number % 4, mode)).ToArray(), $"round negative model digits {mode}");
             }
+            Same(ordered.Select(x => Math.Round(x.Number * 0.125 + 0.0625, x.Number % 4)), q.Select(x => Math.Round(x.Number * 0.125 + 0.0625, x.Number % 4)).ToArray(), "round model digits double");
 
             //dates and times
             Same(ordered.Select(x => x.Date.AddDays(3)), q.Select(x => x.Date.AddDays(3)).ToArray(), "add days");
@@ -704,9 +713,95 @@ namespace Zerra.Repository.Test
             Assert.Equal(models.Max(x => x.Access), q.Max(x => x.Access));
             Assert.Equal(models.Min(x => x.Access), q.Min(x => x.Access));
 
-            //C# writes flags with its own names and separators, which the store has no way to build from the text
+            //flags are written as EnumName writes them
+            Same(ordered.Select(x => EnumName.GetName(x.Access)), q.Select(x => x.Access.ToString()).ToArray(), "flags text");
+            var allText = EnumName.GetName(ParityAccess.ReadWrite | ParityAccess.Execute);
+            Assert.Contains("|", allText);
+            Numbers(x => EnumName.GetName(x.Access) == allText, q.Where(x => x.Access.ToString() == allText), "flags text condition");
+            _ = Assert.Single(q.Where(x => x.Access.ToString() == allText).ToArray());
+        }
+
+        private static void AssertSets(IRepo repo, ParityModel[] models, ParityLineModel[] lines, bool inStore)
+        {
+            void Same<T>(IEnumerable<T> expected, IEnumerable<T> actual, string name)
+            {
+                var e = expected.Order().ToArray();
+                var a = actual.Order().ToArray();
+                Assert.True(e.SequenceEqual(a), $"{name}: expected [{String.Join("|", e)}] found [{String.Join("|", a)}]");
+            }
+            var q = repo.Query<ParityModel>();
+            var low = models.Where(x => x.Number < 4).Select(x => x.Number % 3);
+            var high = models.Where(x => x.Number > 1).Select(x => x.Number % 3);
+            var lowQuery = q.Where(x => x.Number < 4).Select(x => x.Number % 3);
+            var highQuery = q.Where(x => x.Number > 1).Select(x => x.Number % 3);
+
+            //values combined as LINQ combines them, the ones other than Concat each once
+            Same(low.Union(high), lowQuery.Union(highQuery).ToArray(), "union");
+            Same(low.Concat(high), lowQuery.Concat(highQuery).ToArray(), "concat");
+            Same(low.Intersect(high), lowQuery.Intersect(highQuery).ToArray(), "intersect");
+            Same(low.Except(high), lowQuery.Except(highQuery).ToArray(), "except");
+
+            //queries of different models
+            var quantities = repo.Query<ParityLineModel>().Select(l => l.Quantity);
+            Same(models.Select(x => x.Number).Union(lines.Select(l => l.Quantity)), q.Select(x => x.Number).Union(quantities).ToArray(), "union of models");
+            Same(models.Select(x => x.Number).Except(lines.Select(l => l.Quantity)), q.Select(x => x.Number).Except(quantities).ToArray(), "except of models");
+
+            //objects compare by their values, as rows do
+            var rows = q.Where(x => x.Number < 3).Select(x => new { x.Number, Text = x.Name });
+            var otherRows = q.Where(x => x.Number > 1).Select(x => new { x.Number, Text = x.Name });
+            Same(models.Where(x => x.Number < 3).Select(x => x.Number).Union(models.Where(x => x.Number > 1).Select(x => x.Number)), rows.Union(otherRows).ToArray().Select(x => x.Number), "union of objects");
+            Same(models.Where(x => x.Number is > 1 and < 3).Select(x => x.Number), rows.Intersect(otherRows).ToArray().Select(x => x.Number), "intersect of objects");
+            var classRows = q.Where(x => x.Number < 3).Select(x => new SetRow { Number = x.Number, Text = x.Name });
+            var otherClassRows = q.Where(x => x.Number > 1).Select(x => new SetRow { Number = x.Number, Text = x.Name });
+            Same(models.Where(x => x.Number is > 1 and < 3).Select(x => x.Number), classRows.Intersect(otherClassRows).ToArray().Select(x => x.Number), "intersect of classes");
+            Same(models.Select(x => x.Number), q.Where(x => x.Number < 3).Union(q.Where(x => x.Number >= 2)).ToArray().Select(x => x.Number), "union of models");
+
+            //a page of a query is its own rows
+            Same(models.OrderBy(x => x.Number).Take(2).Select(x => x.Number).Concat(models.OrderByDescending(x => x.Number).Take(2).Select(x => x.Number)), q.OrderBy(x => x.Number).Take(2).Select(x => x.Number).Concat(q.OrderByDescending(x => x.Number).Take(2).Select(x => x.Number)).ToArray(), "pages");
+
+            //combined in the order written, where SQL's INTERSECT binds tighter than UNION
+            Same(low.Union(high).Intersect(new[] { 0, 1 }), lowQuery.Union(highQuery).Intersect(q.Where(x => x.Number < 2).Select(x => x.Number)).ToArray(), "union then intersect");
+            Same(low.Except(high.Union(new[] { 2 })), lowQuery.Except(highQuery.Union(q.Where(x => x.Number == 2).Select(x => x.Number))).ToArray(), "except of a union");
+
+            //ended by a count or whether there are any
+            Assert.Equal(low.Concat(high).Count(), lowQuery.Concat(highQuery).Count());
+            Assert.Equal(low.Union(high).LongCount(), lowQuery.Union(highQuery).LongCount());
+            Assert.True(lowQuery.Intersect(highQuery).Any());
+            Assert.False(lowQuery.Except(lowQuery).Any());
+
+            //the combined elements filtered, ordered, and paged
+            var all = low.Concat(high);
+            Assert.Equal(low.Union(high).Order(), lowQuery.Union(highQuery).OrderBy(x => x).ToArray());
+            Assert.Equal(all.OrderByDescending(x => x).Take(3), lowQuery.Concat(highQuery).OrderByDescending(x => x).Take(3).ToArray());
+            Assert.Equal(all.Order().Skip(2).Take(2), lowQuery.Concat(highQuery).OrderBy(x => x).Skip(2).Take(2).ToArray());
+            Assert.Equal(all.Count(x => x > 0), lowQuery.Concat(highQuery).Where(x => x > 0).Count());
+            Assert.Equal(all.Count(x => x > 0), lowQuery.Concat(highQuery).Count(x => x > 0));
+            Assert.Equal(all.Order().Skip(1).First(), lowQuery.Concat(highQuery).OrderBy(x => x).Skip(1).First());
+            Assert.Equal(all.Max(), lowQuery.Concat(highQuery).OrderByDescending(x => x).FirstOrDefault());
+            Assert.Equal(2, lowQuery.Union(highQuery).Single(x => x == 2));
+            Assert.True(lowQuery.Union(highQuery).Any(x => x == 2));
+            Assert.False(lowQuery.Union(highQuery).Any(x => x > 5));
+            Assert.Empty(lowQuery.Union(highQuery).Take(0).ToArray());
+            Assert.Equal(3, lowQuery.Concat(highQuery).OrderBy(x => x).Take(3).Count());
+            Same(models.Where(x => x.Number < 3).Select(x => x.Number).Union(models.Where(x => x.Number > 1).Select(x => x.Number)).Where(x => x > 1), rows.Union(otherRows).Where(r => r.Number > 1).ToArray().Select(x => x.Number), "objects filtered");
+            Assert.Equal(models.Select(x => x.Number).OrderByDescending(x => x).Take(2), classRows.Union(otherClassRows).OrderByDescending(r => r.Number).Take(2).ToArray().Select(x => x.Number));
+            Assert.Equal(models.OrderBy(x => x.Number).Skip(1).Take(2).Select(x => x.Number), q.Where(x => x.Number < 3).Union(q.Where(x => x.Number >= 2)).OrderBy(x => x.Number).Skip(1).Take(2).ToArray().Select(x => x.Number));
+            Same(models.Select(x => x.Number).Where(x => x is > 0 and < 4), q.Where(x => x.Number < 3).Union(q.Where(x => x.Number >= 2)).Where(x => x.Number > 0 && x.Number < 4).ToArray().Select(x => x.Number), "models filtered");
+
+            //an enum element compares and orders by its numbers, as in C#, where the column holds its name
+            var kinds = q.Select(x => x.Kind);
+            Assert.Equal(models.Select(x => x.Kind).Union(models.Select(x => x.Kind)).Count(x => x == ParityKind.Medium), kinds.Union(kinds).Count(x => x == ParityKind.Medium));
+            Assert.Equal(models.Select(x => x.Kind).Distinct().Order(), kinds.Union(kinds).OrderBy(x => x).ToArray());
+
+            _ = Assert.Throws<NotSupportedException>(() => lowQuery.Union(highQuery).Select(x => x + 1).ToArray());
+            _ = Assert.Throws<NotSupportedException>(() => lowQuery.Union(new[] { 1 }.AsQueryable()).ToArray());
+
+            //rows combine by position, so the members of a class are built in the same order
             if (inStore)
-                _ = Assert.Throws<NotSupportedException>(() => q.Select(x => x.Access.ToString()).ToArray());
+            {
+                var reordered = q.Where(x => x.Number > 1).Select(x => new SetRow { Text = x.Name, Number = x.Number });
+                _ = Assert.Throws<NotSupportedException>(() => classRows.Union(reordered).ToArray());
+            }
         }
 
         private static void AssertLookIns(IRepo repo, ParityModel[] models, ParityLineModel[] lines)
@@ -1271,6 +1366,7 @@ namespace Zerra.Repository.Test
                 AssertFunctions(repo, models, lines, engine is not MemoryEngine);
                 AssertEnums(repo, models, engine is not MemoryEngine);
                 AssertLookIns(repo, models, lines);
+                AssertSets(repo, models, lines, engine is not MemoryEngine);
 
                 //a member with a store name reads back, an excluded member isn't stored
                 var stored = repo.Query<ParityModel>().SingleOrDefault(x => x.Number == 1)!;
@@ -1628,6 +1724,9 @@ namespace Zerra.Repository.Test
                 AssertGroups("async count by flag", models.GroupBy(x => x.Flag).Select(g => (g.Key, (long)g.Count())), (await repo.Query<ParityModel>().GroupBy(x => x.Flag).Select(g => new { g.Key, Value = (long)g.Count() }).ToArrayAsync()).Select(r => (r.Key, r.Value)).ToArray());
                 AssertGroups("async min by flag", models.GroupBy(x => x.Flag).Select(g => (g.Key, g.Min(x => x.Number))), (await repo.Query<ParityModel>().GroupBy(x => x.Flag).Select(g => new { g.Key, Value = g.Min(x => x.Number) }).ToArrayAsync()).Select(r => (r.Key, r.Value)).ToArray());
                 Assert.Equal(lines.Sum(l => l.Price * l.Quantity), await repo.Query<ParityModel>().SumAsync(x => x.Lines!.Sum(l => l.Price * l.Quantity)));
+                var setValues = await repo.Query<ParityModel>().Where(x => x.Number < 4).Select(x => x.Number).Union(repo.Query<ParityLineModel>().Select(l => l.Quantity)).ToArrayAsync();
+                Assert.Equal(models.Where(x => x.Number < 4).Select(x => x.Number).Union(lines.Select(l => l.Quantity)).Order(), setValues.Order());
+                Assert.Equal(models.Select(x => x.Number).Concat(lines.Select(l => l.Quantity)).Count(), await repo.Query<ParityModel>().Select(x => x.Number).Concat(repo.Query<ParityLineModel>().Select(l => l.Quantity)).CountAsync());
                 var selected = await repo.Query<ParityModel>().Where(x => x.Number < 2).Select(x => new ParitySelectResult { Number = x.Number, Doubled = x.Number * 2 }).ToArrayAsync();
                 Assert.Equal(models.Where(x => x.Number < 2).Select(x => x.Number * 2).Order(), selected.Select(r => r.Doubled).Order());
                 var grouped = await repo.Query<ParityModel>().GroupBy(x => x.Flag).Select(g => new ParityGroupResult { Flag = g.Key, Rows = g.Count() }).ToArrayAsync();

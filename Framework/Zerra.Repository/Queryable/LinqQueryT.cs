@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
 using System.Linq.Expressions;
 using Zerra.Repository.Reflection;
 
@@ -33,6 +34,66 @@ namespace Zerra.Repository
 
         }
 
+        private protected override LinqQuery SetPart(Expression expression)
+        {
+            //the elements are read as objects, the query's own result is a count where it ends in one
+            var part = new LinqQuery<TModel, object?>(expression, null, null);
+            part.ReadAsSetPart();
+            return part;
+        }
+
+        internal override object CombineSet(IEnumerable left, IEnumerable right, bool caseSensitive)
+        {
+            var comparer = LinqElementComparer.Instance;
+            var first = left.Cast<object?>();
+            var second = right.Cast<object?>();
+            var elements = Set!.Operation switch
+            {
+                LinqSetOperation.Union => first.Union(second, comparer),
+                LinqSetOperation.Concat => first.Concat(second),
+                LinqSetOperation.Intersect => first.Intersect(second, comparer),
+                LinqSetOperation.Except => first.Except(second, comparer),
+                _ => throw new NotSupportedException($"{Set.Operation} isn't a set operation"),
+            };
+            if (Having is not null)
+            {
+                var condition = ElementFunction(Having, caseSensitive);
+                elements = elements.Where(x => (bool)condition(x)!);
+            }
+            if (ResultOrder is not null && (ReadsElements || Skip.HasValue || Take.HasValue))
+            {
+                IOrderedEnumerable<object?>? ordered = null;
+                foreach (var order in ResultOrder.OrderExpressions)
+                {
+                    var key = ElementFunction(order.Expression, caseSensitive);
+                    if (ordered is null)
+                        ordered = order.Descending ? elements.OrderByDescending(key) : elements.OrderBy(key);
+                    else
+                        ordered = order.Descending ? ordered.ThenByDescending(key) : ordered.ThenBy(key);
+                }
+                elements = ordered!;
+            }
+            if (Skip.HasValue)
+                elements = elements.Skip(Skip.Value);
+            if (Take.HasValue)
+                elements = elements.Take(Take.Value);
+            return Terminal switch
+            {
+                LinqTerminal.Count or LinqTerminal.LongCount => elements.LongCount(),
+                LinqTerminal.Any => elements.Any(),
+                _ => elements.Cast<TResult>().ToList(),
+            };
+        }
+
+        //a lambda over an element run on the element read as an object
+        private static Func<object?, object?> ElementFunction(LambdaExpression lambda, bool caseSensitive)
+        {
+            var element = Expression.Parameter(typeof(object), "element");
+            var rewritten = MemoryExpressionRewriter.Rewrite(lambda, caseSensitive);
+            var body = Expression.Invoke(rewritten, Expression.Convert(element, lambda.Parameters[0].Type));
+            return Expression.Lambda<Func<object?, object?>>(Expression.Convert(body, typeof(object)), element).Compile();
+        }
+
         private protected override LambdaExpression ModelLambda(Expression body, ParameterExpression parameter)
             => Expression.Lambda<Func<TModel, object?>>(body.Type.IsValueType ? Expression.Convert(body, typeof(object)) : body, parameter);
 
@@ -56,6 +117,8 @@ namespace Zerra.Repository
         //each column and relation of an element read from the model, as the memory engine and an event store run the query
         public override object? Execute(IEnumerable<object> models, bool caseSensitive)
         {
+            if (Set is not null)
+                return CombineSet((IEnumerable)Set.Left.Execute(models, caseSensitive)!, Set.ReadRight(), caseSensitive);
             var source = (IEnumerable<TModel>)models;
             if (Where is not null)
                 source = source.Where(MemoryExpressionRewriter.Rewrite((Expression<Func<TModel, bool>>)Where, caseSensitive).Compile());

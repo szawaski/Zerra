@@ -56,22 +56,16 @@ namespace Zerra.Repository.Reflection
                             {
                                 foreach (var relatedMember in relatedModelInfo.Members)
                                 {
-                                    if (relatedMember.Name == member.ForeignIdentity)
-                                    {
+                                    if (member.ForeignIdentities!.Contains(relatedMember.Name))
                                         relatedMember.AddForeignReference(modelInfo);
-                                        break;
-                                    }
                                 }
                             }
                             else
                             {
                                 foreach (var member2 in modelInfo.Members)
                                 {
-                                    if (member2.Name == member.ForeignIdentity)
-                                    {
+                                    if (member.ForeignIdentities!.Contains(member2.Name))
                                         member2.AddForeignReference(relatedModelInfo);
-                                        break;
-                                    }
                                 }
                             }
                         }
@@ -111,9 +105,9 @@ namespace Zerra.Repository.Reflection
         }
         private static Func<object, object>? GenerateGetterFunctionByName(Type type, string propertyNames)
         {
-            var propertyNamesArray = propertyNames?.Split(',');
-
-            var members = GetModel(type).TypeDetail.Members.Where(x => propertyNamesArray.Contains(x.Name)).ToArray();
+            //in the order the names are given, which is the order of the identity a foreign key refers to
+            var typeMembers = GetModel(type).TypeDetail.Members;
+            var members = propertyNames.Split(',').Select(name => typeMembers.FirstOrDefault(x => x.Name == name)).Where(x => x is not null).Select(x => x!).ToArray();
 
             if (members.Length == 1)
             {
@@ -189,9 +183,8 @@ namespace Zerra.Repository.Reflection
         }
         private static Action<object, object?> GenerateSetterFunctionByName(Type type, string propertyNames)
         {
-            var propertyNamesArray = propertyNames.Split(',').ToHashSet();
-
-            var members = GetModel(type).TypeDetail.Members.Where(x => propertyNamesArray.Contains(x.Name)).ToArray();
+            var typeMembers = GetModel(type).TypeDetail.Members;
+            var members = propertyNames.Split(',').Select(name => typeMembers.FirstOrDefault(x => x.Name == name)).Where(x => x is not null).Select(x => x!).ToArray();
 
             if (members.Length == 1)
             {

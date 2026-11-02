@@ -37,5 +37,8 @@ namespace Zerra.Repository
 
         /// <summary>Gets whether a query of another model can read this model in its own statement when they share an engine. A layer or an event store reads through itself, so its rows load through this provider instead.</summary>
         bool ReadsInStore { get; }
+
+        /// <summary>Gets whether a relation of the model is on another engine, so a condition through it can't be written in a statement of this engine.</summary>
+        bool RelatesAcrossEngines => false;
     }
 }

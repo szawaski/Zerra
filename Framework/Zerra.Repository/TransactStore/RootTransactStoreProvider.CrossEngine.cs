@@ -21,6 +21,7 @@ namespace Zerra.Repository
         /// <summary>Gets whether a query of another model can read this model in its own statement when they share an engine.</summary>
         protected virtual bool ReadsInStore => false;
         bool IProviderRelation.ReadsInStore => ReadsInStore;
+        bool IProviderRelation.RelatesAcrossEngines => AnyCrossEngine;
 
         private readonly ConcurrentFactoryDictionary<string, bool> crossEngineMembers = new();
         private bool IsCrossEngine(ModelMemberDetail member)
@@ -280,7 +281,7 @@ namespace Zerra.Repository
             public required LookupKind Kind;
             public required LinqModelQuery Query;
             public required Type RelatedType;
-            public required System.Reflection.MemberInfo ThisMember;
+            public required System.Reflection.MemberInfo[] ThisMembers;
             public string? RelatedForeignIdentity;
             public LambdaExpression? Selector;
             public ExpressionType Comparison;
@@ -290,14 +291,18 @@ namespace Zerra.Repository
 
             public Expression BuildReplacement(ParameterExpression parameter)
             {
-                var member = Expression.Convert(Expression.MakeMemberAccess(parameter, ThisMember), objectType);
+                //a key of several members is looked for as one key of them
+                var member = ThisMembers.Length == 1 ? Expression.Convert(Expression.MakeMemberAccess(parameter, ThisMembers[0]), objectType) : (Expression)LinqKeyRow.New([.. ThisMembers.Select(x => (Expression)Expression.MakeMemberAccess(parameter, x))]);
                 switch (Kind)
                 {
                     case LookupKind.Single:
                         {
                             var identities = new HashSet<object>();
                             foreach (var match in Matches!)
-                                identities.Add(ModelAnalyzer.GetIdentity(RelatedType, match));
+                            {
+                                if (Key(ModelAnalyzer.GetIdentity(RelatedType, match)) is { } identity)
+                                    identities.Add(identity);
+                            }
                             return Expression.Call(Expression.Constant(identities, hashSetObjectType), hashSetContainsMethod, member);
                         }
                     case LookupKind.Any:
@@ -306,7 +311,7 @@ namespace Zerra.Repository
                             var parents = new HashSet<object>();
                             foreach (var match in Matches!)
                             {
-                                var parent = ModelAnalyzer.GetForeignIdentity(RelatedType, RelatedForeignIdentity!, match);
+                                var parent = Key(ModelAnalyzer.GetForeignIdentity(RelatedType, RelatedForeignIdentity!, match));
                                 if (parent is not null)
                                     parents.Add(parent);
                             }
@@ -320,7 +325,7 @@ namespace Zerra.Repository
                             var getValue = Selector is null ? null : CalculationCommon.CompileBoxed<object>(Expression.Invoke(Selector, Expression.Convert(objectParameter, RelatedType)), objectParameter, false);
                             foreach (var match in Matches!)
                             {
-                                var parent = ModelAnalyzer.GetForeignIdentity(RelatedType, RelatedForeignIdentity!, match);
+                                var parent = Key(ModelAnalyzer.GetForeignIdentity(RelatedType, RelatedForeignIdentity!, match));
                                 if (parent is null)
                                     continue;
                                 if (!groups.TryGetValue(parent, out var values))
@@ -346,6 +351,34 @@ namespace Zerra.Repository
                             return Expression.Call(Expression.Constant(passing, hashSetObjectType), hashSetContainsMethod, member);
                         }
                 }
+            }
+
+            //a key of several members as one key of them, none when a part of it is null
+            private object? Key(object? key)
+            {
+                if (key is not object?[] parts)
+                    return key;
+                var row = new LinqKeyRow();
+                for (var i = 0; i < parts.Length; i++)
+                {
+                    if (parts[i] is null)
+                        return null;
+                }
+                row.K0 = parts[0];
+                row.K1 = parts[1];
+                if (parts.Length > 2)
+                    row.K2 = parts[2];
+                if (parts.Length > 3)
+                    row.K3 = parts[3];
+                if (parts.Length > 4)
+                    row.K4 = parts[4];
+                if (parts.Length > 5)
+                    row.K5 = parts[5];
+                if (parts.Length > 6)
+                    row.K6 = parts[6];
+                if (parts.Length > 7)
+                    row.K7 = parts[7];
+                return row;
             }
 
             private bool Passes(object? aggregate)
@@ -420,15 +453,13 @@ namespace Zerra.Repository
 
                 var relatedType = crossMember.IsEnumerable ? TypeAnalyzer.GetTypeDetail(crossMember.Type).InnerType! : crossMember.Type;
                 var relatedDetail = ModelAnalyzer.GetModel(relatedType);
-                if (crossMember.ForeignIdentity is null)
+                if (crossMember.ForeignIdentities is null)
                     throw new Exception($"{crossMember.Type.Name} missing Foreign Identity");
 
                 CrossEngineLookup lookup;
                 if (!crossMember.IsEnumerable)
                 {
                     //the part of the condition on the related model runs there as a condition on it
-                    if (relatedDetail.IdentityMembers.Count != 1)
-                        throw new NotSupportedException($"Relational queries support only one identity on {relatedDetail.Type.Name}");
                     var related = Expression.Parameter(relatedType, "related");
                     var body = new RelationReplacer(parameter, crossMember.Name, related).Visit(node);
                     var relatedWhere = Expression.Lambda(relatedDetail.LambdaDelegateType, body, related);
@@ -436,17 +467,14 @@ namespace Zerra.Repository
                     {
                         Node = node,
                         Kind = LookupKind.Single,
-                        Query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, relatedWhere, null, null, null, new Graph(relatedDetail.IdentityMembers[0].Name)),
+                        Query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, relatedWhere, null, null, null, new Graph(relatedDetail.IdentityMembers.Select(x => x.Name))),
                         RelatedType = relatedType,
-                        ThisMember = modelTypeDetail.GetMember(crossMember.ForeignIdentity).MemberDetail.MemberInfo,
+                        ThisMembers = [.. crossMember.ForeignIdentities.Select(x => modelTypeDetail.GetMember(x).MemberDetail.MemberInfo)],
                     };
                 }
                 else
                 {
-                    if (modelTypeDetail.IdentityMembers.Count != 1)
-                        throw new NotSupportedException($"Relational queries support only one identity on {modelTypeDetail.Type.Name}");
-                    var thisIdentity = modelTypeDetail.IdentityMembers[0].MemberDetail.MemberInfo;
-                    var foreignMember = relatedDetail.GetMember(crossMember.ForeignIdentity);
+                    System.Reflection.MemberInfo[] thisIdentity = [.. modelTypeDetail.IdentityMembers.Select(x => x.MemberDetail.MemberInfo)];
 
                     LambdaExpression? predicate = null;
                     if (node is MethodCallExpression { Method.Name: "Any" or "All" } call && call.Method.DeclaringType == typeof(Enumerable) && Unwrap(call, ref predicate) is MemberExpression collection && collection.Expression == parameter)
@@ -461,10 +489,10 @@ namespace Zerra.Repository
                         {
                             Node = node,
                             Kind = call.Method.Name == "All" ? LookupKind.All : LookupKind.Any,
-                            Query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, predicate, null, null, null, new Graph(foreignMember.Name)),
+                            Query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, predicate, null, null, null, new Graph(crossMember.ForeignIdentities)),
                             RelatedType = relatedType,
-                            ThisMember = thisIdentity,
-                            RelatedForeignIdentity = foreignMember.Name,
+                            ThisMembers = thisIdentity,
+                            RelatedForeignIdentity = crossMember.ForeignIdentityNames,
                         };
                     }
                     else if (node is BinaryExpression comparison && IsComparison(comparison.NodeType) && (TryGetAggregate(comparison.Left, parameter, out var aggregate, out var predicateOrSelector, out var where) || TryGetAggregate(comparison.Right, parameter, out aggregate, out predicateOrSelector, out where)))
@@ -482,7 +510,7 @@ namespace Zerra.Repository
                         };
                         var isCount = operation == LinqColumnKind.Count;
                         //the related models are read with the members the value needs, and compared here
-                        var graph = new Graph(foreignMember.Name);
+                        var graph = new Graph(crossMember.ForeignIdentities);
                         if (!isCount && predicateOrSelector is not null)
                         {
                             var members = new MemberNameFinder(predicateOrSelector.Parameters[0]);
@@ -498,8 +526,8 @@ namespace Zerra.Repository
                             Kind = LookupKind.Aggregate,
                             Query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, isCount ? predicateOrSelector : where, null, null, null, graph),
                             RelatedType = relatedType,
-                            ThisMember = thisIdentity,
-                            RelatedForeignIdentity = foreignMember.Name,
+                            ThisMembers = thisIdentity,
+                            RelatedForeignIdentity = crossMember.ForeignIdentityNames,
                             Selector = isCount ? null : predicateOrSelector,
                             Operation = operation,
                             Comparison = aggregateOnLeft ? comparison.NodeType : Mirror(comparison.NodeType),

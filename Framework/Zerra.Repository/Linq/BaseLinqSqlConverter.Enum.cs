@@ -37,6 +37,8 @@ namespace Zerra.Repository
                 return false;
             switch (exp)
             {
+                case ParameterExpression parameter when memberContext.ResultColumns is not null && memberContext.ResultColumns.TryGetValue(parameter, out var columns) && columns.ContainsKey(String.Empty):
+                    return memberContext.ResultEnums?.Contains(String.Empty) == true;
                 case MemberExpression { Expression: not null } member:
                     if (memberContext.ResultColumns is not null)
                     {
@@ -279,8 +281,9 @@ namespace Zerra.Repository
         //C# gives the field's name where the column holds the name from EnumName
         private string StoredEnumToString(string value, Type enumType, BuilderContext context)
         {
+            //flags are the text EnumName writes, as the memory engine gives them
             if (enumType.IsDefined(typeof(FlagsAttribute), false))
-                throw new NotSupportedException($"{enumType.Name} has flags, the store can't write them the way ToString does");
+                return value;
             var names = Enum.GetNames(enumType);
             var values = Enum.GetValuesAsUnderlyingType(enumType);
             var cases = new System.Text.StringBuilder("CASE ").Append(value);

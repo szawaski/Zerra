@@ -70,23 +70,12 @@ namespace Zerra.Repository.PostgreSql
                 var callingModel = context.MemberContext.ModelStack.Peek();
                 var property = context.MemberContext.MemberLambdaStack.Peek();
 
-                if (callingModel.IdentityMembers.Count != 1)
-                    throw new NotSupportedException($"Relational queries support only one identity on {callingModel.Type.Name}");
-                var callingModelIdentity = callingModel.IdentityMembers[0];
-
                 var modelProperty = callingModel.GetMember(property.Member.Name);
 
-                if (modelProperty.ForeignIdentity is null)
-                    throw new Exception($"{modelProperty.Type.Name} missing Foreign Identity");
-
                 sb.Write(' ');
-                sb.Write(CallingTable(property, callingModel, context).ToLower());
-                sb.Write('.');
-                sb.Write(callingModelIdentity.StoreName.ToLower());
-                sb.Write('=');
-                sb.Write(modelDetail.DataSourceEntityName.ToLower());
-                sb.Write('.');
-                sb.Write(modelProperty.ForeignIdentity.ToLower());
+
+                WriteRelationKey(ref sb, modelDetail.DataSourceEntityName, CallingTable(property, callingModel, context), RelationKey(modelProperty, callingModel));
+
                 sb.Write(" AND");
             }
 
@@ -173,23 +162,31 @@ namespace Zerra.Repository.PostgreSql
 
                             var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                             var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
-                            if (propertyInfo.ForeignIdentity is null)
+                            if (propertyInfo.ForeignIdentities is null)
                                 throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
 
                             var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
 
-                            context.MemberContext.InCallRenderIdentity++;
+                            //the parent's identity is looked for among the related keys, a key of several members is a related row that exists with the match and the condition
+                            var severalKeys = propertyInfo.ForeignIdentities!.Length > 1;
+                            if (severalKeys)
+                                context.MemberContext.InCallNoRender++;
+                            else
+                                context.MemberContext.InCallRenderIdentity++;
                             ConvertToSqlMember(subMember, ref sb, context);
-                            context.MemberContext.InCallRenderIdentity--;
+                            if (severalKeys)
+                                context.MemberContext.InCallNoRender--;
+                            else
+                                context.MemberContext.InCallRenderIdentity--;
 
                             (context.MemberContext.CallingTables ??= new())[subMember] = RelationTable(subMember.Expression!, context);
 
                             context.MemberContext.MemberLambdaStack.Push(subMember);
                             context.MemberContext.ModelStack.Push(subMemberModel);
 
-                            sb.Write("=ANY(");
+                            sb.Write(severalKeys ? "EXISTS(" : "=ANY(");
                             context.MemberContext.InvertRelatedLambda = true;
-                            ConvertSubquery(ref sb, false, subWhere, new Graph(propertyInfo.ForeignIdentity), subModelInfo, context.MemberContext);
+                            ConvertSubquery(ref sb, false, severalKeys ? subWhere ?? Expression.Lambda(subModelInfo.LambdaDelegateType, Expression.Constant(true), Expression.Parameter(subModelInfo.Type, "x")) : subWhere, new Graph(propertyInfo.ForeignIdentities!), subModelInfo, context.MemberContext);
                             sb.Write(')');
 
                             _ = context.MemberContext.ModelStack.Pop();
@@ -217,22 +214,31 @@ namespace Zerra.Repository.PostgreSql
 
                             var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                             var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
-                            if (propertyInfo.ForeignIdentity is null)
+                            if (propertyInfo.ForeignIdentities is null)
                                 throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
 
                             var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
 
-                            context.MemberContext.InCallRenderIdentity++;
+                            //the parent's identity is looked for among the related keys, a key of several members is a related row that exists with the match and the condition
+                            var severalKeys = propertyInfo.ForeignIdentities!.Length > 1;
+                            if (severalKeys)
+                                context.MemberContext.InCallNoRender++;
+                            else
+                                context.MemberContext.InCallRenderIdentity++;
                             ConvertToSqlMember(subMember, ref sb, context);
-                            context.MemberContext.InCallRenderIdentity--;
+                            if (severalKeys)
+                                context.MemberContext.InCallNoRender--;
+                            else
+                                context.MemberContext.InCallRenderIdentity--;
 
                             (context.MemberContext.CallingTables ??= new())[subMember] = RelationTable(subMember.Expression!, context);
 
                             context.MemberContext.MemberLambdaStack.Push(subMember);
                             context.MemberContext.ModelStack.Push(subMemberModel);
 
-                            sb.Write("=ANY(");
-                            ConvertSubquery(ref sb, false, subWhere, new Graph(propertyInfo.ForeignIdentity), subModelInfo, context.MemberContext);
+                            sb.Write(severalKeys ? "EXISTS(" : "=ANY(");
+
+                            ConvertSubquery(ref sb, false, severalKeys ? subWhere ?? Expression.Lambda(subModelInfo.LambdaDelegateType, Expression.Constant(true), Expression.Parameter(subModelInfo.Type, "x")) : subWhere, new Graph(propertyInfo.ForeignIdentities!), subModelInfo, context.MemberContext);
                             sb.Write(')');
 
                             _ = context.MemberContext.ModelStack.Pop();
@@ -263,7 +269,7 @@ namespace Zerra.Repository.PostgreSql
 
                             var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                             var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
-                            if (propertyInfo.ForeignIdentity is null)
+                            if (propertyInfo.ForeignIdentities is null)
                                 throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
 
                             var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
@@ -271,20 +277,11 @@ namespace Zerra.Repository.PostgreSql
                             if (subWhere is null)
                             {
                                 //without a condition there is no lambda to write the match to the related rows
-                                if (subMemberModel.IdentityMembers.Count != 1)
-                                    throw new NotSupportedException($"Relational queries support only one identity on {subMemberModel.Type.Name}");
-                                var subMemberModelIdentity = subMemberModel.IdentityMembers[0];
 
                                 sb.Write("(SELECT COUNT(1)");
                                 GenerateFrom(subModelInfo, ref sb);
                                 sb.Write("WHERE ");
-                                sb.Write(subMemberTable.ToLower());
-                                sb.Write('.');
-                                sb.Write(subMemberModelIdentity.StoreName.ToLower());
-                                sb.Write('=');
-                                sb.Write(subModelInfo.DataSourceEntityName.ToLower());
-                                sb.Write('.');
-                                sb.Write(propertyInfo.ForeignIdentity.ToLower());
+                                WriteRelationKey(ref sb, subModelInfo.DataSourceEntityName, subMemberTable, RelationKey(propertyInfo, subMemberModel));
                                 sb.Write(')');
                                 break;
                             }
@@ -295,7 +292,7 @@ namespace Zerra.Repository.PostgreSql
                             context.MemberContext.ModelStack.Push(subMemberModel);
 
                             sb.Write('(');
-                            ConvertSubquery(ref sb, true, subWhere, new Graph(propertyInfo.ForeignIdentity), subModelInfo, context.MemberContext);
+                            ConvertSubquery(ref sb, true, subWhere, new Graph(propertyInfo.ForeignIdentities!), subModelInfo, context.MemberContext);
                             sb.Write(')');
 
                             _ = context.MemberContext.ModelStack.Pop();
@@ -322,11 +319,8 @@ namespace Zerra.Repository.PostgreSql
 
                             var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                             var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
-                            if (propertyInfo.ForeignIdentity is null)
+                            if (propertyInfo.ForeignIdentities is null)
                                 throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
-                            if (subMemberModel.IdentityMembers.Count != 1)
-                                throw new NotSupportedException($"Relational queries support only one identity on {subMemberModel.Type.Name}");
-                            var subMemberModelIdentity = subMemberModel.IdentityMembers[0];
 
                             var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
 
@@ -389,13 +383,7 @@ namespace Zerra.Repository.PostgreSql
                                 GenerateFrom(subModelInfo, ref sb);
                                 GenerateJoin(subDependant, ref sb);
                                 sb.Write("WHERE ");
-                                sb.Write(subMemberTable.ToLower());
-                                sb.Write('.');
-                                sb.Write(subMemberModelIdentity.StoreName.ToLower());
-                                sb.Write('=');
-                                sb.Write(subModelInfo.DataSourceEntityName.ToLower());
-                                sb.Write('.');
-                                sb.Write(propertyInfo.ForeignIdentity.ToLower());
+                                WriteRelationKey(ref sb, subModelInfo.DataSourceEntityName, subMemberTable, RelationKey(propertyInfo, subMemberModel));
                                 if (sbWhere.Length > 0)
                                 {
                                     sb.Write("AND(");
@@ -489,11 +477,8 @@ namespace Zerra.Repository.PostgreSql
 
                             var subMemberModel = ModelAnalyzer.GetModel(subMember.Expression.Type);
                             var propertyInfo = subMemberModel.GetMember(subMember.Member.Name);
-                            if (propertyInfo.ForeignIdentity is null)
+                            if (propertyInfo.ForeignIdentities is null)
                                 throw new Exception($"{propertyInfo.Type.Name} missing Foreign Identity");
-                            if (subMemberModel.IdentityMembers.Count != 1)
-                                throw new NotSupportedException($"Relational queries support only one identity on {subMemberModel.Type.Name}");
-                            var subMemberModelIdentity = subMemberModel.IdentityMembers[0];
 
                             var subModelInfo = ModelAnalyzer.GetModel(propertyInfo.ActualType);
 
@@ -556,13 +541,7 @@ namespace Zerra.Repository.PostgreSql
                                 GenerateFrom(subModelInfo, ref sb);
                                 GenerateJoin(subDependant, ref sb);
                                 sb.Write("WHERE ");
-                                sb.Write(subMemberTable.ToLower());
-                                sb.Write('.');
-                                sb.Write(subMemberModelIdentity.StoreName.ToLower());
-                                sb.Write('=');
-                                sb.Write(subModelInfo.DataSourceEntityName.ToLower());
-                                sb.Write('.');
-                                sb.Write(propertyInfo.ForeignIdentity.ToLower());
+                                WriteRelationKey(ref sb, subModelInfo.DataSourceEntityName, subMemberTable, RelationKey(propertyInfo, subMemberModel));
                                 if (sbWhere.Length > 0)
                                 {
                                     sb.Write(" AND");
@@ -960,6 +939,11 @@ namespace Zerra.Repository.PostgreSql
 
                                 var callingObject = call.Object;
                                 var lambda = call.Arguments[0];
+
+
+                                if (TryConvertToSqlKeyRows(callingObject, lambda, ref sb, context))
+
+                                    break;
 
                                 ConvertToSql(lambda, ref sb, context);
 
@@ -1482,20 +1466,26 @@ namespace Zerra.Repository.PostgreSql
                 }
 
                 //a related model in the condition needs its join, which UPDATE and DELETE write differently in each database, so the matching rows are selected instead
-                if (modelDetail.IdentityMembers.Count != 1)
-                    throw new NotSupportedException($"Relational conditions support only one identity on {modelDetail.Type.Name}");
-                var identity = modelDetail.IdentityMembers[0];
-
-                sb.Write(" WHERE ");
-                sb.Write(modelDetail.DataSourceEntityName.ToLower());
-                sb.Write('.');
-                sb.Write(identity.StoreName.ToLower());
-                sb.Write(" IN (");
-                sb.Write("SELECT ");
-                sb.Write(modelDetail.DataSourceEntityName.ToLower());
-                sb.Write('.');
-                sb.Write(identity.StoreName.ToLower());
-                sb.Write("");
+                //an identity of several members is a row of values
+                var several = modelDetail.IdentityMembers.Count > 1;
+                sb.Write(several ? " WHERE (" : " WHERE ");
+                for (var i = 0; i < modelDetail.IdentityMembers.Count; i++)
+                {
+                    if (i > 0)
+                        sb.Write(',');
+                    sb.Write(modelDetail.DataSourceEntityName.ToLower());
+                    sb.Write('.');
+                    sb.Write(modelDetail.IdentityMembers[i].StoreName.ToLower());
+                }
+                sb.Write(several ? ") IN (SELECT " : " IN (SELECT ");
+                for (var i = 0; i < modelDetail.IdentityMembers.Count; i++)
+                {
+                    if (i > 0)
+                        sb.Write(',');
+                    sb.Write(modelDetail.DataSourceEntityName.ToLower());
+                    sb.Write('.');
+                    sb.Write(modelDetail.IdentityMembers[i].StoreName.ToLower());
+                }
                 GenerateFrom(modelDetail, ref sb);
                 GenerateJoin(rootDependant, ref sb);
                 sb.Write(sbWhere);
@@ -1707,9 +1697,19 @@ namespace Zerra.Repository.PostgreSql
                 try
                 {
                     sbKeys.Write("SELECT ");
-                    sbKeys.Write(modelDetail.DataSourceEntityName.ToLower());
-                    sbKeys.Write('.');
-                    sbKeys.Write(piece.ParentKey.StoreName.ToLower());
+                    for (var k = 0; k < piece.ParentKeys.Length; k++)
+                    {
+                        if (k > 0)
+                            sbKeys.Write(',');
+                        sbKeys.Write(modelDetail.DataSourceEntityName.ToLower());
+                        sbKeys.Write('.');
+                        sbKeys.Write(piece.ParentKeys[k].StoreName.ToLower());
+                        if (piece.CompositeKey)
+                        {
+                            sbKeys.Write(" AS k");
+                            sbKeys.Write(k);
+                        }
+                    }
                     sbKeys.Write(sbFrom);
                     sbKeys.Write(sbWhere);
                     if (paged)
@@ -1759,13 +1759,35 @@ namespace Zerra.Repository.PostgreSql
                     sb.Write(i);
                 }
                 GenerateFrom(modelDetail, ref sbFrom);
-                sbWhere.Write("WHERE ");
-                sbWhere.Write(modelDetail.DataSourceEntityName.ToLower());
-                sbWhere.Write('.');
-                sbWhere.Write(piece.RelatedKey.StoreName.ToLower());
-                sbWhere.Write(" IN (");
-                sbWhere.Write(sbKeys);
-                sbWhere.Write(')');
+                if (piece.CompositeKey)
+                {
+                    //a key of several columns isn't one value to look for, so a parent's row with each of them exists
+                    sbWhere.Write("WHERE EXISTS(SELECT 1 FROM (");
+                    sbWhere.Write(sbKeys);
+                    sbWhere.Write(") AS p WHERE ");
+                    for (var k = 0; k < piece.RelatedKeys.Length; k++)
+                    {
+                        if (k > 0)
+                            sbWhere.Write(" AND ");
+                        sbWhere.Write("p.k");
+                        sbWhere.Write(k);
+                        sbWhere.Write('=');
+                        sbWhere.Write(modelDetail.DataSourceEntityName.ToLower());
+                        sbWhere.Write('.');
+                        sbWhere.Write(piece.RelatedKeys[k].StoreName.ToLower());
+                    }
+                    sbWhere.Write(')');
+                }
+                else
+                {
+                    sbWhere.Write("WHERE ");
+                    sbWhere.Write(modelDetail.DataSourceEntityName.ToLower());
+                    sbWhere.Write('.');
+                    sbWhere.Write(piece.RelatedKey.StoreName.ToLower());
+                    sbWhere.Write(" IN (");
+                    sbWhere.Write(sbKeys);
+                    sbWhere.Write(')');
+                }
                 if (piece.Where is not null)
                 {
                     sbWhere.Write("AND(");
@@ -1777,9 +1799,14 @@ namespace Zerra.Repository.PostgreSql
                 if (numbered)
                 {
                     sb.Write(",ROW_NUMBER() OVER (PARTITION BY ");
-                    sb.Write(modelDetail.DataSourceEntityName.ToLower());
-                    sb.Write(".");
-                    sb.Write(piece.RelatedKey.StoreName.ToLower());
+                    for (var k = 0; k < piece.RelatedKeys.Length; k++)
+                    {
+                        if (k > 0)
+                            sb.Write(',');
+                        sb.Write(modelDetail.DataSourceEntityName.ToLower());
+                        sb.Write(".");
+                        sb.Write(piece.RelatedKeys[k].StoreName.ToLower());
+                    }
                     sb.Write(" ");
                     if (piece.Order is null)
                     {
@@ -2073,7 +2100,7 @@ namespace Zerra.Repository.PostgreSql
                     if (graph is not null && !graph.HasMember(member.Name))
                         continue;
 
-                    if (member.StoreName is not null && member.ForeignIdentity is null)
+                    if (member.StoreName is not null && member.ForeignIdentities is null)
                     {
                         if (passedfirst)
                             sb.Write(',');
@@ -2122,6 +2149,7 @@ namespace Zerra.Repository.PostgreSql
                 Function.Modulo => "(({0})%{1})",
                 Function.RoundWhole => "ROUND(CAST({0} AS numeric),0)",
                 Function.RoundPlaces => "ROUND(CAST({0} AS numeric),{1})",
+                Function.PowerOfTen => "POWER(CAST(10 AS numeric),{0})",
                 Function.DateText => "TO_CHAR({0},{1})",
                 _ => throw new NotSupportedException(function.ToString()),
             };
@@ -2198,15 +2226,11 @@ namespace Zerra.Repository.PostgreSql
         {
             foreach (var child in dependant.Dependants.Values)
             {
-                if (child.ModelDetail.IdentityMembers.Count != 1)
-                    throw new NotSupportedException($"Relational queries support only one identity on {child.ModelDetail.Type.Name}");
 
                 if (child.ParentMember is null)
                     throw new Exception($"{child.ModelDetail.Type.Name} is not a child member");
-                if (child.ParentMember.ForeignIdentity is null)
+                if (child.ParentMember.ForeignIdentities is null)
                     throw new Exception($"{child.ParentMember.Type.Name} missing Foreign Identity");
-
-                var dependantIdentity = child.ModelDetail.IdentityMembers[0];
 
                 sb.Write("LEFT JOIN ");
                 sb.Write(child.ModelDetail.DataSourceEntityName.ToLower());
@@ -2216,13 +2240,7 @@ namespace Zerra.Repository.PostgreSql
                     sb.Write(child.TableName.ToLower());
                 }
                 sb.Write(" ON ");
-                sb.Write(dependant.TableName.ToLower());
-                sb.Write('.');
-                sb.Write(child.ParentMember.ForeignIdentity.ToLower());
-                sb.Write('=');
-                sb.Write(child.TableName.ToLower());
-                sb.Write('.');
-                sb.Write(dependantIdentity.StoreName.ToLower());
+                WriteRelationKey(ref sb, dependant.TableName, child.TableName, RelationKey(child.ParentMember!, dependant.ModelDetail));
 
                 AppendLineBreak(ref sb);
 
@@ -2230,6 +2248,36 @@ namespace Zerra.Repository.PostgreSql
             }
         }
 
+        //the columns of a relation's key matched pair by pair, the foreign key of the table holding it to the identity of the table it refers to
+        private static void WriteRelationKey(ref CharWriter sb, string keyTable, string identityTable, (ModelMemberDetail Key, ModelMemberDetail Identity)[] pairs)
+        {
+            for (var i = 0; i < pairs.Length; i++)
+            {
+                if (i > 0)
+                    sb.Write(" AND ");
+                sb.Write(keyTable.ToLower());
+                sb.Write('.');
+                sb.Write(pairs[i].Key.StoreName.ToLower());
+                sb.Write('=');
+                sb.Write(identityTable.ToLower());
+                sb.Write('.');
+                sb.Write(pairs[i].Identity.StoreName.ToLower());
+            }
+        }
+        /// <inheritdoc/>
+        protected override void GeneratePage(int? skip, int? take, bool ordered, ref CharWriter sb, MemberContext operationContext)
+        {
+            if (take.HasValue)
+            {
+                sb.Write(" LIMIT ");
+                sb.Write(take.Value);
+            }
+            if (skip.HasValue)
+            {
+                sb.Write(" OFFSET ");
+                sb.Write(skip.Value);
+            }
+        }
         /// <inheritdoc/>
         protected override void AppendLineBreak(ref CharWriter sb)
         {

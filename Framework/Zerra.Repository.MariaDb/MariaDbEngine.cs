@@ -698,7 +698,7 @@ namespace Zerra.Repository.MariaDb
             {
                 var piece = statement.Pieces[p];
                 var piecePieces = ReadLinqPieces(connection, piece);
-                var elements = LinqPieceElements.New(statement.Plan.Pieces[p].RelatedKey.Type);
+                var elements = statement.Plan.Pieces[p].NewElements();
                 pieces[p] = elements;
                 using (var command = connection.CreateCommand())
                 {
@@ -708,11 +708,15 @@ namespace Zerra.Repository.MariaDb
                     {
                         var shape = piece.Plan.Shape!;
                         var keyColumn = piece.Plan.ParentKeyColumn!.Value;
+                        var keyColumns = statement.Plan.Pieces[p].CompositeKey ? piece.Plan.ParentKeyColumns : null;
                         var keyType = statement.Plan.Pieces[p].RelatedKey.Type;
                         while (reader.Read())
                         {
                             var element = ReadLinqElement(reader, shape, piecePieces);
-                            AddLinqPiece(reader, keyColumn, elements, element, keyType);
+                            if (keyColumns is null)
+                                AddLinqPiece(reader, keyColumn, elements, element, keyType);
+                            else if (LinqKey.Read(reader, keyColumns) is { } key)
+                                elements.Add(key, element);
                         }
                     }
                 }
@@ -830,7 +834,7 @@ namespace Zerra.Repository.MariaDb
                         return instance;
                     }
                 default:
-                    return shape.BuildRelation(FindLinqPiece(reader, shape.Piece!.ParentColumn, pieces![shape.PieceIndex], shape.Piece.ParentKey.Type));
+                    return shape.BuildRelation(shape.Piece!.CompositeKey ? (LinqKey.Read(reader, shape.Piece.ParentColumns) is { } key ? pieces![shape.PieceIndex].Find(key) : null) : FindLinqPiece(reader, shape.Piece!.ParentColumn, pieces![shape.PieceIndex], shape.Piece.ParentKey.Type));
             }
         }
         private static object? ReadLinqValue(DbDataReader reader, int i, Type type)
@@ -1189,7 +1193,7 @@ namespace Zerra.Repository.MariaDb
             {
                 var piece = statement.Pieces[p];
                 var piecePieces = await ReadLinqPiecesAsync(connection, piece, cancellationToken);
-                var elements = LinqPieceElements.New(statement.Plan.Pieces[p].RelatedKey.Type);
+                var elements = statement.Plan.Pieces[p].NewElements();
                 pieces[p] = elements;
                 using (var command = connection.CreateCommand())
                 {
@@ -1199,11 +1203,15 @@ namespace Zerra.Repository.MariaDb
                     {
                         var shape = piece.Plan.Shape!;
                         var keyColumn = piece.Plan.ParentKeyColumn!.Value;
+                        var keyColumns = statement.Plan.Pieces[p].CompositeKey ? piece.Plan.ParentKeyColumns : null;
                         var keyType = statement.Plan.Pieces[p].RelatedKey.Type;
                         while (await reader.ReadAsync(cancellationToken))
                         {
                             var element = ReadLinqElement(reader, shape, piecePieces);
-                            AddLinqPiece(reader, keyColumn, elements, element, keyType);
+                            if (keyColumns is null)
+                                AddLinqPiece(reader, keyColumn, elements, element, keyType);
+                            else if (LinqKey.Read(reader, keyColumns) is { } key)
+                                elements.Add(key, element);
                         }
                     }
                 }
@@ -2031,7 +2039,7 @@ namespace Zerra.Repository.MariaDb
 
         private void AssureConstraints(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints)
         {
-            var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).ToDictionary(x => x, x => 0, StringComparer.OrdinalIgnoreCase);
+            var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).Distinct(StringComparer.OrdinalIgnoreCase).ToDictionary(x => x, x => 0, StringComparer.OrdinalIgnoreCase);
 
             var sb = new StringBuilder();
 
@@ -2041,17 +2049,30 @@ namespace Zerra.Repository.MariaDb
             foreach (var columnForRelation in model.RelatedNonEnumerableMembers)
             {
                 var relatedModelDetails = ModelAnalyzer.GetModel(columnForRelation.ActualType);
-                if (relatedModelDetails.IdentityMembers.Count != 1)
-                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MariaDbEngine)} does not support automatic constraints with multiple identities {relatedModelDetails.Type.Name}");
 
-                if (columnForRelation.ForeignIdentity is null)
+                if (columnForRelation.ForeignIdentities is null)
                     throw new Exception($"{columnForRelation.Type.Name} missing Foreign Identity");
 
-                var fkColumn = columnForRelation.ForeignIdentity;
-                var pkTable = relatedModelDetails.DataSourceEntityName;
-                var pkColumn = relatedModelDetails.IdentityMembers[0].Name;
+                //a key of several members is one constraint of its columns, in the order of the identity referred to
 
-                var sqlConstraint = sqlConstraints.FirstOrDefault(x => x.FK_Table.ToLower() == fkTable.ToLower() && x.FK_Column.ToLower() == fkColumn.ToLower() && x.PK_Table.ToLower() == pkTable.ToLower() && x.PK_Column.ToLower() == pkColumn.ToLower());
+                if (columnForRelation.ForeignIdentities!.Length != relatedModelDetails.IdentityMembers.Count)
+
+                    throw new Exception($"{columnForRelation.Name} names {columnForRelation.ForeignIdentities.Length} foreign identities where {relatedModelDetails.Type.Name} has {relatedModelDetails.IdentityMembers.Count} identities");
+
+                var fkColumns = columnForRelation.ForeignIdentities.Select(x => model.GetMember(x).StoreName).ToArray();
+
+                var pkTable = relatedModelDetails.DataSourceEntityName;
+
+                var pkColumns = relatedModelDetails.IdentityMembers.Select(x => x.StoreName).ToArray();
+
+                var fkColumn = String.Join(",", fkColumns);
+
+                var pkColumn = String.Join(",", pkColumns);
+
+
+                var constraintColumns = sqlConstraints.Where(x => String.Equals(x.FK_Table, fkTable, StringComparison.OrdinalIgnoreCase) && String.Equals(x.PK_Table, pkTable, StringComparison.OrdinalIgnoreCase)).GroupBy(x => x.FK_Name).FirstOrDefault(x => x.Count() == fkColumns.Length && x.Select((column, index) => String.Equals(column.FK_Column, fkColumns[index], StringComparison.OrdinalIgnoreCase) && String.Equals(column.PK_Column, pkColumns[index], StringComparison.OrdinalIgnoreCase)).All(match => match))?.ToArray();
+
+                var sqlConstraint = constraintColumns?[0];
                 if (sqlConstraint is null || droppedConstraints.Contains(sqlConstraint.FK_Name))
                 {
                     if (create)
@@ -2085,16 +2106,16 @@ namespace Zerra.Repository.MariaDb
                 }
                 else
                 {
-                    usedSqlConstraints.Add(sqlConstraint);
+                    usedSqlConstraints.AddRange(constraintColumns!);
                 }
             }
 
             if (delete)
             {
                 //foreign keys not in model
-                foreach (var sqlConstraint in sqlConstraints.Where(x => x.FK_Table == fkTable))
+                foreach (var sqlConstraint in sqlConstraints.Where(x => x.FK_Table == fkTable).GroupBy(x => x.FK_Name).Select(x => x.First()))
                 {
-                    if (!usedSqlConstraints.Contains(sqlConstraint) && !droppedConstraints.Contains(sqlConstraint.FK_Name))
+                    if (!usedSqlConstraints.Any(x => x.FK_Name == sqlConstraint.FK_Name) && !droppedConstraints.Contains(sqlConstraint.FK_Name))
                     {
                         _ = sb.Append("ALTER TABLE `").Append(sqlConstraint.FK_Table).Append("` DROP CONSTRAINT ").Append(sqlConstraint.FK_Name).Append(';');
                         sql.Add(sb.ToString());
@@ -2152,7 +2173,7 @@ namespace Zerra.Repository.MariaDb
                 //indexes not in model, MariaDB keeps an index on each foreign key
                 foreach (var sqlIndex in sqlIndexes)
                 {
-                    if (usedSqlIndexes.Contains(sqlIndex) || model.RelatedNonEnumerableMembers.Any(x => String.Equals(x.ForeignIdentity, sqlIndex.Columns[0], StringComparison.OrdinalIgnoreCase)))
+                    if (usedSqlIndexes.Contains(sqlIndex) || model.RelatedNonEnumerableMembers.Any(x => x.ForeignIdentities!.Contains(sqlIndex.Columns[0], StringComparer.OrdinalIgnoreCase)))
                         continue;
                     _ = sb.Append("DROP INDEX `").Append(sqlIndex.Name).Append("` ON `").Append(model.DataSourceEntityName).Append("`;");
                     sql.Add(sb.ToString());
@@ -2501,7 +2522,8 @@ FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC
 LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KF.CONSTRAINT_SCHEMA
 LEFT JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS TCKF ON KF.CONSTRAINT_NAME = TCKF.CONSTRAINT_NAME AND KF.CONSTRAINT_SCHEMA = TCKF.CONSTRAINT_SCHEMA
 WHERE TCKF.CONSTRAINT_TYPE = 'FOREIGN KEY'
-AND KF.TABLE_SCHEMA = DATABASE() AND LOWER(KF.TABLE_NAME) = '{model.DataSourceEntityName.ToLower()}'";
+AND KF.TABLE_SCHEMA = DATABASE() AND LOWER(KF.TABLE_NAME) = '{model.DataSourceEntityName.ToLower()}'
+ORDER BY RC.CONSTRAINT_NAME, KF.ORDINAL_POSITION";
 
             var sqlConstrains = ExecuteSqlQuery(query).Select(x => (IList<object>)x).Select(x => new SqlConstraint()
             {

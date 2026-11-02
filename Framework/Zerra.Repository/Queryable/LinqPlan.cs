@@ -53,8 +53,10 @@ namespace Zerra.Repository
         public ParameterExpression? KeyParameter { get; private set; }
         /// <summary>The names of the key parts when the key is an anonymous object of them.</summary>
         public string[]? KeyNames { get; private set; }
-        /// <summary>For the rows of a relation, the column holding the key matching each row to its parent.</summary>
+        /// <summary>For the rows of a relation, the column holding the key matching each row to its parent, the first of <see cref="ParentKeyColumns"/>.</summary>
         public int? ParentKeyColumn { get; private set; }
+        /// <summary>For the rows of a relation, the columns holding the key matching each row to its parent, one for each member of a key of several.</summary>
+        public int[]? ParentKeyColumns { get; private set; }
 
         private LinqPlan? parent;
         private NewExpression? keyConstructed;
@@ -166,7 +168,7 @@ namespace Zerra.Repository
             var columns = new List<LinqColumn>();
             foreach (var member in model.Members)
             {
-                if (member.StoreName is null || member.ForeignIdentity is not null || (graph is not null && !graph.HasMember(member.Name)))
+                if (member.StoreName is null || member.ForeignIdentities is not null || (graph is not null && !graph.HasMember(member.Name)))
                     continue;
                 members.Add(member);
                 columns.Add(AddMemberColumn(member));
@@ -327,7 +329,7 @@ namespace Zerra.Repository
         //one related row reads with the row in its join, unless its rows read relations of their own
         private static bool CanJoin(ModelMemberDetail relation, ModelDetail related, LambdaExpression? select, Graph? graph)
         {
-            if (relation.IsEnumerable || select is not null || related.IdentityMembers.Count != 1)
+            if (relation.IsEnumerable || select is not null)
                 return false;
             if (graph is not null)
             {
@@ -356,7 +358,7 @@ namespace Zerra.Repository
             var columns = new List<LinqColumn>();
             foreach (var member in related.Members)
             {
-                if (member.StoreName is null || member.ForeignIdentity is not null || (graph is not null && !graph.HasMember(member.Name)))
+                if (member.StoreName is null || member.ForeignIdentities is not null || (graph is not null && !graph.HasMember(member.Name)))
                     continue;
                 members.Add(member);
                 columns.Add(Joined(member));
@@ -379,28 +381,32 @@ namespace Zerra.Repository
                 return AddJoined(relation, model, related, column, graph);
             var plan = new LinqPlan(related) { parent = this };
             plan.Shape = select is null ? plan.ReadModel(related, graph, graph is not null) : plan.ReadElement(select.Body, select.Parameters[0], related);
-            ModelMemberDetail parentKey;
-            ModelMemberDetail relatedKey;
-            if (relation.IsEnumerable)
+            //the key in pairs of the parent's member and the related model's, the identity of one and the foreign key of the other
+            var names = relation.ForeignIdentities ?? throw new NotSupportedException($"Reading {relation.Name} needs a foreign identity");
+            var referred = relation.IsEnumerable ? model : related;
+            if (names.Length != referred.IdentityMembers.Count)
+                throw new NotSupportedException($"{relation.Name} names {names.Length} foreign identities where {referred.Type.Name} has {referred.IdentityMembers.Count} identities");
+            var parentKeys = new ModelMemberDetail[names.Length];
+            var relatedKeys = new ModelMemberDetail[names.Length];
+            for (var i = 0; i < names.Length; i++)
             {
-                if (model.IdentityMembers.Count != 1)
-                    throw new NotSupportedException($"Reading {relation.Name} needs one identity on {model.Type.Name}");
-                parentKey = model.IdentityMembers[0];
-                relatedKey = related.GetMember(relation.ForeignIdentity!);
+                parentKeys[i] = relation.IsEnumerable ? model.IdentityMembers[i] : model.GetMember(names[i]);
+                relatedKeys[i] = relation.IsEnumerable ? related.GetMember(names[i]) : related.IdentityMembers[i];
             }
-            else
-            {
-                if (related.IdentityMembers.Count != 1)
-                    throw new NotSupportedException($"Reading {relation.Name} needs one identity on {related.Type.Name}");
-                parentKey = model.GetMember(relation.ForeignIdentity!);
-                relatedKey = related.IdentityMembers[0];
-            }
-            plan.ParentKeyColumn = plan.AddMemberColumn(relatedKey).Index;
+            var relatedColumns = new int[relatedKeys.Length];
+            for (var i = 0; i < relatedKeys.Length; i++)
+                relatedColumns[i] = plan.AddMemberColumn(relatedKeys[i]).Index;
+            plan.ParentKeyColumns = relatedColumns;
+            plan.ParentKeyColumn = relatedColumns[0];
             plan.PlaceRelations();
 
-            var piece = new LinqPiece(relation, model, related, !relation.IsEnumerable, parentKey, relatedKey, where, order, skip, take, plan)
+            var parentColumns = new int[parentKeys.Length];
+            for (var i = 0; i < parentKeys.Length; i++)
+                parentColumns[i] = AddMemberColumn(parentKeys[i]).Index;
+            var piece = new LinqPiece(relation, model, related, !relation.IsEnumerable, parentKeys, relatedKeys, where, order, skip, take, plan)
             {
-                ParentColumn = AddMemberColumn(parentKey).Index,
+                ParentColumn = parentColumns[0],
+                ParentColumns = parentColumns,
             };
             Pieces.Add(piece);
             var shape = LinqShape.OfRelation(type, column, piece, Pieces.Count - 1);

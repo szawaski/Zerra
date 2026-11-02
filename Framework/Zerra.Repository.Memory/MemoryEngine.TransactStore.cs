@@ -625,11 +625,14 @@ namespace Zerra.Repository.Memory
 
                 foreach (var foreignReference in member.ForeignReferences)
                 {
+                    var names = ForeignKeyNames(modelDetail, member, foreignReference);
+                    if (names is null)
+                        continue;
                     if (store.TryGetValue(foreignReference.Type, out var sourceObject))
                     {
                         var source = (IList)sourceObject;
 
-                        var foreignId = member.GetterBoxed!(model);
+                        var foreignId = ModelAnalyzer.GetForeignIdentity(modelDetail.Type, names, model);
                         var relatedEnumerable = source.Cast<object>().Where(x => ModelAnalyzer.CompareIdentities(foreignId, ModelAnalyzer.GetIdentity(foreignReference.Type, x)));
                         foreach (var related in relatedEnumerable)
                         {
@@ -644,6 +647,21 @@ namespace Zerra.Repository.Memory
                 }
             }
         }
+        //the members of the key a member holds for the model referring to it, named once by the key's first member so a key of several members links once
+        private static string? ForeignKeyNames(ModelDetail holder, ModelMemberDetail member, ModelDetail referring)
+        {
+            foreach (var relation in referring.RelatedMembers)
+            {
+                if (relation.IsEnumerable && relation.ActualType == holder.Type && relation.ForeignIdentities![0] == member.Name)
+                    return relation.ForeignIdentityNames;
+            }
+            foreach (var relation in holder.RelatedMembers)
+            {
+                if (!relation.IsEnumerable && relation.ActualType == referring.Type && relation.ForeignIdentities![0] == member.Name)
+                    return relation.ForeignIdentityNames;
+            }
+            return null;
+        }
         [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "@@JUSTIFY@@")]
         private static void LinkRelated(ConcurrentFactoryDictionary<Type, object> store, object model, ModelDetail modelDetail, ModelMemberDetail member)
         {
@@ -654,7 +672,7 @@ namespace Zerra.Repository.Memory
                     if (member.IsEnumerable)
                     {
                         var id = ModelAnalyzer.GetIdentity(modelDetail.Type, model);
-                        var relatedEnumerable = source.Cast<object>().Where(x => ModelAnalyzer.CompareIdentities(id, ModelAnalyzer.GetForeignIdentity(member.ActualType, member.ForeignIdentity!, x)));
+                        var relatedEnumerable = source.Cast<object>().Where(x => ModelAnalyzer.CompareIdentities(id, ModelAnalyzer.GetForeignIdentity(member.ActualType, member.ForeignIdentityNames!, x)));
                         //collections with a creator (List<T>) are filled directly, arrays and the interfaces an array satisfies are filled as arrays
                         if (member.MemberDetail.TypeDetail.HasCreator)
                         {
@@ -674,7 +692,7 @@ namespace Zerra.Repository.Memory
                     }
                     else
                     {
-                        var foreignId = ModelAnalyzer.GetForeignIdentity(modelDetail.Type, member.ForeignIdentity!, model);
+                        var foreignId = ModelAnalyzer.GetForeignIdentity(modelDetail.Type, member.ForeignIdentityNames!, model);
                         var related = source.Cast<object>().FirstOrDefault(x => ModelAnalyzer.CompareIdentities(foreignId, ModelAnalyzer.GetIdentity(member.ActualType, x)));
                         member.SetterBoxed(model, related);
                     }

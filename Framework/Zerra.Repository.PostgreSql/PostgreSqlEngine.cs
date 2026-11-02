@@ -683,7 +683,7 @@ namespace Zerra.Repository.PostgreSql
             {
                 var piece = statement.Pieces[p];
                 var piecePieces = ReadLinqPieces(connection, piece);
-                var elements = LinqPieceElements.New(statement.Plan.Pieces[p].RelatedKey.Type);
+                var elements = statement.Plan.Pieces[p].NewElements();
                 pieces[p] = elements;
                 using (var command = connection.CreateCommand())
                 {
@@ -693,10 +693,14 @@ namespace Zerra.Repository.PostgreSql
                     {
                         var shape = piece.Plan.Shape!;
                         var keyColumn = piece.Plan.ParentKeyColumn!.Value;
+                        var keyColumns = statement.Plan.Pieces[p].CompositeKey ? piece.Plan.ParentKeyColumns : null;
                         while (reader.Read())
                         {
                             var element = ReadLinqElement(reader, shape, piecePieces);
-                            AddLinqPiece(reader, keyColumn, elements, element);
+                            if (keyColumns is null)
+                                AddLinqPiece(reader, keyColumn, elements, element);
+                            else if (LinqKey.Read(reader, keyColumns) is { } key)
+                                elements.Add(key, element);
                         }
                     }
                 }
@@ -804,7 +808,7 @@ namespace Zerra.Repository.PostgreSql
                         return instance;
                     }
                 default:
-                    return shape.BuildRelation(FindLinqPiece(reader, shape.Piece!.ParentColumn, pieces![shape.PieceIndex]));
+                    return shape.BuildRelation(shape.Piece!.CompositeKey ? (LinqKey.Read(reader, shape.Piece.ParentColumns) is { } key ? pieces![shape.PieceIndex].Find(key) : null) : FindLinqPiece(reader, shape.Piece!.ParentColumn, pieces![shape.PieceIndex]));
             }
         }
         private static object? ReadLinqValue(NpgsqlDataReader reader, int i, Type type)
@@ -1128,7 +1132,7 @@ namespace Zerra.Repository.PostgreSql
             {
                 var piece = statement.Pieces[p];
                 var piecePieces = await ReadLinqPiecesAsync(connection, piece, cancellationToken);
-                var elements = LinqPieceElements.New(statement.Plan.Pieces[p].RelatedKey.Type);
+                var elements = statement.Plan.Pieces[p].NewElements();
                 pieces[p] = elements;
                 using (var command = connection.CreateCommand())
                 {
@@ -1138,10 +1142,14 @@ namespace Zerra.Repository.PostgreSql
                     {
                         var shape = piece.Plan.Shape!;
                         var keyColumn = piece.Plan.ParentKeyColumn!.Value;
+                        var keyColumns = statement.Plan.Pieces[p].CompositeKey ? piece.Plan.ParentKeyColumns : null;
                         while (await reader.ReadAsync(cancellationToken))
                         {
                             var element = ReadLinqElement(reader, shape, piecePieces);
-                            AddLinqPiece(reader, keyColumn, elements, element);
+                            if (keyColumns is null)
+                                AddLinqPiece(reader, keyColumn, elements, element);
+                            else if (LinqKey.Read(reader, keyColumns) is { } key)
+                                elements.Add(key, element);
                         }
                     }
                 }
@@ -1988,7 +1996,7 @@ namespace Zerra.Repository.PostgreSql
 
         private void AssureConstraints(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints)
         {
-            var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).ToDictionary(x => x, x => 0, StringComparer.OrdinalIgnoreCase);
+            var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).Distinct(StringComparer.OrdinalIgnoreCase).ToDictionary(x => x, x => 0, StringComparer.OrdinalIgnoreCase);
 
             var sb = new StringBuilder();
 
@@ -1998,17 +2006,30 @@ namespace Zerra.Repository.PostgreSql
             foreach (var columnForRelation in model.RelatedNonEnumerableMembers)
             {
                 var relatedModelDetails = ModelAnalyzer.GetModel(columnForRelation.ActualType);
-                if (relatedModelDetails.IdentityMembers.Count != 1)
-                    throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(PostgreSqlEngine)} does not support automatic constraints with multiple identities {relatedModelDetails.Type.Name}");
 
-                if (columnForRelation.ForeignIdentity is null)
+                if (columnForRelation.ForeignIdentities is null)
                     throw new Exception($"{columnForRelation.Type.Name} missing Foreign Identity");
 
-                var fkColumn = columnForRelation.ForeignIdentity;
-                var pkTable = relatedModelDetails.DataSourceEntityName;
-                var pkColumn = relatedModelDetails.IdentityMembers[0].Name;
+                //a key of several members is one constraint of its columns, in the order of the identity referred to
 
-                var sqlConstraint = sqlConstraints.FirstOrDefault(x => x.FK_Table == fkTable.ToLower() && x.FK_Column == fkColumn.ToLower() && x.PK_Table == pkTable.ToLower() && x.PK_Column == pkColumn.ToLower());
+                if (columnForRelation.ForeignIdentities!.Length != relatedModelDetails.IdentityMembers.Count)
+
+                    throw new Exception($"{columnForRelation.Name} names {columnForRelation.ForeignIdentities.Length} foreign identities where {relatedModelDetails.Type.Name} has {relatedModelDetails.IdentityMembers.Count} identities");
+
+                var fkColumns = columnForRelation.ForeignIdentities.Select(x => model.GetMember(x).StoreName).ToArray();
+
+                var pkTable = relatedModelDetails.DataSourceEntityName;
+
+                var pkColumns = relatedModelDetails.IdentityMembers.Select(x => x.StoreName).ToArray();
+
+                var fkColumn = String.Join(",", fkColumns);
+
+                var pkColumn = String.Join(",", pkColumns);
+
+
+                var constraintColumns = sqlConstraints.Where(x => String.Equals(x.FK_Table, fkTable, StringComparison.OrdinalIgnoreCase) && String.Equals(x.PK_Table, pkTable, StringComparison.OrdinalIgnoreCase)).GroupBy(x => x.FK_Name).FirstOrDefault(x => x.Count() == fkColumns.Length && x.Select((column, index) => String.Equals(column.FK_Column, fkColumns[index], StringComparison.OrdinalIgnoreCase) && String.Equals(column.PK_Column, pkColumns[index], StringComparison.OrdinalIgnoreCase)).All(match => match))?.ToArray();
+
+                var sqlConstraint = constraintColumns?[0];
                 if (sqlConstraint is null || droppedConstraints.Contains(sqlConstraint.FK_Name))
                 {
                     if (create)
@@ -2042,16 +2063,16 @@ namespace Zerra.Repository.PostgreSql
                 }
                 else
                 {
-                    usedSqlConstraints.Add(sqlConstraint);
+                    usedSqlConstraints.AddRange(constraintColumns!);
                 }
             }
 
             if (delete)
             {
                 //foreign keys not in model
-                foreach (var sqlConstraint in sqlConstraints.Where(x => x.FK_Table == fkTable))
+                foreach (var sqlConstraint in sqlConstraints.Where(x => x.FK_Table == fkTable).GroupBy(x => x.FK_Name).Select(x => x.First()))
                 {
-                    if (!usedSqlConstraints.Contains(sqlConstraint) && !droppedConstraints.Contains(sqlConstraint.FK_Name))
+                    if (!usedSqlConstraints.Any(x => x.FK_Name == sqlConstraint.FK_Name) && !droppedConstraints.Contains(sqlConstraint.FK_Name))
                     {
                         _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
                         sql.Add(sb.ToString());
@@ -2434,10 +2455,11 @@ WHERE C.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
             var query = $@"SELECT RC.CONSTRAINT_NAME FK_Name, KF.TABLE_SCHEMA FK_Schema, KF.TABLE_NAME FK_Table, KF.COLUMN_NAME FK_Column, RC.UNIQUE_CONSTRAINT_NAME PK_Name, KP.TABLE_SCHEMA PK_Schema, KP.TABLE_NAME PK_Table, KP.COLUMN_NAME PK_Column
 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC
 LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KF.CONSTRAINT_SCHEMA
-LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KP ON RC.UNIQUE_CONSTRAINT_NAME = KP.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KP.CONSTRAINT_SCHEMA
+LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KP ON RC.UNIQUE_CONSTRAINT_NAME = KP.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KP.CONSTRAINT_SCHEMA AND KP.ORDINAL_POSITION = KF.POSITION_IN_UNIQUE_CONSTRAINT
 LEFT JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS TCKF ON KF.CONSTRAINT_NAME = TCKF.CONSTRAINT_NAME AND KF.CONSTRAINT_SCHEMA = TCKF.CONSTRAINT_SCHEMA
 WHERE TCKF.CONSTRAINT_TYPE = 'FOREIGN KEY'
-AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
+AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'
+ORDER BY RC.CONSTRAINT_NAME, KF.ORDINAL_POSITION";
 
             var sqlConstrains = ExecuteSqlQuery(query).Select(x => (IList<object>)x).Select(x => new SqlConstraint()
             {

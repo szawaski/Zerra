@@ -257,7 +257,7 @@ namespace Zerra.Repository
 
             var modelDetail = context.ModelStack.Peek();
             var modelProperty = modelDetail.GetMember(member.Member.Name);
-            if (modelProperty.ForeignIdentity is not null)
+            if (modelProperty.ForeignIdentities is not null)
             {
                 var subModelInfo = ModelAnalyzer.GetModel(modelProperty.ActualType);
                 context.ModelStack.Push(subModelInfo);

@@ -54,7 +54,9 @@ namespace Zerra.Repository
             /// <summary>{0} rounded to {1} decimal places.</summary>
             RoundPlaces,
             /// <summary>The date and time {0} as text in the dialect's format {1}.</summary>
-            DateText
+            DateText,
+            /// <summary>Ten to the power {0}, of a type that keeps a decimal's digits when it scales one.</summary>
+            PowerOfTen
         }
 
         /// <summary>Gets a dialect's SQL for a function.</summary>
@@ -121,18 +123,24 @@ namespace Zerra.Repository
             if (modeArgument is not null && !IsEvaluatable(modeArgument))
                 throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}, the {nameof(MidpointRounding)} must be known when the query is written");
             var mode = modeArgument is null ? MidpointRounding.ToEven : (MidpointRounding)Evaluate(modeArgument)!;
-            var places = 0;
+            string? scale = null;
             if (digits is not null)
             {
-                if (!IsEvaluatable(digits))
-                    throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}, the digits must be known when the query is written");
-                places = (int)Evaluate(digits)!;
-                if (places < 0 || places > 28)
-                    throw new ArgumentOutOfRangeException(nameof(digits), places, "Rounding digits must be between 0 and 28");
+                if (IsEvaluatable(digits))
+                {
+                    var places = (int)Evaluate(digits)!;
+                    if (places < 0 || places > 28)
+                        throw new ArgumentOutOfRangeException(nameof(digits), places, "Rounding digits must be between 0 and 28");
+                    if (places > 0)
+                        scale = "1" + new string('0', places);
+                }
+                else
+                {
+                    scale = Fn(Function.PowerOfTen, Argument(digits, context));
+                }
             }
 
             var value = Argument(call.Arguments[0], context);
-            var scale = places == 0 ? null : "1" + new string('0', places);
             var scaled = scale is null ? $"({value})" : $"(({value})*{scale})";
             //the midpoint is found by doubling, a fraction taken by subtracting FLOOR loses its digits on SQL Server where the value has the most precision
             var rounded = mode switch
@@ -540,8 +548,7 @@ namespace Zerra.Repository
 
             var parentModel = ModelAnalyzer.GetModel(member.Expression.Type);
             var relation = parentModel.GetMember(member.Member.Name);
-            if (relation.ForeignIdentity is null || parentModel.IdentityMembers.Count != 1)
-                throw new NotSupportedException($"string.Join of {relation.Name} needs a foreign identity and one identity on {parentModel.Type.Name}");
+            var relationKey = RelationKey(relation, parentModel);
             var relatedModel = ModelAnalyzer.GetModel(relation.ActualType);
 
             var sbNone = new CharWriter();
@@ -617,9 +624,14 @@ namespace Zerra.Repository
                 GenerateFrom(relatedModel, ref sb);
                 GenerateJoin(dependant, ref sb);
                 sb.Write(" WHERE ");
-                sb.Write(QuoteColumn(parentTable, parentModel.IdentityMembers[0].StoreName));
-                sb.Write('=');
-                sb.Write(QuoteColumn(dependant.TableName, relation.ForeignIdentity));
+                for (var i = 0; i < relationKey.Length; i++)
+                {
+                    if (i > 0)
+                        sb.Write(" AND ");
+                    sb.Write(QuoteColumn(parentTable, relationKey[i].Identity.StoreName));
+                    sb.Write('=');
+                    sb.Write(QuoteColumn(dependant.TableName, relationKey[i].Key.StoreName));
+                }
                 if (whereSql is not null)
                 {
                     sb.Write(" AND(");

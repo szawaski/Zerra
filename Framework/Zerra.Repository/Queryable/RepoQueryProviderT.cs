@@ -47,6 +47,15 @@ namespace Zerra.Repository
             return new LinqSubquery(repo, query);
         }
 
+        internal override LinqSet ReadSet(LinqSetOperation operation, LinqQuery left, Expression expression)
+        {
+            if (graph is not null)
+                throw new NotSupportedException("A query combined with a set operation reads without a graph");
+            var query = new LinqQuery<TModel, object?>(expression, null, null);
+            query.ReadAsSetPart();
+            return new LinqSet(repo, operation, left, query);
+        }
+
         private LinqQuery Read<TResult>(Expression expression, LinqTerminal? terminal, LambdaExpression? argument)
         {
             //the first SelectMany is where the query goes over to the related model
@@ -113,8 +122,6 @@ namespace Zerra.Repository
                 throw new NotSupportedException("SelectMany reads a related collection of the model, such as x => x.Lines");
             if ((where is not null && LinqPlan.Uses(where.Body, parentParameter)) || (select is not null && LinqPlan.Uses(select.Body, parentParameter)))
                 throw new NotSupportedException($"The rows of {relation.Name} are filtered and built from themselves alone, or from the model with the result selector");
-            if (model.IdentityMembers.Count != 1)
-                throw new NotSupportedException($"SelectMany of {relation.Name} needs one identity on {model.Type.Name}");
             if (!repo.TryGetProvider(relation.ActualType, out var related))
                 throw new Exception($"No provider for {relation.ActualType.FullName}");
             var relatedModel = ModelAnalyzer.GetModel(relation.ActualType);
@@ -123,9 +130,21 @@ namespace Zerra.Repository
             var parents = new LinqQuery<TModel, object?>(selectMany.Arguments[0], (LinqTerminal?)null, null, null);
             if (parents.Select is not null || parents.GroupBy is not null || parents.Distinct)
                 throw new NotSupportedException("SelectMany reads the rows of the models, so it comes before a Select, Distinct, or GroupBy");
-            parents.ReadAsSubquery(model.IdentityMembers[0]);
             var row = Expression.Parameter(relation.ActualType, "x");
-            var key = Expression.Convert(Expression.MakeMemberAccess(row, relatedModel.GetMember(relation.ForeignIdentity!).MemberInfo), typeof(object));
+            Expression key;
+            if (model.IdentityMembers.Count == 1)
+            {
+                parents.ReadAsSubquery(model.IdentityMembers[0]);
+                key = Expression.Convert(Expression.MakeMemberAccess(row, relatedModel.GetMember(relation.ForeignIdentities![0]).MemberInfo), typeof(object));
+            }
+            else
+            {
+                //an identity of several members is selected as one key of them, which the rows' foreign keys are looked for as
+                parents.ReadAsSubquery(null);
+                var parentKey = Expression.Parameter(typeof(TModel), "x");
+                parents.Select = Expression.Lambda<Func<TModel, LinqKeyRow>>(LinqKeyRow.New([.. model.IdentityMembers.Select(x => (Expression)Expression.MakeMemberAccess(parentKey, x.MemberInfo))]), parentKey);
+                key = LinqKeyRow.New([.. relation.ForeignIdentities!.Select(x => (Expression)Expression.MakeMemberAccess(row, relatedModel.GetMember(x).MemberInfo))]);
+            }
             var condition = Expression.Lambda(relatedModel.LambdaDelegateType, Expression.Call(Expression.Constant(new LinqSubquery(repo, parents)), LinqSubquery.ContainsMethod, key), row);
 
             Expression? selectBody = null;
@@ -143,7 +162,7 @@ namespace Zerra.Repository
                     ModelMemberDetail? back = null;
                     foreach (var candidate in relatedModel.RelatedMembers)
                     {
-                        if (!candidate.IsEnumerable && candidate.ActualType == typeof(TModel) && candidate.ForeignIdentity == relation.ForeignIdentity)
+                        if (!candidate.IsEnumerable && candidate.ActualType == typeof(TModel) && candidate.ForeignIdentityNames == relation.ForeignIdentityNames)
                             back = candidate;
                     }
                     if (back is null)
