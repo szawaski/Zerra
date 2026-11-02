@@ -128,6 +128,37 @@ namespace Zerra.Repository.Memory
             return true;
         }
         /// <inheritdoc/>
+        public int ExecuteUpdateMany<TModel>(object[] models, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var type = typeof(TModel);
+            var part = RepoTransaction.Current?.Enlist(this, nameof(MemoryEngine), BeginTransactionPart);
+            var store = part?.Store ?? data;
+            var source = (ConcurrentList<TModel>)store.GetOrAdd(type, NewTable<TModel>);
+            //every model is found before any is changed, so one that's missing changes none as a database's transaction would
+            var existings = new TModel[models.Length];
+            for (var i = 0; i < models.Length; i++)
+            {
+                var identity = ModelAnalyzer.GetIdentity(type, models[i]);
+                var existing = source.FirstOrDefault(x => ModelAnalyzer.CompareIdentities(identity, ModelAnalyzer.GetIdentity(type, x)));
+                if (existing == null)
+                    return 0;
+                existings[i] = existing;
+            }
+            var localGraph = BuildLocalGraph(type, graph);
+            for (var i = 0; i < models.Length; i++)
+            {
+                var model = (TModel)models[i];
+                model.MapTo(existings[i], localGraph);
+                MapRelated(store, existings[i], modelDetail, false);
+                if (part is not null)
+                {
+                    var saved = model.Copy();
+                    part.Record(() => _ = ExecuteUpdate(saved, graph, modelDetail));
+                }
+            }
+            return models.Length;
+        }
+        /// <inheritdoc/>
         public int ExecuteDelete<TModel>(ICollection ids, ModelDetail modelDetail) where TModel : class, new()
         {
             var type = typeof(TModel);
@@ -283,6 +314,13 @@ namespace Zerra.Repository.Memory
             if (part is not null)
                 RecordInsert(part, copy, modelDetail);
             return Task.FromResult(true);
+        }
+        /// <inheritdoc/>
+        public Task<int> ExecuteUpdateManyAsync<TModel>(object[] models, Graph? graph, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
+        {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<int>(cancellationToken);
+            return Task.FromResult(ExecuteUpdateMany<TModel>(models, graph, modelDetail));
         }
         /// <inheritdoc/>
         public Task<bool> ExecuteUpdateAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()

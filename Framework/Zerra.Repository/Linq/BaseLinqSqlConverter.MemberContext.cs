@@ -44,6 +44,8 @@ namespace Zerra.Repository
             public HashSet<string>? ResultEnums { get; set; }
             /// <summary>The name of the table a related collection in a subquery belongs to, by the member reading it, as it is known in the statement.</summary>
             public Dictionary<MemberExpression, string>? CallingTables { get; set; }
+            /// <summary>The values the statements take as parameters, each named by its index, or <see langword="null"/> where values are written into the statement.</summary>
+            public List<object>? Parameters { get; set; }
 
             /// <summary>
             /// Initializes a new <see cref="MemberContext"/> with empty stacks and zero call-render counters.

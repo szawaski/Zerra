@@ -28,10 +28,11 @@ namespace Zerra.Repository.MsSql
         /// <summary>Converts the condition of an update or delete to its SQL, starting with WHERE, for the engine to append to its UPDATE or DELETE statement.</summary>
         /// <param name="where">The condition selecting the rows.</param>
         /// <param name="modelDetail">Metadata about the model being changed.</param>
+        /// <param name="parameters">The values taken as parameters, which the condition adds to, or <see langword="null"/> to write values into the statement.</param>
         /// <returns>The SQL from WHERE on.</returns>
-        public static string ConvertPersistWhere(LambdaExpression where, ModelDetail modelDetail)
+        public static string ConvertPersistWhere(LambdaExpression where, ModelDetail modelDetail, List<object>? parameters = null)
         {
-            return instance.ConvertPersistWhereInternal(where, modelDetail);
+            return instance.ConvertPersistWhereInternal(where, modelDetail, parameters);
         }
         /// <summary>
         /// Converts an update of every row matching a condition to values computed from the row into its SQL statement.
@@ -39,10 +40,11 @@ namespace Zerra.Repository.MsSql
         /// <param name="sets">The members to set from <see cref="LinqExtensions.GetProjectionMembers"/>, each with its value in terms of the row.</param>
         /// <param name="where">The condition selecting the rows.</param>
         /// <param name="modelDetail">Metadata about the model being changed.</param>
+        /// <param name="parameters">The values taken as parameters, which the statement adds to, or <see langword="null"/> to write values into the statement.</param>
         /// <returns>The SQL.</returns>
-        public static string ConvertPersistUpdate(ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail)
+        public static string ConvertPersistUpdate(ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail, List<object>? parameters = null)
         {
-            return instance.ConvertPersistUpdateInternal(sets, where, modelDetail);
+            return instance.ConvertPersistUpdateInternal(sets, where, modelDetail, parameters);
         }
 
         /// <inheritdoc/>
@@ -594,7 +596,7 @@ namespace Zerra.Repository.MsSql
                                 if (skip.HasValue)
                                 {
                                     sb.Write(" OFFSET ");
-                                    sb.Write(skip.Value);
+                                    WriteCount(skip.Value, ref sb, context.MemberContext);
                                     sb.Write(" ROWS FETCH NEXT 1 ROWS ONLY");
                                 }
                                 sb.Write(')');
@@ -678,14 +680,22 @@ namespace Zerra.Repository.MsSql
                                     var valueText = value is char c ? c.ToString() : (string)value;
                                     if (ignoreCase)
                                         valueText = valueText.ToLowerInvariant();
-                                    valueText = valueText.Replace("!", "!!").Replace("%", "!%").Replace("_", "!_").Replace("[", "![").Replace("'", "''");
-                                    sb.Write("N'");
-                                    if (anyStart)
-                                        sb.Write('%');
-                                    sb.Write(valueText);
-                                    if (anyEnd)
-                                        sb.Write('%');
-                                    sb.Write('\'');
+                                    valueText = valueText.Replace("!", "!!").Replace("%", "!%").Replace("_", "!_").Replace("[", "![");
+                                    var parameters = context.MemberContext.Parameters;
+                                    if (parameters is not null && parameters.Count < maxParameters)
+                                    {
+                                        WriteParameter(anyStart ? (anyEnd ? $"%{valueText}%" : $"%{valueText}") : (anyEnd ? $"{valueText}%" : valueText), ref sb, parameters);
+                                    }
+                                    else
+                                    {
+                                        sb.Write("N'");
+                                        if (anyStart)
+                                            sb.Write('%');
+                                        sb.Write(valueText.Replace("'", "''"));
+                                        if (anyEnd)
+                                            sb.Write('%');
+                                        sb.Write('\'');
+                                    }
                                 }
                             }
                             else
@@ -974,46 +984,8 @@ namespace Zerra.Repository.MsSql
                             break;
                         }
                     case "Round":
-                        {
-                            Expression? digits = null;
-                            Expression? mode = null;
-                            if (call.Arguments.Count == 2)
-                            {
-                                if (call.Arguments[1].Type == typeof(MidpointRounding))
-                                    mode = call.Arguments[1];
-                                else
-                                    digits = call.Arguments[1];
-                            }
-                            else if (call.Arguments.Count == 3)
-                            {
-                                digits = call.Arguments[1];
-                                mode = call.Arguments[2];
-                            }
-                            else if (call.Arguments.Count != 1)
-                            {
-                                throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
-                            }
-
-                            //SQL rounds a midpoint away from zero
-                            if (mode is not null && (!IsEvaluatable(mode) || (MidpointRounding)Evaluate(mode)! != MidpointRounding.AwayFromZero))
-                                throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}, SQL only rounds with {nameof(MidpointRounding)}.{nameof(MidpointRounding.AwayFromZero)}");
-
-                            sb.Write("ROUND((");
-                            ConvertToSql(call.Arguments[0], ref sb, context);
-                            sb.Write("),");
-                            if (digits is null)
-                            {
-                                sb.Write('0');
-                            }
-                            else
-                            {
-                                sb.Write('(');
-                                ConvertToSql(digits, ref sb, context);
-                                sb.Write(')');
-                            }
-                            sb.Write(')');
-                            break;
-                        }
+                        ConvertToSqlRound(call, ref sb, context);
+                        break;
                     default:
                         throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
                 }
@@ -1382,6 +1354,37 @@ namespace Zerra.Repository.MsSql
                     coreType = coreTypeLookup;
             }
 
+            //a value is a parameter so the plan of the statement serves any value; a boolean has two and stays in the statement
+            var parameters = context.MemberContext.Parameters;
+            if (coreType.HasValue && coreType.Value != CoreType.Boolean && parameters is not null && parameters.Count < maxParameters)
+            {
+                object parameter;
+                switch (coreType.Value)
+                {
+                    case CoreType.SByte: parameter = (short)(sbyte)value; break;
+                    case CoreType.UInt16: parameter = (int)(ushort)value; break;
+                    case CoreType.UInt32: parameter = (long)(uint)value; break;
+                    case CoreType.UInt64: parameter = (decimal)(ulong)value; break;
+                    case CoreType.Char: parameter = ((char)value).ToString(); break;
+                    case CoreType.DateTime:
+                        //as the text written in the statement, which converts to the column's datetime, datetime2, or date as before
+                        var writer = new CharWriter();
+                        try
+                        {
+                            writer.Write((DateTime)value, CharWriter.DateTimeFormat.MsSql);
+                            parameter = writer.ToString();
+                        }
+                        finally
+                        {
+                            writer.Dispose();
+                        }
+                        break;
+                    default: parameter = value; break;
+                }
+                WriteParameter(parameter, ref sb, parameters);
+                return;
+            }
+
             if (coreType.HasValue)
             {
                 switch (coreType.Value)
@@ -1468,6 +1471,11 @@ namespace Zerra.Repository.MsSql
                 var arrayType = type.IsArray ? type.GetElementType()! : type.GetGenericArguments()[0];
                 if (arrayType == typeof(byte))
                 {
+                    if (parameters is not null && parameters.Count < maxParameters && value is byte[] bytes)
+                    {
+                        WriteParameter(bytes, ref sb, parameters);
+                        return;
+                    }
                     sb.Write("0x");
                     sb.Write((byte[])value, CharWriter.ByteFormat.Hex);
                     return;
@@ -1531,6 +1539,56 @@ namespace Zerra.Repository.MsSql
             throw new NotImplementedException($"{type.Name} value {value?.ToString()} not converted");
         }
 
+        //SQL Server takes up to 2100 parameters, past which values are written into the statement
+        private const int maxParameters = 2000;
+        //a value already a parameter is the same parameter, so an expression written twice, such as a group key in the select and the group by, reads the same
+        private static void WriteParameter(object value, ref CharWriter sb, List<object> parameters)
+        {
+            int index;
+            if (parameters.Count >= 16 && parameters is MsSqlParameterList list)
+            {
+                if (list.Indexes is null)
+                {
+                    list.Indexes = new Dictionary<object, int>();
+                    for (var i = 0; i < list.Count; i++)
+                        _ = list.Indexes.TryAdd(list[i], i);
+                }
+                if (!list.Indexes.TryGetValue(value, out index))
+                {
+                    index = list.Count;
+                    list.Add(value);
+                    list.Indexes.Add(value, index);
+                }
+            }
+            else
+            {
+                index = -1;
+                for (var i = 0; i < parameters.Count; i++)
+                {
+                    if (parameters[i].Equals(value))
+                    {
+                        index = i;
+                        break;
+                    }
+                }
+                if (index < 0)
+                {
+                    index = parameters.Count;
+                    parameters.Add(value);
+                }
+            }
+            sb.Write("@p");
+            sb.Write(index);
+        }
+        private static void WriteCount(int value, ref CharWriter sb, MemberContext operationContext)
+        {
+            var parameters = operationContext.Parameters;
+            if (parameters is not null && parameters.Count < maxParameters)
+                WriteParameter(value, ref sb, parameters);
+            else
+                sb.Write(value);
+        }
+
         /// <inheritdoc/>
         protected override void ConvertPersistWhere(ref CharWriter sb, LambdaExpression where, ModelDetail modelDetail, MemberContext operationContext)
         {
@@ -1590,9 +1648,9 @@ namespace Zerra.Repository.MsSql
             ConvertPersistWhere(ref sb, where, modelDetail, operationContext);
         }
         /// <inheritdoc/>
-        protected override LinqStatement ConvertLinq(LinqQuery query, LinqPlan plan, ModelDetail modelDetail)
+        protected override LinqStatement ConvertLinq(LinqQuery query, LinqPlan plan, ModelDetail modelDetail, List<object>? parameters)
         {
-            var operationContext = new MemberContext();
+            var operationContext = new MemberContext() { Parameters = parameters ?? new MsSqlParameterList() };
             var rootDependant = new ParameterDependant(modelDetail, null);
             var sb = new CharWriter();
             var sbFrom = new CharWriter();
@@ -1636,7 +1694,7 @@ namespace Zerra.Repository.MsSql
                         if (top)
                         {
                             sb.Write("TOP(");
-                            sb.Write(take!.Value);
+                            WriteCount(take!.Value, ref sb, operationContext);
                             sb.Write(") ");
                         }
                         deferColumns = plan.ReadsOnlyMembers;
@@ -1705,13 +1763,13 @@ namespace Zerra.Repository.MsSql
                         if (skip.HasValue || take.HasValue)
                         {
                             sbEnd.Write("OFFSET ");
-                            sbEnd.Write(skip ?? 0);
+                            WriteCount(skip ?? 0, ref sbEnd, operationContext);
                             sbEnd.Write(" ROWS");
                             AppendLineBreak(ref sbEnd);
                             if (take.HasValue)
                             {
                                 sbEnd.Write("FETCH NEXT ");
-                                sbEnd.Write(take.Value);
+                                WriteCount(take.Value, ref sbEnd, operationContext);
                                 sbEnd.Write(" ROWS ONLY");
                                 AppendLineBreak(ref sbEnd);
                             }
@@ -1738,7 +1796,7 @@ namespace Zerra.Repository.MsSql
                     if (pagedValue && !skip.HasValue)
                     {
                         sb.Write("TOP(");
-                        sb.Write(take!.Value);
+                        WriteCount(take!.Value, ref sb, operationContext);
                         sb.Write(") ");
                     }
                     var first = true;
@@ -1792,7 +1850,7 @@ namespace Zerra.Repository.MsSql
                 var sql = sb.ToString();
                 if (query.Distinct && query.Terminal is LinqTerminal.Count or LinqTerminal.LongCount)
                     sql = $"SELECT COUNT(1) FROM ({sql}) AS Z";
-                return new LinqStatement(sql, plan, ConvertLinqPieces(plan, modelDetail, ref sbFrom, ref sbWhere, ref sbEnd, paged));
+                return new LinqStatement(sql, plan, ConvertLinqPieces(plan, modelDetail, ref sbFrom, ref sbWhere, ref sbEnd, paged, operationContext.Parameters), operationContext.Parameters);
             }
             finally
             {
@@ -1824,19 +1882,19 @@ namespace Zerra.Repository.MsSql
             sb.Write(']');
             AppendLineBreak(ref sb);
             sb.Write("OFFSET ");
-            sb.Write(skip ?? 0);
+            WriteCount(skip ?? 0, ref sb, operationContext);
             sb.Write(" ROWS");
             AppendLineBreak(ref sb);
             if (take.HasValue)
             {
                 sb.Write("FETCH NEXT ");
-                sb.Write(take.Value);
+                WriteCount(take.Value, ref sb, operationContext);
                 sb.Write(" ROWS ONLY");
                 AppendLineBreak(ref sb);
             }
         }
         //each relation's rows are those of the parents the statement selects: the key they match by, selected with the statement's from, where, and when paged its order and page
-        private LinqStatement[]? ConvertLinqPieces(LinqPlan plan, ModelDetail modelDetail, ref CharWriter sbFrom, ref CharWriter sbWhere, ref CharWriter sbEnd, bool paged)
+        private LinqStatement[]? ConvertLinqPieces(LinqPlan plan, ModelDetail modelDetail, ref CharWriter sbFrom, ref CharWriter sbWhere, ref CharWriter sbEnd, bool paged, List<object> parameters)
         {
             if (plan.Pieces.Count == 0)
                 return null;
@@ -1856,7 +1914,7 @@ namespace Zerra.Repository.MsSql
                     sbKeys.Write(sbWhere);
                     if (paged)
                         sbKeys.Write(sbEnd);
-                    statements[p] = ConvertLinqPiece(piece, ref sbKeys);
+                    statements[p] = ConvertLinqPiece(piece, ref sbKeys, parameters);
                 }
                 finally
                 {
@@ -1865,11 +1923,11 @@ namespace Zerra.Repository.MsSql
             }
             return statements;
         }
-        private LinqStatement ConvertLinqPiece(LinqPiece piece, ref CharWriter sbKeys)
+        private LinqStatement ConvertLinqPiece(LinqPiece piece, ref CharWriter sbKeys, List<object> parameters)
         {
             var plan = piece.Plan;
             var modelDetail = piece.RelatedModel;
-            var operationContext = new MemberContext();
+            var operationContext = new MemberContext() { Parameters = parameters };
             var rootDependant = new ParameterDependant(modelDetail, null);
             var sb = new CharWriter();
             var sbFrom = new CharWriter();
@@ -1948,14 +2006,14 @@ namespace Zerra.Repository.MsSql
                     if (piece.Skip.HasValue)
                     {
                         sb.Write("[ZR]>");
-                        sb.Write(piece.Skip.Value);
+                        WriteCount(piece.Skip.Value, ref sb, operationContext);
                     }
                     if (piece.Take.HasValue)
                     {
                         if (piece.Skip.HasValue)
                             sb.Write(" AND ");
                         sb.Write("[ZR]<=");
-                        sb.Write((piece.Skip ?? 0) + piece.Take.Value);
+                        WriteCount((piece.Skip ?? 0) + piece.Take.Value, ref sb, operationContext);
                     }
                     sb.Write(" ORDER BY[ZR]");
                     AppendLineBreak(ref sb);
@@ -1964,7 +2022,7 @@ namespace Zerra.Repository.MsSql
                 {
                     sb.Write(sbEnd);
                 }
-                return new LinqStatement(sb.ToString(), plan, ConvertLinqPieces(plan, modelDetail, ref sbFrom, ref sbWhere, ref sbEnd, false));
+                return new LinqStatement(sb.ToString(), plan, ConvertLinqPieces(plan, modelDetail, ref sbFrom, ref sbWhere, ref sbEnd, false, parameters), parameters);
             }
             finally
             {
@@ -2220,13 +2278,13 @@ namespace Zerra.Repository.MsSql
             if (skip.HasValue || take.HasValue)
             {
                 sb.Write("OFFSET ");
-                sb.Write(skip ?? 0);
+                WriteCount(skip ?? 0, ref sb, operationContext);
                 sb.Write(" ROWS");
                 AppendLineBreak(ref sb);
                 if (take.HasValue)
                 {
                     sb.Write("FETCH NEXT ");
-                    sb.Write(take.Value);
+                    WriteCount(take.Value, ref sb, operationContext);
                     sb.Write(" ROWS ONLY");
                     AppendLineBreak(ref sb);
                 }

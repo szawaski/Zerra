@@ -20,12 +20,15 @@ namespace Zerra.Repository
         public LinqPlan Plan { get; }
         /// <summary>The statements of <see cref="LinqPlan.Pieces"/> in order, or <see langword="null"/> for none; each is run before this statement so each row builds its element whole.</summary>
         public LinqStatement[]? Pieces { get; }
+        /// <summary>The values the statement takes as parameters, each named by its index, shared by the statements of one query, or <see langword="null"/> for none.</summary>
+        public List<object>? Parameters { get; }
         /// <summary>Initializes a statement.</summary>
-        public LinqStatement(string sql, LinqPlan plan, LinqStatement[]? pieces)
+        public LinqStatement(string sql, LinqPlan plan, LinqStatement[]? pieces, List<object>? parameters = null)
         {
             this.Sql = sql;
             this.Plan = plan;
             this.Pieces = pieces;
+            this.Parameters = parameters;
         }
     }
 }

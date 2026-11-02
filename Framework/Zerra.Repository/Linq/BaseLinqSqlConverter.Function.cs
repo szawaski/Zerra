@@ -90,6 +90,63 @@ namespace Zerra.Repository
         private string Fn(Function function, params string[] arguments) => Fill(FunctionTemplate(function), arguments);
         private string Cast(string value, Type type) => $"CAST({value} AS {CastType(type)})";
 
+        //each mode from FLOOR and CEILING, which every store does exactly, where a store's ROUND of a double can round a midpoint to even and of a number away from zero
+        /// <summary>
+        /// Converts <c>Math.Round</c> with its digits and <see cref="MidpointRounding"/>, to even when none is given as in C#.
+        /// </summary>
+        /// <param name="call">The call of <c>Math.Round</c>.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
+        protected void ConvertToSqlRound(MethodCallExpression call, ref CharWriter sb, BuilderContext context)
+        {
+            Expression? digits = null;
+            Expression? modeArgument = null;
+            if (call.Arguments.Count == 2)
+            {
+                if (call.Arguments[1].Type == typeof(MidpointRounding))
+                    modeArgument = call.Arguments[1];
+                else
+                    digits = call.Arguments[1];
+            }
+            else if (call.Arguments.Count == 3)
+            {
+                digits = call.Arguments[1];
+                modeArgument = call.Arguments[2];
+            }
+            else if (call.Arguments.Count != 1)
+            {
+                throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
+            }
+
+            if (modeArgument is not null && !IsEvaluatable(modeArgument))
+                throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}, the {nameof(MidpointRounding)} must be known when the query is written");
+            var mode = modeArgument is null ? MidpointRounding.ToEven : (MidpointRounding)Evaluate(modeArgument)!;
+            var places = 0;
+            if (digits is not null)
+            {
+                if (!IsEvaluatable(digits))
+                    throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}, the digits must be known when the query is written");
+                places = (int)Evaluate(digits)!;
+                if (places < 0 || places > 28)
+                    throw new ArgumentOutOfRangeException(nameof(digits), places, "Rounding digits must be between 0 and 28");
+            }
+
+            var value = Argument(call.Arguments[0], context);
+            var scale = places == 0 ? null : "1" + new string('0', places);
+            var scaled = scale is null ? $"({value})" : $"(({value})*{scale})";
+            //the midpoint is found by doubling, a fraction taken by subtracting FLOOR loses its digits on SQL Server where the value has the most precision
+            var rounded = mode switch
+            {
+                MidpointRounding.ToEven => $"(FLOOR({scaled})+CASE WHEN 2*{scaled}>2*FLOOR({scaled})+1 THEN 1 WHEN 2*{scaled}<2*FLOOR({scaled})+1 THEN 0 ELSE FLOOR({scaled})-2*FLOOR(FLOOR({scaled})/2) END)",
+                MidpointRounding.AwayFromZero => $"(FLOOR({scaled})+CASE WHEN 2*{scaled}>2*FLOOR({scaled})+1 THEN 1 WHEN 2*{scaled}<2*FLOOR({scaled})+1 THEN 0 WHEN {scaled}<0 THEN 0 ELSE 1 END)",
+                MidpointRounding.ToZero => $"(CASE WHEN {scaled}<0 THEN CEILING({scaled}) ELSE FLOOR({scaled}) END)",
+                MidpointRounding.ToNegativeInfinity => $"FLOOR({scaled})",
+                MidpointRounding.ToPositiveInfinity => $"CEILING({scaled})",
+                _ => throw new NotSupportedException($"Cannot convert call expression {call.Method.Name} with {mode}"),
+            };
+            sb.Write(scale is null ? rounded : $"({rounded}/{scale})");
+        }
+
         //an argument of a function, read as a value whatever is around the call
         private string Argument(Expression expression, BuilderContext context)
         {

@@ -50,7 +50,7 @@ namespace Zerra.Repository
         /// <returns>The statement, the plan of its rows, and the statements of the relations.</returns>
         protected LinqStatement ConvertLinqInternal(LinqQuery query, ModelDetail modelDetail)
         {
-            return ConvertLinq(query, LinqPlan.Read(query, modelDetail), modelDetail);
+            return ConvertLinq(query, LinqPlan.Read(query, modelDetail), modelDetail, null);
         }
 
         /// <summary>
@@ -59,18 +59,20 @@ namespace Zerra.Repository
         /// <param name="query">The query.</param>
         /// <param name="plan">The plan of the rows, from <see cref="LinqPlan.Read"/>.</param>
         /// <param name="modelDetail">Metadata about the model being queried.</param>
+        /// <param name="parameters">The values taken as parameters of the statement this query is written in, or <see langword="null"/> for a statement of its own.</param>
         /// <returns>The statement, the plan of its rows, and the statements of the relations.</returns>
-        protected abstract LinqStatement ConvertLinq(LinqQuery query, LinqPlan plan, ModelDetail modelDetail);
+        protected abstract LinqStatement ConvertLinq(LinqQuery query, LinqPlan plan, ModelDetail modelDetail, List<object>? parameters);
 
         /// <summary>
         /// Converts the condition of an update or delete to its SQL, starting with WHERE, for the engine to append to its UPDATE or DELETE statement.
         /// </summary>
         /// <param name="where">The condition selecting the rows.</param>
         /// <param name="modelDetail">Metadata about the model being changed.</param>
+        /// <param name="parameters">The values taken as parameters, which the condition adds to, or <see langword="null"/> to write values into the statement.</param>
         /// <returns>The SQL from WHERE on.</returns>
-        protected string ConvertPersistWhereInternal(LambdaExpression where, ModelDetail modelDetail)
+        protected string ConvertPersistWhereInternal(LambdaExpression where, ModelDetail modelDetail, List<object>? parameters = null)
         {
-            var operationContext = new MemberContext();
+            var operationContext = new MemberContext() { Parameters = parameters };
             var sb = new CharWriter();
             try
             {
@@ -98,10 +100,11 @@ namespace Zerra.Repository
         /// <param name="sets">The members to set from <see cref="LinqExtensions.GetProjectionMembers"/>, each with its value in terms of the row.</param>
         /// <param name="where">The condition selecting the rows.</param>
         /// <param name="modelDetail">Metadata about the model being changed.</param>
+        /// <param name="parameters">The values taken as parameters, which the statement adds to, or <see langword="null"/> to write values into the statement.</param>
         /// <returns>The SQL.</returns>
-        protected string ConvertPersistUpdateInternal(ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail)
+        protected string ConvertPersistUpdateInternal(ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail, List<object>? parameters = null)
         {
-            var operationContext = new MemberContext();
+            var operationContext = new MemberContext() { Parameters = parameters };
             var sb = new CharWriter();
             try
             {
@@ -212,6 +215,8 @@ namespace Zerra.Repository
                         if (!ConvertToSqlConditionAsValue(exp, ref sb, context))
                             ConvertToSqlSubquery(subquery, subqueryCall.Arguments[0], ref sb, context);
                     }
+                    else if (exp is MethodCallExpression { Method.Name: nameof(Enum.HasFlag) } hasFlag && hasFlag.Method.DeclaringType == typeof(Enum))
+                        ConvertToSql(HasFlagAsNumbers(hasFlag), ref sb, context);
                     else
                         ConvertToSqlCall(exp, ref sb, context);
                     break;
@@ -796,7 +801,7 @@ namespace Zerra.Repository
             sb.Write(inverted ? " NOT IN(" : " IN(");
             var query = subquery.Query;
             var modelDetail = ModelAnalyzer.GetModel(query.ModelType);
-            var statement = ConvertLinq(query, LinqPlan.Read(query, modelDetail), modelDetail);
+            var statement = ConvertLinq(query, LinqPlan.Read(query, modelDetail), modelDetail, context.MemberContext.Parameters);
             if (statement.Pieces is not null)
                 throw new NotSupportedException("A query a condition looks in selects one value of its own row, not a relation");
             //MySQL and MariaDB also refuse to read the table being changed unless it is a derived table

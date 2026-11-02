@@ -60,6 +60,51 @@ namespace Zerra.Repository
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>If the update was successful</returns>
         bool ExecuteUpdate<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new();
+        /// <summary>Executes an insert of many models in as few round trips as the store takes, in one transaction when there isn't one, and returns the auto-generated identities of each model in order, as <see cref="ExecuteInsertGetIdentities"/> returns them.</summary>
+        /// <typeparam name="TModel">The model type to insert.</typeparam>
+        /// <param name="models">The models to insert.</param>
+        /// <param name="graph">An optional graph specifying which members to persist.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>The auto-generated identities of each model.</returns>
+        object[] ExecuteInsertManyGetIdentities<TModel>(object[] models, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var identities = new object[models.Length];
+            for (var i = 0; i < models.Length; i++)
+                identities[i] = ExecuteInsertGetIdentities((TModel)models[i], graph, modelDetail);
+            return identities;
+        }
+        /// <summary>Executes an insert of many models in as few round trips as the store takes, in one transaction when there isn't one, and returns the number of rows inserted.</summary>
+        /// <typeparam name="TModel">The model type to insert.</typeparam>
+        /// <param name="models">The models to insert.</param>
+        /// <param name="graph">An optional graph specifying which members to persist.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>The number of rows inserted.</returns>
+        int ExecuteInsertMany<TModel>(object[] models, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var count = 0;
+            foreach (var model in models)
+            {
+                if (ExecuteInsert((TModel)model, graph, modelDetail))
+                    count++;
+            }
+            return count;
+        }
+        /// <summary>Executes an update of many models in as few round trips as the store takes, in one transaction when there isn't one, and returns the number of rows updated.</summary>
+        /// <typeparam name="TModel">The model type to update.</typeparam>
+        /// <param name="models">The models to update.</param>
+        /// <param name="graph">An optional graph specifying which members to persist.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <returns>The number of rows updated.</returns>
+        int ExecuteUpdateMany<TModel>(object[] models, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var count = 0;
+            foreach (var model in models)
+            {
+                if (ExecuteUpdate((TModel)model, graph, modelDetail))
+                    count++;
+            }
+            return count;
+        }
         /// <summary>Executes a delete for the given identities and returns the number of rows affected.</summary>
         /// <typeparam name="TModel">The model type to delete.</typeparam>
         /// <param name="ids">The identities of the models to delete.</param>
@@ -112,6 +157,54 @@ namespace Zerra.Repository
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task containing if the update was successful.</returns>
         Task<bool> ExecuteUpdateAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new();
+        /// <summary>Asynchronously executes an insert of many models in as few round trips as the store takes, in one transaction when there isn't one, and returns the auto-generated identities of each model in order, as <see cref="ExecuteInsertGetIdentitiesAsync"/> returns them.</summary>
+        /// <typeparam name="TModel">The model type to insert.</typeparam>
+        /// <param name="models">The models to insert.</param>
+        /// <param name="graph">An optional graph specifying which members to persist.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
+        /// <returns>A task containing the auto-generated identities of each model.</returns>
+        async Task<object[]> ExecuteInsertManyGetIdentitiesAsync<TModel>(object[] models, Graph? graph, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
+        {
+            var identities = new object[models.Length];
+            for (var i = 0; i < models.Length; i++)
+                identities[i] = await ExecuteInsertGetIdentitiesAsync((TModel)models[i], graph, modelDetail, cancellationToken);
+            return identities;
+        }
+        /// <summary>Asynchronously executes an insert of many models in as few round trips as the store takes, in one transaction when there isn't one, and returns the number of rows inserted.</summary>
+        /// <typeparam name="TModel">The model type to insert.</typeparam>
+        /// <param name="models">The models to insert.</param>
+        /// <param name="graph">An optional graph specifying which members to persist.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
+        /// <returns>A task containing the number of rows inserted.</returns>
+        async Task<int> ExecuteInsertManyAsync<TModel>(object[] models, Graph? graph, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
+        {
+            var count = 0;
+            foreach (var model in models)
+            {
+                if (await ExecuteInsertAsync((TModel)model, graph, modelDetail, cancellationToken))
+                    count++;
+            }
+            return count;
+        }
+        /// <summary>Asynchronously executes an update of many models in as few round trips as the store takes, in one transaction when there isn't one, and returns the number of rows updated.</summary>
+        /// <typeparam name="TModel">The model type to update.</typeparam>
+        /// <param name="models">The models to update.</param>
+        /// <param name="graph">An optional graph specifying which members to persist.</param>
+        /// <param name="modelDetail">The model metadata.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
+        /// <returns>A task containing the number of rows updated.</returns>
+        async Task<int> ExecuteUpdateManyAsync<TModel>(object[] models, Graph? graph, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
+        {
+            var count = 0;
+            foreach (var model in models)
+            {
+                if (await ExecuteUpdateAsync((TModel)model, graph, modelDetail, cancellationToken))
+                    count++;
+            }
+            return count;
+        }
         /// <summary>Asynchronously executes a delete for the given identities and returns the number of rows affected.</summary>
         /// <typeparam name="TModel">The model type to delete.</typeparam>
         /// <param name="ids">The identities of the models to delete.</param>

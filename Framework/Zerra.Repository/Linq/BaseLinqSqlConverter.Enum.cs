@@ -130,7 +130,10 @@ namespace Zerra.Repository
         {
             var enumType = EnumOf(exp.Type)!;
             if (enumType.IsDefined(typeof(FlagsAttribute), false))
-                throw new NotSupportedException($"{enumType.Name} has flags, stored as text it can't be used as a number or sorted");
+            {
+                ConvertToSqlFlagsNumber(exp, enumType, ref sb, context);
+                return;
+            }
             var values = Enum.GetValuesAsUnderlyingType(enumType);
             sb.Write("(CASE ");
             ConvertToSql(exp, ref sb, context);
@@ -142,6 +145,59 @@ namespace Zerra.Repository
                 sb.Write(Convert.ToString(value, CultureInfo.InvariantCulture)!);
             }
             sb.Write(" END)");
+        }
+
+        //flags the enum doesn't name are stored as the name of each flag set joined by |, a name of several flags among them, so the number is every name found in the text or'd together
+        private void ConvertToSqlFlagsNumber(Expression exp, Type enumType, ref CharWriter sb, BuilderContext context)
+        {
+            if (Enum.GetUnderlyingType(enumType) == typeof(ulong))
+                throw new NotSupportedException($"{enumType.Name} has flags of a ulong, beyond the numbers a store holds");
+            var column = Argument(exp, context);
+            var text = Fn(Function.Concat, Fn(Function.Concat, "'|'", column), "'|'");
+            var nullable = Nullable.GetUnderlyingType(exp.Type) is not null;
+            sb.Write('(');
+            if (nullable)
+            {
+                sb.Write("CASE WHEN ");
+                sb.Write(column);
+                sb.Write(" IS NULL THEN NULL ELSE ");
+            }
+            sb.Write("(0");
+            var names = new HashSet<string>();
+            foreach (var value in Enum.GetValuesAsUnderlyingType(enumType))
+            {
+                var number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+                if (number == 0)
+                    continue;
+                var name = EnumName.GetName(enumType, value);
+                if (!names.Add(name))
+                    continue;
+                sb.Write("|(CASE WHEN ");
+                sb.Write(text);
+                sb.Write(" LIKE ");
+                sb.Write(Argument(Expression.Constant($"%|{name.Replace("!", "!!").Replace("%", "!%").Replace("_", "!_").Replace("[", "![")}|%"), context));
+                sb.Write(" ESCAPE '!' THEN ");
+                sb.Write(number.ToString(CultureInfo.InvariantCulture));
+                sb.Write(" ELSE 0 END)");
+            }
+            sb.Write(')');
+            if (nullable)
+                sb.Write(" END");
+            sb.Write(')');
+        }
+
+        //HasFlag is every bit of the flag being set, as C# checks it, the numbers of a stored enum coming from its text
+        private static Expression HasFlagAsNumbers(MethodCallExpression call)
+        {
+            var value = WithoutConvert(call.Object!);
+            var flag = WithoutConvert(call.Arguments[0]);
+            if (EnumOf(value.Type) is not { } enumType || EnumOf(flag.Type) != enumType)
+                throw new NotSupportedException($"Cannot convert call expression {call.Method.Name} with a flag of another type than the value");
+            var underlying = Enum.GetUnderlyingType(enumType);
+            var numberType = underlying == typeof(long) || underlying == typeof(ulong) || underlying == typeof(uint) ? typeof(long) : typeof(int);
+            var valueNumber = Expression.Convert(value, numberType);
+            var flagNumber = Expression.Convert(flag, numberType);
+            return Expression.Equal(Expression.And(valueNumber, flagNumber), flagNumber);
         }
 
         //the text of an enum expression, typed object as C# has no conversion of an enum to text to build

@@ -938,47 +938,8 @@ namespace Zerra.Repository.PostgreSql
                             break;
                         }
                     case "Round":
-                        {
-                            Expression? digits = null;
-                            Expression? mode = null;
-                            if (call.Arguments.Count == 2)
-                            {
-                                if (call.Arguments[1].Type == typeof(MidpointRounding))
-                                    mode = call.Arguments[1];
-                                else
-                                    digits = call.Arguments[1];
-                            }
-                            else if (call.Arguments.Count == 3)
-                            {
-                                digits = call.Arguments[1];
-                                mode = call.Arguments[2];
-                            }
-                            else if (call.Arguments.Count != 1)
-                            {
-                                throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
-                            }
-
-                            //SQL rounds a midpoint away from zero
-                            if (mode is not null && (!IsEvaluatable(mode) || (MidpointRounding)Evaluate(mode)! != MidpointRounding.AwayFromZero))
-                                throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}, SQL only rounds with {nameof(MidpointRounding)}.{nameof(MidpointRounding.AwayFromZero)}");
-
-                            if (digits is null)
-                            {
-                                sb.Write("ROUND((");
-                                ConvertToSql(call.Arguments[0], ref sb, context);
-                                sb.Write("))");
-                            }
-                            else
-                            {
-                                //PostgreSQL only rounds to digits with a numeric
-                                sb.Write("ROUND(CAST((");
-                                ConvertToSql(call.Arguments[0], ref sb, context);
-                                sb.Write(") AS numeric),(");
-                                ConvertToSql(digits, ref sb, context);
-                                sb.Write("))");
-                            }
-                            break;
-                        }
+                        ConvertToSqlRound(call, ref sb, context);
+                        break;
                     default:
                         throw new NotSupportedException($"Cannot convert call expression {call.Method.Name}");
                 }
@@ -1563,7 +1524,7 @@ namespace Zerra.Repository.PostgreSql
             ConvertPersistWhere(ref sb, where, modelDetail, operationContext);
         }
         /// <inheritdoc/>
-        protected override LinqStatement ConvertLinq(LinqQuery query, LinqPlan plan, ModelDetail modelDetail)
+        protected override LinqStatement ConvertLinq(LinqQuery query, LinqPlan plan, ModelDetail modelDetail, List<object>? parameters)
         {
             var operationContext = new MemberContext();
             var rootDependant = new ParameterDependant(modelDetail, null);

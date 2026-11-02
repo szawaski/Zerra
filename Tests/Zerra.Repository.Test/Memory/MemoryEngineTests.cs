@@ -14,6 +14,8 @@ namespace Zerra.Repository.Test.Memory
         {
             RepoTest.TestSequenceTransactStore(new MemoryEngine());
             await RepoTest.TestSequenceTransactStoreAsync(new MemoryEngine());
+            BatchWriteTests.TestSequence(new MemoryEngine(), false);
+            await BatchWriteTests.TestSequenceAsync(new MemoryEngine(), false);
         }
 
         [Fact]

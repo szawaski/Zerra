@@ -25,7 +25,9 @@ namespace Zerra.Repository.Test
             None = 0,
             Read = 1,
             [EnumName("w")]
-            Write = 2
+            Write = 2,
+            Execute = 4,
+            ReadWrite = Read | Write
         }
 
         //the same table as ParityModel with its enums read as the text in the column
@@ -215,7 +217,7 @@ namespace Zerra.Repository.Test
                     Day = new DateOnly(2021 + i, i + 1, 5 + i),
                     Kind = (ParityKind)(i % 3),
                     MaybeKind = i % 2 == 0 ? (ParityKind)(i / 2 % 3) : null,
-                    Access = (ParityAccess)(i % 4),
+                    Access = (ParityAccess)(i < 5 ? i : 7),
                     NotStored = 99,
                 });
             }
@@ -489,6 +491,28 @@ namespace Zerra.Repository.Test
             Same(ordered.Select(x => Convert.ToInt32(x.Number + 0.75)), q.Select(x => Convert.ToInt32(x.Number + 0.75)).ToArray(), "above a midpoint");
             Same(ordered.Select(x => Convert.ToInt32(x.Number + 0.25)), q.Select(x => Convert.ToInt32(x.Number + 0.25)).ToArray(), "below a midpoint");
 
+            //Math.Round to even unless another MidpointRounding is given, as C# rounds
+            Same(ordered.Select(x => Math.Round(x.Number + 0.5)), q.Select(x => Math.Round(x.Number + 0.5)).ToArray(), "round double");
+            Same(ordered.Select(x => Math.Round(x.Number + 0.5m)), q.Select(x => Math.Round(x.Number + 0.5m)).ToArray(), "round decimal");
+            Same(ordered.Select(x => Math.Round(x.Number * 0.125m, 2)), q.Select(x => Math.Round(x.Number * 0.125m, 2)).ToArray(), "round digits");
+            foreach (var mode in Enum.GetValues<MidpointRounding>())
+            {
+                Same(ordered.Select(x => Math.Round(x.Number + 0.5, mode)), q.Select(x => Math.Round(x.Number + 0.5, mode)).ToArray(), $"round double {mode}");
+                Same(ordered.Select(x => Math.Round(-x.Number - 0.5, mode)), q.Select(x => Math.Round(-x.Number - 0.5, mode)).ToArray(), $"round negative double {mode}");
+                Same(ordered.Select(x => Math.Round(x.Number + 0.5m, mode)), q.Select(x => Math.Round(x.Number + 0.5m, mode)).ToArray(), $"round decimal {mode}");
+                Same(ordered.Select(x => Math.Round(-x.Number - 0.5m, mode)), q.Select(x => Math.Round(-x.Number - 0.5m, mode)).ToArray(), $"round negative decimal {mode}");
+                Same(ordered.Select(x => Math.Round(x.Number + 0.7m, mode)), q.Select(x => Math.Round(x.Number + 0.7m, mode)).ToArray(), $"round above {mode}");
+                Same(ordered.Select(x => Math.Round(-x.Number - 0.3m, mode)), q.Select(x => Math.Round(-x.Number - 0.3m, mode)).ToArray(), $"round negative below {mode}");
+                Same(ordered.Select(x => Math.Round(x.Number * 0.125m, 2, mode)), q.Select(x => Math.Round(x.Number * 0.125m, 2, mode)).ToArray(), $"round digits {mode}");
+                Same(ordered.Select(x => Math.Round(-x.Number * 0.125m, 2, mode)), q.Select(x => Math.Round(-x.Number * 0.125m, 2, mode)).ToArray(), $"round negative digits {mode}");
+            }
+            if (inStore)
+            {
+                var digits = 2;
+                _ = Assert.Throws<NotSupportedException>(() => q.Select(x => Math.Round(x.Money, x.Number)).ToArray());
+                Assert.Equal(ordered.Select(x => Math.Round(x.Money, digits)), q.Select(x => Math.Round(x.Money, digits)).ToArray());
+            }
+
             //dates and times
             Same(ordered.Select(x => x.Date.AddDays(3)), q.Select(x => x.Date.AddDays(3)).ToArray(), "add days");
             Same(ordered.Select(x => x.Date.AddDays(1.5)), q.Select(x => x.Date.AddDays(1.5)).ToArray(), "add part of a day");
@@ -664,13 +688,25 @@ namespace Zerra.Repository.Test
             first.MaybeKind = setMaybe;
             repo.Update(first, new Graph<ParityModel>(x => x.Kind, x => x.MaybeKind));
 
-            //the number or name of flags has no way to be read from text in the store
+            //the number of flags is read from their text, a name of several flags among the names overlapping the others
+            Assert.Contains(models, x => x.Access == (ParityAccess.ReadWrite | ParityAccess.Execute));
+            Same(ordered.Select(x => (int)x.Access), q.Select(x => (int)x.Access).ToArray(), "flags cast");
+            Same(models.OrderBy(x => x.Access).ThenBy(x => x.Number).Select(x => x.Number), repo.Query<ParityModel>().OrderBy(x => x.Access).ThenBy(x => x.Number).Select(x => x.Number).ToArray(), "flags order");
+            Same(models.OrderByDescending(x => x.Access).ThenBy(x => x.Number).Select(x => x.Number), repo.Query<ParityModel>().OrderByDescending(x => x.Access).ThenBy(x => x.Number).Select(x => x.Number).ToArray(), "flags order descending");
+            Numbers(x => x.Access.HasFlag(ParityAccess.Write), q.Where(x => x.Access.HasFlag(ParityAccess.Write)), "has flag");
+            Numbers(x => x.Access.HasFlag(ParityAccess.Read | ParityAccess.Execute), q.Where(x => x.Access.HasFlag(ParityAccess.Read | ParityAccess.Execute)), "has flags");
+            Numbers(x => x.Access.HasFlag(ParityAccess.ReadWrite), q.Where(x => x.Access.HasFlag(ParityAccess.ReadWrite)), "has a name of flags");
+            Numbers(x => !x.Access.HasFlag(ParityAccess.Read), q.Where(x => !x.Access.HasFlag(ParityAccess.Read)), "has no flag");
+            Numbers(x => x.Access.HasFlag(ParityAccess.None), q.Where(x => x.Access.HasFlag(ParityAccess.None)), "has no flags");
+            Numbers(x => (x.Access & ParityAccess.Execute) != 0, q.Where(x => (x.Access & ParityAccess.Execute) != 0), "flags and");
+            Numbers(x => x.Access > ParityAccess.ReadWrite, q.Where(x => x.Access > ParityAccess.ReadWrite), "flags greater");
+            Same(ordered.Select(x => x.Access.HasFlag(ParityAccess.Execute)), q.Select(x => x.Access.HasFlag(ParityAccess.Execute)).ToArray(), "has flag value");
+            Assert.Equal(models.Max(x => x.Access), q.Max(x => x.Access));
+            Assert.Equal(models.Min(x => x.Access), q.Min(x => x.Access));
+
+            //C# writes flags with its own names and separators, which the store has no way to build from the text
             if (inStore)
-            {
-                _ = Assert.Throws<NotSupportedException>(() => q.Select(x => (int)x.Access).ToArray());
-                _ = Assert.Throws<NotSupportedException>(() => repo.Query<ParityModel>().OrderBy(x => x.Access).ToArray());
                 _ = Assert.Throws<NotSupportedException>(() => q.Select(x => x.Access.ToString()).ToArray());
-            }
         }
 
         private static void AssertLookIns(IRepo repo, ParityModel[] models, ParityLineModel[] lines)

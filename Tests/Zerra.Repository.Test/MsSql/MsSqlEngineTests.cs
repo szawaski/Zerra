@@ -69,7 +69,7 @@ namespace Zerra.Repository.Test.MsSql
 
             DropDatabase(connectionString);
 
-            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).ToArray();
+            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).Concat(BatchWriteTests.ModelTypes).ToArray();
 
             CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
             RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
@@ -83,8 +83,11 @@ namespace Zerra.Repository.Test.MsSql
             await QueryParityTests.TestCancellationAsync(engine, () => HoldParityTable(connectionString));
             TransactionTests.TestSequence(engine, true);
             await TransactionTests.TestSequenceAsync(engine, true);
+            BatchWriteTests.TestSequence(engine, true);
+            await BatchWriteTests.TestSequenceAsync(engine, true);
             TransactionTests.TestAcrossEngines(engine);
             TransactionTests.TestSameStore(engine, new MsSqlEngine(connectionString));
+            MsSqlParameterTests.TestSequence(engine, connectionString);
             SchemaChangeTests.Test(engine, table => ExecuteSql(connectionString, $"IF OBJECT_ID('{table}') IS NOT NULL DROP TABLE [{table}]"));
 
             const string changeColumn = "ALTER TABLE [TestTypes] ALTER COLUMN [Int32Thing] bigint NULL";

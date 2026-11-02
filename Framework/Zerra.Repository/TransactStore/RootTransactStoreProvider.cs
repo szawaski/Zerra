@@ -1076,19 +1076,22 @@ namespace Zerra.Repository
 
             var graph = persist.Graph is null ? null : new Graph<TModel>(persist.Graph);
 
-            foreach (var model in persist.Models)
+            //the related models each model refers to are saved first for their identities, then the models together, then the related models referring to each
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
             {
-                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
-                {
+                foreach (var model in persist.Models)
                     PersistSingleRelations(persist.Event, model, graph, true);
-                }
+            }
 
-                PersistModel(persist.Event, model, graph, true);
+            if (persist.Models.Length == 1)
+                PersistModel(persist.Event, persist.Models[0], graph, true);
+            else
+                PersistModels(persist.Event, persist.Models, graph, true);
 
-                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
-                {
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
+            {
+                foreach (var model in persist.Models)
                     PersistManyRelations(persist.Event, model, graph, true);
-                }
             }
         }
         private void Update(Persist persist)
@@ -1144,19 +1147,22 @@ namespace Zerra.Repository
 
             var graph = persist.Graph is null ? null : new Graph(persist.Graph);
 
-            foreach (var model in persist.Models)
+            //the related models each model refers to are saved first for their identities, then the models together, then the related models referring to each
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
             {
-                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
-                {
+                foreach (var model in persist.Models)
                     PersistSingleRelations(persist.Event, model, graph, false);
-                }
+            }
 
-                PersistModel(persist.Event, model, graph, false);
+            if (persist.Models.Length == 1)
+                PersistModel(persist.Event, persist.Models[0], graph, false);
+            else
+                PersistModels(persist.Event, persist.Models, graph, false);
 
-                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
-                {
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
+            {
+                foreach (var model in persist.Models)
                     PersistManyRelations(persist.Event, model, graph, false);
-                }
             }
         }
         private void Delete(Persist persist)
@@ -1210,19 +1216,22 @@ namespace Zerra.Repository
 
             var graph = persist.Graph is null ? null : new Graph<TModel>(persist.Graph);
 
-            foreach (var model in persist.Models)
+            //the related models each model refers to are saved first for their identities, then the models together, then the related models referring to each
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
             {
-                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
-                {
+                foreach (var model in persist.Models)
                     await PersistSingleRelationsAsync(persist.Event, model, graph, true, cancellationToken);
-                }
+            }
 
-                await PersistModelAsync(persist.Event, model, graph, true, cancellationToken);
+            if (persist.Models.Length == 1)
+                await PersistModelAsync(persist.Event, persist.Models[0], graph, true, cancellationToken);
+            else
+                await PersistModelsAsync(persist.Event, persist.Models, graph, true, cancellationToken);
 
-                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
-                {
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
+            {
+                foreach (var model in persist.Models)
                     await PersistManyRelationsAsync(persist.Event, model, graph, true, cancellationToken);
-                }
             }
         }
         private async Task UpdateAsync(Persist persist, CancellationToken cancellationToken)
@@ -1278,19 +1287,22 @@ namespace Zerra.Repository
 
             var graph = persist.Graph is null ? null : new Graph(persist.Graph);
 
-            foreach (var model in persist.Models)
+            //the related models each model refers to are saved first for their identities, then the models together, then the related models referring to each
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
             {
-                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
-                {
+                foreach (var model in persist.Models)
                     await PersistSingleRelationsAsync(persist.Event, model, graph, false, cancellationToken);
-                }
+            }
 
-                await PersistModelAsync(persist.Event, model, graph, false, cancellationToken);
+            if (persist.Models.Length == 1)
+                await PersistModelAsync(persist.Event, persist.Models[0], graph, false, cancellationToken);
+            else
+                await PersistModelsAsync(persist.Event, persist.Models, graph, false, cancellationToken);
 
-                if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
-                {
+            if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
+            {
+                foreach (var model in persist.Models)
                     await PersistManyRelationsAsync(persist.Event, model, graph, false, cancellationToken);
-                }
             }
         }
         private async Task DeleteAsync(Persist persist, CancellationToken cancellationToken)
@@ -1822,6 +1834,16 @@ namespace Zerra.Repository
         /// <param name="graph">The graph specifying which members to persist.</param>
         /// <param name="create"><see langword="true"/> to create the model; <see langword="false"/> to update.</param>
         protected abstract void PersistModel(PersistEvent @event, object model, Graph? graph, bool create);
+        /// <summary>Persists many models without their relations, by default one at a time with <see cref="PersistModel"/>.</summary>
+        /// <param name="event">The persist event context.</param>
+        /// <param name="models">The models to persist.</param>
+        /// <param name="graph">The graph specifying which members to persist.</param>
+        /// <param name="create"><see langword="true"/> to create; <see langword="false"/> to update.</param>
+        protected virtual void PersistModels(PersistEvent @event, object[] models, Graph? graph, bool create)
+        {
+            foreach (var model in models)
+                PersistModel(@event, model, graph, create);
+        }
         /// <summary>Deletes models with the specified identities from the underlying store.</summary>
         /// <param name="event">The persist event context.</param>
         /// <param name="ids">The identities of the models to delete.</param>
@@ -1853,6 +1875,17 @@ namespace Zerra.Repository
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
         protected abstract Task PersistModelAsync(PersistEvent @event, object model, Graph? graph, bool create, CancellationToken cancellationToken);
+        /// <summary>Asynchronously persists many models without their relations, by default one at a time with <see cref="PersistModelAsync"/>.</summary>
+        /// <param name="event">The persist event context.</param>
+        /// <param name="models">The models to persist.</param>
+        /// <param name="graph">The graph specifying which members to persist.</param>
+        /// <param name="create"><see langword="true"/> to create; <see langword="false"/> to update.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
+        protected virtual async Task PersistModelsAsync(PersistEvent @event, object[] models, Graph? graph, bool create, CancellationToken cancellationToken)
+        {
+            foreach (var model in models)
+                await PersistModelAsync(@event, model, graph, create, cancellationToken);
+        }
         /// <summary>Asynchronously deletes models with the specified identities from the underlying store.</summary>
         /// <param name="event">The persist event context.</param>
         /// <param name="ids">The identities of the models to delete.</param>

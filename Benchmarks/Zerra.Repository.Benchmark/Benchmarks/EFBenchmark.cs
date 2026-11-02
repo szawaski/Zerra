@@ -21,6 +21,8 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         TestTypesModel singleModel;
         EFTestTypesModel singleEF;
         EFDataContext reuseContext;
+        //a different value each call, as an application's are, so a store compiles what it can't reuse
+        int changing = -1_000_000;
 
         [GlobalSetup]
         public void Setup()
@@ -141,6 +143,26 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         }
 
         [Benchmark]
+        public async Task<TestTypesModel> QueryFirstChanging_Zerra()
+        {
+            var value = changing--;
+            var results = await repo.Query<TestTypesModel>().FirstOrDefaultAsync(x => x.StringThing.Contains("Hello") && x.Int32Thing != value);
+            return results;
+        }
+
+        [Benchmark]
+        public async Task<EFTestTypesModel> QueryFirstChanging_EF()
+        {
+            var value = changing--;
+            using var context = new EFDataContext();
+            var results = await EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(context.TestTypes
+                .AsNoTracking()
+                .Where(results => results.StringThing.Contains("Hello") && results.Int32Thing != value)
+                );
+            return results;
+        }
+
+        [Benchmark]
         public async Task<IReadOnlyCollection<TestTypesModel>> QueryManyIncludeOneToOne_Zerra()
         {
             var results = await repo.Query<TestTypesModel>(new Graph<TestTypesModel>(true, x => x.RelationA)).ToArrayAsync();
@@ -197,6 +219,22 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         [Benchmark]
         public async Task Update_EF()
         {
+            using var context = new EFDataContext();
+            context.Attach(singleEF).State = EntityState.Modified;
+            _ = await context.SaveChangesAsync();
+        }
+
+        [Benchmark]
+        public async Task UpdateChanging_Zerra()
+        {
+            singleModel.Int32Thing = changing--;
+            await repo.UpdateAsync(singleModel);
+        }
+
+        [Benchmark]
+        public async Task UpdateChanging_EF()
+        {
+            singleEF.Int32Thing = changing--;
             using var context = new EFDataContext();
             context.Attach(singleEF).State = EntityState.Modified;
             _ = await context.SaveChangesAsync();

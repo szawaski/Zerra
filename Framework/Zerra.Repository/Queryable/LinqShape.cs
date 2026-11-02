@@ -95,7 +95,7 @@ namespace Zerra.Repository
         /// <param name="row">The row's values, a column's at its index, and in memory a relation's value after the columns.</param>
         /// <param name="pieces">The elements each relation gave, by the parent's key, or <see langword="null"/> when the row holds them.</param>
         /// <returns>The element.</returns>
-        public object? Build(object?[] row, Dictionary<object, List<object?>>[]? pieces)
+        public object? Build(object?[] row, LinqPieceElements[]? pieces)
         {
             switch (Kind)
             {
@@ -136,7 +136,7 @@ namespace Zerra.Repository
                         }
                         else
                         {
-                            var arguments = new object?[Arguments.Length];
+                            var arguments = ArgumentValues();
                             for (var i = 0; i < arguments.Length; i++)
                                 arguments[i] = Arguments[i].Build(row, pieces);
                             instance = Constructor!.Invoke(arguments);
@@ -157,17 +157,25 @@ namespace Zerra.Repository
             }
         }
 
+        /// <summary>The array a row's constructor arguments are read into, the same for every row as a shape belongs to one query and a constructor doesn't keep it.</summary>
+        /// <returns>The array, of the length of <see cref="Arguments"/>.</returns>
+        public object?[] ArgumentValues() => argumentValues ??= new object?[Arguments!.Length];
+        private object?[]? argumentValues;
+
         /// <summary>
         /// Builds the value of a <see cref="LinqShapeKind.Relation"/> from the elements its relation gave: the one with the key, or a collection of those with it.
         /// </summary>
         /// <param name="key">The parent's key, or <see langword="null"/> for no related elements.</param>
         /// <param name="pieces">The elements each relation gave, by the parent's key.</param>
         /// <returns>The related element, or the collection of the type the member takes.</returns>
-        public object? BuildRelation(object? key, Dictionary<object, List<object?>>[] pieces)
+        public object? BuildRelation(object? key, LinqPieceElements[] pieces) => BuildRelation(key is null ? null : pieces[PieceIndex].Find(key));
+        /// <summary>
+        /// Builds the value of a <see cref="LinqShapeKind.Relation"/> from the elements of the parent: the first, or a collection of them.
+        /// </summary>
+        /// <param name="elements">The parent's elements, from the relation's <see cref="LinqPieceElements"/> at <see cref="PieceIndex"/>, or <see langword="null"/> for none.</param>
+        /// <returns>The related element, or the collection of the type the member takes.</returns>
+        public object? BuildRelation(List<object?>? elements)
         {
-            List<object?>? elements = null;
-            if (key is not null)
-                _ = pieces[PieceIndex].TryGetValue(key, out elements);
             if (Piece!.Single)
                 return elements is null || elements.Count == 0 ? null : elements[0];
             return CreateCollection(elements ?? (IReadOnlyList<object?>)Array.Empty<object?>());

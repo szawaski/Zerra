@@ -256,6 +256,8 @@ Everything you read and write through the repository in that flow of work is in 
 
 `Rollback` undoes the work so far and leaves the transaction open, so what comes next is new work in it to commit or roll back. `Commit` ends the transaction.
 
+Creating or updating a list of models in one call saves them together or not at all without one. Related models in a graph are saved separately, so use a transaction to include them.
+
 - **Begin and commit in the same method.** Starting one inside an async method doesn't carry over to the caller, as it ends with the method.
 - **One at a time.** Beginning a second inside the first throws. Parallel calls inside one take turns, as they share a connection.
 - **After it finishes,** the flow that began it carries on outside it. A background task it started that still uses it gets an error.
@@ -294,8 +296,8 @@ A `Where`, and the values of a `Select` and a group, support:
 - **Strings:** `Contains`, `StartsWith`, `EndsWith` (wildcards in the text are matched literally, and a `StringComparison` ignoring case is honored), `Equals`, `string.IsNullOrEmpty`/`IsNullOrWhiteSpace`, `Length`, `ToUpper`/`ToLower`, `Trim`/`TrimStart`/`TrimEnd`, `Substring`, `IndexOf`, `Replace`, `string.Concat`, and `+`.
 - **Text:** `ToString()` on numbers, bools, enums, and Guids, and with a format on dates (a custom one such as `yyyy-MM-dd`) and numbers (`F2`, `D4`), `PadLeft`/`PadRight`, `string.Join` of `new[] { .. }`, of a related collection, or of a group's values, and `int.Parse` and the other number parsers and `Guid.Parse`. A date without a format, or a culture, is refused because the store doesn't have one.
 - **Conversions:** `Convert.ToInt32` and the other number conversions, `ToString`, and `ToBoolean`. A midpoint rounds to the even number, as in C#.
-- **Enums:** comparing, ordering, `Min`, `Max`, and casting to a number use the enum's numbers, as in C#, and `ToString` gives the field's name. A `[Flags]` enum can be read, saved, and compared for equality, but sorting it, casting it to a number, or calling `ToString` in the query is refused.
-- **Math:** `Math.Abs`/`Ceiling`/`Floor`/`Round`/`Pow`/`Sqrt`. SQL rounds midpoints away from zero.
+- **Enums:** comparing, ordering, `Min`, `Max`, and casting to a number use the enum's numbers, as in C#, and `ToString` gives the field's name. A `[Flags]` enum also supports `HasFlag` and `&`, but `ToString` of one is refused in a query.
+- **Math:** `Math.Abs`/`Ceiling`/`Floor`/`Round`/`Pow`/`Sqrt`. `Math.Round` rounds a midpoint to even unless given another `MidpointRounding`, as in C#. Its digits must be a value, not a member of the model.
 - **Dates and times:** parts such as `.Year`, `.Date`, and `.DayOfWeek` on `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, and `TimeSpan`, including `TotalHours` and the other totals. `AddDays` and the other `Add` methods, `+` and `-` with a `TimeSpan`, and the time between two values, read through a total or part such as `(x.End - x.Start).TotalHours` or compared to a `TimeSpan`. A computed `TimeSpan` itself can't be selected. Going below zero between two `TimeOnly` values stays negative, where C# wraps around midnight.
 - **Related collections:** `Any`, `All`, `Count`/`LongCount`, `Sum`/`Min`/`Max`/`Average` with a selector, and a member of one row picked with `First`, `FirstOrDefault`, `Single`, `Last`, or `ElementAt` after `Where`, `OrderBy`/`OrderByDescending`/`ThenBy`, and `Skip`, such as `x.Lines.OrderByDescending(l => l.PlacedOn).First().Status`. The row becomes a subquery of one row, so `Single` takes the first and `Last` needs an order. A row that isn't there reads as null, in memory too, so a comparison with it is false and `!=` is true as with a null column. The row's own relations can be read as well, except one back to the queried model.
 
