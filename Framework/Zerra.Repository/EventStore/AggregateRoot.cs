@@ -85,6 +85,8 @@ namespace Zerra.Repository
             var applyMethod = GetApplyMethod(eventType);
 
             var eventBytes = EventStoreCommon.Serialize(@event);
+            if (RepoTransaction.Current is not null)
+                throw new NotSupportedException("An event store can't take part in a transaction");
             var eventNumber = await this.eventStore.AppendAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any, eventBytes, cancellationToken);
 
             //applied only once stored, so a rejected append leaves this instance as it was

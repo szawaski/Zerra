@@ -23,8 +23,19 @@ namespace Zerra.CQRS.Reflection
         {
             var methods = methodsByType.GetOrAdd(interfaceType, static () => new());
             var methodForHandler = methods.GetOrAdd(methodName, interfaceType, methodName, GenerateMethodForHandler);
-            var result = methodForHandler.Method.Invoke(instance, args);
-            return result;
+            //a handler is its own unit of work, an async one keeps what it starts with after this returns
+            var ambient = BusAmbient.Current;
+            if (ambient is null)
+                return methodForHandler.Method.Invoke(instance, args);
+            BusAmbient.Current = null;
+            try
+            {
+                return methodForHandler.Method.Invoke(instance, args);
+            }
+            finally
+            {
+                BusAmbient.Current = ambient;
+            }
         }
 
         public static void Register(Type interfaceType, string name, bool isTask, Type? taskInnerType, Type[] parameterTypes, Func<object, object?[]?, object?> method, Func<object, object?>? taskResult)

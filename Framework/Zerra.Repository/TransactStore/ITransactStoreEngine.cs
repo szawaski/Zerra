@@ -14,6 +14,11 @@ namespace Zerra.Repository
     public interface ITransactStoreEngine
     {
         /// <summary>
+        /// Whether the engine's operations join <see cref="RepoTransaction.Current"/>. A write to an engine that doesn't is refused inside a transaction.
+        /// </summary>
+        bool SupportsTransactions => false;
+
+        /// <summary>
         /// Runs a LINQ query, converted in one pass to a statement over the model with the relations it reads as statements of their own after the rows, and builds the elements as the plan says.
         /// </summary>
         /// <typeparam name="TModel">The model type.</typeparam>

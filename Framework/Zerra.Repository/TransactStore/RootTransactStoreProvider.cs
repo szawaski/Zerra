@@ -976,6 +976,8 @@ namespace Zerra.Repository
         /// <param name="persist">The persist operation to execute.</param>
         public void Persist(Persist persist)
         {
+            if (RepoTransaction.Current is not null && !SupportsTransactions)
+                throw new NotSupportedException($"{Engine?.GetType().Name ?? GetType().Name} can't take part in a transaction");
             if (persist.Where is not null)
             {
                 var where = LinqSubquery.Rewrite(persist.Where, out var found);
@@ -1019,6 +1021,8 @@ namespace Zerra.Repository
         /// <returns>A task representing the asynchronous operation.</returns>
         public Task PersistAsync(Persist persist, CancellationToken cancellationToken)
         {
+            if (RepoTransaction.Current is not null && !SupportsTransactions)
+                throw new NotSupportedException($"{Engine?.GetType().Name ?? GetType().Name} can't take part in a transaction");
             if (persist.Where is not null)
             {
                 var where = LinqSubquery.Rewrite(persist.Where, out var found);

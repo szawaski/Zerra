@@ -32,6 +32,8 @@ namespace Zerra.Repository
             this.saveStateEvery = saveStateEvery;
         }
 
+        /// <inheritdoc />
+        protected override sealed bool SupportsTransactions => false;
         /// <inheritdoc/>
         protected override sealed object? Engine => engine;
 

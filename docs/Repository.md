@@ -241,6 +241,32 @@ var perPair   = await Repo.Query<OrderDataModel>().GroupBy(x => new { x.Customer
 
 Every method has an `Async` version. Use the async ones in handlers. Pass collections to `Create`, `Update`, and `Delete` as arrays or with an explicit type argument, since a `List<T>` binds to the single-model overload.
 
+### Transactions
+
+`BeginTransaction` groups work so it all saves or none of it does. Disposing without committing rolls back, so an exception undoes the work:
+
+```csharp
+await using var transaction = Repo.BeginTransaction();
+await Repo.CreateAsync(order, cancellationToken);
+await Repo.UpdateAsync<Stock>(x => x.ID == stockID, x => new Stock { Count = x.Count - 1 }, cancellationToken);
+await transaction.CommitAsync(cancellationToken);
+```
+
+Everything you read and write through the repository in that flow of work is in the transaction, and it reads its own writes. Pass an `IsolationLevel` to `BeginTransaction` to change it from the engine's default.
+
+`Rollback` undoes the work so far and leaves the transaction open, so what comes next is new work in it to commit or roll back. `Commit` ends the transaction.
+
+- **Begin and commit in the same method.** Starting one inside an async method doesn't carry over to the caller, as it ends with the method.
+- **One at a time.** Beginning a second inside the first throws. Parallel calls inside one take turns, as they share a connection.
+- **After it finishes,** the flow that began it carries on outside it. A background task it started that still uses it gets an error.
+- **Handlers:** a handler the bus runs is its own unit of work, even when it runs in the same process.
+- **Layers:** a layer's `OnCreateComplete` and similar methods run before the commit, so a layer that caches shouldn't keep what it sees until the work is committed.
+- **After a rollback,** a model keeps any identity it was given. A deadlock throws, and retrying the whole transaction is up to you.
+
+SQL Server, PostgreSQL, MySQL, and MariaDB use the database's transaction, on InnoDB tables for MySQL and MariaDB. The in-memory engine works on a private copy and applies the writes at commit, so others don't see them until then. Its row counts come from that copy, and it can throw at commit if another writer took the same generated identity. Event stores can't take part: writing to one in a transaction throws.
+
+**Across engines:** each engine used joins, and they roll back together on any failure before the commit. The commit itself runs one engine at a time, in the order they were first used and with the in-memory engine last, so a failure partway leaves the work partly saved. That throws `RepoPartialCommitException`, which lists the engines that did and didn't commit. A transaction on one engine is all or nothing.
+
 ### Changing Many Rows
 
 An update or delete by condition is one statement in the database, so nothing is read first:

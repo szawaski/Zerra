@@ -18,5 +18,14 @@ namespace Zerra.Repository
         /// <returns>The queryable.</returns>
         IQueryable<TModel> Query<TModel>(Graph? graph = null) where TModel : class, new();
 
+        /// <summary>
+        /// Starts a unit of work: what the current flow of work reads and writes through the repository is in it until it commits or is disposed, which rolls it back.
+        /// Each engine used joins it. On one engine it is all or nothing, across engines they commit one at a time. An event store can't take part.
+        /// A method that is async must commit in the method that began it, as the flow it runs in ends when it returns.
+        /// </summary>
+        /// <param name="isolationLevel">The isolation level, or the engine's default.</param>
+        /// <returns>The transaction, to commit and dispose.</returns>
+        IRepoTransaction BeginTransaction(System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.Unspecified);
+
     }
 }

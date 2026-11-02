@@ -1591,6 +1591,7 @@ namespace Zerra.Repository.MySql
             {
                 //a count or calculation of a page reads the rows of the page from a derived table
                 var pagedValue = !query.ReadsElements && (query.Skip.HasValue || query.Take.HasValue) && !(query.Distinct && query.Terminal is LinqTerminal.Count or LinqTerminal.LongCount);
+                var deferColumns = false;
                 switch (query.Terminal)
                 {
                     case LinqTerminal.Count:
@@ -1613,14 +1614,18 @@ namespace Zerra.Repository.MySql
                         if (query.Distinct && plan.Pieces.Count > 0)
                             throw new NotSupportedException("Distinct with a relation read after the rows isn't supported");
                         sb.Write(query.Distinct ? "SELECT DISTINCT " : "SELECT ");
-                        for (var i = 0; i < plan.Columns.Count; i++)
+                        deferColumns = plan.ReadsOnlyMembers;
+                        if (!deferColumns)
                         {
-                            if (i > 0)
-                                sb.Write(',');
-                            ConvertLinqColumn(plan.Columns[i], plan, ref sb, rootDependant, modelDetail, operationContext);
-                            sb.Write(" AS `C");
-                            sb.Write(i);
-                            sb.Write('`');
+                            for (var i = 0; i < plan.Columns.Count; i++)
+                            {
+                                if (i > 0)
+                                    sb.Write(',');
+                                ConvertLinqColumn(plan.Columns[i], plan, ref sb, rootDependant, modelDetail, operationContext);
+                                sb.Write(" AS `C");
+                                sb.Write(i);
+                                sb.Write('`');
+                            }
                         }
                         break;
                 }
@@ -1710,6 +1715,8 @@ namespace Zerra.Repository.MySql
                         GenerateOrderSkipTake(query.Order, query.Skip, query.Take, ref sbEnd, rootDependant, operationContext);
                     }
                 }
+                if (deferColumns)
+                    ConvertLinqMemberColumns(plan, ref sb, rootDependant, modelDetail, operationContext);
                 GenerateJoin(rootDependant, ref sbFrom);
                 sb.Write(sbFrom);
                 sb.Write(sbWhere);
@@ -1893,6 +1900,29 @@ namespace Zerra.Repository.MySql
                 sbWhere.Dispose();
                 sbFrom.Dispose();
                 sb.Dispose();
+            }
+        }
+        //without a join a column can only be the model's, and a shorter statement is quicker for the store to take in
+        private void ConvertLinqMemberColumns(LinqPlan plan, ref CharWriter sb, ParameterDependant rootDependant, ModelDetail modelDetail, MemberContext operationContext)
+        {
+            var joined = rootDependant.Dependants.Count > 0;
+            for (var i = 0; i < plan.Columns.Count; i++)
+            {
+                if (i > 0)
+                    sb.Write(',');
+                if (joined)
+                {
+                    ConvertLinqColumn(plan.Columns[i], plan, ref sb, rootDependant, modelDetail, operationContext);
+                }
+                else
+                {
+                    sb.Write('`');
+                    sb.Write(plan.Columns[i].Member!.StoreName);
+                    sb.Write('`');
+                }
+                sb.Write(" AS `C");
+                sb.Write(i);
+                sb.Write('`');
             }
         }
         private void ConvertLinqColumn(LinqColumn column, LinqPlan plan, ref CharWriter sb, ParameterDependant rootDependant, ModelDetail modelDetail, MemberContext operationContext, bool derived = false)

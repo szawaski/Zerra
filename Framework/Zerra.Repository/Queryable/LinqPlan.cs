@@ -30,6 +30,19 @@ namespace Zerra.Repository
         public LinqShape? Shape { get; private set; }
         /// <summary>The columns in order.</summary>
         public List<LinqColumn> Columns { get; } = new();
+        /// <summary>Whether every column is a member of the model, which writing them can't add a join for.</summary>
+        public bool ReadsOnlyMembers
+        {
+            get
+            {
+                foreach (var column in Columns)
+                {
+                    if (column.Kind != LinqColumnKind.Value || column.Member is null || column.Expression is not null)
+                        return false;
+                }
+                return true;
+            }
+        }
         /// <summary>The relation shapes, whose values follow the columns in a row built in memory.</summary>
         public List<LinqShape> Relations { get; } = new();
         /// <summary>The relations read after the rows.</summary>
@@ -59,6 +72,20 @@ namespace Zerra.Repository
         /// <returns>The plan.</returns>
         public static LinqPlan Read(LinqQuery query, ModelDetail modelDetail)
         {
+            //reading a whole model is most queries and its plan never changes, it has only the columns of the model
+            if (query.Select is null && query.Graph is null && query.GroupBy is null && query.KeyMember is null
+                && query.Terminal is not (LinqTerminal.Count or LinqTerminal.LongCount or LinqTerminal.Any or LinqTerminal.Sum or LinqTerminal.Min or LinqTerminal.Max or LinqTerminal.Average))
+            {
+                var whole = modelDetail.WholeModelPlan;
+                if (whole is null)
+                {
+                    whole = new LinqPlan(modelDetail);
+                    whole.Shape = whole.ReadModel(modelDetail, null, false);
+                    modelDetail.WholeModelPlan = whole;
+                }
+                return whole;
+            }
+
             var plan = new LinqPlan(modelDetail);
             switch (query.Terminal)
             {

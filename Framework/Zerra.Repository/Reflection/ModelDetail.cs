@@ -37,6 +37,8 @@ namespace Zerra.Repository.Reflection
         /// Gets a value indicating whether this type is decorated with <see cref="EntityAttribute"/>.
         /// </summary>
         public bool IsDataSourceEntity => dataSourceEntityName is not null;
+
+        internal LinqPlan? WholeModelPlan;
         /// <summary>
         /// The store or table name for this model, as specified by <see cref="EntityAttribute"/> or defaulting to the type name, which a projection result uses as its alias.
         /// </summary>

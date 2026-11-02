@@ -423,14 +423,111 @@ namespace Zerra.Repository.MariaDb
             throw new Exception($"Cannot convert type to SQL value {modelPropertyDetail.Type.Name}");
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
+        public bool SupportsTransactions => true;
+
+        //the connection of an operation, which is the transaction's when there is one and closes with the operation when not
+        private readonly struct EngineConnection : IDisposable
+        {
+            private readonly MySqlConnection connection;
+            private readonly MySqlTransaction? transaction;
+            private readonly RepoTransactionPart? part;
+            public EngineConnection(MySqlConnection connection, MySqlTransaction? transaction, RepoTransactionPart? part)
+            {
+                this.connection = connection;
+                this.transaction = transaction;
+                this.part = part;
+            }
+            public MySqlCommand CreateCommand()
+            {
+                var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                return command;
+            }
+            public void Dispose()
+            {
+                if (part is null)
+                    connection.Dispose();
+                else
+                    part.Exit();
+            }
+        }
+        private EngineConnection OpenConnection()
+        {
+            var transaction = RepoTransaction.Current;
+            if (transaction is not null)
+            {
+                var part = transaction.Enter(connectionString, nameof(MariaDbEngine), BeginTransactionPart);
+                return new EngineConnection((MySqlConnection)part.Connection, (MySqlTransaction)part.Transaction, part);
+            }
+            var connection = new MySqlConnection(connectionString);
+            try
+            {
+                connection.Open();
+            }
+            catch
+            {
+                connection.Dispose();
+                throw;
+            }
+            return new EngineConnection(connection, null, null);
+        }
+        private async ValueTask<EngineConnection> OpenConnectionAsync(CancellationToken cancellationToken)
+        {
+            var transaction = RepoTransaction.Current;
+            if (transaction is not null)
+            {
+                var part = await transaction.EnterAsync(connectionString, nameof(MariaDbEngine), BeginTransactionPartAsync, cancellationToken);
+                return new EngineConnection((MySqlConnection)part.Connection, (MySqlTransaction)part.Transaction, part);
+            }
+            var connection = new MySqlConnection(connectionString);
+            try
+            {
+                await connection.OpenAsync(cancellationToken);
+            }
+            catch
+            {
+                connection.Dispose();
+                throw;
+            }
+            return new EngineConnection(connection, null, null);
+        }
+        private DbRepoTransactionPart BeginTransactionPart(IsolationLevel isolationLevel)
+        {
+            var connection = new MySqlConnection(connectionString);
+            try
+            {
+                connection.Open();
+                return new DbRepoTransactionPart(connection, connection.BeginTransaction(isolationLevel));
+            }
+            catch
+            {
+                connection.Dispose();
+                throw;
+            }
+        }
+        private async Task<DbRepoTransactionPart> BeginTransactionPartAsync(IsolationLevel isolationLevel, CancellationToken cancellationToken)
+        {
+            var connection = new MySqlConnection(connectionString);
+            try
+            {
+                await connection.OpenAsync(cancellationToken);
+                return new DbRepoTransactionPart(connection, await connection.BeginTransactionAsync(isolationLevel, cancellationToken));
+            }
+            catch
+            {
+                connection.Dispose();
+                throw;
+            }
+        }
+
+        /// <inheritdoc />
         public object? ExecuteLinq<TModel, TResult>(LinqQuery query, ModelDetail modelDetail) where TModel : class, new()
         {
             var statement = LinqMariaDbConverter.ConvertLinq(query, modelDetail);
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = OpenConnection())
             {
-                connection.Open();
                 if (JoinsText(statement))
                     SetJoinLimit(connection);
                 switch (query.Terminal)
@@ -479,7 +576,7 @@ namespace Zerra.Repository.MariaDb
             }
         }
         //the rows of each relation for all the parents at once, matched to them by the key, read before the parents so each element is built whole from its row
-        private static Dictionary<object, List<object?>>[]? ReadLinqPieces(MySqlConnection connection, LinqStatement statement)
+        private static Dictionary<object, List<object?>>[]? ReadLinqPieces(EngineConnection connection, LinqStatement statement)
         {
             if (statement.Pieces is null)
                 return null;
@@ -614,7 +711,7 @@ namespace Zerra.Repository.MariaDb
             }
             return false;
         }
-        private static void SetJoinLimit(MySqlConnection connection)
+        private static void SetJoinLimit(EngineConnection connection)
         {
             using (var command = connection.CreateCommand())
             {
@@ -622,7 +719,7 @@ namespace Zerra.Repository.MariaDb
                 _ = command.ExecuteNonQuery();
             }
         }
-        private static async Task SetJoinLimitAsync(MySqlConnection connection, CancellationToken cancellationToken)
+        private static async Task SetJoinLimitAsync(EngineConnection connection, CancellationToken cancellationToken)
         {
             using (var command = connection.CreateCommand())
             {
@@ -890,9 +987,8 @@ namespace Zerra.Repository.MariaDb
         {
             var statement = LinqMariaDbConverter.ConvertLinq(query, modelDetail);
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = await OpenConnectionAsync(cancellationToken))
             {
-                await connection.OpenAsync(cancellationToken);
                 if (JoinsText(statement))
                     await SetJoinLimitAsync(connection, cancellationToken);
                 switch (query.Terminal)
@@ -940,7 +1036,7 @@ namespace Zerra.Repository.MariaDb
                 }
             }
         }
-        private static async Task<Dictionary<object, List<object?>>[]?> ReadLinqPiecesAsync(MySqlConnection connection, LinqStatement statement, CancellationToken cancellationToken)
+        private static async Task<Dictionary<object, List<object?>>[]?> ReadLinqPiecesAsync(EngineConnection connection, LinqStatement statement, CancellationToken cancellationToken)
         {
             if (statement.Pieces is null)
                 return null;
@@ -983,9 +1079,8 @@ namespace Zerra.Repository.MariaDb
         {
             var sql = MariaDbEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = OpenConnection())
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 0;
@@ -1025,9 +1120,8 @@ namespace Zerra.Repository.MariaDb
             if (sql is null)
                 return false;
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = OpenConnection())
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 0;
@@ -1043,9 +1137,8 @@ namespace Zerra.Repository.MariaDb
             if (sql is null)
                 return false;
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = OpenConnection())
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 0;
@@ -1059,9 +1152,8 @@ namespace Zerra.Repository.MariaDb
         {
             var sql = MariaDbEngine.GenerateSqlDelete(ids, modelDetail);
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = OpenConnection())
             {
-                connection.Open();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 0;
@@ -1079,9 +1171,8 @@ namespace Zerra.Repository.MariaDb
             if (sql is null)
                 return 0;
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = OpenConnection())
             {
-                connection.Open();
                 if (sql.Contains("GROUP_CONCAT(", StringComparison.Ordinal))
                     SetJoinLimit(connection);
                 using (var command = connection.CreateCommand())
@@ -1097,9 +1188,8 @@ namespace Zerra.Repository.MariaDb
         {
             var sql = LinqMariaDbConverter.ConvertPersistUpdate(set.GetProjectionMembers(), where, modelDetail);
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = OpenConnection())
             {
-                connection.Open();
                 if (sql.Contains("GROUP_CONCAT(", StringComparison.Ordinal))
                     SetJoinLimit(connection);
                 using (var command = connection.CreateCommand())
@@ -1116,9 +1206,8 @@ namespace Zerra.Repository.MariaDb
             var sqlWhere = LinqMariaDbConverter.ConvertPersistWhere(where, modelDetail);
             var sql = "DELETE FROM `" + modelDetail.DataSourceEntityName + "`" + sqlWhere;
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = OpenConnection())
             {
-                connection.Open();
                 if (sql.Contains("GROUP_CONCAT(", StringComparison.Ordinal))
                     SetJoinLimit(connection);
                 using (var command = connection.CreateCommand())
@@ -1134,9 +1223,8 @@ namespace Zerra.Repository.MariaDb
         {
             var sql = MariaDbEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = await OpenConnectionAsync(cancellationToken))
             {
-                await connection.OpenAsync(cancellationToken);
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 0;
@@ -1174,9 +1262,8 @@ namespace Zerra.Repository.MariaDb
         {
             var sql = MariaDbEngine.GenerateSqlInsert(model, graph, modelDetail, false);
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = await OpenConnectionAsync(cancellationToken))
             {
-                await connection.OpenAsync(cancellationToken);
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 0;
@@ -1192,9 +1279,8 @@ namespace Zerra.Repository.MariaDb
             if (sql is null)
                 return false;
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = await OpenConnectionAsync(cancellationToken))
             {
-                await connection.OpenAsync(cancellationToken);
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 0;
@@ -1208,9 +1294,8 @@ namespace Zerra.Repository.MariaDb
         {
             var sql = MariaDbEngine.GenerateSqlDelete(ids, modelDetail);
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = await OpenConnectionAsync(cancellationToken))
             {
-                await connection.OpenAsync(cancellationToken);
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 0;
@@ -1227,9 +1312,8 @@ namespace Zerra.Repository.MariaDb
             if (sql is null)
                 return 0;
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = await OpenConnectionAsync(cancellationToken))
             {
-                await connection.OpenAsync(cancellationToken);
                 if (sql.Contains("GROUP_CONCAT(", StringComparison.Ordinal))
                     await SetJoinLimitAsync(connection, cancellationToken);
                 using (var command = connection.CreateCommand())
@@ -1245,9 +1329,8 @@ namespace Zerra.Repository.MariaDb
         {
             var sql = LinqMariaDbConverter.ConvertPersistUpdate(set.GetProjectionMembers(), where, modelDetail);
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = await OpenConnectionAsync(cancellationToken))
             {
-                await connection.OpenAsync(cancellationToken);
                 if (sql.Contains("GROUP_CONCAT(", StringComparison.Ordinal))
                     await SetJoinLimitAsync(connection, cancellationToken);
                 using (var command = connection.CreateCommand())
@@ -1264,9 +1347,8 @@ namespace Zerra.Repository.MariaDb
             var sqlWhere = LinqMariaDbConverter.ConvertPersistWhere(where, modelDetail);
             var sql = "DELETE FROM `" + modelDetail.DataSourceEntityName + "`" + sqlWhere;
 
-            using (var connection = new MySqlConnection(connectionString))
+            using (var connection = await OpenConnectionAsync(cancellationToken))
             {
-                await connection.OpenAsync(cancellationToken);
                 if (sql.Contains("GROUP_CONCAT(", StringComparison.Ordinal))
                     await SetJoinLimitAsync(connection, cancellationToken);
                 using (var command = connection.CreateCommand())

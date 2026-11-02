@@ -1610,6 +1610,7 @@ namespace Zerra.Repository.MsSql
                 var derived = pagedValue || ReadsSubquery(plan);
                 //a take on its own is TOP, an offset is for a skip or for the keys of the relations
                 var top = plan.KeyParts is null && plan.Pieces.Count == 0 && take.HasValue && !skip.HasValue && query.ReadsElements;
+                var deferColumns = false;
                 switch (query.Terminal)
                 {
                     case LinqTerminal.Count:
@@ -1638,14 +1639,18 @@ namespace Zerra.Repository.MsSql
                             sb.Write(take!.Value);
                             sb.Write(") ");
                         }
-                        for (var i = 0; i < plan.Columns.Count; i++)
+                        deferColumns = plan.ReadsOnlyMembers;
+                        if (!deferColumns)
                         {
-                            if (i > 0)
-                                sb.Write(',');
-                            ConvertLinqColumn(plan.Columns[i], plan, derived, ref sb, rootDependant, modelDetail, operationContext);
-                            sb.Write(" AS [C");
-                            sb.Write(i);
-                            sb.Write(']');
+                            for (var i = 0; i < plan.Columns.Count; i++)
+                            {
+                                if (i > 0)
+                                    sb.Write(',');
+                                ConvertLinqColumn(plan.Columns[i], plan, derived, ref sb, rootDependant, modelDetail, operationContext);
+                                sb.Write(" AS [C");
+                                sb.Write(i);
+                                sb.Write(']');
+                            }
                         }
                         break;
                 }
@@ -1764,7 +1769,7 @@ namespace Zerra.Repository.MsSql
                     }
                     if (first)
                         sb.Write("1 AS[V0]");
-                    GenerateJoin(rootDependant, ref sbFrom);
+                    GenerateLinqJoin(rootDependant, ref sbFrom, ref sbWhere, ref sbEnd);
                     sb.Write(sbFrom);
                     sb.Write(sbWhere);
                     if (pagedValue)
@@ -1776,7 +1781,9 @@ namespace Zerra.Repository.MsSql
                 }
                 else
                 {
-                    GenerateJoin(rootDependant, ref sbFrom);
+                    if (deferColumns)
+                        ConvertLinqMemberColumns(plan, ref sb, rootDependant, modelDetail, operationContext);
+                    GenerateLinqJoin(rootDependant, ref sbFrom, ref sbWhere, ref sbEnd);
                     sb.Write(sbFrom);
                     sb.Write(sbWhere);
                     sb.Write(sbEnd);
@@ -1932,7 +1939,7 @@ namespace Zerra.Repository.MsSql
                     }
                     sb.Write(")AS[ZR]");
                 }
-                GenerateJoin(rootDependant, ref sbFrom);
+                GenerateLinqJoin(rootDependant, ref sbFrom, ref sbWhere, ref sbEnd);
                 sb.Write(sbFrom);
                 sb.Write(sbWhere);
                 if (numbered)
@@ -1965,6 +1972,29 @@ namespace Zerra.Repository.MsSql
                 sbWhere.Dispose();
                 sbFrom.Dispose();
                 sb.Dispose();
+            }
+        }
+        //without a join a column can only be the model's, and a shorter statement is quicker for the store to take in
+        private void ConvertLinqMemberColumns(LinqPlan plan, ref CharWriter sb, ParameterDependant rootDependant, ModelDetail modelDetail, MemberContext operationContext)
+        {
+            var joined = rootDependant.Dependants.Count > 0;
+            for (var i = 0; i < plan.Columns.Count; i++)
+            {
+                if (i > 0)
+                    sb.Write(',');
+                if (joined)
+                {
+                    ConvertLinqColumn(plan.Columns[i], plan, false, ref sb, rootDependant, modelDetail, operationContext);
+                }
+                else
+                {
+                    sb.Write('[');
+                    sb.Write(plan.Columns[i].Member!.StoreName);
+                    sb.Write(']');
+                }
+                sb.Write(" AS [C");
+                sb.Write(i);
+                sb.Write(']');
             }
         }
         private void ConvertLinqColumn(LinqColumn column, LinqPlan plan, bool derived, ref CharWriter sb, ParameterDependant rootDependant, ModelDetail modelDetail, MemberContext operationContext)
@@ -2320,8 +2350,27 @@ namespace Zerra.Repository.MsSql
         /// <inheritdoc/>
         protected override string QuoteColumn(string table, string column) => $"[{table}].[{column}]";
 
+        //a relation only being read is found by its primary key row by row, where the optimizer can sort every wide row to merge them
+        //a condition, group, or order on it stays the optimizer's choice, as a join hint fixes the order and it may want to start from that table
+        private void GenerateLinqJoin(ParameterDependant rootDependant, ref CharWriter sb, ref CharWriter sbWhere, ref CharWriter sbEnd)
+        {
+            if (rootDependant.Dependants.Count == 0)
+                return;
+            var conditions = sbWhere.ToString() + sbEnd.ToString();
+            GenerateJoin(rootDependant, ref sb, !UsesJoin(rootDependant, conditions));
+        }
+        private static bool UsesJoin(ParameterDependant dependant, string conditions)
+        {
+            foreach (var child in dependant.Dependants.Values)
+            {
+                if (conditions.Contains($"[{child.TableName}].", StringComparison.Ordinal) || UsesJoin(child, conditions))
+                    return true;
+            }
+            return false;
+        }
         /// <inheritdoc/>
-        protected override void GenerateJoin(ParameterDependant dependant, ref CharWriter sb)
+        protected override void GenerateJoin(ParameterDependant dependant, ref CharWriter sb) => GenerateJoin(dependant, ref sb, false);
+        private void GenerateJoin(ParameterDependant dependant, ref CharWriter sb, bool loop)
         {
             foreach (var child in dependant.Dependants.Values)
             {
@@ -2329,7 +2378,7 @@ namespace Zerra.Repository.MsSql
                     throw new NotSupportedException($"Relational queries support only one identity on {child.ModelDetail.Type.Name}");
                 var dependantIdentity = child.ModelDetail.IdentityMembers[0];
 
-                sb.Write("LEFT JOIN[");
+                sb.Write(loop ? "LEFT LOOP JOIN[" : "LEFT JOIN[");
                 sb.Write(child.ModelDetail.DataSourceEntityName);
                 sb.Write(']');
                 if (child.TableName != child.ModelDetail.DataSourceEntityName)
@@ -2350,7 +2399,7 @@ namespace Zerra.Repository.MsSql
 
                 AppendLineBreak(ref sb);
 
-                GenerateJoin(child, ref sb);
+                GenerateJoin(child, ref sb, loop);
             }
         }
 

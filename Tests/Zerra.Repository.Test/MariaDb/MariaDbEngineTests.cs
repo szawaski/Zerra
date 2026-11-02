@@ -71,7 +71,7 @@ namespace Zerra.Repository.Test.MariaDb
 
             DropDatabase(connectionString);
 
-            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).ToArray();
+            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).ToArray();
 
             CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
             RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
@@ -83,6 +83,10 @@ namespace Zerra.Repository.Test.MariaDb
             QueryParityTests.TestSequence(engine);
             await QueryParityTests.TestSequenceAsync(engine);
             await QueryParityTests.TestCancellationAsync(engine, () => HoldParityTable(connectionString));
+            TransactionTests.TestSequence(engine, false);
+            await TransactionTests.TestSequenceAsync(engine, false);
+            TransactionTests.TestAcrossEngines(engine);
+            TransactionTests.TestSameStore(engine, new MariaDbEngine(connectionString));
             SchemaChangeTests.Test(engine, table => ExecuteSql(connectionString, $"DROP TABLE IF EXISTS `{table}`"));
 
             const string changeColumn = "ALTER TABLE `TestTypes` MODIFY `Int32Thing` bigint NULL";

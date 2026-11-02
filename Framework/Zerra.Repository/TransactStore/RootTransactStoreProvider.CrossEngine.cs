@@ -13,6 +13,8 @@ namespace Zerra.Repository
 {
     public abstract partial class RootTransactStoreProvider<TModel>
     {
+        /// <summary>Whether a write through this provider can join a transaction.</summary>
+        protected virtual bool SupportsTransactions => Engine is ITransactStoreEngine { SupportsTransactions: true };
         /// <summary>The store this provider writes to, compared by reference with a related model's to tell whether a condition through the relation can run in one statement; <see langword="null"/> when unknown.</summary>
         protected abstract object? Engine { get; }
         object? IProviderRelation.Engine => Engine;

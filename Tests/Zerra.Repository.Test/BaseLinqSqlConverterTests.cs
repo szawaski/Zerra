@@ -61,9 +61,33 @@ namespace Zerra.Repository.Test
             var sql = ConvertToSql(LinqTerminal.Sequence, null, null, null, null, null, testTypesModelDetail);
 
             Assert.Contains("SELECT", sql);
-            Assert.Contains(d.Column("TestTypes", "KeyA"), sql);
+            //with no join the column can only be the model's, so it doesn't need the table
+            Assert.Contains("KeyA", sql, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(d.Column("TestTypes", "KeyA"), sql);
             Assert.Contains(d.From("TestTypes"), sql);
             Assert.DoesNotContain("WHERE", sql);
+        }
+
+        [Fact]
+        public void Convert_Many_ConditionOnRelation_WritesColumnsWithTheTable()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.RelationA.SomeValue == "a";
+            var sql = ConvertToSql(LinqTerminal.Sequence, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains(d.Column("TestTypes", "KeyA"), sql);
+            Assert.Contains("LEFT JOIN", sql);
+        }
+
+        [Fact]
+        public void Convert_Many_ConditionOnModel_WritesColumnsWithoutTheTable()
+        {
+            var d = GetDialect();
+            Expression<Func<TestTypesModel, bool>> where = x => x.Int32Thing > 0;
+            var sql = ConvertToSql(LinqTerminal.Sequence, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.DoesNotContain(d.Column("TestTypes", "KeyA"), sql);
+            Assert.Contains(d.Column("TestTypes", "Int32Thing"), sql);
         }
 
         [Fact]

@@ -65,6 +65,8 @@ namespace Zerra.Repository
             return new RepoQueryable<TModel>(new RepoQueryProvider<TModel>(this, graph), null);
         }
 
+        IRepoTransaction IRepo.BeginTransaction(System.Data.IsolationLevel isolationLevel) => RepoTransaction.Begin(isolationLevel);
+
         void IRepoSetup.AddProvider<TModel>(ITransactStoreProvider<TModel> provider)
         {
             var modelType = typeof(TModel);
