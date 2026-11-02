@@ -40,6 +40,8 @@ namespace Zerra.Repository
 
         /// <inheritdoc/>
         public object? Engine => ProviderRelation?.Engine;
+        /// <inheritdoc/>
+        public bool ReadsInStore => false;
 
         /// <summary>Propagates the query event to the next provider in the chain.</summary>
         /// <param name="graph">The graph for the current query.</param>
@@ -56,151 +58,16 @@ namespace Zerra.Repository
         /// <returns>A task containing the processed models.</returns>
         public abstract Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph);
 
-        /// <summary>Executes a query and returns its result as the type the operation produces: the models, a model, a count, a calculation, or the typed results of a projection, calculation per group, or distinct values.</summary>
-        /// <param name="query">The query to execute.</param>
-        /// <returns>The result, boxed when it is a value.</returns>
-        public object? Query(Query query)
-        {
-            //a projection, the different values of a member, or a calculation per group is built as the result types the query carries
-            if (query.Select is not null || query.GroupBy is not null)
-                return Project(query);
-            return query.Operation switch
-            {
-                QueryOperation.Many => Many(query),
-                QueryOperation.First => First(query),
-                QueryOperation.Single => Single(query),
-                QueryOperation.Count => Count(query),
-                QueryOperation.Any => Any(query),
-                QueryOperation.EventMany => EventMany(query),
-                QueryOperation.EventFirst => EventFirst(query),
-                QueryOperation.EventSingle => EventSingle(query),
-                QueryOperation.EventCount => EventCount(query),
-                QueryOperation.EventAny => EventAny(query),
-                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max or QueryOperation.CountDistinct => Calculate(query),
-                _ => throw new NotImplementedException(),
-            };
-        }
-        /// <summary>Asynchronously executes a query and returns its result as the type the operation produces.</summary>
-        /// <param name="query">The query to execute.</param>
-        /// <returns>A task containing the result.</returns>
-        public async Task<object?> QueryAsync(Query query)
-        {
-            if (query.Select is not null || query.GroupBy is not null)
-                return await ProjectAsync(query);
-            return query.Operation switch
-            {
-                QueryOperation.Many => await ManyAsync(query),
-                QueryOperation.First => await FirstAsync(query),
-                QueryOperation.Single => await SingleAsync(query),
-                QueryOperation.Count => await CountAsync(query),
-                QueryOperation.Any => await AnyAsync(query),
-                QueryOperation.EventMany => await EventManyAsync(query),
-                QueryOperation.EventFirst => await EventFirstAsync(query),
-                QueryOperation.EventSingle => await EventSingleAsync(query),
-                QueryOperation.EventCount => await EventCountAsync(query),
-                QueryOperation.EventAny => await EventAnyAsync(query),
-                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max or QueryOperation.CountDistinct => await CalculateAsync(query),
-                _ => throw new NotImplementedException(),
-            };
-        }
+        /// <summary>Runs a query. A layer swaps its condition onto <see cref="LinqQuery.Where"/> for the call and puts the original back, and treats the models or event models the query gives.</summary>
+        /// <param name="query">The query.</param>
+        /// <returns>The elements or the value.</returns>
+        public abstract object? Query(LinqQuery query);
 
-        /// <summary>Executes a many query and returns the matching models.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>The matching models as an object.</returns>
-        public abstract object? Many(Query query);
-        /// <summary>Executes a first query and returns the first matching model, or <see langword="null"/>.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>The first matching model, or <see langword="null"/>.</returns>
-        public abstract object? First(Query query);
-        /// <summary>Executes a single query and returns the single matching model, or <see langword="null"/>.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>The single matching model, or <see langword="null"/>.</returns>
-        public abstract object? Single(Query query);
-        /// <summary>Executes a count query and returns the count of matching models.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>The count as an object.</returns>
-        public abstract object? Count(Query query);
-        /// <summary>Executes an any query and returns whether any matching models exist.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A boolean result as an object.</returns>
-        public abstract object? Any(Query query);
-        /// <summary>Executes an event-many query and returns the matching event models.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>The matching event models as an object.</returns>
-        public abstract object? EventMany(Query query);
-        /// <summary>Executes an event-first query and returns the first matching event model, or <see langword="null"/>.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>The first matching event model, or <see langword="null"/>.</returns>
-        public abstract object? EventFirst(Query query);
-        /// <summary>Executes an event-single query and returns the single matching event model, or <see langword="null"/>.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>The single matching event model, or <see langword="null"/>.</returns>
-        public abstract object? EventSingle(Query query);
-        /// <summary>Executes an event-count query and returns the count of matching event models.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>The count as an object.</returns>
-        public abstract object? EventCount(Query query);
-        /// <summary>Executes an event-any query and returns whether any matching event models exist.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A boolean result as an object.</returns>
-        public abstract object? EventAny(Query query);
-        /// <summary>Calculates a sum, average, minimum, maximum, or count of different values over all matching models.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.Value"/>.</param>
-        /// <returns>The boxed result, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
-        public abstract object? Calculate(Query query);
-        /// <summary>Runs a query whose results are built as a type other than the model: a projection of each model or group, the different values of a member, or a calculation per group. The query carries the result types, so a layer swaps its where onto the query for the call and puts the original back.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.Select"/> or <see cref="Query.GroupBy"/>.</param>
-        /// <returns>The results.</returns>
-        public abstract object? Project(Query query);
-
-        /// <summary>Asynchronously executes a many query and returns the matching models.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A task containing the matching models.</returns>
-        public abstract Task<object?> ManyAsync(Query query);
-        /// <summary>Asynchronously executes a first query and returns the first matching model, or <see langword="null"/>.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A task containing the first matching model, or <see langword="null"/>.</returns>
-        public abstract Task<object?> FirstAsync(Query query);
-        /// <summary>Asynchronously executes a single query and returns the single matching model, or <see langword="null"/>.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A task containing the single matching model, or <see langword="null"/>.</returns>
-        public abstract Task<object?> SingleAsync(Query query);
-        /// <summary>Asynchronously executes a count query and returns the count of matching models.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A task containing the count.</returns>
-        public abstract Task<object?> CountAsync(Query query);
-        /// <summary>Asynchronously executes an any query and returns whether any matching models exist.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A task containing a boolean result.</returns>
-        public abstract Task<object?> AnyAsync(Query query);
-        /// <summary>Asynchronously executes an event-many query and returns the matching event models.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A task containing the matching event models.</returns>
-        public abstract Task<object?> EventManyAsync(Query query);
-        /// <summary>Asynchronously executes an event-first query and returns the first matching event model, or <see langword="null"/>.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A task containing the first matching event model, or <see langword="null"/>.</returns>
-        public abstract Task<object?> EventFirstAsync(Query query);
-        /// <summary>Asynchronously executes an event-single query and returns the single matching event model, or <see langword="null"/>.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A task containing the single matching event model, or <see langword="null"/>.</returns>
-        public abstract Task<object?> EventSingleAsync(Query query);
-        /// <summary>Asynchronously executes an event-count query and returns the count of matching event models.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A task containing the count.</returns>
-        public abstract Task<object?> EventCountAsync(Query query);
-        /// <summary>Asynchronously executes an event-any query and returns whether any matching event models exist.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A task containing a boolean result.</returns>
-        public abstract Task<object?> EventAnyAsync(Query query);
-        /// <summary>Asynchronously calculates a sum, average, minimum, maximum, or count of different values over all matching models.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.Value"/>.</param>
-        /// <returns>A task containing the boxed result, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
-        public abstract Task<object?> CalculateAsync(Query query);
-        /// <summary>Asynchronously runs a query whose results are built as a type other than the model: a projection of each model or group, the different values of a member, or a calculation per group. The query carries the result types, so a layer swaps its where onto the query for the call and puts the original back.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.Select"/> or <see cref="Query.GroupBy"/>.</param>
-        /// <returns>A task containing the results.</returns>
-        public abstract Task<object?> ProjectAsync(Query query);
+        /// <summary>Asynchronously runs a query. A layer swaps its condition onto <see cref="LinqQuery.Where"/> for the call and puts the original back, and treats the models or event models the query gives.</summary>
+        /// <param name="query">The query.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
+        /// <returns>A task containing the elements or the value.</returns>
+        public abstract Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken);
 
         /// <summary>Executes a synchronous persist operation (create, update, or delete).</summary>
         /// <param name="persist">The persist operation to execute.</param>
@@ -223,14 +90,15 @@ namespace Zerra.Repository
         }
         /// <summary>Executes an asynchronous persist operation (create, update, or delete).</summary>
         /// <param name="persist">The persist operation to execute.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public Task PersistAsync(Persist persist)
+        public Task PersistAsync(Persist persist, CancellationToken cancellationToken)
         {
             return persist.Operation switch
             {
-                PersistOperation.Create => CreateAsync(persist),
-                PersistOperation.Update => UpdateAsync(persist),
-                PersistOperation.Delete => DeleteAsync(persist),
+                PersistOperation.Create => CreateAsync(persist, cancellationToken),
+                PersistOperation.Update => UpdateAsync(persist, cancellationToken),
+                PersistOperation.Delete => DeleteAsync(persist, cancellationToken),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -247,15 +115,18 @@ namespace Zerra.Repository
 
         /// <summary>Asynchronously executes a create persist operation.</summary>
         /// <param name="persist">The persist operation containing the models to create.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public abstract Task CreateAsync(Persist persist);
+        public abstract Task CreateAsync(Persist persist, CancellationToken cancellationToken);
         /// <summary>Asynchronously executes an update persist operation.</summary>
         /// <param name="persist">The persist operation containing the models to update.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public abstract Task UpdateAsync(Persist persist);
+        public abstract Task UpdateAsync(Persist persist, CancellationToken cancellationToken);
         /// <summary>Asynchronously executes a delete persist operation.</summary>
         /// <param name="persist">The persist operation containing the models or IDs to delete.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public abstract Task DeleteAsync(Persist persist);
+        public abstract Task DeleteAsync(Persist persist, CancellationToken cancellationToken);
     }
 }

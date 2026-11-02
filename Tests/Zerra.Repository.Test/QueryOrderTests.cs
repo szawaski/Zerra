@@ -85,9 +85,6 @@ namespace Zerra.Repository.Test
 
             Assert.Equal(expected, String.Join(" ", models.Query(where, order, 1, 2)));
             Assert.Equal(expected, String.Join(" ", models.AsQueryable().Query(where, order, 1, 2)));
-            var query = new Query(QueryOperation.Many, typeof(OrderModel), where, order, 1, 2, null);
-            Assert.Equal(expected, String.Join(" ", models.Query(query)));
-            Assert.Equal(expected, String.Join(" ", models.AsQueryable().Query(query)));
 
             Assert.Equal(8, models.Query(null, null, null, null).Count());
             Assert.Equal(8, models.AsQueryable().Query(null, null, null, null).Count());
@@ -96,8 +93,6 @@ namespace Zerra.Repository.Test
             Expression<Func<TestRelationsModel, bool>> otherWhere = x => true;
             _ = Assert.Throws<ArgumentException>(() => models.Query(otherWhere, null, null, null).ToArray());
             _ = Assert.Throws<ArgumentException>(() => models.AsQueryable().Query(otherWhere, null, null, null).ToArray());
-            _ = Assert.Throws<ArgumentException>(() => models.Query(new Query(QueryOperation.Many, typeof(OrderModel), otherWhere, null, null, null, null)).ToArray());
-            _ = Assert.Throws<ArgumentException>(() => models.AsQueryable().Query(new Query(QueryOperation.Many, typeof(OrderModel), otherWhere, null, null, null, null)).ToArray());
 
             //an order for another type is rejected
             var otherOrder = QueryOrder<TestRelationsModel>.Create(x => x.RelationAKey);
@@ -113,11 +108,11 @@ namespace Zerra.Repository.Test
             foreach (var model in models)
                 repo.Create(model);
 
-            var order = QueryOrder<OrderModel>.Create(a, true, b, c, true);
+            var ordered = repo.Query<OrderModel>().OrderByDescending(a).ThenBy(b).ThenByDescending(c);
             var expected = String.Join(" ", Expected(true, false, true).Skip(2).Take(3));
-            Assert.Equal(expected, String.Join(" ", repo.Many<OrderModel>(x => true, order, 2, 3)));
-            Assert.Equal(expected, String.Join(" ", await repo.ManyAsync<OrderModel>(x => true, order, 2, 3)));
-            Assert.Equal(Expected(true, false, true).First().ToString(), repo.First<OrderModel>(x => true, order)!.ToString());
+            Assert.Equal(expected, String.Join(" ", ordered.Skip(2).Take(3).ToArray()));
+            Assert.Equal(expected, String.Join(" ", await ordered.Skip(2).Take(3).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)));
+            Assert.Equal(Expected(true, false, true).First().ToString(), ordered.First().ToString());
         }
     }
 }

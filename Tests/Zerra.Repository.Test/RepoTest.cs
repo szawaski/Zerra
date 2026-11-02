@@ -44,31 +44,31 @@ namespace Zerra.Repository.Test
             var model = TestTypesModel.Create();
             repo.Create<TestTypesModel>(model);
 
-            var modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA);
+            var modelCheck = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
             UpdateModel(model);
             repo.Update<TestTypesModel>(model);
-            modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA);
+            modelCheck = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
             var relationAModel = TestRelationsModel.Create();
             repo.Create<TestRelationsModel>(relationAModel);
-            var relationAModelCheck = repo.Single<TestRelationsModel>(x => x.RelationAKey == relationAModel.RelationAKey);
+            var relationAModelCheck = repo.Query<TestRelationsModel>().SingleOrDefault(x => x.RelationAKey == relationAModel.RelationAKey);
             Assert.NotNull(relationAModelCheck);
 
             model.RelationAKey = relationAModel.RelationAKey;
             repo.Update<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey));
-            modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA);
+            modelCheck = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationAKey);
-            modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA, new Graph<TestTypesModel>(x => x.RelationA));
+            modelCheck = repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.RelationA)).Where(x => x.KeyA == model.KeyA).SingleOrDefault();
             Assert.NotNull(modelCheck.RelationA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationA.RelationAKey);
 
             var relationBModel = TestRelationsModel.Create();
             relationBModel.RelationBKey = model.KeyA;
             repo.Create<TestRelationsModel>(relationBModel);
-            var relationBModelCheck = repo.Single<TestRelationsModel>(x => x.RelationBKey == model.KeyA);
+            var relationBModelCheck = repo.Query<TestRelationsModel>().SingleOrDefault(x => x.RelationBKey == model.KeyA);
             Assert.NotNull(relationBModelCheck);
 
             TestQuery(repo, model, relationBModelCheck);
@@ -89,21 +89,21 @@ namespace Zerra.Repository.Test
 
             model.RelationAKey = null;
             repo.Update<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey));
-            modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA);
+            modelCheck = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationAKey);
-            modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA, new Graph<TestTypesModel>(x => x.RelationA));
+            modelCheck = repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.RelationA)).Where(x => x.KeyA == model.KeyA).SingleOrDefault();
             Assert.Null(model.RelationA);
 
             repo.Delete<TestTypesModel>(model);
-            modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA);
+            modelCheck = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA);
             Assert.Null(modelCheck);
 
             repo.Delete<TestRelationsModel>(relationAModel);
-            relationAModelCheck = repo.Single<TestRelationsModel>(x => x.RelationAKey == relationAModel.RelationAKey);
+            relationAModelCheck = repo.Query<TestRelationsModel>().SingleOrDefault(x => x.RelationAKey == relationAModel.RelationAKey);
             Assert.Null(relationAModelCheck);
 
             repo.Delete<TestRelationsModel>(relationBModel);
-            relationBModelCheck = repo.Single<TestRelationsModel>(x => x.RelationAKey == relationBModel.RelationAKey);
+            relationBModelCheck = repo.Query<TestRelationsModel>().SingleOrDefault(x => x.RelationAKey == relationBModel.RelationAKey);
             Assert.Null(relationBModelCheck);
 
             TestPersistWhere(repo);
@@ -137,14 +137,14 @@ namespace Zerra.Repository.Test
             //only the graph's members change on the matching rows
             var updated = repo.Update<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 101, new TestTypesModel { StringThing = "bulk", Int32Thing = 7 }, new Graph<TestTypesModel>(x => x.StringThing));
             Assert.Equal(2, updated);
-            var after = repo.Many<TestTypesModel>(x => keys.Contains(x.KeyA));
-            Assert.Equal(3, after.Count);
+            var after = repo.Query<TestTypesModel>().Where(x => keys.Contains(x.KeyA)).ToArray();
+            Assert.Equal(3, after.Length);
             Assert.Equal("before", after.Single(x => x.Int32Thing == 101).StringThing);
             Assert.All(after.Where(x => x.Int32Thing > 101), x => Assert.Equal("bulk", x.StringThing));
 
             //values computed from each row in the store
             Assert.Equal(2, repo.Update<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 101, x => new TestTypesModel { Int32Thing = x.Int32Thing + 10, StringThing = x.StringThing + "+" }));
-            after = repo.Many<TestTypesModel>(x => keys.Contains(x.KeyA));
+            after = repo.Query<TestTypesModel>().Where(x => keys.Contains(x.KeyA)).ToArray();
             Assert.Equal([101, 112, 113], after.Select(x => x.Int32Thing).OrderBy(x => x));
             Assert.Equal(2, after.Count(x => x.StringThing == "bulk+"));
 
@@ -154,12 +154,12 @@ namespace Zerra.Repository.Test
 
             //a condition through a relation
             Assert.Equal(1, repo.Update<TestTypesModel>(x => keys.Contains(x.KeyA) && x.RelationA.SomeValue == "where y", new TestTypesModel { StringThing = "related" }, new Graph<TestTypesModel>(x => x.StringThing)));
-            Assert.Equal("related", repo.Single<TestTypesModel>(x => x.KeyA == models[2].KeyA).StringThing);
+            Assert.Equal("related", repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == models[2].KeyA).StringThing);
             Assert.Equal(1, repo.Delete<TestTypesModel>(x => keys.Contains(x.KeyA) && x.RelationA.SomeValue == "where y"));
-            Assert.Null(repo.Single<TestTypesModel>(x => x.KeyA == models[2].KeyA));
+            Assert.Null(repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == models[2].KeyA));
 
             Assert.Equal(2, repo.Delete<TestTypesModel>(x => keys.Contains(x.KeyA)));
-            Assert.Equal(0, repo.Count<TestTypesModel>(x => keys.Contains(x.KeyA)));
+            Assert.Equal(0, repo.Query<TestTypesModel>().Count(x => keys.Contains(x.KeyA)));
             repo.Delete<TestRelationsModel>(relationX);
             repo.Delete<TestRelationsModel>(relationY);
         }
@@ -180,7 +180,7 @@ namespace Zerra.Repository.Test
                 repo.Create<TestRelationsModel>(item);
 
             var keys = new Guid[] { parent1.KeyA, parent2.KeyA };
-            var result = repo.Many<TestTypesModel>(x => keys.Contains(x.KeyA), new Graph<TestTypesModel>(true, x => x.RelationB));
+            var result = repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.KeyA, x => x.RelationB)).Where(x => keys.Contains(x.KeyA)).ToArray();
             AssertRelatedMany(result, parent1, [related[0], related[1]]);
             AssertRelatedMany(result, parent2, [related[2]]);
 
@@ -206,7 +206,7 @@ namespace Zerra.Repository.Test
                 await repo.CreateAsync<TestRelationsModel>(item);
 
             var keys = new Guid[] { parent1.KeyA, parent2.KeyA };
-            var result = await repo.ManyAsync<TestTypesModel>(x => keys.Contains(x.KeyA), new Graph<TestTypesModel>(true, x => x.RelationB));
+            var result = await repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.KeyA, x => x.RelationB)).Where(x => keys.Contains(x.KeyA)).ToArrayAsync();
             AssertRelatedMany(result, parent1, [related[0], related[1]]);
             AssertRelatedMany(result, parent2, [related[2]]);
 
@@ -234,31 +234,31 @@ namespace Zerra.Repository.Test
             var model = TestTypesModel.Create();
             await repo.CreateAsync<TestTypesModel>(model);
 
-            var modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
+            var modelCheck = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
             UpdateModel(model);
             await repo.UpdateAsync<TestTypesModel>(model);
-            modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
+            modelCheck = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
             var relationAModel = TestRelationsModel.Create();
             await repo.CreateAsync<TestRelationsModel>(relationAModel);
-            var relationAModelCheck = await repo.SingleAsync<TestRelationsModel>(x => x.RelationAKey == relationAModel.RelationAKey);
+            var relationAModelCheck = await repo.Query<TestRelationsModel>().SingleOrDefaultAsync(x => x.RelationAKey == relationAModel.RelationAKey);
             Assert.NotNull(relationAModelCheck);
 
             model.RelationAKey = relationAModel.RelationAKey;
             await repo.UpdateAsync<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey));
-            modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
+            modelCheck = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationAKey);
-            modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA, new Graph<TestTypesModel>(x => x.RelationA));
+            modelCheck = await repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.RelationA)).Where(x => x.KeyA == model.KeyA).SingleOrDefaultAsync();
             Assert.NotNull(modelCheck.RelationA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationA.RelationAKey);
 
             var relationBModel = TestRelationsModel.Create();
             relationBModel.RelationBKey = model.KeyA;
             await repo.CreateAsync<TestRelationsModel>(relationBModel);
-            var relationBModelCheck = await repo.SingleAsync<TestRelationsModel>(x => x.RelationBKey == model.KeyA);
+            var relationBModelCheck = await repo.Query<TestRelationsModel>().SingleOrDefaultAsync(x => x.RelationBKey == model.KeyA);
             Assert.NotNull(relationBModelCheck);
 
             await TestQueryAsync(repo, model, relationBModelCheck);
@@ -278,21 +278,21 @@ namespace Zerra.Repository.Test
 
             model.RelationAKey = null;
             await repo.UpdateAsync<TestTypesModel>(model, new Graph<TestTypesModel>(x => x.RelationAKey));
-            modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
+            modelCheck = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA);
             Assert.Equal(model.RelationAKey, modelCheck.RelationAKey);
-            modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA, new Graph<TestTypesModel>(x => x.RelationA));
+            modelCheck = await repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.RelationA)).Where(x => x.KeyA == model.KeyA).SingleOrDefaultAsync();
             Assert.Null(model.RelationA);
 
             await repo.DeleteAsync<TestTypesModel>(model);
-            modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
+            modelCheck = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA);
             Assert.Null(modelCheck);
 
             await repo.DeleteAsync<TestRelationsModel>(relationAModel);
-            relationAModelCheck = await repo.SingleAsync<TestRelationsModel>(x => x.RelationAKey == relationAModel.RelationAKey);
+            relationAModelCheck = await repo.Query<TestRelationsModel>().SingleOrDefaultAsync(x => x.RelationAKey == relationAModel.RelationAKey);
             Assert.Null(relationAModelCheck);
 
             await repo.DeleteAsync<TestRelationsModel>(relationBModel);
-            relationBModelCheck = await repo.SingleAsync<TestRelationsModel>(x => x.RelationAKey == relationBModel.RelationAKey);
+            relationBModelCheck = await repo.Query<TestRelationsModel>().SingleOrDefaultAsync(x => x.RelationAKey == relationBModel.RelationAKey);
             Assert.Null(relationBModelCheck);
 
             await TestPersistWhereAsync(repo);
@@ -317,16 +317,16 @@ namespace Zerra.Repository.Test
             var keys = models.Select(x => x.KeyA).ToArray();
 
             Assert.Equal(2, await repo.UpdateAsync<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 201, new TestTypesModel { StringThing = "bulk" }, new Graph<TestTypesModel>(x => x.StringThing)));
-            var after = await repo.ManyAsync<TestTypesModel>(x => keys.Contains(x.KeyA));
+            var after = await repo.Query<TestTypesModel>().Where(x => keys.Contains(x.KeyA)).ToArrayAsync();
             Assert.Equal("before", after.Single(x => x.Int32Thing == 201).StringThing);
             Assert.All(after.Where(x => x.Int32Thing > 201), x => Assert.Equal("bulk", x.StringThing));
 
             Assert.Equal(2, await repo.UpdateAsync<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 201, x => new TestTypesModel { Int32Thing = x.Int32Thing + 10 }));
-            Assert.Equal([201, 212, 213], (await repo.ManyAsync<TestTypesModel>(x => keys.Contains(x.KeyA))).Select(x => x.Int32Thing).OrderBy(x => x));
+            Assert.Equal([201, 212, 213], (await repo.Query<TestTypesModel>().Where(x => keys.Contains(x.KeyA)).ToArrayAsync()).Select(x => x.Int32Thing).OrderBy(x => x));
 
             Assert.Equal(0, await repo.DeleteAsync<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 1000));
             Assert.Equal(3, await repo.DeleteAsync<TestTypesModel>(x => keys.Contains(x.KeyA) && x.RelationA.SomeValue == "where async"));
-            Assert.Equal(0, await repo.CountAsync<TestTypesModel>(x => keys.Contains(x.KeyA)));
+            Assert.Equal(0, await repo.Query<TestTypesModel>().CountAsync(x => keys.Contains(x.KeyA)));
             await repo.DeleteAsync<TestRelationsModel>(relation);
         }
 
@@ -342,7 +342,7 @@ namespace Zerra.Repository.Test
             var createdModel = TestTypesModel.Create();
             repo.Create<TestTypesModel>("Created", createdModel);
 
-            var modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == createdModel.KeyA);
+            var modelCheck = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == createdModel.KeyA);
             AssertAreEqual(createdModel, modelCheck);
 
             //a create appends expecting no stream, so the same model cannot be created twice
@@ -354,7 +354,7 @@ namespace Zerra.Repository.Test
             var model = createdModel.Copy();
             UpdateModel(model);
             repo.Update<TestTypesModel>("Updated", model);
-            modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA);
+            modelCheck = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
             TestQueryEventStore(repo, createdModel, model);
@@ -373,7 +373,7 @@ namespace Zerra.Repository.Test
             repo.Update<TestTypesModel>("UpdatedInt32", graphChange, new Graph<TestTypesModel>(x => x.Int32Thing));
 
             model.Int32Thing = graphChange.Int32Thing;
-            modelCheck = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA);
+            modelCheck = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
             var graphEvent = Assert.Single(repo.EventMany<TestTypesModel>(TemporalOrder.Oldest, (ulong?)2, null, null, null, x => x.KeyA == model.KeyA));
@@ -386,11 +386,11 @@ namespace Zerra.Repository.Test
             //a delete terminates the stream, the terminating event carries no state so the model is gone
             repo.Delete<TestTypesModel>("Deleted", model);
 
-            Assert.Null(repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA));
-            Assert.Null(repo.First<TestTypesModel>(x => x.KeyA == model.KeyA));
-            Assert.Empty(repo.Many<TestTypesModel>(x => x.KeyA == model.KeyA));
-            Assert.Equal(0, repo.Count<TestTypesModel>(x => x.KeyA == model.KeyA));
-            Assert.False(repo.Any<TestTypesModel>(x => x.KeyA == model.KeyA));
+            Assert.Null(repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA));
+            Assert.Null(repo.Query<TestTypesModel>().FirstOrDefault(x => x.KeyA == model.KeyA));
+            Assert.Empty(repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).ToArray());
+            Assert.Equal(0, repo.Query<TestTypesModel>().Count(x => x.KeyA == model.KeyA));
+            Assert.False(repo.Query<TestTypesModel>().Any(x => x.KeyA == model.KeyA));
 
             Assert.Empty(repo.TemporalMany<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
             Assert.Equal(0, repo.TemporalCount<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
@@ -410,7 +410,7 @@ namespace Zerra.Repository.Test
             var byCondition = TestTypesModel.Create();
             repo.Create<TestTypesModel>("Created", byCondition);
             Assert.Equal(1, repo.Update<TestTypesModel>("UpdatedByCondition", x => x.KeyA == byCondition.KeyA, new TestTypesModel { Int32Thing = 77 }, new Graph<TestTypesModel>(x => x.Int32Thing)));
-            var changed = repo.Single<TestTypesModel>(x => x.KeyA == byCondition.KeyA);
+            var changed = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == byCondition.KeyA);
             Assert.Equal(77, changed.Int32Thing);
             Assert.Equal(byCondition.StringThing, changed.StringThing);
             var conditionEvent = repo.EventFirst<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == byCondition.KeyA);
@@ -418,7 +418,7 @@ namespace Zerra.Repository.Test
             Assert.True(conditionEvent.GraphChange.HasMember(nameof(TestTypesModel.Int32Thing)));
             Assert.Equal(0, repo.Delete<TestTypesModel>(x => x.KeyA == byCondition.KeyA && x.Int32Thing == 1));
             Assert.Equal(1, repo.Delete<TestTypesModel>("DeletedByCondition", x => x.KeyA == byCondition.KeyA));
-            Assert.Null(repo.Single<TestTypesModel>(x => x.KeyA == byCondition.KeyA));
+            Assert.Null(repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == byCondition.KeyA));
         }
 
         /// <summary>
@@ -433,7 +433,7 @@ namespace Zerra.Repository.Test
             var createdModel = TestTypesModel.Create();
             await repo.CreateAsync<TestTypesModel>("Created", createdModel);
 
-            var modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == createdModel.KeyA);
+            var modelCheck = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == createdModel.KeyA);
             AssertAreEqual(createdModel, modelCheck);
 
             //a create appends expecting no stream, so the same model cannot be created twice
@@ -445,7 +445,7 @@ namespace Zerra.Repository.Test
             var model = createdModel.Copy();
             UpdateModel(model);
             await repo.UpdateAsync<TestTypesModel>("Updated", model);
-            modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
+            modelCheck = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
             await TestQueryEventStoreAsync(repo, createdModel, model);
@@ -464,7 +464,7 @@ namespace Zerra.Repository.Test
             await repo.UpdateAsync<TestTypesModel>("UpdatedInt32", graphChange, new Graph<TestTypesModel>(x => x.Int32Thing));
 
             model.Int32Thing = graphChange.Int32Thing;
-            modelCheck = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
+            modelCheck = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
             var graphEvent = Assert.Single(await repo.EventManyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)2, null, null, null, x => x.KeyA == model.KeyA));
@@ -477,11 +477,11 @@ namespace Zerra.Repository.Test
             //a delete terminates the stream, the terminating event carries no state so the model is gone
             await repo.DeleteAsync<TestTypesModel>("Deleted", model);
 
-            Assert.Null(await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA));
-            Assert.Null(await repo.FirstAsync<TestTypesModel>(x => x.KeyA == model.KeyA));
-            Assert.Empty(await repo.ManyAsync<TestTypesModel>(x => x.KeyA == model.KeyA));
-            Assert.Equal(0, await repo.CountAsync<TestTypesModel>(x => x.KeyA == model.KeyA));
-            Assert.False(await repo.AnyAsync<TestTypesModel>(x => x.KeyA == model.KeyA));
+            Assert.Null(await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA));
+            Assert.Null(await repo.Query<TestTypesModel>().FirstOrDefaultAsync(x => x.KeyA == model.KeyA));
+            Assert.Empty(await repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).ToArrayAsync());
+            Assert.Equal(0, await repo.Query<TestTypesModel>().CountAsync(x => x.KeyA == model.KeyA));
+            Assert.False(await repo.Query<TestTypesModel>().AnyAsync(x => x.KeyA == model.KeyA));
 
             Assert.Empty(await repo.TemporalManyAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
             Assert.Equal(0, await repo.TemporalCountAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
@@ -501,14 +501,14 @@ namespace Zerra.Repository.Test
             var byCondition = TestTypesModel.Create();
             await repo.CreateAsync<TestTypesModel>("Created", byCondition);
             Assert.Equal(1, await repo.UpdateAsync<TestTypesModel>("UpdatedByCondition", x => x.KeyA == byCondition.KeyA, new TestTypesModel { Int32Thing = 77 }, new Graph<TestTypesModel>(x => x.Int32Thing)));
-            var changed = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == byCondition.KeyA);
+            var changed = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == byCondition.KeyA);
             Assert.Equal(77, changed.Int32Thing);
             Assert.Equal(byCondition.StringThing, changed.StringThing);
             var conditionEvent = await repo.EventFirstAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == byCondition.KeyA);
             Assert.Equal("UpdatedByCondition", conditionEvent.EventName);
             Assert.Equal(0, await repo.DeleteAsync<TestTypesModel>(x => x.KeyA == byCondition.KeyA && x.Int32Thing == 1));
             Assert.Equal(1, await repo.DeleteAsync<TestTypesModel>("DeletedByCondition", x => x.KeyA == byCondition.KeyA));
-            Assert.Null(await repo.SingleAsync<TestTypesModel>(x => x.KeyA == byCondition.KeyA));
+            Assert.Null(await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == byCondition.KeyA));
         }
 
         private static void TestQueryEventStore(IRepo repo, TestTypesModel createdModel, TestTypesModel model)
@@ -516,22 +516,22 @@ namespace Zerra.Repository.Test
             var missingKey = Guid.NewGuid();
 
             //single and first replay the whole stream and give the state it ends in
-            AssertAreEqual(model, repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA));
-            AssertAreEqual(model, repo.First<TestTypesModel>(x => x.KeyA == model.KeyA));
+            AssertAreEqual(model, repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA));
+            AssertAreEqual(model, repo.Query<TestTypesModel>().FirstOrDefault(x => x.KeyA == model.KeyA));
 
-            //many gives the state after every event, oldest first
-            var manyResult = repo.Many<TestTypesModel>(x => x.KeyA == model.KeyA);
-            Assert.Equal(2, manyResult.Count);
+            //the state after every event, oldest first, is a history query
+            var manyResult = repo.TemporalMany<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA).ToArray();
+            Assert.Equal(2, manyResult.Length);
             AssertAreEqual(createdModel, manyResult.First());
             AssertAreEqual(model, manyResult.Last());
 
-            Assert.Equal(2, repo.Count<TestTypesModel>(x => x.KeyA == model.KeyA));
-            Assert.True(repo.Any<TestTypesModel>(x => x.KeyA == model.KeyA));
+            Assert.Equal(1, repo.Query<TestTypesModel>().Count(x => x.KeyA == model.KeyA));
+            Assert.True(repo.Query<TestTypesModel>().Any(x => x.KeyA == model.KeyA));
 
             //a stream that was never written
-            Assert.Null(repo.Single<TestTypesModel>(x => x.KeyA == missingKey));
-            Assert.Equal(0, repo.Count<TestTypesModel>(x => x.KeyA == missingKey));
-            Assert.False(repo.Any<TestTypesModel>(x => x.KeyA == missingKey));
+            Assert.Null(repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == missingKey));
+            Assert.Equal(0, repo.Query<TestTypesModel>().Count(x => x.KeyA == missingKey));
+            Assert.False(repo.Query<TestTypesModel>().Any(x => x.KeyA == missingKey));
 
             //the events themselves, each carrying the change that produced it and the state it produced
             var events = repo.EventMany<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA);
@@ -618,22 +618,22 @@ namespace Zerra.Repository.Test
             var missingKey = Guid.NewGuid();
 
             //single and first replay the whole stream and give the state it ends in
-            AssertAreEqual(model, await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA));
-            AssertAreEqual(model, await repo.FirstAsync<TestTypesModel>(x => x.KeyA == model.KeyA));
+            AssertAreEqual(model, await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA));
+            AssertAreEqual(model, await repo.Query<TestTypesModel>().FirstOrDefaultAsync(x => x.KeyA == model.KeyA));
 
-            //many gives the state after every event, oldest first
-            var manyResult = await repo.ManyAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
-            Assert.Equal(2, manyResult.Count);
+            //the state after every event, oldest first, is a history query
+            var manyResult = (await repo.TemporalManyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA)).ToArray();
+            Assert.Equal(2, manyResult.Length);
             AssertAreEqual(createdModel, manyResult.First());
             AssertAreEqual(model, manyResult.Last());
 
-            Assert.Equal(2, await repo.CountAsync<TestTypesModel>(x => x.KeyA == model.KeyA));
-            Assert.True(await repo.AnyAsync<TestTypesModel>(x => x.KeyA == model.KeyA));
+            Assert.Equal(1, await repo.Query<TestTypesModel>().CountAsync(x => x.KeyA == model.KeyA));
+            Assert.True(await repo.Query<TestTypesModel>().AnyAsync(x => x.KeyA == model.KeyA));
 
             //a stream that was never written
-            Assert.Null(await repo.SingleAsync<TestTypesModel>(x => x.KeyA == missingKey));
-            Assert.Equal(0, await repo.CountAsync<TestTypesModel>(x => x.KeyA == missingKey));
-            Assert.False(await repo.AnyAsync<TestTypesModel>(x => x.KeyA == missingKey));
+            Assert.Null(await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == missingKey));
+            Assert.Equal(0, await repo.Query<TestTypesModel>().CountAsync(x => x.KeyA == missingKey));
+            Assert.False(await repo.Query<TestTypesModel>().AnyAsync(x => x.KeyA == missingKey));
 
             //the events themselves, each carrying the change that produced it and the state it produced
             var events = await repo.EventManyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA);
@@ -728,103 +728,103 @@ namespace Zerra.Repository.Test
         private static void TestQuery(IRepo repo, TestTypesModel model, TestRelationsModel relationModel)
         {
             //many
-            var manyResult = repo.Many<TestTypesModel>(x => x.KeyA == model.KeyA);
+            var manyResult = repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).ToArray();
             Assert.NotNull(manyResult);
             Assert.Single(manyResult);
             AssertAreEqual(model, manyResult.First());
 
             //first
-            var firstResult = repo.First<TestTypesModel>(x => x.KeyA == model.KeyA);
+            var firstResult = repo.Query<TestTypesModel>().FirstOrDefault(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, firstResult);
 
             //single
-            var singleResult = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA);
+            var singleResult = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, singleResult);
 
             //count
-            var countResult = repo.Count<TestTypesModel>(x => x.KeyA == model.KeyA);
+            var countResult = repo.Query<TestTypesModel>().Count(x => x.KeyA == model.KeyA);
             Assert.Equal(1, countResult);
 
             //any
-            var anyResult = repo.Any<TestTypesModel>(x => x.KeyA == model.KeyA);
+            var anyResult = repo.Query<TestTypesModel>().Any(x => x.KeyA == model.KeyA);
             Assert.True(anyResult);
 
             var keyArray = new[] { model.KeyA };
 
             //array index
-            var arrayIndexResult = repo.Single<TestTypesModel>(x => x.KeyA == keyArray[0]);
+            var arrayIndexResult = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == keyArray[0]);
             AssertAreEqual(model, arrayIndexResult);
 
             //date
-            var dateResult = repo.Single<TestTypesModel>(x => x.DateTimeThing > DateTime.Now.AddYears(-1));
+            var dateResult = repo.Query<TestTypesModel>().SingleOrDefault(x => x.DateTimeThing > DateTime.Now.AddYears(-1));
             AssertAreEqual(model, dateResult);
 
             //date
-            var dateYearResult = repo.Single<TestTypesModel>(x => x.DateTimeThing.Year > DateTime.Now.AddYears(-1).Year);
+            var dateYearResult = repo.Query<TestTypesModel>().SingleOrDefault(x => x.DateTimeThing.Year > DateTime.Now.AddYears(-1).Year);
             AssertAreEqual(model, dateYearResult);
 
             //time
-            var timeResult = repo.Single<TestTypesModel>(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123, 0));
+            var timeResult = repo.Query<TestTypesModel>().SingleOrDefault(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123, 0));
             AssertAreEqual(model, timeResult);
 
             //bool compared to a value
-            var boolValueResult = repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA && x.BooleanThing == model.BooleanThing && x.BooleanNullableThing == model.BooleanNullableThing);
+            var boolValueResult = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA && x.BooleanThing == model.BooleanThing && x.BooleanNullableThing == model.BooleanNullableThing);
             AssertAreEqual(model, boolValueResult);
 
             //bool member as a condition, and negated
             var boolMemberResult = model.BooleanThing
-                ? repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA && x.BooleanThing && !x.BooleanNullableThing.Value)
-                : repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA && !x.BooleanThing && x.BooleanNullableThing.Value);
+                ? repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA && x.BooleanThing && !x.BooleanNullableThing.Value)
+                : repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA && !x.BooleanThing && x.BooleanNullableThing.Value);
             AssertAreEqual(model, boolMemberResult);
 
             //negated bool member excludes the row
             var boolExcludedResult = model.BooleanThing
-                ? repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA && !x.BooleanThing)
-                : repo.Single<TestTypesModel>(x => x.KeyA == model.KeyA && x.BooleanThing);
+                ? repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA && !x.BooleanThing)
+                : repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA && x.BooleanThing);
             Assert.Null(boolExcludedResult);
 
             //string like
-            var stringLikeResult = repo.Single<TestTypesModel>(x => x.StringThing.Contains("World"));
+            var stringLikeResult = repo.Query<TestTypesModel>().SingleOrDefault(x => x.StringThing.Contains("World"));
             AssertAreEqual(model, stringLikeResult);
 
             //LINQ contains
-            var linqContainsResult = repo.Single<TestTypesModel>(x => keyArray.Contains(x.KeyA));
+            var linqContainsResult = repo.Query<TestTypesModel>().SingleOrDefault(x => keyArray.Contains(x.KeyA));
             AssertAreEqual(model, linqContainsResult);
 
             //LINQ any
-            var linqAnyResult = repo.Single<TestTypesModel>(x => x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey));
+            var linqAnyResult = repo.Query<TestTypesModel>().SingleOrDefault(x => x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey));
             AssertAreEqual(model, linqAnyResult);
 
             //Connect 1-1
-            var connect11Result = repo.Many<TestTypesModel>(new Graph<TestTypesModel>(true, x => x.RelationA));
+            var connect11Result = repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.KeyA, x => x.RelationA)).ToArray();
             Assert.NotNull(connect11Result);
             Assert.Contains(connect11Result, m => m.KeyA == model.KeyA);
             var connect11Match = connect11Result.First(m => m.KeyA == model.KeyA);
-            AssertAreEqual(model, connect11Match);
+            Assert.NotNull(connect11Match.RelationA);
 
             //Connect 1-Many
-            var connect1ManyResult = repo.Many<TestTypesModel>(new Graph<TestTypesModel>(true, x => x.RelationB));
+            var connect1ManyResult = repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.KeyA, x => x.RelationB)).ToArray();
             Assert.NotNull(connect1ManyResult);
             Assert.Contains(connect1ManyResult, m => m.KeyA == model.KeyA);
             var connect1ManyMatch = connect1ManyResult.First(m => m.KeyA == model.KeyA);
-            AssertAreEqual(model, connect1ManyMatch);
+            Assert.Contains(connect1ManyMatch.RelationB, r => r.RelationAKey == relationModel.RelationAKey);
 
             //Connect 1-1 with Where
-            var connect11WhereResult = repo.Many<TestTypesModel>(x => x.RelationA.SomeValue.Contains("Hello"), new Graph<TestTypesModel>(true, x => x.RelationA));
+            var connect11WhereResult = repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.KeyA, x => x.RelationA)).Where(x => x.RelationA.SomeValue.Contains("Hello")).ToArray();
             Assert.NotNull(connect11WhereResult);
             Assert.Contains(connect11WhereResult, m => m.KeyA == model.KeyA);
             var connect11WhereMatch = connect11WhereResult.First(m => m.KeyA == model.KeyA);
-            AssertAreEqual(model, connect11WhereMatch);
+            Assert.StartsWith(relationModel.SomeValue, connect11WhereMatch.RelationA.SomeValue);
 
             //Connect 1-Many with Where
-            var connect1ManyWhereResult = repo.Many<TestTypesModel>(x => x.RelationB.Any(y => y.SomeValue.Contains("Hello")), new Graph<TestTypesModel>(true, x => x.RelationB));
+            var connect1ManyWhereResult = repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.KeyA, x => x.RelationB)).Where(x => x.RelationB.Any(y => y.SomeValue.Contains("Hello"))).ToArray();
             Assert.NotNull(connect1ManyWhereResult);
             Assert.Contains(connect1ManyWhereResult, m => m.KeyA == model.KeyA);
             var connect1ManyWhereMatch = connect1ManyWhereResult.First(m => m.KeyA == model.KeyA);
-            AssertAreEqual(model, connect1ManyWhereMatch);
+            Assert.Contains(connect1ManyWhereMatch.RelationB, r => r.RelationAKey == relationModel.RelationAKey);
 
             //select, with members through the relations and an order through one
-            var selectResult = repo.Select((TestTypesModel x) => new TestTypesSelection
+            var selectResult = repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).OrderBy(x => x.RelationA.SomeValue).Skip(0).Take(1).Select(x => new TestTypesSelection
             {
                 KeyA = x.KeyA,
                 Int32Thing = x.Int32Thing,
@@ -834,7 +834,7 @@ namespace Zerra.Repository.Test
                 RelationAValue = x.RelationA.SomeValue,
                 RelationBCount = x.RelationB.Count(),
                 RelationBHasModel = x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey)
-            }, x => x.KeyA == model.KeyA, QueryOrder<TestTypesModel>.Create(x => x.RelationA.SomeValue), 0, 1);
+            }).ToArray();
             var selected = Assert.Single(selectResult);
             Assert.Equal(model.KeyA, selected.KeyA);
             Assert.Equal(model.Int32Thing, selected.Int32Thing);
@@ -846,8 +846,7 @@ namespace Zerra.Repository.Test
             Assert.True(selected.RelationBHasModel);
 
             //group, keyed by a member with having, order, and paging, then keyed through a relation
-            var groupResult = repo.Group((TestTypesModel x) => x.BooleanThing, g => new TestTypesGrouping { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Int32Thing), Average = g.Average(x => x.Int32Thing), Max = g.Max(x => x.Int32Thing), Flagged = g.Count(x => x.BooleanThing), Distinct = g.Select(x => x.StringThing).Distinct().Count() },
-                x => x.KeyA == model.KeyA, having: r => r.Rows > 0, order: QueryOrder<TestTypesGrouping>.Create(r => r.Total), take: 1);
+            var groupResult = repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).GroupBy(x => x.BooleanThing).Select(g => new TestTypesGrouping { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Int32Thing), Average = g.Average(x => x.Int32Thing), Max = g.Max(x => x.Int32Thing), Flagged = g.Count(x => x.BooleanThing), Distinct = g.Select(x => x.StringThing).Distinct().Count() }).Where(r => r.Rows > 0).OrderBy(r => r.Total).Take(1).ToArray();
             var group = Assert.Single(groupResult);
             Assert.Equal(model.BooleanThing, group.Flag);
             Assert.Equal(1, group.Rows);
@@ -856,17 +855,17 @@ namespace Zerra.Repository.Test
             Assert.Equal(model.Int32Thing, group.Max);
             Assert.Equal(model.BooleanThing ? 1 : 0, group.Flagged);
             Assert.Equal(1, group.Distinct);
-            var relationGroupResult = repo.Group((TestTypesModel x) => x.RelationA.SomeValue, g => new TestTypesGrouping { RelationAValue = g.Key, Rows = g.Count(), Total = g.Sum(x => x.RelationB.Count()) }, x => x.KeyA == model.KeyA);
+            var relationGroupResult = repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).GroupBy(x => x.RelationA.SomeValue).Select(g => new TestTypesGrouping { RelationAValue = g.Key, Rows = g.Count(), Total = g.Sum(x => x.RelationB.Count()) }).ToArray();
             var relationGroup = Assert.Single(relationGroupResult);
             Assert.StartsWith(relationModel.SomeValue, relationGroup.RelationAValue);
             Assert.Equal(1, relationGroup.Rows);
             Assert.Equal(1, relationGroup.Total);
 
             //calculations through the relations
-            Assert.Equal(1, repo.Sum<TestTypesModel>(x => x.RelationB.Count(), x => x.KeyA == model.KeyA));
-            Assert.Equal(1, repo.CountDistinct<TestTypesModel, string>(x => x.StringThing, x => x.KeyA == model.KeyA));
-            Assert.Equal([model.BooleanThing], repo.Distinct<TestTypesModel, bool>(x => x.BooleanThing, x => x.KeyA == model.KeyA));
-            var countByRelation = Assert.Single(repo.Count<TestTypesModel, string>(x => x.RelationA.SomeValue, x => x.KeyA == model.KeyA));
+            Assert.Equal(1, repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Sum(x => x.RelationB.Count()));
+            Assert.Equal(1, repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Select(x => x.StringThing).Distinct().Count());
+            Assert.Equal([model.BooleanThing], repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Select(x => x.BooleanThing).Distinct().ToArray());
+            var countByRelation = Assert.Single(repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).GroupBy(x => x.RelationA.SomeValue).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray());
             Assert.StartsWith(relationModel.SomeValue, countByRelation.Key);
             Assert.Equal(1, countByRelation.Value);
         }
@@ -875,12 +874,12 @@ namespace Zerra.Repository.Test
         {
             var key = model.KeyA;
             //the stored values, rounded to the store's precision, decide what each condition should match
-            var stored = repo.Single<TestTypesModel>(x => x.KeyA == key);
+            var stored = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == key);
             Assert.NotNull(stored);
 
             void AssertFound(Expression<Func<TestTypesModel, bool>> where, bool expected)
             {
-                var result = repo.Many<TestTypesModel>(where);
+                var result = repo.Query<TestTypesModel>().Where(where).ToArray();
                 var found = result.Any(m => m.KeyA == key);
                 Assert.True(found == expected, $"{where} expected {(expected ? "a match" : "no match")}");
             }
@@ -1016,103 +1015,103 @@ namespace Zerra.Repository.Test
         private static async Task TestQueryAsync(IRepo repo, TestTypesModel model, TestRelationsModel relationModel)
         {
             //many
-            var manyResult = await repo.ManyAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
+            var manyResult = await repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).ToArrayAsync();
             Assert.NotNull(manyResult);
             Assert.Single(manyResult);
             AssertAreEqual(model, manyResult.First());
 
             //first
-            var firstResult = await repo.FirstAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
+            var firstResult = await repo.Query<TestTypesModel>().FirstOrDefaultAsync(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, firstResult);
 
             //single
-            var singleResult = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
+            var singleResult = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, singleResult);
 
             //count
-            var countResult = await repo.CountAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
+            var countResult = await repo.Query<TestTypesModel>().CountAsync(x => x.KeyA == model.KeyA);
             Assert.Equal(1, countResult);
 
             //any
-            var anyResult = await repo.AnyAsync<TestTypesModel>(x => x.KeyA == model.KeyA);
+            var anyResult = await repo.Query<TestTypesModel>().AnyAsync(x => x.KeyA == model.KeyA);
             Assert.True(anyResult);
 
             var keyArray = new[] { model.KeyA };
 
             //array index
-            var arrayIndexResult = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == keyArray[0]);
+            var arrayIndexResult = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == keyArray[0]);
             AssertAreEqual(model, arrayIndexResult);
 
             //date
-            var dateResult = await repo.SingleAsync<TestTypesModel>(x => x.DateTimeThing > DateTime.Now.AddYears(-1));
+            var dateResult = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.DateTimeThing > DateTime.Now.AddYears(-1));
             AssertAreEqual(model, dateResult);
 
             //date
-            var dateYearResult = await repo.SingleAsync<TestTypesModel>(x => x.DateTimeThing.Year > DateTime.Now.AddYears(-1).Year);
+            var dateYearResult = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.DateTimeThing.Year > DateTime.Now.AddYears(-1).Year);
             AssertAreEqual(model, dateYearResult);
 
             //time
-            var timeResult = await repo.SingleAsync<TestTypesModel>(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123, 0));
+            var timeResult = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.TimeSpanThing > TimeSpan.FromMilliseconds(123, 0));
             AssertAreEqual(model, timeResult);
 
             //bool compared to a value
-            var boolValueResult = await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA && x.BooleanThing == model.BooleanThing && x.BooleanNullableThing == model.BooleanNullableThing);
+            var boolValueResult = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA && x.BooleanThing == model.BooleanThing && x.BooleanNullableThing == model.BooleanNullableThing);
             AssertAreEqual(model, boolValueResult);
 
             //bool member as a condition, and negated
             var boolMemberResult = model.BooleanThing
-                ? await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA && x.BooleanThing && !x.BooleanNullableThing.Value)
-                : await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA && !x.BooleanThing && x.BooleanNullableThing.Value);
+                ? await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA && x.BooleanThing && !x.BooleanNullableThing.Value)
+                : await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA && !x.BooleanThing && x.BooleanNullableThing.Value);
             AssertAreEqual(model, boolMemberResult);
 
             //negated bool member excludes the row
             var boolExcludedResult = model.BooleanThing
-                ? await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA && !x.BooleanThing)
-                : await repo.SingleAsync<TestTypesModel>(x => x.KeyA == model.KeyA && x.BooleanThing);
+                ? await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA && !x.BooleanThing)
+                : await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA && x.BooleanThing);
             Assert.Null(boolExcludedResult);
 
             //string like
-            var stringLikeResult = await repo.SingleAsync<TestTypesModel>(x => x.StringThing.Contains("World"));
+            var stringLikeResult = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.StringThing.Contains("World"));
             AssertAreEqual(model, stringLikeResult);
 
             //LINQ contains
-            var linqContainsResult = await repo.SingleAsync<TestTypesModel>(x => keyArray.Contains(x.KeyA));
+            var linqContainsResult = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => keyArray.Contains(x.KeyA));
             AssertAreEqual(model, linqContainsResult);
 
             //LINQ any
-            var linqAnyResult = await repo.SingleAsync<TestTypesModel>(x => x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey));
+            var linqAnyResult = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey));
             AssertAreEqual(model, linqAnyResult);
 
             //Connect 1-1
-            var connect11Result = await repo.ManyAsync<TestTypesModel>(new Graph<TestTypesModel>(true, x => x.RelationA));
+            var connect11Result = await repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.KeyA, x => x.RelationA)).ToArrayAsync();
             Assert.NotNull(connect11Result);
             Assert.Contains(connect11Result, m => m.KeyA == model.KeyA);
             var connect11Match = connect11Result.First(m => m.KeyA == model.KeyA);
-            AssertAreEqual(model, connect11Match);
+            Assert.NotNull(connect11Match.RelationA);
 
             //Connect 1-Many
-            var connect1ManyResult = await repo.ManyAsync<TestTypesModel>(new Graph<TestTypesModel>(true, x => x.RelationB));
+            var connect1ManyResult = await repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.KeyA, x => x.RelationB)).ToArrayAsync();
             Assert.NotNull(connect1ManyResult);
             Assert.Contains(connect1ManyResult, m => m.KeyA == model.KeyA);
             var connect1ManyMatch = connect1ManyResult.First(m => m.KeyA == model.KeyA);
-            AssertAreEqual(model, connect1ManyMatch);
+            Assert.Contains(connect1ManyMatch.RelationB, r => r.RelationAKey == relationModel.RelationAKey);
 
             //Connect 1-1 with Where
-            var connect11WhereResult = await repo.ManyAsync<TestTypesModel>(x => x.RelationA.SomeValue.Contains("Hello"), new Graph<TestTypesModel>(true, x => x.RelationA));
+            var connect11WhereResult = await repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.KeyA, x => x.RelationA)).Where(x => x.RelationA.SomeValue.Contains("Hello")).ToArrayAsync();
             Assert.NotNull(connect11WhereResult);
             Assert.Contains(connect11WhereResult, m => m.KeyA == model.KeyA);
             var connect11WhereMatch = connect11WhereResult.First(m => m.KeyA == model.KeyA);
-            AssertAreEqual(model, connect11WhereMatch);
+            Assert.StartsWith(relationModel.SomeValue, connect11WhereMatch.RelationA.SomeValue);
 
             //Connect 1-Many with Where
-            var connect1ManyWhereResult = await repo.ManyAsync<TestTypesModel>(x => x.RelationB.Any(y => y.SomeValue.Contains("Hello")), new Graph<TestTypesModel>(true, x => x.RelationB));
+            var connect1ManyWhereResult = await repo.Query<TestTypesModel>(new Graph<TestTypesModel>(x => x.KeyA, x => x.RelationB)).Where(x => x.RelationB.Any(y => y.SomeValue.Contains("Hello"))).ToArrayAsync();
             Assert.NotNull(connect1ManyWhereResult);
             Assert.Contains(connect1ManyWhereResult, m => m.KeyA == model.KeyA);
             var connect1ManyWhereMatch = connect1ManyWhereResult.First(m => m.KeyA == model.KeyA);
-            AssertAreEqual(model, connect1ManyWhereMatch);
+            Assert.Contains(connect1ManyWhereMatch.RelationB, r => r.RelationAKey == relationModel.RelationAKey);
 
             //select, with members through the relations and an order through one
-            var selectResult = await repo.SelectAsync((TestTypesModel x) => new TestTypesSelection
+            var selectResult = await repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).OrderBy(x => x.RelationA.SomeValue).Skip(0).Take(1).Select(x => new TestTypesSelection
             {
                 KeyA = x.KeyA,
                 Int32Thing = x.Int32Thing,
@@ -1122,7 +1121,7 @@ namespace Zerra.Repository.Test
                 RelationAValue = x.RelationA.SomeValue,
                 RelationBCount = x.RelationB.Count(),
                 RelationBHasModel = x.RelationB.Any(y => y.RelationAKey == relationModel.RelationAKey)
-            }, x => x.KeyA == model.KeyA, QueryOrder<TestTypesModel>.Create(x => x.RelationA.SomeValue), 0, 1);
+            }).ToArrayAsync();
             var selected = Assert.Single(selectResult);
             Assert.Equal(model.KeyA, selected.KeyA);
             Assert.Equal(model.Int32Thing, selected.Int32Thing);
@@ -1134,8 +1133,7 @@ namespace Zerra.Repository.Test
             Assert.True(selected.RelationBHasModel);
 
             //group, keyed by a member with having, order, and paging, then keyed through a relation
-            var groupResult = await repo.GroupAsync((TestTypesModel x) => x.BooleanThing, g => new TestTypesGrouping { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Int32Thing), Average = g.Average(x => x.Int32Thing), Max = g.Max(x => x.Int32Thing), Flagged = g.Count(x => x.BooleanThing), Distinct = g.Select(x => x.StringThing).Distinct().Count() },
-                x => x.KeyA == model.KeyA, having: r => r.Rows > 0, order: QueryOrder<TestTypesGrouping>.Create(r => r.Total), take: 1);
+            var groupResult = await repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).GroupBy(x => x.BooleanThing).Select(g => new TestTypesGrouping { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Int32Thing), Average = g.Average(x => x.Int32Thing), Max = g.Max(x => x.Int32Thing), Flagged = g.Count(x => x.BooleanThing), Distinct = g.Select(x => x.StringThing).Distinct().Count() }).Where(r => r.Rows > 0).OrderBy(r => r.Total).Take(1).ToArrayAsync();
             var group = Assert.Single(groupResult);
             Assert.Equal(model.BooleanThing, group.Flag);
             Assert.Equal(1, group.Rows);
@@ -1144,17 +1142,17 @@ namespace Zerra.Repository.Test
             Assert.Equal(model.Int32Thing, group.Max);
             Assert.Equal(model.BooleanThing ? 1 : 0, group.Flagged);
             Assert.Equal(1, group.Distinct);
-            var relationGroupResult = await repo.GroupAsync((TestTypesModel x) => x.RelationA.SomeValue, g => new TestTypesGrouping { RelationAValue = g.Key, Rows = g.Count(), Total = g.Sum(x => x.RelationB.Count()) }, x => x.KeyA == model.KeyA);
+            var relationGroupResult = await repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).GroupBy(x => x.RelationA.SomeValue).Select(g => new TestTypesGrouping { RelationAValue = g.Key, Rows = g.Count(), Total = g.Sum(x => x.RelationB.Count()) }).ToArrayAsync();
             var relationGroup = Assert.Single(relationGroupResult);
             Assert.StartsWith(relationModel.SomeValue, relationGroup.RelationAValue);
             Assert.Equal(1, relationGroup.Rows);
             Assert.Equal(1, relationGroup.Total);
 
             //calculations through the relations
-            Assert.Equal(1, await repo.SumAsync<TestTypesModel>(x => x.RelationB.Count(), x => x.KeyA == model.KeyA));
-            Assert.Equal(1, await repo.CountDistinctAsync<TestTypesModel, string>(x => x.StringThing, x => x.KeyA == model.KeyA));
-            Assert.Equal([model.BooleanThing], await repo.DistinctAsync<TestTypesModel, bool>(x => x.BooleanThing, x => x.KeyA == model.KeyA));
-            var countByRelation = Assert.Single(await repo.CountAsync<TestTypesModel, string>(x => x.RelationA.SomeValue, x => x.KeyA == model.KeyA));
+            Assert.Equal(1, await repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).SumAsync(x => x.RelationB.Count()));
+            Assert.Equal(1, await repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Select(x => x.StringThing).Distinct().CountAsync());
+            Assert.Equal([model.BooleanThing], await repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Select(x => x.BooleanThing).Distinct().ToArrayAsync());
+            var countByRelation = Assert.Single((await repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).GroupBy(x => x.RelationA.SomeValue).Select(g => new { g.Key, Value = (long)g.Count() }).ToArrayAsync()).Select(r => (r.Key, r.Value)).ToArray());
             Assert.StartsWith(relationModel.SomeValue, countByRelation.Key);
             Assert.Equal(1, countByRelation.Value);
         }

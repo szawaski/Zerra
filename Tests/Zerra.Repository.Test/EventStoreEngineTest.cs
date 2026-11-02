@@ -19,10 +19,10 @@ namespace Zerra.Repository.Test
 
         public static Task TestAsync(IEventStoreEngine engine) => TestCalls(new Calls()
         {
-            Append = engine.AppendAsync,
-            Terminate = engine.TerminateAsync,
-            Read = engine.ReadAsync,
-            ReadBackwards = engine.ReadBackwardsAsync,
+            Append = (id, name, stream, number, state, data) => engine.AppendAsync(id, name, stream, number, state, data),
+            Terminate = (id, name, stream, number, state) => engine.TerminateAsync(id, name, stream, number, state),
+            Read = (stream, start, count, end, startDate, endDate) => engine.ReadAsync(stream, start, count, end, startDate, endDate),
+            ReadBackwards = (stream, start, count, end, startDate, endDate) => engine.ReadBackwardsAsync(stream, start, count, end, startDate, endDate),
         });
 
         public static Task TestSync(IEventStoreEngine engine) => TestCalls(new Calls()

@@ -265,9 +265,9 @@ namespace Zerra.Web
                     throw new NotImplementedException("Should not happen");
                 }
             }
-            catch (OperationCanceledException ex)
+            catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
             {
-                log?.Error(ex);
+                //no log
             }
             catch (Exception ex)
             {

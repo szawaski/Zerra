@@ -66,6 +66,6 @@ namespace Store.Orders.Test
         }
 
         public async Task<OrderDataModel?> GetOrder(Guid orderID)
-            => await Repo.SingleAsync<OrderDataModel>(x => x.ID == orderID);
+            => await Repo.Query<OrderDataModel>().SingleOrDefaultAsync(x => x.ID == orderID);
     }
 }

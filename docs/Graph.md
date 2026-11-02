@@ -4,7 +4,7 @@
 
 A `Graph` selects which members of an object, and of its nested objects, an operation includes. It is used by:
 
-- **[Repository](Repository.md)**: which relations to load, and which columns an update writes
+- **[Repository](Repository.md)**: which members and relations a query reads, and which columns an update writes
 - **[Mapper](Mapper.md)**: which members to map or copy
 - **[JsonSerializer](JsonSerializer.md)**: which members to write
 
@@ -87,9 +87,6 @@ graph.AddInstanceGraph(adminUser, new Graph<User>(includeAllMembers: true));
 ## Examples
 
 ```csharp
-// Repository: load an order with its customer and lines
-var orders = await Repo.ManyAsync<OrderDataModel>(new Graph<OrderDataModel>(true, x => x.Customer, x => x.Lines));
-
 // Repository: update only the Status column
 await Repo.UpdateAsync(order, new Graph<OrderDataModel>(x => x.Status));
 

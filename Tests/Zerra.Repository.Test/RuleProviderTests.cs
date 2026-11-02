@@ -70,24 +70,24 @@ namespace Zerra.Repository.Test
             var hidden = NewParent("hidden");
 
             repo.Create(parent, withItems);
-            Assert.Equal("parent created", repo.Single<Parent>(x => x.ID == parent.ID)!.Name);
-            Assert.Single(repo.Many<Item>(x => x.ParentID == parent.ID));
+            Assert.Equal("parent created", repo.Query<Parent>().SingleOrDefault(x => x.ID == parent.ID)!.Name);
+            Assert.Single(repo.Query<Item>().Where(x => x.ParentID == parent.ID).ToArray());
 
             repo.Update(parent);
-            Assert.Equal("parent created updated", repo.Single<Parent>(x => x.ID == parent.ID)!.Name);
+            Assert.Equal("parent created updated", repo.Query<Parent>().SingleOrDefault(x => x.ID == parent.ID)!.Name);
 
             //the rule's where hides models from every query
             repo.Create(hidden);
-            Assert.Null(repo.Single<Parent>(x => x.ID == hidden.ID));
-            Assert.Empty(repo.Many<Parent>(x => x.ID == hidden.ID));
-            Assert.Null(repo.First<Parent>(x => x.ID == hidden.ID));
-            Assert.Equal(1, repo.Count<Parent>(x => true));
-            Assert.False(repo.Any<Parent>(x => x.ID == hidden.ID));
+            Assert.Null(repo.Query<Parent>().SingleOrDefault(x => x.ID == hidden.ID));
+            Assert.Empty(repo.Query<Parent>().Where(x => x.ID == hidden.ID).ToArray());
+            Assert.Null(repo.Query<Parent>().FirstOrDefault(x => x.ID == hidden.ID));
+            Assert.Equal(1, repo.Query<Parent>().Count(x => true));
+            Assert.False(repo.Query<Parent>().Any(x => x.ID == hidden.ID));
 
             //a delete with a graph removes the related models too
             repo.Delete(parent, withItems);
-            Assert.Null(repo.Single<Parent>(x => x.ID == parent.ID));
-            Assert.Empty(repo.Many<Item>(x => x.ParentID == parent.ID));
+            Assert.Null(repo.Query<Parent>().SingleOrDefault(x => x.ID == parent.ID));
+            Assert.Empty(repo.Query<Item>().Where(x => x.ParentID == parent.ID).ToArray());
 
             repo.DeleteByID<Parent>(hidden.ID);
             Assert.Equal(["create", "create complete", "update", "update complete", "create", "create complete", "delete 1", "delete complete", "delete 1", "delete complete"], rules.Calls);
@@ -100,24 +100,24 @@ namespace Zerra.Repository.Test
             var parent = NewParent();
             var hidden = NewParent("hidden");
 
-            await repo.CreateAsync(parent, withItems);
-            Assert.Equal("parent created", (await repo.SingleAsync<Parent>(x => x.ID == parent.ID))!.Name);
+            await repo.CreateAsync(parent, withItems, TestContext.Current.CancellationToken);
+            Assert.Equal("parent created", (await repo.Query<Parent>().SingleOrDefaultAsync(x => x.ID == parent.ID, cancellationToken: TestContext.Current.CancellationToken))!.Name);
 
-            await repo.UpdateAsync(parent);
-            Assert.Equal("parent created updated", (await repo.SingleAsync<Parent>(x => x.ID == parent.ID))!.Name);
+            await repo.UpdateAsync(parent, TestContext.Current.CancellationToken);
+            Assert.Equal("parent created updated", (await repo.Query<Parent>().SingleOrDefaultAsync(x => x.ID == parent.ID, cancellationToken: TestContext.Current.CancellationToken))!.Name);
 
-            await repo.CreateAsync(hidden);
-            Assert.Null(await repo.SingleAsync<Parent>(x => x.ID == hidden.ID));
-            Assert.Empty(await repo.ManyAsync<Parent>(x => x.ID == hidden.ID));
-            Assert.Null(await repo.FirstAsync<Parent>(x => x.ID == hidden.ID));
-            Assert.Equal(1, await repo.CountAsync<Parent>(x => true));
-            Assert.False(await repo.AnyAsync<Parent>(x => x.ID == hidden.ID));
+            await repo.CreateAsync(hidden, TestContext.Current.CancellationToken);
+            Assert.Null(await repo.Query<Parent>().SingleOrDefaultAsync(x => x.ID == hidden.ID, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Empty(await repo.Query<Parent>().Where(x => x.ID == hidden.ID).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Null(await repo.Query<Parent>().FirstOrDefaultAsync(x => x.ID == hidden.ID, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Equal(1, await repo.Query<Parent>().CountAsync(x => true, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.False(await repo.Query<Parent>().AnyAsync(x => x.ID == hidden.ID, cancellationToken: TestContext.Current.CancellationToken));
 
-            await repo.DeleteAsync(parent, withItems);
-            Assert.Null(await repo.SingleAsync<Parent>(x => x.ID == parent.ID));
-            Assert.Empty(await repo.ManyAsync<Item>(x => x.ParentID == parent.ID));
+            await repo.DeleteAsync(parent, withItems, TestContext.Current.CancellationToken);
+            Assert.Null(await repo.Query<Parent>().SingleOrDefaultAsync(x => x.ID == parent.ID, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Empty(await repo.Query<Item>().Where(x => x.ParentID == parent.ID).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
 
-            await repo.DeleteByIDAsync<Parent>(hidden.ID);
+            await repo.DeleteByIDAsync<Parent>(hidden.ID, TestContext.Current.CancellationToken);
             Assert.Equal(10, rules.Calls.Count);
         }
     }

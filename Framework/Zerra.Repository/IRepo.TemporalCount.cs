@@ -20,7 +20,7 @@ namespace Zerra.Repository
         /// <param name="where">An optional filter expression to apply to the query.</param>
         /// <returns>The count of models matching the criteria.</returns>
         long TemporalCount<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
-            => (long)Query(new Query<TModel>(QueryOperation.Count, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, null))!;
+            => (long)((IRepoInternal)this).Query(new LinqModelQuery(typeof(TModel), LinqTerminal.LongCount, false, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, null))!;
 
         /// <summary>
         /// Gets the count of models matching the specified number-based temporal query criteria.
@@ -34,7 +34,7 @@ namespace Zerra.Repository
         /// <param name="where">An optional filter expression to apply to the query.</param>
         /// <returns>The count of models matching the criteria.</returns>
         long TemporalCount<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
-            => (long)Query(new Query<TModel>(QueryOperation.Count, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, null))!;
+            => (long)((IRepoInternal)this).Query(new LinqModelQuery(typeof(TModel), LinqTerminal.LongCount, false, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, null))!;
 
 
         /// <summary>
@@ -47,9 +47,10 @@ namespace Zerra.Repository
         /// <param name="temporalSkip">The number of temporal entries to skip.</param>
         /// <param name="temporalTake">The number of temporal entries to take.</param>
         /// <param name="where">An optional filter expression to apply to the query.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the count of models matching the criteria.</returns>
-        async Task<long> TemporalCountAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
-            => (long)(await QueryAsync(new Query<TModel>(QueryOperation.Count, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, null)))!;
+        async Task<long> TemporalCountAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where, CancellationToken cancellationToken = default) where TModel : class, new()
+            => (long)(await ((IRepoInternal)this).QueryAsync(new LinqModelQuery(typeof(TModel), LinqTerminal.LongCount, false, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, null), cancellationToken))!;
 
         /// <summary>
         /// Asynchronously gets the count of models matching the specified number-based temporal query criteria.
@@ -61,8 +62,9 @@ namespace Zerra.Repository
         /// <param name="temporalSkip">The number of temporal entries to skip.</param>
         /// <param name="temporalTake">The number of temporal entries to take.</param>
         /// <param name="where">An optional filter expression to apply to the query.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the count of models matching the criteria.</returns>
-        async Task<long> TemporalCountAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
-            => (long)(await QueryAsync(new Query<TModel>(QueryOperation.Count, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, null)))!;
+        async Task<long> TemporalCountAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where, CancellationToken cancellationToken = default) where TModel : class, new()
+            => (long)(await ((IRepoInternal)this).QueryAsync(new LinqModelQuery(typeof(TModel), LinqTerminal.LongCount, false, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, null), cancellationToken))!;
     }
 }

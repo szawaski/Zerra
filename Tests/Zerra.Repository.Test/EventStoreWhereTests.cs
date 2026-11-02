@@ -97,7 +97,7 @@ namespace Zerra.Repository.Test
         {
             _ = name;
             var repo = CreateRepo();
-            Assert.Equal(expected.Order(), repo.Many(where).Select(x => x.ID).Order());
+            Assert.Equal(expected.Order(), repo.Query<WhereModel>().Where(where).ToArray().Select(x => x.ID).Order());
         }
 
         [Theory]
@@ -106,7 +106,7 @@ namespace Zerra.Repository.Test
         {
             _ = name;
             var repo = CreateRepo();
-            Assert.Equal(expected.Order(), (await repo.ManyAsync(where)).Select(x => x.ID).Order());
+            Assert.Equal(expected.Order(), (await repo.Query<WhereModel>().Where(where).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Select(x => x.ID).Order());
         }
 
         [Entity("EventStoreCompositeModel")]
@@ -132,20 +132,20 @@ namespace Zerra.Repository.Test
                     repo.Create(new CompositeModel { A = a, B = b, Name = $"{b}" });
             }
 
-            Assert.Equal("2", repo.Single<CompositeModel>(x => x.A == a1 && x.B == 2)!.Name);
+            Assert.Equal("2", repo.Query<CompositeModel>().SingleOrDefault(x => x.A == a1 && x.B == 2)!.Name);
             var one = 1;
-            Assert.Equal("3", repo.Single<CompositeModel>(x => x.A == a1 && x.B == one + 2)!.Name);
-            Assert.Equal(4, repo.Many<CompositeModel>(x => (x.A == a1 || x.A == a2) && (x.B == 1 || x.B == 3)).Count);
+            Assert.Equal("3", repo.Query<CompositeModel>().SingleOrDefault(x => x.A == a1 && x.B == one + 2)!.Name);
+            Assert.Equal(4, repo.Query<CompositeModel>().Where(x => (x.A == a1 || x.A == a2) && (x.B == 1 || x.B == 3)).ToArray().Length);
             var bs = new[] { 1, 2, 3 };
-            Assert.Equal(3, (await repo.ManyAsync<CompositeModel>(x => x.A == a2 && bs.Contains(x.B))).Count);
-            _ = Assert.Throws<NotSupportedException>(() => repo.Many<CompositeModel>(x => x.A == a1));
+            Assert.Equal(3, (await repo.Query<CompositeModel>().Where(x => x.A == a2 && bs.Contains(x.B)).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Length);
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<CompositeModel>().Where(x => x.A == a1).ToArray());
         }
 
         [Fact]
         public void WithoutIdentity_Throws()
         {
             var repo = CreateRepo();
-            _ = Assert.Throws<NotSupportedException>(() => repo.Many<WhereModel>(null));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<WhereModel>().ToArray());
         }
     }
 }

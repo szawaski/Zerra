@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using Zerra.Linq;
@@ -21,7 +22,6 @@ namespace Zerra.Repository.MsSql
     /// </summary>
     public sealed partial class MsSqlEngine : ITransactStoreEngine
     {
-        private static readonly MethodInfo hashSetContainsMethod = typeof(HashSet<object>).GetMethods().First(m => m.Name == nameof(HashSet<>.Contains));
         private readonly string connectionString;
         /// <summary>
         /// Initializes a new instance of <see cref="MsSqlEngine"/>.
@@ -37,273 +37,6 @@ namespace Zerra.Repository.MsSql
         /// </summary>
         /// <returns>The connection string.</returns>
         public string GetConnectionString() => connectionString;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static ModelMemberDetail[] ReadColumns<TModel>(SqlDataReader reader, ModelDetail modelDetail)
-        {
-            var columnProperties = new ModelMemberDetail[reader.FieldCount];
-            for (var i = 0; i < reader.FieldCount; i++)
-            {
-                var property = reader.GetName(i);
-                if (modelDetail.TryGetPropertyBySourceName(property, out var propertyInfo))
-                    columnProperties[i] = propertyInfo;
-            }
-            return columnProperties;
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static TModel ReadRow<TModel>(SqlDataReader reader, ModelDetail modelDetail, ModelMemberDetail[] columnProperties)
-        {
-            var model = (TModel)modelDetail.Creator();
-
-            for (var i = 0; i < reader.FieldCount; i++)
-            {
-                var columnProperty = columnProperties[i];
-                if (columnProperty is not null)
-                {
-                    if (columnProperty.CoreType.HasValue)
-                    {
-                        switch (columnProperty.CoreType.Value)
-                        {
-                            case CoreType.Boolean:
-                                {
-                                    var value = reader.GetBoolean(i);
-                                    ((Action<object, bool>)columnProperty.Setter)(model, value);
-                                }
-                                break;
-                            case CoreType.Byte:
-                                {
-                                    var value = reader.GetByte(i);
-                                    ((Action<object, byte>)columnProperty.Setter)(model, value);
-                                }
-                                break;
-                            case CoreType.Int16:
-                                {
-                                    var value = reader.GetInt16(i);
-                                    ((Action<object, short>)columnProperty.Setter)(model, value);
-                                }
-                                break;
-                            case CoreType.Int32:
-                                {
-                                    var value = reader.GetInt32(i);
-                                    ((Action<object, int>)columnProperty.Setter)(model, value);
-                                }
-                                break;
-                            case CoreType.Int64:
-                                {
-                                    var value = reader.GetInt64(i);
-                                    ((Action<object, long>)columnProperty.Setter)(model, value);
-                                }
-                                break;
-                            case CoreType.Single:
-                                {
-                                    var value = reader.GetFloat(i);
-                                    ((Action<object, float>)columnProperty.Setter)(model, value);
-                                }
-                                break;
-                            case CoreType.Double:
-                                {
-                                    var value = reader.GetDouble(i);
-                                    ((Action<object, double>)columnProperty.Setter)(model, value);
-                                }
-                                break;
-                            case CoreType.Decimal:
-                                {
-                                    var value = reader.GetDecimal(i);
-                                    ((Action<object, decimal>)columnProperty.Setter)(model, value);
-                                }
-                                break;
-                            case CoreType.Char:
-                                {
-                                    var sqlValue = reader.GetSqlString(i);
-                                    if (!sqlValue.IsNull)
-                                        ((Action<object, char>)columnProperty.Setter)(model, sqlValue.Value[0]);
-                                }
-                                break;
-                            case CoreType.DateTime:
-                                {
-                                    var value = reader.GetDateTime(i);
-                                    ((Action<object, DateTime>)columnProperty.Setter)(model, new DateTime(value.Ticks, DateTimeKind.Utc));
-                                }
-                                break;
-                            case CoreType.DateTimeOffset:
-                                {
-                                    var value = reader.GetDateTimeOffset(i);
-                                    ((Action<object, DateTimeOffset>)columnProperty.Setter)(model, value);
-                                }
-                                break;
-                            case CoreType.TimeSpan:
-                                {
-                                    var value = reader.GetTimeSpan(i);
-                                    ((Action<object, TimeSpan>)columnProperty.Setter)(model, value);
-                                }
-                                break;
-                            case CoreType.DateOnly:
-                                {
-                                    var value = reader.GetDateTime(i);
-                                    ((Action<object, DateOnly>)columnProperty.Setter)(model, DateOnly.FromDateTime(value));
-                                }
-                                break;
-                            case CoreType.TimeOnly:
-                                {
-                                    var value = reader.GetTimeSpan(i);
-                                    ((Action<object, TimeOnly>)columnProperty.Setter)(model, TimeOnly.FromTimeSpan(value));
-                                }
-                                break;
-                            case CoreType.Guid:
-                                {
-                                    var value = reader.GetGuid(i);
-                                    ((Action<object, Guid>)columnProperty.Setter)(model, value);
-                                }
-                                break;
-                            case CoreType.String:
-                                {
-                                    var sqlValue = reader.GetSqlString(i);
-                                    if (!sqlValue.IsNull)
-                                        ((Action<object, string>)columnProperty.Setter)(model, sqlValue.Value);
-                                }
-                                break;
-                            case CoreType.BooleanNullable:
-                                {
-                                    var sqlValue = reader.GetSqlBoolean(i);
-                                    if (!sqlValue.IsNull)
-                                        ((Action<object, bool?>)columnProperty.Setter)(model, sqlValue.Value);
-                                }
-                                break;
-                            case CoreType.ByteNullable:
-                                {
-                                    var sqlValue = reader.GetSqlByte(i);
-                                    if (!sqlValue.IsNull)
-                                        ((Action<object, byte?>)columnProperty.Setter)(model, sqlValue.Value);
-                                }
-                                break;
-                            case CoreType.Int16Nullable:
-                                {
-                                    var sqlValue = reader.GetSqlInt16(i);
-                                    if (!sqlValue.IsNull)
-                                        ((Action<object, short?>)columnProperty.Setter)(model, sqlValue.Value);
-                                }
-                                break;
-                            case CoreType.Int32Nullable:
-                                {
-                                    var sqlValue = reader.GetSqlInt32(i);
-                                    if (!sqlValue.IsNull)
-                                        ((Action<object, int?>)columnProperty.Setter)(model, sqlValue.Value);
-                                }
-                                break;
-                            case CoreType.Int64Nullable:
-                                {
-                                    var sqlValue = reader.GetSqlInt64(i);
-                                    if (!sqlValue.IsNull)
-                                        ((Action<object, long?>)columnProperty.Setter)(model, sqlValue.Value);
-                                }
-                                break;
-                            case CoreType.SingleNullable:
-                                {
-                                    var sqlValue = reader.GetSqlSingle(i);
-                                    if (!sqlValue.IsNull)
-                                        ((Action<object, float?>)columnProperty.Setter)(model, sqlValue.Value);
-                                }
-                                break;
-                            case CoreType.DoubleNullable:
-                                {
-                                    if (!reader.IsDBNull(i))  //GetSqlDouble doesn't handle SqlMoney
-                                    {
-                                        var value = reader.GetDouble(i);
-                                        ((Action<object, double?>)columnProperty.Setter)(model, value);
-                                    }
-                                }
-                                break;
-                            case CoreType.DecimalNullable:
-                                {
-                                    if (!reader.IsDBNull(i))  //GetSqlDecimal doesn't handle SqlMoney
-                                    {
-                                        var value = reader.GetDecimal(i);
-                                        ((Action<object, decimal?>)columnProperty.Setter)(model, value);
-                                    }
-                                }
-                                break;
-                            case CoreType.CharNullable:
-                                {
-                                    var sqlValue = reader.GetSqlChars(i);
-                                    if (!sqlValue.IsNull && sqlValue.Value.Length > 0)
-                                        ((Action<object, char?>)columnProperty.Setter)(model, sqlValue.Value[0]);
-                                }
-                                break;
-                            case CoreType.DateTimeNullable:
-                                {
-                                    if (!reader.IsDBNull(i)) //GetSqlDateTime doesn't handle null
-                                    {
-                                        var value = reader.GetDateTime(i);
-                                        ((Action<object, DateTime?>)columnProperty.Setter)(model, new DateTime(value.Ticks, DateTimeKind.Utc));
-                                    }
-                                }
-                                break;
-                            case CoreType.DateTimeOffsetNullable:
-                                {
-                                    if (!reader.IsDBNull(i)) //GetSqlDateTime doesn't handle null
-                                    {
-                                        var value = reader.GetDateTimeOffset(i);
-                                        ((Action<object, DateTimeOffset?>)columnProperty.Setter)(model, value);
-                                    }
-                                }
-                                break;
-                            case CoreType.TimeSpanNullable:
-                                {
-                                    if (!reader.IsDBNull(i)) //GetSqlDateTime doesn't handle null
-                                    {
-                                        var value = reader.GetTimeSpan(i);
-                                        ((Action<object, TimeSpan?>)columnProperty.Setter)(model, value);
-                                    }
-                                }
-                                break;
-                            case CoreType.DateOnlyNullable:
-                                {
-                                    if (!reader.IsDBNull(i))
-                                    {
-                                        var value = reader.GetDateTime(i);
-                                        ((Action<object, DateOnly?>)columnProperty.Setter)(model, DateOnly.FromDateTime(value));
-                                    }
-                                }
-                                break;
-                            case CoreType.TimeOnlyNullable:
-                                {
-                                    if (!reader.IsDBNull(i))
-                                    {
-                                        var value = reader.GetTimeSpan(i);
-                                        ((Action<object, TimeOnly?>)columnProperty.Setter)(model, TimeOnly.FromTimeSpan(value));
-                                    }
-                                }
-                                break;
-                            case CoreType.GuidNullable:
-                                {
-                                    var sqlValue = reader.GetSqlGuid(i);
-                                    if (!sqlValue.IsNull)
-                                        ((Action<object, Guid?>)columnProperty.Setter)(model, sqlValue.Value);
-                                }
-                                break;
-
-                            default:
-                                throw new NotSupportedException($"{nameof(MsSqlEngine)} Cannot map to type {columnProperty.CoreType.Value} in {modelDetail.Type.Name}");
-                        }
-                    }
-                    else if (columnProperty.Type == typeof(byte[]))
-                    {
-                        if (!reader.IsDBNull(i))
-                        {
-                            var sqlValue = reader.GetSqlBytes(i);
-                            if (!sqlValue.IsNull)
-                                ((Action<object, byte[]>)columnProperty.Setter)(model, sqlValue.Value);
-                        }
-                    }
-                    else
-                    {
-                        throw new NotSupportedException($"{nameof(MsSqlEngine)} cannot map to type in {modelDetail.Type.Name}");
-                    }
-                }
-            }
-
-            return model;
-        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static string GenerateSqlInsert<TModel>(TModel model, Graph? graph, ModelDetail modelDetail, bool getIdentities) where TModel : class, new()
@@ -570,6 +303,16 @@ namespace Zerra.Repository.MsSql
                 return;
             }
 
+            if (modelPropertyDetail.EnumType is not null)
+            {
+                if (assigningValue || comparingValue)
+                    writer.Write('=');
+                writer.Write("N'");
+                writer.Write(EnumName.GetName(modelPropertyDetail.EnumType, value).Replace("'", "''"));
+                writer.Write('\'');
+                return;
+            }
+
             if (modelPropertyDetail.CoreType.HasValue)
             {
                 if (assigningValue || comparingValue)
@@ -679,846 +422,441 @@ namespace Zerra.Repository.MsSql
         }
 
         /// <inheritdoc/>
-        public IReadOnlyCollection<TModel> ExecuteMany<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public object? ExecuteLinq<TModel, TResult>(LinqQuery query, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = LinqMsSqlConverter.Convert(QueryOperation.Many, where, order, skip, take, graph, modelDetail);
+            var statement = LinqMsSqlConverter.ConvertLinq(query, modelDetail);
 
             using (var connection = new SqlConnection(connectionString))
             {
                 connection.Open();
-                using (var command = connection.CreateCommand())
+                switch (query.Terminal)
                 {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
-                    {
-                        if (reader.HasRows)
+                    case LinqTerminal.Any:
+                        using (var command = connection.CreateCommand())
                         {
-                            var models = new List<TModel>();
-
-                            var columnProperties = ReadColumns<TModel>(reader, modelDetail);
-
-                            while (reader.Read())
+                            command.CommandTimeout = 0;
+                            command.CommandText = statement.Sql;
+                            using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
+                                return reader.HasRows;
+                        }
+                    case LinqTerminal.Count:
+                    case LinqTerminal.LongCount:
+                    case LinqTerminal.Sum:
+                    case LinqTerminal.Min:
+                    case LinqTerminal.Max:
+                    case LinqTerminal.Average:
+                        using (var command = connection.CreateCommand())
+                        {
+                            command.CommandTimeout = 0;
+                            command.CommandText = statement.Sql;
+                            var value = command.ExecuteScalar();
+                            if (value is null || value is DBNull)
+                                return null;
+                            return ConvertLinqValue(value, typeof(TResult));
+                        }
+                    default:
+                        {
+                            var pieces = ReadLinqPieces(connection, statement);
+                            var results = new List<TResult>();
+                            using (var command = connection.CreateCommand())
                             {
-                                var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
-                                models.Add(model);
-                            }
-
-                            return models;
-                        }
-                        else
-                        {
-                            //needs to be List for AOT
-                            return new List<TModel>(0);
-                        }
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public TModel? ExecuteFirst<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.Convert(QueryOperation.First, where, order, skip, take, graph, modelDetail);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
-                    {
-                        if (reader.HasRows)
-                        {
-                            var columnProperties = ReadColumns<TModel>(reader, modelDetail);
-
-                            _ = reader.Read();
-
-                            var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
-                            return model;
-                        }
-                        else
-                        {
-                            return null;
-                        }
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public TModel? ExecuteSingle<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.Convert(QueryOperation.Single, where, order, skip, take, graph, modelDetail);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
-                    {
-                        if (reader.HasRows)
-                        {
-                            var columnProperties = ReadColumns<TModel>(reader, modelDetail);
-
-                            _ = reader.Read();
-
-                            var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
-
-                            if (reader.Read())
-                                throw new Exception("More than a single entity found");
-
-                            return model;
-                        }
-                        else
-                        {
-                            return null;
-                        }
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public long ExecuteCount<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.Convert(QueryOperation.Count, where, order, skip, take, graph, modelDetail);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
-                    {
-                        if (reader.HasRows)
-                        {
-                            _ = reader.Read();
-                            var count = reader.GetInt32(0);
-                            return count;
-                        }
-                        else
-                        {
-                            return 0;
-                        }
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public bool ExecuteAny<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.Convert(QueryOperation.Any, where, order, skip, take, graph, modelDetail);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
-                    {
-                        var any = reader.HasRows;
-                        return any;
-                    }
-                }
-            }
-        }
-
-        /// <inheritdoc/>
-        public object? ExecuteCalculation<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.ConvertCalculation(operation, where, null, value, modelDetail);
-            var resultType = CalculationCommon.GetResultType(operation, value);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
-                    {
-                        if (!reader.Read())
-                            return null;
-                        return reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), resultType);
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public IReadOnlyCollection<(TKey Key, TValue Value)> ExecuteCalculationGroups<TModel, TKey, TValue>(QueryOperation operation, LambdaExpression? where, LambdaExpression groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.ConvertCalculation(operation, where, groupBy, value, modelDetail);
-            var resultType = CalculationCommon.GetResultType(operation, value);
-            var keyParts = CalculationCommon.GetKeyParts(groupBy);
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
-                    {
-                        var rows = new List<(TKey Key, TValue Value)>();
-                        while (reader.Read())
-                        {
-                            //a key of one member is its value, a key of several is its parts
-                            object? key;
-                            if (keyParts.Length == 1)
-                            {
-                                key = reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), keyParts[0].Type);
-                            }
-                            else
-                            {
-                                var parts = new object?[keyParts.Length];
-                                for (var i = 0; i < parts.Length; i++)
-                                    parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
-                                key = parts;
-                            }
-                            var read = reader.IsDBNull(keyParts.Length) ? null : TypeAnalyzer.Convert(reader.GetValue(keyParts.Length), resultType);
-                            rows.Add((buildKey(key), read is null ? default! : (TValue)read));
-                        }
-                        return rows;
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public IReadOnlyCollection<TValue> ExecuteDistinct<TModel, TValue>(LambdaExpression value, LambdaExpression? where, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.ConvertCalculation(QueryOperation.Distinct, where, value, null, modelDetail);
-            var keyParts = CalculationCommon.GetKeyParts(value);
-            var buildKey = CalculationCommon.GetKeyBuilder<TValue>(value);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
-                    {
-                        var values = new List<TValue>();
-                        while (reader.Read())
-                        {
-                            //a key of one member is its value, a key of several is its parts
-                            object? key;
-                            if (keyParts.Length == 1)
-                            {
-                                key = reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), keyParts[0].Type);
-                            }
-                            else
-                            {
-                                var parts = new object?[keyParts.Length];
-                                for (var i = 0; i < parts.Length; i++)
-                                    parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
-                                key = parts;
-                            }
-                            values.Add(buildKey(key));
-                        }
-                        return values;
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public IReadOnlyCollection<TResult> ExecuteSelect<TModel, TResult>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var members = select.GetProjectionMembers(null);
-            var resultDetail = TypeAnalyzer<TResult>.GetTypeDetail();
-            var sql = LinqMsSqlConverter.ConvertSelect(members, where, order, skip, take, modelDetail);
-            //a projection of a related collection reads the identity in the member's column, to match the rows a second statement reads
-            List<object>? identities = null;
-            foreach (var member in members)
-            {
-                if (member.Kind == ProjectionMemberKind.Collection)
-                    identities = new List<object>();
-            }
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                var results = new List<TResult>();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
-                    {
-                        while (reader.Read())
-                        {
-                            var result = resultDetail.Creator!();
-                            for (var i = 0; i < members.Length; i++)
-                            {
-                                if (reader.IsDBNull(i))
-                                    continue;
-                                var value = reader.GetValue(i);
-                                if (members[i].Kind == ProjectionMemberKind.Collection)
+                                command.CommandTimeout = 0;
+                                command.CommandText = statement.Sql;
+                                using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
                                 {
-                                    if (identities!.Count == results.Count)
-                                        identities.Add(value);
+                                    var shape = statement.Plan.Shape!;
+                                    while (reader.Read())
+                                        results.Add((TResult)ReadLinqElement(reader, shape, pieces)!);
+                                }
+                            }
+                            return results;
+                        }
+                }
+            }
+        }
+        //the rows of each relation for all the parents at once, matched to them by the key, read before the parents so each element is built whole from its row
+        private static Dictionary<object, List<object?>>[]? ReadLinqPieces(SqlConnection connection, LinqStatement statement)
+        {
+            if (statement.Pieces is null)
+                return null;
+            var pieces = new Dictionary<object, List<object?>>[statement.Pieces.Length];
+            for (var p = 0; p < pieces.Length; p++)
+            {
+                var piece = statement.Pieces[p];
+                var piecePieces = ReadLinqPieces(connection, piece);
+                var elements = new Dictionary<object, List<object?>>();
+                pieces[p] = elements;
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandTimeout = 0;
+                    command.CommandText = piece.Sql;
+                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
+                    {
+                        var shape = piece.Plan.Shape!;
+                        var keyColumn = piece.Plan.ParentKeyColumn!.Value;
+                        while (reader.Read())
+                        {
+                            var element = ReadLinqElement(reader, shape, piecePieces);
+                            var key = reader.GetValue(keyColumn);
+                            if (key is DBNull)
+                                continue;
+                            if (!elements.TryGetValue(key, out var list))
+                            {
+                                list = new List<object?>();
+                                elements.Add(key, list);
+                            }
+                            list.Add(element);
+                        }
+                    }
+                }
+            }
+            return pieces;
+        }
+        private static object? ReadLinqElement(SqlDataReader reader, LinqShape shape, Dictionary<object, List<object?>>[]? pieces)
+        {
+            switch (shape.Kind)
+            {
+                case LinqShapeKind.Column:
+                    return ReadLinqValue(reader, shape.Column!.Index, shape.Type);
+                case LinqShapeKind.Model:
+                    {
+                        if (shape.JoinedKey is not null && reader.IsDBNull(shape.JoinedKey.Index))
+                            return null;
+                        var model = shape.Model!.Creator();
+                        var members = shape.ModelMembers!;
+                        var columns = shape.ModelColumns!;
+                        for (var i = 0; i < members.Length; i++)
+                        {
+                            var member = members[i];
+                            if (member.CoreType.HasValue)
+                            {
+                                ReadLinqMember(reader, columns[i].Index, member.CoreType.Value, member.Setter, model);
+                            }
+                            else if (member.Type == typeof(byte[]))
+                            {
+                                if (!reader.IsDBNull(columns[i].Index))
+                                    ((Action<object, byte[]>)member.Setter)(model, reader.GetSqlBytes(columns[i].Index).Value);
+                            }
+                            else
+                            {
+                                var value = ReadLinqValue(reader, columns[i].Index, member.Type);
+                                if (value is not null)
+                                    member.SetterBoxed(model, value);
+                            }
+                        }
+                        if (shape.ModelRelations is not null)
+                        {
+                            foreach (var relation in shape.ModelRelations)
+                            {
+                                var value = ReadLinqElement(reader, relation, pieces);
+                                if (value is not null)
+                                    relation.RelationMember!.SetterBoxed(model, value);
+                            }
+                        }
+                        return model;
+                    }
+                case LinqShapeKind.Object:
+                    {
+                        object instance;
+                        if (shape.Arguments is null || shape.Arguments.Length == 0)
+                        {
+                            instance = shape.Constructor is null ? TypeAnalyzer.GetTypeDetail(shape.Type).CreatorBoxed!() : shape.Constructor.Invoke(Array.Empty<object>());
+                        }
+                        else
+                        {
+                            var arguments = new object?[shape.Arguments.Length];
+                            for (var i = 0; i < arguments.Length; i++)
+                                arguments[i] = ReadLinqElement(reader, shape.Arguments[i], pieces);
+                            instance = shape.Constructor!.Invoke(arguments);
+                        }
+                        if (shape.Members is not null)
+                        {
+                            for (var i = 0; i < shape.Members.Length; i++)
+                            {
+                                var member = shape.Members[i];
+                                var value = shape.Values![i];
+                                //a member set from a column of the model's type reads it typed, as the model's own members do
+                                if (value.Kind == LinqShapeKind.Column && value.Column!.Member is { CoreType: not null } column && column.Type == member.Type)
+                                {
+                                    ReadLinqMember(reader, value.Column.Index, column.CoreType.Value, member.Setter!, instance);
                                     continue;
                                 }
-                                var memberDetail = members[i].MemberDetail;
-                                memberDetail.SetterBoxed!(result!, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                                var element = ReadLinqElement(reader, value, pieces);
+                                if (element is not null)
+                                    member.SetterBoxed!(instance, element);
                             }
-                            results.Add(result);
                         }
+                        return instance;
                     }
-                }
-                if (identities is null)
-                    return results;
-
-                for (var i = 0; i < members.Length; i++)
-                {
-                    if (members[i].Kind == ProjectionMemberKind.Collection)
-                        ReadCollection(connection, members[i], modelDetail, results, identities);
-                }
-                return results;
+                default:
+                    {
+                        var key = reader.GetValue(shape.Piece!.ParentColumn);
+                        return shape.BuildRelation(key is DBNull ? null : key, pieces!);
+                    }
             }
         }
-        //reads the rows of a collection member for the parents read, matched by their foreign identity, builds a result from each and sets the collections on the parents, then does the same for the collections within each row
-        private static void ReadCollection(SqlConnection connection, ProjectionMember collection, ModelDetail parentDetail, IList parents, List<object> parentIdentities)
+        private static object? ReadLinqValue(SqlDataReader reader, int i, Type type)
         {
-            var identityType = parentDetail.IdentityMembers[0].Type;
-            for (var r = 0; r < parentIdentities.Count; r++)
-                parentIdentities[r] = parentIdentities[r].GetType() == identityType ? parentIdentities[r] : TypeAnalyzer.Convert(parentIdentities[r], identityType)!;
-            var keys = new HashSet<object>(parentIdentities);
-
-            var relatedDetail = ModelAnalyzer.GetModel(collection.Relation!.ActualType);
-            var foreignIdentity = relatedDetail.GetMember(collection.Relation.ForeignIdentity!);
-            var row = Expression.Parameter(relatedDetail.Type, "row");
-            Expression condition = Expression.Call(Expression.Constant(keys), hashSetContainsMethod, Expression.Convert(Expression.MakeMemberAccess(row, foreignIdentity.MemberDetail.MemberInfo), typeof(object)));
-            if (collection.Where is not null)
-                condition = Expression.AndAlso(condition, LinqRebinder.RebindExpression(collection.Where.Body, collection.Where.Parameters[0], row));
-            var rowWhere = Expression.Lambda(relatedDetail.LambdaDelegateType, condition, row);
-            var rowSql = LinqMsSqlConverter.ConvertSelectElements(collection, rowWhere, relatedDetail);
-            var rowMembers = collection.Members!;
-            var rowDetail = TypeAnalyzer.GetTypeDetail(collection.Type);
-            //a collection within a row reads the row's identity in the member's column, to match the rows its own statement reads
-            List<object>? rowIdentities = null;
-            List<object>? allRows = null;
-            foreach (var rowMember in rowMembers)
+            if (reader.IsDBNull(i))
+                return null;
+            return ConvertLinqValue(reader.GetValue(i), type);
+        }
+        private static object? ConvertLinqValue(object value, Type type)
+        {
+            var valueType = value.GetType();
+            var underlying = Nullable.GetUnderlyingType(type) ?? type;
+            if (valueType == underlying)
+                return value;
+            if (underlying.IsEnum)
+                return value is string text ? EnumName.Parse(text, underlying) : Enum.ToObject(underlying, Convert.ChangeType(value, Enum.GetUnderlyingType(underlying), CultureInfo.InvariantCulture));
+            return TypeAnalyzer.Convert(value, type);
+        }
+        private static void ReadLinqMember(SqlDataReader reader, int i, CoreType coreType, Delegate setter, object instance)
+        {
+            switch (coreType)
             {
-                if (rowMember.Kind == ProjectionMemberKind.Collection)
-                {
-                    rowIdentities = new List<object>();
-                    allRows = new List<object>();
-                }
-            }
-            var rows = new Dictionary<object, List<object>>();
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandTimeout = 0;
-                command.CommandText = rowSql;
-                using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
-                {
-                    while (reader.Read())
+                case CoreType.Boolean:
+                    ((Action<object, bool>)setter)(instance, reader.GetBoolean(i));
+                    break;
+                case CoreType.Byte:
+                    ((Action<object, byte>)setter)(instance, reader.GetByte(i));
+                    break;
+                case CoreType.Int16:
+                    ((Action<object, short>)setter)(instance, reader.GetInt16(i));
+                    break;
+                case CoreType.Int32:
+                    ((Action<object, int>)setter)(instance, reader.GetInt32(i));
+                    break;
+                case CoreType.Int64:
+                    ((Action<object, long>)setter)(instance, reader.GetInt64(i));
+                    break;
+                case CoreType.Single:
+                    ((Action<object, float>)setter)(instance, reader.GetFloat(i));
+                    break;
+                case CoreType.Double:
+                    ((Action<object, double>)setter)(instance, reader.GetDouble(i));
+                    break;
+                case CoreType.Decimal:
+                    ((Action<object, decimal>)setter)(instance, reader.GetDecimal(i));
+                    break;
+                case CoreType.Char:
                     {
-                        var rowResult = rowDetail.CreatorBoxed!();
-                        for (var j = 0; j < rowMembers.Length; j++)
-                        {
-                            if (reader.IsDBNull(j))
-                                continue;
-                            var value = reader.GetValue(j);
-                            if (rowMembers[j].Kind == ProjectionMemberKind.Collection)
+                        var sqlValue = reader.GetSqlString(i);
+                        if (!sqlValue.IsNull)
+                            ((Action<object, char>)setter)(instance, sqlValue.Value[0]);
+                    }
+                    break;
+                case CoreType.DateTime:
+                    ((Action<object, DateTime>)setter)(instance, new DateTime(reader.GetDateTime(i).Ticks, DateTimeKind.Utc));
+                    break;
+                case CoreType.DateTimeOffset:
+                    ((Action<object, DateTimeOffset>)setter)(instance, reader.GetDateTimeOffset(i));
+                    break;
+                case CoreType.TimeSpan:
+                    ((Action<object, TimeSpan>)setter)(instance, reader.GetTimeSpan(i));
+                    break;
+                case CoreType.DateOnly:
+                    ((Action<object, DateOnly>)setter)(instance, DateOnly.FromDateTime(reader.GetDateTime(i)));
+                    break;
+                case CoreType.TimeOnly:
+                    ((Action<object, TimeOnly>)setter)(instance, TimeOnly.FromTimeSpan(reader.GetTimeSpan(i)));
+                    break;
+                case CoreType.Guid:
+                    ((Action<object, Guid>)setter)(instance, reader.GetGuid(i));
+                    break;
+                case CoreType.String:
+                    {
+                        var sqlValue = reader.GetSqlString(i);
+                        if (!sqlValue.IsNull)
+                            ((Action<object, string>)setter)(instance, sqlValue.Value);
+                    }
+                    break;
+                case CoreType.BooleanNullable:
+                    {
+                        var sqlValue = reader.GetSqlBoolean(i);
+                        if (!sqlValue.IsNull)
+                            ((Action<object, bool?>)setter)(instance, sqlValue.Value);
+                    }
+                    break;
+                case CoreType.ByteNullable:
+                    {
+                        var sqlValue = reader.GetSqlByte(i);
+                        if (!sqlValue.IsNull)
+                            ((Action<object, byte?>)setter)(instance, sqlValue.Value);
+                    }
+                    break;
+                case CoreType.Int16Nullable:
+                    {
+                        var sqlValue = reader.GetSqlInt16(i);
+                        if (!sqlValue.IsNull)
+                            ((Action<object, short?>)setter)(instance, sqlValue.Value);
+                    }
+                    break;
+                case CoreType.Int32Nullable:
+                    {
+                        var sqlValue = reader.GetSqlInt32(i);
+                        if (!sqlValue.IsNull)
+                            ((Action<object, int?>)setter)(instance, sqlValue.Value);
+                    }
+                    break;
+                case CoreType.Int64Nullable:
+                    {
+                        var sqlValue = reader.GetSqlInt64(i);
+                        if (!sqlValue.IsNull)
+                            ((Action<object, long?>)setter)(instance, sqlValue.Value);
+                    }
+                    break;
+                case CoreType.SingleNullable:
+                    {
+                        var sqlValue = reader.GetSqlSingle(i);
+                        if (!sqlValue.IsNull)
+                            ((Action<object, float?>)setter)(instance, sqlValue.Value);
+                    }
+                    break;
+                case CoreType.DoubleNullable:
+                    if (!reader.IsDBNull(i))  //GetSqlDouble doesn't handle SqlMoney
+                        ((Action<object, double?>)setter)(instance, reader.GetDouble(i));
+                    break;
+                case CoreType.DecimalNullable:
+                    if (!reader.IsDBNull(i))  //GetSqlDecimal doesn't handle SqlMoney
+                        ((Action<object, decimal?>)setter)(instance, reader.GetDecimal(i));
+                    break;
+                case CoreType.CharNullable:
+                    {
+                        var sqlValue = reader.GetSqlChars(i);
+                        if (!sqlValue.IsNull && sqlValue.Value.Length > 0)
+                            ((Action<object, char?>)setter)(instance, sqlValue.Value[0]);
+                    }
+                    break;
+                case CoreType.DateTimeNullable:
+                    if (!reader.IsDBNull(i)) //GetSqlDateTime doesn't handle null
+                        ((Action<object, DateTime?>)setter)(instance, new DateTime(reader.GetDateTime(i).Ticks, DateTimeKind.Utc));
+                    break;
+                case CoreType.DateTimeOffsetNullable:
+                    if (!reader.IsDBNull(i))
+                        ((Action<object, DateTimeOffset?>)setter)(instance, reader.GetDateTimeOffset(i));
+                    break;
+                case CoreType.TimeSpanNullable:
+                    if (!reader.IsDBNull(i))
+                        ((Action<object, TimeSpan?>)setter)(instance, reader.GetTimeSpan(i));
+                    break;
+                case CoreType.DateOnlyNullable:
+                    if (!reader.IsDBNull(i))
+                        ((Action<object, DateOnly?>)setter)(instance, DateOnly.FromDateTime(reader.GetDateTime(i)));
+                    break;
+                case CoreType.TimeOnlyNullable:
+                    if (!reader.IsDBNull(i))
+                        ((Action<object, TimeOnly?>)setter)(instance, TimeOnly.FromTimeSpan(reader.GetTimeSpan(i)));
+                    break;
+                case CoreType.GuidNullable:
+                    {
+                        var sqlValue = reader.GetSqlGuid(i);
+                        if (!sqlValue.IsNull)
+                            ((Action<object, Guid?>)setter)(instance, sqlValue.Value);
+                    }
+                    break;
+                default:
+                    throw new NotSupportedException($"{nameof(MsSqlEngine)} Cannot map to type {coreType}");
+            }
+        }
+
+        /// <inheritdoc/>
+        public async Task<object?> ExecuteLinqAsync<TModel, TResult>(LinqQuery query, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
+        {
+            var statement = LinqMsSqlConverter.ConvertLinq(query, modelDetail);
+
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    await connection.OpenAsync(cancellationToken);
+                    switch (query.Terminal)
+                    {
+                        case LinqTerminal.Any:
+                            using (var command = connection.CreateCommand())
                             {
-                                if (rowIdentities!.Count == allRows!.Count)
-                                    rowIdentities.Add(value);
-                                continue;
+                                command.CommandTimeout = 0;
+                                command.CommandText = statement.Sql;
+                                using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken))
+                                    return reader.HasRows;
                             }
-                            var memberDetail = rowMembers[j].MemberDetail;
-                            memberDetail.SetterBoxed!(rowResult, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
-                        }
-                        var keyValue = reader.GetValue(rowMembers.Length);
-                        var key = keyValue.GetType() == identityType ? keyValue : TypeAnalyzer.Convert(keyValue, identityType)!;
-                        if (!rows.TryGetValue(key, out var list))
-                        {
-                            list = new List<object>();
-                            rows.Add(key, list);
-                        }
-                        list.Add(rowResult);
-                        allRows?.Add(rowResult);
-                    }
-                }
-            }
-            for (var r = 0; r < parents.Count; r++)
-                collection.MemberDetail.SetterBoxed!(parents[r]!, collection.CreateCollection(rows.TryGetValue(parentIdentities[r], out var list) ? list : Array.Empty<object>()));
-            if (rowIdentities is null)
-                return;
-
-            for (var j = 0; j < rowMembers.Length; j++)
-            {
-                if (rowMembers[j].Kind == ProjectionMemberKind.Collection)
-                    ReadCollection(connection, rowMembers[j], relatedDetail, allRows!, rowIdentities);
-            }
-        }
-        /// <inheritdoc/>
-        public IReadOnlyCollection<TResult> ExecuteGroup<TModel, TResult>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var members = select.GetProjectionMembers(groupBy);
-            var resultDetail = TypeAnalyzer<TResult>.GetTypeDetail();
-            var sql = LinqMsSqlConverter.ConvertGroup(groupBy, members, where, having, order, skip, take, modelDetail, select.ReturnType);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
-                    {
-                        var results = new List<TResult>();
-                        while (reader.Read())
-                        {
-                            var result = resultDetail.Creator!();
-                            for (var i = 0; i < members.Length; i++)
+                        case LinqTerminal.Count:
+                        case LinqTerminal.LongCount:
+                        case LinqTerminal.Sum:
+                        case LinqTerminal.Min:
+                        case LinqTerminal.Max:
+                        case LinqTerminal.Average:
+                            using (var command = connection.CreateCommand())
                             {
-                                if (reader.IsDBNull(i))
-                                    continue;
-                                var value = reader.GetValue(i);
-                                var memberDetail = members[i].MemberDetail;
-                                memberDetail.SetterBoxed!(result!, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                                command.CommandTimeout = 0;
+                                command.CommandText = statement.Sql;
+                                var value = await command.ExecuteScalarAsync(cancellationToken);
+                                if (value is null || value is DBNull)
+                                    return null;
+                                return ConvertLinqValue(value, typeof(TResult));
                             }
-                            results.Add(result);
-                        }
-                        return results;
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public async Task<IReadOnlyCollection<TModel>> ExecuteManyAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.Convert(QueryOperation.Many, where, order, skip, take, graph, modelDetail);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
-                    {
-                        if (reader.HasRows)
-                        {
-                            var models = new List<TModel>();
-
-                            var columnProperties = ReadColumns<TModel>(reader, modelDetail);
-
-                            while (await reader.ReadAsync())
+                        default:
                             {
-                                var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
-                                models.Add(model);
-                            }
-
-                            return models;
-                        }
-                        else
-                        {
-                            //needs to be List for AOT
-                            return new List<TModel>(0);
-                        }
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public async Task<TModel?> ExecuteFirstAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.Convert(QueryOperation.First, where, order, skip, take, graph, modelDetail);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
-                    {
-                        if (reader.HasRows)
-                        {
-                            var columnProperties = ReadColumns<TModel>(reader, modelDetail);
-
-                            _ = await reader.ReadAsync();
-
-                            var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
-                            return model;
-                        }
-                        else
-                        {
-                            return null;
-                        }
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public async Task<TModel?> ExecuteSingleAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.Convert(QueryOperation.Single, where, order, skip, take, graph, modelDetail);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
-                    {
-                        if (reader.HasRows)
-                        {
-                            var columnProperties = ReadColumns<TModel>(reader, modelDetail);
-
-                            _ = await reader.ReadAsync();
-
-                            var model = ReadRow<TModel>(reader, modelDetail, columnProperties);
-
-                            if (await reader.ReadAsync())
-                                throw new Exception("More than a single entity found");
-
-                            return model;
-                        }
-                        else
-                        {
-                            return null;
-                        }
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public async Task<long> ExecuteCountAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.Convert(QueryOperation.Count, where, order, skip, take, graph, modelDetail);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
-                    {
-                        if (reader.HasRows)
-                        {
-                            _ = await reader.ReadAsync();
-                            var count = reader.GetInt32(0);
-                            return count;
-                        }
-                        else
-                        {
-                            return 0;
-                        }
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public async Task<bool> ExecuteAnyAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.Convert(QueryOperation.Any, where, order, skip, take, graph, modelDetail);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
-                    {
-                        var any = reader.HasRows;
-                        return any;
-                    }
-                }
-            }
-        }
-
-        /// <inheritdoc/>
-        public async Task<object?> ExecuteCalculationAsync<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.ConvertCalculation(operation, where, null, value, modelDetail);
-            var resultType = CalculationCommon.GetResultType(operation, value);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
-                    {
-                        if (!await reader.ReadAsync())
-                            return null;
-                        return reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), resultType);
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public async Task<IReadOnlyCollection<(TKey Key, TValue Value)>> ExecuteCalculationGroupsAsync<TModel, TKey, TValue>(QueryOperation operation, LambdaExpression? where, LambdaExpression groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.ConvertCalculation(operation, where, groupBy, value, modelDetail);
-            var resultType = CalculationCommon.GetResultType(operation, value);
-            var keyParts = CalculationCommon.GetKeyParts(groupBy);
-            var buildKey = CalculationCommon.GetKeyBuilder<TKey>(groupBy);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
-                    {
-                        var rows = new List<(TKey Key, TValue Value)>();
-                        while (await reader.ReadAsync())
-                        {
-                            //a key of one member is its value, a key of several is its parts
-                            object? key;
-                            if (keyParts.Length == 1)
-                            {
-                                key = reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), keyParts[0].Type);
-                            }
-                            else
-                            {
-                                var parts = new object?[keyParts.Length];
-                                for (var i = 0; i < parts.Length; i++)
-                                    parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
-                                key = parts;
-                            }
-                            var read = reader.IsDBNull(keyParts.Length) ? null : TypeAnalyzer.Convert(reader.GetValue(keyParts.Length), resultType);
-                            rows.Add((buildKey(key), read is null ? default! : (TValue)read));
-                        }
-                        return rows;
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public async Task<IReadOnlyCollection<TValue>> ExecuteDistinctAsync<TModel, TValue>(LambdaExpression value, LambdaExpression? where, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var sql = LinqMsSqlConverter.ConvertCalculation(QueryOperation.Distinct, where, value, null, modelDetail);
-            var keyParts = CalculationCommon.GetKeyParts(value);
-            var buildKey = CalculationCommon.GetKeyBuilder<TValue>(value);
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
-                    {
-                        var values = new List<TValue>();
-                        while (await reader.ReadAsync())
-                        {
-                            //a key of one member is its value, a key of several is its parts
-                            object? key;
-                            if (keyParts.Length == 1)
-                            {
-                                key = reader.IsDBNull(0) ? null : TypeAnalyzer.Convert(reader.GetValue(0), keyParts[0].Type);
-                            }
-                            else
-                            {
-                                var parts = new object?[keyParts.Length];
-                                for (var i = 0; i < parts.Length; i++)
-                                    parts[i] = reader.IsDBNull(i) ? null : TypeAnalyzer.Convert(reader.GetValue(i), keyParts[i].Type);
-                                key = parts;
-                            }
-                            values.Add(buildKey(key));
-                        }
-                        return values;
-                    }
-                }
-            }
-        }
-        /// <inheritdoc/>
-        public async Task<IReadOnlyCollection<TResult>> ExecuteSelectAsync<TModel, TResult>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var members = select.GetProjectionMembers(null);
-            var resultDetail = TypeAnalyzer<TResult>.GetTypeDetail();
-            var sql = LinqMsSqlConverter.ConvertSelect(members, where, order, skip, take, modelDetail);
-            //a projection of a related collection reads the identity in the member's column, to match the rows a second statement reads
-            List<object>? identities = null;
-            foreach (var member in members)
-            {
-                if (member.Kind == ProjectionMemberKind.Collection)
-                    identities = new List<object>();
-            }
-
-            using (var connection = new SqlConnection(connectionString))
-            {
-                await connection.OpenAsync();
-                var results = new List<TResult>();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
-                    {
-                        while (await reader.ReadAsync())
-                        {
-                            var result = resultDetail.Creator!();
-                            for (var i = 0; i < members.Length; i++)
-                            {
-                                if (reader.IsDBNull(i))
-                                    continue;
-                                var value = reader.GetValue(i);
-                                if (members[i].Kind == ProjectionMemberKind.Collection)
+                                var pieces = await ReadLinqPiecesAsync(connection, statement, cancellationToken);
+                                var results = new List<TResult>();
+                                using (var command = connection.CreateCommand())
                                 {
-                                    if (identities!.Count == results.Count)
-                                        identities.Add(value);
-                                    continue;
+                                    command.CommandTimeout = 0;
+                                    command.CommandText = statement.Sql;
+                                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken))
+                                    {
+                                        var shape = statement.Plan.Shape!;
+                                        while (await reader.ReadAsync(cancellationToken))
+                                            results.Add((TResult)ReadLinqElement(reader, shape, pieces)!);
+                                    }
                                 }
-                                var memberDetail = members[i].MemberDetail;
-                                memberDetail.SetterBoxed!(result!, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                                return results;
                             }
-                            results.Add(result);
-                        }
-                    }
-                }
-                if (identities is null)
-                    return results;
-
-                for (var i = 0; i < members.Length; i++)
-                {
-                    if (members[i].Kind == ProjectionMemberKind.Collection)
-                        await ReadCollectionAsync(connection, members[i], modelDetail, results, identities);
-                }
-                return results;
-            }
-        }
-        //reads the rows of a collection member for the parents read, matched by their foreign identity, builds a result from each and sets the collections on the parents, then does the same for the collections within each row
-        private static async Task ReadCollectionAsync(SqlConnection connection, ProjectionMember collection, ModelDetail parentDetail, IList parents, List<object> parentIdentities)
-        {
-            var identityType = parentDetail.IdentityMembers[0].Type;
-            for (var r = 0; r < parentIdentities.Count; r++)
-                parentIdentities[r] = parentIdentities[r].GetType() == identityType ? parentIdentities[r] : TypeAnalyzer.Convert(parentIdentities[r], identityType)!;
-            var keys = new HashSet<object>(parentIdentities);
-
-            var relatedDetail = ModelAnalyzer.GetModel(collection.Relation!.ActualType);
-            var foreignIdentity = relatedDetail.GetMember(collection.Relation.ForeignIdentity!);
-            var row = Expression.Parameter(relatedDetail.Type, "row");
-            Expression condition = Expression.Call(Expression.Constant(keys), hashSetContainsMethod, Expression.Convert(Expression.MakeMemberAccess(row, foreignIdentity.MemberDetail.MemberInfo), typeof(object)));
-            if (collection.Where is not null)
-                condition = Expression.AndAlso(condition, LinqRebinder.RebindExpression(collection.Where.Body, collection.Where.Parameters[0], row));
-            var rowWhere = Expression.Lambda(relatedDetail.LambdaDelegateType, condition, row);
-            var rowSql = LinqMsSqlConverter.ConvertSelectElements(collection, rowWhere, relatedDetail);
-            var rowMembers = collection.Members!;
-            var rowDetail = TypeAnalyzer.GetTypeDetail(collection.Type);
-            //a collection within a row reads the row's identity in the member's column, to match the rows its own statement reads
-            List<object>? rowIdentities = null;
-            List<object>? allRows = null;
-            foreach (var rowMember in rowMembers)
-            {
-                if (rowMember.Kind == ProjectionMemberKind.Collection)
-                {
-                    rowIdentities = new List<object>();
-                    allRows = new List<object>();
-                }
-            }
-            var rows = new Dictionary<object, List<object>>();
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandTimeout = 0;
-                command.CommandText = rowSql;
-                using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        var rowResult = rowDetail.CreatorBoxed!();
-                        for (var j = 0; j < rowMembers.Length; j++)
-                        {
-                            if (reader.IsDBNull(j))
-                                continue;
-                            var value = reader.GetValue(j);
-                            if (rowMembers[j].Kind == ProjectionMemberKind.Collection)
-                            {
-                                if (rowIdentities!.Count == allRows!.Count)
-                                    rowIdentities.Add(value);
-                                continue;
-                            }
-                            var memberDetail = rowMembers[j].MemberDetail;
-                            memberDetail.SetterBoxed!(rowResult, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
-                        }
-                        var keyValue = reader.GetValue(rowMembers.Length);
-                        var key = keyValue.GetType() == identityType ? keyValue : TypeAnalyzer.Convert(keyValue, identityType)!;
-                        if (!rows.TryGetValue(key, out var list))
-                        {
-                            list = new List<object>();
-                            rows.Add(key, list);
-                        }
-                        list.Add(rowResult);
-                        allRows?.Add(rowResult);
                     }
                 }
             }
-            for (var r = 0; r < parents.Count; r++)
-                collection.MemberDetail.SetterBoxed!(parents[r]!, collection.CreateCollection(rows.TryGetValue(parentIdentities[r], out var list) ? list : Array.Empty<object>()));
-            if (rowIdentities is null)
-                return;
-
-            for (var j = 0; j < rowMembers.Length; j++)
+            //SqlClient reports a command it cancelled as its own error
+            catch (SqlException ex) when (cancellationToken.IsCancellationRequested)
             {
-                if (rowMembers[j].Kind == ProjectionMemberKind.Collection)
-                    await ReadCollectionAsync(connection, rowMembers[j], relatedDetail, allRows!, rowIdentities);
+                throw new OperationCanceledException(ex.Message, ex, cancellationToken);
             }
         }
-        /// <inheritdoc/>
-        public async Task<IReadOnlyCollection<TResult>> ExecuteGroupAsync<TModel, TResult>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
+        private static async Task<Dictionary<object, List<object?>>[]?> ReadLinqPiecesAsync(SqlConnection connection, LinqStatement statement, CancellationToken cancellationToken)
         {
-            var members = select.GetProjectionMembers(groupBy);
-            var resultDetail = TypeAnalyzer<TResult>.GetTypeDetail();
-            var sql = LinqMsSqlConverter.ConvertGroup(groupBy, members, where, having, order, skip, take, modelDetail, select.ReturnType);
-
-            using (var connection = new SqlConnection(connectionString))
+            if (statement.Pieces is null)
+                return null;
+            var pieces = new Dictionary<object, List<object?>>[statement.Pieces.Length];
+            for (var p = 0; p < pieces.Length; p++)
             {
-                await connection.OpenAsync();
+                var piece = statement.Pieces[p];
+                var piecePieces = await ReadLinqPiecesAsync(connection, piece, cancellationToken);
+                var elements = new Dictionary<object, List<object?>>();
+                pieces[p] = elements;
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
+                    command.CommandText = piece.Sql;
+                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken))
                     {
-                        var results = new List<TResult>();
-                        while (await reader.ReadAsync())
+                        var shape = piece.Plan.Shape!;
+                        var keyColumn = piece.Plan.ParentKeyColumn!.Value;
+                        while (await reader.ReadAsync(cancellationToken))
                         {
-                            var result = resultDetail.Creator!();
-                            for (var i = 0; i < members.Length; i++)
+                            var element = ReadLinqElement(reader, shape, piecePieces);
+                            var key = reader.GetValue(keyColumn);
+                            if (key is DBNull)
+                                continue;
+                            if (!elements.TryGetValue(key, out var list))
                             {
-                                if (reader.IsDBNull(i))
-                                    continue;
-                                var value = reader.GetValue(i);
-                                var memberDetail = members[i].MemberDetail;
-                                memberDetail.SetterBoxed!(result!, value.GetType() == memberDetail.Type ? value : TypeAnalyzer.Convert(value, memberDetail.Type));
+                                list = new List<object?>();
+                                elements.Add(key, list);
                             }
-                            results.Add(result);
+                            list.Add(element);
                         }
-                        return results;
                     }
                 }
             }
+            return pieces;
         }
         /// <inheritdoc/>
         public object ExecuteInsertGetIdentities<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
@@ -1633,7 +971,7 @@ namespace Zerra.Repository.MsSql
         /// <inheritdoc/>
         public int ExecuteUpdateWhere<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = LinqMsSqlConverter.ConvertPersistUpdate(set.GetProjectionMembers(null), where, modelDetail);
+            var sql = LinqMsSqlConverter.ConvertPersistUpdate(set.GetProjectionMembers(), where, modelDetail);
 
             using (var connection = new SqlConnection(connectionString))
             {
@@ -1664,147 +1002,203 @@ namespace Zerra.Repository.MsSql
             }
         }
         /// <inheritdoc/>
-        public async Task<object> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<object> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
             var sql = MsSqlEngine.GenerateSqlInsert(model, graph, modelDetail, true);
 
-            using (var connection = new SqlConnection(connectionString))
+            try
             {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
+                using (var connection = new SqlConnection(connectionString))
                 {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess))
+                    await connection.OpenAsync(cancellationToken);
+                    using (var command = connection.CreateCommand())
                     {
-                        if (reader.HasRows)
+                        command.CommandTimeout = 0;
+                        command.CommandText = sql;
+                        using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken))
                         {
-                            _ = await reader.ReadAsync();
+                            if (reader.HasRows)
+                            {
+                                _ = await reader.ReadAsync(cancellationToken);
 
-                            if (reader.FieldCount == 1)
-                            {
-                                var value = reader[0];
-                                return value;
-                            }
-                            else
-                            {
-                                var values = new List<object>();
-                                for (var i = 0; i < reader.FieldCount; i++)
+                                if (reader.FieldCount == 1)
                                 {
-                                    var value = reader[i];
-                                    values.Add(value);
+                                    var value = reader[0];
+                                    return value;
                                 }
-                                return values;
+                                else
+                                {
+                                    var values = new List<object>();
+                                    for (var i = 0; i < reader.FieldCount; i++)
+                                    {
+                                        var value = reader[i];
+                                        values.Add(value);
+                                    }
+                                    return values;
+                                }
                             }
                         }
                     }
                 }
             }
+            //SqlClient reports a command it cancelled as its own error
+            catch (SqlException ex) when (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(ex.Message, ex, cancellationToken);
+            }
 
             throw new Exception($"No rows returned from insert operation for model of type {typeof(TModel).Name}");
         }
         /// <inheritdoc/>
-        public async Task<bool> ExecuteInsertAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<bool> ExecuteInsertAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
             var sql = MsSqlEngine.GenerateSqlInsert(model, graph, modelDetail, false);
             if (sql == null)
                 return false;
 
-            using (var connection = new SqlConnection(connectionString))
+            try
             {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
+                using (var connection = new SqlConnection(connectionString))
                 {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    return await command.ExecuteNonQueryAsync() > 0;
+                    await connection.OpenAsync(cancellationToken);
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandTimeout = 0;
+                        command.CommandText = sql;
+                        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+                    }
                 }
+            }
+            //SqlClient reports a command it cancelled as its own error
+            catch (SqlException ex) when (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(ex.Message, ex, cancellationToken);
             }
         }
         /// <inheritdoc/>
-        public async Task<bool> ExecuteUpdateAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<bool> ExecuteUpdateAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
             var sql = MsSqlEngine.GenerateSqlUpdate(model, graph, modelDetail);
             if (sql is null)
                 return false;
 
-            using (var connection = new SqlConnection(connectionString))
+            try
             {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
+                using (var connection = new SqlConnection(connectionString))
                 {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    return await command.ExecuteNonQueryAsync() > 0;
+                    await connection.OpenAsync(cancellationToken);
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandTimeout = 0;
+                        command.CommandText = sql;
+                        return await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+                    }
                 }
+            }
+            //SqlClient reports a command it cancelled as its own error
+            catch (SqlException ex) when (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(ex.Message, ex, cancellationToken);
             }
         }
         /// <inheritdoc/>
-        public async Task<int> ExecuteDeleteAsync<TModel>(ICollection ids, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<int> ExecuteDeleteAsync<TModel>(ICollection ids, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
             var sql = MsSqlEngine.GenerateSqlDelete(ids, modelDetail);
 
-            using (var connection = new SqlConnection(connectionString))
+            try
             {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
+                using (var connection = new SqlConnection(connectionString))
                 {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    return await command.ExecuteNonQueryAsync();
+                    await connection.OpenAsync(cancellationToken);
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandTimeout = 0;
+                        command.CommandText = sql;
+                        return await command.ExecuteNonQueryAsync(cancellationToken);
+                    }
                 }
+            }
+            //SqlClient reports a command it cancelled as its own error
+            catch (SqlException ex) when (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(ex.Message, ex, cancellationToken);
             }
         }
         /// <inheritdoc/>
-        public async Task<int> ExecuteUpdateWhereAsync<TModel>(TModel model, Graph graph, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<int> ExecuteUpdateWhereAsync<TModel>(TModel model, Graph graph, LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
             var sqlWhere = LinqMsSqlConverter.ConvertPersistWhere(where, modelDetail);
             var sql = GenerateSqlUpdateWhere(model, graph, modelDetail, sqlWhere);
             if (sql is null)
                 return 0;
 
-            using (var connection = new SqlConnection(connectionString))
+            try
             {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
+                using (var connection = new SqlConnection(connectionString))
                 {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    return await command.ExecuteNonQueryAsync();
+                    await connection.OpenAsync(cancellationToken);
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandTimeout = 0;
+                        command.CommandText = sql;
+                        return await command.ExecuteNonQueryAsync(cancellationToken);
+                    }
                 }
+            }
+            //SqlClient reports a command it cancelled as its own error
+            catch (SqlException ex) when (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(ex.Message, ex, cancellationToken);
             }
         }
         /// <inheritdoc/>
-        public async Task<int> ExecuteUpdateWhereAsync<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<int> ExecuteUpdateWhereAsync<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
-            var sql = LinqMsSqlConverter.ConvertPersistUpdate(set.GetProjectionMembers(null), where, modelDetail);
+            var sql = LinqMsSqlConverter.ConvertPersistUpdate(set.GetProjectionMembers(), where, modelDetail);
 
-            using (var connection = new SqlConnection(connectionString))
+            try
             {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
+                using (var connection = new SqlConnection(connectionString))
                 {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    return await command.ExecuteNonQueryAsync();
+                    await connection.OpenAsync(cancellationToken);
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandTimeout = 0;
+                        command.CommandText = sql;
+                        return await command.ExecuteNonQueryAsync(cancellationToken);
+                    }
                 }
+            }
+            //SqlClient reports a command it cancelled as its own error
+            catch (SqlException ex) when (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(ex.Message, ex, cancellationToken);
             }
         }
         /// <inheritdoc/>
-        public async Task<int> ExecuteDeleteWhereAsync<TModel>(LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        public async Task<int> ExecuteDeleteWhereAsync<TModel>(LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
             var sqlWhere = LinqMsSqlConverter.ConvertPersistWhere(where, modelDetail);
             var sql = "DELETE FROM [" + modelDetail.DataSourceEntityName + "]" + sqlWhere;
 
-            using (var connection = new SqlConnection(connectionString))
+            try
             {
-                await connection.OpenAsync();
-                using (var command = connection.CreateCommand())
+                using (var connection = new SqlConnection(connectionString))
                 {
-                    command.CommandTimeout = 0;
-                    command.CommandText = sql;
-                    return await command.ExecuteNonQueryAsync();
+                    await connection.OpenAsync(cancellationToken);
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandTimeout = 0;
+                        command.CommandText = sql;
+                        return await command.ExecuteNonQueryAsync(cancellationToken);
+                    }
                 }
+            }
+            //SqlClient reports a command it cancelled as its own error
+            catch (SqlException ex) when (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(ex.Message, ex, cancellationToken);
             }
         }
 
@@ -1968,7 +1362,7 @@ namespace Zerra.Repository.MsSql
 
         private bool AssureTable(bool create, List<string> sql, bool needCreateDatabase, ModelDetail model)
         {
-            var nonIdentityColumns = model.Members.Where(x => !x.IsIdentity && !x.IsDataSourceEntity && x.CoreType.HasValue || x.Type == typeof(byte[])).ToArray();
+            var nonIdentityColumns = model.Members.Where(x => !x.IsIdentity && !x.IsDataSourceEntity && x.ColumnCoreType.HasValue || x.Type == typeof(byte[])).ToArray();
             var identityColumns = model.Members.Where(x => x.IsIdentity).ToArray();
 
             if (nonIdentityColumns.Length + identityColumns.Length == 0)
@@ -2028,7 +1422,7 @@ namespace Zerra.Repository.MsSql
 
         private void AssureColumns(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints, SqlIndex[] sqlIndexes, HashSet<SqlIndex> droppedIndexes)
         {
-            var columns = model.Members.Where(x => !x.IsDataSourceEntity && x.CoreType.HasValue || x.Type == typeof(byte[])).ToArray();
+            var columns = model.Members.Where(x => !x.IsDataSourceEntity && x.ColumnCoreType.HasValue || x.Type == typeof(byte[])).ToArray();
 
             var sb = new StringBuilder();
 
@@ -2311,9 +1705,9 @@ namespace Zerra.Repository.MsSql
         public static void WriteSqlTypeFromModel(StringBuilder sb, ModelMemberDetail property)
         {
             var canBeIdentity = false;
-            if (property.CoreType.HasValue)
+            if (property.ColumnCoreType.HasValue)
             {
-                switch (property.CoreType.Value)
+                switch (property.ColumnCoreType.Value)
                 {
                     case CoreType.Boolean:
                     case CoreType.BooleanNullable:
@@ -2434,9 +1828,9 @@ namespace Zerra.Repository.MsSql
 
         private static void WriteDefaultValue(StringBuilder sb, ModelMemberDetail property)
         {
-            if (property.CoreType.HasValue)
+            if (property.ColumnCoreType.HasValue)
             {
-                switch (property.CoreType.Value)
+                switch (property.ColumnCoreType.Value)
                 {
                     case CoreType.Byte:
                     case CoreType.ByteNullable:
@@ -2469,7 +1863,7 @@ namespace Zerra.Repository.MsSql
                     case CoreType.Char:
                     case CoreType.CharNullable:
                     case CoreType.String:
-                        _ = sb.Append("N''");
+                        _ = sb.Append("N'").Append(property.EnumDefaultText?.Replace("'", "''")).Append('\'');
                         break;
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
@@ -2558,9 +1952,9 @@ namespace Zerra.Repository.MsSql
             if (sqlColumn.IsPrimaryKey != property.IsIdentity || sqlColumn.IsAutoGenerated != property.IsIdentityAutoGenerated)
                 return false;
 
-            if (property.CoreType.HasValue)
+            if (property.ColumnCoreType.HasValue)
             {
-                switch (property.CoreType.Value)
+                switch (property.ColumnCoreType.Value)
                 {
                     case CoreType.Boolean: return sqlColumn.DataType == "bit" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
                     case CoreType.Byte: return sqlColumn.DataType == "tinyint" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;

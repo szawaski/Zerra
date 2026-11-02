@@ -19,184 +19,19 @@ namespace Zerra.Repository.Memory
         private static readonly ConcurrentFactoryDictionary<Type, Graph> allLocalMemberGraph = new();
 
         /// <inheritdoc/>
-        public IReadOnlyCollection<TModel> ExecuteMany<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public object? ExecuteLinq<TModel, TResult>(LinqQuery query, ModelDetail modelDetail) where TModel : class, new()
         {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            var localGraph = BuildLocalGraph(type, graph);
-            return whereQuery.Select(x => x.Copy(localGraph)).ToArray();
-        }
-        /// <inheritdoc/>
-        public TModel? ExecuteFirst<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            var localGraph = BuildLocalGraph(type, graph);
-            var result = whereQuery.FirstOrDefault();
-            if (result == null)
-                return null;
-            return result.Copy(localGraph);
-        }
-        /// <inheritdoc/>
-        public TModel? ExecuteSingle<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            var localGraph = BuildLocalGraph(type, graph);
-            var result = whereQuery.SingleOrDefault();
-            if (result == null)
-                return null;
-            return result.Copy(localGraph);
-        }
-        /// <inheritdoc/>
-        public long ExecuteCount<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            return whereQuery.Count();
-        }
-        /// <inheritdoc/>
-        public bool ExecuteAny<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            return whereQuery.Any();
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(typeof(TModel), () => new ConcurrentList<TModel>());
+            return query.Execute(source, caseSensitive);
         }
 
         /// <inheritdoc/>
-        public object? ExecuteCalculation<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
+        public Task<object?> ExecuteLinqAsync<TModel, TResult>(LinqQuery query, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
-            return whereQuery.Calculate(operation, value, caseSensitive);
-        }
-        /// <inheritdoc/>
-        public IReadOnlyCollection<(TKey Key, TValue Value)> ExecuteCalculationGroups<TModel, TKey, TValue>(QueryOperation operation, LambdaExpression? where, LambdaExpression groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
-            return whereQuery.CalculateGroups<TModel, TKey, TValue>(operation, groupBy, value, caseSensitive);
-        }
-        /// <inheritdoc/>
-        public IReadOnlyCollection<TValue> ExecuteDistinct<TModel, TValue>(LambdaExpression value, LambdaExpression? where, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
-            return whereQuery.Distinct<TModel, TValue>(value, caseSensitive);
-        }
-        /// <inheritdoc/>
-        public IReadOnlyCollection<TResult> ExecuteSelect<TModel, TResult>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            return whereQuery.Select<TModel, TResult>(select, caseSensitive);
-        }
-        /// <inheritdoc/>
-        public IReadOnlyCollection<TResult> ExecuteGroup<TModel, TResult>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
-            return whereQuery.Group<TModel, TResult>(groupBy, select, having, order, skip, take, caseSensitive);
-        }
-        /// <inheritdoc/>
-        public Task<IReadOnlyCollection<TModel>> ExecuteManyAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            var localGraph = BuildLocalGraph(type, graph);
-            return Task.FromResult<IReadOnlyCollection<TModel>>(whereQuery.Select(x => x.Copy(localGraph)).ToArray());
-        }
-        /// <inheritdoc/>
-        public Task<TModel?> ExecuteFirstAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            var localGraph = BuildLocalGraph(type, graph);
-            var result = whereQuery.FirstOrDefault();
-            if (result == null)
-                return Task.FromResult<TModel?>(null);
-            return Task.FromResult<TModel?>(result.Copy(localGraph));
-        }
-        /// <inheritdoc/>
-        public Task<TModel?> ExecuteSingleAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            var localGraph = BuildLocalGraph(type, graph);
-            var result = whereQuery.SingleOrDefault();
-            if (result == null)
-                return Task.FromResult<TModel?>(null);
-            return Task.FromResult<TModel?>(result.Copy(localGraph));
-        }
-        /// <inheritdoc/>
-        public Task<long> ExecuteCountAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            return Task.FromResult<long>(whereQuery.Count());
-        }
-        /// <inheritdoc/>
-        public Task<bool> ExecuteAnyAsync<TModel>(LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            return Task.FromResult(whereQuery.Any());
-        }
-
-        /// <inheritdoc/>
-        public Task<object?> ExecuteCalculationAsync<TModel>(QueryOperation operation, LambdaExpression? where, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
-            return Task.FromResult<object?>(whereQuery.Calculate(operation, value, caseSensitive));
-        }
-        /// <inheritdoc/>
-        public Task<IReadOnlyCollection<(TKey Key, TValue Value)>> ExecuteCalculationGroupsAsync<TModel, TKey, TValue>(QueryOperation operation, LambdaExpression? where, LambdaExpression groupBy, LambdaExpression? value, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
-            return Task.FromResult<IReadOnlyCollection<(TKey Key, TValue Value)>>(whereQuery.CalculateGroups<TModel, TKey, TValue>(operation, groupBy, value, caseSensitive));
-        }
-        /// <inheritdoc/>
-        public Task<IReadOnlyCollection<TValue>> ExecuteDistinctAsync<TModel, TValue>(LambdaExpression value, LambdaExpression? where, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
-            return Task.FromResult<IReadOnlyCollection<TValue>>(whereQuery.Distinct<TModel, TValue>(value, caseSensitive));
-        }
-        /// <inheritdoc/>
-        public Task<IReadOnlyCollection<TResult>> ExecuteSelectAsync<TModel, TResult>(LambdaExpression select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, order, skip, take, caseSensitive);
-            return Task.FromResult<IReadOnlyCollection<TResult>>(whereQuery.Select<TModel, TResult>(select, caseSensitive));
-        }
-        /// <inheritdoc/>
-        public Task<IReadOnlyCollection<TResult>> ExecuteGroupAsync<TModel, TResult>(LambdaExpression groupBy, LambdaExpression select, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail) where TModel : class, new()
-        {
-            var type = typeof(TModel);
-            var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var whereQuery = source.AsEnumerable().Query(where, null, null, null, caseSensitive);
-            return Task.FromResult<IReadOnlyCollection<TResult>>(whereQuery.Group<TModel, TResult>(groupBy, select, having, order, skip, take, caseSensitive));
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<object?>(cancellationToken);
+            var source = (ConcurrentList<TModel>)data.GetOrAdd(typeof(TModel), () => new ConcurrentList<TModel>());
+            return Task.FromResult(query.Execute(source, caseSensitive));
         }
         /// <inheritdoc/>
         public object ExecuteInsertGetIdentities<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
@@ -305,7 +140,7 @@ namespace Zerra.Repository.Memory
         {
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var sets = set.GetProjectionMembers(null);
+            var sets = set.GetProjectionMembers();
             var getters = new Func<TModel, object?>[sets.Length];
             var members = new ModelMemberDetail[sets.Length];
             for (var i = 0; i < sets.Length; i++)
@@ -342,8 +177,10 @@ namespace Zerra.Repository.Memory
             return count;
         }
         /// <inheritdoc/>
-        public Task<object> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public Task<object> ExecuteInsertGetIdentitiesAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<object>(cancellationToken);
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             TModel copy;
@@ -375,8 +212,10 @@ namespace Zerra.Repository.Memory
             return Task.FromResult(id);
         }
         /// <inheritdoc/>
-        public Task<bool> ExecuteInsertAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public Task<bool> ExecuteInsertAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<bool>(cancellationToken);
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             TModel copy;
@@ -396,8 +235,10 @@ namespace Zerra.Repository.Memory
             return Task.FromResult(true);
         }
         /// <inheritdoc/>
-        public Task<bool> ExecuteUpdateAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()
+        public Task<bool> ExecuteUpdateAsync<TModel>(TModel model, Graph? graph, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<bool>(cancellationToken);
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var identity = ModelAnalyzer.GetIdentity(type, model);
@@ -409,8 +250,10 @@ namespace Zerra.Repository.Memory
             return Task.FromResult(true);
         }
         /// <inheritdoc/>
-        public Task<int> ExecuteDeleteAsync<TModel>(ICollection ids, ModelDetail modelDetail) where TModel : class, new()
+        public Task<int> ExecuteDeleteAsync<TModel>(ICollection ids, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<int>(cancellationToken);
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var deleteCount = 0;
@@ -427,8 +270,10 @@ namespace Zerra.Repository.Memory
             return Task.FromResult(deleteCount);
         }
         /// <inheritdoc/>
-        public Task<int> ExecuteUpdateWhereAsync<TModel>(TModel model, Graph graph, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        public Task<int> ExecuteUpdateWhereAsync<TModel>(TModel model, Graph graph, LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<int>(cancellationToken);
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var localGraph = BuildLocalGraph(type, graph);
@@ -442,11 +287,13 @@ namespace Zerra.Repository.Memory
             return Task.FromResult(count);
         }
         /// <inheritdoc/>
-        public Task<int> ExecuteUpdateWhereAsync<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        public Task<int> ExecuteUpdateWhereAsync<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<int>(cancellationToken);
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
-            var sets = set.GetProjectionMembers(null);
+            var sets = set.GetProjectionMembers();
             var getters = new Func<TModel, object?>[sets.Length];
             var members = new ModelMemberDetail[sets.Length];
             for (var i = 0; i < sets.Length; i++)
@@ -469,8 +316,10 @@ namespace Zerra.Repository.Memory
             return Task.FromResult(count);
         }
         /// <inheritdoc/>
-        public Task<int> ExecuteDeleteWhereAsync<TModel>(LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
+        public Task<int> ExecuteDeleteWhereAsync<TModel>(LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<int>(cancellationToken);
             var type = typeof(TModel);
             var source = (ConcurrentList<TModel>)data.GetOrAdd(type, () => new ConcurrentList<TModel>());
             var count = 0;

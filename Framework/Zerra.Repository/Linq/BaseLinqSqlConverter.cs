@@ -13,68 +13,6 @@ namespace Zerra.Repository
     /// </summary>
     public abstract partial class BaseLinqSqlConverter
     {
-        /// <summary>
-        /// Converts the specified query parameters into a SQL string.
-        /// </summary>
-        /// <param name="select">The query operation type (e.g., Single, Many, First).</param>
-        /// <param name="where">An optional filter expression.</param>
-        /// <param name="order">An optional ordering specification.</param>
-        /// <param name="skip">An optional number of records to skip.</param>
-        /// <param name="take">An optional number of records to take.</param>
-        /// <param name="graph">An optional graph describing which properties to include.</param>
-        /// <param name="modelDetail">Metadata about the model being queried.</param>
-        /// <returns>The generated SQL query string.</returns>
-        protected string ConvertInternal(QueryOperation select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
-        {
-            var operationContext = new MemberContext();
-            var sb = new CharWriter();
-            try
-            {
-                Convert(ref sb, select, where, order, skip, take, graph, modelDetail, operationContext);
-                return sb.ToString();
-            }
-            finally
-            {
-                sb.Dispose();
-            }
-        }
-
-        /// <summary>
-        /// Converts a calculation (a count per group, or a sum, average, minimum, or maximum over all records or per group) to SQL.
-        /// </summary>
-        /// <param name="operation">The calculation.</param>
-        /// <param name="where">An optional filter expression.</param>
-        /// <param name="groupBy">The group key expression, or <see langword="null"/> to calculate over all records.</param>
-        /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
-        /// <param name="modelDetail">Metadata about the model being queried.</param>
-        /// <returns>The SQL, with the key parts as the first result columns and the value last.</returns>
-        protected string ConvertCalculationInternal(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail)
-        {
-            var operationContext = new MemberContext();
-            var sb = new CharWriter();
-            try
-            {
-                ConvertCalculation(ref sb, operation, where, groupBy, value, modelDetail, operationContext);
-                return sb.ToString();
-            }
-            finally
-            {
-                sb.Dispose();
-            }
-        }
-
-        /// <summary>
-        /// Builds the SQL for a calculation (a count per group, or a sum, average, minimum, or maximum over all records or per group) into the provided <see cref="CharWriter"/>.
-        /// The result columns are the key parts from <see cref="CalculationCommon.GetKeyParts"/> in order, then the calculated value.
-        /// </summary>
-        /// <param name="sb">The writer to append the SQL into.</param>
-        /// <param name="operation">The calculation.</param>
-        /// <param name="where">An optional filter expression.</param>
-        /// <param name="groupBy">The group key expression, or <see langword="null"/> to calculate over all records.</param>
-        /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
-        /// <param name="modelDetail">Metadata about the model being queried.</param>
-        /// <param name="operationContext">The current member context for the operation.</param>
-        protected abstract void ConvertCalculation(ref CharWriter sb, QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail, MemberContext operationContext);
 
         /// <summary>
         /// Converts an expression over the model, a group key part or a projected value, as the body of a lambda on the model, in parentheses, so related models in it join or subquery as they do in a where.
@@ -105,120 +43,24 @@ namespace Zerra.Repository
         }
 
         /// <summary>
-        /// Converts a projection of each record to SQL. The result columns are the projection's members in order.
+        /// Converts a LINQ query to its statements in one pass: the statement over its model, and nested within it one per relation the plan reads after the rows, each selecting the rows of every parent at once, those whose key the parent's statement selects.
         /// </summary>
-        /// <param name="members">The members from <see cref="LinqExtensions.GetProjectionMembers"/>.</param>
-        /// <param name="where">An optional filter expression.</param>
-        /// <param name="order">An optional ordering of the records.</param>
-        /// <param name="skip">An optional number of records to skip.</param>
-        /// <param name="take">An optional maximum number of records to return.</param>
+        /// <param name="query">The query.</param>
         /// <param name="modelDetail">Metadata about the model being queried.</param>
-        /// <returns>The SQL.</returns>
-        protected string ConvertSelectInternal(ProjectionMember[] members, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail)
+        /// <returns>The statement, the plan of its rows, and the statements of the relations.</returns>
+        protected LinqStatement ConvertLinqInternal(LinqQuery query, ModelDetail modelDetail)
         {
-            var operationContext = new MemberContext();
-            var sb = new CharWriter();
-            try
-            {
-                ConvertSelect(ref sb, members, where, order, skip, take, modelDetail, operationContext);
-                return sb.ToString();
-            }
-            finally
-            {
-                sb.Dispose();
-            }
+            return ConvertLinq(query, LinqPlan.Read(query, modelDetail), modelDetail);
         }
 
         /// <summary>
-        /// Converts a projection of each group to SQL. The result columns are the projection's members in order.
+        /// Builds the statements of a LINQ query. The statement over the model: the plan's columns, or the count, the one row of an any, or the calculation, then the from, joins, where, and for a grouped query the group by, having, and the order and paging of the results, otherwise the order and paging of the models. Then for each piece of the plan, nested: its plan's columns, the key matching each row to its parent among them, the from, joins, a where of the parents' keys as the parent's statement selects them and the relation's own condition, and the relation's order.
         /// </summary>
-        /// <param name="groupBy">The group key expression.</param>
-        /// <param name="members">The members from <see cref="LinqExtensions.GetProjectionMembers"/>.</param>
-        /// <param name="where">An optional filter expression on the records.</param>
-        /// <param name="having">An optional filter on the results.</param>
-        /// <param name="order">An optional ordering of the results.</param>
-        /// <param name="skip">An optional number of results to skip.</param>
-        /// <param name="take">An optional maximum number of results to return.</param>
+        /// <param name="query">The query.</param>
+        /// <param name="plan">The plan of the rows, from <see cref="LinqPlan.Read"/>.</param>
         /// <param name="modelDetail">Metadata about the model being queried.</param>
-        /// <param name="resultType">The result type, which names the derived table the having and the order select from.</param>
-        /// <returns>The SQL.</returns>
-        protected string ConvertGroupInternal(LambdaExpression groupBy, ProjectionMember[] members, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, Type resultType)
-        {
-            var operationContext = new MemberContext();
-            var sb = new CharWriter();
-            try
-            {
-                ConvertGroup(ref sb, CalculationCommon.GetKeyParts(groupBy), groupBy.Parameters[0], members, where, having, order, skip, take, modelDetail, ModelAnalyzer.GetModel(resultType), operationContext);
-                return sb.ToString();
-            }
-            finally
-            {
-                sb.Dispose();
-            }
-        }
-
-        /// <summary>
-        /// Builds the SQL of a projection of each record into the provided <see cref="CharWriter"/>: each member's expression with the member's name as alias, then the from, joins, where, order, and paging.
-        /// </summary>
-        /// <param name="sb">The writer to append the SQL into.</param>
-        /// <param name="members">The members from <see cref="LinqExtensions.GetProjectionMembers"/>.</param>
-        /// <param name="where">An optional filter expression.</param>
-        /// <param name="order">An optional ordering of the records.</param>
-        /// <param name="skip">An optional number of records to skip.</param>
-        /// <param name="take">An optional maximum number of records to return.</param>
-        /// <param name="modelDetail">Metadata about the model being queried.</param>
-        /// <param name="operationContext">The current member context for the operation.</param>
-        protected abstract void ConvertSelect(ref CharWriter sb, ProjectionMember[] members, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, MemberContext operationContext);
-
-        /// <summary>
-        /// Converts the projection of the rows of a related collection, a <see cref="ProjectionMemberKind.Collection"/> member of a projection, to SQL. The columns are its members in order, then the foreign identity matching each row to its model.
-        /// </summary>
-        /// <param name="collection">The collection member.</param>
-        /// <param name="where">The condition selecting the rows: the models' identities, and the collection's own condition.</param>
-        /// <param name="relatedDetail">Metadata about the related model.</param>
-        /// <returns>The SQL.</returns>
-        protected string ConvertSelectElementsInternal(ProjectionMember collection, LambdaExpression where, ModelDetail relatedDetail)
-        {
-            var operationContext = new MemberContext();
-            var sb = new CharWriter();
-            try
-            {
-                ConvertSelectElements(ref sb, collection, where, relatedDetail, operationContext);
-                return sb.ToString();
-            }
-            finally
-            {
-                sb.Dispose();
-            }
-        }
-
-        /// <summary>
-        /// Builds the SQL of the projection of the rows of a related collection into the provided <see cref="CharWriter"/>: each member's expression with the member's name as alias, the foreign identity, then the from, joins, where, and the collection's order.
-        /// </summary>
-        /// <param name="sb">The writer to append the SQL into.</param>
-        /// <param name="collection">The collection member.</param>
-        /// <param name="where">The condition selecting the rows.</param>
-        /// <param name="relatedDetail">Metadata about the related model.</param>
-        /// <param name="operationContext">The current member context for the operation.</param>
-        protected abstract void ConvertSelectElements(ref CharWriter sb, ProjectionMember collection, LambdaExpression where, ModelDetail relatedDetail, MemberContext operationContext);
-
-        /// <summary>
-        /// Builds the SQL of a projection of each group into the provided <see cref="CharWriter"/>: the key parts and values as an inner select, the aggregates over it grouped by the key parts,
-        /// and when there is a having, an order, or paging, that as a derived table named after the result type so they convert like a where on a model.
-        /// </summary>
-        /// <param name="sb">The writer to append the SQL into.</param>
-        /// <param name="keyParts">The key parts from <see cref="CalculationCommon.GetKeyParts"/>.</param>
-        /// <param name="groupParameter">The group key expression's parameter.</param>
-        /// <param name="members">The members from <see cref="LinqExtensions.GetProjectionMembers"/>.</param>
-        /// <param name="where">An optional filter expression on the records.</param>
-        /// <param name="having">An optional filter on the results.</param>
-        /// <param name="order">An optional ordering of the results.</param>
-        /// <param name="skip">An optional number of results to skip.</param>
-        /// <param name="take">An optional maximum number of results to return.</param>
-        /// <param name="modelDetail">Metadata about the model being queried.</param>
-        /// <param name="resultDetail">Metadata about the result type.</param>
-        /// <param name="operationContext">The current member context for the operation.</param>
-        protected abstract void ConvertGroup(ref CharWriter sb, Expression[] keyParts, ParameterExpression groupParameter, ProjectionMember[] members, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, ModelDetail resultDetail, MemberContext operationContext);
+        /// <returns>The statement, the plan of its rows, and the statements of the relations.</returns>
+        protected abstract LinqStatement ConvertLinq(LinqQuery query, LinqPlan plan, ModelDetail modelDetail);
 
         /// <summary>
         /// Converts the condition of an update or delete to its SQL, starting with WHERE, for the engine to append to its UPDATE or DELETE statement.
@@ -286,47 +128,30 @@ namespace Zerra.Repository
         /// Builds the SQL query into the provided <see cref="CharWriter"/>.
         /// </summary>
         /// <param name="sb">The writer to append the SQL into.</param>
-        /// <param name="select">The query operation type.</param>
+        /// <param name="count">Whether the statement counts the rows rather than reading them.</param>
         /// <param name="where">An optional filter expression.</param>
-        /// <param name="order">An optional ordering specification.</param>
-        /// <param name="skip">An optional number of records to skip.</param>
-        /// <param name="take">An optional number of records to take.</param>
         /// <param name="graph">An optional graph describing which properties to include.</param>
         /// <param name="modelDetail">Metadata about the model being queried.</param>
         /// <param name="operationContext">The current member context for the operation.</param>
-        protected void Convert(ref CharWriter sb, QueryOperation select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail, MemberContext operationContext)
+        protected void ConvertSubquery(ref CharWriter sb, bool count, LambdaExpression? where, Graph? graph, ModelDetail modelDetail, MemberContext operationContext)
         {
-            var hasWhere = where is not null;
-            var hasOrderSkipTake = (select == QueryOperation.Many || select == QueryOperation.First) && (order?.OrderExpressions.Length > 0 || skip > 0 || take > 0);
-
-            GenerateSelect(select, graph, modelDetail, ref sb);
-
+            GenerateSelect(count, graph, modelDetail, ref sb);
             GenerateFrom(modelDetail, ref sb);
-
-            if (hasWhere || hasOrderSkipTake)
+            if (where is null)
+                return;
+            var rootDependant = new ParameterDependant(modelDetail, null);
+            var sbWhere = new CharWriter();
+            try
             {
-                var rootDependant = new ParameterDependant(modelDetail, null);
-                var sbWhereOrder = new CharWriter();
-                try
-                {
-                    if (hasWhere)
-                        GenerateWhere(where, ref sbWhereOrder, rootDependant, operationContext);
-                    if (hasOrderSkipTake)
-                        GenerateOrderSkipTake(order, skip, take, ref sbWhereOrder, rootDependant, operationContext);
-
-                    GenerateJoin(rootDependant, ref sb);
-
-                    sb.Write(sbWhereOrder);
-                }
-                finally
-                {
-                    sbWhereOrder.Dispose();
-                }
+                GenerateWhere(where, ref sbWhere, rootDependant, operationContext);
+                GenerateJoin(rootDependant, ref sb);
+                sb.Write(sbWhere);
             }
-
-            GenerateEnding(select, graph, modelDetail, ref sb);
+            finally
+            {
+                sbWhere.Dispose();
+            }
         }
-
         /// <summary>
         /// Converts a LINQ <see cref="Expression"/> node into its SQL representation.
         /// </summary>
@@ -335,9 +160,16 @@ namespace Zerra.Repository
         /// <param name="context">The current builder context.</param>
         protected void ConvertToSql(Expression exp, ref CharWriter sb, BuilderContext context)
         {
+            if (context.IsSort && exp.NodeType != ExpressionType.Lambda)
+            {
+                context.IsSort = false;
+                exp = EnumAsNumber(exp);
+            }
             switch (exp.NodeType)
             {
                 case ExpressionType.Add:
+                    if (TryConvertToSqlDateArithmetic(exp, ref sb, context))
+                        break;
                     if (exp.Type == typeof(string))
                         ConvertToSqlStringConcat(exp, ref sb, context);
                     else
@@ -348,6 +180,8 @@ namespace Zerra.Repository
                 case ExpressionType.AddAssignChecked:
                     throw new NotImplementedException();
                 case ExpressionType.AddChecked:
+                    if (TryConvertToSqlDateArithmetic(exp, ref sb, context))
+                        break;
                     ConvertToSqlBinary(Operator.Add, exp, ref sb, context);
                     break;
                 case ExpressionType.And:
@@ -373,17 +207,27 @@ namespace Zerra.Repository
                 case ExpressionType.Block:
                     throw new NotImplementedException();
                 case ExpressionType.Call:
-                    ConvertToSqlCall(exp, ref sb, context);
+                    if (exp is MethodCallExpression { Object: ConstantExpression { Value: LinqSubquery subquery } } subqueryCall)
+                    {
+                        if (!ConvertToSqlConditionAsValue(exp, ref sb, context))
+                            ConvertToSqlSubquery(subquery, subqueryCall.Arguments[0], ref sb, context);
+                    }
+                    else
+                        ConvertToSqlCall(exp, ref sb, context);
                     break;
                 case ExpressionType.Coalesce:
                     if (IsEvaluatable(exp))
                         ConvertToSqlEvaluate(exp, ref sb, context);
+                    else if (EnumOf(exp.Type) is { } coalesceEnum && IsStoredEnum(exp, context.MemberContext))
+                        ConvertToSql(EnumAsText(exp, coalesceEnum, context.MemberContext), ref sb, context);
                     else
                         ConvertToSqlCoalesce(exp, ref sb, context);
                     break;
                 case ExpressionType.Conditional:
                     if (IsEvaluatable(exp))
                         ConvertToSqlEvaluate(exp, ref sb, context);
+                    else if (EnumOf(exp.Type) is { } conditionalEnum && IsStoredEnum(exp, context.MemberContext))
+                        ConvertToSql(EnumAsText(exp, conditionalEnum, context.MemberContext), ref sb, context);
                     else
                         ConvertToSqlConditional(exp, ref sb, context);
                     break;
@@ -412,7 +256,7 @@ namespace Zerra.Repository
                     throw new NotImplementedException();
                 case ExpressionType.Equal:
                     if (!ConvertToSqlConditionAsValue(exp, ref sb, context))
-                        ConvertToSqlBinary(context.Inverted ? Operator.NotEquals : Operator.Equals, exp, ref sb, context);
+                        ConvertToSqlComparison(context.Inverted ? Operator.NotEquals : Operator.Equals, exp, ref sb, context);
                     break;
                 case ExpressionType.ExclusiveOr:
                     if (exp.Type == typeof(bool) || exp.Type == typeof(bool?))
@@ -427,11 +271,11 @@ namespace Zerra.Repository
                     throw new NotImplementedException();
                 case ExpressionType.GreaterThan:
                     if (!ConvertToSqlConditionAsValue(exp, ref sb, context))
-                        ConvertToSqlBinary(context.Inverted ? Operator.LessThanOrEquals : Operator.GreaterThan, exp, ref sb, context);
+                        ConvertToSqlComparison(context.Inverted ? Operator.LessThanOrEquals : Operator.GreaterThan, exp, ref sb, context);
                     break;
                 case ExpressionType.GreaterThanOrEqual:
                     if (!ConvertToSqlConditionAsValue(exp, ref sb, context))
-                        ConvertToSqlBinary(context.Inverted ? Operator.LessThan : Operator.GreaterThanOrEquals, exp, ref sb, context);
+                        ConvertToSqlComparison(context.Inverted ? Operator.LessThan : Operator.GreaterThanOrEquals, exp, ref sb, context);
                     break;
                 case ExpressionType.Increment:
                     throw new NotImplementedException();
@@ -456,11 +300,11 @@ namespace Zerra.Repository
                     throw new NotImplementedException();
                 case ExpressionType.LessThan:
                     if (!ConvertToSqlConditionAsValue(exp, ref sb, context))
-                        ConvertToSqlBinary(context.Inverted ? Operator.GreaterThanOrEquals : Operator.LessThan, exp, ref sb, context);
+                        ConvertToSqlComparison(context.Inverted ? Operator.GreaterThanOrEquals : Operator.LessThan, exp, ref sb, context);
                     break;
                 case ExpressionType.LessThanOrEqual:
                     if (!ConvertToSqlConditionAsValue(exp, ref sb, context))
-                        ConvertToSqlBinary(context.Inverted ? Operator.GreaterThan : Operator.LessThanOrEquals, exp, ref sb, context);
+                        ConvertToSqlComparison(context.Inverted ? Operator.GreaterThan : Operator.LessThanOrEquals, exp, ref sb, context);
                     break;
                 case ExpressionType.ListInit:
                     ConvertToSqlEvaluateOnly(exp, ref sb, context);
@@ -521,7 +365,7 @@ namespace Zerra.Repository
                     break;
                 case ExpressionType.NotEqual:
                     if (!ConvertToSqlConditionAsValue(exp, ref sb, context))
-                        ConvertToSqlBinary(context.Inverted ? Operator.Equals : Operator.NotEquals, exp, ref sb, context);
+                        ConvertToSqlComparison(context.Inverted ? Operator.Equals : Operator.NotEquals, exp, ref sb, context);
                     break;
                 case ExpressionType.OnesComplement:
                     ConvertToSqlUnary(Operator.BitwiseNot, exp, ref sb, context);
@@ -577,6 +421,10 @@ namespace Zerra.Repository
                 case ExpressionType.RuntimeVariables:
                     throw new NotImplementedException();
                 case ExpressionType.Subtract:
+                    if (IsDateDifference(exp))
+                        throw new NotSupportedException("The time between two values is read through a total, such as (x.End - x.Start).TotalHours, or compared to a time span");
+                    if (TryConvertToSqlDateArithmetic(exp, ref sb, context))
+                        break;
                     ConvertToSqlBinary(Operator.Subtract, exp, ref sb, context);
                     break;
                 case ExpressionType.SubtractAssign:
@@ -584,6 +432,8 @@ namespace Zerra.Repository
                 case ExpressionType.SubtractAssignChecked:
                     throw new NotImplementedException();
                 case ExpressionType.SubtractChecked:
+                    if (TryConvertToSqlDateArithmetic(exp, ref sb, context))
+                        break;
                     ConvertToSqlBinary(Operator.Subtract, exp, ref sb, context);
                     break;
                 case ExpressionType.Switch:
@@ -627,7 +477,11 @@ namespace Zerra.Repository
 
             if (prefix is null)
             {
-                ConvertToSql(unary.Operand, ref sb, context);
+                var enumOperand = WithoutConvert(unary.Operand);
+                if (IsEnumNumber(unary.Type) && IsStoredEnum(enumOperand, context.MemberContext))
+                    ConvertToSqlEnumNumber(enumOperand, ref sb, context);
+                else
+                    ConvertToSql(unary.Operand, ref sb, context);
             }
             else
             {
@@ -660,6 +514,11 @@ namespace Zerra.Repository
             return true;
         }
 
+        private void ConvertToSqlComparison(Operator operation, Expression exp, ref CharWriter sb, BuilderContext context)
+        {
+            if (!TryConvertToSqlSpanComparison(operation, exp, ref sb, context))
+                ConvertToSqlBinary(operation, exp, ref sb, context);
+        }
         private void ConvertToSqlBinary(Operator operation, Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(operation);
@@ -683,6 +542,9 @@ namespace Zerra.Repository
                     binaryRight = null;
                 }
             }
+
+            if (binaryRight is not null && operation is Operator.Equals or Operator.NotEquals or Operator.LessThan or Operator.LessThanOrEquals or Operator.GreaterThan or Operator.GreaterThanOrEquals)
+                ConvertEnumComparison(operation, ref binaryLeft, ref binaryRight!, context.MemberContext);
 
             //SQL comparisons with NULL are unknown, C# gives true or false, the null cases C# counts as true are added
             if (binaryRight is not null && (operation == Operator.Equals || operation == Operator.NotEquals || operation == Operator.LessThan || operation == Operator.LessThanOrEquals || operation == Operator.GreaterThan || operation == Operator.GreaterThanOrEquals))
@@ -853,6 +715,26 @@ namespace Zerra.Repository
         {
             var member = (MemberExpression)exp;
 
+            if (member.Expression is ParameterExpression resultParameter && context.MemberContext.ResultColumns is not null && context.MemberContext.ResultColumns.TryGetValue(resultParameter, out var resultColumns))
+            {
+                //a member of a grouped result in its having or order is the column that computes it
+                if (!resultColumns.TryGetValue(member.Member.Name, out var column))
+                    throw new NotSupportedException($"{member.Member.Name} isn't a value of the grouped result, so its results can't be filtered or ordered by it");
+                sb.Write(column);
+                return;
+            }
+
+            if (member.Expression is MemberExpression { Expression: ParameterExpression partParameter } whole && context.MemberContext.ResultColumns is not null && context.MemberContext.ResultColumns.TryGetValue(partParameter, out var partColumns))
+            {
+                if (!partColumns.TryGetValue($"{whole.Member.Name}.{member.Member.Name}", out var column))
+                    throw new NotSupportedException($"{whole.Member.Name}.{member.Member.Name} isn't a value of the grouped result, so its results can't be filtered or ordered by it");
+                sb.Write(column);
+                return;
+            }
+
+            if (TryConvertToSqlSpanMember(member, ref sb, context))
+                return;
+
             if (member.Expression is null || IsEvaluatable(member.Expression))
             {
                 ConvertToSqlEvaluate(member, ref sb, context);
@@ -864,6 +746,73 @@ namespace Zerra.Repository
                 _ = context.MemberContext.MemberAccessStack.Pop();
             }
         }
+        /// <summary>
+        /// Gets the name in the statement of the table an expression reads a related collection from: an alias when a join needed one.
+        /// </summary>
+        /// <param name="owner">The expression the collection is a member of.</param>
+        /// <param name="context">The current builder context.</param>
+        /// <returns>The name of the table.</returns>
+        protected static string RelationTable(Expression owner, BuilderContext context)
+            => FindDependant(owner, context)?.TableName ?? ModelAnalyzer.GetModel(owner.Type).DataSourceEntityName;
+        private static ParameterDependant? FindDependant(Expression owner, BuilderContext context)
+        {
+            switch (owner)
+            {
+                case ParameterExpression:
+                    if (context.MemberContext.DependantStack.Count == 0)
+                        return null;
+                    var current = context.MemberContext.DependantStack.Peek();
+                    return current.ModelDetail.Type == owner.Type ? current : null;
+                case MemberExpression { Expression: not null } member:
+                    return FindDependant(member.Expression, context) is { } parent && parent.Dependants.TryGetValue(member.Member.Name, out var dependant) ? dependant : null;
+                case UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } conversion:
+                    return FindDependant(conversion.Operand, context);
+                default:
+                    return null;
+            }
+        }
+        /// <summary>
+        /// Gets the name in the statement of the table a lambda over a related collection matches its rows to.
+        /// </summary>
+        /// <param name="property">The member reading the collection.</param>
+        /// <param name="callingModel">The model the collection belongs to.</param>
+        /// <param name="context">The current builder context.</param>
+        /// <returns>The name of the table.</returns>
+        protected static string CallingTable(MemberExpression property, ModelDetail callingModel, BuilderContext context)
+            => context.MemberContext.CallingTables is not null && context.MemberContext.CallingTables.TryGetValue(property, out var table) ? table : callingModel.DataSourceEntityName;
+
+        //a query a condition looks in is written in the statement, a page of it in a derived table as MySQL and MariaDB refuse a LIMIT in an IN
+        private void ConvertToSqlSubquery(LinqSubquery subquery, Expression value, ref CharWriter sb, BuilderContext context)
+        {
+            if (value is UnaryExpression { NodeType: ExpressionType.Convert } boxed)
+                value = boxed.Operand;
+            var inverted = context.Inverted;
+            var invertStack = context.InvertStack;
+            context.InvertStack = 0;
+            context.MemberContext.OperatorStack.Push(Operator.Call);
+            ConvertToSql(value, ref sb, context);
+            _ = context.MemberContext.OperatorStack.Pop();
+            context.InvertStack = invertStack;
+            sb.Write(inverted ? " NOT IN(" : " IN(");
+            var query = subquery.Query;
+            var modelDetail = ModelAnalyzer.GetModel(query.ModelType);
+            var statement = ConvertLinq(query, LinqPlan.Read(query, modelDetail), modelDetail);
+            if (statement.Pieces is not null)
+                throw new NotSupportedException("A query a condition looks in selects one value of its own row, not a relation");
+            //MySQL and MariaDB also refuse to read the table being changed unless it is a derived table
+            if (query.Skip.HasValue || query.Take.HasValue || context.RootDependant.ModelDetail.Type == query.ModelType)
+            {
+                sb.Write("SELECT * FROM(");
+                sb.Write(statement.Sql);
+                sb.Write(")AS Z");
+            }
+            else
+            {
+                sb.Write(statement.Sql);
+            }
+            sb.Write(')');
+        }
+
         /// <summary>
         /// Converts a member that is a SQL function of the expression it is read from, such as <c>string.Length</c>, <c>DateTime.Year</c>, or <c>Nullable.HasValue</c>.
         /// Only called when the expression the member is read from can't be evaluated, so it involves the model.
@@ -1600,11 +1549,11 @@ namespace Zerra.Repository
         /// <summary>
         /// Generates the SELECT clause into the provided writer.
         /// </summary>
-        /// <param name="select">The query operation type.</param>
+        /// <param name="count">Whether the statement counts the rows rather than reading them.</param>
         /// <param name="graph">An optional graph describing which properties to include.</param>
         /// <param name="modelDetail">Metadata about the model being queried.</param>
         /// <param name="sb">The writer to append SQL into.</param>
-        protected abstract void GenerateSelect(QueryOperation select, Graph? graph, ModelDetail modelDetail, ref CharWriter sb);
+        protected abstract void GenerateSelect(bool count, Graph? graph, ModelDetail modelDetail, ref CharWriter sb);
         /// <summary>
         /// Generates the column list for the SELECT clause into the provided writer.
         /// </summary>
@@ -1624,14 +1573,6 @@ namespace Zerra.Repository
         /// <param name="dependant">The root parameter dependant describing the join graph.</param>
         /// <param name="sb">The writer to append SQL into.</param>
         protected abstract void GenerateJoin(ParameterDependant dependant, ref CharWriter sb);
-        /// <summary>
-        /// Generates any trailing SQL (e.g., TOP/LIMIT wrappers, semicolons) into the provided writer.
-        /// </summary>
-        /// <param name="select">The query operation type.</param>
-        /// <param name="graph">An optional graph describing which properties to include.</param>
-        /// <param name="modelDetail">Metadata about the model being queried.</param>
-        /// <param name="sb">The writer to append SQL into.</param>
-        protected abstract void GenerateEnding(QueryOperation select, Graph? graph, ModelDetail modelDetail, ref CharWriter sb);
 
         /// <summary>
         /// Appends a line break into the provided writer.

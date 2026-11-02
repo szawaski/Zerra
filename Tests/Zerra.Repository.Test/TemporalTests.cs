@@ -45,15 +45,15 @@ namespace Zerra.Repository.Test
 
         [Theory]
         [MemberData(nameof(Snapshots))]
-        public async Task NotTemporal_ManyIsEveryStateAndSingleTheCurrent(bool snapshots)
+        public async Task NotTemporal_ReadsTheCurrentState(bool snapshots)
         {
             var (repo, id, _) = Create(snapshots);
 
-            Assert.Equal([1, 2, 3], Values(repo.Many<TemporalModel>(x => x.ID == id)));
-            Assert.Equal(3, repo.Count<TemporalModel>(x => x.ID == id));
-            Assert.Equal(3, repo.Single<TemporalModel>(x => x.ID == id)!.Value);
-            Assert.Equal(new[] { 1, 2, 3 }, Values(await repo.ManyAsync<TemporalModel>(x => x.ID == id)));
-            Assert.Equal(3, await repo.CountAsync<TemporalModel>(x => x.ID == id));
+            Assert.Equal([3], Values(repo.Query<TemporalModel>().Where(x => x.ID == id).ToArray()));
+            Assert.Equal(1, repo.Query<TemporalModel>().Count(x => x.ID == id));
+            Assert.Equal(3, repo.Query<TemporalModel>().SingleOrDefault(x => x.ID == id)!.Value);
+            Assert.Equal(new[] { 3 }, Values(await repo.Query<TemporalModel>().Where(x => x.ID == id).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)));
+            Assert.Equal(1, await repo.Query<TemporalModel>().CountAsync(x => x.ID == id, cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Theory]
@@ -97,11 +97,11 @@ namespace Zerra.Repository.Test
         {
             var (repo, id, dates) = Create(snapshots);
 
-            Assert.Equal(new[] { 2 }, Values(await repo.TemporalManyAsync<TemporalModel>(TemporalOrder.Oldest, (ulong?)null, null, 1, 1, x => x.ID == id)));
-            Assert.Equal(new[] { 2 }, Values(await repo.TemporalManyAsync<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, 1, 1, x => x.ID == id)));
-            Assert.Equal(2, (await repo.TemporalFirstAsync<TemporalModel>(TemporalOrder.Newest, (ulong?)null, 1, null, null, x => x.ID == id, null))!.Value);
-            Assert.Equal(2, (await repo.TemporalFirstAsync<TemporalModel>(TemporalOrder.Oldest, (ulong?)1, null, null, null, x => x.ID == id, null))!.Value);
-            Assert.Equal(2, (await repo.TemporalFirstAsync<TemporalModel>(TemporalOrder.Newest, (DateTime?)null, dates[1], null, null, x => x.ID == id, null))!.Value);
+            Assert.Equal(new[] { 2 }, Values(await repo.TemporalManyAsync<TemporalModel>(TemporalOrder.Oldest, (ulong?)null, null, 1, 1, x => x.ID == id, cancellationToken: TestContext.Current.CancellationToken)));
+            Assert.Equal(new[] { 2 }, Values(await repo.TemporalManyAsync<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, 1, 1, x => x.ID == id, cancellationToken: TestContext.Current.CancellationToken)));
+            Assert.Equal(2, (await repo.TemporalFirstAsync<TemporalModel>(TemporalOrder.Newest, (ulong?)null, 1, null, null, x => x.ID == id, null, TestContext.Current.CancellationToken))!.Value);
+            Assert.Equal(2, (await repo.TemporalFirstAsync<TemporalModel>(TemporalOrder.Oldest, (ulong?)1, null, null, null, x => x.ID == id, null, TestContext.Current.CancellationToken))!.Value);
+            Assert.Equal(2, (await repo.TemporalFirstAsync<TemporalModel>(TemporalOrder.Newest, (DateTime?)null, dates[1], null, null, x => x.ID == id, null, TestContext.Current.CancellationToken))!.Value);
         }
 
         [Theory]
@@ -120,8 +120,8 @@ namespace Zerra.Repository.Test
             Assert.Equal(2, repo.EventFirst<TemporalModel>(TemporalOrder.Newest, (ulong?)null, 1, null, null, x => x.ID == id)!.Model.Value);
             Assert.Equal(2, repo.EventFirst<TemporalModel>(TemporalOrder.Oldest, (ulong?)1, null, null, null, x => x.ID == id)!.Model.Value);
 
-            Assert.Equal(new[] { 2 }, Values(await repo.EventManyAsync<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, 1, 1, x => x.ID == id)));
-            Assert.Equal(2, (await repo.EventFirstAsync<TemporalModel>(TemporalOrder.Newest, (ulong?)null, 1, null, null, x => x.ID == id))!.Model.Value);
+            Assert.Equal(new[] { 2 }, Values(await repo.EventManyAsync<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, 1, 1, x => x.ID == id, cancellationToken: TestContext.Current.CancellationToken)));
+            Assert.Equal(2, (await repo.EventFirstAsync<TemporalModel>(TemporalOrder.Newest, (ulong?)null, 1, null, null, x => x.ID == id, cancellationToken: TestContext.Current.CancellationToken))!.Model.Value);
         }
 
         [Entity("TemporalPartsModel")]
@@ -151,7 +151,7 @@ namespace Zerra.Repository.Test
                 Thread.Sleep(5);
                 var change = new PartsModel { ID = model.ID, Value = i, Name = $"{i}" };
                 if (i % 2 == 0)
-                    await saved.UpdateAsync(change, new Graph<PartsModel>(x => x.ID, x => x.Value));
+                    await saved.UpdateAsync(change, new Graph<PartsModel>(x => x.ID, x => x.Value), TestContext.Current.CancellationToken);
                 else
                     saved.Update(change, new Graph<PartsModel>(x => x.ID, x => x.Name));
                 dates.Add(DateTime.UtcNow);
@@ -185,8 +185,8 @@ namespace Zerra.Repository.Test
                 }
             }
 
-            Assert.Equal("8:9", Text([saved.Single<PartsModel>(x => x.ID == id)!]));
-            Assert.Equal("8:9", Text([(await saved.SingleAsync<PartsModel>(x => x.ID == id))!]));
+            Assert.Equal("8:9", Text([saved.Query<PartsModel>().SingleOrDefault(x => x.ID == id)!]));
+            Assert.Equal("8:9", Text([(await saved.Query<PartsModel>().SingleOrDefaultAsync(x => x.ID == id, cancellationToken: TestContext.Current.CancellationToken))!]));
         }
     }
 }

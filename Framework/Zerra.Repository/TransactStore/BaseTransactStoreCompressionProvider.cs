@@ -42,10 +42,6 @@ namespace Zerra.Repository
         {
             return expression;
         }
-        private static QueryOrder? CompressOrder(QueryOrder? order)
-        {
-            return order;
-        }
 
         /// <summary>Decompresses the compressed properties of a single model.</summary>
         /// <param name="model">The model whose properties should be decompressed.</param>
@@ -192,111 +188,15 @@ namespace Zerra.Repository
         }
 
         /// <inheritdoc/>
-        public override sealed object? Many(Query query)
+        public override sealed object? Query(LinqQuery query)
         {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var compressedModels = (IReadOnlyCollection<TModel>)NextProvider.Query(appenedQuery)!;
-
-            if (compressedModels.Count == 0)
-                return compressedModels;
-
-            var models = DecompressModels(compressedModels, query.Graph, true);
-            return models;
-        }
-        /// <inheritdoc/>
-        public override sealed object? First(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var compressedModels = (TModel?)NextProvider.Query(appenedQuery);
-
-            if (compressedModels is null)
-                return null;
-
-            var model = DecompressModel(compressedModels, query.Graph, true);
-            return model;
-        }
-        /// <inheritdoc/>
-        public override sealed object? Single(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var compressedModels = (TModel?)NextProvider.Query(appenedQuery);
-
-            if (compressedModels is null)
-                return null;
-
-            var model = DecompressModel(compressedModels, query.Graph, true);
-            return model;
-        }
-        /// <inheritdoc/>
-        public override sealed object? Count(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var count = NextProvider.Query(appenedQuery)!;
-            return count;
-        }
-        /// <inheritdoc/>
-        public override sealed object? Any(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var any = NextProvider.Query(appenedQuery)!;
-            return any;
-        }
-        /// <inheritdoc/>
-        public override sealed object? Calculate(Query query)
-        {
-            if (this.Enabled)
-            {
-                var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
-                if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties))
-                    throw new NotSupportedException($"{GetType().Name} cannot calculate on a compressed property");
-            }
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var result = NextProvider.Query(appenedQuery);
-            return result;
-        }
-        /// <inheritdoc/>
-        public override sealed object? Project(Query query)
-        {
-            if (this.Enabled)
-            {
-                var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
-                if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties) || LinqMemberFinder.ReadsMember(query.Select, typeof(TModel), properties))
-                    throw new NotSupportedException($"{GetType().Name} cannot project or calculate on a compressed property");
-            }
+            RefuseCompressedReads(query);
             //the query carries its result types, so the converted where is swapped onto it for the call and the original put back
             var where = query.Where;
             query.Where = CompressWhere(where);
             try
             {
-                return NextProvider.Query(query);
+                return DecompressResult(query, NextProvider.Query(query));
             }
             finally
             {
@@ -304,279 +204,61 @@ namespace Zerra.Repository
             }
         }
         /// <inheritdoc/>
-        public override sealed object? EventMany(Query query)
+        public override sealed async Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken)
         {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var eventModels = (ICollection<EventModel<TModel>>)NextProvider.Query(appenedQuery)!;
-
-            if (eventModels.Count == 0)
-                return eventModels;
-
-            var compressedModels = eventModels.Select(x => x.Model).ToArray();
-            var models = DecompressModels(compressedModels, query.Graph, true).GetEnumerator();
-            foreach (var eventModel in eventModels)
-            {
-                _ = models.MoveNext();
-                eventModel.Model = (TModel)models.Current;
-            }
-
-            return eventModels;
-        }
-        /// <inheritdoc/>
-        public override sealed object? EventFirst(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var eventModel = (EventModel<TModel>?)NextProvider.Query(appenedQuery);
-
-            if (eventModel is null)
-                return null;
-
-            eventModel.Model = DecompressModel(eventModel.Model, query.Graph, true);
-            return eventModel;
-        }
-        /// <inheritdoc/>
-        public override sealed object? EventSingle(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var eventModel = (EventModel<TModel>?)NextProvider.Query(appenedQuery);
-
-            if (eventModel is null)
-                return null;
-
-            eventModel.Model = DecompressModel(eventModel.Model, query.Graph, true);
-            return eventModel;
-        }
-        /// <inheritdoc/>
-        public override sealed object? EventCount(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var count = NextProvider.Query(appenedQuery)!;
-            return count;
-        }
-        /// <inheritdoc/>
-        public override sealed object? EventAny(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var any = NextProvider.Query(appenedQuery)!;
-            return any;
-        }
-
-        /// <inheritdoc/>
-        public override sealed async Task<object?> ManyAsync(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var compressedModels = (IReadOnlyCollection<TModel>)(await NextProvider.QueryAsync(appenedQuery))!;
-
-            if (compressedModels.Count == 0)
-                return compressedModels;
-
-            var models = DecompressModels(compressedModels, query.Graph, true);
-            return models;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> FirstAsync(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var compressedModels = (TModel?)await NextProvider.QueryAsync(appenedQuery);
-
-            if (compressedModels is null)
-                return null;
-
-            var model = DecompressModel(compressedModels, query.Graph, true);
-            return model;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> SingleAsync(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var compressedModels = (TModel?)await NextProvider.QueryAsync(appenedQuery);
-
-            if (compressedModels is null)
-                return null;
-
-            var model = DecompressModel(compressedModels, query.Graph, true);
-            return model;
-        }
-        /// <inheritdoc/>
-        public override sealed Task<object?> CountAsync(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var count = NextProvider.QueryAsync(appenedQuery);
-            return count;
-        }
-        /// <inheritdoc/>
-        public override sealed Task<object?> AnyAsync(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var any = NextProvider.QueryAsync(appenedQuery);
-            return any;
-        }
-        /// <inheritdoc/>
-        public override sealed Task<object?> CalculateAsync(Query query)
-        {
-            if (this.Enabled)
-            {
-                var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
-                if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties))
-                    throw new NotSupportedException($"{GetType().Name} cannot calculate on a compressed property");
-            }
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var result = NextProvider.QueryAsync(appenedQuery);
-            return result;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> ProjectAsync(Query query)
-        {
-            if (this.Enabled)
-            {
-                var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
-                if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties) || LinqMemberFinder.ReadsMember(query.Select, typeof(TModel), properties))
-                    throw new NotSupportedException($"{GetType().Name} cannot project or calculate on a compressed property");
-            }
-            //the query carries its result types, so the converted where is swapped onto it for the call and the original put back
+            RefuseCompressedReads(query);
             var where = query.Where;
             query.Where = CompressWhere(where);
             try
             {
-                return await NextProvider.QueryAsync(query);
+                return DecompressResult(query, await NextProvider.QueryAsync(query, cancellationToken));
             }
             finally
             {
                 query.Where = where;
             }
         }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventManyAsync(Query query)
+        private object? DecompressResult(LinqQuery query, object? result)
         {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var eventModels = (ICollection<EventModel<TModel>>)(await NextProvider.QueryAsync(appenedQuery))!;
-
-            if (eventModels.Count == 0)
-                return eventModels;
-
-            var compressedModels = eventModels.Select(x => x.Model).ToArray();
-            var models = DecompressModels(compressedModels, query.Graph, true).GetEnumerator();
-            foreach (var eventModel in eventModels)
+            switch (result)
             {
-                _ = models.MoveNext();
-                eventModel.Model = (TModel)models.Current;
+                case IReadOnlyCollection<TModel> models when query.ReturnsModels:
+                    return models.Count == 0 ? models : DecompressModels(models, query.Graph, true).Cast<TModel>().ToArray();
+                case TModel model:
+                    return DecompressModel(model, query.Graph, true);
+                case ICollection<EventModel<TModel>> eventModels:
+                    {
+                        if (eventModels.Count == 0)
+                            return eventModels;
+                        var models = DecompressModels(eventModels.Select(x => x.Model).ToArray(), query.Graph, true).GetEnumerator();
+                        foreach (var eventModel in eventModels)
+                        {
+                            _ = models.MoveNext();
+                            eventModel.Model = (TModel)models.Current;
+                        }
+                        return eventModels;
+                    }
+                case EventModel<TModel> eventModel:
+                    eventModel.Model = DecompressModel(eventModel.Model, query.Graph, true);
+                    return eventModel;
+                default:
+                    return result;
             }
-
-            return eventModels;
         }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventFirstAsync(Query query)
+        private void RefuseCompressedReads(LinqQuery query)
         {
-            var whereCompressed = CompressWhere(query.Where);
-            var orderCompressed = CompressOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var eventModel = (EventModel<TModel>?)await NextProvider.QueryAsync(appenedQuery);
-
-            if (eventModel is null)
-                return null;
-
-            eventModel.Model = DecompressModel(eventModel.Model, query.Graph, true);
-            return eventModel;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventSingleAsync(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var eventModel = (EventModel<TModel>?)await NextProvider.QueryAsync(appenedQuery);
-
-            if (eventModel is null)
-                return null;
-
-            eventModel.Model = DecompressModel(eventModel.Model, query.Graph, true);
-            return eventModel;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventCountAsync(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var count = (await NextProvider.QueryAsync(appenedQuery))!;
-            return count;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventAnyAsync(Query query)
-        {
-            var whereCompressed = CompressWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var any = (await NextProvider.QueryAsync(appenedQuery))!;
-            return any;
+            if (!this.Enabled)
+                return;
+            var properties = CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties);
+            if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties) || LinqMemberFinder.ReadsMember(query.Select, typeof(TModel), properties))
+                throw new NotSupportedException($"{GetType().Name} cannot project or calculate on a compressed property");
+            if (query.Order is null)
+                return;
+            foreach (var order in query.Order.OrderExpressions)
+            {
+                if (LinqMemberFinder.ReadsMember(order.Expression, properties))
+                    throw new NotSupportedException($"{GetType().Name} cannot order by a compressed property");
+            }
         }
 
         private object[] CompressModels(object[] models, Graph? graph, bool newCopy)
@@ -697,13 +379,13 @@ namespace Zerra.Repository
             NextProvider.Persist(persist);
         }
         /// <inheritdoc/>
-        public override sealed async Task CreateAsync(Persist persist)
+        public override sealed async Task CreateAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (persist.Models is null || persist.Models.Length == 0)
                 return;
 
             var compressedModels = CompressModels(persist.Models, persist.Graph, true);
-            await NextProvider.PersistAsync(new Persist(persist.Operation, persist.Event, persist.ModelType, compressedModels, null, persist.Graph));
+            await NextProvider.PersistAsync(new Persist(persist.Operation, persist.Event, persist.ModelType, compressedModels, null, persist.Graph), cancellationToken);
 
             for (var i = 0; i < persist.Models.Length; i++)
             {
@@ -712,7 +394,7 @@ namespace Zerra.Repository
             }
         }
         /// <inheritdoc/>
-        public override sealed async Task UpdateAsync(Persist persist)
+        public override sealed async Task UpdateAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (persist.Set is not null)
             {
@@ -725,7 +407,7 @@ namespace Zerra.Repository
                         throw new NotSupportedException($"{GetType().Name} cannot compute a value from or set a compressed property in the store");
                 }
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, persist.Where!, persist.Set);
-                await NextProvider.PersistAsync(forwarded);
+                await NextProvider.PersistAsync(forwarded, cancellationToken);
                 persist.RowsAffected = forwarded.RowsAffected;
                 return;
             }
@@ -738,18 +420,18 @@ namespace Zerra.Repository
                 if (this.Enabled && LinqMemberFinder.ReadsMember(persist.Where, CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties)))
                     throw new NotSupportedException($"{GetType().Name} cannot select the rows to change by a compressed property");
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, persist.Where, compressedModels.Cast<object>().First(), persist.Graph);
-                await NextProvider.PersistAsync(forwarded);
+                await NextProvider.PersistAsync(forwarded, cancellationToken);
                 persist.RowsAffected = forwarded.RowsAffected;
                 return;
             }
-            await NextProvider.PersistAsync(new Persist(persist.Operation, persist.Event, persist.ModelType, compressedModels, null, persist.Graph));
+            await NextProvider.PersistAsync(new Persist(persist.Operation, persist.Event, persist.ModelType, compressedModels, null, persist.Graph), cancellationToken);
         }
         /// <inheritdoc/>
-        public override sealed Task DeleteAsync(Persist persist)
+        public override sealed Task DeleteAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (this.Enabled && persist.Where is not null && LinqMemberFinder.ReadsMember(persist.Where, CompressionCommon.GetModelCompressableProperties(typeof(TModel), this.Properties)))
                 throw new NotSupportedException($"{GetType().Name} cannot select the rows to change by a compressed property");
-            return NextProvider.PersistAsync(persist);
+            return NextProvider.PersistAsync(persist, cancellationToken);
         }
     }
 }

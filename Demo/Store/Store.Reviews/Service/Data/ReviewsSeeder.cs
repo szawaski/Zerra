@@ -13,7 +13,7 @@ namespace Store.Reviews.Service.Data
         /// </summary>
         public static async Task SeedAsync(IRepo repo, ILogger log)
         {
-            if (await repo.AnyAsync<ReviewDataModel>())
+            if (await repo.Query<ReviewDataModel>().AnyAsync())
                 return;
 
             await repo.CreateAsync<ReviewDataModel>(

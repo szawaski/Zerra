@@ -97,7 +97,7 @@ namespace Zerra.Repository.Test
             var repo = Repo.New();
             repo.AddProvider(new EncryptingWithKeySource<EdgeModel>(new TransactStoreProvider<EdgeModel>(new MemoryEngine())));
             _ = Assert.Throws<NotSupportedException>(() => repo.Create(NewModel()));
-            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.CreateAsync(NewModel()));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.CreateAsync(NewModel(), TestContext.Current.CancellationToken));
         }
 
         [Theory]
@@ -112,10 +112,10 @@ namespace Zerra.Repository.Test
 
             var model = NewModel();
             repo.Create(model);
-            var stored = raw.Single<EdgeModel>(x => x.ID == model.ID)!;
+            var stored = raw.Query<EdgeModel>().SingleOrDefault(x => x.ID == model.ID)!;
             Assert.Equal(model.Text, stored.Text);
             Assert.Equal(model.Bytes, stored.Bytes);
-            Assert.Equal(model.Text, repo.Single<EdgeModel>(x => x.ID == model.ID)!.Text);
+            Assert.Equal(model.Text, repo.Query<EdgeModel>().SingleOrDefault(x => x.ID == model.ID)!.Text);
         }
 
         [Theory]
@@ -129,12 +129,12 @@ namespace Zerra.Repository.Test
             raw.AddProvider(new TransactStoreProvider<EdgeModel>(engine));
 
             var model = NewModel();
-            await repo.CreateAsync(model);
-            var stored = raw.Single<EdgeModel>(x => x.ID == model.ID)!;
+            await repo.CreateAsync(model, TestContext.Current.CancellationToken);
+            var stored = raw.Query<EdgeModel>().SingleOrDefault(x => x.ID == model.ID)!;
             Assert.NotEqual(model.Text, stored.Text);
             Assert.Equal(model.Bytes, stored.Bytes);
 
-            var read = (await repo.SingleAsync<EdgeModel>(x => x.ID == model.ID))!;
+            var read = (await repo.Query<EdgeModel>().SingleOrDefaultAsync(x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken))!;
             Assert.Equal(model.Text, read.Text);
             Assert.Equal(model.Bytes, read.Bytes);
         }
@@ -147,8 +147,8 @@ namespace Zerra.Repository.Test
             repo.AddProvider(Layer(compression, new TransactStoreProvider<PlainModel>(new MemoryEngine())));
             var model = new PlainModel { ID = Guid.NewGuid(), Number = 3 };
             repo.Create(model);
-            Assert.Equal(3, repo.Single<PlainModel>(x => x.ID == model.ID)!.Number);
-            Assert.Single(await repo.ManyAsync<PlainModel>(x => x.ID == model.ID));
+            Assert.Equal(3, repo.Query<PlainModel>().SingleOrDefault(x => x.ID == model.ID)!.Number);
+            Assert.Single(await repo.Query<PlainModel>().Where(x => x.ID == model.ID).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Theory]
@@ -163,10 +163,10 @@ namespace Zerra.Repository.Test
 
             var repo = Repo.New();
             repo.AddProvider(Layer(compression, new TransactStoreProvider<EdgeModel>(engine)));
-            var read = repo.Single<EdgeModel>(x => x.ID == model.ID)!;
+            var read = repo.Query<EdgeModel>().SingleOrDefault(x => x.ID == model.ID)!;
             Assert.Equal(model.Text, read.Text);
             Assert.Equal(model.Bytes, read.Bytes);
-            Assert.Equal(model.Text, Assert.Single(repo.Many<EdgeModel>(x => x.ID == model.ID)).Text);
+            Assert.Equal(model.Text, Assert.Single(repo.Query<EdgeModel>().Where(x => x.ID == model.ID).ToArray()).Text);
         }
 
         [Theory]
@@ -183,9 +183,9 @@ namespace Zerra.Repository.Test
             model.Text = "changed but not in the graph";
             repo.Update(model, new Graph<EdgeModel>(x => x.Number));
             model.Bytes = [1, 2, 3];
-            await repo.UpdateAsync(model, new Graph<EdgeModel>(x => x.Bytes));
+            await repo.UpdateAsync(model, new Graph<EdgeModel>(x => x.Bytes), TestContext.Current.CancellationToken);
 
-            var read = repo.Single<EdgeModel>(x => x.ID == model.ID)!;
+            var read = repo.Query<EdgeModel>().SingleOrDefault(x => x.ID == model.ID)!;
             Assert.Equal(2, read.Number);
             Assert.Equal(new string('t', 100), read.Text);
             Assert.Equal([1, 2, 3], read.Bytes);
@@ -202,15 +202,15 @@ namespace Zerra.Repository.Test
             var missing = Guid.NewGuid();
 
             Assert.Equal(model.Text, repo.EventSingle<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID)!.Model.Text);
-            Assert.Equal(model.Text, (await repo.EventSingleAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID))!.Model.Text);
+            Assert.Equal(model.Text, (await repo.EventSingleAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken))!.Model.Text);
             Assert.Null(repo.EventSingle<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing));
-            Assert.Null(await repo.EventSingleAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing));
+            Assert.Null(await repo.EventSingleAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing, cancellationToken: TestContext.Current.CancellationToken));
             Assert.Null(repo.EventFirst<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing));
-            Assert.Null(await repo.EventFirstAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing));
+            Assert.Null(await repo.EventFirstAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing, cancellationToken: TestContext.Current.CancellationToken));
             Assert.Empty(repo.EventMany<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing));
-            Assert.Empty(await repo.EventManyAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing));
-            Assert.Equal(1, await repo.EventCountAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID));
-            Assert.True(await repo.EventAnyAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID));
+            Assert.Empty(await repo.EventManyAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Equal(1, await repo.EventCountAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID, TestContext.Current.CancellationToken));
+            Assert.True(await repo.EventAnyAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID, TestContext.Current.CancellationToken));
         }
 
         private sealed class OwnerRules(ITransactStoreProvider<Owner> next) : BaseTransactStoreRuleProvider<ITransactStoreProvider<Owner>, Owner>(next)
@@ -233,9 +233,9 @@ namespace Zerra.Repository.Test
             repo.Create(owner, graph);
             repo.Create(new Owner { ID = Guid.NewGuid(), Name = "hidden" });
 
-            var read = Assert.Single(repo.Many<Owner>(x => true, graph));
+            var read = Assert.Single(repo.Query<Owner>(new Graph<Owner>(x => x.ID, x => x.Name, x => x.Items)).ToArray());
             Assert.Equal(new string('i', 100), Assert.Single(read.Items!).Text);
-            read = Assert.Single(await repo.ManyAsync<Owner>(x => true, graph));
+            read = Assert.Single(await repo.Query<Owner>(new Graph<Owner>(x => x.ID, x => x.Name, x => x.Items)).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
             Assert.Equal(new string('i', 100), Assert.Single(read.Items!).Text);
         }
     }

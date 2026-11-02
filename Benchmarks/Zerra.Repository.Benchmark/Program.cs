@@ -5,6 +5,6 @@
 using BenchmarkDotNet.Running;
 using Zerra.Repository.Benchmark.Benchmarks;
 
-_ = BenchmarkRunner.Run<EFBenchmarks>(args: args);
+_ = BenchmarkSwitcher.FromAssembly(typeof(EFBenchmarks).Assembly).Run(args);
 
 //dotnet run --project Tests\Zerra.Repository.Benchmark\Zerra.Repository.Benchmark.csproj -c Release

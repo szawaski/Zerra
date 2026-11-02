@@ -15,7 +15,7 @@ It is a lighter alternative designed for Zerra services, not a replacement for E
 | **Switching stores** | ✅ Pass a different engine at startup | ❌ Significant refactoring |
 | **Bus integration** | ✅ `BaseHandlerWithRepo` | ❌ Manual wiring |
 | **Change tracking** | ✅ None; every operation is explicit | ⚠️ Automatic, with overhead |
-| **Loading related data** | ✅ A `Graph<T>` per call | ⚠️ `.Include()` chains |
+| **Loading related data** | ✅ Named in a graph or the `Select` | ⚠️ `.Include()` chains |
 | **Query complexity** | ⚠️ Filters, calculations, groupings, and projections, through relations, even across stores | ✅ Any LINQ, including joins between unrelated models |
 | **Migrations** | ⚠️ Code First generation, no migration history | ✅ Rich migration tooling |
 | **Maturity** | ⚠️ Newer, small community | ✅ Mature, large community |
@@ -24,11 +24,11 @@ Against SQL Server, with `AsNoTracking()` and a new `DbContext` per query on the
 
 | Scenario | Speed | Memory |
 |---|---|---|
-| Query many (all rows) | ~45% faster | ~45% less |
-| Query many with a where clause | ~2.3× faster | ~80% less |
-| Query first with a where clause | ~2× faster | ~80% less |
-| Query many with a one-to-one include | ~20% faster | ~35% less |
-| Query many with a one-to-many include | ~3.8× faster | ~70% less |
+| Query many (all rows) | ~45% faster | ~40% less |
+| Query many with a where clause | ~1.8× faster | ~65% less |
+| Query first with a where clause | ~1.9× faster | ~65% less |
+| Query many with a one-to-one relation | ~30% faster | ~15% less |
+| Query many with a one-to-many relation | ~4.5× faster | ~80% less |
 | Update | ~40% faster | ~95% less |
 
 For one-to-many includes, Zerra loads the related rows of every parent in one additional query, while EF joins them into one query by default. With EF's `AsSplitQuery()`, which loads them separately like Zerra, Zerra is ~25% faster with ~40% less memory. Results vary by environment. The benchmarks are in [`EFBenchmark.cs`](../Benchmarks/Zerra.Repository.Benchmark/Benchmarks/EFBenchmark.cs).
@@ -73,6 +73,7 @@ public sealed class OrderDataModel
 - Data models need a parameterless constructor. `[Entity]` also has the source generator produce their type details.
 - One-to-many properties can be arrays, `List<T>`, or interfaces such as `IReadOnlyList<T>`.
 - Without a precision, PostgreSQL, MySQL, and MariaDB store date and time columns to the microsecond, and SQL Server stores `DateTime` as `datetime` (about 3 ms). Set `[StoreProperties(notNull, precision)]` to choose.
+- An enum is stored as text: its name, or the text from `[EnumName]`. The column is as long as the longest name unless `[StoreProperties]` sets a length, so an enum can be indexed. A value the enum doesn't name can't be saved.
 - `[StoreIndex]` indexes a column in the SQL engines; the in-memory and KurrentDB engines ignore it. Members with the same `[StoreIndex("Name")]` form one combined index, ordered by `Order` and then by declaration. `Unique = true` allows any number of rows with a null in the index. Indexed strings and `byte[]` need a length from `[StoreProperties]`. Without `NoDelete`, code first generation drops indexes that aren't in the model, except primary keys, unique constraints, and the indexes MySQL and MariaDB keep for foreign keys.
 
 ## Setup
@@ -122,77 +123,109 @@ Handlers deriving from `BaseHandlerWithRepo` get the repo as their `Repo` proper
 ```csharp
 public sealed class OrdersQueryHandler : BaseHandlerWithRepo, IOrdersQueryHandler
 {
-    public async Task<OrderModel[]> GetOrders(Guid customerID, CancellationToken cancellationToken)
+    public async Task<OrderSummary[]> GetOrders(Guid customerID, CancellationToken cancellationToken)
     {
-        var orders = await Repo.ManyAsync<OrderDataModel>(
-            x => x.CustomerID == customerID,
-            QueryOrder<OrderDataModel>.Create(x => x.PlacedOn, true),   // true: descending
-            new Graph<OrderDataModel>(true, x => x.Lines));
-        return orders.Select(ToModel).ToArray();
+        return await Repo.Query<OrderDataModel>()
+            .Where(x => x.CustomerID == customerID)
+            .OrderByDescending(x => x.PlacedOn)
+            .Select(x => new OrderSummary { ID = x.ID, Lines = x.Lines!.Select(l => new LineSummary { Quantity = l.Quantity }).ToArray() })
+            .ToArrayAsync(cancellationToken);
     }
 }
 ```
 
 ### Queries
 
-| Method | Returns |
-|---|---|
-| `Single<T>(where, graph?)` | the one matching model, or `null` |
-| `First<T>(where?, order?, graph?)` | the first matching model, or `null` |
-| `Many<T>(where?, order?, skip?, take?, graph?)` | the matching models |
-| `Any<T>(where?)` | whether any match |
-| `Count<T>(where?)` | how many match |
-| `Sum<T>(value, where?)`, `Average`, `Min<T, TResult>`, `Max` | the sum, average, smallest, or largest of a value |
-| `Count<T, TKey>(groupBy, where?)`, `Sum<T, TKey>(groupBy, value, where?)`, `Average`, `Min`, `Max` | the same per group, as `(Key, Value)` pairs |
-| `Select<T, TResult>(select, where?, order?, skip?, take?)` | a result built from each model, reading only what it uses |
-| `Group<T, TKey, TResult>(groupBy, select, where?, having?, order?, skip?, take?)` | a result built from each group: its key and aggregates |
+`Query<T>()` starts an `IQueryable<T>` that the store converts in one pass: one statement over the model, and one more for each related collection the `Select` reads.
+
+```csharp
+var order = await Repo.Query<OrderDataModel>().SingleOrDefaultAsync(x => x.ID == orderID);
+
+var recent = await Repo.Query<OrderDataModel>()
+    .Where(x => x.CustomerID == customerID && x.Status == "Placed")
+    .OrderByDescending(x => x.PlacedOn)
+    .Skip(20).Take(20)
+    .Select(x => new
+    {
+        x.ID,
+        Customer = x.Customer!.Name,
+        Total = x.Lines!.Sum(l => l.UnitPrice * l.Quantity),
+        Lines = x.Lines!.OrderBy(l => l.Position).Select(l => new { l.ProductID, l.Quantity }).ToList(),
+    })
+    .ToArrayAsync();
+
+var names = Repo.Query<ProductDataModel>().Where(x => x.Active).Select(x => x.Name).Distinct().ToArray();
+var owed = await Repo.Query<InvoiceDataModel>().Where(x => !x.Paid).SumAsync(x => x.Amount);
+var sales = Repo.Query<OrderLineDataModel>().GroupBy(x => x.ProductID)
+    .Select(g => new { ProductID = g.Key, Lines = g.Count(), Revenue = g.Sum(l => l.UnitPrice * l.Quantity) })
+    .Where(r => r.Lines >= 10).OrderByDescending(r => r.Revenue).Take(20).ToArray();
+```
+
+- `Where`, `OrderBy`/`OrderByDescending`/`ThenBy`/`ThenByDescending`, `Skip`, `Take`, `Select`, `Distinct`, and `GroupBy` compose the query. Filter and order before `Select` and before paging.
+- End it by enumerating it, or with `First`, `FirstOrDefault`, `Single`, `SingleOrDefault`, `Count`, `LongCount`, `Any`, `All`, `Sum`, `Min`, `Max`, or `Average`, with a condition or value in the call or selected before it. `First` and `Single` throw when there is nothing, as LINQ does. The `Async` versions, `ToArrayAsync`, `ToListAsync`, `FirstAsync`, `CountAsync`, `SumAsync`, and the rest, are in `RepoQueryableExtensions`.
+- `Last` and `Reverse` need an `OrderBy`, and the store reads that order the other way round.
+- `ElementAt` skips to its place in the store, and `Count` or a calculation after `Skip` or `Take` is of that page.
+- `Select(x => x.ID).Contains(id)` looks for one value.
+- `SelectMany(x => x.Lines)` goes over to the related model, and what follows is a query of it. The rows have no order unless you add one after it. `SelectMany(x => x.Lines, (x, l) => new { x.Name, l.Quantity })` reads the model through the relation back to it, so that relation has to exist.
+- `Where(x => ids.Contains(x.ID))` where `ids` is a repository query selecting one value is one statement in the same store, and reads `ids` first otherwise. It works in a `Select` value and in an update or delete by condition too. It can't read the outer model.
+- A `Where` or `OrderBy` after a `Select` is written back onto the model, from what the `Select` set, so it has to read members the `Select` set and come before paging.
+- `ToHashSetAsync` and `ToDictionaryAsync` build their result after the rows are read, so their selectors run in memory.
+- A call the store can't run, such as `Count` after `GroupBy`, throws `NotSupportedException` instead of running in memory.
+- The `Async` endings, the [history queries](#history-queries), and the [changes](#changes) take a `CancellationToken` last. Cancelling stops the statement in the store and throws `OperationCanceledException`, whichever engine it's on. A change of several rows or relations keeps what it already wrote, as there is no transaction around them.
+- With Entity Framework in the same file, the `Async` endings of both are in scope, so call EF's through `EntityFrameworkQueryableExtensions`.
+
+### Selecting and Loading Relations
+
+`Select` builds an anonymous object, a class with a constructor or settable members, or the model itself, nested as deep as needed, or picks one value such as `x => x.Name`.
+
+- A member through a single relation, `x.Customer!.Name`, joins.
+- A related collection, whole or after `Where`, `OrderBy`, `Skip`, `Take`, and a `Select` of its rows, is read by one more statement for all the models at once, and a `Skip` or `Take` is per model, into an array, a `List<T>`, or a collection interface.
+- A single related model read whole, `x.Customer`, joins too, and is `null` when there's no related row. One whose relation has relations of its own to read uses one more statement instead.
+- A row's result is built from the row alone, not the model. It can have collections of its own, as long as no row's model repeats one above it, so a model with a collection of itself nests one level.
+
+To load models with their relations, give `Query` a [Graph](Graph.md) instead of a `Select`:
+
+```csharp
+var orders = await Repo.Query<OrderDataModel>(new Graph<OrderDataModel>(true, x => x.Customer, x => x.Lines))
+    .Where(x => x.Status == "Open")
+    .OrderBy(x => x.PlacedOn)
+    .ToArrayAsync();
+
+var totals = await Repo.Query<OrderDataModel>(new Graph<OrderDataModel>(x => x.ID, x => x.Lines!.Select(l => l.Quantity))).ToArrayAsync();
+```
+
+- `true` reads every member. A relation loads only when the graph names it.
+- Naming a relation reads it whole. `x => x.Lines!.Select(l => l.Quantity)` reads only that member of it, and models read exactly what the graph names, so add the keys if you need them.
+- Relations are read the same way as a `Select`, and the condition, order, and paging still run in the store.
+- A query has a graph or a `Select`, not both, and a `GroupBy` has no graph. A `Count`, `Any`, or calculation doesn't need one.
 
 ### Calculations
 
 The database does the arithmetic and returns only the results:
 
 ```csharp
-decimal revenue = await Repo.SumAsync<OrderLineDataModel>(x => x.UnitPrice * x.Quantity, x => x.OrderID == orderID);
-double rating   = await Repo.AverageAsync<ReviewDataModel>(x => x.Rating, x => x.ProductID == productID);   // an average of integers is a double
-DateTime? last  = await Repo.MaxAsync<OrderDataModel, DateTime?>(x => x.ClosedOn);
+decimal revenue = await Repo.Query<OrderLineDataModel>().Where(x => x.OrderID == orderID).SumAsync(x => x.UnitPrice * x.Quantity);
+double rating   = await Repo.Query<ReviewDataModel>().Where(x => x.ProductID == productID).AverageAsync(x => x.Rating);   // an average of integers is a double
+DateTime? last  = await Repo.Query<OrderDataModel>().MaxAsync(x => x.ClosedOn);
+int customers   = await Repo.Query<OrderDataModel>().Select(x => x.CustomerID).Distinct().CountAsync();
 
-var perStatus = await Repo.CountAsync<OrderDataModel, string?>(x => x.Status);                               // (Key: "Placed", Value: 42), ...
-var perDay    = await Repo.SumAsync<OrderDataModel, DateTime>(x => x.PlacedOn.Date, x => x.Total, x => x.PlacedOn >= monthStart);
-var perPair   = await Repo.CountAsync((OrderDataModel x) => new { x.CustomerID, x.Status });                 // several members: an anonymous object
-
-long customers = await Repo.CountDistinctAsync<OrderDataModel, Guid>(x => x.CustomerID, x => x.PlacedOn >= monthStart);          // nulls aren't counted
-var statuses   = await Repo.DistinctAsync<OrderDataModel, string?>(x => x.Status);                                               // the different values, a null among them if it occurs
+var perStatus = await Repo.Query<OrderDataModel>().GroupBy(x => x.Status).Select(g => new { g.Key, Rows = g.Count() }).ToArrayAsync();
+var perPair   = await Repo.Query<OrderDataModel>().GroupBy(x => new { x.CustomerID, x.Status }).Select(g => new { g.Key.CustomerID, g.Key.Status, Rows = g.Count() }).ToArrayAsync();
 ```
 
 - The value and the key take what a `where` takes, including arithmetic, date parts, and related models, which become joins or subqueries.
 - The results follow LINQ: `Sum` of nothing is 0, `Average`/`Min`/`Max` of nothing are `null` or throw when the type can't be null, and nulls are skipped. A null key is a group.
+- A group's `Select` builds from its whole `Key`, a part of it such as `Key.CustomerID`, `Count()`, `Count(x => condition)`, `Select(x => x.Member).Distinct().Count()`, or `Sum`, `Average`, `Min`, or `Max` of a value. After it, a `Where` is the having, and an order and paging apply to the groups.
 - Groups come back in no particular order.
 - On a `MemoryEngine`, string keys that differ only in case are one group unless the engine is case sensitive, like its `where`.
-- An encryption or compression layer refuses a key or value that reads one of its properties, and a rule's `WhereExpression` applies.
-- On an event store, a calculation uses each model's current state, while `Count` and `Many` count every state it had.
-- Under Native AOT an anonymous key works but the compiler warns `IL2026` at that line; `new ValueTuple<Guid, string?>(x.CustomerID, x.Status)` is the same key without the warning, read back as `Key.Item1` and `Key.Item2`.
+- Under Native AOT, anonymous objects in a `Select` or a group key work, but the compiler warns `IL2026` at that line about reading their members by reflection, which this doesn't rely on. `new ValueTuple<Guid, string?>(x.CustomerID, x.Status)` is the same group key without the warning, read back as `Key.Item1` and `Key.Item2`, or `Select` into a class.
 
-### Projections
+### Layers and Event Stores
 
-When a handler needs a few columns, or a summary per group, project in the store instead of loading models. The result is a class with a settable member for each value, built as `new TResult { … }`:
-
-```csharp
-public sealed class OrderSummary { public Guid ID { get; set; } public string? Customer { get; set; } public decimal Total { get; set; } }
-public sealed class ProductSales { public Guid ProductID { get; set; } public int Lines { get; set; } public decimal Revenue { get; set; } }
-
-var summaries = await Repo.SelectAsync((OrderDataModel x) => new OrderSummary { ID = x.ID, Customer = x.Customer!.Name, Total = x.Lines!.Sum(l => l.UnitPrice * l.Quantity) },
-    x => x.Status == "Placed", QueryOrder<OrderDataModel>.Create(x => x.PlacedOn, true), 0, 50);
-
-var sales = await Repo.GroupAsync((OrderLineDataModel x) => x.ProductID,
-    g => new ProductSales { ProductID = g.Key, Lines = g.Count(), Revenue = g.Sum(l => l.UnitPrice * l.Quantity) },
-    having: r => r.Lines >= 10, order: QueryOrder<ProductSales>.Create(r => r.Revenue, true), take: 20);
-```
-
-- In `Select`, each member takes what a `where` takes, related models included, and a `bool` member can be a condition such as `IsActive = x.Status == "Active"`. The `where`, `order`, and paging apply to the models.
-- A member can be the results built from the rows of a related collection: `Lines = x.Lines.Where(l => l.Quantity > 0).OrderBy(l => l.PlacedOn).Select(l => new LineRow { … }).ToArray()`, into an array, a `List<T>`, or a collection interface. The rows come from a second statement matched by the model's identity, so the paging of the models stands. A row's result is built from the row alone, which can't read the model, and can have collections of its own the same way, each read with a statement of its own, as long as no row's model repeats one above it, so a model with a collection of itself nests one level.
-- In `Group`, each member is the group's `Key`, a part of it such as `Key.CustomerID` for a key of several members, `Count()`, `Count(x => condition)`, `Select(x => x.Member).Distinct().Count()`, or `Sum`, `Average`, `Min`, or `Max` of a value. The `having`, `order`, and paging apply to the results, so `take` gives a top-N in the store.
-- Anonymous results aren't supported: the result is built through its members' setters, which also keeps it AOT safe. A member wider than its value, such as a `long` set to `Count()`, is fine.
-- The layers behave as for calculations: a rule's `WhereExpression` applies, an encryption or compression layer refuses a projection that reads one of its properties, and an event store projects each model's current state.
+- A rule's `WhereExpression` applies to a query, and its `OnGet` to the models given back.
+- An encryption or compression layer refuses a `Select` or order of one of its properties, and gives the models back plain. A graph reads them, and only the ones it names are decrypted or decompressed.
+- A member, an order, or a graph's relation on another engine, or on a related model with its own layers, loads the models with what the query reads and runs the query over them in memory.
+- An event store runs the query over the current state of its models. Each change it kept is read with the [History Queries](#history-queries).
 
 ### Changes
 
@@ -229,12 +262,15 @@ int removed  = await Repo.DeleteAsync<OrderLineDataModel>(x => x.OrderID == orde
 
 ### LINQ Support
 
-`where` expressions support:
+A `Where`, and the values of a `Select` and a group, support:
 
 - **Operators:** comparisons, arithmetic, `&&`, `||`, `!`, bool members, `??`, integer bitwise operators, `array.Contains(x.Prop)`, and `HasValue`/`Value` on nullables.
 - **Strings:** `Contains`, `StartsWith`, `EndsWith` (wildcards in the text are matched literally, and a `StringComparison` ignoring case is honored), `Equals`, `string.IsNullOrEmpty`/`IsNullOrWhiteSpace`, `Length`, `ToUpper`/`ToLower`, `Trim`/`TrimStart`/`TrimEnd`, `Substring`, `IndexOf`, `Replace`, `string.Concat`, and `+`.
+- **Text:** `ToString()` on numbers, bools, enums, and Guids, and with a format on dates (a custom one such as `yyyy-MM-dd`) and numbers (`F2`, `D4`), `PadLeft`/`PadRight`, `string.Join` of `new[] { .. }`, of a related collection, or of a group's values, and `int.Parse` and the other number parsers and `Guid.Parse`. A date without a format, or a culture, is refused because the store doesn't have one.
+- **Conversions:** `Convert.ToInt32` and the other number conversions, `ToString`, and `ToBoolean`. A midpoint rounds to the even number, as in C#.
+- **Enums:** comparing, ordering, `Min`, `Max`, and casting to a number use the enum's numbers, as in C#, and `ToString` gives the field's name. A `[Flags]` enum can be read, saved, and compared for equality, but sorting it, casting it to a number, or calling `ToString` in the query is refused.
 - **Math:** `Math.Abs`/`Ceiling`/`Floor`/`Round`/`Pow`/`Sqrt`. SQL rounds midpoints away from zero.
-- **Dates and times:** parts such as `.Year`, `.Date`, and `.DayOfWeek` on `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, and `TimeSpan`, including `TotalHours` and the other totals.
+- **Dates and times:** parts such as `.Year`, `.Date`, and `.DayOfWeek` on `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, and `TimeSpan`, including `TotalHours` and the other totals. `AddDays` and the other `Add` methods, `+` and `-` with a `TimeSpan`, and the time between two values, read through a total or part such as `(x.End - x.Start).TotalHours` or compared to a `TimeSpan`. A computed `TimeSpan` itself can't be selected. Going below zero between two `TimeOnly` values stays negative, where C# wraps around midnight.
 - **Related collections:** `Any`, `All`, `Count`/`LongCount`, `Sum`/`Min`/`Max`/`Average` with a selector, and a member of one row picked with `First`, `FirstOrDefault`, `Single`, `Last`, or `ElementAt` after `Where`, `OrderBy`/`OrderByDescending`/`ThenBy`, and `Skip`, such as `x.Lines.OrderByDescending(l => l.PlacedOn).First().Status`. The row becomes a subquery of one row, so `Single` takes the first and `Last` needs an order. A row that isn't there reads as null, in memory too, so a comparison with it is false and `!=` is true as with a null column. The row's own relations can be read as well, except one back to the queried model.
 
 Anything that doesn't use the model, such as `DateTime.Now.Date`, is evaluated before the query. Comparisons with null columns give the same results as C#, so `x.Maybe != 4` includes rows where `Maybe` is null on every engine. Case sensitivity of `==`, `Contains`, `StartsWith`, and `EndsWith` follows the database collation, and `Trim`/`IsNullOrWhiteSpace` only trim spaces.
@@ -255,7 +291,7 @@ if (search is not null)
     where.EndGroup();
 }
 
-var orders = await Repo.ManyAsync<OrderDataModel>(where.Build());
+var orders = await Repo.Query<OrderDataModel>().Where(where.Build()).ToArrayAsync();
 ```
 
 Each call returns the builder, so conditions can chain: `HostedRunning().And(x => x.JoinCode == code).Build()`. `And` binds tighter than `Or`, as in C#: `a`, then `Or(b)`, then `And(c)` means `a || (b && c)`. Use `StartGroupAnd`/`StartGroupOr` and `EndGroup` for parentheses. The first condition inside a group can use either `And` or `Or`.
@@ -264,11 +300,9 @@ To join two existing expressions, `LinqAppender.AppendAnd<T>(first, second)` ret
 
 ### Relations and Partial Updates
 
-Relations load only when a [Graph](Graph.md) names them. Pass `true` first to include the model's own columns too:
+A [Graph](Graph.md) says what a change writes. A graph or a [`Select`](#selecting-and-loading-relations) says what a query reads.
 
 ```csharp
-var orders = await Repo.ManyAsync<OrderDataModel>(new Graph<OrderDataModel>(true, x => x.Customer, x => x.Lines));
-
 await Repo.UpdateAsync(order, new Graph<OrderDataModel>(x => x.Status));   // writes only Status
 ```
 

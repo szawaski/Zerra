@@ -12,7 +12,7 @@ namespace Store.Inventory.Service.Data
         /// </summary>
         public static async Task SeedAsync(IRepo repo, ILogger log)
         {
-            if (await repo.AnyAsync<StockItemDataModel>())
+            if (await repo.Query<StockItemDataModel>().AnyAsync())
                 return;
 
             (Guid ProductID, int Quantity)[] openingStock =

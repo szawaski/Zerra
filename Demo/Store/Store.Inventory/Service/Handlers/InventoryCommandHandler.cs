@@ -30,7 +30,7 @@ namespace Store.Inventory.Service.Handlers
             try
             {
                 //a product added to the catalog has no stock record until it's first restocked
-                var item = await Repo.SingleAsync<StockItemDataModel>(x => x.ProductID == command.ProductID);
+                var item = await Repo.Query<StockItemDataModel>().SingleOrDefaultAsync(x => x.ProductID == command.ProductID);
                 if (item is null)
                 {
                     item = new StockItemDataModel() { ProductID = command.ProductID, OnHand = command.Quantity };
@@ -68,7 +68,7 @@ namespace Store.Inventory.Service.Handlers
             try
             {
                 //a retried command must not reserve the same order twice
-                if (await Repo.AnyAsync<StockReservationDataModel>(x => x.OrderID == command.OrderID))
+                if (await Repo.Query<StockReservationDataModel>().AnyAsync(x => x.OrderID == command.OrderID))
                     return;
 
                 var items = command.Items
@@ -77,7 +77,7 @@ namespace Store.Inventory.Service.Handlers
                     .ToArray();
 
                 var productIDs = items.Select(x => x.ProductID).ToArray();
-                var stockItems = (await Repo.ManyAsync<StockItemDataModel>(x => productIDs.Contains(x.ProductID))).ToDictionary(x => x.ProductID);
+                var stockItems = (await Repo.Query<StockItemDataModel>().Where(x => productIDs.Contains(x.ProductID)).ToArrayAsync()).ToDictionary(x => x.ProductID);
 
                 //every item is checked before anything is saved, so a short product fails the order without reserving the rest
                 foreach (var item in items)
@@ -145,15 +145,15 @@ namespace Store.Inventory.Service.Handlers
             try
             {
                 //events can be delivered more than once, once the reservations are settled there's nothing left to do
-                var reservations = await Repo.ManyAsync<StockReservationDataModel>(x => x.OrderID == orderID);
-                if (reservations.Count == 0)
+                var reservations = await Repo.Query<StockReservationDataModel>().Where(x => x.OrderID == orderID).ToArrayAsync();
+                if (reservations.Length == 0)
                 {
                     Log?.Info($"No reservations left for order {orderNumber}, nothing to {(kind == StockMovementKind.Shipped ? "ship" : "release")}");
                     return;
                 }
 
                 var productIDs = reservations.Select(x => x.ProductID).Distinct().ToArray();
-                var items = (await Repo.ManyAsync<StockItemDataModel>(x => productIDs.Contains(x.ProductID))).ToDictionary(x => x.ProductID);
+                var items = (await Repo.Query<StockItemDataModel>().Where(x => productIDs.Contains(x.ProductID)).ToArrayAsync()).ToDictionary(x => x.ProductID);
                 foreach (var reservation in reservations)
                 {
                     var item = items[reservation.ProductID];

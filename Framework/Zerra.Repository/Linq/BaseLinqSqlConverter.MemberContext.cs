@@ -38,6 +38,13 @@ namespace Zerra.Repository
             /// <summary>Gets or sets whether the next related lambda body is written inverted, used by <c>All</c> to look for a related row that fails the condition.</summary>
             public bool InvertRelatedLambda { get; set; }
 
+            /// <summary>The members of a grouped result as named in its having or order, each the column that computes it.</summary>
+            public Dictionary<ParameterExpression, Dictionary<string, string>>? ResultColumns { get; set; }
+            /// <summary>The members of a grouped result, as named in <see cref="ResultColumns"/>, that are an enum's stored text.</summary>
+            public HashSet<string>? ResultEnums { get; set; }
+            /// <summary>The name of the table a related collection in a subquery belongs to, by the member reading it, as it is known in the statement.</summary>
+            public Dictionary<MemberExpression, string>? CallingTables { get; set; }
+
             /// <summary>
             /// Initializes a new <see cref="MemberContext"/> with empty stacks and zero call-render counters.
             /// </summary>

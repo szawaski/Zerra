@@ -2,19 +2,28 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
+using System.Reflection;
+using Zerra.Reflection;
+using Zerra.Repository.Reflection;
+
 namespace Zerra.Repository
 {
-    /// <summary>
-    /// What fills one member of a projection's result.
-    /// </summary>
-    public enum ProjectionMemberKind : byte
+    /// <summary>What a column of a LINQ statement computes.</summary>
+    public enum LinqColumnKind : byte
     {
-        /// <summary>An expression over the record.</summary>
+        /// <summary>An expression over the model.</summary>
         Value,
         /// <summary>One part of the group key.</summary>
         KeyPart,
         /// <summary>The number of records in the group.</summary>
         Count,
+        /// <summary>The number of records in the group that meet a condition.</summary>
+        CountIf,
+        /// <summary>The number of different values over the group's records.</summary>
+        CountDistinct,
         /// <summary>The sum of a value over the group's records.</summary>
         Sum,
         /// <summary>The average of a value over the group's records.</summary>
@@ -23,11 +32,7 @@ namespace Zerra.Repository
         Min,
         /// <summary>The largest value over the group's records.</summary>
         Max,
-        /// <summary>The number of records in the group that meet a condition.</summary>
-        CountIf,
-        /// <summary>The number of different values over the group's records, nulls not counted.</summary>
-        CountDistinct,
-        /// <summary>The results built from the rows of a related collection of the model, filtered and ordered, such as <c>Lines = x.Lines.Where(..).OrderBy(..).Select(l => new LineResult { .. }).ToArray()</c>.</summary>
-        Collection
+        /// <summary>The values over the group's records joined into one text.</summary>
+        Join
     }
 }

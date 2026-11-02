@@ -23,6 +23,9 @@
             /// <summary>True while converting ORDER BY expressions, where a boolean member is a value to sort by rather than a condition.</summary>
             public bool IsOrderBy;
 
+            /// <summary>True until the expression being sorted by is reached, an enum sorts by its number where it is stored as text.</summary>
+            public bool IsSort;
+
             /// <summary>
             /// Initializes a new <see cref="BuilderContext"/> with the given root dependant and member context.
             /// </summary>

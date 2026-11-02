@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Store.Common;
 using Store.Common.Data;
 using Store.Common.Messaging;
@@ -18,19 +19,19 @@ namespace Store.Orders.Service.Handlers
 
         public async Task<CustomerModel[]> GetCustomers(CancellationToken cancellationToken)
         {
-            var items = await Repo.ManyAsync(QueryOrder<CustomerDataModel>.Create(x => x.Name));
+            var items = await Repo.Query<CustomerDataModel>().OrderBy(x => x.Name).ToArrayAsync(cancellationToken);
             return items.Select(x => new CustomerModel() { ID = x.ID, Name = x.Name, Email = x.Email }).ToArray();
         }
 
         public async Task<OrderModel[]> GetOrders(CancellationToken cancellationToken)
         {
-            var orders = await Repo.ManyAsync(QueryOrder<OrderDataModel>.Create(x => x.PlacedOn, true), 0, recentOrderCount, WithRelations());
+            var orders = await Repo.Query<OrderDataModel>(WithRelations()).OrderByDescending(x => x.PlacedOn).Take(recentOrderCount).ToArrayAsync(cancellationToken);
             return ToModels(orders);
         }
 
         public async Task<OrderModel> GetOrder(Guid orderID, CancellationToken cancellationToken)
         {
-            var order = await Repo.SingleAsync(x => x.ID == orderID, WithRelations());
+            var order = await Repo.Query<OrderDataModel>(WithRelations()).Where(x => x.ID == orderID).SingleOrDefaultAsync(cancellationToken);
             if (order is null)
                 throw new DomainException("Order not found.");
             return ToModels([order])[0];
@@ -38,12 +39,12 @@ namespace Store.Orders.Service.Handlers
 
         public async Task<bool> HasPurchased(Guid customerID, Guid productID, CancellationToken cancellationToken)
         {
-            var shippedOrderIDs = (await Repo.ManyAsync<OrderDataModel>(x => x.CustomerID == customerID && x.Status == nameof(OrderStatus.Shipped)))
+            var shippedOrderIDs = (await Repo.Query<OrderDataModel>().Where(x => x.CustomerID == customerID && x.Status == nameof(OrderStatus.Shipped)).ToArrayAsync(cancellationToken))
                 .Select(x => x.ID)
                 .ToArray();
             if (shippedOrderIDs.Length == 0)
                 return false;
-            return await Repo.AnyAsync<OrderItemDataModel>(x => shippedOrderIDs.Contains(x.OrderID) && x.ProductID == productID);
+            return await Repo.Query<OrderItemDataModel>().AnyAsync(x => shippedOrderIDs.Contains(x.OrderID) && x.ProductID == productID, cancellationToken);
         }
 
         //all order columns plus the related customer for its name and the items, the items of every order load in one query

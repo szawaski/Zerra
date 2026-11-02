@@ -22,7 +22,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>The single event matching the criteria, or <c>null</c> if no match is found.</returns>
         EventModel<TModel>? EventSingle<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, Graph<TModel>? graph = null) where TModel : class, new()
-            => (EventModel<TModel>?)Query(new Query<TModel>(QueryOperation.EventSingle, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, order, null, null, graph));
+            => (EventModel<TModel>?)((IRepoInternal)this).Query(new LinqModelQuery(typeof(TModel), LinqTerminal.SingleOrDefault, true, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, order, null, null, graph));
 
         /// <summary>
         /// Retrieves the single event matching the specified number-based temporal query criteria.
@@ -38,7 +38,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>The single event matching the criteria, or <c>null</c> if no match is found.</returns>
         EventModel<TModel>? EventSingle<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, Graph<TModel>? graph = null) where TModel : class, new()
-            => (EventModel<TModel>?)Query(new Query<TModel>(QueryOperation.EventSingle, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, order, null, null, graph));
+            => (EventModel<TModel>?)((IRepoInternal)this).Query(new LinqModelQuery(typeof(TModel), LinqTerminal.SingleOrDefault, true, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, order, null, null, graph));
 
 
         /// <summary>
@@ -53,9 +53,10 @@ namespace Zerra.Repository
         /// <param name="where">An optional filter expression to apply to the query.</param>
         /// <param name="order">An optional ordering specification.</param>
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the single event matching the criteria, or <c>null</c> if no match is found.</returns>
-        async Task<EventModel<TModel>?> EventSingleAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, Graph<TModel>? graph = null) where TModel : class, new()
-            => (EventModel<TModel>?)(await QueryAsync(new Query<TModel>(QueryOperation.EventSingle, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, order, null, null, graph)));
+        async Task<EventModel<TModel>?> EventSingleAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, Graph<TModel>? graph = null, CancellationToken cancellationToken = default) where TModel : class, new()
+            => (EventModel<TModel>?)(await ((IRepoInternal)this).QueryAsync(new LinqModelQuery(typeof(TModel), LinqTerminal.SingleOrDefault, true, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, order, null, null, graph), cancellationToken));
 
         /// <summary>
         /// Asynchronously retrieves the single event matching the specified number-based temporal query criteria.
@@ -69,8 +70,9 @@ namespace Zerra.Repository
         /// <param name="where">An optional filter expression to apply to the query.</param>
         /// <param name="order">An optional ordering specification.</param>
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the single event matching the criteria, or <c>null</c> if no match is found.</returns>
-        async Task<EventModel<TModel>?> EventSingleAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, Graph<TModel>? graph = null) where TModel : class, new()
-            => (EventModel<TModel>?)(await QueryAsync(new Query<TModel>(QueryOperation.EventSingle, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, order, null, null, graph)));
+        async Task<EventModel<TModel>?> EventSingleAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, Graph<TModel>? graph = null, CancellationToken cancellationToken = default) where TModel : class, new()
+            => (EventModel<TModel>?)(await ((IRepoInternal)this).QueryAsync(new LinqModelQuery(typeof(TModel), LinqTerminal.SingleOrDefault, true, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, order, null, null, graph), cancellationToken));
     }
 }

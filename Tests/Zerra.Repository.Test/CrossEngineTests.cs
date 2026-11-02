@@ -52,6 +52,92 @@ namespace Zerra.Repository.Test
             public int Qty { get; set; }
         }
 
+        //what crosses engines is read through its provider first
+        //a query on another engine is read first, for values and for changes too, and the persist keeps its own condition to run again
+        [Fact]
+        public void SubqueryInValuesAndChangesOnOtherEngine()
+        {
+            var (repo, parents, children) = Repos();
+            var tagged = repo.Query<Child>().Where(c => c.Tag == "x").Select(c => c.ParentID);
+            var rows = repo.Query<Parent>().OrderBy(x => x.Rank).Select(x => new { x.Name, Has = tagged.Contains(x.ID) }).ToArray();
+            Assert.Equal([true, true, false], rows.Select(r => r.Has));
+
+            Assert.Equal(2, repo.Update<Parent>(x => tagged.Contains(x.ID), new Parent { Rank = 9 }, new Graph<Parent>(x => x.Rank)));
+            Assert.Equal(3, repo.Query<Parent>().Single(x => x.ID == parents[2].ID).Rank);
+            Assert.Equal(2, repo.Query<Parent>().Count(x => x.Rank == 9));
+
+            var taggedChildren = repo.Query<Parent>().Where(x => x.Name == "a").Select(x => x.ID);
+            Assert.Equal(children.Count(c => c.ParentID == parents[0].ID), repo.Delete<Child>(x => taggedChildren.Contains(x.ParentID)));
+            Assert.Equal(1, repo.Query<Child>().Count());
+        }
+
+        [Fact]
+        public async Task SubqueryAndSelectManyOnOtherEngine()
+        {
+            foreach (var sameEngine in new[] { false, true })
+            {
+                var (repo, parents, children) = Repos(sameEngine);
+                var tagged = repo.Query<Child>().Where(c => c.Tag == "x").Select(c => c.ParentID);
+                Assert.Equal(["a", "b"], repo.Query<Parent>().Where(x => tagged.Contains(x.ID)).OrderBy(x => x.Rank).ToArray().Select(x => x.Name));
+                Assert.Equal(["c"], (await repo.Query<Parent>().Where(x => !tagged.Contains(x.ID)).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Select(x => x.Name));
+
+                Assert.Equal(children.Length, repo.Query<Parent>().SelectMany(x => x.Children!).Count());
+                Assert.Equal(children.Where(c => c.Qty > 1).Select(c => c.Qty).Order(), repo.Query<Parent>().SelectMany(x => x.Children!).Where(c => c.Qty > 1).Select(c => c.Qty).ToArray().Order());
+                Assert.Equal(children.Count(c => c.ParentID == parents[0].ID), await repo.Query<Parent>().Where(x => x.Rank == 1).SelectMany(x => x.Children!).CountAsync(cancellationToken: TestContext.Current.CancellationToken));
+                var pairs = repo.Query<Parent>().OrderBy(x => x.Rank).Take(1).SelectMany(x => x.Children!, (x, c) => new { x.Name, c.Qty }).OrderBy(r => r.Qty).ToArray();
+                Assert.Equal([1, 5], pairs.Select(r => r.Qty));
+                Assert.All(pairs, r => Assert.Equal("a", r.Name));
+            }
+        }
+
+        [Fact]
+        public void RelationRowsOnOtherEngine()
+        {
+            foreach (var sameEngine in new[] { false, true })
+            {
+                var (repo, parents, children) = Repos(sameEngine);
+                var paged = repo.Query<Parent>().OrderBy(x => x.Rank).Select(x => new { x.Name, Rows = x.Children!.OrderByDescending(c => c.Qty).Take(1).Select(c => c.Qty).ToArray() }).ToArray();
+                Assert.Equal([5], paged[0].Rows);
+                Assert.Equal([2], paged[1].Rows);
+                Assert.Empty(paged[2].Rows);
+
+                Assert.Equal(children.Select(c => c.Qty).Order(), repo.Query<Parent>().SelectMany(x => x.Children!.Select(c => c.Qty)).ToArray().Order());
+                Assert.Equal(parents[^1].Rank, repo.Query<Parent>().OrderBy(x => x.Rank).Last().Rank);
+                Assert.Equal(2, repo.Query<Parent>().OrderBy(x => x.Rank).Take(2).Count());
+                Assert.Equal(parents[1].Rank, repo.Query<Parent>().OrderBy(x => x.Children!.Count()).ThenBy(x => x.Rank).ElementAt(1).Rank);
+            }
+        }
+
+        [Fact]
+        public async Task GraphRelationOnOtherEngine()
+        {
+            foreach (var sameEngine in new[] { false, true })
+            {
+                var (repo, parents, children) = Repos(sameEngine);
+                var graph = new Graph<Parent>(true, x => x.Children);
+
+                var ordered = repo.Query<Parent>(graph).Where(x => x.Rank < 3).OrderByDescending(x => x.Rank).ToArray();
+                Assert.Equal(["b", "a"], ordered.Select(x => x.Name));
+                Assert.Equal(children.Where(c => c.ParentID == ordered[1].ID).Select(c => c.Qty).Order(), ordered[1].Children!.Select(c => c.Qty).Order());
+                Assert.Equal(children.Where(c => c.ParentID == ordered[0].ID).Select(c => c.Tag), ordered[0].Children!.Select(c => c.Tag));
+
+                var none = (await repo.Query<Parent>(graph).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Single(x => x.Rank == 3);
+                Assert.Empty(none.Children!);
+
+                //only the child members the graph names, though the condition reads another
+                var named = repo.Query<Parent>(new Graph<Parent>(x => x.Name, x => x.Children!.Select(c => c.Qty))).Where(x => x.Children!.Any(c => c.Tag == "y")).ToArray();
+                Assert.Equal("a", Assert.Single(named).Name);
+                Assert.Equal([1, 5], named[0].Children!.Select(c => c.Qty).Order());
+                Assert.All(named[0].Children!, c => Assert.Null(c.Tag));
+                Assert.Equal(0, named[0].Rank);
+
+                var childGraph = new Graph<Child>(true, x => x.Parent);
+                var withParent = await repo.Query<Child>(childGraph).Where(x => x.Qty == 5).SingleOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken);
+                Assert.Equal("a", withParent!.Parent!.Name);
+                _ = parents;
+            }
+        }
+
         private static (IRepo Repo, Parent[] Parents, Child[] Children) Repos(bool sameEngine = false)
         {
             var parentEngine = new MemoryEngine();
@@ -82,14 +168,14 @@ namespace Zerra.Repository.Test
         {
             var (repo, parents, _) = Repos();
 
-            Assert.Equal(2, repo.Many<Child>(x => x.Parent!.Name == "a").Count);
-            Assert.Equal([2], repo.Many<Child>(x => x.Parent!.Rank > 1 && x.Qty > 1).Select(x => x.Qty));
-            Assert.Equal(3, repo.Many<Child>(x => x.Parent!.Name == "b" || x.Qty != 2).Count);
-            Assert.Equal(1, await repo.CountAsync<Child>(x => x.Parent!.Name == "b"));
-            Assert.Equal(6, repo.Sum<Child>(x => x.Qty, x => x.Parent!.Rank < 2));
+            Assert.Equal(2, repo.Query<Child>().Where(x => x.Parent!.Name == "a").ToArray().Length);
+            Assert.Equal([2], repo.Query<Child>().Where(x => x.Parent!.Rank > 1 && x.Qty > 1).ToArray().Select(x => x.Qty));
+            Assert.Equal(3, repo.Query<Child>().Where(x => x.Parent!.Name == "b" || x.Qty != 2).ToArray().Length);
+            Assert.Equal(1, await repo.Query<Child>().CountAsync(x => x.Parent!.Name == "b", cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Equal(6, repo.Query<Child>().Where(x => x.Parent!.Rank < 2).Sum(x => x.Qty));
 
             //the relation itself still loads through its own provider
-            var withParent = repo.Single<Child>(x => x.Qty == 5, new Graph<Child>(true, x => x.Parent));
+            var withParent = repo.Query<Child>(new Graph<Child>(x => x.Qty, x => x.Parent)).Where(x => x.Qty == 5).SingleOrDefault();
             Assert.Equal(parents[0].Name, withParent!.Parent!.Name);
         }
 
@@ -98,22 +184,22 @@ namespace Zerra.Repository.Test
         {
             var (repo, parents, _) = Repos();
 
-            Assert.Equal(["a"], repo.Many<Parent>(x => x.Children!.Any(c => c.Tag == "y")).Select(x => x.Name));
-            Assert.Equal(["c"], repo.Many<Parent>(x => !x.Children!.Any()).Select(x => x.Name));
-            Assert.Equal(["b", "c"], repo.Many<Parent>(x => x.Children!.All(c => c.Qty < 3)).Select(x => x.Name).Order());
+            Assert.Equal(["a"], repo.Query<Parent>().Where(x => x.Children!.Any(c => c.Tag == "y")).ToArray().Select(x => x.Name));
+            Assert.Equal(["c"], repo.Query<Parent>().Where(x => !x.Children!.Any()).ToArray().Select(x => x.Name));
+            Assert.Equal(["b", "c"], repo.Query<Parent>().Where(x => x.Children!.All(c => c.Qty < 3)).ToArray().Select(x => x.Name).Order());
 
-            Assert.Equal(["a"], repo.Many<Parent>(x => x.Children!.Count() > 1).Select(x => x.Name));
+            Assert.Equal(["a"], repo.Query<Parent>().Where(x => x.Children!.Count() > 1).ToArray().Select(x => x.Name));
             //a parent with nothing related counts as zero, which the condition accepts
-            Assert.Equal(["b", "c"], repo.Many<Parent>(x => x.Children!.Count() < 2).Select(x => x.Name).Order());
-            Assert.Equal(["a", "b"], repo.Many<Parent>(x => x.Children!.Count(c => c.Tag == "x") == 1).Select(x => x.Name).Order());
-            Assert.Equal(["a"], repo.Many<Parent>(x => x.Children!.Sum(c => c.Qty) >= 6).Select(x => x.Name));
-            Assert.Equal(["b", "c"], repo.Many<Parent>(x => x.Children!.Sum(c => c.Qty) < 3).Select(x => x.Name).Order());
-            Assert.Equal(["a"], repo.Many<Parent>(x => x.Children!.Max(c => c.Qty) == 5).Select(x => x.Name));
-            Assert.Equal(["a"], repo.Many<Parent>(x => 1 == x.Children!.Min(c => c.Qty)).Select(x => x.Name));
-            Assert.Equal(["a", "b"], repo.Many<Parent>(x => x.Children!.Average(c => c.Qty) >= 2).Select(x => x.Name).Order());
-            Assert.Equal(["a", "b", "c"], (await repo.ManyAsync<Parent>(x => x.Rank > 1 || x.Children!.Any(c => c.Qty == 5))).Select(x => x.Name).Order());
+            Assert.Equal(["b", "c"], repo.Query<Parent>().Where(x => x.Children!.Count() < 2).ToArray().Select(x => x.Name).Order());
+            Assert.Equal(["a", "b"], repo.Query<Parent>().Where(x => x.Children!.Count(c => c.Tag == "x") == 1).ToArray().Select(x => x.Name).Order());
+            Assert.Equal(["a"], repo.Query<Parent>().Where(x => x.Children!.Sum(c => c.Qty) >= 6).ToArray().Select(x => x.Name));
+            Assert.Equal(["b", "c"], repo.Query<Parent>().Where(x => x.Children!.Sum(c => c.Qty) < 3).ToArray().Select(x => x.Name).Order());
+            Assert.Equal(["a"], repo.Query<Parent>().Where(x => x.Children!.Max(c => c.Qty) == 5).ToArray().Select(x => x.Name));
+            Assert.Equal(["a"], repo.Query<Parent>().Where(x => 1 == x.Children!.Min(c => c.Qty)).ToArray().Select(x => x.Name));
+            Assert.Equal(["a", "b"], repo.Query<Parent>().Where(x => x.Children!.Average(c => c.Qty) >= 2).ToArray().Select(x => x.Name).Order());
+            Assert.Equal(["a", "b", "c"], (await repo.Query<Parent>().Where(x => x.Rank > 1 || x.Children!.Any(c => c.Qty == 5)).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Select(x => x.Name).Order());
 
-            var withChildren = repo.Single<Parent>(x => x.ID == parents[0].ID, new Graph<Parent>(true, x => x.Children));
+            var withChildren = repo.Query<Parent>(new Graph<Parent>(x => x.ID, x => x.Children)).Where(x => x.ID == parents[0].ID).SingleOrDefault();
             Assert.Equal(2, withChildren!.Children!.Length);
         }
 
@@ -122,15 +208,15 @@ namespace Zerra.Repository.Test
         {
             var (repo, _, _) = Repos();
 
-            Assert.Equal(3, repo.Sum<Parent>(x => x.Rank, x => x.Children!.Any()));
-            var counts = repo.Count<Child, int>(x => x.Qty, x => x.Parent!.Name == "a");
-            Assert.Equal(2, counts.Count);
-            Assert.Equal([1, 5], repo.Select((Child x) => new ChildRow { Qty = x.Qty }, x => x.Parent!.Name == "a").Select(r => r.Qty).Order());
+            Assert.Equal(3, repo.Query<Parent>().Where(x => x.Children!.Any()).Sum(x => x.Rank));
+            var counts = repo.Query<Child>().Where(x => x.Parent!.Name == "a").GroupBy(x => x.Qty).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray();
+            Assert.Equal(2, counts.Length);
+            Assert.Equal([1, 5], repo.Query<Child>().Where(x => x.Parent!.Name == "a").Select(x => new ChildRow { Qty = x.Qty }).ToArray().Select(r => r.Qty).Order());
 
-            Assert.Equal(1, await repo.UpdateAsync<Child>(x => x.Parent!.Name == "b", new Child { Tag = "z" }, new Graph<Child>(x => x.Tag)));
-            Assert.Equal("z", repo.Single<Child>(x => x.Qty == 2)!.Tag);
+            Assert.Equal(1, await repo.UpdateAsync<Child>(x => x.Parent!.Name == "b", new Child { Tag = "z" }, new Graph<Child>(x => x.Tag), TestContext.Current.CancellationToken));
+            Assert.Equal("z", repo.Query<Child>().SingleOrDefault(x => x.Qty == 2)!.Tag);
             Assert.Equal(1, repo.Delete<Parent>(x => !x.Children!.Any()));
-            Assert.Equal(2, repo.Count<Parent>());
+            Assert.Equal(2, repo.Query<Parent>().Count());
         }
 
         [Fact]
@@ -139,35 +225,49 @@ namespace Zerra.Repository.Test
             var (repo, _, _) = Repos();
 
             //the models load with what the key, value, projected member, or order reads, the relation through its own provider, and the query runs in memory
-            Assert.Equal([("a", 2L), ("b", 1L)], repo.Count<Child, string?>(x => x.Parent!.Name).OrderBy(x => x.Key).ToArray());
-            Assert.Equal(8, repo.Sum<Parent>(x => x.Children!.Sum(c => c.Qty)));
-            Assert.Equal(6, await repo.SumAsync<Parent>(x => x.Children!.Sum(c => c.Qty), x => x.Rank == 1));
-            Assert.Equal(5, repo.Max<Parent, string?, int>(x => x.Name, x => x.Children!.Max(c => c.Qty), x => x.Children!.Any()).Single(x => x.Key == "a").Value);
+            Assert.Equal([("a", 2L), ("b", 1L)], repo.Query<Child>().GroupBy(x => x.Parent!.Name).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray().OrderBy(x => x.Key).ToArray());
+            Assert.Equal(8, repo.Query<Parent>().Sum(x => x.Children!.Sum(c => c.Qty)));
+            Assert.Equal(6, await repo.Query<Parent>().Where(x => x.Rank == 1).SumAsync(x => x.Children!.Sum(c => c.Qty), cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Equal(5, repo.Query<Parent>().Where(x => x.Children!.Any()).GroupBy(x => x.Name).Select(g => new { g.Key, Value = g.Max(x => x.Children!.Max(c => c.Qty)) }).ToArray().Select(r => (r.Key, r.Value)).ToArray().Single(x => x.Key == "a").Value);
 
             //a projection keeps its order and paging in the store when only the members cross
-            var rows = repo.Select((Child x) => new ChildRow { Qty = x.Qty, ParentName = x.Parent!.Name }, x => x.Qty > 1, QueryOrder<Child>.Create(x => x.Qty, true), 0, 1);
+            var rows = repo.Query<Child>().Where(x => x.Qty > 1).OrderByDescending(x => x.Qty).Skip(0).Take(1).Select(x => new ChildRow { Qty = x.Qty, ParentName = x.Parent!.Name }).ToArray();
             Assert.Equal([(5, "a")], rows.Select(r => (r.Qty, r.ParentName)).ToArray());
-            var summaries = await repo.GroupAsync((Child x) => x.Parent!.Name, g => new ParentSummary { ParentName = g.Key, Children = g.Count(), Qty = g.Sum(c => c.Qty) },
-                having: r => r.Qty > 1, order: QueryOrder<ParentSummary>.Create(r => r.Qty, true), take: 1);
+            var summaries = await repo.Query<Child>().GroupBy(x => x.Parent!.Name).Select(g => new ParentSummary { ParentName = g.Key, Children = g.Count(), Qty = g.Sum(c => c.Qty) }).Where(r => r.Qty > 1).OrderByDescending(r => r.Qty).Take(1).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal([("a", 2, 6)], summaries.Select(r => (r.ParentName, r.Children, r.Qty)).ToArray());
 
             //an order through the relation sorts and pages in memory
-            var order = QueryOrder<Child>.Create(x => x.Parent!.Name, true, x => x.Qty);
-            Assert.Equal([2, 1, 5], repo.Many<Child>(x => true, order).Select(x => x.Qty));
-            Assert.Equal([1, 5], (await repo.SelectAsync((Child x) => new ChildRow { Qty = x.Qty, ParentName = x.Parent!.Name }, null, order, 1, 2)).Select(r => r.Qty));
-            Assert.Equal(2, repo.First<Child>(x => true, order)!.Qty);
-            var withTag = repo.Many<Child>(x => true, order, new Graph<Child>(x => x.Tag));
+            Assert.Equal([2, 1, 5], repo.Query<Child>().OrderByDescending(x => x.Parent!.Name).ThenBy(x => x.Qty).ToArray().Select(x => x.Qty));
+            Assert.Equal([1, 5], (await repo.Query<Child>().OrderByDescending(x => x.Parent!.Name).ThenBy(x => x.Qty).Skip(1).Take(2).Select(x => new ChildRow { Qty = x.Qty, ParentName = x.Parent!.Name }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Select(r => r.Qty));
+            Assert.Equal(2, repo.Query<Child>().OrderByDescending(x => x.Parent!.Name).ThenBy(x => x.Qty).First().Qty);
+            var withTag = repo.Query<Child>(new Graph<Child>(x => x.Tag)).OrderByDescending(x => x.Parent!.Name).ThenBy(x => x.Qty).ToArray();
             Assert.Equal(["x", "x", "y"], withTag.Select(x => x.Tag));
 
             //one row of the related collection, picked in memory with the members it reads loaded, and null for a parent without one
-            var tops = repo.Select((Parent x) => new ParentSummary { ParentName = x.Name, Qty = x.Children!.OrderByDescending(c => c.Qty).First().Qty }, null, QueryOrder<Parent>.Create(x => x.Rank));
+            var tops = repo.Query<Parent>().OrderBy(x => x.Rank).Select(x => new ParentSummary { ParentName = x.Name, Qty = x.Children!.OrderByDescending(c => c.Qty).First().Qty }).ToArray();
             Assert.Equal([("a", 5), ("b", 2), ("c", 0)], tops.Select(r => (r.ParentName, r.Qty)).ToArray());
-            var byFirstTag = QueryOrder<Parent>.Create(x => x.Children!.OrderBy(c => c.Qty).First().Tag, false, x => x.Rank);
-            Assert.Equal(["c", "a", "b"], repo.Many<Parent>(x => true, byFirstTag).Select(x => x.Name));
+            Assert.Equal(["c", "a", "b"], repo.Query<Parent>().OrderBy(x => x.Children!.OrderBy(c => c.Qty).First().Tag).ThenBy(x => x.Rank).ToArray().Select(x => x.Name));
 
             //results built from the related rows, loaded with the members they read
-            var withChildren = repo.Select((Parent x) => new ParentChildren { Name = x.Name, Children = x.Children!.OrderByDescending(c => c.Qty).Select(c => new ChildRow { Qty = c.Qty, ParentName = c.Tag }).ToList() }, null, QueryOrder<Parent>.Create(x => x.Rank));
+            var withChildren = repo.Query<Parent>().OrderBy(x => x.Rank).Select(x => new ParentChildren { Name = x.Name, Children = x.Children!.OrderByDescending(c => c.Qty).Select(c => new ChildRow { Qty = c.Qty, ParentName = c.Tag }).ToList() }).ToArray();
             Assert.Equal([("a", "5y,1x"), ("b", "2x"), ("c", "")], withChildren.Select(r => (r.Name, String.Join(",", r.Children!.Select(c => $"{c.Qty}{c.ParentName}")))).ToArray());
+        }
+
+        [Fact]
+        public async Task QueryableSplitsConditionsAndRunsTheRestInMemory()
+        {
+            var (repo, _, _) = Repos();
+
+            //a condition through the relation runs on the related engine first
+            Assert.Equal(2, repo.Query<Child>().Count(x => x.Parent!.Name == "a"));
+            Assert.Equal(["a"], repo.Query<Parent>().Where(x => x.Children!.Count() > 1).Select(x => x.Name).ToArray());
+
+            //a member or an order through the relation loads the models with what it reads and runs in memory
+            var rows = await repo.Query<Child>().Where(x => x.Qty > 1).OrderByDescending(x => x.Qty).Select(x => new { x.Qty, ParentName = x.Parent!.Name }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal([(5, "a"), (2, "b")], rows.Select(r => (r.Qty, r.ParentName)));
+            var parents = repo.Query<Parent>().OrderBy(x => x.Rank).Select(x => new { x.Name, Children = x.Children!.OrderBy(c => c.Qty).Select(c => c.Qty).ToArray(), Most = x.Children!.OrderByDescending(c => c.Qty).Select(c => c.Tag).FirstOrDefault() }).ToArray();
+            Assert.Equal([("a", "1,5", "y"), ("b", "2", "x"), ("c", "", null)], parents.Select(r => (r.Name, String.Join(",", r.Children), r.Most)));
+            Assert.Equal([2, 1, 5], repo.Query<Child>().OrderByDescending(x => x.Parent!.Name).ThenBy(x => x.Qty).ToArray().Select(x => x.Qty));
         }
 
         [Fact]
@@ -176,10 +276,10 @@ namespace Zerra.Repository.Test
             var (repo, _, _) = Repos();
 
             //a leaf mixing the related model with this one
-            _ = Assert.Throws<NotSupportedException>(() => repo.Many<Child>(x => x.Qty > x.Parent!.Rank));
-            _ = Assert.Throws<NotSupportedException>(() => repo.Many<Parent>(x => x.Children!.Count() > x.Rank));
-            _ = Assert.Throws<NotSupportedException>(() => repo.Many<Parent>(x => x.Children!.Any(c => c.Qty > x.Rank)));
-            _ = Assert.Throws<NotSupportedException>(() => repo.Many<Parent>(x => x.Children!.OrderBy(c => c.Qty).First().Tag == "x"));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<Child>().Where(x => x.Qty > x.Parent!.Rank).ToArray());
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<Parent>().Where(x => x.Children!.Count() > x.Rank).ToArray());
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<Parent>().Where(x => x.Children!.Any(c => c.Qty > x.Rank)).ToArray());
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<Parent>().Where(x => x.Children!.OrderBy(c => c.Qty).First().Tag == "x").ToArray());
         }
 
         [Fact]
@@ -187,10 +287,10 @@ namespace Zerra.Repository.Test
         {
             var (repo, _, _) = Repos(sameEngine: true);
 
-            Assert.Equal(2, repo.Many<Child>(x => x.Parent!.Name == "a").Count);
-            Assert.Equal(["a"], repo.Many<Parent>(x => x.Children!.Count() > 1).Select(x => x.Name));
-            Assert.Equal(["a"], repo.Select((Child x) => new ChildRow { Qty = x.Qty, ParentName = x.Parent!.Name }, x => x.Qty == 5).Select(r => r.ParentName));
-            _ = Assert.Single(repo.Many<Child>(x => x.Qty > x.Parent!.Rank));
+            Assert.Equal(2, repo.Query<Child>().Where(x => x.Parent!.Name == "a").ToArray().Length);
+            Assert.Equal(["a"], repo.Query<Parent>().Where(x => x.Children!.Count() > 1).ToArray().Select(x => x.Name));
+            Assert.Equal(["a"], repo.Query<Child>().Where(x => x.Qty == 5).Select(x => new ChildRow { Qty = x.Qty, ParentName = x.Parent!.Name }).ToArray().Select(r => r.ParentName));
+            _ = Assert.Single(repo.Query<Child>().Where(x => x.Qty > x.Parent!.Rank).ToArray());
         }
     }
 }

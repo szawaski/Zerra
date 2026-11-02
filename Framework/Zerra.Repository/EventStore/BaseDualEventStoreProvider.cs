@@ -46,39 +46,13 @@ namespace Zerra.Repository
         /// </summary>
         /// <param name="query">The query to execute.</param>
         /// <returns>The query result.</returns>
-        public object? Query(Query query)
-        {
-            if (query.IsTemporal)
-            {
-                return EventStoreProvider.Query(query);
-            }
-            else
-            {
-                return NextProvider.Query(query);
-            }
-        }
+        /// <inheritdoc/>
+        public object? Query(LinqQuery query) => query is LinqModelQuery { IsTemporal: true } ? EventStoreProvider.Query(query) : NextProvider.Query(query);
 
-        /// <summary>
-        /// Asynchronously routes the query to the event store provider for temporal queries, or to the next provider for standard queries.
-        /// </summary>
-        /// <param name="query">The query to execute.</param>
-        /// <returns>A task that resolves to the query result.</returns>
-        public Task<object?> QueryAsync(Query query)
-        {
-            if (query.IsTemporal)
-            {
-                return EventStoreProvider.QueryAsync(query);
-            }
-            else
-            {
-                return NextProvider.QueryAsync(query);
-            }
-        }
+        /// <inheritdoc/>
+        public Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken) => query is LinqModelQuery { IsTemporal: true } ? EventStoreProvider.QueryAsync(query, cancellationToken) : NextProvider.QueryAsync(query, cancellationToken);
 
-        /// <summary>
-        /// Persists changes through both the event store provider and the next provider.
-        /// </summary>
-        /// <param name="persist">The persist operation to apply.</param>
+        /// <inheritdoc/>
         public void Persist(Persist persist)
         {
             EventStoreProvider.Persist(persist);
@@ -89,10 +63,11 @@ namespace Zerra.Repository
         /// Asynchronously persists changes through both the event store provider and the next provider.
         /// </summary>
         /// <param name="persist">The persist operation to apply.</param>
-        public async Task PersistAsync(Persist persist)
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
+        public async Task PersistAsync(Persist persist, CancellationToken cancellationToken)
         {
-            await EventStoreProvider.PersistAsync(persist);
-            await NextProvider.PersistAsync(persist);
+            await EventStoreProvider.PersistAsync(persist, cancellationToken);
+            await NextProvider.PersistAsync(persist, cancellationToken);
         }
     }
 }

@@ -52,7 +52,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
                 }
             }
 
-            singleModel = repo.First<TestTypesModel>();
+            singleModel = repo.Query<TestTypesModel>().First();
 
             reuseContext = new EFDataContext();
             singleEF = reuseContext.TestTypes.First();
@@ -81,7 +81,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         [Benchmark]
         public async Task<IReadOnlyCollection<TestTypesModel>> QueryMany_Zerra()
         {
-            var results = await repo.ManyAsync<TestTypesModel>();
+            var results = await repo.Query<TestTypesModel>().ToArrayAsync();
             return results;
         }
 
@@ -89,25 +89,25 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         public async Task<List<EFTestTypesModel>> QueryMany_EF()
         {
             using var context = new EFDataContext();
-            var results = await context.TestTypes
+            var results = await EntityFrameworkQueryableExtensions.ToListAsync(context.TestTypes
                 .AsNoTracking()
-                .ToListAsync();
+                );
             return results;
         }
 
         [Benchmark]
         public async Task<List<EFTestTypesModel>> QueryMany_EF_Reuse()
         {
-            var results = await reuseContext.TestTypes
+            var results = await EntityFrameworkQueryableExtensions.ToListAsync(reuseContext.TestTypes
                 .AsNoTracking()
-                .ToListAsync();
+                );
             return results;
         }
 
         [Benchmark]
         public async Task<IReadOnlyCollection<TestTypesModel>> QueryManyWhere_Zerra()
         {
-            var results = await repo.ManyAsync<TestTypesModel>(x => x.Int32Thing > 0 && x.StringThing.Contains("Hello"));
+            var results = await repo.Query<TestTypesModel>().Where(x => x.Int32Thing > 0 && x.StringThing.Contains("Hello")).ToArrayAsync();
             return results;
         }
 
@@ -115,17 +115,17 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         public async Task<List<EFTestTypesModel>> QueryManyWhere_EF()
         {
             using var context = new EFDataContext();
-            var results = await context.TestTypes
+            var results = await EntityFrameworkQueryableExtensions.ToListAsync(context.TestTypes
                 .AsNoTracking()
                 .Where(x => x.Int32Thing > 0 && x.StringThing.Contains("Hello"))
-                .ToListAsync();
+                );
             return results;
         }
 
         [Benchmark]
         public async Task<TestTypesModel> QueryFirst_Zerra()
         {
-            var results = await repo.FirstAsync<TestTypesModel>(x => x.StringThing.Contains("Hello"));
+            var results = await repo.Query<TestTypesModel>().FirstOrDefaultAsync(x => x.StringThing.Contains("Hello"));
             return results;
         }
 
@@ -133,21 +133,17 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         public async Task<EFTestTypesModel> QueryFirst_EF()
         {
             using var context = new EFDataContext();
-            var results = await context.TestTypes
+            var results = await EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(context.TestTypes
                 .AsNoTracking()
                 .Where(results => results.StringThing.Contains("Hello"))
-                .FirstOrDefaultAsync();
+                );
             return results;
         }
 
         [Benchmark]
         public async Task<IReadOnlyCollection<TestTypesModel>> QueryManyIncludeOneToOne_Zerra()
         {
-            var graph = new Graph<TestTypesModel>(
-                true,
-                x => x.RelationA
-            );
-            var results = await repo.ManyAsync<TestTypesModel>(graph);
+            var results = await repo.Query<TestTypesModel>(new Graph<TestTypesModel>(true, x => x.RelationA)).ToArrayAsync();
             return results;
         }
 
@@ -155,21 +151,17 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         public async Task<List<EFTestTypesModel>> QueryManyIncludeOneToOne_EF()
         {
             using var context = new EFDataContext();
-            var results = await context.TestTypes
+            var results = await EntityFrameworkQueryableExtensions.ToListAsync(context.TestTypes
                 .AsNoTracking()
                 .Include(x => x.RelationA)
-                .ToListAsync();
+                );
             return results;
         }
 
         [Benchmark]
         public async Task<IReadOnlyCollection<TestTypesModel>> QueryManyIncludeOneToMany_Zerra()
         {
-            var graph = new Graph<TestTypesModel>(
-                true,
-                x => x.RelationB
-            );
-            var results = await repo.ManyAsync<TestTypesModel>(graph);
+            var results = await repo.Query<TestTypesModel>(new Graph<TestTypesModel>(true, x => x.RelationB)).ToArrayAsync();
             return results;
         }
 
@@ -177,10 +169,10 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         public async Task<List<EFTestTypesModel>> QueryManyIncludeOneToMany_EF()
         {
             using var context = new EFDataContext();
-            var results = await context.TestTypes
+            var results = await EntityFrameworkQueryableExtensions.ToListAsync(context.TestTypes
                 .AsNoTracking()
                 .Include(x => x.RelationB)
-                .ToListAsync();
+                );
             return results;
         }
 
@@ -188,11 +180,11 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         public async Task<List<EFTestTypesModel>> QueryManyIncludeOneToMany_EF_Split()
         {
             using var context = new EFDataContext();
-            var results = await context.TestTypes
+            var results = await EntityFrameworkQueryableExtensions.ToListAsync(context.TestTypes
                 .AsNoTracking()
                 .Include(x => x.RelationB)
                 .AsSplitQuery()
-                .ToListAsync();
+                );
             return results;
         }
 

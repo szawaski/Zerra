@@ -29,6 +29,29 @@ namespace Zerra.SourceGeneration.Test
             output.AssertInitializerDoesNotContain("global::Zerra.Reflection.Register.");
         }
 
+        //an array brings its generic interfaces, whose element has no namespace to name here
+        [Fact]
+        public void ArrayOfGlobalNamespaceType()
+        {
+            var output = GeneratorRunner.Run("""
+                using Zerra.Reflection;
+
+                public class GlobalItem
+                {
+                    public int Value { get; set; }
+                }
+
+                [GenerateTypeDetail]
+                public class GlobalModel
+                {
+                    public GlobalItem[]? Items { get; set; }
+                }
+                """);
+
+            output.AssertInitializerContains("global::GlobalItem[]");
+            output.AssertInitializerDoesNotContain("<global namespace>");
+        }
+
         [Fact]
         public void QueryHandler()
         {

@@ -23,7 +23,7 @@ namespace Store.Shipping.Service.Handlers
         public async Task Handle(OrderShippedEvent @event)
         {
             //an event can be delivered twice, a shipment that already exists means there's nothing left to do
-            if (await Repo.AnyAsync<ShipmentDataModel>(x => x.OrderID == @event.OrderID))
+            if (await Repo.Query<ShipmentDataModel>().AnyAsync(x => x.OrderID == @event.OrderID))
                 return;
 
             var shipment = new ShipmentDataModel()
@@ -43,7 +43,7 @@ namespace Store.Shipping.Service.Handlers
 
         public async Task Handle(MarkDeliveredCommand command, CancellationToken cancellationToken)
         {
-            var shipment = await Repo.SingleAsync<ShipmentDataModel>(x => x.OrderID == command.OrderID) ?? throw new DomainException("Shipment not found.");
+            var shipment = await Repo.Query<ShipmentDataModel>().SingleOrDefaultAsync(x => x.OrderID == command.OrderID) ?? throw new DomainException("Shipment not found.");
             if (shipment.Status == nameof(ShipmentStatus.Delivered))
                 throw new DomainException($"Order {shipment.OrderNumber} was already marked delivered.");
 

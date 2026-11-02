@@ -16,25 +16,25 @@ namespace Store.Reviews.Service.Handlers
         public async Task<ReviewModel[]> GetRecentReviews(int count, CancellationToken cancellationToken)
         {
             count = Math.Clamp(count, 1, 100);
-            var items = await Repo.ManyAsync(QueryOrder<ReviewDataModel>.Create(x => x.CreatedOn, true), 0, count);
+            var items = await Repo.Query<ReviewDataModel>().OrderByDescending(x => x.CreatedOn).Skip(0).Take(count).ToArrayAsync(cancellationToken);
             return items.Select(ToModel).ToArray();
         }
 
         public async Task<ReviewModel[]> GetReviewsForProduct(Guid productID, CancellationToken cancellationToken)
         {
-            var items = await Repo.ManyAsync(x => x.ProductID == productID, QueryOrder<ReviewDataModel>.Create(x => x.CreatedOn, true));
+            var items = await Repo.Query<ReviewDataModel>().Where(x => x.ProductID == productID).OrderByDescending(x => x.CreatedOn).ToArrayAsync(cancellationToken);
             return items.Select(ToModel).ToArray();
         }
 
         public async Task<ProductRatingModel[]> GetProductRatings(CancellationToken cancellationToken)
         {
             //the store groups the reviews and averages them, so one row per product comes back instead of every review
-            var ratings = await Repo.GroupAsync((ReviewDataModel x) => x.ProductID, g => new ProductRatingModel()
+            var ratings = await Repo.Query<ReviewDataModel>().GroupBy(x => x.ProductID).Select(g => new ProductRatingModel()
             {
                 ProductID = g.Key,
                 AverageRating = g.Average(x => x.Rating),
                 ReviewCount = g.Count()
-            });
+            }).ToArrayAsync(cancellationToken);
             foreach (var rating in ratings)
                 rating.AverageRating = Math.Round(rating.AverageRating, 1);
             return ratings.ToArray();

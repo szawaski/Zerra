@@ -23,7 +23,7 @@ namespace Store.Inventory.Test
         {
             var test = new InventoryTestBus();
             var productID = Guid.NewGuid();
-            await test.Repo.CreateAsync(new StockItemDataModel() { ProductID = productID, OnHand = 10, Reserved = 3 });
+            await test.Repo.CreateAsync(new StockItemDataModel() { ProductID = productID, OnHand = 10, Reserved = 3 }, TestContext.Current.CancellationToken);
 
             var levels = await test.Bus.Call<IInventoryQueryHandler>().GetStockLevels(Token);
 
@@ -40,12 +40,11 @@ namespace Store.Inventory.Test
             var test = new InventoryTestBus();
             var productID = Guid.NewGuid();
             var now = DateTime.UtcNow;
-            await test.Repo.CreateAsync<StockMovementDataModel>(
-            [
+            await test.Repo.CreateAsync<StockMovementDataModel>([
                 new() { ID = Guid.NewGuid(), ProductID = productID, Kind = nameof(StockMovementKind.Restocked), Quantity = 10, OccurredOn = now.AddSeconds(1) },
                 new() { ID = Guid.NewGuid(), ProductID = productID, Kind = nameof(StockMovementKind.Shipped), Quantity = 1, OrderNumber = "SO-2", OccurredOn = now.AddSeconds(3) },
                 new() { ID = Guid.NewGuid(), ProductID = productID, Kind = nameof(StockMovementKind.Reserved), Quantity = 1, OrderNumber = "SO-2", OccurredOn = now.AddSeconds(2) }
-            ]);
+            ], TestContext.Current.CancellationToken);
 
             var movements = await test.Bus.Call<IInventoryQueryHandler>().GetRecentMovements(3, Token);
 
@@ -69,7 +68,7 @@ namespace Store.Inventory.Test
                 Kind = nameof(StockMovementKind.Restocked),
                 Quantity = 1,
                 OccurredOn = now.AddSeconds(-i)
-            }).ToArray());
+            }).ToArray(), TestContext.Current.CancellationToken);
 
             var movements = await test.Bus.Call<IInventoryQueryHandler>().GetRecentMovements(count, Token);
 

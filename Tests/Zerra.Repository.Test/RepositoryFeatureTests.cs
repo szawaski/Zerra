@@ -109,17 +109,17 @@ namespace Zerra.Repository.Test
             var model = new DualModel { ID = Guid.NewGuid(), Value = 1 };
             repo.Create(model);
             model.Value = 2;
-            await repo.UpdateAsync(model);
+            await repo.UpdateAsync(model, TestContext.Current.CancellationToken);
 
-            Assert.Equal(2, repo.Single<DualModel>(x => x.ID == model.ID)!.Value);
-            Assert.Equal(2, (await repo.SingleAsync<DualModel>(x => x.ID == model.ID))!.Value);
+            Assert.Equal(2, repo.Query<DualModel>().SingleOrDefault(x => x.ID == model.ID)!.Value);
+            Assert.Equal(2, (await repo.Query<DualModel>().SingleOrDefaultAsync(x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken))!.Value);
             Assert.Equal([1, 2], repo.TemporalMany<DualModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID).Select(x => x.Value));
-            Assert.Equal([1, 2], (await repo.TemporalManyAsync<DualModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID)).Select(x => x.Value));
+            Assert.Equal([1, 2], (await repo.TemporalManyAsync<DualModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken)).Select(x => x.Value));
 
             //each store has the change
             var table = Repo.New();
             table.AddProvider(new TransactStoreProvider<DualModel>(tableEngine));
-            Assert.Equal(2, table.Single<DualModel>(x => x.ID == model.ID)!.Value);
+            Assert.Equal(2, table.Query<DualModel>().SingleOrDefault(x => x.ID == model.ID)!.Value);
             var events = Repo.New();
             events.AddProvider(new EventStoreAsTransactStoreProvider<DualModel>(eventEngine));
             Assert.Equal(2, events.EventCount<DualModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID));
@@ -134,7 +134,7 @@ namespace Zerra.Repository.Test
         {
             public bool Initialized { get; private set; }
             protected override void InitializeBaseHandlerWithRepo() => Initialized = true;
-            public async Task<int> GetValue(Guid id) => (await Repo.SingleAsync<DualModel>(x => x.ID == id))!.Value;
+            public async Task<int> GetValue(Guid id) => (await Repo.Query<DualModel>().SingleOrDefaultAsync(x => x.ID == id))!.Value;
         }
 
         [Fact]

@@ -37,7 +37,7 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append("global::");
                     if (typeSymbol.ContainingType is not null)
                         _ = sb.Append(typeSymbol.ContainingType).Append('.');
-                    else if (typeSymbol.ContainingNamespace is not null)
+                    else if (typeSymbol.ContainingNamespace is { IsGlobalNamespace: false })
                         _ = sb.Append(typeSymbol.ContainingNamespace).Append('.');
                     _ = sb.Append(typeSymbol.Name);
                 }
@@ -71,7 +71,7 @@ namespace Zerra.SourceGeneration
             _ = sb.Append("global::");
             if (typeSymbol.ContainingType is not null)
                 _ = sb.Append(typeSymbol.ContainingType).Append('.');
-            else if (typeSymbol.ContainingNamespace is not null)
+            else if (typeSymbol.ContainingNamespace is { IsGlobalNamespace: false })
                 _ = sb.Append(typeSymbol.ContainingNamespace).Append('.');
             _ = sb.Append(typeSymbol.Name);
 

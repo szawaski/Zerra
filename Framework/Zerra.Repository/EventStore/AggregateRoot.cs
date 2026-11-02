@@ -63,7 +63,7 @@ namespace Zerra.Repository
         /// The event is applied only once it is stored, so a rejected append (such as a failed <paramref name="validateEventNumber"/> check) leaves
         /// this instance unchanged. Apply methods only change state: validate before creating the event, since a stored event is replayed as is.
         /// <para>
-        /// These are the aggregate's own events, not CQRS events: they are its state, <see cref="Rebuild(ulong?, DateTime?)"/> replays them,
+        /// These are the aggregate's own events, not CQRS events: they are its state, <see cref="Rebuild(ulong?, DateTime?, CancellationToken)"/> replays them,
         /// and they never go on the bus. They implement <see cref="IAggregateEvent"/>, not <c>IEvent</c>, and belong with the aggregate rather than in a shared contracts
         /// project, since no other domain reads them. To tell another service something happened, dispatch a CQRS event or a command from the
         /// handler that called this.
@@ -72,7 +72,8 @@ namespace Zerra.Repository
         /// <typeparam name="TEvent">The type of the event.</typeparam>
         /// <param name="event">The event to append.</param>
         /// <param name="validateEventNumber">When <see langword="true"/>, enforces optimistic concurrency by validating the expected event number.</param>
-        public async Task Append<TEvent>(TEvent @event, bool validateEventNumber = false) where TEvent : IAggregateEvent
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
+        public async Task Append<TEvent>(TEvent @event, bool validateEventNumber = false, CancellationToken cancellationToken = default) where TEvent : IAggregateEvent
         {
             if (IsDeleted)
                 throw new InvalidOperationException($"Aggregate {streamName} has been deleted");
@@ -84,7 +85,7 @@ namespace Zerra.Repository
             var applyMethod = GetApplyMethod(eventType);
 
             var eventBytes = EventStoreCommon.Serialize(@event);
-            var eventNumber = await this.eventStore.AppendAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any, eventBytes);
+            var eventNumber = await this.eventStore.AppendAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any, eventBytes, cancellationToken);
 
             //applied only once stored, so a rejected append leaves this instance as it was
             await (Task)applyMethod.CallerBoxed!(this, [@event])!;
@@ -103,7 +104,8 @@ namespace Zerra.Repository
         /// <typeparam name="TEvent">The type of the event.</typeparam>
         /// <param name="event">The event to use as the deletion marker.</param>
         /// <param name="validateEventNumber">When <see langword="true"/>, enforces optimistic concurrency by validating the expected event number.</param>
-        public async Task Delete<TEvent>(TEvent @event, bool validateEventNumber = false) where TEvent : IAggregateEvent
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
+        public async Task Delete<TEvent>(TEvent @event, bool validateEventNumber = false, CancellationToken cancellationToken = default) where TEvent : IAggregateEvent
         {
             if (IsDeleted)
                 throw new InvalidOperationException($"Aggregate {streamName} has been deleted");
@@ -113,7 +115,7 @@ namespace Zerra.Repository
 
             var applyMethod = GetApplyMethod(eventType);
 
-            var eventNumber = await this.eventStore.TerminateAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any);
+            var eventNumber = await this.eventStore.TerminateAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any, cancellationToken);
 
             await (Task)applyMethod.CallerBoxed!(this, [@event])!;
 
@@ -127,22 +129,24 @@ namespace Zerra.Repository
         /// <summary>
         /// Rebuilds the aggregate state by replaying the next single event after the last applied event.
         /// </summary>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns><see langword="true"/> if an event was found and applied; otherwise, <see langword="false"/>.</returns>
-        public Task<bool> RebuildOneEvent()
+        public Task<bool> RebuildOneEvent(CancellationToken cancellationToken = default)
         {
-            return Rebuild(LastEventNumber.HasValue ? LastEventNumber.Value + 1 : 0, null);
+            return Rebuild(LastEventNumber.HasValue ? LastEventNumber.Value + 1 : 0, null, cancellationToken);
         }
         /// <summary>
         /// Rebuilds the aggregate state by replaying events from the event store up to an optional maximum event number or date.
         /// </summary>
         /// <param name="maxEventNumber">The maximum event number to replay up to, or <see langword="null"/> for no limit.</param>
         /// <param name="maxEventDate">The maximum event date to replay up to, or <see langword="null"/> for no limit.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns><see langword="true"/> if one or more events were found and applied; otherwise, <see langword="false"/>.</returns>
-        public async Task<bool> Rebuild(ulong? maxEventNumber = null, DateTime? maxEventDate = null)
+        public async Task<bool> Rebuild(ulong? maxEventNumber = null, DateTime? maxEventDate = null, CancellationToken cancellationToken = default)
         {
             var startEventNumber = LastEventNumber.HasValue ? LastEventNumber + 1 : null;
 
-            var eventDatas = await this.eventStore.ReadAsync(streamName, startEventNumber, null, maxEventNumber, null, maxEventDate);
+            var eventDatas = await this.eventStore.ReadAsync(streamName, startEventNumber, null, maxEventNumber, null, maxEventDate, cancellationToken);
             if (eventDatas.Length == 0)
                 return false;
 

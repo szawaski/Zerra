@@ -193,7 +193,7 @@ namespace Zerra.Repository
                                 relatedGraph.AddMembers(relatedIdentityPropertyNames);
                             }
 
-                            var query = new Query(QueryOperation.Many, relatedType, queryExpression, null, null, null, relatedGraph);
+                            var query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, queryExpression, null, null, null, relatedGraph);
 
                             var relatedModels = (IEnumerable)Repo.Query(query)!;
 
@@ -249,7 +249,7 @@ namespace Zerra.Repository
                                 relatedGraph.AddMembers(allNames);
                             }
 
-                            var query = new Query(QueryOperation.Many, relatedType, queryExpression, null, null, null, relatedGraph);
+                            var query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, queryExpression, null, null, null, relatedGraph);
 
                             var relatedModels = (IEnumerable)Repo.Query(query)!;
 
@@ -310,9 +310,10 @@ namespace Zerra.Repository
         /// <summary>Asynchronously populates related model properties on the retrieved models using query linking and/or event linking.</summary>
         /// <param name="models">The models whose relations should be populated.</param>
         /// <param name="graph">The graph specifying which members to populate.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task representing the asynchronous operation, containing the models with related properties populated.</returns>
         [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "Only interface members reach MakeArrayType, models are reference types so the array code is shared.")]
-        public async Task<IReadOnlyCollection<TModel>> OnGetWithRelationsAsync(IReadOnlyCollection<TModel> models, Graph? graph)
+        public async Task<IReadOnlyCollection<TModel>> OnGetWithRelationsAsync(IReadOnlyCollection<TModel> models, Graph? graph, CancellationToken cancellationToken = default)
         {
             var returnModels = models;
 
@@ -360,9 +361,9 @@ namespace Zerra.Repository
                                 relatedGraph.AddMembers(relatedIdentityPropertyNames);
                             }
 
-                            var query = new Query(QueryOperation.Many, relatedType, queryExpression, null, null, null, relatedGraph);
+                            var query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, queryExpression, null, null, null, relatedGraph);
 
-                            var relatedModels = (IEnumerable)(await Repo.QueryAsync(query))!;
+                            var relatedModels = (IEnumerable)(await Repo.QueryAsync(query, cancellationToken))!;
 
                             var relatedModelIdentities = new Dictionary<object, object>();
                             foreach (var relatedModel in relatedModels)
@@ -416,9 +417,9 @@ namespace Zerra.Repository
                                 relatedGraph.AddMembers(allNames);
                             }
 
-                            var query = new Query(QueryOperation.Many, relatedType, queryExpression, null, null, null, relatedGraph);
+                            var query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, queryExpression, null, null, null, relatedGraph);
 
-                            var relatedModels = (IEnumerable)(await Repo.QueryAsync(query))!;
+                            var relatedModels = (IEnumerable)(await Repo.QueryAsync(query, cancellationToken))!;
 
                             var relatedModelIdentities = new Dictionary<object, object>();
                             foreach (var relatedModel in relatedModels)
@@ -509,92 +510,161 @@ namespace Zerra.Repository
             return OnGetWithRelationsAsync(models, graph);
         }
 
-        /// <summary>Executes a query and returns its result as the type the operation produces: the models, a model, a count, a calculation, or the typed results of a projection, calculation per group, or distinct values.</summary>
-        /// <param name="query">The query to execute.</param>
-        /// <returns>The result, boxed when it is a value.</returns>
-        public object? Query(Query query)
+        /// <inheritdoc/>
+        public object? Query(LinqQuery query)
         {
+            if (query is LinqModelQuery modelQuery)
+            {
+                if (ModelTypeDetail.RelatedMembers.Count > 0)
+                    query.Where = SplitCrossEngineWhere(query.Where);
+                if (modelQuery.Events)
+                {
+                    return query.Terminal switch
+                    {
+                        LinqTerminal.Sequence => QueryEventMany(modelQuery),
+                        LinqTerminal.FirstOrDefault => QueryEventFirst(modelQuery),
+                        LinqTerminal.SingleOrDefault => QueryEventSingle(modelQuery),
+                        LinqTerminal.LongCount => QueryEventCount(modelQuery),
+                        LinqTerminal.Any => QueryEventAny(modelQuery),
+                        _ => throw new NotSupportedException($"{query.Terminal} doesn't load models"),
+                    };
+                }
+                return query.Terminal switch
+                {
+                    LinqTerminal.Sequence => QueryMany(modelQuery),
+                    LinqTerminal.FirstOrDefault => QueryFirst(modelQuery),
+                    LinqTerminal.SingleOrDefault => QuerySingle(modelQuery),
+                    LinqTerminal.LongCount => QueryCount(modelQuery),
+                    LinqTerminal.Any => QueryAny(modelQuery),
+                    _ => throw new NotSupportedException($"{query.Terminal} doesn't load models"),
+                };
+            }
+            if (query.HasSubquery)
+            {
+                query.Where = ReadForeignSubqueries(query.Where);
+                query.Select = ReadForeignSubqueries(query.Select);
+            }
             if (ModelTypeDetail.RelatedMembers.Count > 0)
             {
-                var graph = CrossEngineGraph(query, out var orderCrosses);
+                var graph = CrossEngineLinqGraph(query);
                 if (graph is not null)
-                    return QueryCrossEngine(query, graph, orderCrosses);
+                    return query.Execute((IReadOnlyCollection<TModel>)Query(new LinqModelQuery(modelType, LinqTerminal.Sequence, query.Where, null, null, null, graph))!, false);
                 query.Where = SplitCrossEngineWhere(query.Where);
             }
-
-            //a projection, the different values of a member, or a calculation per group is built as the result types the query carries
-            if (query.Select is not null || query.GroupBy is not null)
-                return Project(query);
-            return query.Operation switch
-            {
-                QueryOperation.Many => QueryMany(query),
-                QueryOperation.First => QueryFirst(query),
-                QueryOperation.Single => QuerySingle(query),
-                QueryOperation.Count => QueryCount(query),
-                QueryOperation.Any => QueryAny(query),
-                QueryOperation.EventMany => QueryEventMany(query),
-                QueryOperation.EventFirst => QueryEventFirst(query),
-                QueryOperation.EventSingle => QueryEventSingle(query),
-                QueryOperation.EventCount => QueryEventCount(query),
-                QueryOperation.EventAny => QueryEventAny(query),
-                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max or QueryOperation.CountDistinct => Calculate(query),
-                _ => throw new NotImplementedException(),
-            };
+            return ExecuteLinq(query);
         }
-        /// <summary>Asynchronously executes a query and returns its result as the type the operation produces.</summary>
-        /// <param name="query">The query to execute.</param>
-        /// <returns>A task containing the result, boxed when it is a value.</returns>
-        public Task<object?> QueryAsync(Query query)
+        /// <inheritdoc/>
+        public async Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken)
         {
+            if (query is LinqModelQuery modelQuery)
+            {
+                if (ModelTypeDetail.RelatedMembers.Count > 0)
+                    query.Where = await SplitCrossEngineWhereAsync(query.Where, cancellationToken);
+                if (modelQuery.Events)
+                {
+                    return query.Terminal switch
+                    {
+                        LinqTerminal.Sequence => await QueryEventManyAsync(modelQuery, cancellationToken),
+                        LinqTerminal.FirstOrDefault => await QueryEventFirstAsync(modelQuery, cancellationToken),
+                        LinqTerminal.SingleOrDefault => await QueryEventSingleAsync(modelQuery, cancellationToken),
+                        LinqTerminal.LongCount => await QueryEventCountAsync(modelQuery, cancellationToken),
+                        LinqTerminal.Any => await QueryEventAnyAsync(modelQuery, cancellationToken),
+                        _ => throw new NotSupportedException($"{query.Terminal} doesn't load models"),
+                    };
+                }
+                return query.Terminal switch
+                {
+                    LinqTerminal.Sequence => await QueryManyAsync(modelQuery, cancellationToken),
+                    LinqTerminal.FirstOrDefault => await QueryFirstAsync(modelQuery, cancellationToken),
+                    LinqTerminal.SingleOrDefault => await QuerySingleAsync(modelQuery, cancellationToken),
+                    LinqTerminal.LongCount => await QueryCountAsync(modelQuery, cancellationToken),
+                    LinqTerminal.Any => await QueryAnyAsync(modelQuery, cancellationToken),
+                    _ => throw new NotSupportedException($"{query.Terminal} doesn't load models"),
+                };
+            }
+            if (query.HasSubquery)
+            {
+                query.Where = await ReadForeignSubqueriesAsync(query.Where, cancellationToken);
+                query.Select = await ReadForeignSubqueriesAsync(query.Select, cancellationToken);
+            }
             if (ModelTypeDetail.RelatedMembers.Count > 0)
             {
-                var graph = CrossEngineGraph(query, out var orderCrosses);
+                var graph = CrossEngineLinqGraph(query);
                 if (graph is not null)
-                    return QueryCrossEngineAsync(query, graph, orderCrosses);
-                if (query.Where is not null && AnyCrossEngine)
-                {
-                    var lookups = FindCrossEngineLookups(query.Where);
-                    if (lookups is not null)
-                        return QueryAsyncSplit(query, lookups);
-                }
+                    return query.Execute((IReadOnlyCollection<TModel>)(await QueryAsync(new LinqModelQuery(modelType, LinqTerminal.Sequence, query.Where, null, null, null, graph), cancellationToken))!, false);
+                query.Where = await SplitCrossEngineWhereAsync(query.Where, cancellationToken);
             }
-            return QueryAsyncCore(query);
+            return await ExecuteLinqAsync(query, cancellationToken);
         }
-        private async Task<object?> QueryAsyncSplit(Query query, List<CrossEngineLookup> lookups)
+        //a projected member, a key, a value, or an order through a relation on another engine can't join, so the models load with what the query reads, the relations through their own providers, and the query runs over them in memory
+        private Graph? CrossEngineLinqGraph(LinqQuery query)
         {
-            foreach (var lookup in lookups)
-                lookup.Matches = (IEnumerable)(await Repo.QueryAsync(lookup.Query))!;
-            query.Where = ReplaceCrossEngineLookups(query.Where!, lookups);
-            return await QueryAsyncCore(query);
-        }
-        private async Task<object?> QueryAsyncCore(Query query)
-        {
-            if (query.Select is not null || query.GroupBy is not null)
-                return await ProjectAsync(query);
-            return query.Operation switch
+            if (query.Select is null && query.GroupBy is null && query.Value is null && query.Order is null && !query.GraphRelations)
+                return null;
+            var finder = new GraphFinder(this, query.ReturnsModels ? (query.GraphRelations ? new Graph(query.Graph) : new Graph(true)) : new Graph());
+            if (query.GraphRelations && query.ReturnsModels)
+                finder.ReadGraph();
+            finder.Read(query.Select);
+            finder.Read(query.GroupBy);
+            finder.Read(query.Value);
+            if (query.Order is not null)
             {
-                QueryOperation.Many => await QueryManyAsync(query),
-                QueryOperation.First => await QueryFirstAsync(query),
-                QueryOperation.Single => await QuerySingleAsync(query),
-                QueryOperation.Count => await QueryCountAsync(query),
-                QueryOperation.Any => await QueryAnyAsync(query),
-                QueryOperation.EventMany => await QueryEventManyAsync(query),
-                QueryOperation.EventFirst => await QueryEventFirstAsync(query),
-                QueryOperation.EventSingle => await QueryEventSingleAsync(query),
-                QueryOperation.EventCount => await QueryEventCountAsync(query),
-                QueryOperation.EventAny => await QueryEventAnyAsync(query),
-                QueryOperation.Sum or QueryOperation.Average or QueryOperation.Min or QueryOperation.Max or QueryOperation.CountDistinct => await CalculateAsync(query),
-                _ => throw new NotImplementedException(),
-            };
+                foreach (var order in query.Order.OrderExpressions)
+                    finder.Read(order.Expression);
+            }
+            if (!finder.Crosses)
+                return null;
+            //the condition runs again over the models, so they load with what it reads too
+            finder.Read(query.Where);
+            return finder.Graph;
+        }
+        /// <summary>Loads the relations a LINQ query reads onto models loaded without them, through their own providers, for a provider that runs the query over the models.</summary>
+        /// <param name="query">The query.</param>
+        /// <param name="models">The models.</param>
+        /// <returns>The models with the relations.</returns>
+        protected IReadOnlyCollection<TModel> LoadLinqRelations(LinqQuery query, IReadOnlyCollection<TModel> models)
+        {
+            var fromGraph = query.GraphRelations && query.ReturnsModels;
+            var finder = new GraphFinder(this, fromGraph ? new Graph(query.Graph) : new Graph(true));
+            if (fromGraph)
+                finder.ReadGraph();
+            finder.Read(query.Where);
+            finder.Read(query.Select);
+            finder.Read(query.GroupBy);
+            finder.Read(query.Value);
+            if (query.Order is not null)
+            {
+                foreach (var order in query.Order.OrderExpressions)
+                    finder.Read(order.Expression);
+            }
+            return OnGetWithRelations(models, finder.Graph);
+        }
+        /// <summary>Asynchronously loads the relations a LINQ query reads onto models loaded without them, through their own providers, for a provider that runs the query over the models.</summary>
+        /// <param name="query">The query.</param>
+        /// <param name="models">The models.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
+        /// <returns>A task containing the models with the relations.</returns>
+        protected Task<IReadOnlyCollection<TModel>> LoadLinqRelationsAsync(LinqQuery query, IReadOnlyCollection<TModel> models, CancellationToken cancellationToken)
+        {
+            var fromGraph = query.GraphRelations && query.ReturnsModels;
+            var finder = new GraphFinder(this, fromGraph ? new Graph(query.Graph) : new Graph(true));
+            if (fromGraph)
+                finder.ReadGraph();
+            finder.Read(query.Where);
+            finder.Read(query.Select);
+            finder.Read(query.GroupBy);
+            finder.Read(query.Value);
+            if (query.Order is not null)
+            {
+                foreach (var order in query.Order.OrderExpressions)
+                    finder.Read(order.Expression);
+            }
+            return OnGetWithRelationsAsync(models, finder.Graph, cancellationToken);
         }
 
-        private IReadOnlyCollection<TModel> QueryMany(Query query)
+        private IReadOnlyCollection<TModel> QueryMany(LinqModelQuery query)
         {
-            if (query.Graph is not null)
-            {
-                query = new Query(query); //copies graph internally
-                OnQueryWithRelations(query.Graph!);
-            }
+            OnQueryWithRelations(query.Graph);
 
             var models = Many(query);
 
@@ -606,13 +676,9 @@ namespace Zerra.Repository
 
             return models;
         }
-        private TModel? QueryFirst(Query query)
+        private TModel? QueryFirst(LinqModelQuery query)
         {
-            if (query.Graph is not null)
-            {
-                query = new Query(query); //copies graph internally
-                OnQueryWithRelations(query.Graph!);
-            }
+            OnQueryWithRelations(query.Graph);
 
             var model = First(query);
 
@@ -624,13 +690,9 @@ namespace Zerra.Repository
 
             return returnModel;
         }
-        private TModel? QuerySingle(Query query)
+        private TModel? QuerySingle(LinqModelQuery query)
         {
-            if (query.Graph is not null)
-            {
-                query = new Query(query); //copies graph internally
-                OnQueryWithRelations(query.Graph!);
-            }
+            OnQueryWithRelations(query.Graph);
 
             var model = Single(query);
 
@@ -642,21 +704,17 @@ namespace Zerra.Repository
 
             return returnModel;
         }
-        private long QueryCount(Query query)
+        private long QueryCount(LinqModelQuery query)
         {
             return Count(query);
         }
-        private bool QueryAny(Query query)
+        private bool QueryAny(LinqModelQuery query)
         {
             return Any(query);
         }
-        private IReadOnlyCollection<EventModel<TModel>> QueryEventMany(Query query)
+        private IReadOnlyCollection<EventModel<TModel>> QueryEventMany(LinqModelQuery query)
         {
-            if (query.Graph is not null)
-            {
-                query = new Query(query); //copies graph internally
-                OnQueryWithRelations(query.Graph!);
-            }
+            OnQueryWithRelations(query.Graph);
 
             var models = EventMany(query);
 
@@ -668,13 +726,9 @@ namespace Zerra.Repository
 
             return models;
         }
-        private EventModel<TModel>? QueryEventFirst(Query query)
+        private EventModel<TModel>? QueryEventFirst(LinqModelQuery query)
         {
-            if (query.Graph is not null)
-            {
-                query = new Query(query); //copies graph internally
-                OnQueryWithRelations(query.Graph!);
-            }
+            OnQueryWithRelations(query.Graph);
 
             var model = EventFirst(query);
 
@@ -687,13 +741,9 @@ namespace Zerra.Repository
 
             return model;
         }
-        private EventModel<TModel>? QueryEventSingle(Query query)
+        private EventModel<TModel>? QueryEventSingle(LinqModelQuery query)
         {
-            if (query.Graph is not null)
-            {
-                query = new Query(query); //copies graph internally
-                OnQueryWithRelations(query.Graph!);
-            }
+            OnQueryWithRelations(query.Graph);
 
             var model = EventSingle(query);
 
@@ -706,239 +756,218 @@ namespace Zerra.Repository
 
             return model;
         }
-        private long QueryEventCount(Query query)
+        private long QueryEventCount(LinqModelQuery query)
         {
             return EventCount(query);
         }
-        private bool QueryEventAny(Query query)
+        private bool QueryEventAny(LinqModelQuery query)
         {
             return EventAny(query);
         }
 
-        private async Task<IReadOnlyCollection<TModel>> QueryManyAsync(Query query)
+        private async Task<IReadOnlyCollection<TModel>> QueryManyAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            if (query.Graph is not null)
-            {
-                query = new Query(query); //copies graph internally
-                OnQueryWithRelations(query.Graph!);
-            }
+            OnQueryWithRelations(query.Graph);
 
-            var models = await ManyAsync(query);
+            var models = await ManyAsync(query, cancellationToken);
 
             if (models.Count > 0)
             {
-                var returnModels = await OnGetWithRelationsAsync(models, query.Graph);
+                var returnModels = await OnGetWithRelationsAsync(models, query.Graph, cancellationToken);
                 return returnModels;
             }
 
             return models;
         }
-        private async Task<TModel?> QueryFirstAsync(Query query)
+        private async Task<TModel?> QueryFirstAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            if (query.Graph is not null)
-            {
-                query = new Query(query); //copies graph internally
-                OnQueryWithRelations(query.Graph!);
-            }
+            OnQueryWithRelations(query.Graph);
 
-            var model = await FirstAsync(query);
+            var model = await FirstAsync(query, cancellationToken);
 
             var returnModel = model;
             if (model is not null)
             {
-                returnModel = (await OnGetWithRelationsAsync([model], query.Graph)).FirstOrDefault();
+                returnModel = (await OnGetWithRelationsAsync([model], query.Graph, cancellationToken)).FirstOrDefault();
             }
 
             return returnModel;
         }
-        private async Task<TModel?> QuerySingleAsync(Query query)
+        private async Task<TModel?> QuerySingleAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            if (query.Graph is not null)
-            {
-                query = new Query(query); //copies graph internally
-                OnQueryWithRelations(query.Graph!);
-            }
+            OnQueryWithRelations(query.Graph);
 
-            var model = await SingleAsync(query);
+            var model = await SingleAsync(query, cancellationToken);
 
             var returnModel = model;
             if (model is not null)
             {
-                returnModel = (await OnGetWithRelationsAsync([model], query.Graph)).FirstOrDefault();
+                returnModel = (await OnGetWithRelationsAsync([model], query.Graph, cancellationToken)).FirstOrDefault();
             }
 
             return returnModel;
         }
-        private Task<long> QueryCountAsync(Query query)
+        private Task<long> QueryCountAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            return CountAsync(query);
+            return CountAsync(query, cancellationToken);
         }
-        private Task<bool> QueryAnyAsync(Query query)
+        private Task<bool> QueryAnyAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            return AnyAsync(query);
+            return AnyAsync(query, cancellationToken);
         }
-        private async Task<IReadOnlyCollection<EventModel<TModel>>> QueryEventManyAsync(Query query)
+        private async Task<IReadOnlyCollection<EventModel<TModel>>> QueryEventManyAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            if (query.Graph is not null)
-            {
-                query = new Query(query); //copies graph internally
-                OnQueryWithRelations(query.Graph!);
-            }
+            OnQueryWithRelations(query.Graph);
 
-            var models = await EventManyAsync(query);
+            var models = await EventManyAsync(query, cancellationToken);
 
             if (models.Count > 0)
             {
-                var returnModels = await OnGetWithRelationsAsync(models.Select(x => x.Model).ToArray(), query.Graph);
+                var returnModels = await OnGetWithRelationsAsync(models.Select(x => x.Model).ToArray(), query.Graph, cancellationToken);
                 return models.Where(x => returnModels.Contains(x.Model)).ToArray();
             }
 
             return models;
         }
-        private async Task<EventModel<TModel>?> QueryEventFirstAsync(Query query)
+        private async Task<EventModel<TModel>?> QueryEventFirstAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            if (query.Graph is not null)
-            {
-                query = new Query(query); //copies graph internally
-                OnQueryWithRelations(query.Graph!);
-            }
+            OnQueryWithRelations(query.Graph);
 
-            var model = await EventFirstAsync(query);
+            var model = await EventFirstAsync(query, cancellationToken);
 
             if (model is not null)
             {
-                var returnModel = (await OnGetWithRelationsAsync([model.Model], query.Graph)).FirstOrDefault();
+                var returnModel = (await OnGetWithRelationsAsync([model.Model], query.Graph, cancellationToken)).FirstOrDefault();
                 if (returnModel is null)
                     model = null;
             }
 
             return model;
         }
-        private async Task<EventModel<TModel>?> QueryEventSingleAsync(Query query)
+        private async Task<EventModel<TModel>?> QueryEventSingleAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            if (query.Graph is not null)
-            {
-                query = new Query(query); //copies graph internally
-                OnQueryWithRelations(query.Graph!);
-            }
+            OnQueryWithRelations(query.Graph);
 
-            var model = await EventSingleAsync(query);
+            var model = await EventSingleAsync(query, cancellationToken);
 
             if (model is not null)
             {
-                var returnModel = (await OnGetWithRelationsAsync([model.Model], query.Graph)).FirstOrDefault();
+                var returnModel = (await OnGetWithRelationsAsync([model.Model], query.Graph, cancellationToken)).FirstOrDefault();
                 if (returnModel is null)
                     model = null;
             }
 
             return model;
         }
-        private Task<long> QueryEventCountAsync(Query query)
+        private Task<long> QueryEventCountAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            return EventCountAsync(query);
+            return EventCountAsync(query, cancellationToken);
         }
-        private Task<bool> QueryEventAnyAsync(Query query)
+        private Task<bool> QueryEventAnyAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            return EventAnyAsync(query);
+            return EventAnyAsync(query, cancellationToken);
         }
 
         /// <summary>Queries and returns multiple models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A collection of matching models.</returns>
-        protected abstract IReadOnlyCollection<TModel> Many(Query query);
+        protected abstract IReadOnlyCollection<TModel> Many(LinqModelQuery query);
         /// <summary>Queries and returns the first model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The first matching model, or <see langword="null"/>.</returns>
-        protected abstract TModel? First(Query query);
+        protected abstract TModel? First(LinqModelQuery query);
         /// <summary>Queries and returns the single model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The single matching model, or <see langword="null"/>.</returns>
-        protected abstract TModel? Single(Query query);
+        protected abstract TModel? Single(LinqModelQuery query);
         /// <summary>Returns the count of models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The count of matching models.</returns>
-        protected abstract long Count(Query query);
-        /// <summary>Calculates a sum, average, minimum, maximum, or count of different values over all matching models.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.Value"/>.</param>
-        /// <returns>The boxed result, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
-        protected abstract object? Calculate(Query query);
-        /// <summary>Runs a query whose results are built as a type other than the model: a projection of each model or group, the different values of a member, or a calculation per group. The query carries the result types and runs itself with <see cref="Query.Execute(ITransactStoreEngine, ModelDetail)"/> on an engine or <see cref="Query.Execute(IEnumerable{object})"/> over loaded models.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.Select"/> or <see cref="Query.GroupBy"/>.</param>
-        /// <returns>The results.</returns>
-        protected abstract object? Project(Query query);
+        protected abstract long Count(LinqModelQuery query);
+        /// <summary>Runs a LINQ query whose conditions are on this engine: on the engine in one pass with <see cref="ITransactStoreEngine.ExecuteLinq{TModel, TResult}"/>, or over the models loaded with <see cref="LoadLinqRelations"/> and <see cref="LinqQuery.Execute(IEnumerable{object}, bool)"/>.</summary>
+        /// <param name="query">The query.</param>
+        /// <returns>The elements or the value.</returns>
+        protected abstract object? ExecuteLinq(LinqQuery query);
         /// <summary>Returns whether any model exists matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns><see langword="true"/> if any matching model exists; otherwise <see langword="false"/>.</returns>
-        protected abstract bool Any(Query query);
+        protected abstract bool Any(LinqModelQuery query);
         /// <summary>Queries and returns multiple event models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A collection of matching event models.</returns>
-        protected abstract IReadOnlyCollection<EventModel<TModel>> EventMany(Query query);
+        protected abstract IReadOnlyCollection<EventModel<TModel>> EventMany(LinqModelQuery query);
         /// <summary>Queries and returns the first event model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The first matching event model, or <see langword="null"/>.</returns>
-        protected abstract EventModel<TModel>? EventFirst(Query query);
+        protected abstract EventModel<TModel>? EventFirst(LinqModelQuery query);
         /// <summary>Queries and returns the single event model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The single matching event model, or <see langword="null"/>.</returns>
-        protected abstract EventModel<TModel>? EventSingle(Query query);
+        protected abstract EventModel<TModel>? EventSingle(LinqModelQuery query);
         /// <summary>Returns the count of event models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>The count of matching event models.</returns>
-        protected abstract long EventCount(Query query);
+        protected abstract long EventCount(LinqModelQuery query);
         /// <summary>Returns whether any event model exists matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns><see langword="true"/> if any matching event model exists; otherwise <see langword="false"/>.</returns>
-        protected abstract bool EventAny(Query query);
+        protected abstract bool EventAny(LinqModelQuery query);
 
         /// <summary>Asynchronously queries and returns multiple models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task containing a collection of matching models.</returns>
-        protected abstract Task<IReadOnlyCollection<TModel>> ManyAsync(Query query);
+        protected abstract Task<IReadOnlyCollection<TModel>> ManyAsync(LinqModelQuery query, CancellationToken cancellationToken);
         /// <summary>Asynchronously queries and returns the first model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task containing the first matching model, or <see langword="null"/>.</returns>
-        protected abstract Task<TModel?> FirstAsync(Query query);
+        protected abstract Task<TModel?> FirstAsync(LinqModelQuery query, CancellationToken cancellationToken);
         /// <summary>Asynchronously queries and returns the single model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task containing the single matching model, or <see langword="null"/>.</returns>
-        protected abstract Task<TModel?> SingleAsync(Query query);
+        protected abstract Task<TModel?> SingleAsync(LinqModelQuery query, CancellationToken cancellationToken);
         /// <summary>Asynchronously returns the count of models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task containing the count of matching models.</returns>
-        protected abstract Task<long> CountAsync(Query query);
-        /// <summary>Asynchronously calculates a sum, average, minimum, maximum, or count of different values over all matching models.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.GroupBy"/> and <see cref="Query.Value"/>.</param>
-        /// <returns>A task containing the boxed result, as <see cref="ITransactStoreEngine.ExecuteCalculation{TModel}"/> describes.</returns>
-        protected abstract Task<object?> CalculateAsync(Query query);
-        /// <summary>Asynchronously runs a query whose results are built as a type other than the model: a projection of each model or group, the different values of a member, or a calculation per group. The query carries the result types and runs itself with <see cref="Query.ExecuteAsync(ITransactStoreEngine, ModelDetail)"/> on an engine or <see cref="Query.Execute(IEnumerable{object})"/> over loaded models.</summary>
-        /// <param name="query">The query parameters, with <see cref="Query.Select"/> or <see cref="Query.GroupBy"/>.</param>
-        /// <returns>A task containing the results.</returns>
-        protected abstract Task<object?> ProjectAsync(Query query);
+        protected abstract Task<long> CountAsync(LinqModelQuery query, CancellationToken cancellationToken);
+        /// <summary>Asynchronously runs a LINQ query whose conditions are on this engine, as <see cref="ExecuteLinq"/> does.</summary>
+        /// <param name="query">The query.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
+        /// <returns>A task containing the elements or the value.</returns>
+        protected abstract Task<object?> ExecuteLinqAsync(LinqQuery query, CancellationToken cancellationToken);
         /// <summary>Asynchronously returns whether any model exists matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task containing <see langword="true"/> if any matching model exists; otherwise <see langword="false"/>.</returns>
-        protected abstract Task<bool> AnyAsync(Query query);
+        protected abstract Task<bool> AnyAsync(LinqModelQuery query, CancellationToken cancellationToken);
         /// <summary>Asynchronously queries and returns multiple event models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task containing a collection of matching event models.</returns>
-        protected abstract Task<IReadOnlyCollection<EventModel<TModel>>> EventManyAsync(Query query);
+        protected abstract Task<IReadOnlyCollection<EventModel<TModel>>> EventManyAsync(LinqModelQuery query, CancellationToken cancellationToken);
         /// <summary>Asynchronously queries and returns the first event model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task containing the first matching event model, or <see langword="null"/>.</returns>
-        protected abstract Task<EventModel<TModel>?> EventFirstAsync(Query query);
+        protected abstract Task<EventModel<TModel>?> EventFirstAsync(LinqModelQuery query, CancellationToken cancellationToken);
         /// <summary>Asynchronously queries and returns the single event model matching the given query, or <see langword="null"/>.</summary>
         /// <param name="query">The query parameters.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task containing the single matching event model, or <see langword="null"/>.</returns>
-        protected abstract Task<EventModel<TModel>?> EventSingleAsync(Query query);
+        protected abstract Task<EventModel<TModel>?> EventSingleAsync(LinqModelQuery query, CancellationToken cancellationToken);
         /// <summary>Asynchronously returns the count of event models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task containing the count of matching event models.</returns>
-        protected abstract Task<long> EventCountAsync(Query query);
+        protected abstract Task<long> EventCountAsync(LinqModelQuery query, CancellationToken cancellationToken);
         /// <summary>Asynchronously returns whether any event model exists matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task containing <see langword="true"/> if any matching event model exists; otherwise <see langword="false"/>.</returns>
-        protected abstract Task<bool> EventAnyAsync(Query query);
+        protected abstract Task<bool> EventAnyAsync(LinqModelQuery query, CancellationToken cancellationToken);
 
         /// <summary>The <see cref="Type"/> of <see cref="PersistEvent"/>, used for persist event metadata.</summary>
         protected static readonly Type EventInfoType = typeof(PersistEvent);
@@ -947,6 +976,25 @@ namespace Zerra.Repository
         /// <param name="persist">The persist operation to execute.</param>
         public void Persist(Persist persist)
         {
+            if (persist.Where is not null)
+            {
+                var where = LinqSubquery.Rewrite(persist.Where, out var found);
+                if (found)
+                {
+                    //a persist can be reused, so it keeps its own condition and only this run reads what the subqueries gave
+                    var original = persist.Where;
+                    persist.Where = ReadForeignSubqueries(where);
+                    try
+                    {
+                        Persist(persist);
+                    }
+                    finally
+                    {
+                        persist.Where = original;
+                    }
+                    return;
+                }
+            }
             if (persist.Where is not null)
                 persist.Where = SplitCrossEngineWhere(persist.Where);
 
@@ -967,31 +1015,52 @@ namespace Zerra.Repository
         }
         /// <summary>Executes an asynchronous persist operation (create, update, or delete).</summary>
         /// <param name="persist">The persist operation to execute.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public Task PersistAsync(Persist persist)
+        public Task PersistAsync(Persist persist, CancellationToken cancellationToken)
         {
+            if (persist.Where is not null)
+            {
+                var where = LinqSubquery.Rewrite(persist.Where, out var found);
+                if (found)
+                    return PersistAsyncSubquery(persist, where, cancellationToken);
+            }
             if (persist.Where is not null && AnyCrossEngine)
             {
                 var lookups = FindCrossEngineLookups(persist.Where);
                 if (lookups is not null)
-                    return PersistAsyncSplit(persist, lookups);
+                    return PersistAsyncSplit(persist, lookups, cancellationToken);
             }
-            return PersistAsyncCore(persist);
+            return PersistAsyncCore(persist, cancellationToken);
         }
-        private async Task PersistAsyncSplit(Persist persist, List<CrossEngineLookup> lookups)
+        //a persist can be reused, so it keeps its own condition and only this run reads what the subqueries gave
+        private async Task PersistAsyncSubquery(Persist persist, LambdaExpression where, CancellationToken cancellationToken)
+        {
+            var original = persist.Where;
+            persist.Where = await ReadForeignSubqueriesAsync(where, cancellationToken);
+            try
+            {
+                await PersistAsync(persist, cancellationToken);
+            }
+            finally
+            {
+                persist.Where = original;
+            }
+        }
+        private async Task PersistAsyncSplit(Persist persist, List<CrossEngineLookup> lookups, CancellationToken cancellationToken)
         {
             foreach (var lookup in lookups)
-                lookup.Matches = (IEnumerable)(await Repo.QueryAsync(lookup.Query))!;
+                lookup.Matches = (IEnumerable)(await Repo.QueryAsync(lookup.Query, cancellationToken))!;
             persist.Where = ReplaceCrossEngineLookups(persist.Where!, lookups);
-            await PersistAsyncCore(persist);
+            await PersistAsyncCore(persist, cancellationToken);
         }
-        private Task PersistAsyncCore(Persist persist)
+        private Task PersistAsyncCore(Persist persist, CancellationToken cancellationToken)
         {
             return persist.Operation switch
             {
-                PersistOperation.Create => CreateAsync(persist),
-                PersistOperation.Update => UpdateAsync(persist),
-                PersistOperation.Delete => DeleteAsync(persist),
+                PersistOperation.Create => CreateAsync(persist, cancellationToken),
+                PersistOperation.Update => UpdateAsync(persist, cancellationToken),
+                PersistOperation.Delete => DeleteAsync(persist, cancellationToken),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -1130,7 +1199,7 @@ namespace Zerra.Repository
             DeleteModel(persist.Event, ids);
         }
 
-        private async Task CreateAsync(Persist persist)
+        private async Task CreateAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (persist.Models is null || persist.Models.Length == 0)
                 return;
@@ -1141,18 +1210,18 @@ namespace Zerra.Repository
             {
                 if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
                 {
-                    await PersistSingleRelationsAsync(persist.Event, model, graph, true);
+                    await PersistSingleRelationsAsync(persist.Event, model, graph, true, cancellationToken);
                 }
 
-                await PersistModelAsync(persist.Event, model, graph, true);
+                await PersistModelAsync(persist.Event, model, graph, true, cancellationToken);
 
                 if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
                 {
-                    await PersistManyRelationsAsync(persist.Event, model, graph, true);
+                    await PersistManyRelationsAsync(persist.Event, model, graph, true, cancellationToken);
                 }
             }
         }
-        private async Task UpdateAsync(Persist persist)
+        private async Task UpdateAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (persist.Set is not null)
             {
@@ -1176,7 +1245,7 @@ namespace Zerra.Repository
                         throw new NotSupportedException($"An update of {ModelTypeDetail.Name} by condition computes its values from the model's own members, not from {related.Name}");
                 }
 
-                persist.RowsAffected = await UpdateModelsWhereAsync(persist.Event, persist.Where, persist.Set);
+                persist.RowsAffected = await UpdateModelsWhereAsync(persist.Event, persist.Where, persist.Set, cancellationToken);
                 return;
             }
             if (persist.Where is not null)
@@ -1196,7 +1265,7 @@ namespace Zerra.Repository
                         throw new ArgumentException($"An update of {ModelTypeDetail.Name} by condition cannot set the relation {related.Name}");
                 }
 
-                persist.RowsAffected = await UpdateModelsWhereAsync(persist.Event, persist.Where, persist.Models[0], new Graph(persist.Graph));
+                persist.RowsAffected = await UpdateModelsWhereAsync(persist.Event, persist.Where, persist.Models[0], new Graph(persist.Graph), cancellationToken);
                 return;
             }
 
@@ -1209,22 +1278,22 @@ namespace Zerra.Repository
             {
                 if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedNonEnumerableMembers.Count > 0)
                 {
-                    await PersistSingleRelationsAsync(persist.Event, model, graph, false);
+                    await PersistSingleRelationsAsync(persist.Event, model, graph, false, cancellationToken);
                 }
 
-                await PersistModelAsync(persist.Event, model, graph, false);
+                await PersistModelAsync(persist.Event, model, graph, false, cancellationToken);
 
                 if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedEnumerableMembers.Count > 0)
                 {
-                    await PersistManyRelationsAsync(persist.Event, model, graph, false);
+                    await PersistManyRelationsAsync(persist.Event, model, graph, false, cancellationToken);
                 }
             }
         }
-        private async Task DeleteAsync(Persist persist)
+        private async Task DeleteAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (persist.Where is not null)
             {
-                persist.RowsAffected = await DeleteModelsWhereAsync(persist.Event, persist.Where);
+                persist.RowsAffected = await DeleteModelsWhereAsync(persist.Event, persist.Where, cancellationToken);
                 return;
             }
 
@@ -1257,11 +1326,11 @@ namespace Zerra.Repository
             {
                 foreach (var id in ids)
                 {
-                    await DeleteManyRelationsAsync(persist.Event, id, graph);
+                    await DeleteManyRelationsAsync(persist.Event, id, graph, cancellationToken);
                 }
             }
 
-            await DeleteModelAsync(persist.Event, ids);
+            await DeleteModelAsync(persist.Event, ids, cancellationToken);
         }
 
         /// <summary>Persists non-enumerable (single) related models and sets their foreign identity on the parent model.</summary>
@@ -1356,7 +1425,7 @@ namespace Zerra.Repository
                         var allNames = relatedIdentityPropertyNames.Append(modelPropertyInfo.ForeignIdentity);
                         var queryGraph = new Graph(allNames);
 
-                        var query = new Query(QueryOperation.Many, relatedType, queryExpression, null, null, null, queryGraph);
+                        var query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, queryExpression, null, null, null, queryGraph);
 
                         var relatedExistings = (IEnumerable)Repo.Query(query)!;
 
@@ -1482,7 +1551,7 @@ namespace Zerra.Repository
                     var allNames = relatedIdentityPropertyNames.Append(modelPropertyInfo.ForeignIdentity);
                     var queryGraph = new Graph(allNames);
 
-                    var query = new Query(QueryOperation.Many, relatedType, queryExpression, null, null, null, queryGraph);
+                    var query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, queryExpression, null, null, null, queryGraph);
 
                     var relatedExistings = (IEnumerable)Repo.Query(query)!;
 
@@ -1507,8 +1576,9 @@ namespace Zerra.Repository
         /// <param name="model">The parent model whose single relations should be persisted.</param>
         /// <param name="graph">The graph specifying which relations to persist.</param>
         /// <param name="create"><see langword="true"/> to create related models; <see langword="false"/> to update.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected async Task PersistSingleRelationsAsync(PersistEvent @event, object model, Graph graph, bool create)
+        protected async Task PersistSingleRelationsAsync(PersistEvent @event, object model, Graph graph, bool create, CancellationToken cancellationToken)
         {
             var tasks = new List<Task>();
 
@@ -1531,7 +1601,7 @@ namespace Zerra.Repository
                         var relatedGraph = graph.GetChildGraph(modelPropertyInfo.Name);
 
                         var persist = new Persist(create ? PersistOperation.Create : PersistOperation.Update, @event, relatedType, [relatedModel], null, relatedGraph);
-                        await Repo.PersistAsync(persist);
+                        await Repo.PersistAsync(persist, cancellationToken);
 
                         var relatedIdentity = ModelAnalyzer.GetIdentity(relatedType, relatedModel);
                         ModelAnalyzer.SetForeignIdentity(modelType, modelPropertyInfo.ForeignIdentity, model, relatedIdentity);
@@ -1555,8 +1625,9 @@ namespace Zerra.Repository
         /// <param name="model">The parent model whose many relations should be persisted.</param>
         /// <param name="graph">The graph specifying which relations to persist.</param>
         /// <param name="create"><see langword="true"/> if the parent model is being created; <see langword="false"/> if updated.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected async Task PersistManyRelationsAsync(PersistEvent @event, object model, Graph graph, bool create)
+        protected async Task PersistManyRelationsAsync(PersistEvent @event, object model, Graph graph, bool create, CancellationToken cancellationToken)
         {
             //var tasks = new List<Task>();
 
@@ -1593,9 +1664,9 @@ namespace Zerra.Repository
                         var allNames = relatedIdentityPropertyNames.Append(modelPropertyInfo.ForeignIdentity);
                         var queryGraph = new Graph(allNames);
 
-                        var query = new Query(QueryOperation.Many, relatedType, queryExpression, null, null, null, queryGraph);
+                        var query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, queryExpression, null, null, null, queryGraph);
 
-                        var relatedExistings = (IEnumerable)(await Repo.QueryAsync(query))!;
+                        var relatedExistings = (IEnumerable)(await Repo.QueryAsync(query, cancellationToken))!;
 
                         foreach (var relatedExisting in relatedExistings)
                             relatedModelsExisting.Add(relatedExisting);
@@ -1667,17 +1738,17 @@ namespace Zerra.Repository
                     if (relatedModelsDelete.Count > 0)
                     {
                         var persist = new Persist(PersistOperation.Delete, @event, relatedType, relatedModelsDelete.ToArray(), null, relatedGraph);
-                        await Repo.PersistAsync(persist);
+                        await Repo.PersistAsync(persist, cancellationToken);
                     }
                     if (relatedModelsUpdate.Count > 0)
                     {
                         var persist = new Persist(PersistOperation.Update, @event, relatedType, relatedModelsUpdate.ToArray(), null, relatedGraph);
-                        await Repo.PersistAsync(persist);
+                        await Repo.PersistAsync(persist, cancellationToken);
                     }
                     if (relatedModelsCreate.Count > 0)
                     {
                         var persist = new Persist(PersistOperation.Create, @event, relatedType, relatedModelsCreate.ToArray(), null, relatedGraph);
-                        await Repo.PersistAsync(persist);
+                        await Repo.PersistAsync(persist, cancellationToken);
                     }
                     //});
                     //tasks.Add(task);
@@ -1693,8 +1764,9 @@ namespace Zerra.Repository
         /// <param name="event">The persist event context.</param>
         /// <param name="id">The identity of the parent model whose many relations should be deleted.</param>
         /// <param name="graph">The graph specifying which relations to delete.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected async Task DeleteManyRelationsAsync(PersistEvent @event, object id, Graph graph)
+        protected async Task DeleteManyRelationsAsync(PersistEvent @event, object id, Graph graph, CancellationToken cancellationToken)
         {
             //var tasks = new List<Task>();
 
@@ -1720,14 +1792,14 @@ namespace Zerra.Repository
                     var allNames = relatedIdentityPropertyNames.Append(modelPropertyInfo.ForeignIdentity);
                     var queryGraph = new Graph(allNames);
 
-                    var query = new Query(QueryOperation.Many, relatedType, queryExpression, null, null, null, queryGraph);
+                    var query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, queryExpression, null, null, null, queryGraph);
 
-                    var relatedExistings = (IEnumerable)(await Repo.QueryAsync(query))!;
+                    var relatedExistings = (IEnumerable)(await Repo.QueryAsync(query, cancellationToken))!;
 
                     if (relatedExistings.Cast<object>().Any())
                     {
                         var persist = new Persist(PersistOperation.Delete, @event, relatedType, relatedExistings.Cast<object>().ToArray(), null, relatedGraph);
-                        await Repo.PersistAsync(persist);
+                        await Repo.PersistAsync(persist, cancellationToken);
                     }
                     //});
                     //tasks.Add(task);
@@ -1774,30 +1846,35 @@ namespace Zerra.Repository
         /// <param name="model">The model to persist.</param>
         /// <param name="graph">The graph specifying which members to persist.</param>
         /// <param name="create"><see langword="true"/> to create the model; <see langword="false"/> to update.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected abstract Task PersistModelAsync(PersistEvent @event, object model, Graph? graph, bool create);
+        protected abstract Task PersistModelAsync(PersistEvent @event, object model, Graph? graph, bool create, CancellationToken cancellationToken);
         /// <summary>Asynchronously deletes models with the specified identities from the underlying store.</summary>
         /// <param name="event">The persist event context.</param>
         /// <param name="ids">The identities of the models to delete.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        protected abstract Task DeleteModelAsync(PersistEvent @event, object[] ids);
+        protected abstract Task DeleteModelAsync(PersistEvent @event, object[] ids, CancellationToken cancellationToken);
         /// <summary>Asynchronously sets the graph's members to the values on every model matching the condition, without loading them.</summary>
         /// <param name="event">The persist event.</param>
         /// <param name="where">The condition selecting the models.</param>
         /// <param name="model">The model holding the values to set.</param>
         /// <param name="graph">The members to set, never empty and never an identity or relation.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task containing how many models were updated.</returns>
-        protected abstract Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, object model, Graph graph);
+        protected abstract Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, object model, Graph graph, CancellationToken cancellationToken);
         /// <summary>Asynchronously sets members on every model matching the condition to values computed from each one, without loading them.</summary>
         /// <param name="event">The persist event.</param>
         /// <param name="where">The condition selecting the models.</param>
         /// <param name="set">The members to set and their values in terms of the model, as a projection of the model to itself; never an identity or relation, and reading only the model's own members.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task containing how many models were updated.</returns>
-        protected abstract Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, LambdaExpression set);
+        protected abstract Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, LambdaExpression set, CancellationToken cancellationToken);
         /// <summary>Asynchronously deletes every model matching the condition, without loading them.</summary>
         /// <param name="event">The persist event.</param>
         /// <param name="where">The condition selecting the models.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task containing how many models were deleted.</returns>
-        protected abstract Task<int> DeleteModelsWhereAsync(PersistEvent @event, LambdaExpression where);
+        protected abstract Task<int> DeleteModelsWhereAsync(PersistEvent @event, LambdaExpression where, CancellationToken cancellationToken);
     }
 }

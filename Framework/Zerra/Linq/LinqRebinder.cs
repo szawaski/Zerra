@@ -55,6 +55,7 @@ namespace Zerra.Linq
 
 #if !NETSTANDARD2_0
         [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "Rebinding an already-compiled expression tree, only reached when the caller's own expression tree required dynamic code.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code.", Justification = "Rebinding an expression tree that already held these members, so they are kept.")]
 #endif
         private static Expression Rebind(Expression exp, RebinderContext context)
         {
@@ -441,12 +442,10 @@ namespace Zerra.Linq
                                 replacementExpressions[i] = replacementExpression;
                             }
 
-#pragma warning disable IL2026 // Should not break trimming since the expression already existed of this type
                             //Members is only set for anonymous types; passing null members requires one per argument
                             if (cast.Members is null)
                                 return Expression.New(cast.Constructor, replacementExpressions);
                             return Expression.New(cast.Constructor, replacementExpressions, cast.Members);
-#pragma warning restore IL2026
                         }
                         else
                         {

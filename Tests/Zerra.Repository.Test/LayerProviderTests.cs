@@ -82,31 +82,27 @@ namespace Zerra.Repository.Test
             //the caller's model isn't changed by the layer
             AssertPlain(expected, model);
 
-            var stored = raw.Single<LayerModel>(x => x.ID == model.ID);
+            var stored = raw.Query<LayerModel>().SingleOrDefault(x => x.ID == model.ID);
             Assert.NotNull(stored);
             Assert.NotEqual(expected.Text, stored.Text);
             Assert.NotEqual(expected.Bytes, stored.Bytes);
             Assert.Equal(expected.Number, stored.Number);
 
-            AssertPlain(expected, layered.Single<LayerModel>(x => x.ID == model.ID));
-            AssertPlain(expected, layered.First<LayerModel>(x => x.ID == model.ID));
-            AssertPlain(expected, Assert.Single(layered.Many<LayerModel>(x => x.ID == model.ID)));
-            Assert.Equal(1, layered.Count<LayerModel>(x => x.ID == model.ID));
-            Assert.True(layered.Any<LayerModel>(x => x.ID == model.ID));
-            Assert.Null(layered.Single<LayerModel>(x => x.ID == Guid.Empty));
-            Assert.Null(layered.First<LayerModel>(x => x.ID == Guid.Empty));
-            Assert.Empty(layered.Many<LayerModel>(x => x.ID == Guid.Empty));
-
-            //a graph only transforms its members
-            var textOnly = layered.Single<LayerModel>(x => x.ID == model.ID, new Graph<LayerModel>(x => x.ID, x => x.Text));
-            Assert.Equal(expected.Text, textOnly!.Text);
+            AssertPlain(expected, layered.Query<LayerModel>().SingleOrDefault(x => x.ID == model.ID));
+            AssertPlain(expected, layered.Query<LayerModel>().FirstOrDefault(x => x.ID == model.ID));
+            AssertPlain(expected, Assert.Single(layered.Query<LayerModel>().Where(x => x.ID == model.ID).ToArray()));
+            Assert.Equal(1, layered.Query<LayerModel>().Count(x => x.ID == model.ID));
+            Assert.True(layered.Query<LayerModel>().Any(x => x.ID == model.ID));
+            Assert.Null(layered.Query<LayerModel>().SingleOrDefault(x => x.ID == Guid.Empty));
+            Assert.Null(layered.Query<LayerModel>().FirstOrDefault(x => x.ID == Guid.Empty));
+            Assert.Empty(layered.Query<LayerModel>().Where(x => x.ID == Guid.Empty).ToArray());
 
             expected.Text = "updated";
             model.Text = "updated";
             layered.Update("Updated", model);
             AssertPlain(expected, model);
-            AssertPlain(expected, layered.Single<LayerModel>(x => x.ID == model.ID));
-            Assert.NotEqual(expected.Text, raw.Single<LayerModel>(x => x.ID == model.ID)!.Text);
+            AssertPlain(expected, layered.Query<LayerModel>().SingleOrDefault(x => x.ID == model.ID));
+            Assert.NotEqual(expected.Text, raw.Query<LayerModel>().SingleOrDefault(x => x.ID == model.ID)!.Text);
 
             if (eventStore)
             {
@@ -121,7 +117,7 @@ namespace Zerra.Repository.Test
             }
 
             layered.Delete("Deleted", model);
-            Assert.Null(layered.Single<LayerModel>(x => x.ID == model.ID));
+            Assert.Null(layered.Query<LayerModel>().SingleOrDefault(x => x.ID == model.ID));
         }
 
         [Theory]
@@ -133,43 +129,43 @@ namespace Zerra.Repository.Test
             var expected = NewModel();
             expected.ID = model.ID;
 
-            await layered.CreateAsync("Created", model);
+            await layered.CreateAsync("Created", model, TestContext.Current.CancellationToken);
 
             AssertPlain(expected, model);
 
-            var stored = await raw.SingleAsync<LayerModel>(x => x.ID == model.ID);
+            var stored = await raw.Query<LayerModel>().SingleOrDefaultAsync(x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken);
             Assert.NotNull(stored);
             Assert.NotEqual(expected.Text, stored.Text);
             Assert.NotEqual(expected.Bytes, stored.Bytes);
 
-            AssertPlain(expected, await layered.SingleAsync<LayerModel>(x => x.ID == model.ID));
-            AssertPlain(expected, await layered.FirstAsync<LayerModel>(x => x.ID == model.ID));
-            AssertPlain(expected, Assert.Single(await layered.ManyAsync<LayerModel>(x => x.ID == model.ID)));
-            Assert.Equal(1, await layered.CountAsync<LayerModel>(x => x.ID == model.ID));
-            Assert.True(await layered.AnyAsync<LayerModel>(x => x.ID == model.ID));
-            Assert.Null(await layered.SingleAsync<LayerModel>(x => x.ID == Guid.Empty));
-            Assert.Null(await layered.FirstAsync<LayerModel>(x => x.ID == Guid.Empty));
-            Assert.Empty(await layered.ManyAsync<LayerModel>(x => x.ID == Guid.Empty));
+            AssertPlain(expected, await layered.Query<LayerModel>().SingleOrDefaultAsync(x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken));
+            AssertPlain(expected, await layered.Query<LayerModel>().FirstOrDefaultAsync(x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken));
+            AssertPlain(expected, Assert.Single(await layered.Query<LayerModel>().Where(x => x.ID == model.ID).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)));
+            Assert.Equal(1, await layered.Query<LayerModel>().CountAsync(x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.True(await layered.Query<LayerModel>().AnyAsync(x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Null(await layered.Query<LayerModel>().SingleOrDefaultAsync(x => x.ID == Guid.Empty, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Null(await layered.Query<LayerModel>().FirstOrDefaultAsync(x => x.ID == Guid.Empty, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Empty(await layered.Query<LayerModel>().Where(x => x.ID == Guid.Empty).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
 
             expected.Text = "updated";
             model.Text = "updated";
-            await layered.UpdateAsync("Updated", model);
+            await layered.UpdateAsync("Updated", model, TestContext.Current.CancellationToken);
             AssertPlain(expected, model);
-            AssertPlain(expected, await layered.SingleAsync<LayerModel>(x => x.ID == model.ID));
+            AssertPlain(expected, await layered.Query<LayerModel>().SingleOrDefaultAsync(x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken));
 
             if (eventStore)
             {
-                var events = await layered.EventManyAsync<LayerModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID);
+                var events = await layered.EventManyAsync<LayerModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Equal(2, events.Count);
                 Assert.Equal(new string('x', 200) + "plain text", events.First().Model.Text);
                 Assert.Equal("updated", events.Last().Model.Text);
-                Assert.Equal("updated", (await layered.EventFirstAsync<LayerModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID))!.Model.Text);
-                Assert.Equal(2, await layered.EventCountAsync<LayerModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID));
-                Assert.True(await layered.EventAnyAsync<LayerModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID));
+                Assert.Equal("updated", (await layered.EventFirstAsync<LayerModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken))!.Model.Text);
+                Assert.Equal(2, await layered.EventCountAsync<LayerModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID, TestContext.Current.CancellationToken));
+                Assert.True(await layered.EventAnyAsync<LayerModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID, TestContext.Current.CancellationToken));
             }
 
-            await layered.DeleteAsync("Deleted", model);
-            Assert.Null(await layered.SingleAsync<LayerModel>(x => x.ID == model.ID));
+            await layered.DeleteAsync("Deleted", model, TestContext.Current.CancellationToken);
+            Assert.Null(await layered.Query<LayerModel>().SingleOrDefaultAsync(x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken));
         }
     }
 }

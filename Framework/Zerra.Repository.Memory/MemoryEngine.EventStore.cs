@@ -205,8 +205,10 @@ namespace Zerra.Repository.Memory
         }
 
         /// <inheritdoc/>
-        public Task<ulong> AppendAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data)
+        public Task<ulong> AppendAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data, CancellationToken cancellationToken = default)
         {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<ulong>(cancellationToken);
             var stream = streams.GetOrAdd(streamName, static () => new MemoryEventStream());
             lock (stream)
             {
@@ -250,8 +252,10 @@ namespace Zerra.Repository.Memory
             }
         }
         /// <inheritdoc/>
-        public Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState)
+        public Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, CancellationToken cancellationToken = default)
         {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<ulong>(cancellationToken);
             var stream = streams.GetOrAdd(streamName, static () => new MemoryEventStream());
             lock (stream)
             {
@@ -297,8 +301,10 @@ namespace Zerra.Repository.Memory
             }
         }
         /// <inheritdoc/>
-        public Task<EventStoreEventData[]> ReadAsync(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate)
+        public Task<EventStoreEventData[]> ReadAsync(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate, CancellationToken cancellationToken = default)
         {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<EventStoreEventData[]>(cancellationToken);
             if (!streams.TryGetValue(streamName, out var stream))
                 return Task.FromResult(Array.Empty<EventStoreEventData>());
 
@@ -344,8 +350,10 @@ namespace Zerra.Repository.Memory
             return Task.FromResult(models.ToArray());
         }
         /// <inheritdoc/>
-        public Task<EventStoreEventData[]> ReadBackwardsAsync(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate)
+        public Task<EventStoreEventData[]> ReadBackwardsAsync(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate, CancellationToken cancellationToken = default)
         {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.FromCanceled<EventStoreEventData[]>(cancellationToken);
             if (!streams.TryGetValue(streamName, out var stream))
                 return Task.FromResult(Array.Empty<EventStoreEventData>());
 

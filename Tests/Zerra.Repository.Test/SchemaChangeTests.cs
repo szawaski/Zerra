@@ -9,6 +9,14 @@ namespace Zerra.Repository.Test
     //code first generation run again after the models change, each version must leave the store matching its models with the rows kept
     public static class SchemaChangeTests
     {
+        //no name for zero, so a new column takes the first, and the text needs escaping in the column's default
+        public enum SchemaKind
+        {
+            [EnumName("it's first")]
+            First = 1,
+            Second = 2
+        }
+
         public static readonly string[] Tables = ["SchemaIndex", "SchemaChange", "SchemaChangeParent", "SchemaStoreProperties"];
 
         [Entity("SchemaChangeParent")]
@@ -62,6 +70,10 @@ namespace Zerra.Repository.Test
                 [StoreName("AddedRenamed")]
                 [StoreProperties(true, 20)]
                 public string? AddedWithStoreName { get; set; }
+                //an index needs a length, which an enum has from its names
+                [StoreIndex]
+                public SchemaKind AddedKind { get; set; }
+                public SchemaKind? AddedMaybeKind { get; set; }
             }
         }
 
@@ -89,7 +101,7 @@ namespace Zerra.Repository.Test
             var repo2 = Repo.New();
             repo2.AddProvider(new TransactStoreProvider<Parent>(engine));
             repo2.AddProvider(new TransactStoreProvider<V2.Model>(engine));
-            var stored = repo2.Single<V2.Model>(x => x.ID == model.ID);
+            var stored = repo2.Query<V2.Model>().SingleOrDefault(x => x.ID == model.ID);
             Assert.NotNull(stored);
             Assert.Equal(5L, stored.Number);
             Assert.Equal(parent.ID, stored.ParentID);
@@ -97,16 +109,20 @@ namespace Zerra.Repository.Test
             //the non-null columns added to a table with rows get the type's default
             Assert.Equal(0, stored.Added);
             Assert.Equal(String.Empty, stored.AddedWithStoreName);
+            Assert.Equal(SchemaKind.First, stored.AddedKind);
+            Assert.Null(stored.AddedMaybeKind);
 
             //the rows written after the change read back with the new columns
-            var model2 = new V2.Model() { ID = Guid.NewGuid(), Number = 5_000_000_000L, ParentID = null, Added = 7, AddedWithStoreName = "renamed" };
+            var model2 = new V2.Model() { ID = Guid.NewGuid(), AddedKind = SchemaKind.Second, AddedMaybeKind = SchemaKind.First, Number = 5_000_000_000L, ParentID = null, Added = 7, AddedWithStoreName = "renamed" };
             repo2.Create(model2);
-            var stored2 = repo2.Single<V2.Model>(x => x.ID == model2.ID);
+            var stored2 = repo2.Query<V2.Model>().SingleOrDefault(x => x.ID == model2.ID);
             Assert.NotNull(stored2);
             Assert.Equal(5_000_000_000L, stored2.Number);
             Assert.Null(stored2.ParentID);
             Assert.Equal(7, stored2.Added);
             Assert.Equal("renamed", stored2.AddedWithStoreName);
+            Assert.Equal(SchemaKind.Second, stored2.AddedKind);
+            Assert.Equal(SchemaKind.First, stored2.AddedMaybeKind);
 
             //back to the first version, the relations are added again and the non-null columns come back on a table that has rows
             repo2.Delete(model2);
@@ -199,7 +215,7 @@ namespace Zerra.Repository.Test
 
             var repo2 = Repo.New();
             repo2.AddProvider(new TransactStoreProvider<IndexV2.Model>(engine));
-            Assert.Equal(3L, repo2.Count<IndexV2.Model>());
+            Assert.Equal(3L, repo2.Query<IndexV2.Model>().Count());
             _ = Assert.ThrowsAny<Exception>(() => repo2.Create(new IndexV2.Model() { ID = Guid.NewGuid(), Code = "b", BecomesUnique = 1 }));
 
             //back to the first version, the indexes it had come back
@@ -267,7 +283,7 @@ namespace Zerra.Repository.Test
                 Milliseconds = new DateTime(2024, 5, 6, 7, 8, 9, 123, DateTimeKind.Utc),
             };
             repo.Create(model);
-            var stored = repo.Single<StorePropertiesModel>(x => x.ID == model.ID);
+            var stored = repo.Query<StorePropertiesModel>().SingleOrDefault(x => x.ID == model.ID);
             Assert.NotNull(stored);
             Assert.Equal(model.NonUnicodeLength, stored.NonUnicodeLength);
             Assert.Equal(model.NonUnicode, stored.NonUnicode);

@@ -20,7 +20,7 @@ namespace Zerra.Repository
         /// <param name="where">An optional filter expression to apply to the query.</param>
         /// <returns>True if any events match the criteria; otherwise, false.</returns>
         bool EventAny<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
-           => (bool)Query(new Query<TModel>(QueryOperation.EventAny, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, null))!;
+           => (bool)((IRepoInternal)this).Query(new LinqModelQuery(typeof(TModel), LinqTerminal.Any, true, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, null))!;
 
         /// <summary>
         /// Determines whether any events match the specified number-based temporal query criteria.
@@ -34,7 +34,7 @@ namespace Zerra.Repository
         /// <param name="where">An optional filter expression to apply to the query.</param>
         /// <returns>True if any events match the criteria; otherwise, false.</returns>
         bool EventAny<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
-            => (bool)Query(new Query<TModel>(QueryOperation.EventAny, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, null))!;
+            => (bool)((IRepoInternal)this).Query(new LinqModelQuery(typeof(TModel), LinqTerminal.Any, true, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, null))!;
 
 
         /// <summary>
@@ -47,9 +47,10 @@ namespace Zerra.Repository
         /// <param name="temporalSkip">The number of temporal entries to skip.</param>
         /// <param name="temporalTake">The number of temporal entries to take.</param>
         /// <param name="where">An optional filter expression to apply to the query.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains true if any events match the criteria; otherwise, false.</returns>
-        async Task<bool> EventAnyAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
-            => (bool)(await QueryAsync(new Query<TModel>(QueryOperation.EventAny, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, null)))!;
+        async Task<bool> EventAnyAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where, CancellationToken cancellationToken = default) where TModel : class, new()
+            => (bool)(await ((IRepoInternal)this).QueryAsync(new LinqModelQuery(typeof(TModel), LinqTerminal.Any, true, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, null, null, null, null), cancellationToken))!;
 
         /// <summary>
         /// Asynchronously determines whether any events match the specified number-based temporal query criteria.
@@ -61,8 +62,9 @@ namespace Zerra.Repository
         /// <param name="temporalSkip">The number of temporal entries to skip.</param>
         /// <param name="temporalTake">The number of temporal entries to take.</param>
         /// <param name="where">An optional filter expression to apply to the query.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains true if any events match the criteria; otherwise, false.</returns>
-        async Task<bool> EventAnyAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where) where TModel : class, new()
-            => (bool)(await QueryAsync(new Query<TModel>(QueryOperation.EventAny, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, null)))!;
+        async Task<bool> EventAnyAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where, CancellationToken cancellationToken = default) where TModel : class, new()
+            => (bool)(await ((IRepoInternal)this).QueryAsync(new LinqModelQuery(typeof(TModel), LinqTerminal.Any, true, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, null, null, null, null), cancellationToken))!;
     }
 }

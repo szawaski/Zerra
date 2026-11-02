@@ -120,9 +120,9 @@ namespace Zerra.SourceGeneration
                 //Array types have no members of their own to keep alive this way, and including BindingFlags.Static here
                 //resolves to System.Array's static CreateInstance overloads, which are RequiresDynamicCode and only
                 //produce spurious AOT warnings. The element type's own registration already covers its members.
-                //An enum's members are its value fields, asking for its methods reaches System.Enum's static GetValues(Type),
+                //An enum, nullable or not, has its value fields as members, asking for its methods reaches System.Enum's static GetValues(Type),
                 //which is RequiresDynamicCode, for the same spurious warnings.
-                if (model.TypeSymbol.TypeKind == TypeKind.Enum)
+                if (model.TypeSymbol.TypeKind == TypeKind.Enum || (model.TypeSymbol is INamedTypeSymbol { Name: "Nullable", IsValueType: true, TypeArguments.Length: 1 } nullableSymbol && nullableSymbol.TypeArguments[0].TypeKind == TypeKind.Enum))
                     _ = sb.Append(typeOfName).Append(".GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);");
                 else if (model.TypeSymbol.Kind != SymbolKind.ArrayType)
                     _ = sb.Append(typeOfName).Append(".GetMembers(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);");

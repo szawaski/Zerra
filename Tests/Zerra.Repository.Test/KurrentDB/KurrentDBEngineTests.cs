@@ -27,6 +27,62 @@ namespace Zerra.Repository.Test.KurrentDB
         }
 
         [Fact]
+        public async Task CancelledCallsStop()
+        {
+            using var engine = new KurrentDBEngine(KurrentDBTestDataContext.ConnectionString, KurrentDBTestDataContext.Insecure);
+            var stream = $"Cancel-{Guid.NewGuid():N}";
+            var data = Encoding.UTF8.GetBytes("{}");
+
+            using var cancelled = new CancellationTokenSource();
+            cancelled.Cancel();
+            var token = cancelled.Token;
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.AppendAsync(Guid.NewGuid(), "E", stream, null, EventStoreState.Any, data, token));
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.TerminateAsync(Guid.NewGuid(), "E", stream, null, EventStoreState.Any, token));
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.ReadAsync(stream, null, null, null, null, null, token));
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.ReadBackwardsAsync(stream, null, null, null, null, null, token));
+            Assert.Empty(await engine.ReadAsync(stream, null, null, null, null, null, TestContext.Current.CancellationToken));
+
+            //one already on its way stops too
+            _ = await engine.AppendAsync(Guid.NewGuid(), "E", stream, null, EventStoreState.Any, data, TestContext.Current.CancellationToken);
+            using var running = new CancellationTokenSource();
+            var read = engine.ReadAsync(stream, null, null, null, null, null, running.Token);
+            running.Cancel();
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => read);
+        }
+
+        [Fact]
+        public async Task CancelledQueriesAndChangesStop()
+        {
+            using var engine = new KurrentDBEngine(KurrentDBTestDataContext.ConnectionString, KurrentDBTestDataContext.Insecure);
+            var repo = Repo.New();
+            repo.AddProvider(new EventStoreAsTransactStoreProvider<CancelModel>(engine));
+            var model = new CancelModel { ID = Guid.NewGuid(), Number = 1 };
+            await repo.CreateAsync(model, TestContext.Current.CancellationToken);
+
+            using var cancelled = new CancellationTokenSource();
+            cancelled.Cancel();
+            var token = cancelled.Token;
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => repo.Query<CancelModel>().Where(x => x.ID == model.ID).ToArrayAsync(token));
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => repo.EventManyAsync<CancelModel>(TemporalOrder.Oldest, (DateTime?)null, null, null, null, x => x.ID == model.ID, cancellationToken: token));
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => repo.UpdateAsync(new CancelModel { ID = model.ID, Number = 2 }, token));
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => repo.DeleteAsync(model, token));
+            var kept = await repo.Query<CancelModel>().Where(x => x.ID == model.ID).SingleOrDefaultAsync(TestContext.Current.CancellationToken);
+            Assert.Equal(1, kept!.Number);
+
+            var aggregate = new TestAggregate(Guid.NewGuid(), engine);
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => aggregate.Append(new TestAggregateCreated { Name = "n", Amount = 1 }, false, token));
+            Assert.False(await aggregate.Rebuild(cancellationToken: TestContext.Current.CancellationToken));
+        }
+
+        [Entity("KurrentCancelModel")]
+        public sealed class CancelModel
+        {
+            [Identity]
+            public Guid ID { get; set; }
+            public int Number { get; set; }
+        }
+
+        [Fact]
         public void SynchronousCalls_NotSupported()
         {
             using var engine = new KurrentDBEngine(KurrentDBTestDataContext.ConnectionString, KurrentDBTestDataContext.Insecure);

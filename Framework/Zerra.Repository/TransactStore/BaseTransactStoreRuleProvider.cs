@@ -126,455 +126,56 @@ namespace Zerra.Repository
         }
 
         /// <inheritdoc/>
-        public override sealed object? Many(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-
-            appenedQuery.Where = where;
-
-            var models = (IReadOnlyCollection<TModel>)(NextProvider.Query(appenedQuery))!;
-
-            IEnumerable returnModels;
-            if (models.Count > 0)
-            {
-                returnModels = OnGet(models, appenedQuery.Graph);
-            }
-            else
-            {
-                returnModels = Array.Empty<TModel>();
-            }
-
-            return returnModels;
-        }
-
-        /// <inheritdoc/>
-        public override sealed object? First(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-
-            appenedQuery.Where = where;
-
-            var model = (TModel?)NextProvider.Query(appenedQuery);
-
-            TModel? returnModel = null;
-
-            if (model is not null)
-            {
-                returnModel = OnGet(new TModel[] { model }, appenedQuery.Graph).Cast<TModel>().SingleOrDefault();
-            }
-
-            return returnModel;
-        }
-
-        /// <inheritdoc/>
-        public override sealed object? Single(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var model = (TModel?)NextProvider.Query(appenedQuery);
-
-            TModel? returnModel = null;
-
-            if (model is not null)
-            {
-                returnModel = OnGet(new TModel[] { model }, appenedQuery.Graph).Cast<TModel>().SingleOrDefault();
-            }
-
-            return returnModel;
-        }
-
-        /// <inheritdoc/>
-        public override sealed object? Count(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var count = NextProvider.Query(appenedQuery);
-
-            return count;
-        }
-
-        /// <inheritdoc/>
-        public override sealed object? Any(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var any = NextProvider.Query(appenedQuery);
-
-            return any;
-        }
-        /// <inheritdoc/>
-        public override sealed object? Calculate(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var result = NextProvider.Query(appenedQuery);
-
-            return result;
-        }
-        /// <inheritdoc/>
-        public override sealed object? Project(Query query)
+        public override sealed object? Query(LinqQuery query)
         {
             OnQuery(query.Graph);
-
             //the query carries its result types, so the appended where is swapped onto it for the call and the original put back
             var where = query.Where;
             query.Where = AppendWhereExpression(where, query.Graph);
             try
             {
-                return NextProvider.Query(query);
+                return OnResult(query, NextProvider.Query(query));
             }
             finally
             {
                 query.Where = where;
             }
         }
-
         /// <inheritdoc/>
-        public override sealed object? EventMany(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var eventModels = (ICollection<EventModel<TModel>>)(NextProvider.Query(appenedQuery))!;
-
-            var models = eventModels.Select(x => x.Model).ToArray();
-
-            ICollection<EventModel<TModel>>? returnEventModels = null;
-            if (models.Length > 0)
-            {
-                var returnModels = OnGet(models, appenedQuery.Graph).Cast<TModel>();
-                returnEventModels = eventModels.Where(x => returnModels.Contains(x.Model)).ToArray();
-            }
-            else
-            {
-                returnEventModels = Array.Empty<EventModel<TModel>>();
-            }
-
-            return returnEventModels;
-        }
-
-        /// <inheritdoc/>
-        public override sealed object? EventFirst(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var eventModel = (EventModel<TModel>?)NextProvider.Query(appenedQuery);
-
-            if (eventModel is null)
-                return null;
-
-            var returnModel = OnGet(new TModel[] { eventModel.Model }, appenedQuery.Graph).Cast<TModel>().FirstOrDefault();
-            return returnModel is null ? null : eventModel;
-        }
-
-        /// <inheritdoc/>
-        public override sealed object? EventSingle(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var eventModel = (EventModel<TModel>?)NextProvider.Query(appenedQuery);
-
-            if (eventModel is null)
-                return null;
-
-            var returnModel = OnGet(new TModel[] { eventModel.Model }, appenedQuery.Graph).Cast<TModel>().SingleOrDefault();
-            return returnModel is null ? null : eventModel;
-        }
-
-        /// <inheritdoc/>
-        public override sealed object? EventCount(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var count = NextProvider.Query(appenedQuery);
-
-            return count;
-        }
-
-        /// <inheritdoc/>
-        public override sealed object? EventAny(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var any = NextProvider.Query(appenedQuery);
-
-            return any;
-        }
-
-        /// <inheritdoc/>
-        public override sealed async Task<object?> ManyAsync(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-
-            appenedQuery.Where = where;
-
-            var models = (IReadOnlyCollection<TModel>)(await NextProvider.QueryAsync(appenedQuery))!;
-
-            IEnumerable returnModels;
-            if (models.Count > 0)
-            {
-                returnModels = OnGet(models, appenedQuery.Graph);
-            }
-            else
-            {
-                returnModels = Array.Empty<TModel>();
-            }
-
-            return returnModels;
-        }
-
-        /// <inheritdoc/>
-        public override sealed async Task<object?> FirstAsync(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-
-            appenedQuery.Where = where;
-
-            var model = (TModel?)await NextProvider.QueryAsync(appenedQuery);
-
-            TModel? returnModel = null;
-
-            if (model is not null)
-            {
-                returnModel = OnGet(new TModel[] { model }, appenedQuery.Graph).Cast<TModel>().SingleOrDefault();
-            }
-
-            return returnModel;
-        }
-
-        /// <inheritdoc/>
-        public override sealed async Task<object?> SingleAsync(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var model = (TModel?)await NextProvider.QueryAsync(appenedQuery);
-
-            TModel? returnModel = null;
-
-            if (model is not null)
-            {
-                returnModel = OnGet(new TModel[] { model }, appenedQuery.Graph).Cast<TModel>().SingleOrDefault();
-            }
-
-            return returnModel;
-        }
-
-        /// <inheritdoc/>
-        public override sealed Task<object?> CountAsync(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var count = NextProvider.QueryAsync(appenedQuery);
-
-            return count;
-        }
-
-        /// <inheritdoc/>
-        public override sealed Task<object?> AnyAsync(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var any = NextProvider.QueryAsync(appenedQuery);
-
-            return any;
-        }
-        /// <inheritdoc/>
-        public override sealed Task<object?> CalculateAsync(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var result = NextProvider.QueryAsync(appenedQuery);
-
-            return result;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> ProjectAsync(Query query)
+        public override sealed async Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken)
         {
             OnQuery(query.Graph);
-
-            //the query carries its result types, so the appended where is swapped onto it for the call and the original put back
             var where = query.Where;
             query.Where = AppendWhereExpression(where, query.Graph);
             try
             {
-                return await NextProvider.QueryAsync(query);
+                return OnResult(query, await NextProvider.QueryAsync(query, cancellationToken));
             }
             finally
             {
                 query.Where = where;
             }
         }
-
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventManyAsync(Query query)
+        private object? OnResult(LinqQuery query, object? result)
         {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var eventModels = (ICollection<EventModel<TModel>>)(await NextProvider.QueryAsync(appenedQuery))!;
-
-            var models = eventModels.Select(x => x.Model).ToArray();
-
-            ICollection<EventModel<TModel>>? returnEventModels = null;
-            if (models.Length > 0)
+            switch (result)
             {
-                var returnModels = OnGet(models, appenedQuery.Graph).Cast<TModel>();
-                returnEventModels = eventModels.Where(x => returnModels.Contains(x.Model)).ToArray();
+                case IReadOnlyCollection<TModel> models when query.ReturnsModels:
+                    return models.Count == 0 ? models : OnGet(models, query.Graph).Cast<TModel>().ToArray();
+                case TModel model:
+                    return OnGet(new TModel[] { model }, query.Graph).Cast<TModel>().FirstOrDefault();
+                case ICollection<EventModel<TModel>> eventModels:
+                    {
+                        if (eventModels.Count == 0)
+                            return eventModels;
+                        var returnModels = OnGet(eventModels.Select(x => x.Model).ToArray(), query.Graph).Cast<TModel>();
+                        return eventModels.Where(x => returnModels.Contains(x.Model)).ToArray();
+                    }
+                case EventModel<TModel> eventModel:
+                    return OnGet(new TModel[] { eventModel.Model }, query.Graph).Cast<TModel>().FirstOrDefault() is null ? null : eventModel;
+                default:
+                    return result;
             }
-            else
-            {
-                returnEventModels = Array.Empty<EventModel<TModel>>();
-            }
-
-            return returnEventModels;
-        }
-
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventFirstAsync(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var eventModel = (EventModel<TModel>?)await NextProvider.QueryAsync(appenedQuery);
-
-            if (eventModel is null)
-                return null;
-
-            var returnModel = OnGet(new TModel[] { eventModel.Model }, appenedQuery.Graph).Cast<TModel>().FirstOrDefault();
-            return returnModel is null ? null : eventModel;
-        }
-
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventSingleAsync(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var eventModel = (EventModel<TModel>?)await NextProvider.QueryAsync(appenedQuery);
-
-            if (eventModel is null)
-                return null;
-
-            var returnModel = OnGet(new TModel[] { eventModel.Model }, appenedQuery.Graph).Cast<TModel>().SingleOrDefault();
-            return returnModel is null ? null : eventModel;
-        }
-
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventCountAsync(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var count = await NextProvider.QueryAsync(appenedQuery);
-
-            return count;
-        }
-
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventAnyAsync(Query query)
-        {
-            var appenedQuery = new Query(query);
-
-            OnQuery(appenedQuery.Graph);
-
-            var where = AppendWhereExpression(appenedQuery.Where, appenedQuery.Graph);
-            appenedQuery.Where = where;
-
-            var any = await NextProvider.QueryAsync(appenedQuery);
-
-            return any;
         }
 
         /// <summary>Called before models are created. Override to validate or transform the models prior to persistence.</summary>
@@ -720,25 +321,25 @@ namespace Zerra.Repository
         }
 
         /// <inheritdoc/>
-        public override sealed async Task CreateAsync(Persist persist)
+        public override sealed async Task CreateAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (persist.Models is null)
                 throw new Exception($"Invalid {nameof(Persist)} for {nameof(CreateAsync)}");
 
             var appenedPersist = new Persist(persist);
             var returnModels = OnCreate(appenedPersist.Models!, appenedPersist.Graph);
-            await NextProvider.PersistAsync(new Persist(appenedPersist.Operation, appenedPersist.Event, appenedPersist.ModelType, returnModels.Cast<object>().ToArray(), null, appenedPersist.Graph));
+            await NextProvider.PersistAsync(new Persist(appenedPersist.Operation, appenedPersist.Event, appenedPersist.ModelType, returnModels.Cast<object>().ToArray(), null, appenedPersist.Graph), cancellationToken);
             OnCreateComplete(returnModels, appenedPersist.Graph);
         }
 
         /// <inheritdoc/>
-        public override sealed async Task UpdateAsync(Persist persist)
+        public override sealed async Task UpdateAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (persist.Set is not null)
             {
                 var where = AppendWhereExpression(OnUpdateWhere(persist.Where!, persist.Set), null)!;
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, where, persist.Set);
-                await NextProvider.PersistAsync(forwarded);
+                await NextProvider.PersistAsync(forwarded, cancellationToken);
                 persist.RowsAffected = forwarded.RowsAffected;
                 OnUpdateWhereComplete(where, persist.Set, forwarded.RowsAffected);
                 return;
@@ -748,7 +349,7 @@ namespace Zerra.Repository
                 var model = persist.Models is { Length: 1 } ? persist.Models[0] : throw new Exception($"Invalid {nameof(Persist)} for {nameof(UpdateAsync)}");
                 var where = AppendWhereExpression(OnUpdateWhere(persist.Where, model, persist.Graph), null)!;
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, where, model, persist.Graph);
-                await NextProvider.PersistAsync(forwarded);
+                await NextProvider.PersistAsync(forwarded, cancellationToken);
                 persist.RowsAffected = forwarded.RowsAffected;
                 OnUpdateWhereComplete(where, model, persist.Graph, forwarded.RowsAffected);
                 return;
@@ -759,18 +360,18 @@ namespace Zerra.Repository
 
             var appenedPersist = new Persist(persist);
             var returnModels = OnUpdate(appenedPersist.Models!, appenedPersist.Graph);
-            await NextProvider.PersistAsync(new Persist(appenedPersist.Operation, appenedPersist.Event, appenedPersist.ModelType, returnModels.Cast<object>().ToArray(), null, appenedPersist.Graph));
+            await NextProvider.PersistAsync(new Persist(appenedPersist.Operation, appenedPersist.Event, appenedPersist.ModelType, returnModels.Cast<object>().ToArray(), null, appenedPersist.Graph), cancellationToken);
             OnUpdateComplete(returnModels, appenedPersist.Graph);
         }
 
         /// <inheritdoc/>
-        public override sealed async Task DeleteAsync(Persist persist)
+        public override sealed async Task DeleteAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (persist.Where is not null)
             {
                 var where = AppendWhereExpression(OnDeleteWhere(persist.Where), null)!;
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, where, null, null);
-                await NextProvider.PersistAsync(forwarded);
+                await NextProvider.PersistAsync(forwarded, cancellationToken);
                 persist.RowsAffected = forwarded.RowsAffected;
                 OnDeleteWhereComplete(where, forwarded.RowsAffected);
                 return;
@@ -799,7 +400,7 @@ namespace Zerra.Repository
                 throw new Exception($"Invalid {nameof(Persist)} for {nameof(DeleteAsync)}");
             }
 
-            await NextProvider.PersistAsync(new Persist<TModel>(PersistOperation.Delete, persist.Event, null, returnIds.Cast<object>().ToArray(), persist.Graph));
+            await NextProvider.PersistAsync(new Persist<TModel>(PersistOperation.Delete, persist.Event, null, returnIds.Cast<object>().ToArray(), persist.Graph), cancellationToken);
             OnDeleteComplete(returnIds);
         }
     }

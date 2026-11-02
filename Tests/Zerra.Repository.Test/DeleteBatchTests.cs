@@ -34,11 +34,11 @@ namespace Zerra.Repository.Test
         {
             var (repo, models) = Create(count);
             repo.Delete<DeleteBatchModel>(models);
-            Assert.Equal(0, repo.Count<DeleteBatchModel>(x => true));
+            Assert.Equal(0, repo.Query<DeleteBatchModel>().Count(x => true));
 
             (repo, models) = Create(count);
             repo.DeleteByID<DeleteBatchModel>(models.Select(x => x.ID).ToArray());
-            Assert.Equal(0, repo.Count<DeleteBatchModel>(x => true));
+            Assert.Equal(0, repo.Query<DeleteBatchModel>().Count(x => true));
         }
 
         [Theory]
@@ -46,12 +46,12 @@ namespace Zerra.Repository.Test
         public async Task DeleteAsync_AnyCount(int count)
         {
             var (repo, models) = Create(count);
-            await repo.DeleteAsync<DeleteBatchModel>(models);
-            Assert.Equal(0, await repo.CountAsync<DeleteBatchModel>(x => true));
+            await repo.DeleteAsync<DeleteBatchModel>(models, TestContext.Current.CancellationToken);
+            Assert.Equal(0, await repo.Query<DeleteBatchModel>().CountAsync(x => true, cancellationToken: TestContext.Current.CancellationToken));
 
             (repo, models) = Create(count);
-            await repo.DeleteByIDAsync<DeleteBatchModel>(models.Select(x => x.ID).ToArray());
-            Assert.Equal(0, await repo.CountAsync<DeleteBatchModel>(x => true));
+            await repo.DeleteByIDAsync<DeleteBatchModel>(models.Select(x => x.ID).ToArray(), TestContext.Current.CancellationToken);
+            Assert.Equal(0, await repo.Query<DeleteBatchModel>().CountAsync(x => true, cancellationToken: TestContext.Current.CancellationToken));
         }
     }
 }

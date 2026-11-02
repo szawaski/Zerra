@@ -19,7 +19,7 @@ namespace Store.Carts.Test
         {
             var cart = new CartAggregate(customerID, new MemoryEngine());
 
-            Assert.False(await cart.Rebuild());
+            Assert.False(await cart.Rebuild(cancellationToken: TestContext.Current.CancellationToken));
             Assert.Empty(cart.Items);
             Assert.Null(cart.LastEventNumber);
         }
@@ -29,7 +29,7 @@ namespace Store.Carts.Test
         {
             var cart = new CartAggregate(customerID, new MemoryEngine());
 
-            await cart.Append(Added(lampID, "Desk Lamp", 59.00m, 2));
+            await cart.Append(Added(lampID, "Desk Lamp", 59.00m, 2), cancellationToken: TestContext.Current.CancellationToken);
 
             var item = Assert.Single(cart.Items);
             Assert.Equal("Desk Lamp", item.ProductName);
@@ -43,13 +43,13 @@ namespace Store.Carts.Test
         {
             IEventStoreEngine eventStore = new MemoryEngine();
             var cart = new CartAggregate(customerID, eventStore);
-            await cart.Append(Added(lampID, "Desk Lamp", 59.00m, 2));
-            await cart.Append(Added(mouseID, "Mouse", 49.99m, 1));
-            await cart.Append(new CartItemRepricedEvent() { CustomerID = customerID, ProductID = mouseID, ProductName = "Mouse", OldUnitPrice = 49.99m, NewUnitPrice = 39.99m });
-            await cart.Append(new CartItemRemovedEvent() { CustomerID = customerID, ProductID = lampID });
+            await cart.Append(Added(lampID, "Desk Lamp", 59.00m, 2), cancellationToken: TestContext.Current.CancellationToken);
+            await cart.Append(Added(mouseID, "Mouse", 49.99m, 1), cancellationToken: TestContext.Current.CancellationToken);
+            await cart.Append(new CartItemRepricedEvent() { CustomerID = customerID, ProductID = mouseID, ProductName = "Mouse", OldUnitPrice = 49.99m, NewUnitPrice = 39.99m }, cancellationToken: TestContext.Current.CancellationToken);
+            await cart.Append(new CartItemRemovedEvent() { CustomerID = customerID, ProductID = lampID }, cancellationToken: TestContext.Current.CancellationToken);
 
             var rebuilt = new CartAggregate(customerID, eventStore);
-            Assert.True(await rebuilt.Rebuild());
+            Assert.True(await rebuilt.Rebuild(cancellationToken: TestContext.Current.CancellationToken));
 
             var item = Assert.Single(rebuilt.Items);
             Assert.Equal(mouseID, item.ProductID);
@@ -62,8 +62,8 @@ namespace Store.Carts.Test
         {
             var cart = new CartAggregate(customerID, new MemoryEngine());
 
-            await cart.Append(Added(lampID, "Desk Lamp", 59.00m, 1));
-            await cart.Append(Added(lampID, "Desk Lamp", 45.00m, 2));
+            await cart.Append(Added(lampID, "Desk Lamp", 59.00m, 1), cancellationToken: TestContext.Current.CancellationToken);
+            await cart.Append(Added(lampID, "Desk Lamp", 45.00m, 2), cancellationToken: TestContext.Current.CancellationToken);
 
             var item = Assert.Single(cart.Items);
             Assert.Equal(3, item.Quantity);
@@ -74,9 +74,9 @@ namespace Store.Carts.Test
         public async Task Repricing_AProductNoLongerInTheCart_ChangesNothing()
         {
             var cart = new CartAggregate(customerID, new MemoryEngine());
-            await cart.Append(Added(lampID, "Desk Lamp", 59.00m, 1));
+            await cart.Append(Added(lampID, "Desk Lamp", 59.00m, 1), cancellationToken: TestContext.Current.CancellationToken);
 
-            await cart.Append(new CartItemRepricedEvent() { CustomerID = customerID, ProductID = mouseID, ProductName = "Mouse", OldUnitPrice = 49.99m, NewUnitPrice = 39.99m });
+            await cart.Append(new CartItemRepricedEvent() { CustomerID = customerID, ProductID = mouseID, ProductName = "Mouse", OldUnitPrice = 49.99m, NewUnitPrice = 39.99m }, cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Equal(lampID, Assert.Single(cart.Items).ProductID);
             Assert.Equal(59.00m, cart.Total);
@@ -86,10 +86,10 @@ namespace Store.Carts.Test
         public async Task Emptied_ClearsTheItems()
         {
             var cart = new CartAggregate(customerID, new MemoryEngine());
-            await cart.Append(Added(lampID, "Desk Lamp", 59.00m, 1));
-            await cart.Append(Added(mouseID, "Mouse", 49.99m, 1));
+            await cart.Append(Added(lampID, "Desk Lamp", 59.00m, 1), cancellationToken: TestContext.Current.CancellationToken);
+            await cart.Append(Added(mouseID, "Mouse", 49.99m, 1), cancellationToken: TestContext.Current.CancellationToken);
 
-            await cart.Append(new CartEmptiedEvent() { CustomerID = customerID });
+            await cart.Append(new CartEmptiedEvent() { CustomerID = customerID }, cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Empty(cart.Items);
             Assert.Equal(0m, cart.Total);
@@ -100,9 +100,9 @@ namespace Store.Carts.Test
         public async Task CheckedOut_ClearsTheItemsAndKeepsTheOrderNumber()
         {
             var cart = new CartAggregate(customerID, new MemoryEngine());
-            await cart.Append(Added(lampID, "Desk Lamp", 59.00m, 1));
+            await cart.Append(Added(lampID, "Desk Lamp", 59.00m, 1), cancellationToken: TestContext.Current.CancellationToken);
 
-            await cart.Append(new CartCheckedOutEvent() { CustomerID = customerID, OrderID = Guid.NewGuid(), OrderNumber = "SO-1", Total = 59.00m });
+            await cart.Append(new CartCheckedOutEvent() { CustomerID = customerID, OrderID = Guid.NewGuid(), OrderNumber = "SO-1", Total = 59.00m }, cancellationToken: TestContext.Current.CancellationToken);
 
             Assert.Empty(cart.Items);
             Assert.Equal("SO-1", cart.LastOrderNumber);
@@ -113,14 +113,14 @@ namespace Store.Carts.Test
         {
             IEventStoreEngine eventStore = new MemoryEngine();
             var first = new CartAggregate(customerID, eventStore);
-            await first.Append(Added(lampID, "Desk Lamp", 59.00m, 1), true);
+            await first.Append(Added(lampID, "Desk Lamp", 59.00m, 1), true, TestContext.Current.CancellationToken);
             var stale = new CartAggregate(customerID, eventStore);
-            _ = await stale.Rebuild();
+            _ = await stale.Rebuild(cancellationToken: TestContext.Current.CancellationToken);
 
             //another command appends after the stale copy was rebuilt
-            await first.Append(Added(mouseID, "Mouse", 49.99m, 1), true);
+            await first.Append(Added(mouseID, "Mouse", 49.99m, 1), true, TestContext.Current.CancellationToken);
 
-            _ = await Assert.ThrowsAnyAsync<Exception>(() => stale.Append(new CartEmptiedEvent() { CustomerID = customerID }, true));
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => stale.Append(new CartEmptiedEvent() { CustomerID = customerID }, true, TestContext.Current.CancellationToken));
             Assert.Single(stale.Items);
         }
     }

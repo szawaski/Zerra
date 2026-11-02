@@ -43,6 +43,26 @@ namespace Zerra.Repository.Test.MariaDb
             }
         }
 
+        private static IDisposable HoldParityTable(string connectionString)
+        {
+            var connection = new MySqlConnection(connectionString);
+            connection.Open();
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "LOCK TABLES `QueryParity` WRITE";
+                _ = command.ExecuteNonQuery();
+            }
+            return new QueryParityTests.HeldTable(() =>
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "UNLOCK TABLES";
+                    _ = command.ExecuteNonQuery();
+                }
+                connection.Dispose();
+            });
+        }
+
         [Fact]
         public async Task TestSequence()
         {
@@ -62,6 +82,7 @@ namespace Zerra.Repository.Test.MariaDb
             await RelationPersistTests.TestSequenceAsync(engine);
             QueryParityTests.TestSequence(engine);
             await QueryParityTests.TestSequenceAsync(engine);
+            await QueryParityTests.TestCancellationAsync(engine, () => HoldParityTable(connectionString));
             SchemaChangeTests.Test(engine, table => ExecuteSql(connectionString, $"DROP TABLE IF EXISTS `{table}`"));
 
             const string changeColumn = "ALTER TABLE `TestTypes` MODIFY `Int32Thing` bigint NULL";

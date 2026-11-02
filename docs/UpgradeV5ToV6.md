@@ -139,7 +139,7 @@ Search the solution (skip `bin`/`obj`) and write down which of these appear. Eac
   //v5
   public static async Task<BlockSetModel> LoadBlockSetForWorkout(Guid logWorkoutID) { var item = await Repo.QueryAsync(new QuerySingle<LogWorkoutBlocksDTO>(x => x.LogWorkoutID == logWorkoutID)); ... }
   //v6
-  public static async Task<BlockSetModel> LoadBlockSetForWorkout(IRepo repo, Guid logWorkoutID) { var item = await repo.SingleAsync<LogWorkoutBlocksDTO>(x => x.LogWorkoutID == logWorkoutID); ... }
+  public static async Task<BlockSetModel> LoadBlockSetForWorkout(IRepo repo, Guid logWorkoutID) { var item = await repo.Query<LogWorkoutBlocksDTO>().SingleOrDefaultAsync(x => x.LogWorkoutID == logWorkoutID); ... }
   ```
 - **Tests.** v5 tests often swapped in mock handlers with `Discovery.DefineClassByInterface<IX>(typeof(MockX))`. The v6 bus doesn't use discovery. Create a bus for the tests with `Bus.New` and `AddHandler` the mocks. A handler a test builds directly (with `new` or `RuntimeHelpers.GetUninitializedObject`) has no context and throws `Handler not initialized` on its first `Bus` or `Log` use. `BusContext` can't be created outside Zerra, so add that handler to a bus of its own with `AddHandler` as well. Every `Bus.New` also points the static `Bus` at the new bus, so after creating such a per-handler bus, create the shared test bus (the one holding only the mocks) again, or code that uses the static `Bus` reaches the real handler instead of its mock.
 - **Command or event.** Read [Command or Event?](Agents.md#command-or-event-read-this-first). A v5 event handler that writes shared state, sends mail, or charges money must have its consumer registered with `EventConsumerMode.PerService` (see [section 6](#6-replace-cqrssettingsjson-with-programcs)).
@@ -165,15 +165,16 @@ Register providers before `Bus.New`, and create handlers after it: `AddHandler` 
 
 ### Query and Persist Calls
 
-The arguments keep the same order as the v5 model constructors. Only the wrapper changes:
+Reads become LINQ queries. For the rest, the arguments keep the same order as the v5 model constructors and only the wrapper changes:
 
 | Zerra 5 | Zerra 6 |
 |---|---|
-| `Repo.QueryAsync(new QueryMany<T>(args))` | `Repo.ManyAsync<T>(args)` |
-| `Repo.QueryAsync(new QueryFirst<T>(args))` | `Repo.FirstAsync<T>(args)` |
-| `Repo.QueryAsync(new QuerySingle<T>(args))` | `Repo.SingleAsync<T>(args)` |
-| `Repo.QueryAsync(new QueryAny<T>(args))` | `Repo.AnyAsync<T>(args)` |
-| `Repo.QueryAsync(new QueryCount<T>(args))` | `Repo.CountAsync<T>(args)` |
+| `Repo.QueryAsync(new QueryMany<T>(where, order, skip, take))` | `Repo.Query<T>().Where(where).OrderBy(..).Skip(skip).Take(take).ToArrayAsync()` |
+| `Repo.QueryAsync(new QueryFirst<T>(where))` | `Repo.Query<T>().FirstOrDefaultAsync(where)` |
+| `Repo.QueryAsync(new QuerySingle<T>(where))` | `Repo.Query<T>().SingleOrDefaultAsync(where)` |
+| `Repo.QueryAsync(new QueryAny<T>(where))` | `Repo.Query<T>().AnyAsync(where)` |
+| `Repo.QueryAsync(new QueryCount<T>(where))` | `Repo.Query<T>().LongCountAsync(where)` |
+| A graph naming relations on a query | `Repo.Query<T>(graph)`, or a `Select` naming them |
 | `Repo.QueryAsync(new EventQueryMany<T>(args))` | `Repo.EventManyAsync<T>(args)` (also `EventFirstAsync`, `EventSingleAsync`, `EventAnyAsync`, `EventCountAsync`) |
 | `Repo.QueryAsync(new TemporalQueryMany<T>(args))` | `Repo.TemporalManyAsync<T>(args)` (also `TemporalFirstAsync`, `TemporalAnyAsync`, `TemporalCountAsync`) |
 | `EventQueryNewest`/`Oldest`, `TemporalQueryNewest`/`Oldest` | `EventFirstAsync`/`TemporalFirstAsync` with `TemporalOrder.Newest` or `TemporalOrder.Oldest` |
@@ -181,12 +182,13 @@ The arguments keep the same order as the v5 model constructors. Only the wrapper
 | `Repo.PersistAsync(new Update<T>(args))` | `Repo.UpdateAsync<T>(args)` |
 | `Repo.PersistAsync(new Delete<T>(args))` | `Repo.DeleteAsync<T>(args)` |
 | `Repo.PersistAsync(new DeleteByID<T>(args))` | `Repo.DeleteByIDAsync<T>(args)` |
-| `Repo.Query(...)` / `Repo.Persist(...)` (sync) | `Repo.Many`, `Repo.Single`, `Repo.Create`, ... |
+| `Repo.Query(...)` / `Repo.Persist(...)` (sync) | `Repo.Query<T>()...ToArray()`, `Repo.Create`, ... |
 
 Watch for these:
 
 - **Always write the type argument** when passing a collection: `Repo.CreateAsync<LogNoteDTO>(items)`. Without it, a `List<T>` binds to the single-model overload with `TModel = List<T>`.
-- **Many queries return `IReadOnlyCollection<T>`** (v5 returned `ICollection<T>`). Fix declared variable types, `Mapper.Map<ICollection<X>, Y[]>(...)` calls, and any `.Add` on the result.
+- **Queries give an array or a list** from `ToArrayAsync` or `ToListAsync` (v5 returned `ICollection<T>`). Fix declared variable types, `Mapper.Map<ICollection<X>, Y[]>(...)` calls, and any `.Add` on the result.
+- **An event store query reads the current state** of each model. A v5 `QueryMany` of an event store gave every state; use `Repo.TemporalManyAsync<T>` for that.
 - **Relation properties** declared as `ICollection<T>` on data models: change them to `List<T>` or `T[]`. Arrays, `List<T>`, and `IReadOnlyList<T>` are the types documented for v6.
 - LINQ support in `Where` is listed in [Agents.md](Agents.md#zerrarepository).
 

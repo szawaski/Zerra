@@ -43,7 +43,7 @@ namespace Store.Orders.Test
             Assert.Equal(nameof(OrderStatus.Placed), order.Status);
             Assert.Equal(customer.ID, order.CustomerID);
             Assert.Equal(result.OrderNumber, order.OrderNumber);
-            var items = await test.Repo.ManyAsync<OrderItemDataModel>(x => x.OrderID == result.OrderID);
+            var items = await test.Repo.Query<OrderItemDataModel>().Where(x => x.OrderID == result.OrderID).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Contains(items, x => x.ProductID == lamp.ID && x.ProductName == "Desk Lamp" && x.UnitPrice == 59.00m && x.Quantity == 2);
             Assert.Contains(items, x => x.ProductID == mouse.ID && x.UnitPrice == 49.99m && x.Quantity == 1);
 
@@ -62,7 +62,7 @@ namespace Store.Orders.Test
 
             var result = await test.Bus.DispatchAwaitAsync(Order(customer.ID, (lamp.ID, 2), (lamp.ID, 3)), Token);
 
-            var item = Assert.Single(await test.Repo.ManyAsync<OrderItemDataModel>(x => x.OrderID == result.OrderID));
+            var item = Assert.Single(await test.Repo.Query<OrderItemDataModel>().Where(x => x.OrderID == result.OrderID).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
             Assert.Equal(5, item.Quantity);
             Assert.Equal(295.00m, result.Total);
         }
@@ -142,7 +142,7 @@ namespace Store.Orders.Test
             var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(Order(customer.ID, (lamp.ID, 1)), Token));
             Assert.Equal("Desk Lamp is out of stock.", ex.Message);
 
-            Assert.False(await test.Repo.AnyAsync<OrderDataModel>());
+            Assert.False(await test.Repo.Query<OrderDataModel>().AnyAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]

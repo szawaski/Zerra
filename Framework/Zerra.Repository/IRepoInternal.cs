@@ -7,11 +7,44 @@ using System.Diagnostics.CodeAnalysis;
 namespace Zerra.Repository
 {
     /// <summary>
-    /// Internal extension of <see cref="IRepo"/> that exposes provider resolution for cross-repo operations.
+    /// Internal extension of <see cref="IRepo"/> that exposes provider resolution for cross-repo operations and running a query or persist as a provider makes it.
     /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public interface IRepoInternal : IRepo
     {
+        /// <summary>
+        /// Executes a persist operation to create, update, or delete data.
+        /// </summary>
+        /// <param name="persist">The persist operation to execute.</param>
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        void Persist(Persist persist);
+
+        /// <summary>
+        /// Asynchronously executes a persist operation to create, update, or delete data.
+        /// </summary>
+        /// <param name="persist">The persist operation to execute.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        Task PersistAsync(Persist persist, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Runs a query and returns its elements as a list of its result type, or its value boxed. A <see cref="LinqModelQuery"/> gives models or event models.
+        /// </summary>
+        /// <param name="query">The query to execute.</param>
+        /// <returns>The result, boxed when it is a value.</returns>
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        object? Query(LinqQuery query);
+
+        /// <summary>
+        /// Asynchronously runs a query and returns its elements as a list of its result type, or its value boxed. A <see cref="LinqModelQuery"/> gives models or event models.
+        /// </summary>
+        /// <param name="query">The query to execute.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
+        /// <returns>A task that represents the asynchronous operation, containing the result, boxed when it is a value.</returns>
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken);
+
         /// <summary>
         /// Attempts to retrieve the <see cref="ITransactStoreProvider"/> registered for the specified model type.
         /// </summary>

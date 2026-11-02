@@ -42,6 +42,39 @@ namespace Zerra.Repository.Test
             public string? Name { get; set; }
         }
 
+        [Fact]
+        public async Task GraphLoadsRelations()
+        {
+            foreach (var eventStore in new[] { false, true })
+            {
+                var (repo, withPet, withoutPet) = Create(eventStore);
+                var graph = new Graph<Owner>(true, x => x.Pet, x => x.Toys);
+
+                var read = repo.Query<Owner>(graph).Where(x => x.ID == withPet.ID).ToArray().Single();
+                Assert.Equal("rex", read.Pet!.Name);
+                Assert.Equal(withPet.Toys!.Count, read.Toys!.Count);
+
+                var other = await repo.Query<Owner>(graph).SingleOrDefaultAsync(x => x.ID == withoutPet.ID, cancellationToken: TestContext.Current.CancellationToken);
+                Assert.Null(other!.Pet);
+                Assert.Empty(other.Toys!);
+
+                //the stored models aren't handed out, and what the graph leaves out isn't read
+                var named = repo.Query<Owner>(new Graph<Owner>(x => x.Pet!.Name)).Where(x => x.ID == withPet.ID).ToArray().Single();
+                Assert.Null(named.Name);
+                Assert.Equal("rex", named.Pet!.Name);
+                Assert.Equal(0, named.Pet.Age);
+            }
+        }
+
+        //the model can only be read through a relation back to it
+        [Fact]
+        public void SelectManyResultNeedsARelationBack()
+        {
+            var (repo, withPet, _) = Create();
+            Assert.Equal(withPet.Toys!.Select(x => x.Name).Order(), repo.Query<Owner>().SelectMany(x => x.Toys!, (x, t) => t.Name).ToArray().Order());
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<Owner>().SelectMany(x => x.Toys!, (x, t) => new { x.Name, Toy = t.Name }).ToArray());
+        }
+
         private static (IRepo, Owner, Owner) Create(bool eventStoreOwner = false)
         {
             var engine = new MemoryEngine();
@@ -64,26 +97,19 @@ namespace Zerra.Repository.Test
             var (repo, withPet, withoutPet) = Create();
             Assert.Null(withoutPet.PetID);
 
-            //the graph doesn't name PetID or ID, the relations still load
-            var graph = new Graph<Owner>(x => x.Name, x => x.Pet, x => x.Toys);
-            var owner = repo.Single(x => x.ID == withPet.ID, graph: graph)!;
+            //the select doesn't name PetID or ID, the relations still load
+            var owner = repo.Query<Owner>(new Graph<Owner>(x => x.Name, x => x.Pet, x => x.Toys)).Where(x => x.ID == withPet.ID).SingleOrDefault()!;
             Assert.Equal("rex", owner.Pet!.Name);
             Assert.Equal(["ball", "rope"], owner.Toys!.Select(x => x.Name).Order());
 
-            //a child graph loads only those members of the relation
-            var petName = repo.First(x => x.ID == withPet.ID, new Graph<Owner>(x => x.Pet!.Name))!;
-            Assert.Equal("rex", petName.Pet!.Name);
-            Assert.Equal(0, petName.Pet.Age);
+            //a member of a single relation joins, and the rows of a collection read only what they select
+            var names = repo.Query<Owner>().Where(x => x.ID == withPet.ID).Select(x => new { PetName = x.Pet!.Name, Toys = x.Toys!.Select(t => new Toy { Name = t.Name }).ToList() }).Single();
+            Assert.Equal("rex", names.PetName);
+            Assert.Equal(2, names.Toys.Count);
+            var async = await repo.Query<Owner>().Where(x => x.ID == withPet.ID).Select(x => new { PetName = x.Pet!.Name, Toys = x.Toys!.Select(t => new Toy { Name = t.Name }).ToList() }).FirstAsync(cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(2, async.Toys.Count);
 
-            var syncChild = repo.Single(x => x.ID == withPet.ID, new Graph<Owner>(x => x.Pet!.Name, x => x.Toys!.Select(t => t.Name)))!;
-            Assert.Equal(2, syncChild.Toys!.Count);
-            var async = (await repo.FirstAsync(x => x.ID == withPet.ID, graph: graph))!;
-            Assert.Equal(2, async.Toys!.Count);
-            var asyncChild = (await repo.SingleAsync(x => x.ID == withPet.ID, new Graph<Owner>(x => x.Pet!.Name, x => x.Toys!.Select(t => t.Name))))!;
-            Assert.Equal(0, asyncChild.Pet!.Age);
-            Assert.Equal(2, asyncChild.Toys!.Count);
-
-            var none = repo.Single(x => x.ID == withoutPet.ID, graph)!;
+            var none = repo.Query<Owner>(new Graph<Owner>(x => x.Pet, x => x.Toys)).Where(x => x.ID == withoutPet.ID).SingleOrDefault()!;
             Assert.Null(none.Pet);
             Assert.Empty(none.Toys!);
         }
@@ -94,13 +120,13 @@ namespace Zerra.Repository.Test
             var (repo, withPet, _) = Create();
             withPet.Pet = null;
             repo.Update(withPet, new Graph<Owner>(true, x => x.Pet));
-            Assert.Null(repo.Single<Owner>(x => x.ID == withPet.ID)!.PetID);
+            Assert.Null(repo.Query<Owner>().SingleOrDefault(x => x.ID == withPet.ID)!.PetID);
 
             var other = new Owner { ID = Guid.NewGuid(), Name = "async", Pet = new Pet { Name = "tom" } };
-            await repo.CreateAsync(other, new Graph<Owner>(true, x => x.Pet));
+            await repo.CreateAsync(other, new Graph<Owner>(true, x => x.Pet), TestContext.Current.CancellationToken);
             other.Pet = null;
-            await repo.UpdateAsync(other, new Graph<Owner>(true, x => x.Pet));
-            Assert.Null((await repo.SingleAsync<Owner>(x => x.ID == other.ID))!.PetID);
+            await repo.UpdateAsync(other, new Graph<Owner>(true, x => x.Pet), TestContext.Current.CancellationToken);
+            Assert.Null((await repo.Query<Owner>().SingleOrDefaultAsync(x => x.ID == other.ID, cancellationToken: TestContext.Current.CancellationToken))!.PetID);
         }
 
         [Fact]
@@ -113,9 +139,9 @@ namespace Zerra.Repository.Test
             Assert.Equal("rex", Assert.Single(events).Model.Pet!.Name);
             Assert.Equal("rex", repo.EventFirst<Owner>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == withPet.ID, graph: graph)!.Model.Pet!.Name);
             Assert.Equal(2, repo.EventSingle<Owner>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == withPet.ID, graph: graph)!.Model.Toys!.Count);
-            Assert.Equal("rex", Assert.Single(await repo.EventManyAsync<Owner>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == withPet.ID, graph: graph)).Model.Pet!.Name);
-            Assert.Equal("rex", (await repo.EventFirstAsync<Owner>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == withPet.ID, graph: graph))!.Model.Pet!.Name);
-            Assert.Equal(2, (await repo.EventSingleAsync<Owner>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == withPet.ID, graph: graph))!.Model.Toys!.Count);
+            Assert.Equal("rex", Assert.Single(await repo.EventManyAsync<Owner>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == withPet.ID, graph: graph, cancellationToken: TestContext.Current.CancellationToken)).Model.Pet!.Name);
+            Assert.Equal("rex", (await repo.EventFirstAsync<Owner>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == withPet.ID, graph: graph, cancellationToken: TestContext.Current.CancellationToken))!.Model.Pet!.Name);
+            Assert.Equal(2, (await repo.EventSingleAsync<Owner>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == withPet.ID, graph: graph, cancellationToken: TestContext.Current.CancellationToken))!.Model.Toys!.Count);
         }
     }
 }

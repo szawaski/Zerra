@@ -11,7 +11,7 @@ namespace Store.Orders.Service.Data
         /// </summary>
         public static async Task SeedAsync(IRepo repo, ILogger log)
         {
-            if (await repo.AnyAsync<CustomerDataModel>())
+            if (await repo.Query<CustomerDataModel>().AnyAsync())
                 return;
 
             await repo.CreateAsync<CustomerDataModel>(

@@ -81,8 +81,8 @@ namespace Store.Inventory.Test
             Assert.Equal(3, (await test.GetStockItem(lamp))!.Reserved);
             Assert.Equal(5, (await test.GetStockItem(mouse))!.Reserved);
             Assert.Equal(10, (await test.GetStockItem(lamp))!.OnHand);
-            var reservations = await test.Repo.ManyAsync<StockReservationDataModel>(x => x.OrderID == orderID);
-            Assert.Equal(2, reservations.Count);
+            var reservations = await test.Repo.Query<StockReservationDataModel>().Where(x => x.OrderID == orderID).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(2, reservations.Length);
             Assert.Equal(nameof(StockMovementKind.Reserved), (await test.GetMovements(lamp))[^1].Kind);
         }
 
@@ -96,7 +96,7 @@ namespace Store.Inventory.Test
             await test.Bus.DispatchAwaitAsync(Reserve(orderID, (lamp, 2), (lamp, 3)), Token);
 
             Assert.Equal(5, (await test.GetStockItem(lamp))!.Reserved);
-            var reservation = Assert.Single(await test.Repo.ManyAsync<StockReservationDataModel>(x => x.OrderID == orderID));
+            var reservation = Assert.Single(await test.Repo.Query<StockReservationDataModel>().Where(x => x.OrderID == orderID).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
             Assert.Equal(5, reservation.Quantity);
         }
 
@@ -113,7 +113,7 @@ namespace Store.Inventory.Test
 
             Assert.Equal(0, (await test.GetStockItem(lamp))!.Reserved);
             Assert.Equal(0, (await test.GetStockItem(mouse))!.Reserved);
-            Assert.Empty(await test.Repo.ManyAsync<StockReservationDataModel>(x => x.OrderID == orderID));
+            Assert.Empty(await test.Repo.Query<StockReservationDataModel>().Where(x => x.OrderID == orderID).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -179,7 +179,7 @@ namespace Store.Inventory.Test
             var item = (await test.GetStockItem(lamp))!;
             Assert.Equal(0, item.Reserved);
             Assert.Equal(10, item.OnHand);
-            Assert.Empty(await test.Repo.ManyAsync<StockReservationDataModel>(x => x.OrderID == reserve.OrderID));
+            Assert.Empty(await test.Repo.Query<StockReservationDataModel>().Where(x => x.OrderID == reserve.OrderID).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
             Assert.Equal(nameof(StockMovementKind.Released), (await test.GetMovements(lamp))[^1].Kind);
         }
 

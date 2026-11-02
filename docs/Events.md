@@ -37,7 +37,7 @@ public Task Handle(ProductPriceChangedEvent @event)
 // ❌ Wrong in a PerReplica event handler - three replicas decrement the stock three times
 public async Task Handle(OrderShippedEvent @event)
 {
-    var item = await Repo.SingleAsync<StockItemDataModel>(x => x.ProductID == @event.ProductID);
+    var item = await Repo.Query<StockItemDataModel>().SingleAsync(x => x.ProductID == @event.ProductID);
     item.OnHand -= @event.Quantity;
     await Repo.UpdateAsync(item);
 }

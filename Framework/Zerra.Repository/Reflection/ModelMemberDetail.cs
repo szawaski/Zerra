@@ -38,6 +38,18 @@ namespace Zerra.Repository.Reflection
         /// </summary>
         public CoreType? CoreType { get; }
         /// <summary>
+        /// The enum type of this member, nullable or not, which is stored as the text from <see cref="EnumName"/>.
+        /// </summary>
+        public Type? EnumType { get; }
+        /// <summary>
+        /// The <see cref="Zerra.Reflection.CoreType"/> of this member's column, which is text for an enum.
+        /// </summary>
+        public CoreType? ColumnCoreType { get; }
+        /// <summary>
+        /// The text of the default value of an enum, for a new column that can't be null.
+        /// </summary>
+        public string? EnumDefaultText { get; }
+        /// <summary>
         /// The column or store name for this member, as specified by <see cref="StoreNameAttribute"/> or defaulting to <see cref="Name"/>.
         /// </summary>
         public string StoreName { get; }
@@ -133,6 +145,28 @@ namespace Zerra.Repository.Reflection
             this.Name = memberDetail.Name;
             this.Type = memberDetail.Type;
             this.CoreType = memberDetail.TypeDetail.CoreType;
+            this.ColumnCoreType = this.CoreType;
+            var enumType = Nullable.GetUnderlyingType(memberDetail.Type) ?? memberDetail.Type;
+            var enumLength = 0;
+            if (enumType.IsEnum)
+            {
+                this.EnumType = enumType;
+                this.ColumnCoreType = Zerra.Reflection.CoreType.String;
+                var flags = enumType.IsDefined(typeof(FlagsAttribute), false);
+                var values = Enum.GetValuesAsUnderlyingType(enumType);
+                //a flags enum holds many names joined
+                foreach (var value in values)
+                {
+                    var length = EnumName.GetName(enumType, value).Length;
+                    enumLength = flags ? enumLength + length + 1 : Math.Max(enumLength, length);
+                }
+                enumLength = Math.Max(enumLength, 1);
+                var zero = Enum.ToObject(enumType, 0);
+                if (flags || Enum.IsDefined(enumType, zero))
+                    this.EnumDefaultText = EnumName.GetName(enumType, zero);
+                else if (values.Length > 0)
+                    this.EnumDefaultText = EnumName.GetName(enumType, values.GetValue(0)!);
+            }
             this.IsNullable = memberDetail.TypeDetail.IsNullable;
             this.IsEnumerable = memberDetail.TypeDetail.HasIEnumerable;
             this.ActualType = MemberDetail.TypeDetail.CoreType != Zerra.Reflection.CoreType.String && memberDetail.TypeDetail.HasIEnumerable ? memberDetail.TypeDetail.IEnumerableGenericInnerType! : memberDetail.TypeDetail.Type;
@@ -194,7 +228,7 @@ namespace Zerra.Repository.Reflection
             this.IsDataSourceEntity = entityAttribute is not null;
 
             this.IsDataSourceNotNull = storePropertyAttribute is not null ? storePropertyAttribute.NotNull : ((ActualType.IsValueType && !memberDetail.TypeDetail.IsNullable) && memberDetail.TypeDetail.CoreType != Zerra.Reflection.CoreType.String);
-            this.DataSourcePrecisionLength = storePropertyAttribute?.PrecisionLength;
+            this.DataSourcePrecisionLength = storePropertyAttribute?.PrecisionLength ?? (this.EnumType is null ? null : enumLength);
             this.DataSourceScale = storePropertyAttribute?.Scale;
             this.TextEncoding = storePropertyAttribute is not null ? storePropertyAttribute.TextEncoding : StoreTextEncoding.Unicode;
             this.DatePart = storePropertyAttribute is not null ? storePropertyAttribute.DatePart : StoreDatePart.DateTime;

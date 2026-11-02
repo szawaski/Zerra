@@ -12,11 +12,6 @@ namespace Zerra.Repository.Test.MsSql
     // FROM has no space before the bracket: FROM[TestTypes]
     public class LinqMsSqlConverterTests : BaseLinqSqlConverterTests
     {
-        protected override string ConvertToSql(QueryOperation select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
-            => LinqMsSqlConverter.Convert(select, where, order, skip, take, graph, modelDetail);
-
-        protected override string ConvertCalculationToSql(QueryOperation operation, LambdaExpression? where, LambdaExpression? groupBy, LambdaExpression? value, ModelDetail modelDetail)
-            => Zerra.Repository.MsSql.LinqMsSqlConverter.ConvertCalculation(operation, where, groupBy, value, modelDetail);
 
         protected override string ConvertPersistWhereToSql(LambdaExpression where, ModelDetail modelDetail)
             => Zerra.Repository.MsSql.LinqMsSqlConverter.ConvertPersistWhere(where, modelDetail);
@@ -24,14 +19,8 @@ namespace Zerra.Repository.Test.MsSql
         protected override string ConvertPersistUpdateToSql(ProjectionMember[] sets, LambdaExpression where, ModelDetail modelDetail)
             => Zerra.Repository.MsSql.LinqMsSqlConverter.ConvertPersistUpdate(sets, where, modelDetail);
 
-        protected override string ConvertSelectToSql(ProjectionMember[] members, LambdaExpression? where, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail)
-            => Zerra.Repository.MsSql.LinqMsSqlConverter.ConvertSelect(members, where, order, skip, take, modelDetail);
-
-        protected override string ConvertSelectElementsToSql(ProjectionMember collection, LambdaExpression where, ModelDetail relatedDetail)
-            => Zerra.Repository.MsSql.LinqMsSqlConverter.ConvertSelectElements(collection, where, relatedDetail);
-
-        protected override string ConvertGroupToSql(LambdaExpression groupBy, ProjectionMember[] members, LambdaExpression? where, LambdaExpression? having, QueryOrder? order, int? skip, int? take, ModelDetail modelDetail, Type resultType)
-            => Zerra.Repository.MsSql.LinqMsSqlConverter.ConvertGroup(groupBy, members, where, having, order, skip, take, modelDetail, resultType);
+        protected override string ConvertLinqToSql(LinqQuery query, ModelDetail modelDetail)
+            => LinqMsSqlConverter.ConvertLinq(query, modelDetail).Sql;
 
         protected override SqlDialectExpectations GetDialect() => new()
         {

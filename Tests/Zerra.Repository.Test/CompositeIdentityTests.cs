@@ -76,14 +76,14 @@ namespace Zerra.Repository.Test
             repo.AddProvider(new TransactStoreProvider<CompositeParent>(new MemoryEngine()));
             var a = Guid.NewGuid();
             repo.Create(new CompositeParent { A = a, B = 1, Name = "one" });
-            await repo.CreateAsync(new CompositeParent { A = a, B = 2, Name = "two" });
+            await repo.CreateAsync(new CompositeParent { A = a, B = 2, Name = "two" }, TestContext.Current.CancellationToken);
 
-            Assert.Equal("two", repo.Single<CompositeParent>(x => x.A == a && x.B == 2)!.Name);
+            Assert.Equal("two", repo.Query<CompositeParent>().SingleOrDefault(x => x.A == a && x.B == 2)!.Name);
             repo.Update(new CompositeParent { A = a, B = 2, Name = "updated" });
-            Assert.Equal(["one", "updated"], repo.Many<CompositeParent>(x => x.A == a).Select(x => x.Name).Order());
+            Assert.Equal(["one", "updated"], repo.Query<CompositeParent>().Where(x => x.A == a).ToArray().Select(x => x.Name).Order());
             repo.DeleteByID<CompositeParent>((object)new object[] { a, 1 }); //an object[] alone is a collection of IDs
-            await repo.DeleteAsync(new CompositeParent { A = a, B = 2 });
-            Assert.Empty(await repo.ManyAsync<CompositeParent>(x => x.A == a));
+            await repo.DeleteAsync(new CompositeParent { A = a, B = 2 }, TestContext.Current.CancellationToken);
+            Assert.Empty(await repo.Query<CompositeParent>().Where(x => x.A == a).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -97,12 +97,12 @@ namespace Zerra.Repository.Test
             {
                 model.Name = $"{i}";
                 if (i % 2 == 0)
-                    await repo.UpdateAsync(model);
+                    await repo.UpdateAsync(model, TestContext.Current.CancellationToken);
                 else
                     repo.Update(model);
             }
 
-            Assert.Equal("4", repo.Single<CompositeParent>(x => x.A == model.A && x.B == 5)!.Name);
+            Assert.Equal("4", repo.Query<CompositeParent>().SingleOrDefault(x => x.A == model.A && x.B == 5)!.Name);
             Assert.Equal("3", repo.TemporalFirst<CompositeParent>(TemporalOrder.Newest, (ulong?)null, 3, null, null, x => x.A == model.A && x.B == 5, null, null)!.Name);
             Assert.Equal(["2", "3", "4"], repo.TemporalMany<CompositeParent>(TemporalOrder.Oldest, (ulong?)2, null, null, null, x => x.A == model.A && x.B == 5).Select(x => x.Name));
         }

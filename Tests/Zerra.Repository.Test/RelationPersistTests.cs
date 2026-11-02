@@ -65,7 +65,7 @@ namespace Zerra.Repository.Test
 
         private static void AssertStored(IRepo repo, Parent expected)
         {
-            var stored = repo.Single<Parent>(x => x.ID == expected.ID, withRelations);
+            var stored = repo.Query<Parent>(new Graph<Parent>(x => x.ID, x => x.Name, x => x.ChildID, x => x.Child, x => x.Items)).Where(x => x.ID == expected.ID).SingleOrDefault();
             Assert.NotNull(stored);
             Assert.Equal(expected.Name, stored.Name);
             Assert.Equal(expected.Child?.Name, stored.Child?.Name);
@@ -98,12 +98,12 @@ namespace Zerra.Repository.Test
             parent.Items = [parent.Items[0], new Item { ID = Guid.NewGuid(), Name = "three" }];
             repo.Update(parent, withRelations);
             AssertStored(repo, parent);
-            Assert.Null(repo.Single<Item>(x => x.ID == removed.ID));
-            Assert.Equal(1, repo.Count<Child>(x => x.ID == parent.Child.ID));
+            Assert.Null(repo.Query<Item>().SingleOrDefault(x => x.ID == removed.ID));
+            Assert.Equal(1, repo.Query<Child>().Count(x => x.ID == parent.Child.ID));
 
             repo.Delete(parent, withRelations);
-            Assert.Null(repo.Single<Parent>(x => x.ID == parent.ID));
-            Assert.False(repo.Any<Item>(x => x.ParentID == parent.ID));
+            Assert.Null(repo.Query<Parent>().SingleOrDefault(x => x.ID == parent.ID));
+            Assert.False(repo.Query<Item>().Any(x => x.ParentID == parent.ID));
         }
 
         internal static async Task TestSequenceAsync(ITransactStoreEngine engine)
@@ -123,12 +123,12 @@ namespace Zerra.Repository.Test
             parent.Items = [parent.Items[0], new Item { ID = Guid.NewGuid(), Name = "three" }];
             await repo.UpdateAsync(parent, withRelations);
             AssertStored(repo, parent);
-            Assert.Null(await repo.SingleAsync<Item>(x => x.ID == removed.ID));
-            Assert.Equal(1, await repo.CountAsync<Child>(x => x.ID == parent.Child.ID));
+            Assert.Null(await repo.Query<Item>().SingleOrDefaultAsync(x => x.ID == removed.ID));
+            Assert.Equal(1, await repo.Query<Child>().CountAsync(x => x.ID == parent.Child.ID));
 
             await repo.DeleteAsync(parent, withRelations);
-            Assert.Null(await repo.SingleAsync<Parent>(x => x.ID == parent.ID));
-            Assert.False(await repo.AnyAsync<Item>(x => x.ParentID == parent.ID));
+            Assert.Null(await repo.Query<Parent>().SingleOrDefaultAsync(x => x.ID == parent.ID));
+            Assert.False(await repo.Query<Item>().AnyAsync(x => x.ParentID == parent.ID));
         }
     }
 }

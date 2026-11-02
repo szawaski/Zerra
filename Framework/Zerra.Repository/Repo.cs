@@ -30,32 +30,39 @@ namespace Zerra.Repository
             this.providers = new();
         }
 
-        object? IRepo.Query(Query query)
+        object? IRepoInternal.Query(LinqQuery query)
         {
             if (!providers.TryGetValue(query.ModelType, out var provider))
                 throw new Exception($"No provider for {query.ModelType.FullName}");
             return provider.Query(query);
         }
 
-        void IRepo.Persist(Persist persist)
+        void IRepoInternal.Persist(Persist persist)
         {
             if (!providers.TryGetValue(persist.ModelType, out var provider))
                 throw new Exception($"No provider for {persist.ModelType.FullName}");
             provider.Persist(persist);
         }
 
-        Task<object?> IRepo.QueryAsync(Query query)
+        Task<object?> IRepoInternal.QueryAsync(LinqQuery query, CancellationToken cancellationToken)
         {
             if (!providers.TryGetValue(query.ModelType, out var provider))
                 throw new Exception($"No provider for {query.ModelType.FullName}");
-            return provider.QueryAsync(query);
+            return provider.QueryAsync(query, cancellationToken);
         }
 
-        Task IRepo.PersistAsync(Persist persist)
+        Task IRepoInternal.PersistAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (!providers.TryGetValue(persist.ModelType, out var provider))
                 throw new Exception($"No provider for {persist.ModelType.FullName}");
-            return provider.PersistAsync(persist);
+            return provider.PersistAsync(persist, cancellationToken);
+        }
+
+        IQueryable<TModel> IRepo.Query<TModel>(Graph? graph)
+        {
+            if (!providers.ContainsKey(typeof(TModel)))
+                throw new Exception($"No provider for {typeof(TModel).FullName}");
+            return new RepoQueryable<TModel>(new RepoQueryProvider<TModel>(this, graph), null);
         }
 
         void IRepoSetup.AddProvider<TModel>(ITransactStoreProvider<TModel> provider)

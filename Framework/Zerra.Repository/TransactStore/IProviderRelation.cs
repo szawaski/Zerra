@@ -34,5 +34,8 @@ namespace Zerra.Repository
 
         /// <summary>The store the provider writes to, compared by reference with a related model's to tell whether a condition through the relation can run in one statement; <see langword="null"/> when unknown.</summary>
         object? Engine { get; }
+
+        /// <summary>Gets whether a query of another model can read this model in its own statement when they share an engine. A layer or an event store reads through itself, so its rows load through this provider instead.</summary>
+        bool ReadsInStore { get; }
     }
 }

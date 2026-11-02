@@ -10,5 +10,7 @@ namespace Zerra.Repository
     /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
     public interface ITransactStoreProvider<TModel> : ITransactStoreProvider where TModel : class, new()
     {
+        LinqQuery ITransactStoreProvider.ReadElements<TResult>(System.Linq.Expressions.Expression expression, LinqElements elements, LinqTerminal? terminal, System.Linq.Expressions.LambdaExpression? argument)
+            => new LinqQuery<TModel, TResult>(expression, elements, terminal, argument);
     }
 }

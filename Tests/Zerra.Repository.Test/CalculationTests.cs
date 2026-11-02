@@ -62,21 +62,21 @@ namespace Zerra.Repository.Test
         {
             var (repo, models) = MemoryRepo();
 
-            Assert.Equal(models.Sum(x => x.Number), repo.Sum<CalculationModel>(x => x.Number));
-            Assert.Equal(models.Sum(x => x.Maybe), repo.Sum<CalculationModel>(x => x.Maybe));
-            Assert.Equal(models.Sum(x => x.Money), repo.Sum<CalculationModel>(x => x.Money));
-            Assert.Equal(models.Sum(x => x.Ratio), repo.Sum<CalculationModel>(x => x.Ratio));
-            Assert.Equal(models.Where(x => x.Flag).Sum(x => x.Number * 2), repo.Sum<CalculationModel>(x => x.Number * 2, x => x.Flag));
+            Assert.Equal(models.Sum(x => x.Number), repo.Query<CalculationModel>().Sum(x => x.Number));
+            Assert.Equal(models.Sum(x => x.Maybe), repo.Query<CalculationModel>().Sum(x => x.Maybe));
+            Assert.Equal(models.Sum(x => x.Money), repo.Query<CalculationModel>().Sum(x => x.Money));
+            Assert.Equal(models.Sum(x => x.Ratio), repo.Query<CalculationModel>().Sum(x => x.Ratio));
+            Assert.Equal(models.Where(x => x.Flag).Sum(x => x.Number * 2), repo.Query<CalculationModel>().Where(x => x.Flag).Sum(x => x.Number * 2));
 
-            Assert.Equal(models.Average(x => x.Number), repo.Average<CalculationModel>(x => x.Number));
-            Assert.Equal(models.Average(x => x.Maybe), repo.Average<CalculationModel>(x => x.Maybe));
-            Assert.Equal(models.Average(x => x.Money), repo.Average<CalculationModel>(x => x.Money));
-            Assert.Equal(models.Average(x => x.Ratio), await repo.AverageAsync<CalculationModel>(x => x.Ratio));
+            Assert.Equal(models.Average(x => x.Number), repo.Query<CalculationModel>().Average(x => x.Number));
+            Assert.Equal(models.Average(x => x.Maybe), repo.Query<CalculationModel>().Average(x => x.Maybe));
+            Assert.Equal(models.Average(x => x.Money), repo.Query<CalculationModel>().Average(x => x.Money));
+            Assert.Equal(models.Average(x => x.Ratio), await repo.Query<CalculationModel>().AverageAsync(x => x.Ratio, cancellationToken: TestContext.Current.CancellationToken));
 
-            Assert.Equal(models.Min(x => x.Number), repo.Min<CalculationModel, int>(x => x.Number));
-            Assert.Equal(models.Max(x => x.Maybe), repo.Max<CalculationModel, int?>(x => x.Maybe));
-            Assert.Equal(models.Min(x => x.Name), repo.Min<CalculationModel, string?>(x => x.Name));
-            Assert.Equal(models.Max(x => x.Date), await repo.MaxAsync<CalculationModel, DateTime>(x => x.Date));
+            Assert.Equal(models.Min(x => x.Number), repo.Query<CalculationModel>().Min(x => x.Number));
+            Assert.Equal(models.Max(x => x.Maybe), repo.Query<CalculationModel>().Max(x => x.Maybe));
+            Assert.Equal(models.Min(x => x.Name), repo.Query<CalculationModel>().Min(x => x.Name));
+            Assert.Equal(models.Max(x => x.Date), await repo.Query<CalculationModel>().MaxAsync(x => x.Date, cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -85,13 +85,13 @@ namespace Zerra.Repository.Test
             var (repo, _) = MemoryRepo();
             Expression<Func<CalculationModel, bool>> none = x => x.Number > 100;
 
-            Assert.Equal(0, repo.Sum<CalculationModel>(x => x.Number, none));
-            Assert.Equal(0, repo.Sum<CalculationModel>(x => x.Maybe, none));
-            Assert.Null(repo.Average<CalculationModel>(x => x.Maybe, none));
-            Assert.Null(repo.Max<CalculationModel, string?>(x => x.Name, none));
-            Assert.Throws<InvalidOperationException>(() => repo.Average<CalculationModel>(x => x.Number, none));
-            Assert.Throws<InvalidOperationException>(() => repo.Min<CalculationModel, int>(x => x.Number, none));
-            Assert.Empty(repo.Count<CalculationModel, bool>(x => x.Flag, none));
+            Assert.Equal(0, repo.Query<CalculationModel>().Where(none).Sum(x => x.Number));
+            Assert.Equal(0, repo.Query<CalculationModel>().Where(none).Sum(x => x.Maybe));
+            Assert.Null(repo.Query<CalculationModel>().Where(none).Average(x => x.Maybe));
+            Assert.Null(repo.Query<CalculationModel>().Where(none).Max(x => x.Name));
+            Assert.Throws<InvalidOperationException>(() => repo.Query<CalculationModel>().Where(none).Average(x => x.Number));
+            Assert.Throws<InvalidOperationException>(() => repo.Query<CalculationModel>().Where(none).Min(x => x.Number));
+            Assert.Empty(repo.Query<CalculationModel>().Where(none).GroupBy(x => x.Flag).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray());
         }
 
         [Fact]
@@ -99,31 +99,31 @@ namespace Zerra.Repository.Test
         {
             var (repo, models) = MemoryRepo();
 
-            var counts = repo.Count<CalculationModel, bool>(x => x.Flag);
-            Assert.Equal(2, counts.Count);
+            var counts = repo.Query<CalculationModel>().GroupBy(x => x.Flag).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray();
+            Assert.Equal(2, counts.Length);
             Assert.Equal(3, counts.Single(x => x.Key).Value);
             Assert.Equal(2, counts.Single(x => !x.Key).Value);
 
-            var sums = await repo.SumAsync<CalculationModel, bool>(x => x.Flag, x => x.Money);
+            var sums = (await repo.Query<CalculationModel>().GroupBy(x => x.Flag).Select(g => new { g.Key, Value = g.Sum(x => x.Money) }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Select(r => (r.Key, r.Value)).ToArray();
             Assert.Equal(models.Where(x => x.Flag).Sum(x => x.Money), sums.Single(x => x.Key).Value);
 
-            var averages = repo.Average<CalculationModel, bool>(x => x.Flag, x => x.Number);
+            var averages = repo.Query<CalculationModel>().GroupBy(x => x.Flag).Select(g => new { g.Key, Value = g.Average(x => x.Number) }).ToArray().Select(r => (r.Key, r.Value)).ToArray();
             Assert.Equal(models.Where(x => !x.Flag).Average(x => x.Number), averages.Single(x => !x.Key).Value);
 
             //a null key is a group, as in LINQ
-            var byMaybe = repo.Count<CalculationModel, int?>(x => x.Maybe);
+            var byMaybe = repo.Query<CalculationModel>().GroupBy(x => x.Maybe).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray();
             Assert.Equal(2, byMaybe.Single(x => x.Key is null).Value);
             Assert.Equal(3, byMaybe.Count(x => x.Key is not null));
 
             //string keys group without case by default, like the memory engine's where
-            var byName = repo.Count<CalculationModel, string?>(x => x.Name);
+            var byName = repo.Query<CalculationModel>().GroupBy(x => x.Name).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray();
             Assert.Equal(2, byName.Single(x => x.Key == "apple").Value);
             Assert.Equal(1, byName.Single(x => x.Key is null).Value);
 
-            var byYear = repo.Max<CalculationModel, int, DateTime>(x => x.Date.Year, x => x.Date);
+            var byYear = repo.Query<CalculationModel>().GroupBy(x => x.Date.Year).Select(g => new { g.Key, Value = g.Max(x => x.Date) }).ToArray().Select(r => (r.Key, r.Value)).ToArray();
             Assert.Equal(models.Where(x => x.Date.Year == 2021).Max(x => x.Date), byYear.Single(x => x.Key == 2021).Value);
 
-            var filtered = repo.Min<CalculationModel, bool, int>(x => x.Flag, x => x.Number, x => x.Number > 1);
+            var filtered = repo.Query<CalculationModel>().Where(x => x.Number > 1).GroupBy(x => x.Flag).Select(g => new { g.Key, Value = g.Min(x => x.Number) }).ToArray().Select(r => (r.Key, r.Value)).ToArray();
             Assert.Equal(3, filtered.Single(x => x.Key).Value);
             Assert.Equal(2, filtered.Single(x => !x.Key).Value);
         }
@@ -134,16 +134,16 @@ namespace Zerra.Repository.Test
             var (repo, models) = MemoryRepo();
 
             //a key of several members is an anonymous object, expression trees can't hold a tuple literal
-            var pairs = repo.Count((CalculationModel x) => new { x.Flag, x.Maybe });
-            Assert.Equal(models.GroupBy(x => (x.Flag, x.Maybe)).Count(), pairs.Count);
-            Assert.Equal(1, pairs.Single(x => x.Key.Flag && x.Key.Maybe == 2).Value);
-            Assert.Equal(2, pairs.Single(x => !x.Key.Flag && x.Key.Maybe is null).Value);
+            var pairs = repo.Query<CalculationModel>().GroupBy(x => new { x.Flag, x.Maybe }).Select(g => new { g.Key.Flag, g.Key.Maybe, Value = (long)g.Count() }).ToArray();
+            Assert.Equal(models.GroupBy(x => (x.Flag, x.Maybe)).Count(), pairs.Length);
+            Assert.Equal(1, pairs.Single(x => x.Flag && x.Maybe == 2).Value);
+            Assert.Equal(2, pairs.Single(x => !x.Flag && x.Maybe is null).Value);
 
-            var anonymous = repo.Sum(x => new { x.Flag, Year = x.Date.Year }, (CalculationModel x) => x.Number);
-            Assert.Equal(models.Where(x => x.Flag && x.Date.Year == 2020).Sum(x => x.Number), anonymous.Single(x => x.Key.Flag && x.Key.Year == 2020).Value);
+            var anonymous = repo.Query<CalculationModel>().GroupBy(x => new { x.Flag, Year = x.Date.Year }).Select(g => new { g.Key.Flag, g.Key.Year, Value = g.Sum(x => x.Number) }).ToArray();
+            Assert.Equal(models.Where(x => x.Flag && x.Date.Year == 2020).Sum(x => x.Number), anonymous.Single(x => x.Flag && x.Year == 2020).Value);
 
-            var explicitTuple = repo.Count<CalculationModel, ValueTuple<bool, int?>>(x => new ValueTuple<bool, int?>(x.Flag, x.Maybe));
-            Assert.Equal(1, explicitTuple.Single(x => x.Key == (true, 2)).Value);
+            var explicitTuple = repo.Query<CalculationModel>().GroupBy(x => new ValueTuple<bool, int?>(x.Flag, x.Maybe)).Select(g => new { Flag = g.Key.Item1, Maybe = g.Key.Item2, Value = (long)g.Count() }).ToArray();
+            Assert.Equal(1, explicitTuple.Single(x => x.Flag && x.Maybe == 2).Value);
         }
 
         [Fact]
@@ -153,7 +153,7 @@ namespace Zerra.Repository.Test
             repo.AddProvider(new TransactStoreProvider<CalculationModel>(new MemoryEngine(true)));
             repo.Create<CalculationModel>(Models());
 
-            var byName = repo.Count<CalculationModel, string?>(x => x.Name);
+            var byName = repo.Query<CalculationModel>().GroupBy(x => x.Name).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray();
             Assert.Equal(1, byName.Single(x => x.Key == "apple").Value);
             Assert.Equal(1, byName.Single(x => x.Key == "Apple").Value);
         }
@@ -176,13 +176,13 @@ namespace Zerra.Repository.Test
             model.Value = 5;
             repo.Update(model);
             model.Value = 10;
-            await repo.UpdateAsync(model);
+            await repo.UpdateAsync(model, TestContext.Current.CancellationToken);
 
-            //Count on an event store counts every state the model had, a calculation uses the state it has now
-            Assert.Equal(3, repo.Count<EventedModel>(x => x.ID == model.ID));
-            Assert.Equal(10, repo.Sum<EventedModel>(x => x.Value, x => x.ID == model.ID));
-            Assert.Equal(10, await repo.MaxAsync<EventedModel, int>(x => x.Value, x => x.ID == model.ID));
-            var grouped = await repo.CountAsync<EventedModel, Guid>(x => x.ID, x => x.ID == model.ID);
+            //a query of an event store reads the state each model has now
+            Assert.Equal(1, repo.Query<EventedModel>().Count(x => x.ID == model.ID));
+            Assert.Equal(10, repo.Query<EventedModel>().Where(x => x.ID == model.ID).Sum(x => x.Value));
+            Assert.Equal(10, await repo.Query<EventedModel>().Where(x => x.ID == model.ID).MaxAsync(x => x.Value, cancellationToken: TestContext.Current.CancellationToken));
+            var grouped = (await repo.Query<EventedModel>().Where(x => x.ID == model.ID).GroupBy(x => x.ID).Select(g => new { g.Key, Value = (long)g.Count() }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Select(r => (r.Key, r.Value)).ToArray();
             Assert.Equal(1, Assert.Single(grouped).Value);
         }
 
@@ -199,9 +199,9 @@ namespace Zerra.Repository.Test
             var models = Models();
             repo.Create<CalculationModel>(models);
 
-            Assert.Equal(2 + 4, repo.Sum<CalculationModel>(x => x.Number));
-            Assert.Equal(4, await repo.SumAsync<CalculationModel>(x => x.Number, x => x.Number > 2));
-            var counts = repo.Count<CalculationModel, bool>(x => x.Flag);
+            Assert.Equal(2 + 4, repo.Query<CalculationModel>().Sum(x => x.Number));
+            Assert.Equal(4, await repo.Query<CalculationModel>().Where(x => x.Number > 2).SumAsync(x => x.Number, cancellationToken: TestContext.Current.CancellationToken));
+            var counts = repo.Query<CalculationModel>().GroupBy(x => x.Flag).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray();
             Assert.Equal(2, Assert.Single(counts).Value);
         }
 
@@ -226,80 +226,13 @@ namespace Zerra.Repository.Test
                 var models = Models();
                 repo.Create<CalculationModel>(models);
 
-                Assert.Equal(models.Max(x => x.Number), repo.Max<CalculationModel, int>(x => x.Number));
-                Assert.Equal(2, repo.Count<CalculationModel, bool>(x => x.Flag).Count);
-                _ = Assert.Throws<NotSupportedException>(() => repo.Max<CalculationModel, string?>(x => x.Name));
-                _ = Assert.Throws<NotSupportedException>(() => repo.Count<CalculationModel, string?>(x => x.Name));
-                _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.MinAsync<CalculationModel, bool, string?>(x => x.Flag, x => x.Name));
-                _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.CountAsync((CalculationModel x) => new { x.Flag, x.Name }));
+                Assert.Equal(models.Max(x => x.Number), repo.Query<CalculationModel>().Max(x => x.Number));
+                Assert.Equal(2, repo.Query<CalculationModel>().GroupBy(x => x.Flag).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray().Length);
+                _ = Assert.Throws<NotSupportedException>(() => repo.Query<CalculationModel>().Max(x => x.Name));
+                _ = Assert.Throws<NotSupportedException>(() => repo.Query<CalculationModel>().GroupBy(x => x.Name).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray());
+                _ = await Assert.ThrowsAsync<NotSupportedException>(async () => (await repo.Query<CalculationModel>().GroupBy(x => x.Flag).Select(g => new { g.Key, Value = g.Min(x => x.Name) }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Select(r => (r.Key, r.Value)).ToArray());
+                _ = await Assert.ThrowsAsync<NotSupportedException>(async () => (await repo.Query<CalculationModel>().GroupBy(x => new { x.Flag, x.Name }).Select(g => new { g.Key, Value = (long)g.Count() }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Select(r => (r.Key, r.Value)).ToArray());
             }
-        }
-
-        private sealed class RecordingProvider : ITransactStoreProvider<CalculationModel>
-        {
-            private static readonly CalculationModel[] models = Models();
-            public Query? Query { get; private set; }
-            private object? Result(Query query)
-            {
-                Query = query;
-                if (query.GroupBy is not null)
-                    return query.Execute(models);
-                return models.Calculate(query.Operation, query.Value);
-            }
-            object? ITransactStoreProvider.Query(Query query) => Result(query);
-            Task<object?> ITransactStoreProvider.QueryAsync(Query query) => Task.FromResult(Result(query));
-            void ITransactStoreProvider.Persist(Persist persist) => throw new NotSupportedException();
-            Task ITransactStoreProvider.PersistAsync(Persist persist) => throw new NotSupportedException();
-        }
-
-        [Fact]
-        public async Task OverloadsPassTheirArguments()
-        {
-            var provider = new RecordingProvider();
-            var repo = Repo.New();
-            repo.AddProvider<CalculationModel>(provider);
-            Expression<Func<CalculationModel, bool>> where = x => x.Number > 1;
-            Expression<Func<CalculationModel, bool>> groupBy = x => x.Flag;
-            Expression<Func<CalculationModel, int>> number = x => x.Number;
-            Expression<Func<CalculationModel, decimal?>> money = x => x.Money;
-
-            _ = repo.Sum(number, where);
-            Assert.Equal(QueryOperation.Sum, provider.Query!.Operation);
-            Assert.Same(where, provider.Query.Where);
-            Assert.Null(provider.Query.GroupBy);
-            Assert.Same(number, provider.Query.Value);
-
-            _ = await repo.SumAsync(groupBy, number);
-            Assert.Equal(QueryOperation.Sum, provider.Query!.Operation);
-            Assert.Null(provider.Query.Where);
-            Assert.Same(groupBy, provider.Query.GroupBy);
-            Assert.Same(number, provider.Query.Value);
-
-            decimal? average = repo.Average(money);
-            Assert.Equal(QueryOperation.Average, provider.Query!.Operation);
-            Assert.Same(money, provider.Query.Value);
-            Assert.Equal(3m, average);
-
-            //the recording provider calculates over all its models, the where is only recorded
-            double integerAverage = await repo.AverageAsync(number, where);
-            Assert.Equal(3.0, integerAverage);
-            Assert.Same(where, provider.Query!.Where);
-
-            _ = repo.Min(number, where);
-            Assert.Equal(QueryOperation.Min, provider.Query!.Operation);
-            Assert.Same(where, provider.Query.Where);
-
-            _ = await repo.MaxAsync(groupBy, money, where);
-            Assert.Equal(QueryOperation.Max, provider.Query!.Operation);
-            Assert.Same(groupBy, provider.Query.GroupBy);
-            Assert.Same(money, provider.Query.Value);
-            Assert.Same(where, provider.Query.Where);
-
-            _ = await repo.CountAsync(groupBy, where);
-            Assert.Equal(QueryOperation.Count, provider.Query!.Operation);
-            Assert.Same(groupBy, provider.Query.GroupBy);
-            Assert.Null(provider.Query.Value);
-            Assert.Same(where, provider.Query.Where);
         }
 
         [Fact]
@@ -308,12 +241,12 @@ namespace Zerra.Repository.Test
             Expression<Func<CalculationModel, int>> number = x => x.Number;
             Expression<Func<CalculationModel, int?>> maybe = x => x.Maybe;
             Expression<Func<CalculationModel, decimal>> money = x => x.Money;
-            Assert.Equal(typeof(long), CalculationCommon.GetResultType(QueryOperation.Count, null));
-            Assert.Equal(typeof(int), CalculationCommon.GetResultType(QueryOperation.Sum, number));
-            Assert.Equal(typeof(int?), CalculationCommon.GetResultType(QueryOperation.Max, maybe));
-            Assert.Equal(typeof(double), CalculationCommon.GetResultType(QueryOperation.Average, number));
-            Assert.Equal(typeof(double?), CalculationCommon.GetResultType(QueryOperation.Average, maybe));
-            Assert.Equal(typeof(decimal), CalculationCommon.GetResultType(QueryOperation.Average, money));
+            Assert.Equal(typeof(long), CalculationCommon.GetResultType(LinqColumnKind.Count, null));
+            Assert.Equal(typeof(int), CalculationCommon.GetResultType(LinqColumnKind.Sum, number));
+            Assert.Equal(typeof(int?), CalculationCommon.GetResultType(LinqColumnKind.Max, maybe));
+            Assert.Equal(typeof(double), CalculationCommon.GetResultType(LinqColumnKind.Average, number));
+            Assert.Equal(typeof(double?), CalculationCommon.GetResultType(LinqColumnKind.Average, maybe));
+            Assert.Equal(typeof(decimal), CalculationCommon.GetResultType(LinqColumnKind.Average, money));
         }
 
     }

@@ -19,33 +19,33 @@ namespace Store.Catalog.Service.Handlers
 
         public async Task<CategoryModel[]> GetCategories(CancellationToken cancellationToken)
         {
-            var items = await Repo.ManyAsync<CategoryDataModel>(QueryOrder<CategoryDataModel>.Create(x => x.Name));
+            var items = await Repo.Query<CategoryDataModel>().OrderBy(x => x.Name).ToArrayAsync(cancellationToken);
             return items.Select(x => new CategoryModel() { ID = x.ID, Name = x.Name }).ToArray();
         }
 
         public async Task<ProductModel[]> GetProducts(CancellationToken cancellationToken)
         {
-            var items = await Repo.SelectAsync(SelectModel(), order: QueryOrder<ProductDataModel>.Create(x => x.Name));
-            return items.ToArray();
+            var items = await Repo.Query<ProductDataModel>().OrderBy(x => x.Name).Select(SelectModel()).ToArrayAsync(cancellationToken);
+            return items;
         }
 
         public async Task<ProductModel[]> GetProductsByCategory(Guid categoryID, CancellationToken cancellationToken)
         {
-            var items = await Repo.SelectAsync(SelectModel(), x => x.CategoryID == categoryID, QueryOrder<ProductDataModel>.Create(x => x.Name));
-            return items.ToArray();
+            var items = await Repo.Query<ProductDataModel>().Where(x => x.CategoryID == categoryID).OrderBy(x => x.Name).Select(SelectModel()).ToArrayAsync(cancellationToken);
+            return items;
         }
 
         public async Task<ProductModel[]> GetProductsByIDs(Guid[] productIDs, CancellationToken cancellationToken)
         {
             if (productIDs.Length == 0)
                 return [];
-            var items = await Repo.SelectAsync(SelectModel(), x => productIDs.Contains(x.ID));
-            return items.ToArray();
+            var items = await Repo.Query<ProductDataModel>().Where(x => productIDs.Contains(x.ID)).Select(SelectModel()).ToArrayAsync(cancellationToken);
+            return items;
         }
 
         public async Task<Stream> ExportProductsCsv(CancellationToken cancellationToken)
         {
-            var items = await Repo.ManyAsync(QueryOrder<ProductDataModel>.Create(x => x.Name), WithCategory());
+            var items = await Repo.Query<ProductDataModel>(new Graph<ProductDataModel>(true, x => x.Category)).OrderBy(x => x.Name).ToArrayAsync(cancellationToken);
 
             //the CSV is written as the caller reads it, the pipe only holds what hasn't been read yet
             var pipe = new Pipe();
@@ -76,7 +76,7 @@ namespace Store.Catalog.Service.Handlers
         {
             const int maxRows = 500;
 
-            var existing = (await Repo.ManyAsync<ProductDataModel>()).Where(x => x.Sku is not null).ToDictionary(x => x.Sku!, StringComparer.OrdinalIgnoreCase);
+            var existing = (await Repo.Query<ProductDataModel>().ToArrayAsync(cancellationToken)).Where(x => x.Sku is not null).ToDictionary(x => x.Sku!, StringComparer.OrdinalIgnoreCase);
 
             //reads the upload as it arrives, a query only looks, importing would be commands
             var preview = new ProductImportPreviewModel() { FileName = fileName };
@@ -191,10 +191,7 @@ namespace Store.Catalog.Service.Handlers
             return fields;
         }
 
-        //all product columns plus the related category for its name, for the export
-        private static Graph<ProductDataModel> WithCategory() => new(true, x => x.Category);
-
-        //the store builds each product with its category's name from a join, no graph to load and nothing to map
+        //the store builds each product with its category's name from a join, nothing to map
         private static Expression<Func<ProductDataModel, ProductModel>> SelectModel() => x => new ProductModel()
         {
             ID = x.ID,

@@ -16,7 +16,7 @@ namespace Store.Catalog.Service.Data
         /// </summary>
         public static async Task SeedAsync(IRepo repo, ILogger log)
         {
-            if (await repo.AnyAsync<CategoryDataModel>())
+            if (await repo.Query<CategoryDataModel>().AnyAsync())
                 return;
 
             await repo.CreateAsync<CategoryDataModel>(

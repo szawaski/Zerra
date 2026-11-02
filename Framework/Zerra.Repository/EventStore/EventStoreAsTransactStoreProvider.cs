@@ -36,95 +36,68 @@ namespace Zerra.Repository
         protected override sealed object? Engine => engine;
 
         /// <inheritdoc/>
-        protected override sealed IReadOnlyCollection<TModel> Many(Query query)
+        protected override sealed IReadOnlyCollection<TModel> Many(LinqModelQuery query)
         {
             var models = ReadModels(query);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var selectedArray = queriedSet.ToArray();
 
             return selectedArray;
         }
         /// <inheritdoc/>
-        protected override sealed TModel? First(Query query)
+        protected override sealed TModel? First(LinqModelQuery query)
         {
             var models = ReadModels(query);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var selected = queriedSet.FirstOrDefault();
 
             return selected;
         }
         /// <inheritdoc/>
-        protected override sealed TModel? Single(Query query)
+        protected override sealed TModel? Single(LinqModelQuery query)
         {
             var models = ReadModels(query);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var selected = queriedSet.SingleOrDefault();
 
             return selected;
         }
         /// <inheritdoc/>
-        protected override sealed long Count(Query query)
+        protected override sealed long Count(LinqModelQuery query)
         {
             var models = ReadModels(query);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             long count = queriedSet.Count();
 
             return count;
         }
         /// <inheritdoc/>
-        protected override sealed bool Any(Query query)
+        protected override sealed bool Any(LinqModelQuery query)
         {
             var models = ReadModels(query);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var any = queriedSet.Any();
 
             return any;
         }
         /// <inheritdoc/>
-        protected override sealed object? Calculate(Query query)
-        {
-            if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal calculations not supported with {nameof(EventStoreAsTransactStoreProvider<TModel>)}");
-
-            //calculates on the current state of each model, not on every state it had
-            var models = ReadModels(query, false);
-
-            var queriedSet = models.Query(query);
-
-            return queriedSet.Calculate(query.Operation, query.Value);
-        }
-        /// <inheritdoc/>
-        protected override sealed object? Project(Query query)
-        {
-            if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal projections not supported with {nameof(EventStoreAsTransactStoreProvider<TModel>)}");
-
-            //projects or calculates on the current state of each model, not on every state it had
-            var models = ReadModels(query, false);
-
-            //a select's order and paging apply to the models, a group's to its results
-            if (query.Operation == QueryOperation.Select)
-                return query.Execute(models.Query(query));
-            return query.Execute(models.Query(query.Where, null, null, null));
-        }
-        /// <inheritdoc/>
-        protected override sealed IReadOnlyCollection<EventModel<TModel>> EventMany(Query query)
+        protected override sealed IReadOnlyCollection<EventModel<TModel>> EventMany(LinqModelQuery query)
         {
             var eventModels = ReadEventModels(query);
 
             var models = eventModels.Select(x => x.Model);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var selectedArray = queriedSet.ToArray();
 
@@ -133,13 +106,13 @@ namespace Zerra.Repository
             return eventModelSelectedArray;
         }
         /// <inheritdoc/>
-        protected override sealed EventModel<TModel>? EventFirst(Query query)
+        protected override sealed EventModel<TModel>? EventFirst(LinqModelQuery query)
         {
             var eventModels = ReadEventModels(query);
 
             var models = eventModels.Select(x => x.Model);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var selected = queriedSet.FirstOrDefault();
             if (selected is null)
@@ -150,13 +123,13 @@ namespace Zerra.Repository
             return eventModelSelected;
         }
         /// <inheritdoc/>
-        protected override sealed EventModel<TModel>? EventSingle(Query query)
+        protected override sealed EventModel<TModel>? EventSingle(LinqModelQuery query)
         {
             var eventModels = ReadEventModels(query);
 
             var models = eventModels.Select(x => x.Model);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var selected = queriedSet.FirstOrDefault();
             if (selected is null)
@@ -167,26 +140,26 @@ namespace Zerra.Repository
             return eventModelSelected;
         }
         /// <inheritdoc/>
-        protected override sealed long EventCount(Query query)
+        protected override sealed long EventCount(LinqModelQuery query)
         {
             var eventModels = ReadEventModels(query);
 
             var models = eventModels.Select(x => x.Model);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             long count = queriedSet.Count();
 
             return count;
         }
         /// <inheritdoc/>
-        protected override sealed bool EventAny(Query query)
+        protected override sealed bool EventAny(LinqModelQuery query)
         {
             var eventModels = ReadEventModels(query);
 
             var models = eventModels.Select(x => x.Model);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var any = queriedSet.Any();
 
@@ -194,95 +167,81 @@ namespace Zerra.Repository
         }
 
         /// <inheritdoc/>
-        protected override sealed async Task<IReadOnlyCollection<TModel>> ManyAsync(Query query)
+        protected override sealed async Task<IReadOnlyCollection<TModel>> ManyAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            var models = await ReadModelsAsync(query);
+            var models = await ReadModelsAsync(query, cancellationToken);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var selectedArray = queriedSet.ToArray();
 
             return selectedArray;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<TModel?> FirstAsync(Query query)
+        protected override sealed async Task<TModel?> FirstAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            var models = await ReadModelsAsync(query);
+            var models = await ReadModelsAsync(query, cancellationToken);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var selected = queriedSet.FirstOrDefault();
 
             return selected;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<TModel?> SingleAsync(Query query)
+        protected override sealed async Task<TModel?> SingleAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            var models = await ReadModelsAsync(query);
+            var models = await ReadModelsAsync(query, cancellationToken);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var selected = queriedSet.SingleOrDefault();
 
             return selected;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<long> CountAsync(Query query)
+        protected override sealed async Task<long> CountAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            var models = await ReadModelsAsync(query);
+            var models = await ReadModelsAsync(query, cancellationToken);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             long count = queriedSet.Count();
 
             return count;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<bool> AnyAsync(Query query)
+        protected override sealed async Task<bool> AnyAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            var models = await ReadModelsAsync(query);
+            var models = await ReadModelsAsync(query, cancellationToken);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var any = queriedSet.Any();
 
             return any;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<object?> CalculateAsync(Query query)
+        protected override sealed object? ExecuteLinq(LinqQuery query)
         {
-            if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal calculations not supported with {nameof(EventStoreAsTransactStoreProvider<TModel>)}");
-
-            //calculates on the current state of each model, not on every state it had
-            var models = await ReadModelsAsync(query, false);
-
-            var queriedSet = models.Query(query);
-
-            return queriedSet.Calculate(query.Operation, query.Value);
+            //runs over the current state of each model, with the relations it reads loaded through their providers
+            var models = ReadModels(new LinqModelQuery(ModelType, LinqTerminal.Sequence, query.Where, null, null, null, null), false);
+            return query.Execute(LoadLinqRelations(query, models as IReadOnlyCollection<TModel> ?? models.ToArray()), false);
         }
         /// <inheritdoc/>
-        protected override sealed async Task<object?> ProjectAsync(Query query)
+        protected override sealed async Task<object?> ExecuteLinqAsync(LinqQuery query, CancellationToken cancellationToken)
         {
-            if (query.IsTemporal)
-                throw new NotSupportedException($"Temporal projections not supported with {nameof(EventStoreAsTransactStoreProvider<TModel>)}");
-
-            //projects or calculates on the current state of each model, not on every state it had
-            var models = await ReadModelsAsync(query, false);
-
-            //a select's order and paging apply to the models, a group's to its results
-            if (query.Operation == QueryOperation.Select)
-                return query.Execute(models.Query(query));
-            return query.Execute(models.Query(query.Where, null, null, null));
+            var models = await ReadModelsAsync(new LinqModelQuery(ModelType, LinqTerminal.Sequence, query.Where, null, null, null, null), false, cancellationToken);
+            return query.Execute(await LoadLinqRelationsAsync(query, models as IReadOnlyCollection<TModel> ?? models.ToArray(), cancellationToken), false);
         }
         /// <inheritdoc/>
-        protected override sealed async Task<IReadOnlyCollection<EventModel<TModel>>> EventManyAsync(Query query)
+        protected override sealed async Task<IReadOnlyCollection<EventModel<TModel>>> EventManyAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            var eventModels = await ReadEventModelsAsync(query);
+            var eventModels = await ReadEventModelsAsync(query, cancellationToken);
 
             var models = eventModels.Select(x => x.Model);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var selectedArray = queriedSet.ToArray();
 
@@ -291,13 +250,13 @@ namespace Zerra.Repository
             return eventModelSelectedArray;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<EventModel<TModel>?> EventFirstAsync(Query query)
+        protected override sealed async Task<EventModel<TModel>?> EventFirstAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            var eventModels = await ReadEventModelsAsync(query);
+            var eventModels = await ReadEventModelsAsync(query, cancellationToken);
 
             var models = eventModels.Select(x => x.Model);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var selected = queriedSet.FirstOrDefault();
             if (selected is null)
@@ -308,13 +267,13 @@ namespace Zerra.Repository
             return eventModelSelected;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<EventModel<TModel>?> EventSingleAsync(Query query)
+        protected override sealed async Task<EventModel<TModel>?> EventSingleAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            var eventModels = await ReadEventModelsAsync(query);
+            var eventModels = await ReadEventModelsAsync(query, cancellationToken);
 
             var models = eventModels.Select(x => x.Model);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var selected = queriedSet.FirstOrDefault();
             if (selected is null)
@@ -325,35 +284,35 @@ namespace Zerra.Repository
             return eventModelSelected;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<long> EventCountAsync(Query query)
+        protected override sealed async Task<long> EventCountAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            var eventModels = await ReadEventModelsAsync(query);
+            var eventModels = await ReadEventModelsAsync(query, cancellationToken);
 
             var models = eventModels.Select(x => x.Model);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             long count = queriedSet.Count();
 
             return count;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<bool> EventAnyAsync(Query query)
+        protected override sealed async Task<bool> EventAnyAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            var eventModels = await ReadEventModelsAsync(query);
+            var eventModels = await ReadEventModelsAsync(query, cancellationToken);
 
             var models = eventModels.Select(x => x.Model);
 
-            var queriedSet = models.Query(query);
+            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
 
             var any = queriedSet.Any();
 
             return any;
         }
 
-        private ICollection<TModel> ReadModels(Query query)
-            => ReadModels(query, query.Operation == QueryOperation.Many || query.Operation == QueryOperation.Count);
-        private ICollection<TModel> ReadModels(Query query, bool many)
+        private ICollection<TModel> ReadModels(LinqModelQuery query)
+            => ReadModels(query, query.Terminal is LinqTerminal.Sequence or LinqTerminal.LongCount);
+        private ICollection<TModel> ReadModels(LinqModelQuery query, bool many)
         {
             var ids = GetIDs(query);
 
@@ -372,9 +331,9 @@ namespace Zerra.Repository
             }
             return models;
         }
-        private Task<ICollection<TModel>> ReadModelsAsync(Query query)
-            => ReadModelsAsync(query, query.Operation == QueryOperation.Many || query.Operation == QueryOperation.Count);
-        private async Task<ICollection<TModel>> ReadModelsAsync(Query query, bool many)
+        private Task<ICollection<TModel>> ReadModelsAsync(LinqModelQuery query, CancellationToken cancellationToken)
+            => ReadModelsAsync(query, query.Terminal is LinqTerminal.Sequence or LinqTerminal.LongCount, cancellationToken);
+        private async Task<ICollection<TModel>> ReadModelsAsync(LinqModelQuery query, bool many, CancellationToken cancellationToken)
         {
             var ids = GetIDs(query);
 
@@ -383,9 +342,9 @@ namespace Zerra.Repository
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query, many);
+                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query, many, cancellationToken);
 
-                var eventDatas = await engine.ReadBackwardsAsync(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
+                var eventDatas = await engine.ReadBackwardsAsync(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo, cancellationToken);
 
                 var items = LoadModelsFromEventDatas(eventDatas, modelState, many, query);
 
@@ -394,9 +353,9 @@ namespace Zerra.Repository
             return models;
         }
 
-        private ICollection<EventModel<TModel>> ReadEventModels(Query query)
+        private ICollection<EventModel<TModel>> ReadEventModels(LinqModelQuery query)
         {
-            var many = query.Operation == QueryOperation.EventMany || query.Operation == QueryOperation.EventCount;
+            var many = query.Terminal is LinqTerminal.Sequence or LinqTerminal.LongCount;
             var ids = GetIDs(query);
 
             var models = new List<EventModel<TModel>>();
@@ -414,9 +373,9 @@ namespace Zerra.Repository
             }
             return models;
         }
-        private async Task<ICollection<EventModel<TModel>>> ReadEventModelsAsync(Query query)
+        private async Task<ICollection<EventModel<TModel>>> ReadEventModelsAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            var many = query.Operation == QueryOperation.EventMany || query.Operation == QueryOperation.EventCount;
+            var many = query.Terminal is LinqTerminal.Sequence or LinqTerminal.LongCount;
             var ids = GetIDs(query);
 
             var models = new List<EventModel<TModel>>();
@@ -424,9 +383,9 @@ namespace Zerra.Repository
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query, many);
+                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query, many, cancellationToken);
 
-                var eventDatas = await engine.ReadBackwardsAsync(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
+                var eventDatas = await engine.ReadBackwardsAsync(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo, cancellationToken);
 
                 var items = LoadEventModelsFromEventDatas(eventDatas, modelState, many, query);
 
@@ -435,7 +394,7 @@ namespace Zerra.Repository
             return models;
         }
 
-        private ICollection<TModel> LoadModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query query)
+        private ICollection<TModel> LoadModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, LinqModelQuery query)
         {
             if (modelState is null && eventDatas.Length == 0)
                 return Array.Empty<TModel>();
@@ -582,7 +541,7 @@ namespace Zerra.Repository
                 }
             }
         }
-        private ICollection<EventModel<TModel>> LoadEventModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, Query query)
+        private ICollection<EventModel<TModel>> LoadEventModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, LinqModelQuery query)
         {
             if (modelState is null && eventDatas.Length == 0)
                 return Array.Empty<EventModel<TModel>>();
@@ -804,7 +763,7 @@ namespace Zerra.Repository
         }
 
         //the newest saved state from before what the query reads, the events are replayed from the event it was saved at
-        private (TModel?, ulong?) ReadModelState(object id, Query query, bool many)
+        private (TModel?, ulong?) ReadModelState(object id, LinqModelQuery query, bool many)
         {
             ulong? numberAtOrBefore;
             DateTime? dateBefore = null;
@@ -847,7 +806,7 @@ namespace Zerra.Repository
 
             return (null, null);
         }
-        private async Task<(TModel?, ulong?)> ReadModelStateAsync(object id, Query query, bool many)
+        private async Task<(TModel?, ulong?)> ReadModelStateAsync(object id, LinqModelQuery query, bool many, CancellationToken cancellationToken)
         {
             ulong? numberAtOrBefore;
             DateTime? dateBefore = null;
@@ -867,7 +826,7 @@ namespace Zerra.Repository
 
             var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
             var bounded = numberAtOrBefore.HasValue || dateBefore.HasValue || dateAtOrBefore.HasValue;
-            var eventDatas = await engine.ReadBackwardsAsync(streamName, null, bounded ? null : 1, null, null, null);
+            var eventDatas = await engine.ReadBackwardsAsync(streamName, null, bounded ? null : 1, null, null, null, cancellationToken);
 
             foreach (var eventData in eventDatas)
             {
@@ -890,7 +849,7 @@ namespace Zerra.Repository
             return (null, null);
         }
 
-        private static object[] GetIDs(Query query)
+        private static object[] GetIDs(LinqModelQuery query)
         {
             if (query.Where is null)
                 throw new NotSupportedException("No identity clauses found in the query. These are required for event stores.");
@@ -976,7 +935,7 @@ namespace Zerra.Repository
 
                 //read from this provider, the state is saved as stored and not as the layers above it change it
                 var where = ModelAnalyzer.GetIdentityExpression<TModel>(id);
-                var stateQuery = new Query(QueryOperation.Single, modelType, TemporalOrder.Newest, null, null, null, eventNumber, null, null, where, null, null, null, null);
+                var stateQuery = new LinqModelQuery(modelType, LinqTerminal.SingleOrDefault, false, TemporalOrder.Newest, null, null, null, eventNumber, null, null, where, null, null, null, null);
                 var modelState = ReadModels(stateQuery).Single();
 
                 SaveModelState(id, modelState, eventNumber, thisEventData.Date);
@@ -996,7 +955,7 @@ namespace Zerra.Repository
         }
 
         /// <inheritdoc/>
-        protected override sealed async Task PersistModelAsync(PersistEvent @event, object model, Graph? graph, bool create)
+        protected override sealed async Task PersistModelAsync(PersistEvent @event, object model, Graph? graph, bool create, CancellationToken cancellationToken)
         {
             var id = ModelAnalyzer.GetIdentity(modelType, model);
             if (id is null)
@@ -1014,29 +973,29 @@ namespace Zerra.Repository
 
             var data = EventStoreCommon.Serialize(eventStoreModel);
 
-            var eventNumber = await engine.AppendAsync(@event.ID, @event.Name, streamName, null, create ? EventStoreState.NotExisting : EventStoreState.Existing, data);
+            var eventNumber = await engine.AppendAsync(@event.ID, @event.Name, streamName, null, create ? EventStoreState.NotExisting : EventStoreState.Existing, data, cancellationToken);
 
             if (saveStateEvery > 0 && eventNumber > 0 && eventNumber % saveStateEvery == 0)
             {
-                var thisEventData = (await engine.ReadBackwardsAsync(streamName, eventNumber, 1, null, null, null))[0];
+                var thisEventData = (await engine.ReadBackwardsAsync(streamName, eventNumber, 1, null, null, null, cancellationToken))[0];
 
                 var where = ModelAnalyzer.GetIdentityExpression<TModel>(id);
-                var stateQuery = new Query(QueryOperation.Single, modelType, TemporalOrder.Newest, null, null, null, eventNumber, null, null, where, null, null, null, null);
-                var modelState = (await ReadModelsAsync(stateQuery)).Single();
+                var stateQuery = new LinqModelQuery(modelType, LinqTerminal.SingleOrDefault, false, TemporalOrder.Newest, null, null, null, eventNumber, null, null, where, null, null, null, null);
+                var modelState = (await ReadModelsAsync(stateQuery, cancellationToken)).Single();
 
-                await SaveModelStateAsync(id, modelState, eventNumber, thisEventData.Date);
+                await SaveModelStateAsync(id, modelState, eventNumber, thisEventData.Date, cancellationToken);
             }
         }
         /// <inheritdoc/>
-        protected override sealed async Task DeleteModelAsync(PersistEvent @event, object[] ids)
+        protected override sealed async Task DeleteModelAsync(PersistEvent @event, object[] ids, CancellationToken cancellationToken)
         {
             foreach (var id in ids)
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var eventNumber = await engine.TerminateAsync(@event.ID, "Delete", streamName, null, EventStoreState.Existing);
+                var eventNumber = await engine.TerminateAsync(@event.ID, "Delete", streamName, null, EventStoreState.Existing, cancellationToken);
 
-                await SaveModelStateAsync(id, null, eventNumber, null);
+                await SaveModelStateAsync(id, null, eventNumber, null, cancellationToken);
             }
         }
 
@@ -1057,9 +1016,9 @@ namespace Zerra.Repository
         protected override sealed int UpdateModelsWhere(PersistEvent @event, LambdaExpression where, LambdaExpression set)
         {
             //each matching stream gets the values computed from its current state as an update event
-            var query = new Query(QueryOperation.Many, modelType, where, null, null, null, null);
-            var models = ReadModels(query, false).Query(query).ToArray();
-            var sets = set.GetProjectionMembers(null);
+            var query = new LinqModelQuery(modelType, LinqTerminal.Sequence, where, null, null, null, null);
+            var models = ReadModels(query, false).Query(query.Where, query.Order, query.Skip, query.Take).ToArray();
+            var sets = set.GetProjectionMembers();
             var getters = new Func<TModel, object?>[sets.Length];
             var names = new string[sets.Length];
             for (var i = 0; i < sets.Length; i++)
@@ -1086,24 +1045,24 @@ namespace Zerra.Repository
             return ids.Length;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, object model, Graph graph)
+        protected override sealed async Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, object model, Graph graph, CancellationToken cancellationToken)
         {
-            var ids = await GetIDsWhereAsync(where);
+            var ids = await GetIDsWhereAsync(where, cancellationToken);
             foreach (var id in ids)
             {
                 var copy = Mapper.Copy((TModel)model);
                 ModelAnalyzer.SetIdentity(modelType, copy, id);
-                await PersistModelAsync(@event, copy, graph, false);
+                await PersistModelAsync(@event, copy, graph, false, cancellationToken);
             }
             return ids.Length;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, LambdaExpression set)
+        protected override sealed async Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, LambdaExpression set, CancellationToken cancellationToken)
         {
             //each matching stream gets the values computed from its current state as an update event
-            var query = new Query(QueryOperation.Many, modelType, where, null, null, null, null);
-            var models = (await ReadModelsAsync(query, false)).Query(query).ToArray();
-            var sets = set.GetProjectionMembers(null);
+            var query = new LinqModelQuery(modelType, LinqTerminal.Sequence, where, null, null, null, null);
+            var models = (await ReadModelsAsync(query, false, cancellationToken)).Query(query.Where, query.Order, query.Skip, query.Take).ToArray();
+            var sets = set.GetProjectionMembers();
             var getters = new Func<TModel, object?>[sets.Length];
             var names = new string[sets.Length];
             for (var i = 0; i < sets.Length; i++)
@@ -1118,28 +1077,28 @@ namespace Zerra.Repository
                 ModelAnalyzer.SetIdentity(modelType, copy, ModelAnalyzer.GetIdentity(modelType, model));
                 for (var i = 0; i < sets.Length; i++)
                     sets[i].MemberDetail.SetterBoxed!(copy, getters[i](model));
-                await PersistModelAsync(@event, copy, graph, false);
+                await PersistModelAsync(@event, copy, graph, false, cancellationToken);
             }
             return models.Length;
         }
         /// <inheritdoc/>
-        protected override sealed async Task<int> DeleteModelsWhereAsync(PersistEvent @event, LambdaExpression where)
+        protected override sealed async Task<int> DeleteModelsWhereAsync(PersistEvent @event, LambdaExpression where, CancellationToken cancellationToken)
         {
-            var ids = await GetIDsWhereAsync(where);
-            await DeleteModelAsync(@event, ids);
+            var ids = await GetIDsWhereAsync(where, cancellationToken);
+            await DeleteModelAsync(@event, ids, cancellationToken);
             return ids.Length;
         }
         private object[] GetIDsWhere(LambdaExpression where)
         {
-            var query = new Query(QueryOperation.Many, modelType, where, null, null, null, null);
+            var query = new LinqModelQuery(modelType, LinqTerminal.Sequence, where, null, null, null, null);
             var models = ReadModels(query, false);
-            return models.Query(query).Select(x => ModelAnalyzer.GetIdentity(modelType, x)).ToArray();
+            return models.Query(query.Where, query.Order, query.Skip, query.Take).Select(x => ModelAnalyzer.GetIdentity(modelType, x)).ToArray();
         }
-        private async Task<object[]> GetIDsWhereAsync(LambdaExpression where)
+        private async Task<object[]> GetIDsWhereAsync(LambdaExpression where, CancellationToken cancellationToken)
         {
-            var query = new Query(QueryOperation.Many, modelType, where, null, null, null, null);
-            var models = await ReadModelsAsync(query, false);
-            return models.Query(query).Select(x => ModelAnalyzer.GetIdentity(modelType, x)).ToArray();
+            var query = new LinqModelQuery(modelType, LinqTerminal.Sequence, where, null, null, null, null);
+            var models = await ReadModelsAsync(query, false, cancellationToken);
+            return models.Query(query.Where, query.Order, query.Skip, query.Take).Select(x => ModelAnalyzer.GetIdentity(modelType, x)).ToArray();
         }
 
         private void SaveModelState(object id, TModel? model, ulong eventNumber, DateTime? date)
@@ -1157,7 +1116,7 @@ namespace Zerra.Repository
 
             _ = engine.Append(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
         }
-        private async Task SaveModelStateAsync(object id, TModel? model, ulong eventNumber, DateTime? date)
+        private async Task SaveModelStateAsync(object id, TModel? model, ulong eventNumber, DateTime? date, CancellationToken cancellationToken)
         {
             var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
 
@@ -1170,7 +1129,7 @@ namespace Zerra.Repository
             };
             var data = EventStoreCommon.Serialize(eventState);
 
-            _ = await engine.AppendAsync(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data);
+            _ = await engine.AppendAsync(Guid.NewGuid(), "StoreState", streamName, null, EventStoreState.Any, data, cancellationToken);
         }
     }
 }

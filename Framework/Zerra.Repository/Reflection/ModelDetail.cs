@@ -256,9 +256,9 @@ namespace Zerra.Repository.Reflection
                         if (attribute is not StoreIndexAttribute indexAttribute)
                             continue;
 
-                        if (member.IsDataSourceEntity || (!member.CoreType.HasValue && member.Type != typeof(byte[])))
+                        if (member.IsDataSourceEntity || (!member.ColumnCoreType.HasValue && member.Type != typeof(byte[])))
                             throw new Exception($"{this.Type.Name}.{member.Name} cannot be in an index because it is not a column");
-                        if ((member.CoreType == CoreType.String || member.Type == typeof(byte[])) && !member.DataSourcePrecisionLength.HasValue)
+                        if ((member.ColumnCoreType == CoreType.String || member.Type == typeof(byte[])) && !member.DataSourcePrecisionLength.HasValue)
                             throw new Exception($"{this.Type.Name}.{member.Name} cannot be in an index without a length from {nameof(StorePropertiesAttribute)}");
 
                         var storeName = $"IX_{this.DataSourceEntityName}_{indexAttribute.Name ?? member.StoreName}";

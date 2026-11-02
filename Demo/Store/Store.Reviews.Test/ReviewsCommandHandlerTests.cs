@@ -22,7 +22,7 @@ namespace Store.Reviews.Test
             var result = await test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 4, Comment = "  Bright enough.  " }, Token);
 
             Assert.False(result.VerifiedPurchase);
-            var review = await test.Repo.SingleAsync<ReviewDataModel>(x => x.ID == result.ReviewID);
+            var review = await test.Repo.Query<ReviewDataModel>().SingleOrDefaultAsync(x => x.ID == result.ReviewID, cancellationToken: TestContext.Current.CancellationToken);
             Assert.NotNull(review);
             Assert.Equal(lamp.ID, review.ProductID);
             Assert.Equal("Desk Lamp", review.ProductName);
@@ -43,7 +43,7 @@ namespace Store.Reviews.Test
             var result = await test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 5 }, Token);
 
             Assert.True(result.VerifiedPurchase);
-            Assert.True((await test.Repo.SingleAsync<ReviewDataModel>(x => x.ID == result.ReviewID))!.VerifiedPurchase);
+            Assert.True((await test.Repo.Query<ReviewDataModel>().SingleOrDefaultAsync(x => x.ID == result.ReviewID, cancellationToken: TestContext.Current.CancellationToken))!.VerifiedPurchase);
         }
 
         [Fact]
@@ -55,7 +55,7 @@ namespace Store.Reviews.Test
 
             var result = await test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 3, Comment = "   " }, Token);
 
-            Assert.Null((await test.Repo.SingleAsync<ReviewDataModel>(x => x.ID == result.ReviewID))!.Comment);
+            Assert.Null((await test.Repo.Query<ReviewDataModel>().SingleOrDefaultAsync(x => x.ID == result.ReviewID, cancellationToken: TestContext.Current.CancellationToken))!.Comment);
         }
 
         [Theory]
@@ -90,7 +90,7 @@ namespace Store.Reviews.Test
 
             var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = ada.ID, ProductID = lamp.ID, Rating = 1 }, Token));
             Assert.Contains("already reviewed", ex.Message);
-            Assert.Single(await test.Repo.ManyAsync<ReviewDataModel>(x => x.ProductID == lamp.ID));
+            Assert.Single(await test.Repo.Query<ReviewDataModel>().Where(x => x.ProductID == lamp.ID).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -111,7 +111,7 @@ namespace Store.Reviews.Test
 
             var ex = await Assert.ThrowsAsync<CqrsServiceException>(() => test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = Guid.NewGuid(), ProductID = lamp.ID, Rating = 4 }, Token));
             Assert.Equal("Customer not found.", ex.Message);
-            Assert.Empty(await test.Repo.ManyAsync<ReviewDataModel>(x => x.ProductID == lamp.ID));
+            Assert.Empty(await test.Repo.Query<ReviewDataModel>().Where(x => x.ProductID == lamp.ID).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
 
         [Fact]
@@ -132,7 +132,7 @@ namespace Store.Reviews.Test
             var result = await test.Bus.DispatchAwaitAsync(new SubmitReviewCommand() { CustomerID = alan.ID, ProductID = lamp.ID, Rating = 3 }, Token);
 
             Assert.Equal(2, test.Catalog.GetProductsByIDsCalls);
-            Assert.Equal("LED Desk Lamp", (await test.Repo.SingleAsync<ReviewDataModel>(x => x.ID == result.ReviewID))!.ProductName);
+            Assert.Equal("LED Desk Lamp", (await test.Repo.Query<ReviewDataModel>().SingleOrDefaultAsync(x => x.ID == result.ReviewID, cancellationToken: TestContext.Current.CancellationToken))!.ProductName);
         }
     }
 }

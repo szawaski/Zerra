@@ -18,7 +18,7 @@ namespace Store.Orders.Service.Handlers
 
         public async Task<PlaceOrderResult> Handle(PlaceOrderCommand command, CancellationToken cancellationToken)
         {
-            if (!await Repo.AnyAsync<CustomerDataModel>(x => x.ID == command.CustomerID))
+            if (!await Repo.Query<CustomerDataModel>().AnyAsync(x => x.ID == command.CustomerID))
                 throw new DomainException("Customer not found.");
             if (command.Items is null || command.Items.Length == 0)
                 throw new DomainException("An order needs at least one item.");
@@ -117,7 +117,7 @@ namespace Store.Orders.Service.Handlers
         //an order is placed and then either ships or is cancelled, never both
         private async Task<OrderDataModel> CloseOrderAsync(Guid orderID, OrderStatus status, string action)
         {
-            var order = await Repo.SingleAsync<OrderDataModel>(x => x.ID == orderID) ?? throw new DomainException("Order not found.");
+            var order = await Repo.Query<OrderDataModel>().SingleOrDefaultAsync(x => x.ID == orderID) ?? throw new DomainException("Order not found.");
             if (order.Status != nameof(OrderStatus.Placed))
                 throw new DomainException($"Order {order.OrderNumber} is {order.Status?.ToLowerInvariant()}, only placed orders can be {action}.");
 

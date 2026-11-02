@@ -63,10 +63,6 @@ namespace Zerra.Repository
         {
             return expression;
         }
-        private static QueryOrder? EncryptOrder(QueryOrder? order)
-        {
-            return order;
-        }
 
         /// <summary>Decrypts the encrypted properties of a single model.</summary>
         /// <param name="model">The model whose properties should be decrypted.</param>
@@ -218,111 +214,15 @@ namespace Zerra.Repository
         }
 
         /// <inheritdoc/>
-        public override sealed object? Many(Query query)
+        public override sealed object? Query(LinqQuery query)
         {
-            var whereCompressed = EncryptWhere(query.Where);
-            var orderCompressed = EncryptOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var encryptedModels = (IReadOnlyCollection<TModel>)NextProvider.Query(appenedQuery)!;
-
-            if (encryptedModels.Count == 0)
-                return encryptedModels;
-
-            var models = DecryptModels(encryptedModels, query.Graph, true);
-            return models;
-        }
-        /// <inheritdoc/>
-        public override sealed object? First(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-            var orderCompressed = EncryptOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var encryptedModels = (TModel?)(NextProvider.Query(appenedQuery));
-
-            if (encryptedModels is null)
-                return null;
-
-            var model = DecryptModel(encryptedModels, query.Graph, true);
-            return model;
-        }
-        /// <inheritdoc/>
-        public override sealed object? Single(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var encryptedModels = (TModel?)(NextProvider.Query(appenedQuery));
-
-            if (encryptedModels is null)
-                return null;
-
-            var model = DecryptModel(encryptedModels, query.Graph, true);
-            return model;
-        }
-        /// <inheritdoc/>
-        public override sealed object Count(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var count = NextProvider.Query(appenedQuery)!;
-            return count;
-        }
-        /// <inheritdoc/>
-        public override sealed object? Any(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var any = NextProvider.Query(appenedQuery)!;
-            return any;
-        }
-        /// <inheritdoc/>
-        public override sealed object? Calculate(Query query)
-        {
-            if (this.Enabled)
-            {
-                var properties = GetEncryptableProperties(typeof(TModel), this.Properties);
-                if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties))
-                    throw new NotSupportedException($"{GetType().Name} cannot calculate on an encrypted property");
-            }
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var result = NextProvider.Query(appenedQuery);
-            return result;
-        }
-        /// <inheritdoc/>
-        public override sealed object? Project(Query query)
-        {
-            if (this.Enabled)
-            {
-                var properties = GetEncryptableProperties(typeof(TModel), this.Properties);
-                if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties) || LinqMemberFinder.ReadsMember(query.Select, typeof(TModel), properties))
-                    throw new NotSupportedException($"{GetType().Name} cannot project or calculate on an encrypted property");
-            }
+            RefuseEncryptedReads(query);
             //the query carries its result types, so the converted where is swapped onto it for the call and the original put back
             var where = query.Where;
             query.Where = EncryptWhere(where);
             try
             {
-                return NextProvider.Query(query);
+                return DecryptResult(query, NextProvider.Query(query));
             }
             finally
             {
@@ -330,279 +230,61 @@ namespace Zerra.Repository
             }
         }
         /// <inheritdoc/>
-        public override sealed object? EventMany(Query query)
+        public override sealed async Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken)
         {
-            var whereCompressed = EncryptWhere(query.Where);
-            var orderCompressed = EncryptOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var eventModels = (ICollection<EventModel<TModel>>)NextProvider.Query(appenedQuery)!;
-
-            if (eventModels.Count == 0)
-                return eventModels;
-
-            var encryptedModels = eventModels.Select(x => x.Model).ToArray();
-            var models = DecryptModels(encryptedModels, query.Graph, true).GetEnumerator();
-            foreach (var eventModel in eventModels)
-            {
-                _ = models.MoveNext();
-                eventModel.Model = (TModel)models.Current;
-            }
-
-            return eventModels;
-        }
-        /// <inheritdoc/>
-        public override sealed object? EventFirst(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-            var orderCompressed = EncryptOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var eventModel = (EventModel<TModel>?)NextProvider.Query(appenedQuery);
-
-            if (eventModel is null)
-                return null;
-
-            eventModel.Model = DecryptModel(eventModel.Model, query.Graph, true);
-            return eventModel;
-        }
-        /// <inheritdoc/>
-        public override sealed object? EventSingle(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var eventModel = (EventModel<TModel>?)NextProvider.Query(appenedQuery);
-
-            if (eventModel is null)
-                return null;
-
-            eventModel.Model = DecryptModel(eventModel.Model, query.Graph, true);
-            return eventModel;
-        }
-        /// <inheritdoc/>
-        public override sealed object EventCount(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var count = NextProvider.Query(appenedQuery)!;
-            return count;
-        }
-        /// <inheritdoc/>
-        public override sealed object? EventAny(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var any = NextProvider.Query(appenedQuery)!;
-            return any;
-        }
-
-        /// <inheritdoc/>
-        public override sealed async Task<object?> ManyAsync(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-            var orderCompressed = EncryptOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var encryptedModels = (IReadOnlyCollection<TModel>)(await NextProvider.QueryAsync(appenedQuery))!;
-
-            if (encryptedModels.Count == 0)
-                return encryptedModels;
-
-            var models = DecryptModels(encryptedModels, query.Graph, true);
-            return models;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> FirstAsync(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-            var orderCompressed = EncryptOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var encryptedModels = (TModel?)(await NextProvider.QueryAsync(appenedQuery));
-
-            if (encryptedModels is null)
-                return null;
-
-            var model = DecryptModels(new object[] { encryptedModels }, query.Graph, true).Cast<TModel>().FirstOrDefault();
-            return model;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> SingleAsync(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var encryptedModels = (TModel?)(await NextProvider.QueryAsync(appenedQuery));
-
-            if (encryptedModels is null)
-                return null;
-
-            var model = DecryptModels(new TModel[] { encryptedModels }, query.Graph, true).Cast<TModel>().FirstOrDefault();
-            return model;
-        }
-        /// <inheritdoc/>
-        public override sealed Task<object?> CountAsync(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var count = NextProvider.QueryAsync(appenedQuery);
-            return count;
-        }
-        /// <inheritdoc/>
-        public override sealed Task<object?> AnyAsync(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var any = NextProvider.QueryAsync(appenedQuery);
-            return any;
-        }
-        /// <inheritdoc/>
-        public override sealed Task<object?> CalculateAsync(Query query)
-        {
-            if (this.Enabled)
-            {
-                var properties = GetEncryptableProperties(typeof(TModel), this.Properties);
-                if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties))
-                    throw new NotSupportedException($"{GetType().Name} cannot calculate on an encrypted property");
-            }
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var result = NextProvider.QueryAsync(appenedQuery);
-            return result;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> ProjectAsync(Query query)
-        {
-            if (this.Enabled)
-            {
-                var properties = GetEncryptableProperties(typeof(TModel), this.Properties);
-                if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties) || LinqMemberFinder.ReadsMember(query.Select, typeof(TModel), properties))
-                    throw new NotSupportedException($"{GetType().Name} cannot project or calculate on an encrypted property");
-            }
-            //the query carries its result types, so the converted where is swapped onto it for the call and the original put back
+            RefuseEncryptedReads(query);
             var where = query.Where;
             query.Where = EncryptWhere(where);
             try
             {
-                return await NextProvider.QueryAsync(query);
+                return DecryptResult(query, await NextProvider.QueryAsync(query, cancellationToken));
             }
             finally
             {
                 query.Where = where;
             }
         }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventManyAsync(Query query)
+        private object? DecryptResult(LinqQuery query, object? result)
         {
-            var whereCompressed = EncryptWhere(query.Where);
-            var orderCompressed = EncryptOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var eventModels = (ICollection<EventModel<TModel>>)(await NextProvider.QueryAsync(appenedQuery))!;
-
-            if (eventModels.Count == 0)
-                return eventModels;
-
-            var encryptedModels = eventModels.Select(x => x.Model).ToArray();
-            var models = DecryptModels(encryptedModels, query.Graph, true).GetEnumerator();
-            foreach (var eventModel in eventModels)
+            switch (result)
             {
-                _ = models.MoveNext();
-                eventModel.Model = (TModel)models.Current;
+                case IReadOnlyCollection<TModel> models when query.ReturnsModels:
+                    return models.Count == 0 ? models : DecryptModels(models, query.Graph, true).Cast<TModel>().ToArray();
+                case TModel model:
+                    return DecryptModel(model, query.Graph, true);
+                case ICollection<EventModel<TModel>> eventModels:
+                    {
+                        if (eventModels.Count == 0)
+                            return eventModels;
+                        var models = DecryptModels(eventModels.Select(x => x.Model).ToArray(), query.Graph, true).GetEnumerator();
+                        foreach (var eventModel in eventModels)
+                        {
+                            _ = models.MoveNext();
+                            eventModel.Model = (TModel)models.Current;
+                        }
+                        return eventModels;
+                    }
+                case EventModel<TModel> eventModel:
+                    eventModel.Model = DecryptModel(eventModel.Model, query.Graph, true);
+                    return eventModel;
+                default:
+                    return result;
             }
-
-            return eventModels;
         }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventFirstAsync(Query query)
+        private void RefuseEncryptedReads(LinqQuery query)
         {
-            var whereCompressed = EncryptWhere(query.Where);
-            var orderCompressed = EncryptOrder(query.Order);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-            appenedQuery.Order = orderCompressed;
-
-            var eventModel = (EventModel<TModel>?)await NextProvider.QueryAsync(appenedQuery);
-
-            if (eventModel is null)
-                return null;
-
-            eventModel.Model = DecryptModel(eventModel.Model, query.Graph, true);
-            return eventModel;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventSingleAsync(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var eventModel = (EventModel<TModel>?)await NextProvider.QueryAsync(appenedQuery);
-
-            if (eventModel is null)
-                return null;
-
-            eventModel.Model = DecryptModel(eventModel.Model, query.Graph, true);
-            return eventModel;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventCountAsync(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var count = (await NextProvider.QueryAsync(appenedQuery))!;
-            return count;
-        }
-        /// <inheritdoc/>
-        public override sealed async Task<object?> EventAnyAsync(Query query)
-        {
-            var whereCompressed = EncryptWhere(query.Where);
-
-            var appenedQuery = new Query(query);
-            appenedQuery.Where = whereCompressed;
-
-            var any = (await NextProvider.QueryAsync(appenedQuery))!;
-            return any;
+            if (!this.Enabled)
+                return;
+            var properties = GetEncryptableProperties(typeof(TModel), this.Properties);
+            if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties) || LinqMemberFinder.ReadsMember(query.Select, typeof(TModel), properties))
+                throw new NotSupportedException($"{GetType().Name} cannot project or calculate on an encrypted property");
+            if (query.Order is null)
+                return;
+            foreach (var order in query.Order.OrderExpressions)
+            {
+                if (LinqMemberFinder.ReadsMember(order.Expression, properties))
+                    throw new NotSupportedException($"{GetType().Name} cannot order by an encrypted property");
+            }
         }
 
         /// <summary>Encrypts the eligible properties of an array of models.</summary>
@@ -731,13 +413,13 @@ namespace Zerra.Repository
             NextProvider.Persist(persist);
         }
         /// <inheritdoc/>
-        public override sealed async Task CreateAsync(Persist persist)
+        public override sealed async Task CreateAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (persist.Models is null || persist.Models.Length == 0)
                 return;
 
             var encryptedModels = EncryptModels(persist.Models, persist.Graph, true);
-            await NextProvider.PersistAsync(new Persist(persist.Operation, persist.Event, persist.ModelType, encryptedModels, null, persist.Graph));
+            await NextProvider.PersistAsync(new Persist(persist.Operation, persist.Event, persist.ModelType, encryptedModels, null, persist.Graph), cancellationToken);
 
             for (var i = 0; i < persist.Models.Length; i++)
             {
@@ -746,7 +428,7 @@ namespace Zerra.Repository
             }
         }
         /// <inheritdoc/>
-        public override sealed async Task UpdateAsync(Persist persist)
+        public override sealed async Task UpdateAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (persist.Set is not null)
             {
@@ -759,7 +441,7 @@ namespace Zerra.Repository
                         throw new NotSupportedException($"{GetType().Name} cannot compute a value from or set an encrypted property in the store");
                 }
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, persist.Where!, persist.Set);
-                await NextProvider.PersistAsync(forwarded);
+                await NextProvider.PersistAsync(forwarded, cancellationToken);
                 persist.RowsAffected = forwarded.RowsAffected;
                 return;
             }
@@ -772,18 +454,18 @@ namespace Zerra.Repository
                 if (this.Enabled && LinqMemberFinder.ReadsMember(persist.Where, GetEncryptableProperties(typeof(TModel), this.Properties)))
                     throw new NotSupportedException($"{GetType().Name} cannot select the rows to change by an encrypted property");
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, persist.Where, encryptedModels.Cast<object>().First(), persist.Graph);
-                await NextProvider.PersistAsync(forwarded);
+                await NextProvider.PersistAsync(forwarded, cancellationToken);
                 persist.RowsAffected = forwarded.RowsAffected;
                 return;
             }
-            await NextProvider.PersistAsync(new Persist(persist.Operation, persist.Event, persist.ModelType, encryptedModels, null, persist.Graph));
+            await NextProvider.PersistAsync(new Persist(persist.Operation, persist.Event, persist.ModelType, encryptedModels, null, persist.Graph), cancellationToken);
         }
         /// <inheritdoc/>
-        public override sealed Task DeleteAsync(Persist persist)
+        public override sealed Task DeleteAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (this.Enabled && persist.Where is not null && LinqMemberFinder.ReadsMember(persist.Where, GetEncryptableProperties(typeof(TModel), this.Properties)))
                 throw new NotSupportedException($"{GetType().Name} cannot select the rows to change by an encrypted property");
-            return NextProvider.PersistAsync(persist);
+            return NextProvider.PersistAsync(persist, cancellationToken);
         }
 
         private static readonly ConcurrentFactoryDictionary<TypeKey, MemberDetail[]> encryptableProperties = new();

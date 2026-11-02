@@ -146,7 +146,7 @@ namespace Zerra.Repository.Test
             repo.AddProvider(new TransactStoreProvider<IndexModel>(engine));
             repo.Create(new IndexModel() { ID = Guid.NewGuid(), First = "a" });
             repo.Create(new IndexModel() { ID = Guid.NewGuid(), First = "a" });
-            Assert.Equal(2L, repo.Count<IndexModel>());
+            Assert.Equal(2L, repo.Query<IndexModel>().Count());
         }
     }
 }

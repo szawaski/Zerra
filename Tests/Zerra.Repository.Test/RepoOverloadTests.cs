@@ -19,7 +19,7 @@ namespace Zerra.Repository.Test
 
         private sealed class RecordingProvider : ITransactStoreProvider<Model>
         {
-            public Query? Query { get; private set; }
+            public LinqModelQuery? Query { get; private set; }
             public Persist? Persist { get; private set; }
             public void Clear()
             {
@@ -27,24 +27,22 @@ namespace Zerra.Repository.Test
                 Persist = null;
             }
 
-            private object? Result(Query query)
+            private object? Result(LinqQuery query)
             {
-                Query = query;
-                if (query.Select is not null || query.GroupBy is not null)
-                    return query.Execute(Array.Empty<Model>());
-                return query.Operation switch
+                var modelQuery = (LinqModelQuery)query;
+                Query = modelQuery;
+                return query.Terminal switch
                 {
-                    QueryOperation.Many => Array.Empty<Model>(),
-                    QueryOperation.EventMany => Array.Empty<EventModel<Model>>(),
-                    QueryOperation.Count or QueryOperation.EventCount => 0L,
-                    QueryOperation.Any or QueryOperation.EventAny => false,
+                    LinqTerminal.Sequence => modelQuery.Events ? Array.Empty<EventModel<Model>>() : Array.Empty<Model>(),
+                    LinqTerminal.LongCount => 0L,
+                    LinqTerminal.Any => false,
                     _ => null,
                 };
             }
-            object? ITransactStoreProvider.Query(Query query) => Result(query);
-            Task<object?> ITransactStoreProvider.QueryAsync(Query query) => Task.FromResult(Result(query));
+            object? ITransactStoreProvider.Query(LinqQuery query) => Result(query);
+            Task<object?> ITransactStoreProvider.QueryAsync(LinqQuery query, CancellationToken cancellationToken) => Task.FromResult(Result(query));
             void ITransactStoreProvider.Persist(Persist persist) => Persist = persist;
-            Task ITransactStoreProvider.PersistAsync(Persist persist)
+            Task ITransactStoreProvider.PersistAsync(Persist persist, CancellationToken cancellationToken)
             {
                 Persist = persist;
                 return Task.CompletedTask;
@@ -74,60 +72,6 @@ namespace Zerra.Repository.Test
         public void Sync()
         {
             var (repo, provider) = Create();
-            {
-                provider.Clear();
-                _ = repo.Any<Model>(where);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Any, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Count<Model>();
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Count, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Count<Model>(where);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Count, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
             {
                 provider.Clear();
                 repo.Create<Model>(model);
@@ -600,7 +544,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.EventAny<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventAny, q.Operation);
+                Assert.Equal(LinqTerminal.Any, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -618,7 +563,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.EventAny<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventAny, q.Operation);
+                Assert.Equal(LinqTerminal.Any, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -636,7 +582,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.EventCount<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventCount, q.Operation);
+                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -654,7 +601,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.EventCount<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventCount, q.Operation);
+                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -672,7 +620,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.EventFirst<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, graph);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventFirst, q.Operation);
+                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Null(q.Skip);
@@ -690,7 +639,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.EventFirst<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, graph);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventFirst, q.Operation);
+                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Null(q.Skip);
@@ -708,7 +658,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.EventMany<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, 1, 2, graph);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventMany, q.Operation);
+                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Equal(1, q.Skip);
@@ -726,7 +677,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.EventMany<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, 1, 2, graph);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventMany, q.Operation);
+                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Equal(1, q.Skip);
@@ -744,7 +696,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.EventSingle<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, graph);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventSingle, q.Operation);
+                Assert.Equal(LinqTerminal.SingleOrDefault, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Null(q.Skip);
@@ -762,7 +715,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.EventSingle<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, graph);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventSingle, q.Operation);
+                Assert.Equal(LinqTerminal.SingleOrDefault, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Null(q.Skip);
@@ -778,333 +732,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = repo.First<Model>(order);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.First<Model>(where);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.First<Model>(graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.First<Model>(order, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.First<Model>(where, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.First<Model>(where, order, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Many<Model>(1, 2);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Null(q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Many<Model>(order, 1, 2);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Many<Model>(where, order, 1, 2);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Many<Model>(graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Many<Model>(1, 2, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Null(q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Many<Model>(order, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Many<Model>(order, 1, 2, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Many<Model>(where, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Many<Model>(where, order, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Many<Model>(where, order, 1, 2, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Single<Model>(where, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Single, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.Single<Model>(graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Single, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
                 _ = repo.TemporalAny<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.Any, q.Operation);
+                Assert.Equal(LinqTerminal.Any, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -1122,7 +753,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.TemporalAny<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.Any, q.Operation);
+                Assert.Equal(LinqTerminal.Any, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -1140,7 +772,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.TemporalCount<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.Count, q.Operation);
+                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -1158,7 +791,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.TemporalCount<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.Count, q.Operation);
+                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -1176,7 +810,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.TemporalFirst<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, graph);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
+                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Null(q.Skip);
@@ -1194,7 +829,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.TemporalFirst<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, graph);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
+                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Null(q.Skip);
@@ -1212,7 +848,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.TemporalMany<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, 1, 2, graph);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
+                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Equal(1, q.Skip);
@@ -1230,7 +867,8 @@ namespace Zerra.Repository.Test
                 provider.Clear();
                 _ = repo.TemporalMany<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, 1, 2, graph);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
+                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Equal(1, q.Skip);
@@ -1408,61 +1046,7 @@ namespace Zerra.Repository.Test
             var (repo, provider) = Create();
             {
                 provider.Clear();
-                _ = await repo.AnyAsync<Model>(where);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Any, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.CountAsync<Model>();
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Count, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.CountAsync<Model>(where);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Count, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                await repo.CreateAsync<Model>(model);
+                await repo.CreateAsync<Model>(model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1472,7 +1056,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>("evt", model);
+                await repo.CreateAsync<Model>("evt", model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1482,7 +1066,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>("evt", source, model);
+                await repo.CreateAsync<Model>("evt", source, model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1492,7 +1076,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>(model, graph);
+                await repo.CreateAsync<Model>(model, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1502,7 +1086,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>("evt", model, graph);
+                await repo.CreateAsync<Model>("evt", model, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1512,7 +1096,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>("evt", source, model, graph);
+                await repo.CreateAsync<Model>("evt", source, model, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1522,7 +1106,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>(evt, model);
+                await repo.CreateAsync<Model>(evt, model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1531,7 +1115,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>(evt, model, graph);
+                await repo.CreateAsync<Model>(evt, model, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1540,7 +1124,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>(models);
+                await repo.CreateAsync<Model>(models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1550,7 +1134,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>("evt", models);
+                await repo.CreateAsync<Model>("evt", models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1560,7 +1144,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>("evt", source, models);
+                await repo.CreateAsync<Model>("evt", source, models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1570,7 +1154,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>(models, graph);
+                await repo.CreateAsync<Model>(models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1580,7 +1164,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>("evt", models, graph);
+                await repo.CreateAsync<Model>("evt", models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1590,7 +1174,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>("evt", source, models, graph);
+                await repo.CreateAsync<Model>("evt", source, models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1600,7 +1184,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>(evt, models);
+                await repo.CreateAsync<Model>(evt, models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1609,7 +1193,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>(evt, models, graph);
+                await repo.CreateAsync<Model>(evt, models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1618,7 +1202,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>(model);
+                await repo.DeleteAsync<Model>(model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1628,7 +1212,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>("evt", model);
+                await repo.DeleteAsync<Model>("evt", model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1638,7 +1222,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>("evt", source, model);
+                await repo.DeleteAsync<Model>("evt", source, model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1648,7 +1232,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>(model, graph);
+                await repo.DeleteAsync<Model>(model, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1658,7 +1242,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>("evt", model, graph);
+                await repo.DeleteAsync<Model>("evt", model, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1668,7 +1252,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>("evt", source, model, graph);
+                await repo.DeleteAsync<Model>("evt", source, model, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1678,7 +1262,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>(evt, model);
+                await repo.DeleteAsync<Model>(evt, model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1687,7 +1271,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>(evt, model, graph);
+                await repo.DeleteAsync<Model>(evt, model, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1696,7 +1280,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>(models);
+                await repo.DeleteAsync<Model>(models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1706,7 +1290,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>("evt", models);
+                await repo.DeleteAsync<Model>("evt", models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1716,7 +1300,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>("evt", source, models);
+                await repo.DeleteAsync<Model>("evt", source, models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1726,7 +1310,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>(models, graph);
+                await repo.DeleteAsync<Model>(models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1736,7 +1320,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>("evt", models, graph);
+                await repo.DeleteAsync<Model>("evt", models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1746,7 +1330,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>("evt", source, models, graph);
+                await repo.DeleteAsync<Model>("evt", source, models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1756,7 +1340,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>(evt, models);
+                await repo.DeleteAsync<Model>(evt, models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1765,7 +1349,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>(evt, models, graph);
+                await repo.DeleteAsync<Model>(evt, models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1774,7 +1358,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>((object)7);
+                await repo.DeleteByIDAsync<Model>((object)7, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1784,7 +1368,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>("evt", (object)7);
+                await repo.DeleteByIDAsync<Model>("evt", (object)7, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1794,7 +1378,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>("evt", source, (object)7);
+                await repo.DeleteByIDAsync<Model>("evt", source, (object)7, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1804,7 +1388,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>((object)7, graph);
+                await repo.DeleteByIDAsync<Model>((object)7, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1814,7 +1398,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>("evt", (object)7, graph);
+                await repo.DeleteByIDAsync<Model>("evt", (object)7, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1824,7 +1408,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>("evt", source, (object)7, graph);
+                await repo.DeleteByIDAsync<Model>("evt", source, (object)7, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1834,7 +1418,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>(evt, (object)7);
+                await repo.DeleteByIDAsync<Model>(evt, (object)7, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1843,7 +1427,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>(evt, (object)7, graph);
+                await repo.DeleteByIDAsync<Model>(evt, (object)7, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1852,7 +1436,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>(ids);
+                await repo.DeleteByIDAsync<Model>(ids, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1862,7 +1446,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>("evt", ids);
+                await repo.DeleteByIDAsync<Model>("evt", ids, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1872,7 +1456,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>("evt", source, ids);
+                await repo.DeleteByIDAsync<Model>("evt", source, ids, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1882,7 +1466,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>(ids, graph);
+                await repo.DeleteByIDAsync<Model>(ids, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1892,7 +1476,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>("evt", ids, graph);
+                await repo.DeleteByIDAsync<Model>("evt", ids, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1902,7 +1486,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>("evt", source, ids, graph);
+                await repo.DeleteByIDAsync<Model>("evt", source, ids, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1912,7 +1496,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>(evt, ids);
+                await repo.DeleteByIDAsync<Model>(evt, ids, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1921,7 +1505,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>(evt, ids, graph);
+                await repo.DeleteByIDAsync<Model>(evt, ids, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1930,9 +1514,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.EventAnyAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where);
+                _ = await repo.EventAnyAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventAny, q.Operation);
+                Assert.Equal(LinqTerminal.Any, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -1948,9 +1533,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.EventAnyAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where);
+                _ = await repo.EventAnyAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventAny, q.Operation);
+                Assert.Equal(LinqTerminal.Any, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -1966,9 +1552,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.EventCountAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where);
+                _ = await repo.EventCountAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventCount, q.Operation);
+                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -1984,9 +1571,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.EventCountAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where);
+                _ = await repo.EventCountAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventCount, q.Operation);
+                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -2002,9 +1590,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.EventFirstAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, graph);
+                _ = await repo.EventFirstAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, graph, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventFirst, q.Operation);
+                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Null(q.Skip);
@@ -2020,9 +1609,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.EventFirstAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, graph);
+                _ = await repo.EventFirstAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, graph, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventFirst, q.Operation);
+                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Null(q.Skip);
@@ -2038,9 +1628,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.EventManyAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, 1, 2, graph);
+                _ = await repo.EventManyAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, 1, 2, graph, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventMany, q.Operation);
+                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Equal(1, q.Skip);
@@ -2056,9 +1647,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.EventManyAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, 1, 2, graph);
+                _ = await repo.EventManyAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, 1, 2, graph, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventMany, q.Operation);
+                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Equal(1, q.Skip);
@@ -2074,9 +1666,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.EventSingleAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, graph);
+                _ = await repo.EventSingleAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, graph, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventSingle, q.Operation);
+                Assert.Equal(LinqTerminal.SingleOrDefault, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Null(q.Skip);
@@ -2092,9 +1685,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.EventSingleAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, graph);
+                _ = await repo.EventSingleAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, graph, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.EventSingle, q.Operation);
+                Assert.Equal(LinqTerminal.SingleOrDefault, q.Terminal);
+                Assert.True(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Null(q.Skip);
@@ -2110,333 +1704,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.FirstAsync<Model>(order);
+                _ = await repo.TemporalAnyAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.FirstAsync<Model>(where);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.FirstAsync<Model>(graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.FirstAsync<Model>(order, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.FirstAsync<Model>(where, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.FirstAsync<Model>(where, order, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.ManyAsync<Model>(1, 2);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Null(q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.ManyAsync<Model>(order, 1, 2);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.ManyAsync<Model>(where, order, 1, 2);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Null(q.Graph);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.ManyAsync<Model>(graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.ManyAsync<Model>(1, 2, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Null(q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.ManyAsync<Model>(order, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.ManyAsync<Model>(order, 1, 2, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.ManyAsync<Model>(where, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.ManyAsync<Model>(where, order, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.ManyAsync<Model>(where, order, 1, 2, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.SingleAsync<Model>(where, graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Single, q.Operation);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.SingleAsync<Model>(graph);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Single, q.Operation);
-                Assert.Null(q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Null(q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Null(q.TemporalSkip);
-                Assert.Null(q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.TemporalAnyAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where);
-                var q = provider.Query!;
-                Assert.Equal(QueryOperation.Any, q.Operation);
+                Assert.Equal(LinqTerminal.Any, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -2452,9 +1723,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.TemporalAnyAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where);
+                _ = await repo.TemporalAnyAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.Any, q.Operation);
+                Assert.Equal(LinqTerminal.Any, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -2470,9 +1742,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.TemporalCountAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where);
+                _ = await repo.TemporalCountAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.Count, q.Operation);
+                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -2488,9 +1761,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.TemporalCountAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where);
+                _ = await repo.TemporalCountAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.Count, q.Operation);
+                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -2506,9 +1780,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.TemporalFirstAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, graph);
+                _ = await repo.TemporalFirstAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, graph, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
+                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -2524,9 +1799,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.TemporalFirstAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, graph);
+                _ = await repo.TemporalFirstAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, graph, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.First, q.Operation);
+                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Null(q.Order);
                 Assert.Null(q.Skip);
@@ -2542,9 +1818,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.TemporalManyAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, 1, 2, graph);
+                _ = await repo.TemporalManyAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, 1, 2, graph, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
+                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Equal(1, q.Skip);
@@ -2560,9 +1837,10 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.TemporalManyAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, 1, 2, graph);
+                _ = await repo.TemporalManyAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, 1, 2, graph, TestContext.Current.CancellationToken);
                 var q = provider.Query!;
-                Assert.Equal(QueryOperation.Many, q.Operation);
+                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
+                Assert.False(q.Events);
                 Assert.Same(where, q.Where);
                 Assert.Same(order, q.Order);
                 Assert.Equal(1, q.Skip);
@@ -2578,7 +1856,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>(model);
+                await repo.UpdateAsync<Model>(model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -2588,7 +1866,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>("evt", model);
+                await repo.UpdateAsync<Model>("evt", model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -2598,7 +1876,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>("evt", source, model);
+                await repo.UpdateAsync<Model>("evt", source, model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -2608,7 +1886,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>(model, graph);
+                await repo.UpdateAsync<Model>(model, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -2618,7 +1896,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>("evt", model, graph);
+                await repo.UpdateAsync<Model>("evt", model, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -2628,7 +1906,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>("evt", source, model, graph);
+                await repo.UpdateAsync<Model>("evt", source, model, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -2638,7 +1916,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>(evt, model);
+                await repo.UpdateAsync<Model>(evt, model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -2647,7 +1925,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>(evt, model, graph);
+                await repo.UpdateAsync<Model>(evt, model, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -2656,7 +1934,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>(models);
+                await repo.UpdateAsync<Model>(models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -2666,7 +1944,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>("evt", models);
+                await repo.UpdateAsync<Model>("evt", models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -2676,7 +1954,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>("evt", source, models);
+                await repo.UpdateAsync<Model>("evt", source, models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -2686,7 +1964,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>(models, graph);
+                await repo.UpdateAsync<Model>(models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -2696,7 +1974,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>("evt", models, graph);
+                await repo.UpdateAsync<Model>("evt", models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -2706,7 +1984,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>("evt", source, models, graph);
+                await repo.UpdateAsync<Model>("evt", source, models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -2716,7 +1994,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>(evt, models);
+                await repo.UpdateAsync<Model>(evt, models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -2725,7 +2003,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>(evt, models, graph);
+                await repo.UpdateAsync<Model>(evt, models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);

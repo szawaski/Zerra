@@ -24,7 +24,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A read-only collection of models matching the criteria.</returns>
         IReadOnlyCollection<TModel> TemporalMany<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null) where TModel : class, new()
-            => (IReadOnlyCollection<TModel>)Query(new Query<TModel>(QueryOperation.Many, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, order, skip, take, graph))!;
+            => (IReadOnlyCollection<TModel>)((IRepoInternal)this).Query(new LinqModelQuery(typeof(TModel), LinqTerminal.Sequence, false, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, order, skip, take, graph))!;
 
         /// <summary>
         /// Retrieves a collection of models matching the specified number-based temporal query criteria.
@@ -42,7 +42,7 @@ namespace Zerra.Repository
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
         /// <returns>A read-only collection of models matching the criteria.</returns>
         IReadOnlyCollection<TModel> TemporalMany<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null) where TModel : class, new()
-            => (IReadOnlyCollection<TModel>)Query(new Query<TModel>(QueryOperation.Many, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, order, skip, take, graph))!;
+            => (IReadOnlyCollection<TModel>)((IRepoInternal)this).Query(new LinqModelQuery(typeof(TModel), LinqTerminal.Sequence, false, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, order, skip, take, graph))!;
 
 
         /// <summary>
@@ -59,9 +59,10 @@ namespace Zerra.Repository
         /// <param name="skip">The number of results to skip.</param>
         /// <param name="take">The number of results to take.</param>
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a read-only collection of models matching the criteria.</returns>
-        async Task<IReadOnlyCollection<TModel>> TemporalManyAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null) where TModel : class, new()
-            => (IReadOnlyCollection<TModel>)(await QueryAsync(new Query<TModel>(QueryOperation.Many, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, order, skip, take, graph)))!;
+        async Task<IReadOnlyCollection<TModel>> TemporalManyAsync<TModel>(TemporalOrder temporalOrder, DateTime? temporalDateFrom, DateTime? temporalDateTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null, CancellationToken cancellationToken = default) where TModel : class, new()
+            => (IReadOnlyCollection<TModel>)(await ((IRepoInternal)this).QueryAsync(new LinqModelQuery(typeof(TModel), LinqTerminal.Sequence, false, temporalOrder, temporalDateFrom, temporalDateTo, null, null, temporalSkip, temporalTake, where, order, skip, take, graph), cancellationToken))!;
 
         /// <summary>
         /// Asynchronously retrieves a collection of models matching the specified number-based temporal query criteria.
@@ -77,8 +78,9 @@ namespace Zerra.Repository
         /// <param name="skip">The number of results to skip.</param>
         /// <param name="take">The number of results to take.</param>
         /// <param name="graph">An optional graph specification for eager loading related data.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a read-only collection of models matching the criteria.</returns>
-        async Task<IReadOnlyCollection<TModel>> TemporalManyAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null) where TModel : class, new()
-            => (IReadOnlyCollection<TModel>)(await QueryAsync(new Query<TModel>(QueryOperation.Many, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, order, skip, take, graph)))!;
+        async Task<IReadOnlyCollection<TModel>> TemporalManyAsync<TModel>(TemporalOrder temporalOrder, ulong? temporalNumberFrom, ulong? temporalNumberTo, int? temporalSkip, int? temporalTake, Expression<Func<TModel, bool>>? where = null, QueryOrder<TModel>? order = null, int? skip = null, int? take = null, Graph<TModel>? graph = null, CancellationToken cancellationToken = default) where TModel : class, new()
+            => (IReadOnlyCollection<TModel>)(await ((IRepoInternal)this).QueryAsync(new LinqModelQuery(typeof(TModel), LinqTerminal.Sequence, false, temporalOrder, null, null, temporalNumberFrom, temporalNumberTo, temporalSkip, temporalTake, where, order, skip, take, graph), cancellationToken))!;
     }
 }

@@ -32,9 +32,9 @@ namespace Store.Catalog.Service.Handlers
 
             ValidatePrice(command.Price);
 
-            if (!await Repo.AnyAsync<CategoryDataModel>(x => x.ID == command.CategoryID))
+            if (!await Repo.Query<CategoryDataModel>().AnyAsync(x => x.ID == command.CategoryID))
                 throw new DomainException("Category not found.");
-            if (await Repo.AnyAsync<ProductDataModel>(x => x.Sku == sku))
+            if (await Repo.Query<ProductDataModel>().AnyAsync(x => x.Sku == sku))
                 throw new DomainException($"SKU {sku} is already in use.");
 
             var product = new ProductDataModel()
@@ -55,7 +55,7 @@ namespace Store.Catalog.Service.Handlers
 
         public async Task Handle(ChangeProductPriceCommand command, CancellationToken cancellationToken)
         {
-            var product = await Repo.SingleAsync<ProductDataModel>(x => x.ID == command.ProductID) ?? throw new DomainException("Product not found.");
+            var product = await Repo.Query<ProductDataModel>().SingleOrDefaultAsync(x => x.ID == command.ProductID) ?? throw new DomainException("Product not found.");
             if (product.Status == nameof(ProductStatus.Discontinued))
                 throw new DomainException($"{product.Name} is discontinued, its price can't be changed.");
             ValidatePrice(command.Price);
@@ -90,7 +90,7 @@ namespace Store.Catalog.Service.Handlers
 
         public async Task Handle(DiscontinueProductCommand command, CancellationToken cancellationToken)
         {
-            var product = await Repo.SingleAsync<ProductDataModel>(x => x.ID == command.ProductID) ?? throw new DomainException("Product not found.");
+            var product = await Repo.Query<ProductDataModel>().SingleOrDefaultAsync(x => x.ID == command.ProductID) ?? throw new DomainException("Product not found.");
             if (product.Status == nameof(ProductStatus.Discontinued))
                 throw new DomainException($"{product.Name} is already discontinued.");
 

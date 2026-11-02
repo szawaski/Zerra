@@ -41,6 +41,6 @@ namespace Store.Shipping.Test
         }
 
         public async Task<ShipmentDataModel[]> GetShipments(Guid orderID)
-            => (await Repo.ManyAsync<ShipmentDataModel>(x => x.OrderID == orderID)).ToArray();
+            => (await Repo.Query<ShipmentDataModel>().Where(x => x.OrderID == orderID).ToArrayAsync()).ToArray();
     }
 }

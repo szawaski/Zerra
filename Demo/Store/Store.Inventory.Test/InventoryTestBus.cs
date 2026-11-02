@@ -44,9 +44,9 @@ namespace Store.Inventory.Test
         }
 
         public async Task<StockItemDataModel?> GetStockItem(Guid productID)
-            => await Repo.SingleAsync<StockItemDataModel>(x => x.ProductID == productID);
+            => await Repo.Query<StockItemDataModel>().SingleOrDefaultAsync(x => x.ProductID == productID);
 
         public async Task<StockMovementDataModel[]> GetMovements(Guid productID)
-            => (await Repo.ManyAsync<StockMovementDataModel>(x => x.ProductID == productID)).OrderBy(x => x.OccurredOn).ToArray();
+            => (await Repo.Query<StockMovementDataModel>().Where(x => x.ProductID == productID).ToArrayAsync()).OrderBy(x => x.OccurredOn).ToArray();
     }
 }

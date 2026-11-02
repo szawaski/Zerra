@@ -2,6 +2,7 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Grpc.Core;
 using Zerra.Logging;
 using KurrentDB.Client;
 
@@ -57,58 +58,74 @@ namespace Zerra.Repository.KurrentDB
         }
 
         /// <inheritdoc/>
-        public async Task<ulong> AppendAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data)
+        public async Task<ulong> AppendAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data, CancellationToken cancellationToken = default)
         {
-            var eventData = new EventData(Uuid.FromGuid(eventID), eventName, data);
-
-            if (expectedEventNumber.HasValue)
+            try
             {
-                var revision = (StreamState)expectedEventNumber.Value;
+                var eventData = new EventData(Uuid.FromGuid(eventID), eventName, data);
 
-                var writeResult = await client.AppendToStreamAsync(streamName, revision, [eventData]);
-                return (ulong)writeResult.NextExpectedStreamState.ToInt64();
-            }
-            else
-            {
-                var state = expectedState switch
+                if (expectedEventNumber.HasValue)
                 {
-                    EventStoreState.Any => StreamState.Any,
-                    EventStoreState.NotExisting => StreamState.NoStream,
-                    EventStoreState.Existing => StreamState.StreamExists,
-                    _ => throw new NotImplementedException(),
-                };
-                var writeResult = await client.AppendToStreamAsync(streamName, state, [eventData]);
-                return (ulong)writeResult.NextExpectedStreamState.ToInt64();
+                    var revision = (StreamState)expectedEventNumber.Value;
+
+                    var writeResult = await client.AppendToStreamAsync(streamName, revision, [eventData], cancellationToken: cancellationToken);
+                    return (ulong)writeResult.NextExpectedStreamState.ToInt64();
+                }
+                else
+                {
+                    var state = expectedState switch
+                    {
+                        EventStoreState.Any => StreamState.Any,
+                        EventStoreState.NotExisting => StreamState.NoStream,
+                        EventStoreState.Existing => StreamState.StreamExists,
+                        _ => throw new NotImplementedException(),
+                    };
+                    var writeResult = await client.AppendToStreamAsync(streamName, state, [eventData], cancellationToken: cancellationToken);
+                    return (ulong)writeResult.NextExpectedStreamState.ToInt64();
+                }
+            }
+            //the client reports a call it cancelled as its own error
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(ex.Message, ex, cancellationToken);
             }
         }
         /// <inheritdoc/>
-        public async Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState)
+        public async Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, CancellationToken cancellationToken = default)
         {
-            //the marker has no data which flags it deleted, the stream is not tombstoned so its history stays readable for rebuilds
-            var eventData = new EventData(Uuid.FromGuid(eventID), eventName, null, null);
-
-            if (expectedEventNumber.HasValue)
+            try
             {
-                var revision = (StreamState)expectedEventNumber.Value;
+                //the marker has no data which flags it deleted, the stream is not tombstoned so its history stays readable for rebuilds
+                var eventData = new EventData(Uuid.FromGuid(eventID), eventName, null, null);
 
-                var writeResult = await client.AppendToStreamAsync(streamName, revision, [eventData]);
-                return (ulong)writeResult.NextExpectedStreamState.ToInt64();
-            }
-            else
-            {
-                var state = expectedState switch
+                if (expectedEventNumber.HasValue)
                 {
-                    EventStoreState.Any => StreamState.Any,
-                    EventStoreState.NotExisting => StreamState.NoStream,
-                    EventStoreState.Existing => StreamState.StreamExists,
-                    _ => throw new NotImplementedException(),
-                };
-                var writeResult = await client.AppendToStreamAsync(streamName, state, [eventData]);
-                return (ulong)writeResult.NextExpectedStreamState.ToInt64();
+                    var revision = (StreamState)expectedEventNumber.Value;
+
+                    var writeResult = await client.AppendToStreamAsync(streamName, revision, [eventData], cancellationToken: cancellationToken);
+                    return (ulong)writeResult.NextExpectedStreamState.ToInt64();
+                }
+                else
+                {
+                    var state = expectedState switch
+                    {
+                        EventStoreState.Any => StreamState.Any,
+                        EventStoreState.NotExisting => StreamState.NoStream,
+                        EventStoreState.Existing => StreamState.StreamExists,
+                        _ => throw new NotImplementedException(),
+                    };
+                    var writeResult = await client.AppendToStreamAsync(streamName, state, [eventData], cancellationToken: cancellationToken);
+                    return (ulong)writeResult.NextExpectedStreamState.ToInt64();
+                }
+            }
+            //the client reports a call it cancelled as its own error
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(ex.Message, ex, cancellationToken);
             }
         }
         /// <inheritdoc/>
-        public async Task<EventStoreEventData[]> ReadAsync(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate)
+        public async Task<EventStoreEventData[]> ReadAsync(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate, CancellationToken cancellationToken = default)
         {
             var models = new List<EventStoreEventData>();
 
@@ -127,11 +144,16 @@ namespace Zerra.Repository.KurrentDB
                 ResolvedEvent[] streamEvents;
                 try
                 {
-                    streamEvents = await client.ReadStreamAsync(Direction.Forwards, streamName, streamStart, streamCount).ToArrayAsync();
+                    streamEvents = await client.ReadStreamAsync(Direction.Forwards, streamName, streamStart, streamCount, cancellationToken: cancellationToken).ToArrayAsync();
                 }
                 catch (StreamNotFoundException)
                 {
                     return Array.Empty<EventStoreEventData>();
+                }
+                //the client reports a call it cancelled as its own error
+                catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && cancellationToken.IsCancellationRequested)
+                {
+                    throw new OperationCanceledException(ex.Message, ex, cancellationToken);
                 }
 
                 if (streamEvents.Length == 0)
@@ -189,7 +211,7 @@ namespace Zerra.Repository.KurrentDB
             return models.ToArray();
         }
         /// <inheritdoc/>
-        public async Task<EventStoreEventData[]> ReadBackwardsAsync(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate)
+        public async Task<EventStoreEventData[]> ReadBackwardsAsync(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate, CancellationToken cancellationToken = default)
         {
             var models = new List<EventStoreEventData>();
 
@@ -205,11 +227,16 @@ namespace Zerra.Repository.KurrentDB
                 ResolvedEvent[] streamEvents;
                 try
                 {
-                    streamEvents = await client.ReadStreamAsync(Direction.Backwards, streamName, streamStart, streamCount).ToArrayAsync();
+                    streamEvents = await client.ReadStreamAsync(Direction.Backwards, streamName, streamStart, streamCount, cancellationToken: cancellationToken).ToArrayAsync();
                 }
                 catch (StreamNotFoundException)
                 {
                     return Array.Empty<EventStoreEventData>();
+                }
+                //the client reports a call it cancelled as its own error
+                catch (RpcException ex) when (ex.StatusCode == StatusCode.Cancelled && cancellationToken.IsCancellationRequested)
+                {
+                    throw new OperationCanceledException(ex.Message, ex, cancellationToken);
                 }
 
                 if (streamEvents.Length == 0)

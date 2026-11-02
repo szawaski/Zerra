@@ -17,7 +17,7 @@ namespace Store.Shipping.Service.Handlers
 
         public async Task<ShipmentModel[]> GetShipments(CancellationToken cancellationToken)
         {
-            var items = await Repo.ManyAsync(QueryOrder<ShipmentDataModel>.Create(x => x.ShippedOn, true), 0, recentShipmentCount);
+            var items = await Repo.Query<ShipmentDataModel>().OrderByDescending(x => x.ShippedOn).Skip(0).Take(recentShipmentCount).ToArrayAsync(cancellationToken);
             return items.Select(x => new ShipmentModel()
             {
                 OrderID = x.OrderID,

@@ -45,6 +45,26 @@ namespace Zerra.Repository.Test.PostgreSql
         }
 
 
+        private static IDisposable HoldParityTable(string connectionString)
+        {
+            var connection = new NpgsqlConnection(connectionString);
+            connection.Open();
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "BEGIN; LOCK TABLE queryparity IN ACCESS EXCLUSIVE MODE";
+                _ = command.ExecuteNonQuery();
+            }
+            return new QueryParityTests.HeldTable(() =>
+            {
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "COMMIT";
+                    _ = command.ExecuteNonQuery();
+                }
+                connection.Dispose();
+            });
+        }
+
         [Fact]
         public async Task TestSequence()
         {
@@ -64,6 +84,7 @@ namespace Zerra.Repository.Test.PostgreSql
             await RelationPersistTests.TestSequenceAsync(engine);
             QueryParityTests.TestSequence(engine);
             await QueryParityTests.TestSequenceAsync(engine);
+            await QueryParityTests.TestCancellationAsync(engine, () => HoldParityTable(connectionString));
             SchemaChangeTests.Test(engine, table => ExecuteSql(connectionString, $"DROP TABLE IF EXISTS {table.ToLowerInvariant()}"));
 
             const string changeColumn = "ALTER TABLE testtypes ALTER COLUMN int32thing TYPE bigint; ALTER TABLE testtypes ALTER COLUMN int32thing DROP NOT NULL;";

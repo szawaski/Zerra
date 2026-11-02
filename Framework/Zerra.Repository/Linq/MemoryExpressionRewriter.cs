@@ -86,9 +86,12 @@ namespace Zerra.Repository
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
+            //a query a condition looks in is read once for the whole run
+            if (node.Object is ConstantExpression { Value: LinqSubquery subquery })
+                return Expression.Call(Expression.Constant(subquery.Read()), typeof(HashSet<object>).GetMethod(nameof(HashSet<object>.Contains))!, Visit(node.Arguments[0])!);
             if (node.Method.DeclaringType == typeof(MemoryExtensions)
                 && node.Method.Name == nameof(MemoryExtensions.Contains)
-                && node.Arguments.Count == 2
+                && (node.Arguments.Count == 2 || (node.Arguments.Count == 3 && node.Arguments[2] is ConstantExpression { Value: null }))
                 && node.Arguments[0] is MethodCallExpression spanConversion
                 && spanConversion.Method.Name == "op_Implicit"
                 && spanConversion.Arguments.Count == 1
@@ -129,6 +132,21 @@ namespace Zerra.Repository
                 return row;
             }
             return base.VisitMethodCall(node);
+        }
+
+        //a member of one related model reads as null when there is no related model, as a join does
+        protected override Expression VisitMember(MemberExpression node)
+        {
+            if (node.Expression is not MemberExpression { Expression: not null } related || !related.Type.IsDefined(typeof(EntityAttribute), false))
+                return base.VisitMember(node);
+            var source = VisitChild(related, out var outer);
+            var row = Expression.Variable(related.Type, "row");
+            var lift = new Lift();
+            lift.Variables.Add(row);
+            lift.Assignments.Add(Expression.Assign(row, outer is null ? source : Expression.Condition(outer.Missing, Expression.Constant(null, related.Type), source)));
+            lift.Missing = Expression.ReferenceEqual(row, Expression.Constant(null, related.Type));
+            pending = Lift.Merge(pending, Lift.Merge(outer, lift));
+            return Expression.MakeMemberAccess(row, node.Member);
         }
 
         protected override Expression VisitBinary(BinaryExpression node)

@@ -61,8 +61,8 @@ namespace Pets.Service
 
         public async Task<PetSimpleModel[]> GetPetsFromRepo()
         {
-            var items = await Repo.ManyAsync<PetDataModel>(x => x.Id > 0, QueryOrder<PetDataModel>.Create(x => x.Name));
-            var models = new PetSimpleModel[items.Count];
+            var items = await Repo.Query<PetDataModel>().Where(x => x.Id > 0).OrderBy(x => x.Name).ToArrayAsync();
+            var models = new PetSimpleModel[items.Length];
             var i = 0;
             foreach (var item in items)
                 models[i++] = new PetSimpleModel() { ID = item.Id, Name = item.Name, Type = item.PetType?.Name };

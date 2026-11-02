@@ -20,7 +20,7 @@ namespace Store.Reviews.Service.Handlers
             if (comment is not null && comment.Length > 1000)
                 throw new DomainException("Comment must be 1000 characters or less.");
 
-            if (await Repo.AnyAsync<ReviewDataModel>(x => x.CustomerID == command.CustomerID && x.ProductID == command.ProductID))
+            if (await Repo.Query<ReviewDataModel>().AnyAsync(x => x.CustomerID == command.CustomerID && x.ProductID == command.ProductID))
                 throw new DomainException("You've already reviewed this product.");
 
             //the product's name comes from the Catalog service, cached here until the Catalog's events say the product changed

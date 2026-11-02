@@ -15,7 +15,7 @@ namespace Zerra.Repository
         int Delete<TModel>(Expression<Func<TModel, bool>> where) where TModel : class, new()
         {
             var persist = new Persist<TModel>(PersistOperation.Delete, null, null, where, null, null);
-            Persist(persist);
+            ((IRepoInternal)this).Persist(persist);
             return persist.RowsAffected;
         }
 
@@ -27,7 +27,7 @@ namespace Zerra.Repository
         int Delete<TModel>(string? eventName, Expression<Func<TModel, bool>> where) where TModel : class, new()
         {
             var persist = new Persist<TModel>(PersistOperation.Delete, eventName, null, where, null, null);
-            Persist(persist);
+            ((IRepoInternal)this).Persist(persist);
             return persist.RowsAffected;
         }
 
@@ -40,7 +40,7 @@ namespace Zerra.Repository
         int Delete<TModel>(string? eventName, object? source, Expression<Func<TModel, bool>> where) where TModel : class, new()
         {
             var persist = new Persist<TModel>(PersistOperation.Delete, eventName, source, where, null, null);
-            Persist(persist);
+            ((IRepoInternal)this).Persist(persist);
             return persist.RowsAffected;
         }
 
@@ -52,18 +52,19 @@ namespace Zerra.Repository
         int Delete<TModel>(PersistEvent @event, Expression<Func<TModel, bool>> where) where TModel : class, new()
         {
             var persist = new Persist<TModel>(PersistOperation.Delete, @event, where, null, null);
-            Persist(persist);
+            ((IRepoInternal)this).Persist(persist);
             return persist.RowsAffected;
         }
 
         /// <summary>Asynchronously deletes every model matching <paramref name="where"/> in the store, without loading them.</summary>
         /// <typeparam name="TModel">The type of the model to delete.</typeparam>
         /// <param name="where">The condition selecting the models.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation. How many models were deleted.</returns>
-        async Task<int> DeleteAsync<TModel>(Expression<Func<TModel, bool>> where) where TModel : class, new()
+        async Task<int> DeleteAsync<TModel>(Expression<Func<TModel, bool>> where, CancellationToken cancellationToken = default) where TModel : class, new()
         {
             var persist = new Persist<TModel>(PersistOperation.Delete, null, null, where, null, null);
-            await PersistAsync(persist);
+            await ((IRepoInternal)this).PersistAsync(persist, cancellationToken);
             return persist.RowsAffected;
         }
 
@@ -71,11 +72,12 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of the model to delete.</typeparam>
         /// <param name="eventName">The name of the persist event, or <see langword="null"/> for a default.</param>
         /// <param name="where">The condition selecting the models.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation. How many models were deleted.</returns>
-        async Task<int> DeleteAsync<TModel>(string? eventName, Expression<Func<TModel, bool>> where) where TModel : class, new()
+        async Task<int> DeleteAsync<TModel>(string? eventName, Expression<Func<TModel, bool>> where, CancellationToken cancellationToken = default) where TModel : class, new()
         {
             var persist = new Persist<TModel>(PersistOperation.Delete, eventName, null, where, null, null);
-            await PersistAsync(persist);
+            await ((IRepoInternal)this).PersistAsync(persist, cancellationToken);
             return persist.RowsAffected;
         }
 
@@ -84,11 +86,12 @@ namespace Zerra.Repository
         /// <param name="eventName">The name of the persist event, or <see langword="null"/> for a default.</param>
         /// <param name="source">The source object that triggered the delete, or <see langword="null"/>.</param>
         /// <param name="where">The condition selecting the models.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation. How many models were deleted.</returns>
-        async Task<int> DeleteAsync<TModel>(string? eventName, object? source, Expression<Func<TModel, bool>> where) where TModel : class, new()
+        async Task<int> DeleteAsync<TModel>(string? eventName, object? source, Expression<Func<TModel, bool>> where, CancellationToken cancellationToken = default) where TModel : class, new()
         {
             var persist = new Persist<TModel>(PersistOperation.Delete, eventName, source, where, null, null);
-            await PersistAsync(persist);
+            await ((IRepoInternal)this).PersistAsync(persist, cancellationToken);
             return persist.RowsAffected;
         }
 
@@ -96,11 +99,12 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of the model to delete.</typeparam>
         /// <param name="event">The persist event.</param>
         /// <param name="where">The condition selecting the models.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation. How many models were deleted.</returns>
-        async Task<int> DeleteAsync<TModel>(PersistEvent @event, Expression<Func<TModel, bool>> where) where TModel : class, new()
+        async Task<int> DeleteAsync<TModel>(PersistEvent @event, Expression<Func<TModel, bool>> where, CancellationToken cancellationToken = default) where TModel : class, new()
         {
             var persist = new Persist<TModel>(PersistOperation.Delete, @event, where, null, null);
-            await PersistAsync(persist);
+            await ((IRepoInternal)this).PersistAsync(persist, cancellationToken);
             return persist.RowsAffected;
         }
     }

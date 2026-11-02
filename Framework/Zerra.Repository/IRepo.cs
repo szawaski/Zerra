@@ -10,30 +10,13 @@ namespace Zerra.Repository
     public partial interface IRepo
     {
         /// <summary>
-        /// Executes a query and returns its result as the type the operation produces: the models, a model, a count, a calculation, or the typed results of a projection, calculation per group, or distinct values.
+        /// Starts a LINQ query of the model's store. Compose it with <c>Where</c>, <c>OrderBy</c>, <c>Skip</c>, <c>Take</c>, <c>Select</c>, <c>Distinct</c>, and <c>GroupBy</c>, and run it by enumerating it or with <c>First</c>, <c>Single</c>, <c>Count</c>, <c>Any</c>, <c>All</c>, <c>Sum</c>, <c>Min</c>, <c>Max</c>, or <c>Average</c>, or their <c>Async</c> versions from <see cref="RepoQueryableExtensions"/>.
+        /// The query runs in the store, through the model's provider, as the other methods do.
         /// </summary>
-        /// <param name="query">The query to execute.</param>
-        /// <returns>The result, boxed when it is a value.</returns>
-        object? Query(Query query);
+        /// <typeparam name="TModel">The type of the model to query.</typeparam>
+        /// <param name="graph">The members and relations of the models to read, or <see langword="null"/> for every member and no relations. A query with a graph has no <c>Select</c> or <c>GroupBy</c>.</param>
+        /// <returns>The queryable.</returns>
+        IQueryable<TModel> Query<TModel>(Graph? graph = null) where TModel : class, new();
 
-        /// <summary>
-        /// Executes a persist operation to create, update, or delete data.
-        /// </summary>
-        /// <param name="persist">The persist operation to execute.</param>
-        void Persist(Persist persist);
-
-        /// <summary>
-        /// Asynchronously executes a query and returns its result as the type the operation produces: the models, a model, a count, a calculation, or the typed results of a projection, calculation per group, or distinct values.
-        /// </summary>
-        /// <param name="query">The query to execute.</param>
-        /// <returns>A task that represents the asynchronous operation, containing the result, boxed when it is a value.</returns>
-        Task<object?> QueryAsync(Query query);
-
-        /// <summary>
-        /// Asynchronously executes a persist operation to create, update, or delete data.
-        /// </summary>
-        /// <param name="persist">The persist operation to execute.</param>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        Task PersistAsync(Persist persist);
     }
 }

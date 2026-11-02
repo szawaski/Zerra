@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using Xunit;
 using Zerra.Encryption;
 using Zerra.Repository.Memory;
+using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.Test
 {
@@ -92,15 +93,14 @@ namespace Zerra.Repository.Test
             var (repo, models, parents) = MemoryRepo();
             var parentNames = parents.ToDictionary(x => x.ID, x => x.Name);
 
-            var rows = repo.Select((Model x) => new Row { Number = x.Number, Name = x.Name, ParentName = x.Parent!.Name, Twice = x.Number * 2, Siblings = x.Parent!.Children!.Count() },
-                x => x.Number > 0, QueryOrder<Model>.Create(x => x.Number, true), 1, 3);
+            var rows = repo.Query<Model>().Where(x => x.Number > 0).OrderByDescending(x => x.Number).Skip(1).Take(3).Select(x => new Row { Number = x.Number, Name = x.Name, ParentName = x.Parent!.Name, Twice = x.Number * 2, Siblings = x.Parent!.Children!.Count() }).ToArray();
             var expected = models.Where(x => x.Number > 0).OrderByDescending(x => x.Number).Skip(1).Take(3)
                 .Select(x => (x.Number, x.Name, parentNames[x.ParentID!.Value], x.Number * 2, (long)models.Count(m => m.ParentID == x.ParentID))).ToArray();
             Assert.Equal(expected, rows.Select(r => (r.Number, r.Name, r.ParentName, r.Twice, r.Siblings)).ToArray());
 
-            var all = await repo.SelectAsync((Model x) => new Row { Number = x.Number });
+            var all = await repo.Query<Model>().Select(x => new Row { Number = x.Number }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(models.Select(x => x.Number).Order(), all.Select(r => r.Number).Order());
-            Assert.Empty(repo.Select((Model x) => new Row { Number = x.Number }, x => x.Number > 100));
+            Assert.Empty(repo.Query<Model>().Where(x => x.Number > 100).Select(x => new Row { Number = x.Number }).ToArray());
         }
 
         [Fact]
@@ -109,7 +109,7 @@ namespace Zerra.Repository.Test
             var (repo, models, parents) = MemoryRepo();
             var parentNames = parents.ToDictionary(x => x.ID, x => x.Name);
 
-            var byFlag = repo.Group((Model x) => x.Flag, g => new Summary { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Number), Average = g.Average(x => x.Number), Most = g.Max(x => x.Money), First = g.Min(x => x.Name) });
+            var byFlag = repo.Query<Model>().GroupBy(x => x.Flag).Select(g => new Summary { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Number), Average = g.Average(x => x.Number), Most = g.Max(x => x.Money), First = g.Min(x => x.Name) }).ToArray();
             foreach (var group in models.GroupBy(x => x.Flag))
             {
                 var actual = byFlag.Single(r => r.Flag == group.Key);
@@ -121,16 +121,16 @@ namespace Zerra.Repository.Test
             }
 
             //a key of several members as an anonymous object, read back part by part
-            var byPair = repo.Group((Model x) => new { x.Flag, x.Maybe }, g => new Summary { Flag = g.Key.Flag, Maybe = g.Key.Maybe, Rows = g.Count() });
-            Assert.Equal(models.GroupBy(x => (x.Flag, x.Maybe)).Count(), byPair.Count);
+            var byPair = repo.Query<Model>().GroupBy(x => new { x.Flag, x.Maybe }).Select(g => new Summary { Flag = g.Key.Flag, Maybe = g.Key.Maybe, Rows = g.Count() }).ToArray();
+            Assert.Equal(models.GroupBy(x => (x.Flag, x.Maybe)).Count(), byPair.Length);
             Assert.Equal(1, byPair.Single(r => r.Flag && r.Maybe == 0).Rows);
             Assert.Equal(2, byPair.Single(r => !r.Flag && r.Maybe is null).Rows);
 
-            var byTuple = repo.Group((Model x) => new ValueTuple<bool, int?>(x.Flag, x.Maybe), g => new Summary { Flag = g.Key.Item1, Maybe = g.Key.Item2, Rows = g.Count() });
-            Assert.Equal(byPair.Count, byTuple.Count);
+            var byTuple = repo.Query<Model>().GroupBy(x => new ValueTuple<bool, int?>(x.Flag, x.Maybe)).Select(g => new Summary { Flag = g.Key.Item1, Maybe = g.Key.Item2, Rows = g.Count() }).ToArray();
+            Assert.Equal(byPair.Length, byTuple.Length);
 
             //a key through a relation
-            var byParent = await repo.GroupAsync((Model x) => x.Parent!.Name, g => new Summary { ParentName = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Number) });
+            var byParent = await repo.Query<Model>().GroupBy(x => x.Parent!.Name).Select(g => new Summary { ParentName = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Number) }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken);
             foreach (var group in models.GroupBy(x => parentNames[x.ParentID!.Value]))
             {
                 var actual = byParent.Single(r => r.ParentName == group.Key);
@@ -144,13 +144,12 @@ namespace Zerra.Repository.Test
         {
             var (repo, models, _) = MemoryRepo();
 
-            var top = repo.Group((Model x) => x.Maybe, g => new Summary { Maybe = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Number) },
-                having: r => r.Total > 0, order: QueryOrder<Summary>.Create(r => r.Total, true), skip: 1, take: 2);
+            var top = repo.Query<Model>().GroupBy(x => x.Maybe).Select(g => new Summary { Maybe = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Number) }).Where(r => r.Total > 0).OrderByDescending(r => r.Total).Skip(1).Take(2).ToArray();
             var expected = models.GroupBy(x => x.Maybe).Select(g => (g.Key, g.Count(), g.Sum(x => x.Number))).Where(x => x.Item3 > 0).OrderByDescending(x => x.Item3).Skip(1).Take(2).ToArray();
             Assert.Equal(expected, top.Select(r => (r.Maybe, r.Rows, (int)r.Total)).ToArray());
 
             //two flagged rows and four not, so ascending by count puts the flagged group first
-            var ordered = repo.Group((Model x) => x.Flag, g => new Summary { Flag = g.Key, Rows = g.Count() }, order: QueryOrder<Summary>.Create(r => r.Rows, false, r => r.Flag));
+            var ordered = repo.Query<Model>().GroupBy(x => x.Flag).Select(g => new Summary { Flag = g.Key, Rows = g.Count() }).OrderBy(r => r.Rows).ThenBy(r => r.Flag).ToArray();
             Assert.Equal([true, false], ordered.Select(r => r.Flag).ToArray());
             Assert.Equal([2, 4], ordered.Select(r => r.Rows).ToArray());
         }
@@ -161,11 +160,11 @@ namespace Zerra.Repository.Test
             var (repo, _, _) = MemoryRepo();
 
             //a member must be the key, a part of it, Count, or an aggregate of a value
-            _ = Assert.Throws<NotSupportedException>(() => repo.Group((Model x) => x.Flag, g => new Summary { Rows = g.Select(x => x.Number).Count() }));
-            _ = Assert.Throws<NotSupportedException>(() => repo.Group((Model x) => x.Flag, g => new Summary { Total = g.First().Number }));
-            _ = Assert.Throws<NotSupportedException>(() => repo.Group((Model x) => new { x.Flag, x.Maybe }, g => new Summary { Flag = g.Key.Flag, First = g.Key.ToString() }));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<Model>().GroupBy(x => x.Flag).Select(g => new Summary { Rows = g.Select(x => x.Number).Count() }).ToArray());
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<Model>().GroupBy(x => x.Flag).Select(g => new Summary { Total = g.First().Number }).ToArray());
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<Model>().GroupBy(x => new { x.Flag, x.Maybe }).Select(g => new Summary { Flag = g.Key.Flag, First = g.Key.ToString() }).ToArray());
             //and the whole key of several parts can't be set to a member
-            _ = Assert.Throws<NotSupportedException>(() => repo.Group((Model x) => new { x.Flag, x.Maybe }, g => new Summary { First = g.Key.ToString() }));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<Model>().GroupBy(x => new { x.Flag, x.Maybe }).Select(g => new Summary { First = g.Key.ToString() }).ToArray());
         }
 
         [Fact]
@@ -173,13 +172,13 @@ namespace Zerra.Repository.Test
         {
             var (repo, models, parents) = MemoryRepo();
 
-            var rows = await repo.SelectAsync((Parent x) => new ParentRows
+            var rows = await repo.Query<Parent>().OrderBy(x => x.Name).Select(x => new ParentRows
             {
                 Name = x.Name,
                 Children = x.Children!.Select(c => new Row { Number = c.Number, Name = c.Name }).ToArray(),
                 Sorted = x.Children!.OrderByDescending(c => c.Number).Select(c => new Row { Number = c.Number, Twice = c.Number * 2 }).ToList(),
                 Some = x.Children!.Where(c => c.Flag).OrderBy(c => c.Number).Select(c => new Row { Number = c.Number }).ToList(),
-            }, null, QueryOrder<Parent>.Create(x => x.Name));
+            }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(["pa", "pb"], rows.Select(r => r.Name));
             foreach (var row in rows)
             {
@@ -192,14 +191,12 @@ namespace Zerra.Repository.Test
 
             //a parent without rows gets an empty collection
             repo.Create(new Parent { ID = Guid.NewGuid(), Name = "pc" });
-            var empty = repo.Select((Parent x) => new ParentRows { Children = x.Children!.Select(c => new Row { Number = c.Number }).ToArray() }, x => x.Name == "pc");
+            var empty = repo.Query<Parent>().Where(x => x.Name == "pc").Select(x => new ParentRows { Children = x.Children!.Select(c => new Row { Number = c.Number }).ToArray() }).ToArray();
             Assert.Empty(Assert.Single(empty).Children!);
 
-            //paging and skipping the rows, a result reading the model, and an element type the member doesn't take are refused
-            _ = Assert.Throws<NotSupportedException>(() => repo.Select((Parent x) => new ParentRows { Children = x.Children!.Skip(1).Select(c => new Row { Number = c.Number }).ToArray() }));
-            _ = Assert.Throws<NotSupportedException>(() => repo.Select((Parent x) => new ParentRows { Children = x.Children!.Select(c => new Row { Number = c.Number, ParentName = x.Name }).ToArray() }));
-            _ = Assert.Throws<NotSupportedException>(() => repo.Select((Parent x) => new ParentRows { Children = x.Children!.Where(c => c.Name == x.Name).Select(c => new Row { Number = c.Number }).ToArray() }));
-            _ = Assert.Throws<NotSupportedException>(() => repo.Select((Parent x) => new ParentRows { Loose = x.Children!.Select(c => new Row { Number = c.Number }).ToArray() }));
+            //a result reading the model is refused
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<Parent>().Select(x => new ParentRows { Children = x.Children!.Select(c => new Row { Number = c.Number, ParentName = x.Name }).ToArray() }).ToArray());
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<Parent>().Select(x => new ParentRows { Children = x.Children!.Where(c => c.Name == x.Name).Select(c => new Row { Number = c.Number }).ToArray() }).ToArray());
         }
 
         [Entity("ProjectionNode")]
@@ -232,11 +229,11 @@ namespace Zerra.Repository.Test
             repo.Create<Node>(children);
             repo.Create(new Node { ID = Guid.NewGuid(), ParentID = children[0].ID, Name = "g1" });
 
-            var rows = repo.Select((Node x) => new NodeRow { Name = x.Name, Children = x.Children!.OrderBy(c => c.Name).Select(c => new NodeRow { Name = c.Name }).ToArray() }, x => x.Name == "root");
+            var rows = repo.Query<Node>().Where(x => x.Name == "root").Select(x => new NodeRow { Name = x.Name, Children = x.Children!.OrderBy(c => c.Name).Select(c => new NodeRow { Name = c.Name }).ToArray() }).ToArray();
             Assert.Equal(["c1", "c2"], Assert.Single(rows).Children!.Select(c => c.Name));
 
             //the rows of a collection within a row can't be a row model above them, so a projection never follows a relation round and round; a model with a collection of itself nests one level
-            var refused = Assert.Throws<NotSupportedException>(() => repo.Select((Node x) => new NodeRow { Name = x.Name, Children = x.Children!.Select(c => new NodeRow { Name = c.Name, Children = c.Children!.Select(g => new NodeRow { Name = g.Name }).ToArray() }).ToArray() }));
+            var refused = Assert.Throws<NotSupportedException>(() => repo.Query<Node>().Select(x => new NodeRow { Name = x.Name, Children = x.Children!.Select(c => new NodeRow { Name = c.Name, Children = c.Children!.Select(g => new NodeRow { Name = g.Name }).ToArray() }).ToArray() }).ToArray());
             Assert.Contains("already projected above them", refused.Message);
         }
 
@@ -260,10 +257,10 @@ namespace Zerra.Repository.Test
             repo.Update(models[0]);
             var ids = models.Select(x => x.ID).ToArray();
 
-            var rows = repo.Select((EventedModel x) => new Row { Number = x.Value }, x => ids.Contains(x.ID), QueryOrder<EventedModel>.Create(x => x.Value));
+            var rows = repo.Query<EventedModel>().Where(x => ids.Contains(x.ID)).OrderBy(x => x.Value).Select(x => new Row { Number = x.Value }).ToArray();
             Assert.Equal([2, 3, 10], rows.Select(r => r.Number).ToArray());
 
-            var groups = await repo.GroupAsync((EventedModel x) => x.Flag, g => new Summary { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Value) }, x => ids.Contains(x.ID));
+            var groups = await repo.Query<EventedModel>().Where(x => ids.Contains(x.ID)).GroupBy(x => x.Flag).Select(g => new Summary { Flag = g.Key, Rows = g.Count(), Total = g.Sum(x => x.Value) }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(12, groups.Single(r => r.Flag).Total);
             Assert.Equal(2, groups.Single(r => r.Flag).Rows);
         }
@@ -271,6 +268,144 @@ namespace Zerra.Repository.Test
         private sealed class EvenRules(ITransactStoreProvider<Model> next) : BaseTransactStoreRuleProvider<ITransactStoreProvider<Model>, Model>(next)
         {
             public override LambdaExpression? WhereExpression(Graph? graph) => (Expression<Func<Model, bool>>)(x => x.Number % 2 == 0);
+        }
+
+        [Fact]
+        public async Task SelectBuildsTheModelItself()
+        {
+            var (repo, models, parents) = MemoryRepo();
+
+            var read = repo.Query<Model>().Where(x => x.ParentID != null).OrderBy(x => x.Number).Select(x => new Model { Number = x.Number, Parent = x.Parent }).ToArray();
+            var expected = models.Where(x => x.ParentID is not null).OrderBy(x => x.Number).ToArray();
+            Assert.Equal(expected.Select(x => x.Number), read.Select(x => x.Number));
+            for (var i = 0; i < read.Length; i++)
+                Assert.Equal(parents.Single(p => p.ID == expected[i].ParentID).Name, read[i].Parent!.Name);
+            Assert.All(read, x => Assert.Null(x.Name));
+
+            var parent = await repo.Query<Parent>().Where(x => x.ID == parents[0].ID).Select(x => new Parent { Name = x.Name, Children = x.Children }).SingleOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(parents[0].Name, parent!.Name);
+            Assert.Equal(models.Where(x => x.ParentID == parents[0].ID).Select(x => x.Number).Order(), parent.Children!.Select(x => x.Number).Order());
+        }
+
+        [Entity("TwoWaysOrder")]
+        public sealed class TwoWays
+        {
+            [Identity]
+            public Guid ID { get; set; }
+            public Guid BillToID { get; set; }
+            public Guid ShipToID { get; set; }
+            [Relation(nameof(BillToID))]
+            public Parent? BillTo { get; set; }
+            [Relation(nameof(ShipToID))]
+            public Parent? ShipTo { get; set; }
+        }
+
+        //one related row joins unless the rows have relations of their own
+        [Fact]
+        public void SingleRelationsJoin()
+        {
+            var (repo, models, parents) = MemoryRepo();
+            var expression = repo.Query<Model>().Expression;
+            var detail = ModelAnalyzer.GetModel(typeof(Model));
+
+            var joined = LinqPlan.Read(new LinqQuery<Model, Model>(expression, null, null, new Graph<Model>(true, x => x.Parent)), detail);
+            Assert.Empty(joined.Pieces);
+            var relation = Assert.Single(joined.Shape!.ModelRelations!);
+            Assert.NotNull(relation.JoinedKey);
+            Assert.True(joined.Columns.Count > detail.Members.Count(x => x.StoreName is not null));
+
+            var select = repo.Query<Model>().Select(x => new { x.Number, x.Parent }).Expression;
+            Assert.Empty(LinqPlan.Read(new LinqQuery<Model, object>(select, null, null), detail).Pieces);
+
+            //the rows of the relation have one of their own named, so they read by a statement that joins it
+            var nested = new Graph<Parent>(x => x.Name, x => x.Children);
+            var withChildren = new Graph<Model>(true);
+            withChildren.AddChildGraph(nameof(Model.Parent), nested);
+            Assert.Single(LinqPlan.Read(new LinqQuery<Model, Model>(expression, null, null, withChildren), detail).Pieces);
+
+            var twoWaysEngine = new MemoryEngine();
+            var twoWays = Repo.New();
+            twoWays.AddProvider(new TransactStoreProvider<TwoWays>(twoWaysEngine));
+            twoWays.AddProvider(new TransactStoreProvider<Parent>(twoWaysEngine));
+            var both = LinqPlan.Read(new LinqQuery<TwoWays, TwoWays>(twoWays.Query<TwoWays>().Expression, null, null, new Graph<TwoWays>(true, x => x.BillTo, x => x.ShipTo)), ModelAnalyzer.GetModel(typeof(TwoWays)));
+            Assert.Empty(both.Pieces);
+
+            //in memory the related model comes as the graph says and isn't the stored one
+            var read = repo.Query<Model>(new Graph<Model>(x => x.Number, x => x.Parent!.Name)).OrderBy(x => x.Number).ToArray();
+            Assert.Equal(models.OrderBy(x => x.Number).Select(x => parents.Single(p => p.ID == x.ParentID).Name), read.Select(x => x.Parent!.Name));
+            Assert.All(read, x => Assert.Equal(Guid.Empty, x.Parent!.ID));
+            var whole = repo.Query<Model>().Select(x => new { x.Number, x.Parent }).ToArray();
+            Assert.All(whole, r => Assert.NotEqual(Guid.Empty, r.Parent!.ID));
+            Assert.All(whole, r => Assert.Null(r.Parent!.Children));
+        }
+
+        //the relations of a graph are read with the rows by statements of their own, and a provider loading models reads its relations itself
+        [Fact]
+        public void GraphRelationsArePieces()
+        {
+            var detail = ModelAnalyzer.GetModel(typeof(Parent));
+            var engine = new MemoryEngine();
+            var (repo, _, _) = MemoryRepo(engine);
+            var expression = repo.Query<Parent>().Expression;
+
+            var graph = new Graph<Parent>(true, x => x.Children);
+            var plan = LinqPlan.Read(new LinqQuery<Parent, Parent>(expression, null, null, graph), detail);
+            var piece = Assert.Single(plan.Pieces);
+            Assert.Equal(nameof(Parent.Children), piece.Relation.Name);
+            Assert.Null(piece.Where);
+
+            Assert.Empty(LinqPlan.Read(new LinqQuery<Parent, Parent>(expression, null, null, new Graph<Parent>(true)), detail).Pieces);
+            Assert.Empty(LinqPlan.Read(new LinqQuery<Parent, Parent>(null, null, null, null, graph, LinqTerminal.Sequence), detail).Pieces);
+        }
+
+        private sealed class GraphRecording(ITransactStoreProvider<Model> next) : BaseTransactStoreRuleProvider<ITransactStoreProvider<Model>, Model>(next)
+        {
+            public Graph? Seen;
+            public override void OnQuery(Graph? graph) => Seen = graph;
+        }
+
+        private sealed class EvenParents(ITransactStoreProvider<Model> next) : BaseTransactStoreRuleProvider<ITransactStoreProvider<Model>, Model>(next)
+        {
+            public override LambdaExpression? WhereExpression(Graph? graph) => (Expression<Func<Model, bool>>)(x => x.Number % 2 == 0);
+        }
+
+        [Fact]
+        public async Task GraphThroughLayers()
+        {
+            var engine = new MemoryEngine();
+            var (_, models, parents) = MemoryRepo(engine);
+
+            //a rule sees the graph
+            var recording = new GraphRecording(new TransactStoreProvider<Model>(engine));
+            var ruled = Repo.New();
+            ruled.AddProvider<Model>(recording);
+            _ = ruled.Query<Model>(new Graph<Model>(x => x.Number)).ToArray();
+            Assert.True(recording.Seen!.HasMember(nameof(Model.Number)));
+            Assert.False(recording.Seen!.HasMember(nameof(Model.Name)));
+            _ = ruled.Query<Model>().ToArray();
+            Assert.Null(recording.Seen);
+
+            //a layer on the related model filters what the graph loads, so it isn't read in the store
+            var related = Repo.New();
+            related.AddProvider(new TransactStoreProvider<Parent>(engine));
+            related.AddProvider<Model>(new EvenParents(new TransactStoreProvider<Model>(engine)));
+            var loaded = await related.Query<Parent>(new Graph<Parent>(true, x => x.Children)).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal(parents.Length, loaded.Length);
+            foreach (var parent in loaded)
+                Assert.Equal(models.Where(m => m.ParentID == parent.ID && m.Number % 2 == 0).Select(m => m.Number).Order(), parent.Children!.Select(m => m.Number).Order());
+
+            //an encrypted member is read when the graph names it
+            foreach (var compression in new[] { false, true })
+            {
+                var layered = Repo.New();
+                var root = new TransactStoreProvider<Model>(new MemoryEngine());
+                layered.AddProvider<Model>(compression ? new Compressing(root) : new Encrypting(root));
+                layered.Create(new Model { ID = Guid.NewGuid(), Number = 1, Note = "secret", Name = "open" });
+                Assert.Equal("secret", layered.Query<Model>(new Graph<Model>(x => x.Number, x => x.Note)).ToArray().Single().Note);
+                var without = layered.Query<Model>(new Graph<Model>(x => x.Number)).ToArray().Single();
+                Assert.Equal(1, without.Number);
+                Assert.Null(without.Note);
+            }
         }
 
         private static readonly IEncryptor encryptor = new ZerraEncryptor("projection-test", SymmetricAlgorithmType.AES_GCM);
@@ -293,8 +428,8 @@ namespace Zerra.Repository.Test
 
             var ruled = Repo.New();
             ruled.AddProvider<Model>(new EvenRules(new TransactStoreProvider<Model>(engine)));
-            Assert.Equal(models.Where(x => x.Number % 2 == 0).Select(x => x.Number).Order(), ruled.Select((Model x) => new Row { Number = x.Number }).Select(r => r.Number).Order());
-            Assert.Equal(models.Count(x => x.Number % 2 == 0 && x.Flag), (await ruled.GroupAsync((Model x) => x.Flag, g => new Summary { Flag = g.Key, Rows = g.Count() })).Single(r => r.Flag).Rows);
+            Assert.Equal(models.Where(x => x.Number % 2 == 0).Select(x => x.Number).Order(), ruled.Query<Model>().Select(x => new Row { Number = x.Number }).ToArray().Select(r => r.Number).Order());
+            Assert.Equal(models.Count(x => x.Number % 2 == 0 && x.Flag), (await ruled.Query<Model>().GroupBy(x => x.Flag).Select(g => new Summary { Flag = g.Key, Rows = g.Count() }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Single(r => r.Flag).Rows);
 
             foreach (var compression in new[] { false, true })
             {
@@ -302,23 +437,65 @@ namespace Zerra.Repository.Test
                 var root = new TransactStoreProvider<Model>(engine);
                 layered.AddProvider<Model>(compression ? new Compressing(root) : new Encrypting(root));
 
-                Assert.Equal(models.Length, layered.Select((Model x) => new Row { Number = x.Number, Name = x.Name }).Count);
-                _ = Assert.Throws<NotSupportedException>(() => layered.Select((Model x) => new Row { Name = x.Note }));
-                _ = Assert.Throws<NotSupportedException>(() => layered.Group((Model x) => x.Note, g => new Summary { First = g.Key }));
-                _ = await Assert.ThrowsAsync<NotSupportedException>(() => layered.GroupAsync((Model x) => x.Flag, g => new Summary { First = g.Min(x => x.Note) }));
+                Assert.Equal(models.Length, layered.Query<Model>().Select(x => new Row { Number = x.Number, Name = x.Name }).ToArray().Length);
+                _ = Assert.Throws<NotSupportedException>(() => layered.Query<Model>().Select(x => new Row { Name = x.Note }).ToArray());
+                _ = Assert.Throws<NotSupportedException>(() => layered.Query<Model>().GroupBy(x => x.Note).Select(g => new Summary { First = g.Key }).ToArray());
+                _ = await Assert.ThrowsAsync<NotSupportedException>(() => layered.Query<Model>().GroupBy(x => x.Flag).Select(g => new Summary { First = g.Min(x => x.Note) }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
             }
+        }
+
+        [Fact]
+        public async Task QueryableRunsThroughLayersAndEventStores()
+        {
+            var engine = new MemoryEngine();
+            var (_, models, _) = MemoryRepo(engine);
+
+            //a rule's condition applies to the models, the projections, and the values, and its OnGet to the models
+            var ruled = Repo.New();
+            ruled.AddProvider<Model>(new EvenRules(new TransactStoreProvider<Model>(engine)));
+            var even = models.Where(x => x.Number % 2 == 0).ToArray();
+            Assert.Equal(even.Select(x => x.Number).Order(), ruled.Query<Model>().ToArray().Select(x => x.Number).Order());
+            Assert.Equal(even.Select(x => x.Number * 2).Order(), ruled.Query<Model>().Select(x => new { Twice = x.Number * 2 }).ToArray().Select(r => r.Twice).Order());
+            Assert.Equal(even.Sum(x => x.Number), await ruled.Query<Model>().SumAsync(x => x.Number, cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Equal(even.Count(x => x.Flag), ruled.Query<Model>().Count(x => x.Flag));
+
+            //an encryption or compression layer refuses reading its properties, and gives the models back plain
+            foreach (var compression in new[] { false, true })
+            {
+                var layered = Repo.New();
+                var root = new TransactStoreProvider<Model>(engine);
+                layered.AddProvider<Model>(compression ? new Compressing(root) : new Encrypting(root));
+                var plain = new Model { ID = Guid.NewGuid(), Number = 100, Note = "secret", Name = "layered" };
+                layered.Create(plain);
+                Assert.Equal("secret", layered.Query<Model>().Single(x => x.Number == 100).Note);
+                Assert.Equal("secret", (await layered.Query<Model>().Where(x => x.Name == "layered").ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Single().Note);
+                _ = Assert.Throws<NotSupportedException>(() => layered.Query<Model>().Select(x => new { x.Note }).ToArray());
+                _ = Assert.Throws<NotSupportedException>(() => layered.Query<Model>().OrderBy(x => x.Note).ToArray());
+                layered.Delete(plain);
+            }
+
+            //an event store runs the query over the current state of its models
+            var evented = Repo.New();
+            evented.AddProvider(new EventStoreAsTransactStoreProvider<EventedModel>(engine));
+            var events = new[] { new EventedModel { ID = Guid.NewGuid(), Value = 1, Flag = true }, new EventedModel { ID = Guid.NewGuid(), Value = 2, Flag = true }, new EventedModel { ID = Guid.NewGuid(), Value = 3 } };
+            evented.Create<EventedModel>(events);
+            events[0].Value = 10;
+            evented.Update(events[0]);
+            var ids = events.Select(x => x.ID).ToArray();
+            var eventedQuery = evented.Query<EventedModel>().Where(x => ids.Contains(x.ID));
+            Assert.Equal([2, 3, 10], eventedQuery.OrderBy(x => x.Value).Select(x => new { x.Value }).ToArray().Select(r => r.Value));
+            Assert.Equal(12, (await eventedQuery.GroupBy(x => x.Flag).Select(g => new { g.Key, Total = g.Sum(x => x.Value) }).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken)).Single(r => r.Key).Total);
+            Assert.Equal(10, eventedQuery.Max(x => x.Value));
         }
 
         [Fact]
         public void MembersAreReadFromTheProjection()
         {
-            Expression<Func<IGrouping<bool, Model>, Summary>> select = g => new Summary { Flag = g.Key, Rows = g.Count(), Average = g.Average(x => x.Number), First = g.Min(x => x.Name) };
-            Expression<Func<Model, bool>> groupBy = x => x.Flag;
-            var members = select.GetProjectionMembers(groupBy);
+            Expression<Func<Model, Model>> set = x => new Model { Number = x.Number + 1, Name = x.Name };
+            var members = set.GetProjectionMembers();
 
-            Assert.Equal([ProjectionMemberKind.KeyPart, ProjectionMemberKind.Count, ProjectionMemberKind.Average, ProjectionMemberKind.Min], members.Select(x => x.Kind));
-            Assert.Equal(["Flag", "Rows", "Average", "First"], members.Select(x => x.MemberDetail.Name));
-            Assert.Equal([typeof(bool), typeof(long), typeof(double), typeof(string)], members.Select(x => x.Type));
+            Assert.Equal(["Number", "Name"], members.Select(x => x.MemberDetail.Name));
+            Assert.Same(set.Parameters[0], members[0].Parameter);
         }
     }
 }

@@ -42,6 +42,25 @@ namespace Zerra.Repository.Test.MsSql
             }
         }
 
+        private static IDisposable HoldParityTable(string connectionString)
+        {
+            var connection = new SqlConnection(connectionString);
+            connection.Open();
+            var transaction = connection.BeginTransaction();
+            using (var command = connection.CreateCommand())
+            {
+                command.Transaction = transaction;
+                command.CommandText = "SELECT TOP 0 * FROM [QueryParity] WITH (TABLOCKX, HOLDLOCK)";
+                _ = command.ExecuteNonQuery();
+            }
+            return new QueryParityTests.HeldTable(() =>
+            {
+                transaction.Commit();
+                transaction.Dispose();
+                connection.Dispose();
+            });
+        }
+
         [Fact]
         public async Task TestSequence()
         {
@@ -61,6 +80,7 @@ namespace Zerra.Repository.Test.MsSql
             await RelationPersistTests.TestSequenceAsync(engine);
             QueryParityTests.TestSequence(engine);
             await QueryParityTests.TestSequenceAsync(engine);
+            await QueryParityTests.TestCancellationAsync(engine, () => HoldParityTable(connectionString));
             SchemaChangeTests.Test(engine, table => ExecuteSql(connectionString, $"IF OBJECT_ID('{table}') IS NOT NULL DROP TABLE [{table}]"));
 
             const string changeColumn = "ALTER TABLE [TestTypes] ALTER COLUMN [Int32Thing] bigint NULL";

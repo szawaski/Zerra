@@ -5,6 +5,7 @@
 using System.Collections;
 using System.Linq.Expressions;
 using Zerra.Collections;
+using Zerra.Linq;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
@@ -15,6 +16,9 @@ namespace Zerra.Repository
         /// <summary>The store this provider writes to, compared by reference with a related model's to tell whether a condition through the relation can run in one statement; <see langword="null"/> when unknown.</summary>
         protected abstract object? Engine { get; }
         object? IProviderRelation.Engine => Engine;
+        /// <summary>Gets whether a query of another model can read this model in its own statement when they share an engine.</summary>
+        protected virtual bool ReadsInStore => false;
+        bool IProviderRelation.ReadsInStore => ReadsInStore;
 
         private readonly ConcurrentFactoryDictionary<string, bool> crossEngineMembers = new();
         private bool IsCrossEngine(ModelMemberDetail member)
@@ -28,59 +32,6 @@ namespace Zerra.Repository
                 var relatedProvider = provider.GetRelatedProvider(member.Type);
                 return relatedProvider is IProviderRelation relation && relation.Engine is not null && !ReferenceEquals(relation.Engine, engine);
             });
-        }
-
-        //a calculation key or value, a projected member, or an order through a relation on another engine can't join, so the models load with the members those read, the relations through their own providers, and the query runs in memory
-        private Graph? CrossEngineGraph(Query query, out bool orderCrosses)
-        {
-            orderCrosses = false;
-            if (query.GroupBy is null && query.Value is null && query.Select is null && query.Order is null)
-                return null;
-            //models that are the result keep every member, models a calculation or projection reads from load with just those
-            var finder = new GraphFinder(this, query.Graph is not null ? new Graph(query.Graph) : query.Operation is QueryOperation.Many or QueryOperation.First or QueryOperation.Single ? new Graph(true) : new Graph());
-            finder.Read(query.GroupBy);
-            finder.Read(query.Value);
-            finder.Read(query.Select);
-            var crosses = finder.Crosses;
-            if (query.Order is not null && query.GroupBy is null && query.Operation is QueryOperation.Many or QueryOperation.First or QueryOperation.Single or QueryOperation.Select)
-            {
-                finder.Crosses = false;
-                foreach (var orderExpression in query.Order.OrderExpressions)
-                    finder.Read(orderExpression.Expression);
-                orderCrosses = finder.Crosses;
-                crosses |= orderCrosses;
-            }
-            return crosses ? finder.Graph : null;
-        }
-
-        private object? QueryCrossEngine(Query query, Graph graph, bool orderCrosses)
-        {
-            //a projection's order and paging apply to the models, so they stay in the store unless the order is what crosses
-            var inStore = query.Operation == QueryOperation.Select && !orderCrosses;
-            var models = (IReadOnlyCollection<TModel>)Query(new Query(QueryOperation.Many, modelType, query.Where, inStore ? query.Order : null, inStore ? query.Skip : null, inStore ? query.Take : null, graph))!;
-            if (query.Select is not null || query.GroupBy is not null)
-                return query.Execute(inStore || query.Operation != QueryOperation.Select ? models : models.Query(null, query.Order, query.Skip, query.Take));
-            return query.Operation switch
-            {
-                QueryOperation.Many => models.Query(null, query.Order, query.Skip, query.Take).ToArray(),
-                QueryOperation.First => models.Query(null, query.Order, query.Skip, query.Take).FirstOrDefault(),
-                QueryOperation.Single => models.Query(null, query.Order, query.Skip, query.Take).SingleOrDefault(),
-                _ => models.Calculate(query.Operation, query.Value),
-            };
-        }
-        private async Task<object?> QueryCrossEngineAsync(Query query, Graph graph, bool orderCrosses)
-        {
-            var inStore = query.Operation == QueryOperation.Select && !orderCrosses;
-            var models = (IReadOnlyCollection<TModel>)(await QueryAsync(new Query(QueryOperation.Many, modelType, query.Where, inStore ? query.Order : null, inStore ? query.Skip : null, inStore ? query.Take : null, graph)))!;
-            if (query.Select is not null || query.GroupBy is not null)
-                return query.Execute(inStore || query.Operation != QueryOperation.Select ? models : models.Query(null, query.Order, query.Skip, query.Take));
-            return query.Operation switch
-            {
-                QueryOperation.Many => models.Query(null, query.Order, query.Skip, query.Take).ToArray(),
-                QueryOperation.First => models.Query(null, query.Order, query.Skip, query.Take).FirstOrDefault(),
-                QueryOperation.Single => models.Query(null, query.Order, query.Skip, query.Take).SingleOrDefault(),
-                _ => models.Calculate(query.Operation, query.Value),
-            };
         }
 
         //the members the expressions read, as a graph: a relation becomes a child graph with what is read of it, and one whose model is on another engine marks the graph as crossing
@@ -102,6 +53,25 @@ namespace Zerra.Repository
                 _ = Visit(lambda.Body);
             }
 
+            //the relations of a graph given to the query, one named without a child graph being read whole
+            public void ReadGraph() => ReadGraph(Graph, modelTypeDetail);
+            private void ReadGraph(Graph graph, ModelDetail model)
+            {
+                foreach (var member in model.RelatedMembers)
+                {
+                    if (!graph.HasMemberExplicitly(member.Name))
+                        continue;
+                    var child = graph.GetChildGraph(member.Name);
+                    if (child is not null)
+                        graph.AddOrReplaceChildGraph(member.Name, new Graph(child));
+                    var related = Relate(graph, member);
+                    if (child is null)
+                        related.Graph.IncludeAllMembers = true;
+                    else
+                        ReadGraph(related.Graph, related.Model);
+                }
+            }
+
             protected override Expression VisitMember(MemberExpression node)
             {
                 //the group's Key is read from the key expression already
@@ -111,7 +81,8 @@ namespace Zerra.Repository
                 if (owner is null)
                     return base.VisitMember(node);
                 if (owner.Value.Model.TryGetProperty(node.Member.Name, out var member) && member.IsRelated)
-                    _ = Relate(owner.Value.Graph, member);
+                    //the relation is read itself rather than through a member of it, so its rows are whole
+                    Relate(owner.Value.Graph, member).Graph.IncludeAllMembers = true;
                 else
                     owner.Value.Graph.AddMember(node.Member.Name);
                 return node;
@@ -164,7 +135,7 @@ namespace Zerra.Repository
             private (Graph Graph, ModelDetail Model) Relate(Graph graph, ModelMemberDetail member)
             {
                 var relatedType = member.IsEnumerable ? TypeAnalyzer.GetTypeDetail(member.Type).InnerType! : member.Type;
-                if (!Crosses && provider.Engine is not null && provider.GetRelatedProvider(relatedType) is IProviderRelation relation && relation.Engine is not null && !ReferenceEquals(relation.Engine, provider.Engine))
+                if (!Crosses && provider.GetRelatedProvider(relatedType) is { } related && (related is not IProviderRelation { ReadsInStore: true } relation || !ReferenceEquals(relation.Engine, provider.Engine)))
                     Crosses = true;
                 var child = graph.GetChildGraph(member.Name);
                 if (child is null)
@@ -211,7 +182,7 @@ namespace Zerra.Repository
                 lookup.Matches = (IEnumerable)Repo.Query(lookup.Query)!;
             return ReplaceCrossEngineLookups(where, lookups);
         }
-        private async Task<LambdaExpression?> SplitCrossEngineWhereAsync(LambdaExpression? where)
+        private async Task<LambdaExpression?> SplitCrossEngineWhereAsync(LambdaExpression? where, CancellationToken cancellationToken)
         {
             if (where is null || !AnyCrossEngine)
                 return where;
@@ -219,8 +190,52 @@ namespace Zerra.Repository
             if (lookups is null)
                 return where;
             foreach (var lookup in lookups)
-                lookup.Matches = (IEnumerable)(await Repo.QueryAsync(lookup.Query))!;
+                lookup.Matches = (IEnumerable)(await Repo.QueryAsync(lookup.Query, cancellationToken))!;
             return ReplaceCrossEngineLookups(where, lookups);
+        }
+
+        //a query a condition looks in is one statement with it when both are in the same store and nothing stands between; otherwise its provider reads it first
+        private LambdaExpression? ReadForeignSubqueries(LambdaExpression? where)
+        {
+            if (where is null)
+                return null;
+            var finder = new SubqueryFinder(this);
+            _ = finder.Visit(where.Body);
+            if (finder.Foreign is null)
+                return where;
+            var replacements = new Dictionary<Expression, Expression>();
+            foreach (var (call, subquery) in finder.Foreign)
+                replacements.Add(call, Expression.Call(Expression.Constant(subquery.Read(), hashSetObjectType), hashSetContainsMethod, call.Arguments[0]));
+            return Expression.Lambda(where.Type, new Replacer(replacements).Visit(where.Body)!, where.Parameters);
+        }
+        private async Task<LambdaExpression?> ReadForeignSubqueriesAsync(LambdaExpression? where, CancellationToken cancellationToken)
+        {
+            if (where is null)
+                return null;
+            var finder = new SubqueryFinder(this);
+            _ = finder.Visit(where.Body);
+            if (finder.Foreign is null)
+                return where;
+            var replacements = new Dictionary<Expression, Expression>();
+            foreach (var (call, subquery) in finder.Foreign)
+                replacements.Add(call, Expression.Call(Expression.Constant(await subquery.ReadAsync(cancellationToken), hashSetObjectType), hashSetContainsMethod, call.Arguments[0]));
+            return Expression.Lambda(where.Type, new Replacer(replacements).Visit(where.Body)!, where.Parameters);
+        }
+
+        private sealed class SubqueryFinder(RootTransactStoreProvider<TModel> provider) : ExpressionVisitor
+        {
+            public List<(MethodCallExpression Call, LinqSubquery Subquery)>? Foreign;
+
+            protected override Expression VisitMethodCall(MethodCallExpression node)
+            {
+                if (node.Object is ConstantExpression { Value: LinqSubquery subquery })
+                {
+                    if (provider.GetRelatedProvider(subquery.Query.ModelType) is not IProviderRelation { ReadsInStore: true } relation || !ReferenceEquals(relation.Engine, provider.Engine))
+                        (Foreign ??= new()).Add((node, subquery));
+                    return node;
+                }
+                return base.VisitMethodCall(node);
+            }
         }
 
         private List<CrossEngineLookup>? FindCrossEngineLookups(LambdaExpression where)
@@ -261,14 +276,14 @@ namespace Zerra.Repository
         {
             public required Expression Node;
             public required LookupKind Kind;
-            public required Query Query;
+            public required LinqModelQuery Query;
             public required Type RelatedType;
             public required System.Reflection.MemberInfo ThisMember;
             public string? RelatedForeignIdentity;
             public LambdaExpression? Selector;
             public ExpressionType Comparison;
             public object? ComparedTo;
-            public QueryOperation Operation;
+            public LinqColumnKind Operation;
             public IEnumerable? Matches;
 
             public Expression BuildReplacement(ParameterExpression parameter)
@@ -324,7 +339,7 @@ namespace Zerra.Repository
                                     failing.Add(group.Key);
                             }
                             //a model with nothing related counts or sums to zero, which the condition may accept, so then only the ones that fail are excluded
-                            if ((Operation == QueryOperation.Count || Operation == QueryOperation.Sum) && Passes(CalculationCommon.Aggregate(Operation, new List<object?>(), valueType)))
+                            if ((Operation == LinqColumnKind.Count || Operation == LinqColumnKind.Sum) && Passes(CalculationCommon.Aggregate(Operation, new List<object?>(), valueType)))
                                 return Expression.Not(Expression.Call(Expression.Constant(failing, hashSetObjectType), hashSetContainsMethod, member));
                             return Expression.Call(Expression.Constant(passing, hashSetObjectType), hashSetContainsMethod, member);
                         }
@@ -419,7 +434,7 @@ namespace Zerra.Repository
                     {
                         Node = node,
                         Kind = LookupKind.Single,
-                        Query = new Query(QueryOperation.Many, relatedType, relatedWhere, null, null, null, new Graph(relatedDetail.IdentityMembers[0].Name)),
+                        Query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, relatedWhere, null, null, null, new Graph(relatedDetail.IdentityMembers[0].Name)),
                         RelatedType = relatedType,
                         ThisMember = modelTypeDetail.GetMember(crossMember.ForeignIdentity).MemberDetail.MemberInfo,
                     };
@@ -431,9 +446,9 @@ namespace Zerra.Repository
                     var thisIdentity = modelTypeDetail.IdentityMembers[0].MemberDetail.MemberInfo;
                     var foreignMember = relatedDetail.GetMember(crossMember.ForeignIdentity);
 
-                    if (node is MethodCallExpression { Method.Name: "Any" or "All" } call && call.Method.DeclaringType == typeof(Enumerable) && call.Arguments[0] is MemberExpression collection && collection.Expression == parameter)
+                    LambdaExpression? predicate = null;
+                    if (node is MethodCallExpression { Method.Name: "Any" or "All" } call && call.Method.DeclaringType == typeof(Enumerable) && Unwrap(call, ref predicate) is MemberExpression collection && collection.Expression == parameter)
                     {
-                        var predicate = call.Arguments.Count == 2 ? Unquote(call.Arguments[1]) : null;
                         if (call.Method.Name == "All")
                         {
                             if (predicate is null)
@@ -444,26 +459,26 @@ namespace Zerra.Repository
                         {
                             Node = node,
                             Kind = call.Method.Name == "All" ? LookupKind.All : LookupKind.Any,
-                            Query = new Query(QueryOperation.Many, relatedType, predicate, null, null, null, new Graph(foreignMember.Name)),
+                            Query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, predicate, null, null, null, new Graph(foreignMember.Name)),
                             RelatedType = relatedType,
                             ThisMember = thisIdentity,
                             RelatedForeignIdentity = foreignMember.Name,
                         };
                     }
-                    else if (node is BinaryExpression comparison && IsComparison(comparison.NodeType) && (TryGetAggregate(comparison.Left, parameter, out var aggregate, out var predicateOrSelector) || TryGetAggregate(comparison.Right, parameter, out aggregate, out predicateOrSelector)))
+                    else if (node is BinaryExpression comparison && IsComparison(comparison.NodeType) && (TryGetAggregate(comparison.Left, parameter, out var aggregate, out var predicateOrSelector, out var where) || TryGetAggregate(comparison.Right, parameter, out aggregate, out predicateOrSelector, out where)))
                     {
                         var aggregateOnLeft = ReferenceEquals(aggregate, comparison.Left);
                         var other = aggregateOnLeft ? comparison.Right : comparison.Left;
                         var operation = aggregate.Method.Name switch
                         {
-                            "Count" or "LongCount" => QueryOperation.Count,
-                            "Sum" => QueryOperation.Sum,
-                            "Average" => QueryOperation.Average,
-                            "Min" => QueryOperation.Min,
-                            "Max" => QueryOperation.Max,
+                            "Count" or "LongCount" => LinqColumnKind.Count,
+                            "Sum" => LinqColumnKind.Sum,
+                            "Average" => LinqColumnKind.Average,
+                            "Min" => LinqColumnKind.Min,
+                            "Max" => LinqColumnKind.Max,
                             _ => throw new NotSupportedException($"Cannot convert call expression {aggregate.Method.Name}"),
                         };
-                        var isCount = operation == QueryOperation.Count;
+                        var isCount = operation == LinqColumnKind.Count;
                         //the related models are read with the members the value needs, and compared here
                         var graph = new Graph(foreignMember.Name);
                         if (!isCount && predicateOrSelector is not null)
@@ -479,7 +494,7 @@ namespace Zerra.Repository
                         {
                             Node = node,
                             Kind = LookupKind.Aggregate,
-                            Query = new Query(QueryOperation.Many, relatedType, isCount ? predicateOrSelector : null, null, null, null, graph),
+                            Query = new LinqModelQuery(relatedType, LinqTerminal.Sequence, isCount ? predicateOrSelector : where, null, null, null, graph),
                             RelatedType = relatedType,
                             ThisMember = thisIdentity,
                             RelatedForeignIdentity = foreignMember.Name,
@@ -514,19 +529,47 @@ namespace Zerra.Repository
                 ExpressionType.LessThanOrEqual => ExpressionType.GreaterThanOrEqual,
                 _ => type,
             };
-            private static bool TryGetAggregate(Expression expression, ParameterExpression parameter, out MethodCallExpression aggregate, out LambdaExpression? predicateOrSelector)
+            //a Count folds a Where before it into its condition; a Sum, Average, Min, or Max keeps the Where apart from its value
+            private static bool TryGetAggregate(Expression expression, ParameterExpression parameter, out MethodCallExpression aggregate, out LambdaExpression? predicateOrSelector, out LambdaExpression? where)
             {
                 while (expression is UnaryExpression { NodeType: ExpressionType.Convert } conversion)
                     expression = conversion.Operand;
-                if (expression is MethodCallExpression { Method.Name: "Count" or "LongCount" or "Sum" or "Average" or "Min" or "Max" } call && call.Method.DeclaringType == typeof(Enumerable) && call.Arguments[0] is MemberExpression collection && collection.Expression == parameter)
-                {
-                    aggregate = call;
-                    predicateOrSelector = call.Arguments.Count == 2 ? Unquote(call.Arguments[1]) : null;
-                    return true;
-                }
                 aggregate = null!;
                 predicateOrSelector = null;
-                return false;
+                where = null;
+                if (expression is not MethodCallExpression { Method.Name: "Count" or "LongCount" or "Sum" or "Average" or "Min" or "Max" } call || call.Method.DeclaringType != typeof(Enumerable))
+                    return false;
+                var isCount = call.Method.Name is "Count" or "LongCount";
+                var argument = call.Arguments.Count == 2 ? Unquote(call.Arguments[1]) : null;
+                var condition = isCount ? argument : null;
+                if (Unwrap(call, ref condition) is not MemberExpression collection || collection.Expression != parameter)
+                    return false;
+                aggregate = call;
+                predicateOrSelector = isCount ? condition : argument;
+                where = isCount ? null : condition;
+                return true;
+            }
+            //a Where before the call folds into its condition, so x.Lines.Where(l => a).Any(l => b) reads the rows where a and b; before All it reads the rows where a that fail b, which All then negates
+            private static Expression Unwrap(MethodCallExpression call, ref LambdaExpression? condition)
+            {
+                var all = call.Method.Name == "All";
+                if (all)
+                    condition = Unquote(call.Arguments[1]);
+                else if (call.Method.Name == "Any" && call.Arguments.Count == 2)
+                    condition = Unquote(call.Arguments[1]);
+                var source = call.Arguments[0];
+                while (source is MethodCallExpression { Method.Name: "Where" } chain && chain.Method.DeclaringType == typeof(Enumerable) && chain.Arguments.Count == 2)
+                {
+                    var where = Unquote(chain.Arguments[1]);
+                    if (condition is null)
+                        condition = where;
+                    else if (all)
+                        condition = Expression.Lambda(where.Type, Expression.OrElse(Expression.Not(where.Body), LinqRebinder.RebindExpression(condition.Body, condition.Parameters[0], where.Parameters[0])), where.Parameters);
+                    else
+                        condition = Expression.Lambda(where.Type, Expression.AndAlso(where.Body, LinqRebinder.RebindExpression(condition.Body, condition.Parameters[0], where.Parameters[0])), where.Parameters);
+                    source = chain.Arguments[0];
+                }
+                return source;
             }
         }
 

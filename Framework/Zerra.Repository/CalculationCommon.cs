@@ -11,12 +11,12 @@ namespace Zerra.Repository
 {
     /// <summary>
     /// The parts of a calculation query (a count per group, or a sum, average, minimum, or maximum over all records or per group) that are the same for every engine:
-    /// the key parts of a group expression, the CLR type of a result, building the typed keys, and aggregating values in memory (<see cref="LinqExtensions.Calculate"/> calculates over a sequence).
+    /// the key parts of a group expression, the CLR type of a result, building the typed keys, and aggregating values in memory.
     /// </summary>
     /// <remarks>
     /// An engine returns a calculation over all records as the boxed result, or <see langword="null"/> when nothing matched (a sum returns 0),
     /// a calculation per group as an <see cref="IReadOnlyList{T}"/> of <c>(object? Key, object? Value)</c>, the key being the value of a one-member key or an <c>object?[]</c> of the parts of several, one per <see cref="GetKeyParts"/> element,
-    /// and <see cref="QueryOperation.Distinct"/> as an <see cref="IReadOnlyList{T}"/> of the keys alone.
+    /// and distinct values as an <see cref="IReadOnlyList{T}"/> of the keys alone.
     /// </remarks>
     public static class CalculationCommon
     {
@@ -38,18 +38,18 @@ namespace Zerra.Repository
         /// <param name="operation">The calculation.</param>
         /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
         /// <returns>The result type, nullable when the value is.</returns>
-        public static Type GetResultType(QueryOperation operation, LambdaExpression? value)
+        public static Type GetResultType(LinqColumnKind operation, LambdaExpression? value)
         {
             switch (operation)
             {
-                case QueryOperation.Count:
-                case QueryOperation.CountDistinct:
+                case LinqColumnKind.Count:
+                case LinqColumnKind.CountDistinct:
                     return typeof(long);
-                case QueryOperation.Sum:
-                case QueryOperation.Min:
-                case QueryOperation.Max:
+                case LinqColumnKind.Sum:
+                case LinqColumnKind.Min:
+                case LinqColumnKind.Max:
                     return value!.ReturnType;
-                case QueryOperation.Average:
+                case LinqColumnKind.Average:
                     {
                         var type = value!.ReturnType;
                         var valueType = Nullable.GetUnderlyingType(type) ?? type;
@@ -60,23 +60,6 @@ namespace Zerra.Repository
                 default:
                     throw new NotSupportedException($"{operation} is not a calculation");
             }
-        }
-
-        /// <summary>
-        /// Returns a function that builds a <typeparamref name="TKey"/> from the key of a row: the value itself for a key of one member, or the tuple or anonymous object of the group expression from the <c>object?[]</c> of its parts.
-        /// </summary>
-        /// <typeparam name="TKey">The group key type.</typeparam>
-        /// <param name="groupBy">The group key expression.</param>
-        /// <returns>The key builder.</returns>
-        public static Func<object?, TKey> GetKeyBuilder<TKey>(LambdaExpression groupBy)
-        {
-            if (groupBy.Body is not NewExpression newExpression)
-                return static key => (TKey)key!;
-
-            var constructor = newExpression.Constructor ?? throw new NotSupportedException($"Cannot group by {newExpression.Type.Name}");
-
-            //the parts are already the constructor's parameter types, and the compiler keeps the constructor it put in the expression, so this is plain reflection that AOT allows
-            return key => (TKey)constructor.Invoke((object?[])key!);
         }
 
         /// <summary>Compiles an expression over a model to a function returning the boxed value, with the memory engine's string rules.</summary>
@@ -108,11 +91,11 @@ namespace Zerra.Repository
         /// <param name="values">The values.</param>
         /// <param name="valueType">The type of the values.</param>
         /// <returns>The boxed result, or <see langword="null"/> when nothing but nulls is averaged or compared.</returns>
-        public static object? Aggregate(QueryOperation operation, List<object?> values, Type valueType)
+        public static object? Aggregate(LinqColumnKind operation, List<object?> values, Type valueType)
         {
-            if (operation == QueryOperation.Count)
+            if (operation == LinqColumnKind.Count)
                 return (long)values.Count;
-            if (operation == QueryOperation.CountDistinct)
+            if (operation == LinqColumnKind.CountDistinct)
             {
                 var distinct = new HashSet<object>();
                 foreach (var item in values)
@@ -124,7 +107,7 @@ namespace Zerra.Repository
             var type = Nullable.GetUnderlyingType(valueType) ?? valueType;
             switch (operation)
             {
-                case QueryOperation.Sum:
+                case LinqColumnKind.Sum:
                     {
                         if (type == typeof(int))
                         {
@@ -168,7 +151,7 @@ namespace Zerra.Repository
                         }
                         throw new NotSupportedException($"Cannot sum {valueType.Name}");
                     }
-                case QueryOperation.Average:
+                case LinqColumnKind.Average:
                     {
                         if (type == typeof(int) || type == typeof(long) || type == typeof(short) || type == typeof(byte) || type == typeof(uint) || type == typeof(ulong) || type == typeof(ushort) || type == typeof(sbyte))
                         {
@@ -216,8 +199,8 @@ namespace Zerra.Repository
                         }
                         throw new NotSupportedException($"Cannot average {valueType.Name}");
                     }
-                case QueryOperation.Min:
-                case QueryOperation.Max:
+                case LinqColumnKind.Min:
+                case LinqColumnKind.Max:
                     {
                         object? best = null;
                         var comparer = Comparer<object>.Default;
@@ -231,7 +214,7 @@ namespace Zerra.Repository
                                 continue;
                             }
                             var comparison = comparer.Compare(item, best);
-                            if (operation == QueryOperation.Min ? comparison < 0 : comparison > 0)
+                            if (operation == LinqColumnKind.Min ? comparison < 0 : comparison > 0)
                                 best = item;
                         }
                         return best;

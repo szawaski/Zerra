@@ -62,8 +62,9 @@ namespace Zerra.Repository
         /// <param name="expectedEventNumber">The event number expected to be the last in the stream for optimistic concurrency, or <see langword="null"/> to skip the check.</param>
         /// <param name="expectedState">The expected existence state of the stream.</param>
         /// <param name="data">The serialized event payload.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that resolves to the event number assigned to the appended event.</returns>
-        Task<ulong> AppendAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data);
+        Task<ulong> AppendAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data, CancellationToken cancellationToken = default);
         /// <summary>
         /// Asynchronously appends a terminating (deletion) marker event to the specified stream, marking it as closed.
         /// </summary>
@@ -72,8 +73,9 @@ namespace Zerra.Repository
         /// <param name="streamName">The name of the stream to terminate.</param>
         /// <param name="expectedEventNumber">The event number expected to be the last in the stream for optimistic concurrency, or <see langword="null"/> to skip the check.</param>
         /// <param name="expectedState">The expected existence state of the stream.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that resolves to the event number assigned to the termination event.</returns>
-        Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState);
+        Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, CancellationToken cancellationToken = default);
         /// <summary>
         /// Asynchronously reads events from the specified stream in forward order.
         /// </summary>
@@ -83,8 +85,9 @@ namespace Zerra.Repository
         /// <param name="endEventNumber">The event number to stop reading at (inclusive), or <see langword="null"/> for no limit.</param>
         /// <param name="startEventDate">The earliest event date to include, or <see langword="null"/> for no lower bound.</param>
         /// <param name="endEventDate">The latest event date to include, or <see langword="null"/> for no upper bound.</param>
+        /// <param name="cancellationToken">A token that cancels the read.</param>
         /// <returns>A task that resolves to an array of <see cref="EventStoreEventData"/> representing the matched events.</returns>
-        Task<EventStoreEventData[]> ReadAsync(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate);
+        Task<EventStoreEventData[]> ReadAsync(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate, CancellationToken cancellationToken = default);
         /// <summary>
         /// Asynchronously reads events from the specified stream in reverse order.
         /// </summary>
@@ -94,7 +97,8 @@ namespace Zerra.Repository
         /// <param name="endEventNumber">The event number to stop reading at (inclusive), or <see langword="null"/> for no limit.</param>
         /// <param name="startEventDate">The earliest event date to include, or <see langword="null"/> for no lower bound.</param>
         /// <param name="endEventDate">The latest event date to include, or <see langword="null"/> for no upper bound.</param>
+        /// <param name="cancellationToken">A token that cancels the read.</param>
         /// <returns>A task that resolves to an array of <see cref="EventStoreEventData"/> representing the matched events in reverse order.</returns>
-        Task<EventStoreEventData[]> ReadBackwardsAsync(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate);
+        Task<EventStoreEventData[]> ReadBackwardsAsync(string streamName, ulong? startEventNumber, long? eventCount, ulong? endEventNumber, DateTime? startEventDate, DateTime? endEventDate, CancellationToken cancellationToken = default);
     }
 }

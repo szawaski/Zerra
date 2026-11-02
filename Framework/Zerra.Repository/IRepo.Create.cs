@@ -12,7 +12,7 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being inserted.</typeparam>
         /// <param name="model">The model instance to insert.</param>
         void Create<TModel>(TModel model) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, null, null, [model], null, null));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, null, null, [model], null, null));
 
         /// <summary>
         /// Inserts a single model into the data store with an event name.
@@ -21,7 +21,7 @@ namespace Zerra.Repository
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="model">The model instance to insert.</param>
         void Create<TModel>(string? eventName, TModel model) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, eventName, null, [model], null, null));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, eventName, null, [model], null, null));
 
         /// <summary>
         /// Inserts a single model into the data store with an event name and source.
@@ -31,7 +31,7 @@ namespace Zerra.Repository
         /// <param name="source">An optional object that initiated this operation.</param>
         /// <param name="model">The model instance to insert.</param>
         void Create<TModel>(string? eventName, object? source, TModel model) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, eventName, source, [model], null, null));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, eventName, source, [model], null, null));
 
         /// <summary>
         /// Inserts a single model into the data store with a property graph.
@@ -40,7 +40,7 @@ namespace Zerra.Repository
         /// <param name="model">The model instance to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
         void Create<TModel>(TModel model, Graph? graph) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, null, null, [model], null, graph));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, null, null, [model], null, graph));
 
         /// <summary>
         /// Inserts a single model into the data store with an event name and property graph.
@@ -50,7 +50,7 @@ namespace Zerra.Repository
         /// <param name="model">The model instance to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
         void Create<TModel>(string? eventName, TModel model, Graph? graph) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, eventName, null, [model], null, graph));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, eventName, null, [model], null, graph));
 
         /// <summary>
         /// Inserts a single model into the data store with full parameters.
@@ -61,7 +61,7 @@ namespace Zerra.Repository
         /// <param name="model">The model instance to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
         void Create<TModel>(string? eventName, object? source, TModel model, Graph? graph) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, eventName, source, [model], null, graph));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, eventName, source, [model], null, graph));
 
         /// <summary>
         /// Inserts a single model into the data store using a pre-built event.
@@ -70,7 +70,7 @@ namespace Zerra.Repository
         /// <param name="event">The pre-built event metadata to associate with this operation.</param>
         /// <param name="model">The model instance to insert.</param>
         void Create<TModel>(PersistEvent @event, TModel model) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, @event, [model], null, null));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, @event, [model], null, null));
 
         /// <summary>
         /// Inserts a single model into the data store using a pre-built event with full parameters.
@@ -80,7 +80,7 @@ namespace Zerra.Repository
         /// <param name="model">The model instance to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
         void Create<TModel>(PersistEvent @event, TModel model, Graph? graph) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, @event, [model], null, graph));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, @event, [model], null, graph));
 
         /// <summary>
         /// Inserts multiple models into the data store.
@@ -88,7 +88,7 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being inserted.</typeparam>
         /// <param name="models">The model instances to insert.</param>
         void Create<TModel>(IEnumerable<TModel> models) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, null, null, models.Cast<object>().ToArray(), null, null));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, null, null, models.Cast<object>().ToArray(), null, null));
 
         /// <summary>
         /// Inserts multiple models into the data store with an event name.
@@ -97,7 +97,7 @@ namespace Zerra.Repository
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="models">The model instances to insert.</param>
         void Create<TModel>(string? eventName, IEnumerable<TModel> models) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, eventName, null, models.Cast<object>().ToArray(), null, null));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, eventName, null, models.Cast<object>().ToArray(), null, null));
 
         /// <summary>
         /// Inserts multiple models into the data store with an event name and source.
@@ -107,7 +107,7 @@ namespace Zerra.Repository
         /// <param name="source">An optional object that initiated this operation.</param>
         /// <param name="models">The model instances to insert.</param>
         void Create<TModel>(string? eventName, object? source, IEnumerable<TModel> models) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, eventName, source, models.Cast<object>().ToArray(), null, null));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, eventName, source, models.Cast<object>().ToArray(), null, null));
 
         /// <summary>
         /// Inserts multiple models into the data store with a property graph.
@@ -116,7 +116,7 @@ namespace Zerra.Repository
         /// <param name="models">The model instances to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
         void Create<TModel>(IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, null, null, models.Cast<object>().ToArray(), null, graph));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, null, null, models.Cast<object>().ToArray(), null, graph));
 
         /// <summary>
         /// Inserts multiple models into the data store with an event name and property graph.
@@ -126,7 +126,7 @@ namespace Zerra.Repository
         /// <param name="models">The model instances to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
         void Create<TModel>(string? eventName, IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, eventName, null, models.Cast<object>().ToArray(), null, graph));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, eventName, null, models.Cast<object>().ToArray(), null, graph));
 
         /// <summary>
         /// Inserts multiple models into the data store with full parameters.
@@ -137,7 +137,7 @@ namespace Zerra.Repository
         /// <param name="models">The model instances to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
         void Create<TModel>(string? eventName, object? source, IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, eventName, source, models.Cast<object>().ToArray(), null, graph));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, eventName, source, models.Cast<object>().ToArray(), null, graph));
 
         /// <summary>
         /// Inserts multiple models into the data store using a pre-built event.
@@ -146,7 +146,7 @@ namespace Zerra.Repository
         /// <param name="event">The pre-built event metadata to associate with this operation.</param>
         /// <param name="models">The model instances to insert.</param>
         void Create<TModel>(PersistEvent @event, IEnumerable<TModel> models) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, @event, models.Cast<object>().ToArray(), null, null));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, @event, models.Cast<object>().ToArray(), null, null));
 
         /// <summary>
         /// Inserts multiple models into the data store using a pre-built event with full parameters.
@@ -156,16 +156,17 @@ namespace Zerra.Repository
         /// <param name="models">The model instances to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
         void Create<TModel>(PersistEvent @event, IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
-            => Persist(new Persist<TModel>(PersistOperation.Create, @event, models.Cast<object>().ToArray(), null, graph));
+            => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Create, @event, models.Cast<object>().ToArray(), null, graph));
 
         /// <summary>
         /// Asynchronously inserts a single model into the data store.
         /// </summary>
         /// <typeparam name="TModel">The type of model being inserted.</typeparam>
         /// <param name="model">The model instance to insert.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(TModel model) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, null, null, [model], null, null));
+        Task CreateAsync<TModel>(TModel model, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, null, null, [model], null, null), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts a single model into the data store with an event name.
@@ -173,9 +174,10 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being inserted.</typeparam>
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="model">The model instance to insert.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(string? eventName, TModel model) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, null, [model], null, null));
+        Task CreateAsync<TModel>(string? eventName, TModel model, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, null, [model], null, null), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts a single model into the data store with an event name and source.
@@ -184,9 +186,10 @@ namespace Zerra.Repository
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="source">An optional object that initiated this operation.</param>
         /// <param name="model">The model instance to insert.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(string? eventName, object? source, TModel model) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, source, [model], null, null));
+        Task CreateAsync<TModel>(string? eventName, object? source, TModel model, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, source, [model], null, null), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts a single model into the data store with a property graph.
@@ -194,9 +197,10 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being inserted.</typeparam>
         /// <param name="model">The model instance to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(TModel model, Graph? graph) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, null, null, [model], null, graph));
+        Task CreateAsync<TModel>(TModel model, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, null, null, [model], null, graph), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts a single model into the data store with an event name and property graph.
@@ -205,9 +209,10 @@ namespace Zerra.Repository
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="model">The model instance to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(string? eventName, TModel model, Graph? graph) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, null, [model], null, graph));
+        Task CreateAsync<TModel>(string? eventName, TModel model, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, null, [model], null, graph), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts a single model into the data store with full parameters.
@@ -217,9 +222,10 @@ namespace Zerra.Repository
         /// <param name="source">An optional object that initiated this operation.</param>
         /// <param name="model">The model instance to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(string? eventName, object? source, TModel model, Graph? graph) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, source, [model], null, graph));
+        Task CreateAsync<TModel>(string? eventName, object? source, TModel model, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, source, [model], null, graph), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts a single model into the data store using a pre-built event.
@@ -227,9 +233,10 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being inserted.</typeparam>
         /// <param name="event">The pre-built event metadata to associate with this operation.</param>
         /// <param name="model">The model instance to insert.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(PersistEvent @event, TModel model) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, @event, [model], null, null));
+        Task CreateAsync<TModel>(PersistEvent @event, TModel model, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, @event, [model], null, null), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts a single model into the data store using a pre-built event with full parameters.
@@ -238,18 +245,20 @@ namespace Zerra.Repository
         /// <param name="event">The pre-built event metadata to associate with this operation.</param>
         /// <param name="model">The model instance to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(PersistEvent @event, TModel model, Graph? graph) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, @event, [model], null, graph));
+        Task CreateAsync<TModel>(PersistEvent @event, TModel model, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, @event, [model], null, graph), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts multiple models into the data store.
         /// </summary>
         /// <typeparam name="TModel">The type of model being inserted.</typeparam>
         /// <param name="models">The model instances to insert.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(IEnumerable<TModel> models) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, null, null, models.Cast<object>().ToArray(), null, null));
+        Task CreateAsync<TModel>(IEnumerable<TModel> models, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, null, null, models.Cast<object>().ToArray(), null, null), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts multiple models into the data store with an event name.
@@ -257,9 +266,10 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being inserted.</typeparam>
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="models">The model instances to insert.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(string? eventName, IEnumerable<TModel> models) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, null, models.Cast<object>().ToArray(), null, null));
+        Task CreateAsync<TModel>(string? eventName, IEnumerable<TModel> models, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, null, models.Cast<object>().ToArray(), null, null), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts multiple models into the data store with an event name and source.
@@ -268,9 +278,10 @@ namespace Zerra.Repository
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="source">An optional object that initiated this operation.</param>
         /// <param name="models">The model instances to insert.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(string? eventName, object? source, IEnumerable<TModel> models) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, source, models.Cast<object>().ToArray(), null, null));
+        Task CreateAsync<TModel>(string? eventName, object? source, IEnumerable<TModel> models, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, source, models.Cast<object>().ToArray(), null, null), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts multiple models into the data store with a property graph.
@@ -278,9 +289,10 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being inserted.</typeparam>
         /// <param name="models">The model instances to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, null, null, models.Cast<object>().ToArray(), null, graph));
+        Task CreateAsync<TModel>(IEnumerable<TModel> models, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, null, null, models.Cast<object>().ToArray(), null, graph), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts multiple models into the data store with an event name and property graph.
@@ -289,9 +301,10 @@ namespace Zerra.Repository
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="models">The model instances to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(string? eventName, IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, null, models.Cast<object>().ToArray(), null, graph));
+        Task CreateAsync<TModel>(string? eventName, IEnumerable<TModel> models, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, null, models.Cast<object>().ToArray(), null, graph), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts multiple models into the data store with full parameters.
@@ -301,9 +314,10 @@ namespace Zerra.Repository
         /// <param name="source">An optional object that initiated this operation.</param>
         /// <param name="models">The model instances to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(string? eventName, object? source, IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, source, models.Cast<object>().ToArray(), null, graph));
+        Task CreateAsync<TModel>(string? eventName, object? source, IEnumerable<TModel> models, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, eventName, source, models.Cast<object>().ToArray(), null, graph), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts multiple models into the data store using a pre-built event.
@@ -311,9 +325,10 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being inserted.</typeparam>
         /// <param name="event">The pre-built event metadata to associate with this operation.</param>
         /// <param name="models">The model instances to insert.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(PersistEvent @event, IEnumerable<TModel> models) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, @event, models.Cast<object>().ToArray(), null, null));
+        Task CreateAsync<TModel>(PersistEvent @event, IEnumerable<TModel> models, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, @event, models.Cast<object>().ToArray(), null, null), cancellationToken);
 
         /// <summary>
         /// Asynchronously inserts multiple models into the data store using a pre-built event with full parameters.
@@ -322,8 +337,9 @@ namespace Zerra.Repository
         /// <param name="event">The pre-built event metadata to associate with this operation.</param>
         /// <param name="models">The model instances to insert.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
+        /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task CreateAsync<TModel>(PersistEvent @event, IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
-            => PersistAsync(new Persist<TModel>(PersistOperation.Create, @event, models.Cast<object>().ToArray(), null, graph));
+        Task CreateAsync<TModel>(PersistEvent @event, IEnumerable<TModel> models, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+            => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Create, @event, models.Cast<object>().ToArray(), null, graph), cancellationToken);
     }
 }

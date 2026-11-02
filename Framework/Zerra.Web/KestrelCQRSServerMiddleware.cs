@@ -574,9 +574,9 @@ namespace Zerra.Web
                     context.Response.StatusCode = 400;
                 }
             }
-            catch (OperationCanceledException ex)
+            catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
             {
-                log?.Error(ex);
+                //no log
             }
             catch (Exception ex)
             {
