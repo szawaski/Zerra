@@ -5,6 +5,7 @@
 using System.Collections;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using Zerra.Linq;
 using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
 
@@ -24,9 +25,16 @@ namespace Zerra.Repository
         public BaseTransactStoreRuleProvider(TNextProviderInterface nextProvider)
             : base(nextProvider) { }
 
-        private LambdaExpression? AppendWhereExpression(LambdaExpression? whereExpression, Graph? graph)
+        private LambdaExpression? AppendWhereExpression(LambdaExpression? whereExpression, Graph? graph, bool events)
         {
             var appendWhereExpression = GetWhereExpressionIncludingBase(graph);
+            //an event query's condition is on the events, which have the model as their Model
+            if (appendWhereExpression is not null && events)
+            {
+                var eventModel = Expression.Parameter(typeof(EventModel<TModel>), "x");
+                var model = Expression.Property(eventModel, typeof(EventModel<TModel>).GetProperty(nameof(EventModel<TModel>.Model))!);
+                appendWhereExpression = Expression.Lambda<Func<EventModel<TModel>, bool>>(LinqRebinder.RebindExpression(appendWhereExpression.Body, appendWhereExpression.Parameters[0], model), eventModel);
+            }
             if (whereExpression is null && appendWhereExpression is null)
             {
                 return null;
@@ -41,7 +49,7 @@ namespace Zerra.Repository
             }
             else
             {
-                return LinqAppender.AppendAnd<TModel>(whereExpression, appendWhereExpression);
+                return events ? LinqAppender.AppendAnd<EventModel<TModel>>(whereExpression, appendWhereExpression) : LinqAppender.AppendAnd<TModel>(whereExpression, appendWhereExpression);
             }
         }
 
@@ -132,10 +140,10 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed object? Query(LinqQuery query)
         {
-            OnQuery(query.Graph);
+            OnQuery(query.ModelGraph);
             //the query carries its result types, so the appended where is swapped onto it for the call and the original put back
             var where = query.Where;
-            query.Where = AppendWhereExpression(where, query.Graph);
+            query.Where = AppendWhereExpression(where, query.ModelGraph, query.ReadsEvents);
             try
             {
                 return OnResult(query, NextProvider.Query(query));
@@ -148,9 +156,9 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed async Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken)
         {
-            OnQuery(query.Graph);
+            OnQuery(query.ModelGraph);
             var where = query.Where;
-            query.Where = AppendWhereExpression(where, query.Graph);
+            query.Where = AppendWhereExpression(where, query.ModelGraph, query.ReadsEvents);
             try
             {
                 return OnResult(query, await NextProvider.QueryAsync(query, cancellationToken));
@@ -163,16 +171,18 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed object QueryStream(LinqQuery query)
         {
-            OnQuery(query.Graph);
+            OnQuery(query.ModelGraph);
             LambdaExpression? where = null;
             var elements = query.StreamFrom(() =>
             {
                 where = query.Where;
-                query.Where = AppendWhereExpression(where, query.Graph);
+                query.Where = AppendWhereExpression(where, query.ModelGraph, query.ReadsEvents);
                 return NextProvider.QueryStream(query);
             }, () => query.Where = where);
             if (!query.ReturnsModels)
                 return elements;
+            if (query.ReadsEvents)
+                return OnGetEventStream((IEnumerable<EventModel<TModel>>)elements, query.ModelGraph);
             return OnGetStream((IEnumerable<TModel>)elements, query.Graph);
         }
         private IEnumerable<TModel> OnGetStream(IEnumerable<TModel> models, Graph? graph)
@@ -200,16 +210,18 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed object QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken)
         {
-            OnQuery(query.Graph);
+            OnQuery(query.ModelGraph);
             LambdaExpression? where = null;
             var elements = query.StreamFromAsync(cancellation =>
             {
                 where = query.Where;
-                query.Where = AppendWhereExpression(where, query.Graph);
+                query.Where = AppendWhereExpression(where, query.ModelGraph, query.ReadsEvents);
                 return Task.FromResult<object?>(NextProvider.QueryStreamAsync(query, cancellation));
             }, () => query.Where = where, cancellationToken);
             if (!query.ReturnsModels)
                 return elements;
+            if (query.ReadsEvents)
+                return OnGetEventStreamAsync((IAsyncEnumerable<EventModel<TModel>>)elements, query.ModelGraph, cancellationToken);
             return OnGetStreamAsync((IAsyncEnumerable<TModel>)elements, query.Graph, cancellationToken);
         }
         private async IAsyncEnumerable<TModel> OnGetStreamAsync(IAsyncEnumerable<TModel> models, Graph? graph, [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -240,6 +252,62 @@ namespace Zerra.Repository
                 }
             }
         }
+        //an event is given when the rules keep its model
+        private IEnumerable<EventModel<TModel>> OnGetEventStream(IEnumerable<EventModel<TModel>> eventModels, Graph? graph)
+        {
+            var size = new LinqStreamSize(ModelAnalyzer.GetModel(typeof(TModel)));
+            var chunk = new List<EventModel<TModel>>();
+            var bytes = 0L;
+            foreach (var eventModel in eventModels)
+            {
+                chunk.Add(eventModel);
+                bytes += size.WithRelations(eventModel.Model);
+                if (bytes < StreamChunkBytes)
+                    continue;
+                foreach (var returned in OnGetEvents(chunk, graph))
+                    yield return returned;
+                chunk = new List<EventModel<TModel>>(chunk.Count);
+                bytes = 0;
+            }
+            if (chunk.Count > 0)
+            {
+                foreach (var returned in OnGetEvents(chunk, graph))
+                    yield return returned;
+            }
+        }
+        private async IAsyncEnumerable<EventModel<TModel>> OnGetEventStreamAsync(IAsyncEnumerable<EventModel<TModel>> eventModels, Graph? graph, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            var size = new LinqStreamSize(ModelAnalyzer.GetModel(typeof(TModel)));
+            var chunk = new List<EventModel<TModel>>();
+            var bytes = 0L;
+            await foreach (var eventModel in eventModels.WithCancellation(cancellationToken))
+            {
+                chunk.Add(eventModel);
+                bytes += size.WithRelations(eventModel.Model);
+                if (bytes < StreamChunkBytes)
+                    continue;
+                foreach (var returned in OnGetEvents(chunk, graph))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    yield return returned;
+                }
+                chunk = new List<EventModel<TModel>>(chunk.Count);
+                bytes = 0;
+            }
+            if (chunk.Count > 0)
+            {
+                foreach (var returned in OnGetEvents(chunk, graph))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    yield return returned;
+                }
+            }
+        }
+        private EventModel<TModel>[] OnGetEvents(ICollection<EventModel<TModel>> eventModels, Graph? graph)
+        {
+            var returnModels = OnGet(eventModels.Select(x => x.Model).ToArray(), graph).Cast<TModel>();
+            return eventModels.Where(x => returnModels.Contains(x.Model)).ToArray();
+        }
         private object? OnResult(LinqQuery query, object? result)
         {
             switch (result)
@@ -248,15 +316,10 @@ namespace Zerra.Repository
                     return models.Count == 0 ? models : OnGet(models, query.Graph).Cast<TModel>().ToArray();
                 case TModel model:
                     return OnGet(new TModel[] { model }, query.Graph).Cast<TModel>().FirstOrDefault();
-                case ICollection<EventModel<TModel>> eventModels:
-                    {
-                        if (eventModels.Count == 0)
-                            return eventModels;
-                        var returnModels = OnGet(eventModels.Select(x => x.Model).ToArray(), query.Graph).Cast<TModel>();
-                        return eventModels.Where(x => returnModels.Contains(x.Model)).ToArray();
-                    }
+                case ICollection<EventModel<TModel>> eventModels when query.ReturnsModels:
+                    return eventModels.Count == 0 ? eventModels : OnGetEvents(eventModels, query.ModelGraph);
                 case EventModel<TModel> eventModel:
-                    return OnGet(new TModel[] { eventModel.Model }, query.Graph).Cast<TModel>().FirstOrDefault() is null ? null : eventModel;
+                    return OnGet(new TModel[] { eventModel.Model }, query.ModelGraph).Cast<TModel>().FirstOrDefault() is null ? null : eventModel;
                 default:
                     return result;
             }
@@ -337,7 +400,7 @@ namespace Zerra.Repository
         {
             if (persist.Set is not null)
             {
-                var where = AppendWhereExpression(OnUpdateWhere(persist.Where!, persist.Set), null)!;
+                var where = AppendWhereExpression(OnUpdateWhere(persist.Where!, persist.Set), null, false)!;
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, where, persist.Set);
                 NextProvider.Persist(forwarded);
                 persist.RowsAffected = forwarded.RowsAffected;
@@ -347,7 +410,7 @@ namespace Zerra.Repository
             if (persist.Where is not null)
             {
                 var model = persist.Models is { Length: 1 } ? persist.Models[0] : throw new Exception($"Invalid {nameof(Persist)} for {nameof(Update)}");
-                var where = AppendWhereExpression(OnUpdateWhere(persist.Where, model, persist.Graph), null)!;
+                var where = AppendWhereExpression(OnUpdateWhere(persist.Where, model, persist.Graph), null, false)!;
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, where, model, persist.Graph);
                 NextProvider.Persist(forwarded);
                 persist.RowsAffected = forwarded.RowsAffected;
@@ -369,7 +432,7 @@ namespace Zerra.Repository
         {
             if (persist.Where is not null)
             {
-                var where = AppendWhereExpression(OnDeleteWhere(persist.Where), null)!;
+                var where = AppendWhereExpression(OnDeleteWhere(persist.Where), null, false)!;
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, where, null, null);
                 NextProvider.Persist(forwarded);
                 persist.RowsAffected = forwarded.RowsAffected;
@@ -421,7 +484,7 @@ namespace Zerra.Repository
         {
             if (persist.Set is not null)
             {
-                var where = AppendWhereExpression(OnUpdateWhere(persist.Where!, persist.Set), null)!;
+                var where = AppendWhereExpression(OnUpdateWhere(persist.Where!, persist.Set), null, false)!;
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, where, persist.Set);
                 await NextProvider.PersistAsync(forwarded, cancellationToken);
                 persist.RowsAffected = forwarded.RowsAffected;
@@ -431,7 +494,7 @@ namespace Zerra.Repository
             if (persist.Where is not null)
             {
                 var model = persist.Models is { Length: 1 } ? persist.Models[0] : throw new Exception($"Invalid {nameof(Persist)} for {nameof(UpdateAsync)}");
-                var where = AppendWhereExpression(OnUpdateWhere(persist.Where, model, persist.Graph), null)!;
+                var where = AppendWhereExpression(OnUpdateWhere(persist.Where, model, persist.Graph), null, false)!;
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, where, model, persist.Graph);
                 await NextProvider.PersistAsync(forwarded, cancellationToken);
                 persist.RowsAffected = forwarded.RowsAffected;
@@ -453,7 +516,7 @@ namespace Zerra.Repository
         {
             if (persist.Where is not null)
             {
-                var where = AppendWhereExpression(OnDeleteWhere(persist.Where), null)!;
+                var where = AppendWhereExpression(OnDeleteWhere(persist.Where), null, false)!;
                 var forwarded = new Persist(persist.Operation, persist.Event, persist.ModelType, where, null, null);
                 await NextProvider.PersistAsync(forwarded, cancellationToken);
                 persist.RowsAffected = forwarded.RowsAffected;

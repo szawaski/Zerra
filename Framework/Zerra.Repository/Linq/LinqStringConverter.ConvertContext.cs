@@ -5,9 +5,9 @@
 using System.Linq.Expressions;
 using System.Text;
 
-namespace Zerra.Linq
+namespace Zerra.Repository.Linq
 {
-    public static partial class LinqStringConverter
+    internal static partial class LinqStringConverter
     {
         private sealed class ConvertContext
         {

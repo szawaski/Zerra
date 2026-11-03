@@ -1,6 +1,6 @@
 ﻿using Zerra.Repository.Reflection;
 
-namespace Zerra.Repository
+namespace Zerra.Repository.Linq
 {
     public abstract partial class BaseLinqSqlConverter
     {

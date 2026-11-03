@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 using Zerra.Repository.Reflection;
 using Zerra.Repository.IO;
 
-namespace Zerra.Repository
+namespace Zerra.Repository.Linq
 {
     public abstract partial class BaseLinqSqlConverter
     {

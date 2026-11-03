@@ -5,6 +5,7 @@
 using System.Collections;
 using Xunit;
 using Zerra.Encryption;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Memory;
 
 namespace Zerra.Repository.Test

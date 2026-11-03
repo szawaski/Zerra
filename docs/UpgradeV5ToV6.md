@@ -169,15 +169,15 @@ Reads become LINQ queries. For the rest, the arguments keep the same order as th
 
 | Zerra 5 | Zerra 6 |
 |---|---|
-| `Repo.QueryAsync(new QueryMany<T>(where, order, skip, take))` | `Repo.Query<T>().Where(where).OrderBy(..).Skip(skip).Take(take).ToArrayAsync()` |
+| `Repo.QueryAsync(new QueryMany<T>(where, order, skip, take))` | `Repo.Query<T>().Where(where).OrderBy(..).Skip(skip).Take(take).ToArrayAsync()`; each key of a `QueryOrder` is an `OrderBy` or `ThenBy` |
 | `Repo.QueryAsync(new QueryFirst<T>(where))` | `Repo.Query<T>().FirstOrDefaultAsync(where)` |
 | `Repo.QueryAsync(new QuerySingle<T>(where))` | `Repo.Query<T>().SingleOrDefaultAsync(where)` |
 | `Repo.QueryAsync(new QueryAny<T>(where))` | `Repo.Query<T>().AnyAsync(where)` |
 | `Repo.QueryAsync(new QueryCount<T>(where))` | `Repo.Query<T>().LongCountAsync(where)` |
 | A graph naming relations on a query | `Repo.Query<T>(graph)`, or a `Select` naming them |
-| `Repo.QueryAsync(new EventQueryMany<T>(args))` | `Repo.EventManyAsync<T>(args)` (also `EventFirstAsync`, `EventSingleAsync`, `EventAnyAsync`, `EventCountAsync`) |
-| `Repo.QueryAsync(new TemporalQueryMany<T>(args))` | `Repo.TemporalManyAsync<T>(args)` (also `TemporalFirstAsync`, `TemporalAnyAsync`, `TemporalCountAsync`) |
-| `EventQueryNewest`/`Oldest`, `TemporalQueryNewest`/`Oldest` | `EventFirstAsync`/`TemporalFirstAsync` with `TemporalOrder.Newest` or `TemporalOrder.Oldest` |
+| `Repo.QueryAsync(new EventQueryMany<T>(order, from, to, skip, take, where))` | `Repo.EventQuery<T>(order, dateFrom: from, dateTo: to).Where(x => ..x.Model..).Skip(skip).Take(take).ToArrayAsync()`, or `numberFrom`/`numberTo` for event numbers; also `FirstOrDefaultAsync`, `AnyAsync`, `LongCountAsync` |
+| `Repo.QueryAsync(new TemporalQueryMany<T>(args))` | `Repo.TemporalQuery<T>(...)` composed the same way |
+| `EventQueryNewest`/`Oldest`, `TemporalQueryNewest`/`Oldest` | `EventQuery<T>(order, ...)`/`TemporalQuery<T>(order, ...)` with `TemporalOrder.Newest` or `TemporalOrder.Oldest`, then `FirstOrDefaultAsync` |
 | `Repo.PersistAsync(new Create<T>(args))` | `Repo.CreateAsync<T>(args)` |
 | `Repo.PersistAsync(new Update<T>(args))` | `Repo.UpdateAsync<T>(args)` |
 | `Repo.PersistAsync(new Delete<T>(args))` | `Repo.DeleteAsync<T>(args)` |
@@ -188,7 +188,8 @@ Watch for these:
 
 - **Always write the type argument** when passing a collection: `Repo.CreateAsync<LogNoteDTO>(items)`. Without it, a `List<T>` binds to the single-model overload with `TModel = List<T>`.
 - **Queries give an array or a list** from `ToArrayAsync` or `ToListAsync` (v5 returned `ICollection<T>`). Fix declared variable types, `Mapper.Map<ICollection<X>, Y[]>(...)` calls, and any `.Add` on the result.
-- **An event store query reads the current state** of each model. A v5 `QueryMany` of an event store gave every state; use `Repo.TemporalManyAsync<T>` for that.
+- **An event store query reads the current state** of each model. A v5 `QueryMany` of an event store gave every state; use `Repo.TemporalQuery<T>()` for that.
+- **In an event query the condition is on the event**, so the model's members are read through it: `x => x.Model.ID == id`. `SingleOrDefault` over more than one event throws, as in LINQ; use `FirstOrDefault` for the newest.
 - **Relation properties** declared as `ICollection<T>` on data models: change them to `List<T>` or `T[]`. Arrays, `List<T>`, and `IReadOnlyList<T>` are the types documented for v6.
 - LINQ support in `Where` is listed in [Agents.md](Agents.md#zerrarepository).
 
@@ -434,8 +435,9 @@ A solution that relies heavily on a removed helper can keep it. Examples are `Co
 | `TypeAnalyzer`, `TypeDetail`, `MemberDetail` | Still in `Zerra.Reflection`, but several members were renamed or removed, see [Reflection](#reflection) |
 | `LinqExtensions.ForEach` (`Zerra.Linq`) | A `foreach` loop, or a copy (see [Copying removed code](#copying-removed-code)) |
 | `LinqChunkExtensions.Chunk`, `Batch` (`Zerra.Collections`) | .NET `Enumerable.Chunk` (returns arrays). The rest of `Zerra.Collections`, such as `ConcurrentHashSet<T>`, is still there, so keep that `using` |
-| `.AppendAnd(`, `.AppendOr(`, `.AppendExpressionOnMember(`, `.ToLinqString()`, `ReadMemberName`, `LinqExtensions.Contains(IEnumerable, IEnumerable)` | The extension methods were removed. Rewrite with plain LINQ/expressions, or use `LinqAppender.AppendAnd(expression1, expression2)` and `LinqAppender.AppendExpressionOnMember`, which take one expression at a time |
-| `WhereBuilder`, `LinqStringConverter`, `LinqAppender` | Moved to the `Zerra.Repository` package, still in the `Zerra.Linq` namespace |
+| `.AppendAnd(`, `.AppendOr(`, `.AppendExpressionOnMember(`, `.ToLinqString()`, `ReadMemberName`, `LinqExtensions.Contains(IEnumerable, IEnumerable)` | The extension methods were removed. Rewrite with plain LINQ/expressions, or add a `Where` to the query for each condition |
+| `WhereBuilder` | Removed. Add a `Where` to the query for each condition, see [Building a Where in Code](Repository.md#building-a-where-in-code) |
+| `LinqStringConverter`, `LinqAppender` | Removed. Add a `Where` to the query for each condition |
 | `Zerra.Threading` `WaitAsync` extension, `MethodWait` | .NET `Task.WaitAsync(TimeSpan / CancellationToken)` |
 | `Misc/Zerra.Tools`: `Locker<T>`, `TaskThrottler`, `ZerraThreadPool`, `Concurrent`, `MathParser`, `Secret` | Removed. If used, copy the source from `release/5.4.0` `Misc/Zerra.Tools` into the solution, following [Copying removed code](#copying-removed-code) |
 | `QueryStringSerializer` | Removed |

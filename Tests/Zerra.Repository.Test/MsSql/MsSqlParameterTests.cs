@@ -5,6 +5,7 @@
 using System.Linq.Expressions;
 using Microsoft.Data.SqlClient;
 using Xunit;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Memory;
 using Zerra.Repository.MsSql;
 using Zerra.Repository.Reflection;

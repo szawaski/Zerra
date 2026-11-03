@@ -30,7 +30,11 @@ namespace Zerra.SourceGeneration
             var typeOfForInterface = Helper.GetTypeOfName(namedTypeSymbol);
             Generate(namedTypeSymbol, typeNameForInterface, typeOfForInterface, sb);
             foreach (var i in namedTypeSymbol.AllInterfaces)
+            {
+                if (i.Name == "IHandler" && i.ContainingNamespace.ToString() == "Zerra.CQRS")
+                    continue;
                 Generate(i, typeNameForInterface, typeOfForInterface, sb);
+            }
         }
 
         private static void Generate(INamedTypeSymbol namedTypeSymbol, string typeNameForInterface, string typeOfForInterface, StringBuilder sb)

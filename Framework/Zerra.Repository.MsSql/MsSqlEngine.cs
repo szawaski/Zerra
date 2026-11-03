@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Zerra.Linq;
 using Microsoft.Data.SqlClient;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
 using Zerra.Reflection;
 using System.Text;
@@ -14,6 +15,7 @@ using System.Data;
 using System.Runtime.CompilerServices;
 using System.Collections;
 using Zerra.Repository.IO;
+using Zerra.Repository.Transactions;
 
 namespace Zerra.Repository.MsSql
 {
@@ -1506,7 +1508,7 @@ namespace Zerra.Repository.MsSql
         public int ExecuteUpdateWhere<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
         {
             var parameters = new MsSqlParameterList();
-            var sql = LinqMsSqlConverter.ConvertPersistUpdate(set.GetProjectionMembers(), where, modelDetail, parameters);
+            var sql = LinqMsSqlConverter.ConvertPersistUpdate(ProjectionMember.FromSet(set), where, modelDetail, parameters);
 
             using (var connection = OpenConnection())
             {
@@ -1831,7 +1833,7 @@ namespace Zerra.Repository.MsSql
         public async Task<int> ExecuteUpdateWhereAsync<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
             var parameters = new MsSqlParameterList();
-            var sql = LinqMsSqlConverter.ConvertPersistUpdate(set.GetProjectionMembers(), where, modelDetail, parameters);
+            var sql = LinqMsSqlConverter.ConvertPersistUpdate(ProjectionMember.FromSet(set), where, modelDetail, parameters);
 
             try
             {

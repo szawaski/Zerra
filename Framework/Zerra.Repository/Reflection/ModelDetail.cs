@@ -5,6 +5,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Zerra.Reflection;
+using Zerra.Repository.Linq;
 
 namespace Zerra.Repository.Reflection
 {
@@ -197,7 +198,8 @@ namespace Zerra.Repository.Reflection
             if (!typeDetail.HasCreator)
                 throw new Exception($"{Type.Name} must have a parameterless constructor to be a model.");
 
-            while (typeDetail.InnerTypes.Count == 1)
+            //an event is the element of an event query, not a wrapper of its model
+            while (typeDetail.InnerTypes.Count == 1 && !(typeDetail.Type.IsGenericType && typeDetail.Type.GetGenericTypeDefinition() == typeof(EventModel<>)))
             {
                 this.Type = typeDetail.InnerType!;
                 typeDetail = typeDetail.InnerTypeDetail!;

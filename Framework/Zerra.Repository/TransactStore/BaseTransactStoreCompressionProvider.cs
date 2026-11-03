@@ -232,7 +232,17 @@ namespace Zerra.Repository
             }, () => query.Where = where);
             if (!query.ReturnsModels)
                 return elements;
+            if (query.ReadsEvents)
+                return DecompressEventStream((IEnumerable<EventModel<TModel>>)elements, query.ModelGraph);
             return DecompressStream((IEnumerable<TModel>)elements, query.Graph);
+        }
+        private IEnumerable<EventModel<TModel>> DecompressEventStream(IEnumerable<EventModel<TModel>> eventModels, Graph? graph)
+        {
+            foreach (var eventModel in eventModels)
+            {
+                eventModel.Model = DecompressModel(eventModel.Model, graph, true);
+                yield return eventModel;
+            }
         }
         private IEnumerable<TModel> DecompressStream(IEnumerable<TModel> models, Graph? graph)
         {
@@ -252,7 +262,17 @@ namespace Zerra.Repository
             }, () => query.Where = where, cancellationToken);
             if (!query.ReturnsModels)
                 return elements;
+            if (query.ReadsEvents)
+                return DecompressEventStreamAsync((IAsyncEnumerable<EventModel<TModel>>)elements, query.ModelGraph, cancellationToken);
             return DecompressStreamAsync((IAsyncEnumerable<TModel>)elements, query.Graph, cancellationToken);
+        }
+        private async IAsyncEnumerable<EventModel<TModel>> DecompressEventStreamAsync(IAsyncEnumerable<EventModel<TModel>> eventModels, Graph? graph, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var eventModel in eventModels.WithCancellation(cancellationToken))
+            {
+                eventModel.Model = DecompressModel(eventModel.Model, graph, true);
+                yield return eventModel;
+            }
         }
         private async IAsyncEnumerable<TModel> DecompressStreamAsync(IAsyncEnumerable<TModel> models, Graph? graph, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
@@ -267,11 +287,11 @@ namespace Zerra.Repository
                     return models.Count == 0 ? models : DecompressModels(models, query.Graph, true).Cast<TModel>().ToArray();
                 case TModel model:
                     return DecompressModel(model, query.Graph, true);
-                case ICollection<EventModel<TModel>> eventModels:
+                case ICollection<EventModel<TModel>> eventModels when query.ReturnsModels:
                     {
                         if (eventModels.Count == 0)
                             return eventModels;
-                        var models = DecompressModels(eventModels.Select(x => x.Model).ToArray(), query.Graph, true).GetEnumerator();
+                        var models = DecompressModels(eventModels.Select(x => x.Model).ToArray(), query.ModelGraph, true).GetEnumerator();
                         foreach (var eventModel in eventModels)
                         {
                             _ = models.MoveNext();
@@ -280,7 +300,7 @@ namespace Zerra.Repository
                         return eventModels;
                     }
                 case EventModel<TModel> eventModel:
-                    eventModel.Model = DecompressModel(eventModel.Model, query.Graph, true);
+                    eventModel.Model = DecompressModel(eventModel.Model, query.ModelGraph, true);
                     return eventModel;
                 default:
                     return result;
@@ -295,7 +315,7 @@ namespace Zerra.Repository
                 throw new NotSupportedException($"{GetType().Name} cannot project or calculate on a compressed property");
             if (query.Order is null)
                 return;
-            foreach (var order in query.Order.OrderExpressions)
+            foreach (var order in query.Order)
             {
                 if (LinqMemberFinder.ReadsMember(order.Expression, properties))
                     throw new NotSupportedException($"{GetType().Name} cannot order by a compressed property");

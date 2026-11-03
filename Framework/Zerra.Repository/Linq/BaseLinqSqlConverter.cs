@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -6,11 +7,12 @@ using Zerra.Reflection;
 using Zerra.Repository.IO;
 using Zerra.Repository.Reflection;
 
-namespace Zerra.Repository
+namespace Zerra.Repository.Linq
 {
     /// <summary>
     /// Base class for converting LINQ expressions into SQL query strings.
     /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public abstract partial class BaseLinqSqlConverter
     {
 
@@ -174,7 +176,7 @@ namespace Zerra.Repository
                 {
                     sb.Write(" ORDER BY");
                     var first = true;
-                    foreach (var order in query.ResultOrder?.OrderExpressions ?? [])
+                    foreach (var order in query.ResultOrder ?? [])
                     {
                         if (!first)
                             sb.Write(',');
@@ -184,7 +186,7 @@ namespace Zerra.Repository
                             sb.Write("DESC");
                     }
                     operationContext.ResultEnums = selectedEnums;
-                    foreach (var order in selectedOrder?.OrderExpressions ?? [])
+                    foreach (var order in selectedOrder ?? [])
                     {
                         if (!first)
                             sb.Write(',');
@@ -383,7 +385,7 @@ namespace Zerra.Repository
         /// <summary>
         /// Converts an update of every row matching a condition to values computed from the row into its SQL statement.
         /// </summary>
-        /// <param name="sets">The members to set from <see cref="LinqExtensions.GetProjectionMembers"/>, each with its value in terms of the row.</param>
+        /// <param name="sets">The members to set from <see cref="ProjectionMember.FromSet"/>, each with its value in terms of the row.</param>
         /// <param name="where">The condition selecting the rows.</param>
         /// <param name="modelDetail">Metadata about the model being changed.</param>
         /// <param name="parameters">The values taken as parameters, which the statement adds to, or <see langword="null"/> to write values into the statement.</param>
@@ -407,7 +409,7 @@ namespace Zerra.Repository
         /// Builds the UPDATE of every row matching a condition into the provided <see cref="CharWriter"/>: each member set to its value converted in terms of the row, which reads only the model's own columns, then the condition as <see cref="ConvertPersistWhere"/> writes it.
         /// </summary>
         /// <param name="sb">The writer to append the SQL into.</param>
-        /// <param name="sets">The members to set from <see cref="LinqExtensions.GetProjectionMembers"/>, each with its value in terms of the row.</param>
+        /// <param name="sets">The members to set from <see cref="ProjectionMember.FromSet"/>, each with its value in terms of the row.</param>
         /// <param name="where">The condition selecting the rows.</param>
         /// <param name="modelDetail">Metadata about the model being changed.</param>
         /// <param name="operationContext">The current member context for the operation.</param>
@@ -1958,7 +1960,7 @@ namespace Zerra.Repository
         /// <param name="sb">The writer to append SQL into.</param>
         /// <param name="rootDependant">The root parameter dependant used for join tracking.</param>
         /// <param name="operationContext">The current member context for the operation.</param>
-        protected abstract void GenerateOrderSkipTake(QueryOrder? order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
+        protected abstract void GenerateOrderSkipTake(LinqOrder[]? order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext);
         /// <summary>
         /// Generates the SELECT clause into the provided writer.
         /// </summary>

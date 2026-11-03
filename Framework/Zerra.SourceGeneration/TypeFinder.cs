@@ -33,9 +33,24 @@ namespace Zerra.SourceGeneration
                     CheckModel(namedTypeSymbol, models, stack);
             }
         }
+        /// <summary>
+        /// Adds a type built with an object initializer inside an expression tree, and records the method that builds it.
+        /// </summary>
+        /// <param name="typeSymbol">The type built by the initializer.</param>
+        /// <param name="memberID">The documentation ID of the method containing the expression tree.</param>
+        /// <param name="models">The dictionary of discovered models to add to.</param>
+        public static void FindExpressionInitializerModel(ITypeSymbol typeSymbol, string memberID, Dictionary<string, TypeToGenerate> models)
+        {
+            CheckModel(typeSymbol, models, new Stack<string>());
+            if (models.TryGetValue(Helper.GetFullName(typeSymbol), out var model))
+                _ = model.ExpressionInitializerMemberIDs.Add(memberID);
+        }
+
         private static bool Filter(INamedTypeSymbol namedTypeSymbol)
         {
-            if (namedTypeSymbol.AllInterfaces.Any(x => (x.Name == "ICommand" || x.Name == "IEvent" || x.Name == "IQueryHandler" || x.Name == "ICommandHandler") && x.ContainingNamespace.ToString() == "Zerra.CQRS"))
+            if (namedTypeSymbol.AllInterfaces.Any(x => (x.Name == "ICommand" || x.Name == "IEvent") && x.ContainingNamespace.ToString() == "Zerra.CQRS"))
+                return true;
+            if (namedTypeSymbol.TypeKind == TypeKind.Interface && namedTypeSymbol.AllInterfaces.Any(x => (x.Name == "IQueryHandler" || x.Name == "ICommandHandler") && x.ContainingNamespace.ToString() == "Zerra.CQRS"))
                 return true;
             if (!namedTypeSymbol.GetAttributes().Any(x => x.AttributeClass is not null && x.AttributeClass.Name == "IgnoreGenerateTypeDetailAttribute" && x.AttributeClass.ContainingNamespace.ToString() == "Zerra.Reflection"))
             {
@@ -123,6 +138,8 @@ namespace Zerra.SourceGeneration
 
             foreach (var property in properties)
             {
+                if (IsIHandler(property.PropertySymbol.ContainingType))
+                    continue;
                 stack.Push(name);
                 CheckModel(property.PropertySymbol.Type, models, stack);
                 _ = stack.Pop();
@@ -131,6 +148,8 @@ namespace Zerra.SourceGeneration
             var methods = GetMethods(namedTypeSymbol, symbolMembers);
             foreach (var method in methods)
             {
+                if (IsIHandler(method.MethodSymbol.ContainingType))
+                    continue;
                 stack.Push(name);
                 CheckModel(method.MethodSymbol.ReturnType, models, stack);
                 _ = stack.Pop();
@@ -149,6 +168,8 @@ namespace Zerra.SourceGeneration
                 _ = stack.Pop();
             }
         }
+        private static bool IsIHandler(INamedTypeSymbol? typeSymbol) => typeSymbol is not null && typeSymbol.Name == "IHandler" && typeSymbol.ContainingNamespace.ToString() == "Zerra.CQRS";
+
         private static void SearchModel(ITypeSymbol typeSymbol, Dictionary<string, TypeToGenerate> models, Stack<string> stack)
         {
             var name = Helper.GetFullName(typeSymbol);
@@ -164,12 +185,16 @@ namespace Zerra.SourceGeneration
 
                 foreach (var @field in fields)
                 {
+                    if (@field.DeclaredAccessibility != Accessibility.Public)
+                        continue;
                     stack.Push(name);
                     CheckModel(@field.Type, models, stack);
                     _ = stack.Pop();
                 }
                 foreach (var property in properties)
                 {
+                    if (property.PropertySymbol.DeclaredAccessibility != Accessibility.Public)
+                        continue;
                     stack.Push(name);
                     CheckModel(property.PropertySymbol.Type, models, stack);
                     _ = stack.Pop();

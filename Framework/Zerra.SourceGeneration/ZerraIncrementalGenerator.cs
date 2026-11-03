@@ -40,9 +40,17 @@ namespace Zerra.SourceGeneration
             .Where(x => x != null)
             .Collect();
 
+            var expressionInitializerProvider = context.SyntaxProvider.CreateSyntaxProvider(
+                (node, cancellationToken) => node is BaseObjectCreationExpressionSyntax { Initializer: not null } creation && creation.Initializer.IsKind(SyntaxKind.ObjectInitializerExpression),
+                FindExpressionInitializer
+            )
+            .Where(x => x is not null)
+            .Select((x, cancellationToken) => x!.Value)
+            .Collect();
+
             var languageVersionProvider = context.ParseOptionsProvider.Select((options, cancellationToken) => ((CSharpParseOptions)options).LanguageVersion);
 
-            context.RegisterSourceOutput(syntaxProvider.Combine(languageVersionProvider), (a, b) =>
+            context.RegisterSourceOutput(syntaxProvider.Combine(expressionInitializerProvider).Combine(languageVersionProvider), (a, b) =>
             {
                 //the initializer is a module initializer which needs C# 9
                 if (b.Right < LanguageVersion.CSharp9)
@@ -50,11 +58,48 @@ namespace Zerra.SourceGeneration
                     a.ReportDiagnostic(Diagnostic.Create(languageVersionDescriptor, Location.None, b.Right.ToDisplayString()));
                     return;
                 }
-                SourceOutput(a, b.Left);
+                SourceOutput(a, b.Left.Left, b.Left.Right);
             });
         }
 
-        private static void SourceOutput(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols)
+        //Expression.Bind(MethodInfo, ...) from an initializer in an expression tree is flagged IL2026 by native AOT, generating the type keeps its members
+        private static (ITypeSymbol Type, string MemberID)? FindExpressionInitializer(GeneratorSyntaxContext context, CancellationToken cancellationToken)
+        {
+            var node = (BaseObjectCreationExpressionSyntax)context.Node;
+
+            var inExpression = false;
+            foreach (var ancestor in node.Ancestors())
+            {
+                if (ancestor is MemberDeclarationSyntax)
+                    break;
+                if (ancestor is AnonymousFunctionExpressionSyntax lambda
+                    && context.SemanticModel.GetTypeInfo(lambda, cancellationToken).ConvertedType is INamedTypeSymbol { MetadataName: "Expression`1" } convertedType
+                    && convertedType.ContainingNamespace.ToString() == "System.Linq.Expressions")
+                {
+                    inExpression = true;
+                    break;
+                }
+            }
+            if (!inExpression)
+                return null;
+
+            var type = context.SemanticModel.GetTypeInfo(node, cancellationToken).Type;
+            if (type is null || type.TypeKind == TypeKind.Error)
+                return null;
+
+            var member = context.SemanticModel.GetEnclosingSymbol(node.SpanStart, cancellationToken);
+            while (member is IMethodSymbol { MethodKind: MethodKind.AnonymousFunction or MethodKind.LocalFunction })
+                member = member.ContainingSymbol;
+            if (member is not IMethodSymbol)
+                return null;
+            var memberID = member.GetDocumentationCommentId();
+            if (memberID is null)
+                return null;
+
+            return (type, memberID);
+        }
+
+        private static void SourceOutput(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, ImmutableArray<(ITypeSymbol Type, string MemberID)> expressionInitializers)
         {
             var discoverySymbols = new List<ITypeSymbol>();
 
@@ -82,11 +127,14 @@ namespace Zerra.SourceGeneration
                 TypeFinderGenerator.Generate(sbInitializer, symbol);
                 EnumGenerator.Generate(sbInitializer, symbol);
             }
+            foreach (var expressionInitializer in expressionInitializers)
+                TypeFinder.FindExpressionInitializerModel(expressionInitializer.Type, expressionInitializer.MemberID, typesToGenerate);
             TypesGenerator.Generate(sbInitializer, typesToGenerate);
             EmptyImplementationGenerator.Generate(context, ns, sbInitializer, typesToGenerate);
             SerializerAndMapGenerator.Generate(sbInitializer, typesToGenerate);
 
-            GenerateInitializer(context, ns, sbInitializer, GetSuppressedDiagnosticIds(typesToGenerate));
+            var expressionInitializerMemberIDs = typesToGenerate.Values.SelectMany(x => x.ExpressionInitializerMemberIDs).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray();
+            GenerateInitializer(context, ns, sbInitializer, GetSuppressedDiagnosticIds(typesToGenerate), expressionInitializerMemberIDs);
         }
 
         //The initializer touches members of every model type, including types from other libraries marked [Obsolete(DiagnosticId = ...)]
@@ -165,7 +213,7 @@ namespace Zerra.SourceGeneration
             }
         }
 
-        private static void GenerateInitializer(SourceProductionContext context, string ns, StringBuilder sbInitializer, string[] suppressedDiagnosticIds)
+        private static void GenerateInitializer(SourceProductionContext context, string ns, StringBuilder sbInitializer, string[] suppressedDiagnosticIds, string[] expressionInitializerMemberIDs)
         {
             var lines = sbInitializer.ToString();
             var splits = lines.Split([EnvironmentHelper.NewLine], StringSplitOptions.RemoveEmptyEntries);
@@ -203,6 +251,18 @@ namespace Zerra.SourceGeneration
             if (suppressedDiagnosticIds.Length > 0)
                 suppressions += $"{EnvironmentHelper.NewLine}#pragma warning disable {String.Join(", ", suppressedDiagnosticIds)}";
 
+            //the targets use the ID form native AOT matches, "M:Namespace.Type.Method(Parameters)" without a return type
+            var trimmingSuppressions = String.Empty;
+            if (expressionInitializerMemberIDs.Length > 0)
+            {
+                var sbTrimmingSuppressions = new StringBuilder();
+                _ = sbTrimmingSuppressions.Append("#if NET5_0_OR_GREATER").Append(EnvironmentHelper.NewLine);
+                foreach (var memberID in expressionInitializerMemberIDs)
+                    _ = sbTrimmingSuppressions.Append("[module: global::System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2026\", Justification = \"An object initializer in an expression tree, its type is generated so its members are kept.\", Scope = \"member\", Target = \"").Append(memberID).Append("\")]").Append(EnvironmentHelper.NewLine);
+                _ = sbTrimmingSuppressions.Append("#endif").Append(EnvironmentHelper.NewLine);
+                trimmingSuppressions = sbTrimmingSuppressions.ToString();
+            }
+
             var code = $$"""
                 // <auto-generated/>
                 #nullable enable
@@ -211,6 +271,7 @@ namespace Zerra.SourceGeneration
                 #pragma warning disable CS0612, CS0618
                 {{suppressions}}
 
+                {{trimmingSuppressions}}
                 namespace {{ns}}.SourceGeneration
                 {
                     internal static class SourceGenerationInitializer

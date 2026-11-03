@@ -5,7 +5,7 @@
 using System.Globalization;
 using System.Linq.Expressions;
 using Xunit;
-using Zerra.Linq;
+using Zerra.Repository.Linq;
 
 namespace Zerra.Repository.Test.Linq
 {
@@ -181,14 +181,6 @@ namespace Zerra.Repository.Test.Linq
         public void Convert_NotSupported_Throws()
         {
             _ = Assert.Throws<NotImplementedException>(() => LinqStringConverter.Convert(Expression.RuntimeVariables(i)));
-        }
-
-        [Fact]
-        public void WhereBuilder_ToString()
-        {
-            var builder = new WhereBuilder<Model>(x => x.Value > 1);
-            builder.Or(x => x.Name == "a");
-            Assert.Equal("(Model $root)=>(Model.Value>1)||(Model.Name==\"a\")", builder.ToString());
         }
     }
 }

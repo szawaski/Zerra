@@ -4,7 +4,9 @@
 
 using System.Collections;
 using System.Linq.Expressions;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
+using Zerra.Repository.Transactions;
 
 namespace Zerra.Repository
 {
@@ -142,7 +144,7 @@ namespace Zerra.Repository
         int ExecuteUpdateWhere<TModel>(TModel model, Graph graph, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new();
         /// <summary>Sets members on every row matching the condition to values computed from the row and returns the number of rows affected.</summary>
         /// <typeparam name="TModel">The model type.</typeparam>
-        /// <param name="set">The members to set and their values in terms of the row, as a projection of the model to itself for <see cref="LinqExtensions.GetProjectionMembers"/>; never an identity or a relation, and reading only the model's own members.</param>
+        /// <param name="set">The members to set and their values in terms of the row, as a projection of the model to itself for <see cref="ProjectionMember.FromSet"/>; never an identity or a relation, and reading only the model's own members.</param>
         /// <param name="where">The condition selecting the rows.</param>
         /// <param name="modelDetail">The model metadata.</param>
         /// <returns>The number of rows affected.</returns>
@@ -244,7 +246,7 @@ namespace Zerra.Repository
         Task<int> ExecuteUpdateWhereAsync<TModel>(TModel model, Graph graph, LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new();
         /// <summary>Asynchronously sets members on every row matching the condition to values computed from the row and returns the number of rows affected.</summary>
         /// <typeparam name="TModel">The model type.</typeparam>
-        /// <param name="set">The members to set and their values in terms of the row, as a projection of the model to itself for <see cref="LinqExtensions.GetProjectionMembers"/>; never an identity or a relation, and reading only the model's own members.</param>
+        /// <param name="set">The members to set and their values in terms of the row, as a projection of the model to itself for <see cref="ProjectionMember.FromSet"/>; never an identity or a relation, and reading only the model's own members.</param>
         /// <param name="where">The condition selecting the rows.</param>
         /// <param name="modelDetail">The model metadata.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>

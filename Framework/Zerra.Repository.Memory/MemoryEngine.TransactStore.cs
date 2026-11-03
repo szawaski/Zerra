@@ -6,11 +6,13 @@ using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
 using Zerra.Reflection;
 using System.Collections;
 using Zerra.Collections;
 using Zerra.Map;
+using Zerra.Repository.Transactions;
 
 namespace Zerra.Repository.Memory
 {
@@ -212,7 +214,7 @@ namespace Zerra.Repository.Memory
             var source = (ConcurrentList<TModel>)store.GetOrAdd(type, NewTable<TModel>);
             var localGraph = BuildLocalGraph(type, graph);
             var count = 0;
-            foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
+            foreach (var existing in LinqHelper.Query(source, where, null, null, null, caseSensitive).ToArray())
             {
                 model.MapTo(existing, localGraph);
                 MapRelated(store, existing, modelDetail, false);
@@ -232,7 +234,7 @@ namespace Zerra.Repository.Memory
             var part = RepoTransaction.Current?.Enlist(this, nameof(MemoryEngine), BeginTransactionPart);
             var store = part?.Store ?? data;
             var source = (ConcurrentList<TModel>)store.GetOrAdd(type, NewTable<TModel>);
-            var sets = set.GetProjectionMembers();
+            var sets = ProjectionMember.FromSet(set);
             var getters = new Func<TModel, object?>[sets.Length];
             var members = new ModelMemberDetail[sets.Length];
             for (var i = 0; i < sets.Length; i++)
@@ -242,7 +244,7 @@ namespace Zerra.Repository.Memory
             }
             var values = new object?[sets.Length];
             var count = 0;
-            foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
+            foreach (var existing in LinqHelper.Query(source, where, null, null, null, caseSensitive).ToArray())
             {
                 //every value is computed from the model as it was, as a database computes them from the row
                 for (var i = 0; i < values.Length; i++)
@@ -263,7 +265,7 @@ namespace Zerra.Repository.Memory
             var store = part?.Store ?? data;
             var source = (ConcurrentList<TModel>)store.GetOrAdd(type, NewTable<TModel>);
             var count = 0;
-            foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
+            foreach (var existing in LinqHelper.Query(source, where, null, null, null, caseSensitive).ToArray())
             {
                 if (source.Remove(existing))
                     count++;
@@ -401,7 +403,7 @@ namespace Zerra.Repository.Memory
             var source = (ConcurrentList<TModel>)store.GetOrAdd(type, NewTable<TModel>);
             var localGraph = BuildLocalGraph(type, graph);
             var count = 0;
-            foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
+            foreach (var existing in LinqHelper.Query(source, where, null, null, null, caseSensitive).ToArray())
             {
                 model.MapTo(existing, localGraph);
                 MapRelated(store, existing, modelDetail, false);
@@ -423,7 +425,7 @@ namespace Zerra.Repository.Memory
             var part = RepoTransaction.Current?.Enlist(this, nameof(MemoryEngine), BeginTransactionPart);
             var store = part?.Store ?? data;
             var source = (ConcurrentList<TModel>)store.GetOrAdd(type, NewTable<TModel>);
-            var sets = set.GetProjectionMembers();
+            var sets = ProjectionMember.FromSet(set);
             var getters = new Func<TModel, object?>[sets.Length];
             var members = new ModelMemberDetail[sets.Length];
             for (var i = 0; i < sets.Length; i++)
@@ -433,7 +435,7 @@ namespace Zerra.Repository.Memory
             }
             var values = new object?[sets.Length];
             var count = 0;
-            foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
+            foreach (var existing in LinqHelper.Query(source, where, null, null, null, caseSensitive).ToArray())
             {
                 //every value is computed from the model as it was, as a database computes them from the row
                 for (var i = 0; i < values.Length; i++)
@@ -456,7 +458,7 @@ namespace Zerra.Repository.Memory
             var store = part?.Store ?? data;
             var source = (ConcurrentList<TModel>)store.GetOrAdd(type, NewTable<TModel>);
             var count = 0;
-            foreach (var existing in source.AsEnumerable().Query(where, null, null, null, caseSensitive).ToArray())
+            foreach (var existing in LinqHelper.Query(source, where, null, null, null, caseSensitive).ToArray())
             {
                 if (source.Remove(existing))
                     count++;

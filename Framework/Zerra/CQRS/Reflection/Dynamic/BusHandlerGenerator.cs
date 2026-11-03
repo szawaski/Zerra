@@ -20,7 +20,11 @@ namespace Zerra.CQRS.Reflection.Dynamic
 
             var allMethods = interfaceType.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).ToList();
             foreach (var i in interfaceType.GetInterfaces())
+            {
+                if (i == typeof(IHandler))
+                    continue;
                 allMethods.AddRange(i.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance));
+            }
             var methods = allMethods.Where(x => x.Name == methodNameSplit[0]);
             if (methodNameSplit.Length > 1)
                 methods = methods.Where(x => x.GetParameters().FirstOrDefault()?.ParameterType.Name == methodNameSplit[1]);

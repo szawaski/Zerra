@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Diagnostics.CodeAnalysis;
+using Zerra.Repository.Linq;
 
 namespace Zerra.Repository
 {

@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+﻿// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -111,6 +111,9 @@ namespace Zerra.Repository.Test
             //the lines of orders, matched by the order's identity of both members
             Assert.Equal([1, 3, 5], repo.Query<OrderModel>().Where(x => x.Name != "b" && x.Name != "z").SelectMany(x => x.Lines!).Select(l => l.Quantity).ToArray().Order());
             Assert.Equal([1, 5], repo.Query<OrderModel>().OrderBy(x => x.Name).Take(1).SelectMany(x => x.Lines!).Select(l => l.Quantity).ToArray().Order());
+            //an order inside the SelectMany orders the rows
+            Assert.Equal([5, 3, 1], repo.Query<OrderModel>().Where(x => x.Name != "b" && x.Name != "z").SelectMany(x => x.Lines!.OrderByDescending(l => l.Quantity)).Select(l => l.Quantity).ToArray());
+            Assert.Equal([1, 3, 5], repo.Query<OrderModel>().Where(x => x.Name != "b" && x.Name != "z").SelectMany(x => x.Lines!.OrderBy(l => l.Quantity).Select(l => l.Quantity)).ToArray());
 
             //values of the related rows
             var projected = repo.Query<OrderModel>().Where(x => x.Name != "z").OrderBy(x => x.Name).Select(x => new { x.Name, Quantities = x.Lines!.Select(l => l.Quantity).ToList(), First = x.Lines!.OrderBy(l => l.Quantity).First().Quantity, Top = x.Lines!.OrderByDescending(l => l.Quantity).Take(1).Select(l => l.Quantity).ToList() }).ToArray();

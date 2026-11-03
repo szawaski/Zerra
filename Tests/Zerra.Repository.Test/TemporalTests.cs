@@ -62,18 +62,18 @@ namespace Zerra.Repository.Test
         {
             var (repo, id, dates) = Create(snapshots);
 
-            Assert.Equal([1, 2, 3], Values(repo.TemporalMany<TemporalModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == id)));
-            Assert.Equal([2, 3], Values(repo.TemporalMany<TemporalModel>(TemporalOrder.Oldest, (ulong?)1, null, null, null, x => x.ID == id)));
-            Assert.Equal([1, 2], Values(repo.TemporalMany<TemporalModel>(TemporalOrder.Oldest, (ulong?)null, 1, null, null, x => x.ID == id)));
-            Assert.Equal([2], Values(repo.TemporalMany<TemporalModel>(TemporalOrder.Oldest, (ulong?)null, null, 1, 1, x => x.ID == id)));
-            Assert.Equal([1, 2], Values(repo.TemporalMany<TemporalModel>(TemporalOrder.Oldest, (DateTime?)null, dates[1], null, null, x => x.ID == id)));
-            Assert.Equal([2, 3], Values(repo.TemporalMany<TemporalModel>(TemporalOrder.Oldest, dates[0].AddMilliseconds(5), null, null, null, x => x.ID == id)));
+            Assert.Equal([1, 2, 3], Values(repo.TemporalQuery<TemporalModel>(TemporalOrder.Oldest).Where(x => x.ID == id).ToList()));
+            Assert.Equal([2, 3], Values(repo.TemporalQuery<TemporalModel>(TemporalOrder.Oldest, numberFrom: 1).Where(x => x.ID == id).ToList()));
+            Assert.Equal([1, 2], Values(repo.TemporalQuery<TemporalModel>(TemporalOrder.Oldest, numberTo: 1).Where(x => x.ID == id).ToList()));
+            Assert.Equal([2], Values(repo.TemporalQuery<TemporalModel>(TemporalOrder.Oldest).Where(x => x.ID == id).Skip(1).Take(1).ToList()));
+            Assert.Equal([1, 2], Values(repo.TemporalQuery<TemporalModel>(TemporalOrder.Oldest, dateTo: dates[1]).Where(x => x.ID == id).ToList()));
+            Assert.Equal([2, 3], Values(repo.TemporalQuery<TemporalModel>(TemporalOrder.Oldest, dateFrom: dates[0].AddMilliseconds(5)).Where(x => x.ID == id).ToList()));
 
-            Assert.Equal([1, 2, 3], Values(repo.TemporalMany<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == id)).Order());
-            Assert.Equal([3], Values(repo.TemporalMany<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, null, 1, x => x.ID == id)));
-            Assert.Equal([1, 2], Values(repo.TemporalMany<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, 1, null, x => x.ID == id)).Order());
-            Assert.Equal([2], Values(repo.TemporalMany<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, 1, 1, x => x.ID == id)));
-            Assert.Equal([1, 2], Values(repo.TemporalMany<TemporalModel>(TemporalOrder.Newest, (ulong?)null, 1, null, null, x => x.ID == id)).Order());
+            Assert.Equal([1, 2, 3], Values(repo.TemporalQuery<TemporalModel>().Where(x => x.ID == id).ToList()).Order());
+            Assert.Equal([3], Values(repo.TemporalQuery<TemporalModel>().Where(x => x.ID == id).Take(1).ToList()));
+            Assert.Equal([1, 2], Values(repo.TemporalQuery<TemporalModel>().Where(x => x.ID == id).Skip(1).ToList()).Order());
+            Assert.Equal([2], Values(repo.TemporalQuery<TemporalModel>().Where(x => x.ID == id).Skip(1).Take(1).ToList()));
+            Assert.Equal([1, 2], Values(repo.TemporalQuery<TemporalModel>(numberTo: 1).Where(x => x.ID == id).ToList()).Order());
         }
 
         [Theory]
@@ -82,13 +82,13 @@ namespace Zerra.Repository.Test
         {
             var (repo, id, dates) = Create(snapshots);
 
-            Assert.Equal(3, repo.TemporalFirst<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == id, null, null)!.Value);
-            Assert.Equal(2, repo.TemporalFirst<TemporalModel>(TemporalOrder.Newest, (ulong?)null, 1, null, null, x => x.ID == id, null, null)!.Value);
-            Assert.Equal(1, repo.TemporalFirst<TemporalModel>(TemporalOrder.Newest, (ulong?)null, 0, null, null, x => x.ID == id, null, null)!.Value);
-            Assert.Equal(2, repo.TemporalFirst<TemporalModel>(TemporalOrder.Newest, (DateTime?)null, dates[1], null, null, x => x.ID == id, null, null)!.Value);
-            Assert.Equal(1, repo.TemporalFirst<TemporalModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == id, null, null)!.Value);
-            Assert.Equal(2, repo.TemporalFirst<TemporalModel>(TemporalOrder.Oldest, (ulong?)1, null, null, null, x => x.ID == id, null, null)!.Value);
-            Assert.Equal(2, repo.TemporalFirst<TemporalModel>(TemporalOrder.Oldest, dates[0].AddMilliseconds(5), null, null, null, x => x.ID == id, null, null)!.Value);
+            Assert.Equal(3, repo.TemporalQuery<TemporalModel>().Where(x => x.ID == id).FirstOrDefault()!.Value);
+            Assert.Equal(2, repo.TemporalQuery<TemporalModel>(numberTo: 1).Where(x => x.ID == id).FirstOrDefault()!.Value);
+            Assert.Equal(1, repo.TemporalQuery<TemporalModel>(numberTo: 0).Where(x => x.ID == id).FirstOrDefault()!.Value);
+            Assert.Equal(2, repo.TemporalQuery<TemporalModel>(dateTo: dates[1]).Where(x => x.ID == id).FirstOrDefault()!.Value);
+            Assert.Equal(1, repo.TemporalQuery<TemporalModel>(TemporalOrder.Oldest).Where(x => x.ID == id).FirstOrDefault()!.Value);
+            Assert.Equal(2, repo.TemporalQuery<TemporalModel>(TemporalOrder.Oldest, numberFrom: 1).Where(x => x.ID == id).FirstOrDefault()!.Value);
+            Assert.Equal(2, repo.TemporalQuery<TemporalModel>(TemporalOrder.Oldest, dateFrom: dates[0].AddMilliseconds(5)).Where(x => x.ID == id).FirstOrDefault()!.Value);
         }
 
         [Theory]
@@ -97,11 +97,11 @@ namespace Zerra.Repository.Test
         {
             var (repo, id, dates) = Create(snapshots);
 
-            Assert.Equal(new[] { 2 }, Values(await repo.TemporalManyAsync<TemporalModel>(TemporalOrder.Oldest, (ulong?)null, null, 1, 1, x => x.ID == id, cancellationToken: TestContext.Current.CancellationToken)));
-            Assert.Equal(new[] { 2 }, Values(await repo.TemporalManyAsync<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, 1, 1, x => x.ID == id, cancellationToken: TestContext.Current.CancellationToken)));
-            Assert.Equal(2, (await repo.TemporalFirstAsync<TemporalModel>(TemporalOrder.Newest, (ulong?)null, 1, null, null, x => x.ID == id, null, TestContext.Current.CancellationToken))!.Value);
-            Assert.Equal(2, (await repo.TemporalFirstAsync<TemporalModel>(TemporalOrder.Oldest, (ulong?)1, null, null, null, x => x.ID == id, null, TestContext.Current.CancellationToken))!.Value);
-            Assert.Equal(2, (await repo.TemporalFirstAsync<TemporalModel>(TemporalOrder.Newest, (DateTime?)null, dates[1], null, null, x => x.ID == id, null, TestContext.Current.CancellationToken))!.Value);
+            Assert.Equal(new[] { 2 }, Values(await repo.TemporalQuery<TemporalModel>(TemporalOrder.Oldest).Where(x => x.ID == id).Skip(1).Take(1).ToListAsync(cancellationToken: TestContext.Current.CancellationToken)));
+            Assert.Equal(new[] { 2 }, Values(await repo.TemporalQuery<TemporalModel>().Where(x => x.ID == id).Skip(1).Take(1).ToListAsync(cancellationToken: TestContext.Current.CancellationToken)));
+            Assert.Equal(2, (await repo.TemporalQuery<TemporalModel>(numberTo: 1).Where(x => x.ID == id).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken))!.Value);
+            Assert.Equal(2, (await repo.TemporalQuery<TemporalModel>(TemporalOrder.Oldest, numberFrom: 1).Where(x => x.ID == id).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken))!.Value);
+            Assert.Equal(2, (await repo.TemporalQuery<TemporalModel>(dateTo: dates[1]).Where(x => x.ID == id).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken))!.Value);
         }
 
         [Theory]
@@ -110,18 +110,18 @@ namespace Zerra.Repository.Test
         {
             var (repo, id, dates) = Create(snapshots);
 
-            Assert.Equal([1, 2, 3], Values(repo.EventMany<TemporalModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == id)));
-            Assert.Equal([1, 2], Values(repo.EventMany<TemporalModel>(TemporalOrder.Oldest, (ulong?)null, 1, null, null, x => x.ID == id)));
-            Assert.Equal([2], Values(repo.EventMany<TemporalModel>(TemporalOrder.Oldest, (ulong?)null, null, 1, 1, x => x.ID == id)));
-            Assert.Equal([3], Values(repo.EventMany<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, null, 1, x => x.ID == id)));
-            Assert.Equal([2], Values(repo.EventMany<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, 1, 1, x => x.ID == id)));
-            Assert.Equal([1, 2], Values(repo.EventMany<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, 1, null, x => x.ID == id)).Order());
-            Assert.Equal([1, 2], Values(repo.EventMany<TemporalModel>(TemporalOrder.Newest, (DateTime?)null, dates[1], null, null, x => x.ID == id)).Order());
-            Assert.Equal(2, repo.EventFirst<TemporalModel>(TemporalOrder.Newest, (ulong?)null, 1, null, null, x => x.ID == id)!.Model.Value);
-            Assert.Equal(2, repo.EventFirst<TemporalModel>(TemporalOrder.Oldest, (ulong?)1, null, null, null, x => x.ID == id)!.Model.Value);
+            Assert.Equal([1, 2, 3], Values(repo.EventQuery<TemporalModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == id).ToList()));
+            Assert.Equal([1, 2], Values(repo.EventQuery<TemporalModel>(TemporalOrder.Oldest, numberTo: 1).Where(x => x.Model.ID == id).ToList()));
+            Assert.Equal([2], Values(repo.EventQuery<TemporalModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == id).Skip(1).Take(1).ToList()));
+            Assert.Equal([3], Values(repo.EventQuery<TemporalModel>().Where(x => x.Model.ID == id).Take(1).ToList()));
+            Assert.Equal([2], Values(repo.EventQuery<TemporalModel>().Where(x => x.Model.ID == id).Skip(1).Take(1).ToList()));
+            Assert.Equal([1, 2], Values(repo.EventQuery<TemporalModel>().Where(x => x.Model.ID == id).Skip(1).ToList()).Order());
+            Assert.Equal([1, 2], Values(repo.EventQuery<TemporalModel>(dateTo: dates[1]).Where(x => x.Model.ID == id).ToList()).Order());
+            Assert.Equal(2, repo.EventQuery<TemporalModel>(numberTo: 1).Where(x => x.Model.ID == id).FirstOrDefault()!.Model.Value);
+            Assert.Equal(2, repo.EventQuery<TemporalModel>(TemporalOrder.Oldest, numberFrom: 1).Where(x => x.Model.ID == id).FirstOrDefault()!.Model.Value);
 
-            Assert.Equal(new[] { 2 }, Values(await repo.EventManyAsync<TemporalModel>(TemporalOrder.Newest, (ulong?)null, null, 1, 1, x => x.ID == id, cancellationToken: TestContext.Current.CancellationToken)));
-            Assert.Equal(2, (await repo.EventFirstAsync<TemporalModel>(TemporalOrder.Newest, (ulong?)null, 1, null, null, x => x.ID == id, cancellationToken: TestContext.Current.CancellationToken))!.Model.Value);
+            Assert.Equal(new[] { 2 }, Values(await repo.EventQuery<TemporalModel>().Where(x => x.Model.ID == id).Skip(1).Take(1).ToListAsync(cancellationToken: TestContext.Current.CancellationToken)));
+            Assert.Equal(2, (await repo.EventQuery<TemporalModel>(numberTo: 1).Where(x => x.Model.ID == id).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken))!.Model.Value);
         }
 
         [Entity("TemporalPartsModel")]
@@ -170,23 +170,35 @@ namespace Zerra.Repository.Test
                         for (var to = from; to < 10; to++)
                         {
                             var label = $"{order} {from}-{to} {skip}/{take}";
-                            Assert.True(Text(replayed.TemporalMany<PartsModel>(order, (ulong?)from, to, skip, take, x => x.ID == id)) == Text(saved.TemporalMany<PartsModel>(order, (ulong?)from, to, skip, take, x => x.ID == id)), label);
-                            Assert.True(EventText(replayed.EventMany<PartsModel>(order, (ulong?)from, to, skip, take, x => x.ID == id)) == EventText(saved.EventMany<PartsModel>(order, (ulong?)from, to, skip, take, x => x.ID == id)), label);
+                            Assert.True(Text(replayed.TemporalQuery<PartsModel>(order, numberFrom: from, numberTo: to).Where(x => x.ID == id).Page(skip, take).ToList()) == Text(saved.TemporalQuery<PartsModel>(order, numberFrom: from, numberTo: to).Where(x => x.ID == id).Page(skip, take).ToList()), label);
+                            Assert.True(EventText(replayed.EventQuery<PartsModel>(order, numberFrom: from, numberTo: to).Where(x => x.Model.ID == id).Page(skip, take).ToList()) == EventText(saved.EventQuery<PartsModel>(order, numberFrom: from, numberTo: to).Where(x => x.Model.ID == id).Page(skip, take).ToList()), label);
                         }
-                        Assert.True(Text([replayed.TemporalFirst<PartsModel>(order, (ulong?)null, from, null, null, x => x.ID == id, null, null)!]) == Text([saved.TemporalFirst<PartsModel>(order, (ulong?)null, from, null, null, x => x.ID == id, null, null)!]), $"{order} to {from}");
-                        Assert.True(Text([replayed.TemporalFirst<PartsModel>(order, (ulong?)from, null, null, null, x => x.ID == id, null, null)!]) == Text([saved.TemporalFirst<PartsModel>(order, (ulong?)from, null, null, null, x => x.ID == id, null, null)!]), $"{order} from {from}");
-                        Assert.True(EventText([replayed.EventFirst<PartsModel>(order, (ulong?)null, from, null, null, x => x.ID == id)!]) == EventText([saved.EventFirst<PartsModel>(order, (ulong?)null, from, null, null, x => x.ID == id)!]), $"{order} event to {from}");
-                        Assert.True(EventText([replayed.EventFirst<PartsModel>(order, (ulong?)from, null, null, null, x => x.ID == id)!]) == EventText([saved.EventFirst<PartsModel>(order, (ulong?)from, null, null, null, x => x.ID == id)!]), $"{order} event from {from}");
+                        Assert.True(Text([replayed.TemporalQuery<PartsModel>(order, numberTo: from).Where(x => x.ID == id).FirstOrDefault()!]) == Text([saved.TemporalQuery<PartsModel>(order, numberTo: from).Where(x => x.ID == id).FirstOrDefault()!]), $"{order} to {from}");
+                        Assert.True(Text([replayed.TemporalQuery<PartsModel>(order, numberFrom: from).Where(x => x.ID == id).FirstOrDefault()!]) == Text([saved.TemporalQuery<PartsModel>(order, numberFrom: from).Where(x => x.ID == id).FirstOrDefault()!]), $"{order} from {from}");
+                        Assert.True(EventText([replayed.EventQuery<PartsModel>(order, numberTo: from).Where(x => x.Model.ID == id).FirstOrDefault()!]) == EventText([saved.EventQuery<PartsModel>(order, numberTo: from).Where(x => x.Model.ID == id).FirstOrDefault()!]), $"{order} event to {from}");
+                        Assert.True(EventText([replayed.EventQuery<PartsModel>(order, numberFrom: from).Where(x => x.Model.ID == id).FirstOrDefault()!]) == EventText([saved.EventQuery<PartsModel>(order, numberFrom: from).Where(x => x.Model.ID == id).FirstOrDefault()!]), $"{order} event from {from}");
 
                         var date = dates[(int)from];
-                        Assert.True(Text(replayed.TemporalMany<PartsModel>(order, date, null, null, null, x => x.ID == id)) == Text(saved.TemporalMany<PartsModel>(order, date, null, null, null, x => x.ID == id)), $"{order} date from {from}");
-                        Assert.True(Text([replayed.TemporalFirst<PartsModel>(order, (DateTime?)null, date, null, null, x => x.ID == id, null, null)!]) == Text([saved.TemporalFirst<PartsModel>(order, (DateTime?)null, date, null, null, x => x.ID == id, null, null)!]), $"{order} date to {from}");
+                        Assert.True(Text(replayed.TemporalQuery<PartsModel>(order, dateFrom: date).Where(x => x.ID == id).ToList()) == Text(saved.TemporalQuery<PartsModel>(order, dateFrom: date).Where(x => x.ID == id).ToList()), $"{order} date from {from}");
+                        Assert.True(Text([replayed.TemporalQuery<PartsModel>(order, dateTo: date).Where(x => x.ID == id).FirstOrDefault()!]) == Text([saved.TemporalQuery<PartsModel>(order, dateTo: date).Where(x => x.ID == id).FirstOrDefault()!]), $"{order} date to {from}");
                     }
                 }
             }
 
             Assert.Equal("8:9", Text([saved.Query<PartsModel>().SingleOrDefault(x => x.ID == id)!]));
             Assert.Equal("8:9", Text([(await saved.Query<PartsModel>().SingleOrDefaultAsync(x => x.ID == id, cancellationToken: TestContext.Current.CancellationToken))!]));
+        }
+    }
+
+    internal static class TemporalPaging
+    {
+        public static IQueryable<T> Page<T>(this IQueryable<T> query, int? skip, int? take)
+        {
+            if (skip.HasValue)
+                query = query.Skip(skip.Value);
+            if (take.HasValue)
+                query = query.Take(take.Value);
+            return query;
         }
     }
 }

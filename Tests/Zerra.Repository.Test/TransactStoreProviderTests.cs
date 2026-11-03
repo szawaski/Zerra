@@ -73,25 +73,25 @@ namespace Zerra.Repository.Test
             var repo = Repo.New();
             repo.AddProvider(new TransactStoreProvider<TwoGeneratedModel>(new MemoryEngine()));
 
-            _ = Assert.Throws<NotSupportedException>(() => repo.TemporalMany<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1));
-            _ = Assert.Throws<NotSupportedException>(() => repo.TemporalFirst<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1, null, null));
-            _ = Assert.Throws<NotSupportedException>(() => repo.TemporalCount<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1));
-            _ = Assert.Throws<NotSupportedException>(() => repo.TemporalAny<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1));
-            _ = Assert.Throws<NotSupportedException>(() => repo.EventMany<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1));
-            _ = Assert.Throws<NotSupportedException>(() => repo.EventFirst<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1));
-            _ = Assert.Throws<NotSupportedException>(() => repo.EventSingle<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1));
-            _ = Assert.Throws<NotSupportedException>(() => repo.EventCount<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1));
-            _ = Assert.Throws<NotSupportedException>(() => repo.EventAny<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1));
+            _ = Assert.Throws<NotSupportedException>(() => repo.TemporalQuery<TwoGeneratedModel>().Where(x => x.A == 1).ToList());
+            _ = Assert.Throws<NotSupportedException>(() => repo.TemporalQuery<TwoGeneratedModel>().Where(x => x.A == 1).FirstOrDefault());
+            _ = Assert.Throws<NotSupportedException>(() => repo.TemporalQuery<TwoGeneratedModel>().Where(x => x.A == 1).LongCount());
+            _ = Assert.Throws<NotSupportedException>(() => repo.TemporalQuery<TwoGeneratedModel>().Where(x => x.A == 1).Any());
+            _ = Assert.Throws<NotSupportedException>(() => repo.EventQuery<TwoGeneratedModel>().Where(x => x.Model.A == 1).ToList());
+            _ = Assert.Throws<NotSupportedException>(() => repo.EventQuery<TwoGeneratedModel>().Where(x => x.Model.A == 1).FirstOrDefault());
+            _ = Assert.Throws<NotSupportedException>(() => repo.EventQuery<TwoGeneratedModel>().Where(x => x.Model.A == 1).SingleOrDefault());
+            _ = Assert.Throws<NotSupportedException>(() => repo.EventQuery<TwoGeneratedModel>().Where(x => x.Model.A == 1).LongCount());
+            _ = Assert.Throws<NotSupportedException>(() => repo.EventQuery<TwoGeneratedModel>().Where(x => x.Model.A == 1).Any());
 
-            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.TemporalManyAsync<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1, cancellationToken: TestContext.Current.CancellationToken));
-            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.TemporalFirstAsync<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1, null, TestContext.Current.CancellationToken));
-            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.TemporalCountAsync<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1, TestContext.Current.CancellationToken));
-            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.TemporalAnyAsync<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1, TestContext.Current.CancellationToken));
-            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.EventManyAsync<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1, cancellationToken: TestContext.Current.CancellationToken));
-            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.EventFirstAsync<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1, cancellationToken: TestContext.Current.CancellationToken));
-            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.EventSingleAsync<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1, cancellationToken: TestContext.Current.CancellationToken));
-            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.EventCountAsync<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1, TestContext.Current.CancellationToken));
-            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.EventAnyAsync<TwoGeneratedModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.A == 1, TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.TemporalQuery<TwoGeneratedModel>().Where(x => x.A == 1).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.TemporalQuery<TwoGeneratedModel>().Where(x => x.A == 1).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.TemporalQuery<TwoGeneratedModel>().Where(x => x.A == 1).LongCountAsync(cancellationToken: TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.TemporalQuery<TwoGeneratedModel>().Where(x => x.A == 1).AnyAsync(cancellationToken: TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.EventQuery<TwoGeneratedModel>().Where(x => x.Model.A == 1).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.EventQuery<TwoGeneratedModel>().Where(x => x.Model.A == 1).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.EventQuery<TwoGeneratedModel>().Where(x => x.Model.A == 1).SingleOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.EventQuery<TwoGeneratedModel>().Where(x => x.Model.A == 1).LongCountAsync(cancellationToken: TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.EventQuery<TwoGeneratedModel>().Where(x => x.Model.A == 1).AnyAsync(cancellationToken: TestContext.Current.CancellationToken));
         }
     }
 }

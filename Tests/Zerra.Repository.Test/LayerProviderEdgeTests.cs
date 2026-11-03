@@ -21,6 +21,15 @@ namespace Zerra.Repository.Test
             public int Number { get; set; }
         }
 
+        //a stored member with the name of a member of the event
+        [Entity("EdgeEventNamedModel")]
+        public sealed class EventNamedModel
+        {
+            [Identity]
+            public Guid ID { get; set; }
+            public string? EventName { get; set; }
+        }
+
         [Entity("EdgePlainModel")]
         public sealed class PlainModel
         {
@@ -226,16 +235,46 @@ namespace Zerra.Repository.Test
             repo.Create(model);
             var missing = Guid.NewGuid();
 
-            Assert.Equal(model.Text, repo.EventSingle<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID)!.Model.Text);
-            Assert.Equal(model.Text, (await repo.EventSingleAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken))!.Model.Text);
-            Assert.Null(repo.EventSingle<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing));
-            Assert.Null(await repo.EventSingleAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing, cancellationToken: TestContext.Current.CancellationToken));
-            Assert.Null(repo.EventFirst<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing));
-            Assert.Null(await repo.EventFirstAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing, cancellationToken: TestContext.Current.CancellationToken));
-            Assert.Empty(repo.EventMany<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing));
-            Assert.Empty(await repo.EventManyAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == missing, cancellationToken: TestContext.Current.CancellationToken));
-            Assert.Equal(1, await repo.EventCountAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID, TestContext.Current.CancellationToken));
-            Assert.True(await repo.EventAnyAsync<EdgeModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID, TestContext.Current.CancellationToken));
+            Assert.Equal(model.Text, repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == model.ID).SingleOrDefault()!.Model.Text);
+            Assert.Equal(model.Text, (await repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == model.ID).SingleOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken))!.Model.Text);
+            Assert.Null(repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == missing).SingleOrDefault());
+            Assert.Null(await repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == missing).SingleOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Null(repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == missing).FirstOrDefault());
+            Assert.Null(await repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == missing).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Empty(repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == missing).ToList());
+            Assert.Empty(await repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == missing).ToListAsync(cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Equal(1, await repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == model.ID).LongCountAsync(cancellationToken: TestContext.Current.CancellationToken));
+            Assert.True(await repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == model.ID).AnyAsync(cancellationToken: TestContext.Current.CancellationToken));
+
+            //what is stored changed can't be selected or ordered by, through the event's model too
+            _ = Assert.Throws<NotSupportedException>(() => repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == model.ID).Select(x => x.Model.Text).ToList());
+            _ = Assert.Throws<NotSupportedException>(() => repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == model.ID).OrderBy(x => x.Model.Text).ToList());
+            _ = Assert.Throws<NotSupportedException>(() => repo.TemporalQuery<EdgeModel>().Where(x => x.ID == model.ID).Select(x => x.Text).ToList());
+            Assert.Equal([0UL], repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == model.ID).OrderBy(x => x.Number).Select(x => x.Number).ToList());
+
+            //streamed events and states are read plain
+            Assert.Equal(model.Text, repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == model.ID).AsEnumerable().Single().Model.Text);
+            Assert.Equal(model.Text, repo.TemporalQuery<EdgeModel>().Where(x => x.ID == model.ID).AsEnumerable().Single().Text);
+            await foreach (var eventModel in repo.EventQuery<EdgeModel>().Where(x => x.Model.ID == model.ID).AsAsyncEnumerable(TestContext.Current.CancellationToken))
+                Assert.Equal(model.Text, eventModel.Model.Text);
+        }
+
+        //the event's own members aren't the model's, so only those read through Model are refused
+        [Theory]
+        [MemberData(nameof(Compression))]
+        public async Task EventMembersAreNotTheModels(bool compression)
+        {
+            var repo = Repo.New();
+            repo.AddProvider(Layer(compression, new EventStoreAsTransactStoreProvider<EventNamedModel>(new MemoryEngine())));
+            var model = new EventNamedModel { ID = Guid.NewGuid(), EventName = new string('e', 100) };
+            repo.Create(model);
+
+            Assert.Single(repo.EventQuery<EventNamedModel>().Where(x => x.Model.ID == model.ID).OrderBy(x => x.EventName).ToList());
+            Assert.Single(await repo.EventQuery<EventNamedModel>().Where(x => x.Model.ID == model.ID).Select(x => x.EventName).ToListAsync(TestContext.Current.CancellationToken));
+            Assert.Equal(model.EventName, repo.EventQuery<EventNamedModel>().Where(x => x.Model.ID == model.ID).Single().Model.EventName);
+            _ = Assert.Throws<NotSupportedException>(() => repo.EventQuery<EventNamedModel>().Where(x => x.Model.ID == model.ID).OrderBy(x => x.Model.EventName).ToList());
+            _ = Assert.Throws<NotSupportedException>(() => repo.EventQuery<EventNamedModel>().Where(x => x.Model.ID == model.ID).Select(x => x.Model.EventName).ToList());
+            _ = Assert.Throws<NotSupportedException>(() => repo.EventQuery<EventNamedModel>().Where(x => x.Model.ID == model.ID).GroupBy(x => x.Model.EventName).Select(g => g.Count()).ToList());
         }
 
         private sealed class OwnerRules(ITransactStoreProvider<Owner> next) : BaseTransactStoreRuleProvider<ITransactStoreProvider<Owner>, Owner>(next)

@@ -4,6 +4,7 @@
 
 using System.Linq.Expressions;
 using Xunit;
+using Zerra.Repository.Linq;
 
 namespace Zerra.Repository.Test
 {
@@ -19,7 +20,7 @@ namespace Zerra.Repository.Test
 
         private sealed class RecordingProvider : ITransactStoreProvider<Model>
         {
-            public LinqModelQuery? Query { get; private set; }
+            public LinqQuery? Query { get; private set; }
             public Persist? Persist { get; private set; }
             public void Clear()
             {
@@ -29,11 +30,10 @@ namespace Zerra.Repository.Test
 
             private object? Result(LinqQuery query)
             {
-                var modelQuery = (LinqModelQuery)query;
-                Query = modelQuery;
+                Query = query;
                 return query.Terminal switch
                 {
-                    LinqTerminal.Sequence => modelQuery.Events ? Array.Empty<EventModel<Model>>() : Array.Empty<Model>(),
+                    LinqTerminal.Sequence or LinqTerminal.FirstOrDefault or LinqTerminal.SingleOrDefault => Array.CreateInstance(query.ResultType, 0),
                     LinqTerminal.LongCount => 0L,
                     LinqTerminal.Any => false,
                     _ => null,
@@ -58,7 +58,6 @@ namespace Zerra.Repository.Test
         private static readonly PersistEvent evt = new(Guid.NewGuid(), "given", source);
         private static readonly Graph<Model> graph = new(x => x.ID);
         private static readonly Expression<Func<Model, bool>> where = x => x.ID == 7;
-        private static readonly QueryOrder<Model> order = QueryOrder<Model>.Create(x => x.ID);
         private static readonly DateTime dateFrom = new(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         private static readonly DateTime dateTo = new(2024, 2, 1, 0, 0, 0, DateTimeKind.Utc);
 
@@ -541,348 +540,6 @@ namespace Zerra.Repository.Test
                 Assert.Equal(evt.ID, p.Event.ID);
                 Assert.Equal(graph.Signature, p.Graph?.Signature);
                 Assert.Equal(2, p.IDs!.Length);
-            }
-            {
-                provider.Clear();
-                _ = repo.EventAny<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Any, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.EventAny<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Any, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.EventCount<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.EventCount<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.EventFirst<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, graph);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.EventFirst<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, graph);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.EventMany<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, 1, 2, graph);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.EventMany<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, 1, 2, graph);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.EventSingle<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, graph);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.SingleOrDefault, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.EventSingle<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, graph);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.SingleOrDefault, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.TemporalAny<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Any, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.TemporalAny<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Any, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.TemporalCount<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.TemporalCount<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.TemporalFirst<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, graph);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.TemporalFirst<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, graph);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.TemporalMany<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, 1, 2, graph);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = repo.TemporalMany<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, 1, 2, graph);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
             }
             {
                 provider.Clear();
@@ -1516,348 +1173,6 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                _ = await repo.EventAnyAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Any, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.EventAnyAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Any, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.EventCountAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.EventCountAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.EventFirstAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, graph, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.EventFirstAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, graph, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.EventManyAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, 1, 2, graph, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.EventManyAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, 1, 2, graph, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.EventSingleAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, graph, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.SingleOrDefault, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.EventSingleAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, graph, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.SingleOrDefault, q.Terminal);
-                Assert.True(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.TemporalAnyAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Any, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.TemporalAnyAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Any, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.TemporalCountAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.TemporalCountAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Null(q.Graph);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.TemporalFirstAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, graph, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.TemporalFirstAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, graph, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Null(q.Order);
-                Assert.Null(q.Skip);
-                Assert.Null(q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.TemporalManyAsync<Model>(TemporalOrder.Oldest, dateFrom, dateTo, 5, 6, where, order, 1, 2, graph, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Equal(dateFrom, q.TemporalDateFrom);
-                Assert.Equal(dateTo, q.TemporalDateTo);
-                Assert.Null(q.TemporalNumberFrom);
-                Assert.Null(q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
-                _ = await repo.TemporalManyAsync<Model>(TemporalOrder.Oldest, 3UL, 4UL, 5, 6, where, order, 1, 2, graph, TestContext.Current.CancellationToken);
-                var q = provider.Query!;
-                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
-                Assert.False(q.Events);
-                Assert.Same(where, q.Where);
-                Assert.Same(order, q.Order);
-                Assert.Equal(1, q.Skip);
-                Assert.Equal(2, q.Take);
-                Assert.Equal(graph.Signature, q.Graph?.Signature);
-                Assert.Equal(TemporalOrder.Oldest, q.TemporalOrder);
-                Assert.Null(q.TemporalDateFrom);
-                Assert.Null(q.TemporalDateTo);
-                Assert.Equal(3UL, q.TemporalNumberFrom);
-                Assert.Equal(4UL, q.TemporalNumberTo);
-                Assert.Equal(5, q.TemporalSkip);
-                Assert.Equal(6, q.TemporalTake);
-            }
-            {
-                provider.Clear();
                 await repo.UpdateAsync<Model>(model, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
@@ -2014,6 +1329,74 @@ namespace Zerra.Repository.Test
             }
         }
         //a change by condition passes its event, condition, and values, whichever overload it takes
+        [Fact]
+        public async Task TemporalRoots()
+        {
+            var (repo, provider) = Create();
+            var cancellationToken = TestContext.Current.CancellationToken;
+            {
+                provider.Clear();
+                _ = repo.TemporalQuery<Model>(TemporalOrder.Oldest, dateFrom, dateTo, graph: graph).Where(where).OrderBy(x => x.ID).Skip(1).Take(2).ToArray();
+                var q = provider.Query!;
+                Assert.Equal(LinqTerminal.Sequence, q.Terminal);
+                Assert.Equal(typeof(Model), q.ModelType);
+                Assert.False(q.ReadsEvents);
+                Assert.Equal(1, q.Skip);
+                Assert.Equal(2, q.Take);
+                Assert.Single(q.Order!);
+                Assert.Equal(graph.Signature, q.Graph?.Signature);
+                var t = q.Temporal!;
+                Assert.Equal(typeof(Model), t.ModelType);
+                Assert.False(t.Events);
+                Assert.Equal(TemporalOrder.Oldest, t.Order);
+                Assert.Equal(dateFrom, t.DateFrom);
+                Assert.Equal(dateTo, t.DateTo);
+                Assert.Null(t.NumberFrom);
+                Assert.Null(t.NumberTo);
+                Assert.Null(t.Graph);
+            }
+            {
+                provider.Clear();
+                _ = await repo.TemporalQuery<Model>(numberFrom: 3, numberTo: 4).FirstOrDefaultAsync(where, cancellationToken);
+                var q = provider.Query!;
+                Assert.Equal(LinqTerminal.FirstOrDefault, q.Terminal);
+                Assert.Equal(1, q.Take);
+                var t = q.Temporal!;
+                Assert.Equal(TemporalOrder.Newest, t.Order);
+                Assert.Null(t.DateFrom);
+                Assert.Null(t.DateTo);
+                Assert.Equal(3UL, t.NumberFrom);
+                Assert.Equal(4UL, t.NumberTo);
+            }
+            {
+                provider.Clear();
+                _ = repo.EventQuery<Model>(TemporalOrder.Oldest, numberFrom: 3, graph: graph).Where(x => x.Model.ID == 7 && x.EventName == "given").LongCount();
+                var q = provider.Query!;
+                Assert.Equal(LinqTerminal.LongCount, q.Terminal);
+                Assert.Equal(typeof(EventModel<Model>), q.ModelType);
+                Assert.True(q.ReadsEvents);
+                Assert.Null(q.Graph);
+                Assert.Equal(graph.Signature, q.ModelGraph?.Signature);
+                var t = q.Temporal!;
+                Assert.Equal(typeof(Model), t.ModelType);
+                Assert.True(t.Events);
+                Assert.Equal(3UL, t.NumberFrom);
+                Assert.Equal(graph.Signature, t.Graph?.Signature);
+            }
+            {
+                provider.Clear();
+                _ = await repo.EventQuery<Model>(dateTo: dateTo).AnyAsync(x => x.Model.ID == 7, cancellationToken);
+                var q = provider.Query!;
+                Assert.Equal(LinqTerminal.Any, q.Terminal);
+                Assert.Equal(dateTo, q.Temporal!.DateTo);
+            }
+            {
+                provider.Clear();
+                _ = repo.Query<Model>().Where(where).ToArray();
+                Assert.Null(provider.Query!.Temporal);
+            }
+        }
+
         [Fact]
         public async Task ChangesByCondition()
         {

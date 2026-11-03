@@ -5,6 +5,7 @@
 using System.Linq.Expressions;
 using Xunit;
 using Zerra.Encryption;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Memory;
 using Zerra.Repository.Reflection;
 
@@ -492,7 +493,7 @@ namespace Zerra.Repository.Test
         public void MembersAreReadFromTheProjection()
         {
             Expression<Func<Model, Model>> set = x => new Model { Number = x.Number + 1, Name = x.Name };
-            var members = set.GetProjectionMembers();
+            var members = ProjectionMember.FromSet(set);
 
             Assert.Equal(["Number", "Name"], members.Select(x => x.MemberDetail.Name));
             Assert.Same(set.Parameters[0], members[0].Parameter);

@@ -4,6 +4,7 @@
 
 using System.Linq.Expressions;
 using Zerra.Map;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
@@ -39,755 +40,447 @@ namespace Zerra.Repository
 
         /// <inheritdoc/>
         protected override sealed IReadOnlyCollection<TModel> Many(LinqModelQuery query)
-        {
-            var models = ReadModels(query);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var selectedArray = queriedSet.ToArray();
-
-            return selectedArray;
-        }
+            => LinqHelper.Query(ReadModels(query.Where, null, null), query.Where, query.Order, query.Skip, query.Take).ToArray();
         /// <inheritdoc/>
         protected override sealed TModel? First(LinqModelQuery query)
-        {
-            var models = ReadModels(query);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var selected = queriedSet.FirstOrDefault();
-
-            return selected;
-        }
+            => LinqHelper.Query(ReadModels(query.Where, null, null), query.Where, query.Order, query.Skip, query.Take).FirstOrDefault();
         /// <inheritdoc/>
         protected override sealed TModel? Single(LinqModelQuery query)
-        {
-            var models = ReadModels(query);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var selected = queriedSet.SingleOrDefault();
-
-            return selected;
-        }
+            => LinqHelper.Query(ReadModels(query.Where, null, null), query.Where, query.Order, query.Skip, query.Take).SingleOrDefault();
         /// <inheritdoc/>
         protected override sealed long Count(LinqModelQuery query)
-        {
-            var models = ReadModels(query);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            long count = queriedSet.Count();
-
-            return count;
-        }
+            => LinqHelper.Query(ReadModels(query.Where, null, null), query.Where, query.Order, query.Skip, query.Take).LongCount();
         /// <inheritdoc/>
         protected override sealed bool Any(LinqModelQuery query)
-        {
-            var models = ReadModels(query);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var any = queriedSet.Any();
-
-            return any;
-        }
-        /// <inheritdoc/>
-        protected override sealed IReadOnlyCollection<EventModel<TModel>> EventMany(LinqModelQuery query)
-        {
-            var eventModels = ReadEventModels(query);
-
-            var models = eventModels.Select(x => x.Model);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var selectedArray = queriedSet.ToArray();
-
-            var eventModelSelectedArray = eventModels.Where(x => selectedArray.Contains(x.Model)).ToArray();
-
-            return eventModelSelectedArray;
-        }
-        /// <inheritdoc/>
-        protected override sealed EventModel<TModel>? EventFirst(LinqModelQuery query)
-        {
-            var eventModels = ReadEventModels(query);
-
-            var models = eventModels.Select(x => x.Model);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var selected = queriedSet.FirstOrDefault();
-            if (selected is null)
-                return null;
-
-            var eventModelSelected = eventModels.FirstOrDefault(x => x.Model == selected);
-
-            return eventModelSelected;
-        }
-        /// <inheritdoc/>
-        protected override sealed EventModel<TModel>? EventSingle(LinqModelQuery query)
-        {
-            var eventModels = ReadEventModels(query);
-
-            var models = eventModels.Select(x => x.Model);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var selected = queriedSet.FirstOrDefault();
-            if (selected is null)
-                return null;
-
-            var eventModelSelected = eventModels.SingleOrDefault(x => x.Model == selected);
-
-            return eventModelSelected;
-        }
-        /// <inheritdoc/>
-        protected override sealed long EventCount(LinqModelQuery query)
-        {
-            var eventModels = ReadEventModels(query);
-
-            var models = eventModels.Select(x => x.Model);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            long count = queriedSet.Count();
-
-            return count;
-        }
-        /// <inheritdoc/>
-        protected override sealed bool EventAny(LinqModelQuery query)
-        {
-            var eventModels = ReadEventModels(query);
-
-            var models = eventModels.Select(x => x.Model);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var any = queriedSet.Any();
-
-            return any;
-        }
+            => LinqHelper.Query(ReadModels(query.Where, null, null), query.Where, query.Order, query.Skip, query.Take).Any();
 
         /// <inheritdoc/>
         protected override sealed async Task<IReadOnlyCollection<TModel>> ManyAsync(LinqModelQuery query, CancellationToken cancellationToken)
-        {
-            var models = await ReadModelsAsync(query, cancellationToken);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var selectedArray = queriedSet.ToArray();
-
-            return selectedArray;
-        }
+            => LinqHelper.Query((await ReadModelsAsync(query.Where, null, null, cancellationToken)), query.Where, query.Order, query.Skip, query.Take).ToArray();
         /// <inheritdoc/>
         protected override sealed async Task<TModel?> FirstAsync(LinqModelQuery query, CancellationToken cancellationToken)
-        {
-            var models = await ReadModelsAsync(query, cancellationToken);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var selected = queriedSet.FirstOrDefault();
-
-            return selected;
-        }
+            => LinqHelper.Query((await ReadModelsAsync(query.Where, null, null, cancellationToken)), query.Where, query.Order, query.Skip, query.Take).FirstOrDefault();
         /// <inheritdoc/>
         protected override sealed async Task<TModel?> SingleAsync(LinqModelQuery query, CancellationToken cancellationToken)
-        {
-            var models = await ReadModelsAsync(query, cancellationToken);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var selected = queriedSet.SingleOrDefault();
-
-            return selected;
-        }
+            => LinqHelper.Query((await ReadModelsAsync(query.Where, null, null, cancellationToken)), query.Where, query.Order, query.Skip, query.Take).SingleOrDefault();
         /// <inheritdoc/>
         protected override sealed async Task<long> CountAsync(LinqModelQuery query, CancellationToken cancellationToken)
-        {
-            var models = await ReadModelsAsync(query, cancellationToken);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            long count = queriedSet.Count();
-
-            return count;
-        }
+            => LinqHelper.Query((await ReadModelsAsync(query.Where, null, null, cancellationToken)), query.Where, query.Order, query.Skip, query.Take).LongCount();
         /// <inheritdoc/>
         protected override sealed async Task<bool> AnyAsync(LinqModelQuery query, CancellationToken cancellationToken)
-        {
-            var models = await ReadModelsAsync(query, cancellationToken);
+            => LinqHelper.Query((await ReadModelsAsync(query.Where, null, null, cancellationToken)), query.Where, query.Order, query.Skip, query.Take).Any();
 
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var any = queriedSet.Any();
-
-            return any;
-        }
         /// <inheritdoc/>
         protected override sealed object? ExecuteLinq(LinqQuery query)
         {
-            //runs over the current state of each model, with the relations it reads loaded through their providers
-            var models = ReadModels(new LinqModelQuery(ModelType, LinqTerminal.Sequence, query.Where, null, null, null, null), false);
-            return query.Execute(LoadLinqRelations(query, models as IReadOnlyCollection<TModel> ?? models.ToArray()), false);
+            //runs over the current state of each model, or the states of its history, with the relations it reads loaded through their providers
+            var temporal = query.Temporal;
+            if (temporal is null)
+                return Run(query, LoadLinqRelations(query, ReadModels(query.Where, null, null)));
+            if (!temporal.Events)
+                return Run(query, LoadLinqRelations(query, ReadModels(query.Where, temporal, HistoryLimit(query, query.Where))));
+
+            var where = EventModelWhere(query.Where, out var whole);
+            var eventModels = ReadEventModels(where, temporal, whole ? HistoryLimit(query, where) : null);
+            if (eventModels.Count > 0)
+            {
+                OnQueryWithRelations(temporal.Graph);
+                var models = OnGetWithRelations(eventModels.Select(x => x.Model).ToArray(), temporal.Graph);
+                if (models.Count < eventModels.Count)
+                    eventModels = eventModels.Where(x => models.Contains(x.Model)).ToList();
+            }
+            //the events are read for this query alone, and an event query loads only the relations its graph names
+            return query.ExecuteRead(eventModels, false);
         }
         /// <inheritdoc/>
         protected override sealed async Task<object?> ExecuteLinqAsync(LinqQuery query, CancellationToken cancellationToken)
         {
-            var models = await ReadModelsAsync(new LinqModelQuery(ModelType, LinqTerminal.Sequence, query.Where, null, null, null, null), false, cancellationToken);
-            return query.Execute(await LoadLinqRelationsAsync(query, models as IReadOnlyCollection<TModel> ?? models.ToArray(), cancellationToken), false);
+            var temporal = query.Temporal;
+            if (temporal is null)
+                return Run(query, await LoadLinqRelationsAsync(query, await ReadModelsAsync(query.Where, null, null, cancellationToken), cancellationToken));
+            if (!temporal.Events)
+                return Run(query, await LoadLinqRelationsAsync(query, await ReadModelsAsync(query.Where, temporal, HistoryLimit(query, query.Where), cancellationToken), cancellationToken));
+
+            var where = EventModelWhere(query.Where, out var whole);
+            var eventModels = await ReadEventModelsAsync(where, temporal, whole ? HistoryLimit(query, where) : null, cancellationToken);
+            if (eventModels.Count > 0)
+            {
+                OnQueryWithRelations(temporal.Graph);
+                var models = await OnGetWithRelationsAsync(eventModels.Select(x => x.Model).ToArray(), temporal.Graph, cancellationToken);
+                if (models.Count < eventModels.Count)
+                    eventModels = eventModels.Where(x => models.Contains(x.Model)).ToList();
+            }
+            return query.ExecuteRead(eventModels, false);
         }
         /// <inheritdoc/>
         protected override sealed object ExecuteLinqStream(LinqQuery query) => query.StreamFrom(() => ExecuteLinq(query), null);
         /// <inheritdoc/>
         protected override sealed object ExecuteLinqStreamAsync(LinqQuery query, CancellationToken cancellationToken) => query.StreamFromAsync(cancellation => ExecuteLinqAsync(query, cancellation), null, cancellationToken);
-        /// <inheritdoc/>
-        protected override sealed async Task<IReadOnlyCollection<EventModel<TModel>>> EventManyAsync(LinqModelQuery query, CancellationToken cancellationToken)
+
+        //the states are read for this query alone, so they're given as they are
+        private static object? Run(LinqQuery query, IReadOnlyCollection<TModel> models) => query.ExecuteRead(models, false);
+
+        //how many states of each model a query of history needs when it pages them in the order they are read: a where of identities alone keeps every state read
+        private static int? HistoryLimit(LinqQuery query, LambdaExpression? where)
         {
-            var eventModels = await ReadEventModelsAsync(query, cancellationToken);
-
-            var models = eventModels.Select(x => x.Model);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var selectedArray = queriedSet.ToArray();
-
-            var eventModelSelectedArray = eventModels.Where(x => selectedArray.Contains(x.Model)).ToArray();
-
-            return eventModelSelectedArray;
-        }
-        /// <inheritdoc/>
-        protected override sealed async Task<EventModel<TModel>?> EventFirstAsync(LinqModelQuery query, CancellationToken cancellationToken)
-        {
-            var eventModels = await ReadEventModelsAsync(query, cancellationToken);
-
-            var models = eventModels.Select(x => x.Model);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var selected = queriedSet.FirstOrDefault();
-            if (selected is null)
+            if (where is null || query.Order is not null || query.GroupBy is not null || query.Distinct || !IdentityOnly(where.Body, where.Parameters[0]))
                 return null;
-
-            var eventModelSelected = eventModels.FirstOrDefault(x => x.Model == selected);
-
-            return eventModelSelected;
+            if (query.Take.HasValue)
+                return (query.Skip ?? 0) + query.Take.Value;
+            if (query.Terminal == LinqTerminal.Any && !query.Skip.HasValue)
+                return 1;
+            return null;
         }
-        /// <inheritdoc/>
-        protected override sealed async Task<EventModel<TModel>?> EventSingleAsync(LinqModelQuery query, CancellationToken cancellationToken)
+        private static bool IdentityOnly(Expression expression, ParameterExpression parameter)
         {
-            var eventModels = await ReadEventModelsAsync(query, cancellationToken);
+            switch (expression.NodeType)
+            {
+                case ExpressionType.AndAlso:
+                case ExpressionType.OrElse:
+                    {
+                        var binary = (BinaryExpression)expression;
+                        return IdentityOnly(binary.Left, parameter) && IdentityOnly(binary.Right, parameter);
+                    }
+                case ExpressionType.Equal:
+                    {
+                        var binary = (BinaryExpression)expression;
+                        return (IsIdentity(binary.Left, parameter) && !LinqPlan.Uses(binary.Right, parameter)) || (IsIdentity(binary.Right, parameter) && !LinqPlan.Uses(binary.Left, parameter));
+                    }
+                case ExpressionType.Call:
+                    {
+                        var call = (MethodCallExpression)expression;
+                        if (call.Method.Name != "Contains")
+                            return false;
+                        if (call.Object is null)
+                            return call.Arguments.Count == 2 && IsIdentity(call.Arguments[1], parameter) && !LinqPlan.Uses(call.Arguments[0], parameter);
+                        return call.Arguments.Count == 1 && IsIdentity(call.Arguments[0], parameter) && !LinqPlan.Uses(call.Object, parameter);
+                    }
+                default:
+                    return false;
+            }
+        }
+        private static bool IsIdentity(Expression expression, ParameterExpression parameter)
+        {
+            while (expression is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } conversion)
+                expression = conversion.Operand;
+            if (expression is not MemberExpression member || member.Expression != parameter)
+                return false;
+            foreach (var identity in ModelAnalyzer.GetModel(typeof(TModel)).IdentityMembers)
+            {
+                if (identity.Name == member.Member.Name)
+                    return true;
+            }
+            return false;
+        }
 
-            var models = eventModels.Select(x => x.Model);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var selected = queriedSet.FirstOrDefault();
-            if (selected is null)
+        //an event query's condition names the models through x.Model; the parts of it on the model alone say which models' events to read, and all of it runs over the events
+        private static Expression<Func<TModel, bool>>? EventModelWhere(LambdaExpression? where, out bool whole)
+        {
+            whole = true;
+            if (where is null)
                 return null;
-
-            var eventModelSelected = eventModels.SingleOrDefault(x => x.Model == selected);
-
-            return eventModelSelected;
+            var model = Expression.Parameter(typeof(TModel), "x");
+            var parts = new List<Expression>();
+            var pending = new Stack<Expression>();
+            pending.Push(where.Body);
+            while (pending.Count > 0)
+            {
+                var part = pending.Pop();
+                if (part.NodeType == ExpressionType.AndAlso)
+                {
+                    pending.Push(((BinaryExpression)part).Right);
+                    pending.Push(((BinaryExpression)part).Left);
+                    continue;
+                }
+                var rewriter = new EventModelRewriter(where.Parameters[0], model);
+                var rewritten = rewriter.Visit(part);
+                if (rewriter.ReadsEvent)
+                    whole = false;
+                else
+                    parts.Add(rewritten);
+            }
+            if (parts.Count == 0)
+                return null;
+            var body = parts[0];
+            for (var i = 1; i < parts.Count; i++)
+                body = Expression.AndAlso(body, parts[i]);
+            return Expression.Lambda<Func<TModel, bool>>(body, model);
         }
-        /// <inheritdoc/>
-        protected override sealed async Task<long> EventCountAsync(LinqModelQuery query, CancellationToken cancellationToken)
+        private sealed class EventModelRewriter(ParameterExpression eventParameter, ParameterExpression model) : ExpressionVisitor
         {
-            var eventModels = await ReadEventModelsAsync(query, cancellationToken);
-
-            var models = eventModels.Select(x => x.Model);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            long count = queriedSet.Count();
-
-            return count;
-        }
-        /// <inheritdoc/>
-        protected override sealed async Task<bool> EventAnyAsync(LinqModelQuery query, CancellationToken cancellationToken)
-        {
-            var eventModels = await ReadEventModelsAsync(query, cancellationToken);
-
-            var models = eventModels.Select(x => x.Model);
-
-            var queriedSet = models.Query(query.Where, query.Order, query.Skip, query.Take);
-
-            var any = queriedSet.Any();
-
-            return any;
+            public bool ReadsEvent { get; private set; }
+            protected override Expression VisitMember(MemberExpression node)
+            {
+                if (node.Expression == eventParameter && node.Member.Name == nameof(EventModel<TModel>.Model))
+                    return model;
+                return base.VisitMember(node);
+            }
+            protected override Expression VisitParameter(ParameterExpression node)
+            {
+                if (node == eventParameter)
+                    ReadsEvent = true;
+                return node;
+            }
         }
 
-        private ICollection<TModel> ReadModels(LinqModelQuery query)
-            => ReadModels(query, query.Terminal is LinqTerminal.Sequence or LinqTerminal.LongCount);
-        private ICollection<TModel> ReadModels(LinqModelQuery query, bool many)
+        //the current state of each model, or the states of its history in the range; a limit keeps the first that many of each model's states in their order
+        private List<TModel> ReadModels(LambdaExpression? where, LinqTemporal? temporal, int? limit)
         {
-            var ids = GetIDs(query);
-
+            var ids = GetIDs(where);
+            var atTo = temporal is null || (temporal.Order == TemporalOrder.Newest && limit == 1);
             var models = new List<TModel>();
             foreach (var id in ids)
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
-
-                var (modelState, modelEventNumber) = ReadModelState(id, query, many);
-
-                var eventDatas = engine.ReadBackwards(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
-
-                var items = LoadModelsFromEventDatas(eventDatas, modelState, many, query);
-
-                models.AddRange(items);
+                var (modelState, modelEventNumber) = ReadModelState(id, temporal, atTo);
+                var eventDatas = engine.ReadBackwards(streamName, temporal?.NumberTo, null, modelEventNumber, null, temporal?.DateTo);
+                LoadModels(eventDatas, modelState, temporal, limit, atTo, models);
             }
             return models;
         }
-        private Task<ICollection<TModel>> ReadModelsAsync(LinqModelQuery query, CancellationToken cancellationToken)
-            => ReadModelsAsync(query, query.Terminal is LinqTerminal.Sequence or LinqTerminal.LongCount, cancellationToken);
-        private async Task<ICollection<TModel>> ReadModelsAsync(LinqModelQuery query, bool many, CancellationToken cancellationToken)
+        private async Task<List<TModel>> ReadModelsAsync(LambdaExpression? where, LinqTemporal? temporal, int? limit, CancellationToken cancellationToken)
         {
-            var ids = GetIDs(query);
-
+            var ids = GetIDs(where);
+            var atTo = temporal is null || (temporal.Order == TemporalOrder.Newest && limit == 1);
             var models = new List<TModel>();
             foreach (var id in ids)
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
-
-                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query, many, cancellationToken);
-
-                var eventDatas = await engine.ReadBackwardsAsync(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo, cancellationToken);
-
-                var items = LoadModelsFromEventDatas(eventDatas, modelState, many, query);
-
-                models.AddRange(items);
+                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, temporal, atTo, cancellationToken);
+                var eventDatas = await engine.ReadBackwardsAsync(streamName, temporal?.NumberTo, null, modelEventNumber, null, temporal?.DateTo, cancellationToken);
+                LoadModels(eventDatas, modelState, temporal, limit, atTo, models);
             }
             return models;
         }
-
-        private ICollection<EventModel<TModel>> ReadEventModels(LinqModelQuery query)
+        private List<EventModel<TModel>> ReadEventModels(LambdaExpression? where, LinqTemporal temporal, int? limit)
         {
-            var many = query.Terminal is LinqTerminal.Sequence or LinqTerminal.LongCount;
-            var ids = GetIDs(query);
-
-            var models = new List<EventModel<TModel>>();
+            var ids = GetIDs(where);
+            var atTo = temporal.Order == TemporalOrder.Newest && limit == 1;
+            var eventModels = new List<EventModel<TModel>>();
             foreach (var id in ids)
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
-
-                var (modelState, modelEventNumber) = ReadModelState(id, query, many);
-
-                var eventDatas = engine.ReadBackwards(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo);
-
-                var items = LoadEventModelsFromEventDatas(eventDatas, modelState, many, query);
-
-                models.AddRange(items);
+                var (modelState, modelEventNumber) = ReadModelState(id, temporal, atTo);
+                //a deleted model's saved state has no model, and its events before the delete replay from the start
+                if (modelState is null)
+                    modelEventNumber = null;
+                var eventDatas = engine.ReadBackwards(streamName, temporal.NumberTo, null, modelEventNumber, null, temporal.DateTo);
+                LoadEventModels(eventDatas, modelState, temporal, limit, atTo, eventModels);
             }
-            return models;
+            return eventModels;
         }
-        private async Task<ICollection<EventModel<TModel>>> ReadEventModelsAsync(LinqModelQuery query, CancellationToken cancellationToken)
+        private async Task<List<EventModel<TModel>>> ReadEventModelsAsync(LambdaExpression? where, LinqTemporal temporal, int? limit, CancellationToken cancellationToken)
         {
-            var many = query.Terminal is LinqTerminal.Sequence or LinqTerminal.LongCount;
-            var ids = GetIDs(query);
-
-            var models = new List<EventModel<TModel>>();
+            var ids = GetIDs(where);
+            var atTo = temporal.Order == TemporalOrder.Newest && limit == 1;
+            var eventModels = new List<EventModel<TModel>>();
             foreach (var id in ids)
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
-
-                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, query, many, cancellationToken);
-
-                var eventDatas = await engine.ReadBackwardsAsync(streamName, query.TemporalNumberTo, null, modelEventNumber, null, query.TemporalDateTo, cancellationToken);
-
-                var items = LoadEventModelsFromEventDatas(eventDatas, modelState, many, query);
-
-                models.AddRange(items);
+                var (modelState, modelEventNumber) = await ReadModelStateAsync(id, temporal, atTo, cancellationToken);
+                if (modelState is null)
+                    modelEventNumber = null;
+                var eventDatas = await engine.ReadBackwardsAsync(streamName, temporal.NumberTo, null, modelEventNumber, null, temporal.DateTo, cancellationToken);
+                LoadEventModels(eventDatas, modelState, temporal, limit, atTo, eventModels);
             }
-            return models;
+            return eventModels;
         }
 
-        private ICollection<TModel> LoadModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, LinqModelQuery query)
+        private static bool PastTo(LinqTemporal? temporal, EventStoreEventData eventData)
+            => temporal is not null && ((temporal.DateTo.HasValue && temporal.DateTo.Value < eventData.Date) || (temporal.NumberTo.HasValue && temporal.NumberTo.Value < eventData.Number));
+        private static bool InRange(LinqTemporal? temporal, EventStoreEventData eventData)
+            => temporal is null || (!temporal.DateFrom.HasValue && !temporal.NumberFrom.HasValue) || (temporal.DateFrom.HasValue && eventData.Date >= temporal.DateFrom.Value) || (temporal.NumberFrom.HasValue && eventData.Number >= temporal.NumberFrom.Value);
+
+        //the events read are newest first and replay oldest first; atTo keeps only the state the last of them leaves, when that event is in the range
+        private void LoadModels(EventStoreEventData[] eventDatas, TModel? modelState, LinqTemporal? temporal, int? limit, bool atTo, List<TModel> models)
         {
             if (modelState is null && eventDatas.Length == 0)
-                return Array.Empty<TModel>();
+                return;
 
             modelState ??= (TModel)base.ModelTypeDetail.Creator();
 
-            if (many)
+            if (atTo)
             {
-                switch (query.TemporalOrder ?? TemporalOrder.Newest)
+                EventStoreEventData? last = null;
+                for (var i = eventDatas.Length - 1; i >= 0; i--)
                 {
-                    case TemporalOrder.Newest:
-                        {
-                            var modelStates = new List<TModel>();
-                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
-                            {
-                                //a terminating event carries no data, the model no longer exists
-                                if (eventData.Deleted)
-                                    return Array.Empty<TModel>();
+                    var eventData = eventDatas[i];
+                    //a terminating event carries no data, the model no longer exists
+                    if (eventData.Deleted)
+                        return;
+                    if (PastTo(temporal, eventData))
+                        break;
 
-                                var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModel is null)
-                                    throw new Exception("Failed to deserialize Model");
+                    var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
+                    if (eventModel is null)
+                        throw new Exception("Failed to deserialize Model");
 
-                                Mapper.MapTo(eventModel.Model, modelState, eventModel.Graph);
-
-                                if (query.TemporalDateTo.HasValue && query.TemporalDateTo.Value < eventData.Date)
-                                    break;
-                                if (query.TemporalNumberTo.HasValue && query.TemporalNumberTo.Value < eventData.Number)
-                                    break;
-                                if ((!query.TemporalDateFrom.HasValue && !query.TemporalNumberFrom.HasValue) || (query.TemporalDateFrom.HasValue && eventData.Date >= query.TemporalDateFrom.Value) || (query.TemporalNumberFrom.HasValue && eventData.Number >= query.TemporalNumberFrom.Value))
-                                {
-                                    var copy = Mapper.Copy(modelState);
-                                    modelStates.Add(copy);
-                                }
-                            }
-
-                            if (query.TemporalSkip.HasValue && query.TemporalTake.HasValue)
-                            {
-                                modelStates.Reverse();
-                                return modelStates.Skip(query.TemporalSkip.Value).Take(query.TemporalTake.Value).ToArray();
-                            }
-                            else if (query.TemporalSkip.HasValue)
-                            {
-                                modelStates.Reverse();
-                                return modelStates.Skip(query.TemporalSkip.Value).ToArray();
-                            }
-                            else if (query.TemporalTake.HasValue)
-                            {
-                                modelStates.Reverse();
-                                return modelStates.Take(query.TemporalTake.Value).ToArray();
-                            }
-                            else
-                            {
-                                modelStates.Reverse();
-                                return modelStates;
-                            }
-                        }
-                    case TemporalOrder.Oldest:
-                        {
-                            var modelStates = new List<TModel>();
-                            var skipCount = 0;
-                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
-                            {
-                                //a terminating event carries no data, the model no longer exists
-                                if (eventData.Deleted)
-                                    return Array.Empty<TModel>();
-
-                                var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModel is null)
-                                    throw new Exception("Failed to deserialize Model");
-
-                                Mapper.MapTo(eventModel.Model, modelState, eventModel.Graph);
-
-                                if (query.TemporalDateTo.HasValue && query.TemporalDateTo.Value < eventData.Date)
-                                    break;
-                                if (query.TemporalNumberTo.HasValue && query.TemporalNumberTo.Value < eventData.Number)
-                                    break;
-                                if ((!query.TemporalDateFrom.HasValue && !query.TemporalNumberFrom.HasValue) || (query.TemporalDateFrom.HasValue && eventData.Date >= query.TemporalDateFrom.Value) || (query.TemporalNumberFrom.HasValue && eventData.Number >= query.TemporalNumberFrom.Value))
-                                {
-                                    if (!query.TemporalSkip.HasValue || query.TemporalSkip.Value <= skipCount)
-                                    {
-                                        var copy = Mapper.Copy(modelState);
-                                        modelStates.Add(copy);
-                                        if (query.TemporalTake.HasValue && query.TemporalTake.Value == modelStates.Count)
-                                            break;
-                                    }
-                                    else
-                                    {
-                                        skipCount++;
-                                    }
-                                }
-                            }
-                            return modelStates;
-                        }
-                    default:
-                        throw new NotImplementedException();
+                    Mapper.MapTo(eventModel.Model, modelState, eventModel.Graph);
+                    last = eventData;
                 }
+                if (temporal is null || (last is not null && InRange(temporal, last)))
+                    models.Add(modelState);
+                return;
             }
-            else
+
+            //newest first with a limit keeps the last states in the range, so they are counted first and only those copied
+            var keepFrom = 0;
+            if (temporal!.Order == TemporalOrder.Newest && limit.HasValue)
             {
-                switch (query.TemporalOrder ?? TemporalOrder.Newest)
+                var inRange = 0;
+                for (var i = eventDatas.Length - 1; i >= 0; i--)
                 {
-                    case TemporalOrder.Newest:
-                        {
-                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
-                            {
-                                //a terminating event carries no data, the model no longer exists
-                                if (eventData.Deleted)
-                                    return Array.Empty<TModel>();
-
-                                var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModel is null)
-                                    throw new Exception("Failed to deserialize Model");
-
-                                Mapper.MapTo(eventModel.Model, modelState, eventModel.Graph);
-
-                                if (query.TemporalDateTo.HasValue && query.TemporalDateTo.Value < eventData.Date)
-                                    break;
-                                if (query.TemporalNumberTo.HasValue && query.TemporalNumberTo.Value < eventData.Number)
-                                    break;
-                            }
-                            return [modelState];
-                        }
-                    case TemporalOrder.Oldest:
-                        {
-                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
-                            {
-                                //a terminating event carries no data, the model no longer exists
-                                if (eventData.Deleted)
-                                    return Array.Empty<TModel>();
-
-                                var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModel is null)
-                                    throw new Exception("Failed to deserialize Model");
-
-                                Mapper.MapTo(eventModel.Model, modelState, eventModel.Graph);
-
-                                if ((!query.TemporalDateFrom.HasValue && !query.TemporalNumberFrom.HasValue) || (query.TemporalDateFrom.HasValue && eventData.Date >= query.TemporalDateFrom.Value) || (query.TemporalNumberFrom.HasValue && eventData.Number >= query.TemporalNumberFrom.Value))
-                                    break;
-                            }
-                            return [modelState];
-                        }
-                    default:
-                        throw new NotImplementedException();
+                    var eventData = eventDatas[i];
+                    if (eventData.Deleted)
+                        return;
+                    if (PastTo(temporal, eventData))
+                        break;
+                    if (InRange(temporal, eventData))
+                        inRange++;
                 }
+                keepFrom = inRange - limit.Value;
             }
+
+            var start = models.Count;
+            var index = 0;
+            for (var i = eventDatas.Length - 1; i >= 0; i--)
+            {
+                var eventData = eventDatas[i];
+                //a terminating event carries no data, the model no longer exists
+                if (eventData.Deleted)
+                {
+                    models.RemoveRange(start, models.Count - start);
+                    return;
+                }
+                if (PastTo(temporal, eventData))
+                    break;
+
+                var eventModel = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
+                if (eventModel is null)
+                    throw new Exception("Failed to deserialize Model");
+
+                Mapper.MapTo(eventModel.Model, modelState, eventModel.Graph);
+
+                if (!InRange(temporal, eventData) || index++ < keepFrom)
+                    continue;
+                models.Add(Mapper.Copy(modelState));
+                if (temporal.Order == TemporalOrder.Oldest && models.Count - start == limit)
+                    break;
+            }
+            if (temporal.Order == TemporalOrder.Newest)
+                models.Reverse(start, models.Count - start);
         }
-        private ICollection<EventModel<TModel>> LoadEventModelsFromEventDatas(EventStoreEventData[] eventDatas, TModel? modelState, bool many, LinqModelQuery query)
+        private void LoadEventModels(EventStoreEventData[] eventDatas, TModel? modelState, LinqTemporal temporal, int? limit, bool atTo, List<EventModel<TModel>> eventModels)
         {
             if (modelState is null && eventDatas.Length == 0)
-                return Array.Empty<EventModel<TModel>>();
+                return;
 
             modelState ??= (TModel)base.ModelTypeDetail.Creator();
 
-            if (many)
+            if (atTo)
             {
-                switch (query.TemporalOrder ?? TemporalOrder.Newest)
+                EventStoreEventModelData<TModel>? lastData = null;
+                EventStoreEventData? last = null;
+                for (var i = eventDatas.Length - 1; i >= 0; i--)
                 {
-                    case TemporalOrder.Newest:
-                        {
-                            var eventModels = new List<EventModel<TModel>>();
-                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
-                            {
-                                //a terminating event carries no data, there is nothing to replay from it
-                                if (eventData.Deleted)
-                                    continue;
+                    var eventData = eventDatas[i];
+                    //a terminating event carries no data, there is nothing to replay from it
+                    if (eventData.Deleted)
+                        continue;
+                    if (PastTo(temporal, eventData))
+                        break;
 
-                                var eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModelData is null)
-                                    throw new Exception("Failed to deserialize Model");
+                    lastData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
+                    if (lastData is null)
+                        throw new Exception("Failed to deserialize Model");
 
-                                Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
-
-                                if (query.TemporalDateTo.HasValue && query.TemporalDateTo.Value < eventData.Date)
-                                    break;
-                                if (query.TemporalNumberTo.HasValue && query.TemporalNumberTo.Value < eventData.Number)
-                                    break;
-                                if ((!query.TemporalDateFrom.HasValue && !query.TemporalNumberFrom.HasValue) || (query.TemporalDateFrom.HasValue && eventData.Date >= query.TemporalDateFrom.Value) || (query.TemporalNumberFrom.HasValue && eventData.Number >= query.TemporalNumberFrom.Value))
-                                {
-                                    var copy = Mapper.Copy(modelState);
-                                    var eventModel = new EventModel<TModel>()
-                                    {
-                                        EventID = eventData.EventID,
-                                        EventName = eventData.EventName,
-                                        Date = eventData.Date,
-                                        Number = eventData.Number,
-                                        Deleted = eventData.Deleted,
-
-                                        Model = copy,
-
-                                        ModelChange = eventModelData.Model,
-                                        GraphChange = eventModelData.Graph,
-                                        Source = eventModelData.Source,
-                                        SourceType = eventModelData.SourceType
-                                    };
-                                    eventModels.Add(eventModel);
-                                }
-                            }
-                            if (query.TemporalSkip.HasValue && query.TemporalTake.HasValue)
-                            {
-                                eventModels.Reverse();
-                                return eventModels.Skip(query.TemporalSkip.Value).Take(query.TemporalTake.Value).ToArray();
-                            }
-                            else if (query.TemporalSkip.HasValue)
-                            {
-                                eventModels.Reverse();
-                                return eventModels.Skip(query.TemporalSkip.Value).ToArray();
-                            }
-                            else if (query.TemporalTake.HasValue)
-                            {
-                                eventModels.Reverse();
-                                return eventModels.Take(query.TemporalTake.Value).ToArray();
-                            }
-                            else
-                            {
-                                eventModels.Reverse();
-                                return eventModels;
-                            }
-                        }
-                    case TemporalOrder.Oldest:
-                        {
-                            var eventModels = new List<EventModel<TModel>>();
-                            var skipCount = 0;
-                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
-                            {
-                                //a terminating event carries no data, there is nothing to replay from it
-                                if (eventData.Deleted)
-                                    continue;
-
-                                var eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModelData is null)
-                                    throw new Exception("Failed to deserialize Model");
-
-                                Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
-
-                                if (query.TemporalDateTo.HasValue && query.TemporalDateTo.Value < eventData.Date)
-                                    break;
-                                if (query.TemporalNumberTo.HasValue && query.TemporalNumberTo.Value < eventData.Number)
-                                    break;
-                                if ((!query.TemporalDateFrom.HasValue && !query.TemporalNumberFrom.HasValue) || (query.TemporalDateFrom.HasValue && eventData.Date >= query.TemporalDateFrom.Value) || (query.TemporalNumberFrom.HasValue && eventData.Number >= query.TemporalNumberFrom.Value))
-                                {
-                                    if (!query.TemporalSkip.HasValue || query.TemporalSkip.Value <= skipCount)
-                                    {
-                                        var copy = Mapper.Copy(modelState);
-                                        var eventModel = new EventModel<TModel>()
-                                        {
-                                            EventID = eventData.EventID,
-                                            EventName = eventData.EventName,
-                                            Date = eventData.Date,
-                                            Number = eventData.Number,
-                                            Deleted = eventData.Deleted,
-
-                                            Model = copy,
-
-                                            ModelChange = eventModelData.Model,
-                                            GraphChange = eventModelData.Graph,
-                                            Source = eventModelData.Source,
-                                            SourceType = eventModelData.SourceType
-                                        };
-                                        eventModels.Add(eventModel);
-                                        if (query.TemporalTake.HasValue && query.TemporalTake.Value == eventModels.Count)
-                                            break;
-                                    }
-                                    else
-                                    {
-                                        skipCount++;
-                                    }
-                                }
-                            }
-                            return eventModels;
-                        }
-                    default:
-                        throw new NotImplementedException();
+                    Mapper.MapTo(lastData.Model, modelState, lastData.Graph);
+                    last = eventData;
                 }
+                if (last is not null && InRange(temporal, last))
+                    eventModels.Add(NewEventModel(last, lastData!, modelState));
+                return;
             }
-            else
+
+            var keepFrom = 0;
+            if (temporal.Order == TemporalOrder.Newest && limit.HasValue)
             {
-                switch (query.TemporalOrder ?? TemporalOrder.Newest)
+                var inRange = 0;
+                for (var i = eventDatas.Length - 1; i >= 0; i--)
                 {
-                    case TemporalOrder.Newest:
-                        {
-                            EventStoreEventModelData<TModel>? eventModelData = null;
-                            EventStoreEventData? thisEventData = null;
-                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
-                            {
-                                //a terminating event carries no data, there is nothing to replay from it
-                                if (eventData.Deleted)
-                                    continue;
-
-                                thisEventData = eventData;
-                                eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModelData is null)
-                                    throw new Exception("Failed to deserialize Model");
-
-                                Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
-
-                                if (query.TemporalDateTo.HasValue && query.TemporalDateTo.Value < eventData.Date)
-                                    break;
-                                if (query.TemporalNumberTo.HasValue && query.TemporalNumberTo.Value < eventData.Number)
-                                    break;
-                            }
-
-                            if (thisEventData is null || eventModelData is null)
-                                return Array.Empty<EventModel<TModel>>();
-
-                            var eventModel = new EventModel<TModel>()
-                            {
-                                EventID = thisEventData.EventID,
-                                EventName = thisEventData.EventName,
-                                Date = thisEventData.Date,
-                                Number = thisEventData.Number,
-                                Deleted = thisEventData.Deleted,
-
-                                Model = modelState,
-
-                                ModelChange = eventModelData.Model,
-                                GraphChange = eventModelData.Graph,
-                                Source = eventModelData.Source,
-                                SourceType = eventModelData.SourceType
-                            };
-                            return [eventModel];
-                        }
-                    case TemporalOrder.Oldest:
-                        {
-                            EventStoreEventModelData<TModel>? eventModelData = null;
-                            EventStoreEventData? thisEventData = null;
-                            foreach (var eventData in eventDatas.AsEnumerable().Reverse())
-                            {
-                                //a terminating event carries no data, there is nothing to replay from it
-                                if (eventData.Deleted)
-                                    continue;
-
-                                thisEventData = eventData;
-                                eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
-                                if (eventModelData is null)
-                                    throw new Exception("Failed to deserialize Model");
-
-                                Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
-
-                                if ((!query.TemporalDateFrom.HasValue && !query.TemporalNumberFrom.HasValue) || (query.TemporalDateFrom.HasValue && eventData.Date >= query.TemporalDateFrom.Value) || (query.TemporalNumberFrom.HasValue && eventData.Number >= query.TemporalNumberFrom.Value))
-                                    break;
-                            }
-
-                            if (thisEventData is null || eventModelData is null)
-                                return Array.Empty<EventModel<TModel>>();
-
-                            var eventModel = new EventModel<TModel>()
-                            {
-                                EventID = thisEventData.EventID,
-                                EventName = thisEventData.EventName,
-                                Date = thisEventData.Date,
-                                Number = thisEventData.Number,
-                                Deleted = thisEventData.Deleted,
-
-                                Model = modelState,
-
-                                ModelChange = eventModelData.Model,
-                                GraphChange = eventModelData.Graph,
-                                Source = eventModelData.Source,
-                                SourceType = eventModelData.SourceType
-                            };
-                            return [eventModel];
-                        }
-                    default:
-                        throw new NotImplementedException();
+                    var eventData = eventDatas[i];
+                    if (eventData.Deleted)
+                        continue;
+                    if (PastTo(temporal, eventData))
+                        break;
+                    if (InRange(temporal, eventData))
+                        inRange++;
                 }
+                keepFrom = inRange - limit.Value;
             }
+
+            var start = eventModels.Count;
+            var index = 0;
+            for (var i = eventDatas.Length - 1; i >= 0; i--)
+            {
+                var eventData = eventDatas[i];
+                //a terminating event carries no data, there is nothing to replay from it
+                if (eventData.Deleted)
+                    continue;
+                if (PastTo(temporal, eventData))
+                    break;
+
+                var eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
+                if (eventModelData is null)
+                    throw new Exception("Failed to deserialize Model");
+
+                Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
+
+                if (!InRange(temporal, eventData) || index++ < keepFrom)
+                    continue;
+                eventModels.Add(NewEventModel(eventData, eventModelData, Mapper.Copy(modelState)));
+                if (temporal.Order == TemporalOrder.Oldest && eventModels.Count - start == limit)
+                    break;
+            }
+            if (temporal.Order == TemporalOrder.Newest)
+                eventModels.Reverse(start, eventModels.Count - start);
+        }
+        private static EventModel<TModel> NewEventModel(EventStoreEventData eventData, EventStoreEventModelData<TModel> eventModelData, TModel model)
+        {
+            return new EventModel<TModel>()
+            {
+                EventID = eventData.EventID,
+                EventName = eventData.EventName,
+                Date = eventData.Date,
+                Number = eventData.Number,
+                Deleted = eventData.Deleted,
+
+                Model = model,
+
+                ModelChange = eventModelData.Model,
+                GraphChange = eventModelData.Graph,
+                Source = eventModelData.Source,
+                SourceType = eventModelData.SourceType
+            };
         }
 
-        //the newest saved state from before what the query reads, the events are replayed from the event it was saved at
-        private (TModel?, ulong?) ReadModelState(object id, LinqModelQuery query, bool many)
+        private (TModel?, ulong?) ReadModelState(object id, LinqTemporal? temporal, bool atTo)
         {
             ulong? numberAtOrBefore;
             DateTime? dateBefore = null;
             DateTime? dateAtOrBefore = null;
-            if (many || query.TemporalOrder == TemporalOrder.Oldest)
+            if (!atTo)
             {
                 //the states from the From bound on are read, the replay starts before it
-                if (!query.TemporalNumberFrom.HasValue && !query.TemporalDateFrom.HasValue)
+                if (!temporal!.NumberFrom.HasValue && !temporal.DateFrom.HasValue)
                     return (null, null);
-                numberAtOrBefore = query.TemporalNumberFrom;
-                dateBefore = query.TemporalDateFrom;
+                numberAtOrBefore = temporal.NumberFrom;
+                dateBefore = temporal.DateFrom;
             }
             else
             {
-                numberAtOrBefore = query.TemporalNumberTo;
-                dateAtOrBefore = query.TemporalDateTo;
+                numberAtOrBefore = temporal?.NumberTo;
+                dateAtOrBefore = temporal?.DateTo;
             }
 
             var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
@@ -814,22 +507,22 @@ namespace Zerra.Repository
 
             return (null, null);
         }
-        private async Task<(TModel?, ulong?)> ReadModelStateAsync(object id, LinqModelQuery query, bool many, CancellationToken cancellationToken)
+        private async Task<(TModel?, ulong?)> ReadModelStateAsync(object id, LinqTemporal? temporal, bool atTo, CancellationToken cancellationToken)
         {
             ulong? numberAtOrBefore;
             DateTime? dateBefore = null;
             DateTime? dateAtOrBefore = null;
-            if (many || query.TemporalOrder == TemporalOrder.Oldest)
+            if (!atTo)
             {
-                if (!query.TemporalNumberFrom.HasValue && !query.TemporalDateFrom.HasValue)
+                if (!temporal!.NumberFrom.HasValue && !temporal.DateFrom.HasValue)
                     return (null, null);
-                numberAtOrBefore = query.TemporalNumberFrom;
-                dateBefore = query.TemporalDateFrom;
+                numberAtOrBefore = temporal.NumberFrom;
+                dateBefore = temporal.DateFrom;
             }
             else
             {
-                numberAtOrBefore = query.TemporalNumberTo;
-                dateAtOrBefore = query.TemporalDateTo;
+                numberAtOrBefore = temporal?.NumberTo;
+                dateAtOrBefore = temporal?.DateTo;
             }
 
             var streamName = EventStoreCommon.GetStateStreamName<TModel>(id);
@@ -857,9 +550,9 @@ namespace Zerra.Repository
             return (null, null);
         }
 
-        private static object[] GetIDs(LinqModelQuery query)
+        private static object[] GetIDs(LambdaExpression? where)
         {
-            if (query.Where is null)
+            if (where is null)
                 throw new NotSupportedException("No identity clauses found in the query. These are required for event stores.");
 
             var type = typeof(TModel);
@@ -868,7 +561,7 @@ namespace Zerra.Repository
             object[] ids;
             if (identityProperties.Length == 1)
             {
-                var propertyValues = LinqValueExtractor.Extract(query.Where, type, identityProperties[0]);
+                var propertyValues = LinqValueExtractor.Extract(where, type, identityProperties[0]);
                 var idSingle = propertyValues[identityProperties[0]].ToArray();
                 if (idSingle.Any(x => x is null))
                     throw new Exception($"Model {type.Name} missing Identity");
@@ -876,7 +569,7 @@ namespace Zerra.Repository
             }
             else
             {
-                var propertyValues = LinqValueExtractor.Extract(query.Where, type, identityProperties);
+                var propertyValues = LinqValueExtractor.Extract(where, type, identityProperties);
                 var idSets = propertyValues.Select(x => x.Value.ToArray()).ToArray();
                 if (idSets.Any(x => x.Any(y => y is null)))
                     throw new Exception($"Model {type.Name} missing Identity");
@@ -943,8 +636,7 @@ namespace Zerra.Repository
 
                 //read from this provider, the state is saved as stored and not as the layers above it change it
                 var where = ModelAnalyzer.GetIdentityExpression<TModel>(id);
-                var stateQuery = new LinqModelQuery(modelType, LinqTerminal.SingleOrDefault, false, TemporalOrder.Newest, null, null, null, eventNumber, null, null, where, null, null, null, null);
-                var modelState = ReadModels(stateQuery).Single();
+                var modelState = ReadModels(where, new LinqTemporal(modelType, false, TemporalOrder.Newest, null, null, null, eventNumber, null), 1).Single();
 
                 SaveModelState(id, modelState, eventNumber, thisEventData.Date);
             }
@@ -988,8 +680,7 @@ namespace Zerra.Repository
                 var thisEventData = (await engine.ReadBackwardsAsync(streamName, eventNumber, 1, null, null, null, cancellationToken))[0];
 
                 var where = ModelAnalyzer.GetIdentityExpression<TModel>(id);
-                var stateQuery = new LinqModelQuery(modelType, LinqTerminal.SingleOrDefault, false, TemporalOrder.Newest, null, null, null, eventNumber, null, null, where, null, null, null, null);
-                var modelState = (await ReadModelsAsync(stateQuery, cancellationToken)).Single();
+                var modelState = (await ReadModelsAsync(where, new LinqTemporal(modelType, false, TemporalOrder.Newest, null, null, null, eventNumber, null), 1, cancellationToken)).Single();
 
                 await SaveModelStateAsync(id, modelState, eventNumber, thisEventData.Date, cancellationToken);
             }
@@ -1024,9 +715,8 @@ namespace Zerra.Repository
         protected override sealed int UpdateModelsWhere(PersistEvent @event, LambdaExpression where, LambdaExpression set)
         {
             //each matching stream gets the values computed from its current state as an update event
-            var query = new LinqModelQuery(modelType, LinqTerminal.Sequence, where, null, null, null, null);
-            var models = ReadModels(query, false).Query(query.Where, query.Order, query.Skip, query.Take).ToArray();
-            var sets = set.GetProjectionMembers();
+            var models = LinqHelper.Query(ReadModels(where, null, null), where, null, null, null).ToArray();
+            var sets = ProjectionMember.FromSet(set);
             var getters = new Func<TModel, object?>[sets.Length];
             var names = new string[sets.Length];
             for (var i = 0; i < sets.Length; i++)
@@ -1068,9 +758,8 @@ namespace Zerra.Repository
         protected override sealed async Task<int> UpdateModelsWhereAsync(PersistEvent @event, LambdaExpression where, LambdaExpression set, CancellationToken cancellationToken)
         {
             //each matching stream gets the values computed from its current state as an update event
-            var query = new LinqModelQuery(modelType, LinqTerminal.Sequence, where, null, null, null, null);
-            var models = (await ReadModelsAsync(query, false, cancellationToken)).Query(query.Where, query.Order, query.Skip, query.Take).ToArray();
-            var sets = set.GetProjectionMembers();
+            var models = LinqHelper.Query(await ReadModelsAsync(where, null, null, cancellationToken), where, null, null, null).ToArray();
+            var sets = ProjectionMember.FromSet(set);
             var getters = new Func<TModel, object?>[sets.Length];
             var names = new string[sets.Length];
             for (var i = 0; i < sets.Length; i++)
@@ -1098,15 +787,13 @@ namespace Zerra.Repository
         }
         private object[] GetIDsWhere(LambdaExpression where)
         {
-            var query = new LinqModelQuery(modelType, LinqTerminal.Sequence, where, null, null, null, null);
-            var models = ReadModels(query, false);
-            return models.Query(query.Where, query.Order, query.Skip, query.Take).Select(x => ModelAnalyzer.GetIdentity(modelType, x)).ToArray();
+            var models = ReadModels(where, null, null);
+            return LinqHelper.Query(models, where, null, null, null).Select(x => ModelAnalyzer.GetIdentity(modelType, x)).ToArray();
         }
         private async Task<object[]> GetIDsWhereAsync(LambdaExpression where, CancellationToken cancellationToken)
         {
-            var query = new LinqModelQuery(modelType, LinqTerminal.Sequence, where, null, null, null, null);
-            var models = await ReadModelsAsync(query, false, cancellationToken);
-            return models.Query(query.Where, query.Order, query.Skip, query.Take).Select(x => ModelAnalyzer.GetIdentity(modelType, x)).ToArray();
+            var models = await ReadModelsAsync(where, null, null, cancellationToken);
+            return LinqHelper.Query(models, where, null, null, null).Select(x => ModelAnalyzer.GetIdentity(modelType, x)).ToArray();
         }
 
         private void SaveModelState(object id, TModel? model, ulong eventNumber, DateTime? date)

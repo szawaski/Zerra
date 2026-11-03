@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+﻿// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -6,6 +6,7 @@ using System.Collections;
 using System.Linq.Expressions;
 using Xunit;
 using Zerra.Encryption;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Memory;
 
 namespace Zerra.Repository.Test
@@ -173,7 +174,7 @@ namespace Zerra.Repository.Test
             Assert.Equal(2, repo.Update<WhereModel>("Bulk", x => ids.Contains(x.ID) && x.Number > 2, new WhereModel { Note = "bulk" }, new Graph<WhereModel>(x => x.Note)));
             //Many on an event store returns every state a model had, Single returns the current one
             Assert.Equal(["start", "start", "bulk", "bulk"], models.Select(m => repo.Query<WhereModel>().SingleOrDefault(x => x.ID == m.ID)!.Note));
-            var history = repo.EventMany<WhereModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == models[3].ID);
+            var history = repo.EventQuery<WhereModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == models[3].ID).ToList();
             Assert.Equal(2, history.Count);
             Assert.Equal("Bulk", history.Last().EventName);
             Assert.True(history.Last().GraphChange!.HasMember(nameof(WhereModel.Note)));
@@ -182,14 +183,14 @@ namespace Zerra.Repository.Test
             //values computed from each model's current state
             Assert.Equal(2, repo.Update<WhereModel>("Scaled", x => ids.Contains(x.ID) && x.Number > 2, x => new WhereModel { Number = x.Number * 2 }));
             Assert.Equal([1, 2, 6, 8], models.Select(m => repo.Query<WhereModel>().SingleOrDefault(x => x.ID == m.ID)!.Number));
-            history = repo.EventMany<WhereModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == models[3].ID);
+            history = repo.EventQuery<WhereModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == models[3].ID).ToList();
             Assert.Equal(3, history.Count);
             Assert.Equal("Scaled", history.Last().EventName);
             Assert.True(history.Last().GraphChange!.HasMember(nameof(WhereModel.Number)));
             Assert.Equal("bulk", history.Last().Model.Note);
             Assert.Equal(2, await repo.UpdateAsync<WhereModel>("ScaledAsync", x => ids.Contains(x.ID) && x.Number > 2, x => new WhereModel { Number = x.Number + 1 }, TestContext.Current.CancellationToken));
             Assert.Equal([1, 2, 7, 9], models.Select(m => repo.Query<WhereModel>().SingleOrDefault(x => x.ID == m.ID)!.Number));
-            Assert.Equal("ScaledAsync", repo.EventMany<WhereModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == models[3].ID).Last().EventName);
+            Assert.Equal("ScaledAsync", repo.EventQuery<WhereModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == models[3].ID).ToList().Last().EventName);
 
             Assert.Equal(1, await repo.DeleteAsync<WhereModel>(x => ids.Contains(x.ID) && x.Number == 1, TestContext.Current.CancellationToken));
             Assert.Null(repo.Query<WhereModel>().SingleOrDefault(x => x.ID == models[0].ID));

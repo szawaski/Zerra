@@ -27,6 +27,11 @@ namespace Zerra.SourceGeneration
         public readonly string Source;
 
         /// <summary>
+        /// The documentation IDs of the methods that build this type with an object initializer inside an expression tree.
+        /// </summary>
+        public readonly HashSet<string> ExpressionInitializerMemberIDs = new();
+
+        /// <summary>
         /// Initializes a new instance of <see cref="TypeToGenerate"/>.
         /// </summary>
         /// <param name="typeSymbol">The Roslyn type symbol.</param>

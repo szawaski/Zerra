@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Linq.Expressions;
+using Zerra.Repository.Linq;
 using Zerra.Repository.MariaDb;
 using Zerra.Repository.Reflection;
 

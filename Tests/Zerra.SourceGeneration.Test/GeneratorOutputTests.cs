@@ -29,6 +29,87 @@ namespace Zerra.SourceGeneration.Test
             output.AssertInitializerDoesNotContain("global::Zerra.Reflection.Register.");
         }
 
+        //native AOT flags the Expression.Bind an initializer in an expression tree compiles to, the type is generated to keep its members
+        //and only the method holding the expression tree is suppressed
+        [Fact]
+        public void ExpressionTreeInitializers()
+        {
+            var output = GeneratorRunner.Run("""
+                using System;
+                using System.Collections.Generic;
+                using System.Linq;
+                using System.Linq.Expressions;
+                using System.Threading.Tasks;
+
+                namespace TestApp
+                {
+                    public class Source
+                    {
+                        public int A { get; set; }
+                        public int B { get; set; }
+                    }
+
+                    public class Projected { public int Value { get; set; } }
+                    public class ProjectedAsync { public int Value { get; set; } }
+                    public class ProjectedImplicit { public int Value { get; set; } }
+                    public class ProjectedLocal { public int Value { get; set; } }
+                    public class ProjectedNested { public int Value { get; set; } }
+                    public class ProjectedGeneric<T> { public T? Value { get; set; } }
+                    public class NotExpression { public int Value { get; set; } }
+
+                    public class Queries
+                    {
+                        private class PrivateProjected { public int Value { get; set; } }
+
+                        public IQueryable<Projected> Select(IQueryable<Source> query) => query.Select(x => new Projected { Value = x.A });
+
+                        public async Task<ProjectedAsync[]> SelectAsync(IQueryable<Source> query, int add)
+                        {
+                            await Task.Yield();
+                            return query.Select(x => new ProjectedAsync { Value = x.A + add }).ToArray();
+                        }
+
+                        public Expression<Func<Source, ProjectedImplicit>> Implicit() => x => new() { Value = x.B };
+
+                        public IQueryable<ProjectedLocal> Local(IQueryable<Source> query)
+                        {
+                            return Run();
+                            IQueryable<ProjectedLocal> Run() => query.Select(x => new ProjectedLocal { Value = x.A });
+                        }
+
+                        public IQueryable<int> Nested(IQueryable<IGrouping<int, Source>> query) => query.Select(g => g.Select(x => new ProjectedNested { Value = x.A }).Count());
+
+                        public IQueryable<ProjectedGeneric<int>> Generic(IQueryable<Source> query) => query.Select(x => new ProjectedGeneric<int> { Value = x.A });
+
+                        public IEnumerable<NotExpression> Enumerable(IEnumerable<Source> items) => items.Select(x => new NotExpression { Value = x.A });
+
+                        public int Private(IQueryable<Source> query) => query.Select(x => new PrivateProjected { Value = x.A }).Count();
+                    }
+                }
+                """);
+
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.Projected,");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.ProjectedAsync,");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.ProjectedImplicit,");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.ProjectedLocal,");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.ProjectedNested,");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.ProjectedGeneric<int>,");
+
+            const string prefix = "[module: global::System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(\"Trimming\", \"IL2026\", Justification = \"An object initializer in an expression tree, its type is generated so its members are kept.\", Scope = \"member\", Target = \"";
+            output.AssertInitializerContains(prefix + "M:TestApp.Queries.Select(System.Linq.IQueryable{TestApp.Source})\")]");
+            output.AssertInitializerContains(prefix + "M:TestApp.Queries.SelectAsync(System.Linq.IQueryable{TestApp.Source},System.Int32)\")]");
+            output.AssertInitializerContains(prefix + "M:TestApp.Queries.Implicit\")]");
+            output.AssertInitializerContains(prefix + "M:TestApp.Queries.Local(System.Linq.IQueryable{TestApp.Source})\")]");
+            output.AssertInitializerContains(prefix + "M:TestApp.Queries.Nested(System.Linq.IQueryable{System.Linq.IGrouping{System.Int32,TestApp.Source}})\")]");
+            output.AssertInitializerContains(prefix + "M:TestApp.Queries.Generic(System.Linq.IQueryable{TestApp.Source})\")]");
+
+            //a delegate lambda compiles to plain code, and a type that is not generated has nothing keeping its members
+            output.AssertInitializerDoesNotContain("global::TestApp.NotExpression");
+            output.AssertInitializerDoesNotContain("M:TestApp.Queries.Enumerable");
+            output.AssertInitializerDoesNotContain("PrivateProjected");
+            output.AssertInitializerDoesNotContain("M:TestApp.Queries.Private");
+        }
+
         //an array brings its generic interfaces, whose element has no namespace to name here
         [Fact]
         public void ArrayOfGlobalNamespaceType()
@@ -90,7 +171,7 @@ namespace Zerra.SourceGeneration.Test
             output.AssertInitializerContains("global::Zerra.Reflection.Register.Handler(typeof(global::TestApp.IWidgetQueryProvider), \"Touch\", false, null");
             //generic methods can only go through the caller, there is no closed method to register
             output.AssertInitializerDoesNotContain("\"Generic\"");
-            output.AssertInitializerContains("global::Zerra.Reflection.Register.Finder(typeof(global::TestApp.IWidgetQueryProvider));");
+            output.AssertInitializerDoesNotContain("global::Zerra.Reflection.Register.Finder(typeof(global::TestApp.IWidgetQueryProvider));");
             //models reached through the interface
             output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.Widget,");
         }
@@ -150,7 +231,7 @@ namespace Zerra.SourceGeneration.Test
             output.AssertInitializerContains("global::Zerra.Reflection.Register.Finder(typeof(global::TestApp.CreateWidgetCommand));");
             output.AssertInitializerContains("global::Zerra.Reflection.Register.Finder(typeof(global::TestApp.PriceWidgetCommand));");
             output.AssertInitializerContains("global::Zerra.Reflection.Register.Finder(typeof(global::TestApp.WidgetCreatedEvent));");
-            output.AssertInitializerContains("global::Zerra.Reflection.Register.Finder(typeof(global::TestApp.IWidgetCommandHandler));");
+            output.AssertInitializerDoesNotContain("global::Zerra.Reflection.Register.Finder(typeof(global::TestApp.IWidgetCommandHandler));");
         }
 
         [Fact]
@@ -966,6 +1047,167 @@ namespace Zerra.SourceGeneration.Test
                 """);
 
             output.AssertInitializerContains("new global::TestApp.LimitsAttribute(float.PositiveInfinity, float.NegativeInfinity, double.NaN, double.NegativeInfinity)");
+        }
+
+        //only public members are generated, so the types of non-public ones are never searched
+        [Fact]
+        public void NonPublicMemberTypesNotSearched()
+        {
+            var output = GeneratorRunner.Run("""
+                using System.Collections.Concurrent;
+                using System.Collections.Generic;
+                                using Zerra.Reflection;
+
+                namespace TestApp
+                {
+                    public class PublicField { public int Value { get; set; } }
+                    public class PublicStaticField { public int Value { get; set; } }
+                    public class PublicProperty { public int Value { get; set; } }
+                    public class PublicStaticProperty { public int Value { get; set; } }
+                    public class PrivateField { public int Value { get; set; } }
+                    public class PrivateStaticField { public int Value { get; set; } }
+                    public class ProtectedField { public int Value { get; set; } }
+                    public class InternalField { public int Value { get; set; } }
+                    public class PrivateProperty { public int Value { get; set; } }
+                    public class ProtectedProperty { public int Value { get; set; } }
+                    public class InternalProperty { public int Value { get; set; } }
+                    public class PrivateGenericArgument { public int Value { get; set; } }
+                    public class NestedPrivateField { public int Value { get; set; } }
+
+                    public class Child
+                    {
+                        public int Value { get; set; }
+                        private NestedPrivateField? nested;
+                        public void Touch() => nested = null;
+                    }
+
+                    [GenerateTypeDetail]
+                    public class Model
+                    {
+                        public PublicField? PublicField;
+                        public static PublicStaticField? PublicStaticField;
+                        public PublicProperty? PublicProperty { get; set; }
+                        public static PublicStaticProperty? PublicStaticProperty { get; set; }
+                        public Child? Child { get; set; }
+
+                        private PrivateField? privateField;
+                        private static PrivateStaticField? privateStaticField;
+                        protected ProtectedField? protectedField;
+                        internal InternalField? internalField;
+                        private PrivateProperty? PrivateProperty { get; set; }
+                        protected ProtectedProperty? ProtectedProperty { get; set; }
+                        internal InternalProperty? InternalProperty { get; set; }
+                        private readonly ConcurrentDictionary<string, List<PrivateGenericArgument>> cache = new();
+
+                        public void Touch()
+                        {
+                            privateField = null;
+                            privateStaticField = null;
+                            _ = privateField;
+                            _ = privateStaticField;
+                            _ = PrivateProperty;
+                            _ = cache;
+                        }
+                    }                }
+                """);
+
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.Model,");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.PublicField,");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.PublicStaticField,");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.PublicProperty,");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.PublicStaticProperty,");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.Child,");
+
+            output.AssertInitializerDoesNotContain("global::TestApp.PrivateField");
+            output.AssertInitializerDoesNotContain("global::TestApp.PrivateStaticField");
+            output.AssertInitializerDoesNotContain("global::TestApp.ProtectedField");
+            output.AssertInitializerDoesNotContain("global::TestApp.InternalField");
+            output.AssertInitializerDoesNotContain("global::TestApp.PrivateProperty");
+            output.AssertInitializerDoesNotContain("global::TestApp.ProtectedProperty");
+            output.AssertInitializerDoesNotContain("global::TestApp.InternalProperty");
+            output.AssertInitializerDoesNotContain("global::TestApp.PrivateGenericArgument");
+            output.AssertInitializerDoesNotContain("global::TestApp.NestedPrivateField");
+            output.AssertInitializerDoesNotContain("ConcurrentDictionary");
+        }
+
+        //handler classes are added to the bus as instances, only their interfaces need generating
+        [Fact]
+        public void HandlerClassesNotSearched()
+        {
+            var output = GeneratorRunner.Run("""
+                using System.Collections.Concurrent;
+                using System.Threading;
+                using System.Threading.Tasks;
+                using Zerra.CQRS;
+
+                namespace TestApp
+                {
+                    public class PingCommand : ICommand
+                    {
+                        public int Value { get; set; }
+                    }
+
+                    public class Widget
+                    {
+                        public int Value { get; set; }
+                    }
+
+                    public class HandlerPublicProperty { public int Value { get; set; } }
+                    public class HandlerCache { public int Value { get; set; } }
+
+                    public interface IPingCommandHandler : ICommandHandler<PingCommand> { }
+
+                    public interface IWidgetQueryHandler : IQueryHandler
+                    {
+                        Task<Widget> GetWidget(int id);
+                    }
+
+                    public class PingHandler : BaseHandler, IPingCommandHandler
+                    {
+                        private readonly ConcurrentDictionary<int, HandlerCache> cache = new();
+                        public HandlerPublicProperty? Settings { get; set; }
+                        public Task Handle(PingCommand command, CancellationToken cancellationToken) { _ = cache; return Task.CompletedTask; }
+                    }
+
+                    public class WidgetHandler : BaseHandler, IWidgetQueryHandler
+                    {
+                        public HandlerPublicProperty? Settings { get; set; }
+                        public Task<Widget> GetWidget(int id) => Task.FromResult(new Widget());
+                    }
+
+                    public class DirectHandler : BaseHandler, ICommandHandler<PingCommand>
+                    {
+                        public HandlerPublicProperty? Settings { get; set; }
+                        public Task Handle(PingCommand command, CancellationToken cancellationToken) => Task.CompletedTask;
+                    }
+                }
+                """);
+
+            //messages and the types reached through handler interfaces are still generated
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.PingCommand,");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.Widget,");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.Handler(typeof(global::TestApp.IPingCommandHandler),");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.Handler(typeof(global::TestApp.IWidgetQueryHandler), \"GetWidget\"");
+
+            //handlers are found through the bus, not by name
+            output.AssertInitializerDoesNotContain("global::Zerra.Reflection.Register.Finder(typeof(global::TestApp.PingHandler));");
+            output.AssertInitializerDoesNotContain("global::Zerra.Reflection.Register.Finder(typeof(global::TestApp.WidgetHandler));");
+            output.AssertInitializerDoesNotContain("global::Zerra.Reflection.Register.Finder(typeof(global::TestApp.DirectHandler));");
+
+            output.AssertInitializerDoesNotContain("global::Zerra.Reflection.Register.Finder(typeof(global::TestApp.IPingCommandHandler));");
+            output.AssertInitializerDoesNotContain("global::Zerra.Reflection.Register.Finder(typeof(global::TestApp.IWidgetQueryHandler));");
+
+            //IHandler sets up the handler, it is not callable and its types are not sent
+            output.AssertInitializerDoesNotContain("\"Initialize\"");
+            output.AssertInitializerDoesNotContain("global::Zerra.CQRS.BusContext");
+
+            //and the classes get no type details, so their members are never searched
+            output.AssertInitializerDoesNotContain("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.PingHandler,");
+            output.AssertInitializerDoesNotContain("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.WidgetHandler,");
+            output.AssertInitializerDoesNotContain("global::Zerra.Reflection.Register.SerializersAndMap<global::TestApp.DirectHandler,");
+            output.AssertInitializerDoesNotContain("global::TestApp.HandlerPublicProperty");
+            output.AssertInitializerDoesNotContain("global::TestApp.HandlerCache");
+            output.AssertInitializerDoesNotContain("ConcurrentDictionary");
         }
     }
 }

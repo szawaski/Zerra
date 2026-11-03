@@ -311,26 +311,19 @@ Anything that doesn't use the model, such as `DateTime.Now.Date`, is evaluated b
 
 ### Building a Where in Code
 
-For filters chosen at run time, such as optional search fields, use `WhereBuilder<T>` from `Zerra.Linq`:
+For filters chosen at run time, such as optional search fields, add a `Where` for each one. Several `Where` calls mean all of them:
 
 ```csharp
-var where = new WhereBuilder<OrderDataModel>(x => x.CustomerID == customerID);
+var query = Repo.Query<OrderDataModel>().Where(x => x.CustomerID == customerID);
 if (status is not null)
-    where.And(x => x.Status == status);
+    query = query.Where(x => x.Status == status);
 if (search is not null)
-{
-    where.StartGroupAnd();                               // && ( ... )
-    where.And(x => x.OrderNumber!.Contains(search));
-    where.Or(x => x.Customer!.Name!.Contains(search));
-    where.EndGroup();
-}
+    query = query.Where(x => x.OrderNumber!.Contains(search) || x.Customer!.Name!.Contains(search));
 
-var orders = await Repo.Query<OrderDataModel>().Where(where.Build()).ToArrayAsync();
+var orders = await query.ToArrayAsync();
 ```
 
-Each call returns the builder, so conditions can chain: `HostedRunning().And(x => x.JoinCode == code).Build()`. `And` binds tighter than `Or`, as in C#: `a`, then `Or(b)`, then `And(c)` means `a || (b && c)`. Use `StartGroupAnd`/`StartGroupOr` and `EndGroup` for parentheses. The first condition inside a group can use either `And` or `Or`.
-
-To join two existing expressions, `LinqAppender.AppendAnd<T>(first, second)` returns `first && second`. To log an expression, `LinqStringConverter.Convert(expression)` (or `where.ToString()`) writes it as readable C#-like text.
+To log an expression, `LinqStringConverter.Convert(expression)` writes it as readable C#-like text.
 
 ### Relations and Partial Updates
 
@@ -344,20 +337,27 @@ Related models named in the graph are saved or deleted with their parent.
 
 ### History Queries
 
-Models stored with `EventStoreAsTransactStoreProvider` keep every change, and these read it:
+Models stored with `EventStoreAsTransactStoreProvider` keep every change. Two queries read it, and they work like `Query<T>()`:
 
-| Method | Returns |
+| Query | Gives |
 |---|---|
-| `TemporalMany`/`TemporalFirst`/`TemporalAny`/`TemporalCount<T>` | the model as it was after each change |
-| `EventMany`/`EventFirst`/`EventSingle`/`EventAny`/`EventCount<T>` | each change as an `EventModel<T>` |
+| `TemporalQuery<T>()` | the model as it was after each change |
+| `EventQuery<T>()` | each change as an `EventModel<T>` |
 
-Each takes a `TemporalOrder` (`Newest` or `Oldest` first), a range by date (`temporalDateFrom`, `temporalDateTo`) or by event number (`temporalNumberFrom`, `temporalNumberTo`), and `temporalSkip`/`temporalTake` over the events, then the `where` and, for the methods returning models, `order`, `skip`, `take`, and `graph`:
+Both take an optional `TemporalOrder` (`Newest` first by default, or `Oldest`), a range by date (`dateFrom`, `dateTo`) or by event number (`numberFrom`, `numberTo`), and a `graph`. The `Where` must name the models by identity, since each model's history is read by itself. In an event query, the model is `x.Model`:
 
 ```csharp
-var lastWeek = await Repo.EventManyAsync<OrderDataModel>(TemporalOrder.Newest, DateTime.UtcNow.AddDays(-7), null, null, null, x => x.ID == orderID);
+var lastWeek = await Repo.EventQuery<OrderDataModel>(dateFrom: DateTime.UtcNow.AddDays(-7))
+    .Where(x => x.Model.ID == orderID)
+    .ToArrayAsync();
 foreach (var change in lastWeek)
     Console.WriteLine($"{change.Number} {change.Date} {change.EventName} -> {change.Model.Status}");
+
+var asOfMonday = await Repo.TemporalQuery<OrderDataModel>(dateTo: monday).FirstOrDefaultAsync(x => x.ID == orderID);
+var shipped = await Repo.EventQuery<OrderDataModel>().CountAsync(x => x.Model.ID == orderID && x.EventName == "Shipped");
 ```
+
+`First` is the first in the order, so with the default it's the newest. `Skip` and `Take` page in that order. `Where`, `OrderBy`, `Select`, `GroupBy`, and the calculations run over the states that are read. History can't be combined with `Union` and the other set operations, or looked in from another query's condition.
 
 `EventModel<T>` has `Number`, `Date`, `EventName`, `Deleted`, `Model` (the full model after the change), `ModelChange` and `GraphChange` (what was written), and `Source`/`SourceType` (what started the change, when it was recorded).
 

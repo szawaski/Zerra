@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+﻿// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -63,7 +63,7 @@ namespace Zerra.Repository.Test.KurrentDB
             cancelled.Cancel();
             var token = cancelled.Token;
             _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => repo.Query<CancelModel>().Where(x => x.ID == model.ID).ToArrayAsync(token));
-            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => repo.EventManyAsync<CancelModel>(TemporalOrder.Oldest, (DateTime?)null, null, null, null, x => x.ID == model.ID, cancellationToken: token));
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => repo.EventQuery<CancelModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == model.ID).ToListAsync(cancellationToken: token));
             _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => repo.UpdateAsync(new CancelModel { ID = model.ID, Number = 2 }, token));
             _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => repo.DeleteAsync(model, token));
             var kept = await repo.Query<CancelModel>().Where(x => x.ID == model.ID).SingleOrDefaultAsync(TestContext.Current.CancellationToken);

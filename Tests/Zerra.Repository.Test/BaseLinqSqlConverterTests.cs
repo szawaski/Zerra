@@ -1,10 +1,11 @@
-// Copyright © KaKush LLC
+﻿// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
 using System.Globalization;
 using System.Linq.Expressions;
 using Xunit;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.Test
@@ -17,7 +18,7 @@ namespace Zerra.Repository.Test
         protected abstract string ConvertLinqToSql(LinqQuery query, ModelDetail modelDetail);
 
         //the statement of a LINQ query over the model built from its parts: the condition, the order, the paging, and the ending call
-        protected string ConvertToSql(LinqTerminal select, LambdaExpression? where, QueryOrder? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
+        protected string ConvertToSql(LinqTerminal select, LambdaExpression? where, LinqOrder[]? order, int? skip, int? take, Graph? graph, ModelDetail modelDetail)
         {
             var modelType = modelDetail.Type;
             Expression expression = Expression.Constant(Array.CreateInstance(modelType, 0).AsQueryable());
@@ -26,7 +27,7 @@ namespace Zerra.Repository.Test
             if (order is not null)
             {
                 var first = true;
-                foreach (var orderExpression in order.OrderExpressions)
+                foreach (var orderExpression in order)
                 {
                     var method = first ? (orderExpression.Descending ? nameof(Queryable.OrderByDescending) : nameof(Queryable.OrderBy)) : (orderExpression.Descending ? nameof(Queryable.ThenByDescending) : nameof(Queryable.ThenBy));
                     expression = Expression.Call(typeof(Queryable), method, [modelType, orderExpression.Expression.ReturnType], expression, Expression.Quote(orderExpression.Expression));
@@ -45,7 +46,7 @@ namespace Zerra.Repository.Test
                 LinqTerminal.Any => (LinqTerminal.Any, typeof(bool)),
                 _ => (null, modelType),
             };
-            var query = (LinqQuery)Activator.CreateInstance(typeof(LinqQuery<,>).MakeGenericType(modelType, resultType), expression, terminal, null, null)!;
+            var query = (LinqQuery)Activator.CreateInstance(typeof(LinqQuery<,>).MakeGenericType(modelType, resultType), expression, terminal, null, null, null)!;
             return ConvertLinqToSql(query, modelDetail);
         }
         protected abstract SqlDialectExpectations GetDialect();
@@ -424,7 +425,7 @@ namespace Zerra.Repository.Test
         public void Convert_OrderByBoolMember_GeneratesColumnOnly()
         {
             var d = GetDialect();
-            var sql = ConvertToSql(LinqTerminal.Sequence, null, QueryOrder<TestTypesModel>.Create(x => x.BooleanThing), null, null, null, testTypesModelDetail);
+            var sql = ConvertToSql(LinqTerminal.Sequence, null, [new LinqOrder((Expression<Func<TestTypesModel, bool>>)(x => x.BooleanThing), false)], null, null, null, testTypesModelDetail);
 
             Assert.Contains($"ORDER BY({d.Column("TestTypes", "BooleanThing")})", sql);
             Assert.DoesNotContain($"{d.Column("TestTypes", "BooleanThing")}=", sql);
@@ -460,7 +461,7 @@ namespace Zerra.Repository.Test
         public void Convert_OrderByAscending_GeneratesOrderBy()
         {
             var d = GetDialect();
-            var order = QueryOrder<TestTypesModel>.Create(x => x.Int32Thing, false);
+            var order = new LinqOrder[] { new((Expression<Func<TestTypesModel, int>>)(x => x.Int32Thing), false) };
             var sql = ConvertToSql(LinqTerminal.Sequence, null, order, null, null, null, testTypesModelDetail);
 
             Assert.Contains("ORDER BY", sql);
@@ -472,7 +473,7 @@ namespace Zerra.Repository.Test
         public void Convert_OrderByDescending_GeneratesOrderByDesc()
         {
             var d = GetDialect();
-            var order = QueryOrder<TestTypesModel>.Create(x => x.Int32Thing, true);
+            var order = new LinqOrder[] { new((Expression<Func<TestTypesModel, int>>)(x => x.Int32Thing), true) };
             var sql = ConvertToSql(LinqTerminal.Sequence, null, order, null, null, null, testTypesModelDetail);
 
             Assert.Contains("ORDER BY", sql);
@@ -929,7 +930,7 @@ namespace Zerra.Repository.Test
         {
             var d = GetDialect();
             Expression<Func<TestTypesModel, TestTypesModel>> set = x => new TestTypesModel { Int32Thing = x.Int32Thing + 1, StringThing = x.StringThing + "!" };
-            var sql = ConvertPersistUpdateToSql(set.GetProjectionMembers(), calculationWhere, testTypesModelDetail);
+            var sql = ConvertPersistUpdateToSql(ProjectionMember.FromSet(set), calculationWhere, testTypesModelDetail);
 
             Assert.StartsWith("UPDATE " + d.Table("TestTypes") + " SET ", sql);
             var column = d.LowercaseIdentifiers ? "int32thing" : "Int32Thing";
@@ -945,7 +946,7 @@ namespace Zerra.Repository.Test
         {
             Expression<Func<TestTypesModel, TestTypesModel>> set = x => new TestTypesModel { Int32Thing = x.Int32Thing * 2 };
             Expression<Func<TestTypesModel, bool>> where = x => x.RelationA.SomeValue == "y";
-            var sql = ConvertPersistUpdateToSql(set.GetProjectionMembers(), where, testTypesModelDetail);
+            var sql = ConvertPersistUpdateToSql(ProjectionMember.FromSet(set), where, testTypesModelDetail);
 
             Assert.StartsWith("UPDATE ", sql);
             Assert.Contains(" IN (", sql);

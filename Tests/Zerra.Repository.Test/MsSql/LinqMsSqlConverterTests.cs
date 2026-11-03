@@ -4,6 +4,7 @@
 
 using System.Globalization;
 using System.Linq.Expressions;
+using Zerra.Repository.Linq;
 using Zerra.Repository.MsSql;
 using Zerra.Repository.Reflection;
 

@@ -17,6 +17,10 @@ namespace Zerra.Test.CQRS.Reflection
         public sealed class UnhandledCommand : ICommand { }
         public interface IInfoCommandHandler : ICommandHandler<InfoCommand>, ICommandHandler<InfoResultCommand, int> { }
         public interface IInfoEventHandler : IEventHandler<InfoEvent>, IDisposable { }
+        public interface IInfoQueryHandler : IQueryHandler
+        {
+            Task<int> GetValue();
+        }
 
         public interface IRegisteredInfo { }
         public interface IRegisteredRouter { }
@@ -43,6 +47,18 @@ namespace Zerra.Test.CQRS.Reflection
 
             _ = Assert.ThrowsAny<Exception>(() => BusCommandOrEventInfoGenerator.GenerateMessageInfo(typeof(UnhandledCommand), searched));
             _ = Assert.ThrowsAny<Exception>(() => BusCommandOrEventInfoGenerator.GenerateMessageInfo(typeof(UnhandledCommand), null));
+        }
+
+        [Fact]
+        public void GenerateMethodForHandler_SkipsIHandler()
+        {
+            var handle = BusHandlerGenerator.GenerateMethodForHandler(typeof(IInfoCommandHandler), "Handle-InfoCommand");
+            Assert.Equal("Handle", handle.Name);
+
+            //Initialize sets up the handler, a remote caller must not reach it
+            _ = Assert.Throws<ArgumentException>(() => BusHandlerGenerator.GenerateMethodForHandler(typeof(IInfoCommandHandler), nameof(IHandler.Initialize)));
+            _ = Assert.Throws<ArgumentException>(() => BusHandlers.GetMethod(typeof(IInfoQueryHandler), nameof(IHandler.Initialize)));
+            Assert.Equal(nameof(IInfoQueryHandler.GetValue), BusHandlers.GetMethod(typeof(IInfoQueryHandler), nameof(IInfoQueryHandler.GetValue)).Name);
         }
 
         [Fact]

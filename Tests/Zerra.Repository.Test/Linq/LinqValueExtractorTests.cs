@@ -4,6 +4,7 @@
 
 using System.Linq.Expressions;
 using Xunit;
+using Zerra.Repository.Linq;
 
 namespace Zerra.Repository.Test.Linq
 {

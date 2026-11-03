@@ -9,6 +9,7 @@ using Xunit;
 using Zerra.Repository.Reflection;
 using Zerra.CQRS.Reflection;
 using Zerra.Repository.Memory;
+using Zerra.Repository.Transactions;
 
 namespace Zerra.Repository.Test
 {

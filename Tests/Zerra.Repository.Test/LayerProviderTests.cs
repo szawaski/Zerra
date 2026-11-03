@@ -106,14 +106,14 @@ namespace Zerra.Repository.Test
 
             if (eventStore)
             {
-                var events = layered.EventMany<LayerModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID);
+                var events = layered.EventQuery<LayerModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == model.ID).ToList();
                 Assert.Equal(2, events.Count);
                 Assert.Equal(new string('x', 200) + "plain text", events.First().Model.Text);
                 Assert.Equal("updated", events.Last().Model.Text);
                 Assert.All(events, x => Assert.Equal(expected.Bytes, x.Model.Bytes));
-                Assert.Equal("updated", layered.EventFirst<LayerModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID)!.Model.Text);
-                Assert.Equal(2, layered.EventCount<LayerModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID));
-                Assert.True(layered.EventAny<LayerModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID));
+                Assert.Equal("updated", layered.EventQuery<LayerModel>().Where(x => x.Model.ID == model.ID).FirstOrDefault()!.Model.Text);
+                Assert.Equal(2, layered.EventQuery<LayerModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == model.ID).LongCount());
+                Assert.True(layered.EventQuery<LayerModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == model.ID).Any());
             }
 
             layered.Delete("Deleted", model);
@@ -155,13 +155,13 @@ namespace Zerra.Repository.Test
 
             if (eventStore)
             {
-                var events = await layered.EventManyAsync<LayerModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken);
+                var events = await layered.EventQuery<LayerModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == model.ID).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Equal(2, events.Count);
                 Assert.Equal(new string('x', 200) + "plain text", events.First().Model.Text);
                 Assert.Equal("updated", events.Last().Model.Text);
-                Assert.Equal("updated", (await layered.EventFirstAsync<LayerModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken))!.Model.Text);
-                Assert.Equal(2, await layered.EventCountAsync<LayerModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID, TestContext.Current.CancellationToken));
-                Assert.True(await layered.EventAnyAsync<LayerModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID, TestContext.Current.CancellationToken));
+                Assert.Equal("updated", (await layered.EventQuery<LayerModel>().Where(x => x.Model.ID == model.ID).FirstOrDefaultAsync(cancellationToken: TestContext.Current.CancellationToken))!.Model.Text);
+                Assert.Equal(2, await layered.EventQuery<LayerModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == model.ID).LongCountAsync(cancellationToken: TestContext.Current.CancellationToken));
+                Assert.True(await layered.EventQuery<LayerModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == model.ID).AnyAsync(cancellationToken: TestContext.Current.CancellationToken));
             }
 
             await layered.DeleteAsync("Deleted", model, TestContext.Current.CancellationToken);

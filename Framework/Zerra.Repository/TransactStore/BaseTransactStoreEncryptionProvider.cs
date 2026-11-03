@@ -258,7 +258,17 @@ namespace Zerra.Repository
             }, () => query.Where = where);
             if (!query.ReturnsModels)
                 return elements;
+            if (query.ReadsEvents)
+                return DecryptEventStream((IEnumerable<EventModel<TModel>>)elements, query.ModelGraph);
             return DecryptStream((IEnumerable<TModel>)elements, query.Graph);
+        }
+        private IEnumerable<EventModel<TModel>> DecryptEventStream(IEnumerable<EventModel<TModel>> eventModels, Graph? graph)
+        {
+            foreach (var eventModel in eventModels)
+            {
+                eventModel.Model = DecryptModel(eventModel.Model, graph, true);
+                yield return eventModel;
+            }
         }
         private IEnumerable<TModel> DecryptStream(IEnumerable<TModel> models, Graph? graph)
         {
@@ -278,7 +288,17 @@ namespace Zerra.Repository
             }, () => query.Where = where, cancellationToken);
             if (!query.ReturnsModels)
                 return elements;
+            if (query.ReadsEvents)
+                return DecryptEventStreamAsync((IAsyncEnumerable<EventModel<TModel>>)elements, query.ModelGraph, cancellationToken);
             return DecryptStreamAsync((IAsyncEnumerable<TModel>)elements, query.Graph, cancellationToken);
+        }
+        private async IAsyncEnumerable<EventModel<TModel>> DecryptEventStreamAsync(IAsyncEnumerable<EventModel<TModel>> eventModels, Graph? graph, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var eventModel in eventModels.WithCancellation(cancellationToken))
+            {
+                eventModel.Model = DecryptModel(eventModel.Model, graph, true);
+                yield return eventModel;
+            }
         }
         private async IAsyncEnumerable<TModel> DecryptStreamAsync(IAsyncEnumerable<TModel> models, Graph? graph, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
@@ -293,11 +313,11 @@ namespace Zerra.Repository
                     return models.Count == 0 ? models : DecryptModels(models, query.Graph, true).Cast<TModel>().ToArray();
                 case TModel model:
                     return DecryptModel(model, query.Graph, true);
-                case ICollection<EventModel<TModel>> eventModels:
+                case ICollection<EventModel<TModel>> eventModels when query.ReturnsModels:
                     {
                         if (eventModels.Count == 0)
                             return eventModels;
-                        var models = DecryptModels(eventModels.Select(x => x.Model).ToArray(), query.Graph, true).GetEnumerator();
+                        var models = DecryptModels(eventModels.Select(x => x.Model).ToArray(), query.ModelGraph, true).GetEnumerator();
                         foreach (var eventModel in eventModels)
                         {
                             _ = models.MoveNext();
@@ -306,7 +326,7 @@ namespace Zerra.Repository
                         return eventModels;
                     }
                 case EventModel<TModel> eventModel:
-                    eventModel.Model = DecryptModel(eventModel.Model, query.Graph, true);
+                    eventModel.Model = DecryptModel(eventModel.Model, query.ModelGraph, true);
                     return eventModel;
                 default:
                     return result;
@@ -321,7 +341,7 @@ namespace Zerra.Repository
                 throw new NotSupportedException($"{GetType().Name} cannot project or calculate on an encrypted property");
             if (query.Order is null)
                 return;
-            foreach (var order in query.Order.OrderExpressions)
+            foreach (var order in query.Order)
             {
                 if (LinqMemberFinder.ReadsMember(order.Expression, properties))
                     throw new NotSupportedException($"{GetType().Name} cannot order by an encrypted property");

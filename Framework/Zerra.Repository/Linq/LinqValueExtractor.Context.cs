@@ -5,7 +5,7 @@
 using System.Linq.Expressions;
 using Zerra.Repository.Reflection;
 
-namespace Zerra.Repository
+namespace Zerra.Repository.Linq
 {
     internal static partial class LinqValueExtractor
     {

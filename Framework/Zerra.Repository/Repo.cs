@@ -4,6 +4,8 @@
 
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using Zerra.Repository.Linq;
+using Zerra.Repository.Transactions;
 
 namespace Zerra.Repository
 {
@@ -33,8 +35,10 @@ namespace Zerra.Repository
 
         object? IRepoInternal.Query(LinqQuery query)
         {
-            if (!providers.TryGetValue(query.ModelType, out var provider))
-                throw new Exception($"No provider for {query.ModelType.FullName}");
+            //an event query's elements are the events of its model
+            var modelType = query.Temporal?.ModelType ?? query.ModelType;
+            if (!providers.TryGetValue(modelType, out var provider))
+                throw new Exception($"No provider for {modelType.FullName}");
             if (query.Set is not null && !SetInStore(query.Set))
             {
                 var left = ((IRepoInternal)this).Query(query.Set.Left);
@@ -79,24 +83,30 @@ namespace Zerra.Repository
 
         Task<object?> IRepoInternal.QueryAsync(LinqQuery query, CancellationToken cancellationToken)
         {
-            if (!providers.TryGetValue(query.ModelType, out var provider))
-                throw new Exception($"No provider for {query.ModelType.FullName}");
+            //an event query's elements are the events of its model
+            var modelType = query.Temporal?.ModelType ?? query.ModelType;
+            if (!providers.TryGetValue(modelType, out var provider))
+                throw new Exception($"No provider for {modelType.FullName}");
             if (query.Set is not null && !SetInStore(query.Set))
                 return QuerySetAsync(query, cancellationToken);
             return provider.QueryAsync(query, cancellationToken);
         }
         object IRepoInternal.QueryStream(LinqQuery query)
         {
-            if (!providers.TryGetValue(query.ModelType, out var provider))
-                throw new Exception($"No provider for {query.ModelType.FullName}");
+            //an event query's elements are the events of its model
+            var modelType = query.Temporal?.ModelType ?? query.ModelType;
+            if (!providers.TryGetValue(modelType, out var provider))
+                throw new Exception($"No provider for {modelType.FullName}");
             if (query.Set is not null && !SetInStore(query.Set))
                 return query.StreamFrom(() => ((IRepoInternal)this).Query(query), null);
             return provider.QueryStream(query);
         }
         object IRepoInternal.QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken)
         {
-            if (!providers.TryGetValue(query.ModelType, out var provider))
-                throw new Exception($"No provider for {query.ModelType.FullName}");
+            //an event query's elements are the events of its model
+            var modelType = query.Temporal?.ModelType ?? query.ModelType;
+            if (!providers.TryGetValue(modelType, out var provider))
+                throw new Exception($"No provider for {modelType.FullName}");
             if (query.Set is not null && !SetInStore(query.Set))
                 return query.StreamFromAsync(cancellation => QuerySetAsync(query, cancellation), null, cancellationToken);
             return provider.QueryStreamAsync(query, cancellationToken);
@@ -119,7 +129,21 @@ namespace Zerra.Repository
         {
             if (!providers.ContainsKey(typeof(TModel)))
                 throw new Exception($"No provider for {typeof(TModel).FullName}");
-            return new RepoQueryable<TModel>(new RepoQueryProvider<TModel>(this, graph), null);
+            return new RepoQueryable<TModel>(new RepoQueryProvider<TModel>(this, graph, null), null);
+        }
+
+        IQueryable<TModel> IRepo.TemporalQuery<TModel>(TemporalOrder order, DateTime? dateFrom, DateTime? dateTo, ulong? numberFrom, ulong? numberTo, Graph? graph)
+        {
+            if (!providers.ContainsKey(typeof(TModel)))
+                throw new Exception($"No provider for {typeof(TModel).FullName}");
+            return new RepoQueryable<TModel>(new RepoQueryProvider<TModel>(this, graph, new LinqTemporal(typeof(TModel), false, order, dateFrom, dateTo, numberFrom, numberTo, null)), null);
+        }
+
+        IQueryable<EventModel<TModel>> IRepo.EventQuery<TModel>(TemporalOrder order, DateTime? dateFrom, DateTime? dateTo, ulong? numberFrom, ulong? numberTo, Graph? graph)
+        {
+            if (!providers.ContainsKey(typeof(TModel)))
+                throw new Exception($"No provider for {typeof(TModel).FullName}");
+            return new RepoQueryable<EventModel<TModel>>(new RepoQueryProvider<TModel>(this, null, new LinqTemporal(typeof(TModel), true, order, dateFrom, dateTo, numberFrom, numberTo, graph is null ? null : new Graph(graph))), null);
         }
 
         IRepoTransaction IRepo.BeginTransaction(System.Data.IsolationLevel isolationLevel) => RepoTransaction.Begin(isolationLevel);

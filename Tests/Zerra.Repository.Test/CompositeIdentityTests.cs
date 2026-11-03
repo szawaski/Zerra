@@ -103,29 +103,29 @@ namespace Zerra.Repository.Test
             }
 
             Assert.Equal("4", repo.Query<CompositeParent>().SingleOrDefault(x => x.A == model.A && x.B == 5)!.Name);
-            Assert.Equal("3", repo.TemporalFirst<CompositeParent>(TemporalOrder.Newest, (ulong?)null, 3, null, null, x => x.A == model.A && x.B == 5, null, null)!.Name);
-            Assert.Equal(["2", "3", "4"], repo.TemporalMany<CompositeParent>(TemporalOrder.Oldest, (ulong?)2, null, null, null, x => x.A == model.A && x.B == 5).Select(x => x.Name));
+            Assert.Equal("3", repo.TemporalQuery<CompositeParent>(numberTo: 3).Where(x => x.A == model.A && x.B == 5).FirstOrDefault()!.Name);
+            Assert.Equal(["2", "3", "4"], repo.TemporalQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 2).Where(x => x.A == model.A && x.B == 5).ToList().Select(x => x.Name));
 
             //a range of event numbers stops at its end, whichever way it reads
             var cancellationToken = TestContext.Current.CancellationToken;
-            Assert.Equal(["1", "2", "3"], repo.TemporalMany<CompositeParent>(TemporalOrder.Oldest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5).Select(x => x.Name));
-            Assert.Equal(["1", "2", "3"], (await repo.TemporalManyAsync<CompositeParent>(TemporalOrder.Oldest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5, cancellationToken: cancellationToken)).Select(x => x.Name));
+            Assert.Equal(["1", "2", "3"], repo.TemporalQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 1, numberTo: 3).Where(x => x.A == model.A && x.B == 5).ToList().Select(x => x.Name));
+            Assert.Equal(["1", "2", "3"], (await repo.TemporalQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 1, numberTo: 3).Where(x => x.A == model.A && x.B == 5).ToListAsync(cancellationToken: cancellationToken)).Select(x => x.Name));
             //newest first, and a take counted from the newest
-            Assert.Equal(["3", "2", "1"], repo.TemporalMany<CompositeParent>(TemporalOrder.Newest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5).Select(x => x.Name));
-            Assert.Equal(["3", "2"], repo.TemporalMany<CompositeParent>(TemporalOrder.Newest, (ulong?)1, 3, null, 2, x => x.A == model.A && x.B == 5).Select(x => x.Name));
-            Assert.Equal(["2", "1"], repo.TemporalMany<CompositeParent>(TemporalOrder.Newest, (ulong?)1, 3, 1, null, x => x.A == model.A && x.B == 5).Select(x => x.Name));
-            Assert.Equal([3UL, 2UL, 1UL], repo.EventMany<CompositeParent>(TemporalOrder.Newest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5).Select(x => x.Number));
-            Assert.Equal(3, repo.EventMany<CompositeParent>(TemporalOrder.Oldest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5).Count);
-            Assert.Equal(3, (await repo.EventManyAsync<CompositeParent>(TemporalOrder.Oldest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5, cancellationToken: cancellationToken)).Count);
-            Assert.Equal(3, repo.EventMany<CompositeParent>(TemporalOrder.Newest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5).Count);
-            Assert.Equal("1", repo.TemporalFirst<CompositeParent>(TemporalOrder.Oldest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5, null, null)!.Name);
-            Assert.Equal("1", (await repo.TemporalFirstAsync<CompositeParent>(TemporalOrder.Oldest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5, null, cancellationToken))!.Name);
-            Assert.Equal(3, repo.TemporalCount<CompositeParent>(TemporalOrder.Oldest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5));
-            Assert.Equal(3, await repo.TemporalCountAsync<CompositeParent>(TemporalOrder.Oldest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5, cancellationToken: cancellationToken));
-            Assert.True(repo.TemporalAny<CompositeParent>(TemporalOrder.Oldest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5));
-            Assert.Equal(3, repo.EventCount<CompositeParent>(TemporalOrder.Oldest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5));
-            Assert.True(await repo.EventAnyAsync<CompositeParent>(TemporalOrder.Oldest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5, cancellationToken: cancellationToken));
-            Assert.Equal("1", repo.EventFirst<CompositeParent>(TemporalOrder.Oldest, (ulong?)1, 3, null, null, x => x.A == model.A && x.B == 5, null, null)!.Model.Name);
+            Assert.Equal(["3", "2", "1"], repo.TemporalQuery<CompositeParent>(numberFrom: 1, numberTo: 3).Where(x => x.A == model.A && x.B == 5).ToList().Select(x => x.Name));
+            Assert.Equal(["3", "2"], repo.TemporalQuery<CompositeParent>(numberFrom: 1, numberTo: 3).Where(x => x.A == model.A && x.B == 5).Take(2).ToList().Select(x => x.Name));
+            Assert.Equal(["2", "1"], repo.TemporalQuery<CompositeParent>(numberFrom: 1, numberTo: 3).Where(x => x.A == model.A && x.B == 5).Skip(1).ToList().Select(x => x.Name));
+            Assert.Equal([3UL, 2UL, 1UL], repo.EventQuery<CompositeParent>(numberFrom: 1, numberTo: 3).Where(x => x.Model.A == model.A && x.Model.B == 5).ToList().Select(x => x.Number));
+            Assert.Equal(3, repo.EventQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 1, numberTo: 3).Where(x => x.Model.A == model.A && x.Model.B == 5).ToList().Count);
+            Assert.Equal(3, (await repo.EventQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 1, numberTo: 3).Where(x => x.Model.A == model.A && x.Model.B == 5).ToListAsync(cancellationToken: cancellationToken)).Count);
+            Assert.Equal(3, repo.EventQuery<CompositeParent>(numberFrom: 1, numberTo: 3).Where(x => x.Model.A == model.A && x.Model.B == 5).ToList().Count);
+            Assert.Equal("1", repo.TemporalQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 1, numberTo: 3).Where(x => x.A == model.A && x.B == 5).FirstOrDefault()!.Name);
+            Assert.Equal("1", (await repo.TemporalQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 1, numberTo: 3).Where(x => x.A == model.A && x.B == 5).FirstOrDefaultAsync(cancellationToken: cancellationToken))!.Name);
+            Assert.Equal(3, repo.TemporalQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 1, numberTo: 3).Where(x => x.A == model.A && x.B == 5).LongCount());
+            Assert.Equal(3, await repo.TemporalQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 1, numberTo: 3).Where(x => x.A == model.A && x.B == 5).LongCountAsync(cancellationToken: cancellationToken));
+            Assert.True(repo.TemporalQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 1, numberTo: 3).Where(x => x.A == model.A && x.B == 5).Any());
+            Assert.Equal(3, repo.EventQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 1, numberTo: 3).Where(x => x.Model.A == model.A && x.Model.B == 5).LongCount());
+            Assert.True(await repo.EventQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 1, numberTo: 3).Where(x => x.Model.A == model.A && x.Model.B == 5).AnyAsync(cancellationToken: cancellationToken));
+            Assert.Equal("1", repo.EventQuery<CompositeParent>(TemporalOrder.Oldest, numberFrom: 1, numberTo: 3).Where(x => x.Model.A == model.A && x.Model.B == 5).FirstOrDefault()!.Model.Name);
         }
     }
 }

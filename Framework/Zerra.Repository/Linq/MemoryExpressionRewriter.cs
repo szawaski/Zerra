@@ -6,7 +6,7 @@ using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Zerra.Repository
+namespace Zerra.Repository.Linq
 {
     internal sealed class MemoryExpressionRewriter : ExpressionVisitor
     {

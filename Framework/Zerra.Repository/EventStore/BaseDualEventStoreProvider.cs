@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Repository.Linq;
+
 namespace Zerra.Repository
 {
     /// <summary>
@@ -47,14 +49,14 @@ namespace Zerra.Repository
         /// <param name="query">The query to execute.</param>
         /// <returns>The query result.</returns>
         /// <inheritdoc/>
-        public object? Query(LinqQuery query) => query is LinqModelQuery { IsTemporal: true } ? EventStoreProvider.Query(query) : NextProvider.Query(query);
+        public object? Query(LinqQuery query) => query.Temporal is not null ? EventStoreProvider.Query(query) : NextProvider.Query(query);
 
         /// <inheritdoc/>
-        public Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken) => query is LinqModelQuery { IsTemporal: true } ? EventStoreProvider.QueryAsync(query, cancellationToken) : NextProvider.QueryAsync(query, cancellationToken);
+        public Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken) => query.Temporal is not null ? EventStoreProvider.QueryAsync(query, cancellationToken) : NextProvider.QueryAsync(query, cancellationToken);
         /// <inheritdoc/>
-        public object QueryStream(LinqQuery query) => query is LinqModelQuery { IsTemporal: true } ? EventStoreProvider.QueryStream(query) : NextProvider.QueryStream(query);
+        public object QueryStream(LinqQuery query) => query.Temporal is not null ? EventStoreProvider.QueryStream(query) : NextProvider.QueryStream(query);
         /// <inheritdoc/>
-        public object QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken) => query is LinqModelQuery { IsTemporal: true } ? EventStoreProvider.QueryStreamAsync(query, cancellationToken) : NextProvider.QueryStreamAsync(query, cancellationToken);
+        public object QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken) => query.Temporal is not null ? EventStoreProvider.QueryStreamAsync(query, cancellationToken) : NextProvider.QueryStreamAsync(query, cancellationToken);
 
         /// <inheritdoc/>
         public void Persist(Persist persist)

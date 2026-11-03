@@ -9,12 +9,12 @@ using System.Reflection;
 using System.Text;
 using Zerra.Reflection;
 
-namespace Zerra.Linq
+namespace Zerra.Repository.Linq
 {
     /// <summary>
     /// Converts a LINQ <see cref="System.Linq.Expressions.Expression"/> tree into a human-readable string representation.
     /// </summary>
-    public static partial class LinqStringConverter
+    internal static partial class LinqStringConverter
     {
         /// <summary>
         /// Converts the specified expression tree into its string representation.

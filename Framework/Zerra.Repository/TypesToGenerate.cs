@@ -9,7 +9,8 @@ namespace Zerra.Repository
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllFields)]
     internal static class TypesToGenerate
     {
-        private static readonly List<object>? objectList = null;
-        private static readonly HashSet<object>? hashSetList = null;
+        public static readonly object? Object = null;
+        public static readonly List<object>? ObjectList = null;
+        public static readonly HashSet<object>? HashSetList = null;
     }
 }

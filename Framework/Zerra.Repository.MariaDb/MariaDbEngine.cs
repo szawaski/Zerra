@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using Zerra.Linq;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
 using Zerra.Reflection;
 using System.Text;
@@ -15,6 +16,7 @@ using Zerra.Repository.IO;
 using System.Collections;
 using System.Data.Common;
 using MySqlConnector;
+using Zerra.Repository.Transactions;
 
 namespace Zerra.Repository.MariaDb
 {
@@ -1470,7 +1472,7 @@ namespace Zerra.Repository.MariaDb
         /// <inheritdoc/>
         public int ExecuteUpdateWhere<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = LinqMariaDbConverter.ConvertPersistUpdate(set.GetProjectionMembers(), where, modelDetail);
+            var sql = LinqMariaDbConverter.ConvertPersistUpdate(ProjectionMember.FromSet(set), where, modelDetail);
 
             using (var connection = OpenConnection())
             {
@@ -1715,7 +1717,7 @@ namespace Zerra.Repository.MariaDb
         /// <inheritdoc/>
         public async Task<int> ExecuteUpdateWhereAsync<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
-            var sql = LinqMariaDbConverter.ConvertPersistUpdate(set.GetProjectionMembers(), where, modelDetail);
+            var sql = LinqMariaDbConverter.ConvertPersistUpdate(ProjectionMember.FromSet(set), where, modelDetail);
 
             using (var connection = await OpenConnectionAsync(cancellationToken))
             {

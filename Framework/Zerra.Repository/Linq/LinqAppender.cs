@@ -13,7 +13,7 @@ namespace Zerra.Repository.Linq
     /// <summary>
     /// Provides methods for composing and appending LINQ predicate expressions.
     /// </summary>
-    public static class LinqAppender
+    internal static class LinqAppender
     {
         /// <summary>
         /// Combines an existing predicate with an additional predicate using a logical AND.

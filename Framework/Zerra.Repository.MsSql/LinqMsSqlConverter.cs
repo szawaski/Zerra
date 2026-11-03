@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using Zerra.Reflection;
 using Zerra.Linq;
 using Zerra.Repository.IO;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.MsSql
@@ -37,7 +38,7 @@ namespace Zerra.Repository.MsSql
         /// <summary>
         /// Converts an update of every row matching a condition to values computed from the row into its SQL statement.
         /// </summary>
-        /// <param name="sets">The members to set from <see cref="LinqExtensions.GetProjectionMembers"/>, each with its value in terms of the row.</param>
+        /// <param name="sets">The members to set from <see cref="ProjectionMember.FromSet"/>, each with its value in terms of the row.</param>
         /// <param name="where">The condition selecting the rows.</param>
         /// <param name="modelDetail">Metadata about the model being changed.</param>
         /// <param name="parameters">The values taken as parameters, which the statement adds to, or <see langword="null"/> to write values into the statement.</param>
@@ -1765,7 +1766,7 @@ namespace Zerra.Repository.MsSql
                     if (query.ResultOrder is not null)
                     {
                         sbEnd.Write("ORDER BY");
-                        var resultOrders = query.ResultOrder.OrderExpressions;
+                        var resultOrders = query.ResultOrder;
                         for (var o = 0; o < resultOrders.Length; o++)
                         {
                             if (o > 0)
@@ -1876,12 +1877,12 @@ namespace Zerra.Repository.MsSql
             }
         }
         //a paged statement with relations is also where they select their parents' keys, so its order ends with the identity for both to pick the same rows
-        private void GenerateLinqOrderSkipTake(QueryOrder? order, ModelMemberDetail identity, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, ModelDetail modelDetail, MemberContext operationContext)
+        private void GenerateLinqOrderSkipTake(LinqOrder[]? order, ModelMemberDetail identity, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, ModelDetail modelDetail, MemberContext operationContext)
         {
             sb.Write("ORDER BY");
             if (order is not null)
             {
-                foreach (var orderExp in order.OrderExpressions)
+                foreach (var orderExp in order)
                 {
                     var context = new BuilderContext(rootDependant, operationContext) { IsOrderBy = true, IsSort = true };
                     ConvertToSql(orderExp.Expression, ref sb, context);
@@ -2307,13 +2308,13 @@ namespace Zerra.Repository.MsSql
             AppendLineBreak(ref sb);
         }
         /// <inheritdoc/>
-        protected override void GenerateOrderSkipTake(QueryOrder? order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
+        protected override void GenerateOrderSkipTake(LinqOrder[]? order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
-            if (order?.OrderExpressions.Length > 0)
+            if (order?.Length > 0)
             {
                 sb.Write("ORDER BY");
                 var hasOrder = false;
-                foreach (var orderExp in order.OrderExpressions)
+                foreach (var orderExp in order)
                 {
                     var context = new BuilderContext(rootDependant, operationContext) { IsOrderBy = true, IsSort = true };
                     if (hasOrder)

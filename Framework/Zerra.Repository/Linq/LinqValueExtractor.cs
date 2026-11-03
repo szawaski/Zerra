@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
-namespace Zerra.Repository
+namespace Zerra.Repository.Linq
 {
     /// <summary>
     /// Extracts values for specified model properties from a LINQ filter expression.
@@ -216,7 +216,8 @@ namespace Zerra.Repository
                 else if (call.Object is not null && call.Method.DeclaringType != typeof(string))
                 {
                     var typeDetails = TypeAnalyzer.GetTypeDetail(call.Method.DeclaringType);
-                    if (typeDetails.HasIEnumerableGeneric && typeDetails.IEnumerableGenericInnerTypeDetail!.CoreType.HasValue)
+                    //the keys a provider asks a related provider for are a set of objects
+                    if (typeDetails.HasIEnumerableGeneric && (typeDetails.IEnumerableGenericInnerTypeDetail!.CoreType.HasValue || typeDetails.IEnumerableGenericInnerType == typeof(object)))
                     {
                         switch (call.Method.Name)
                         {

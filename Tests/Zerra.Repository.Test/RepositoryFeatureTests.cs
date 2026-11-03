@@ -113,8 +113,8 @@ namespace Zerra.Repository.Test
 
             Assert.Equal(2, repo.Query<DualModel>().SingleOrDefault(x => x.ID == model.ID)!.Value);
             Assert.Equal(2, (await repo.Query<DualModel>().SingleOrDefaultAsync(x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken))!.Value);
-            Assert.Equal([1, 2], repo.TemporalMany<DualModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID).Select(x => x.Value));
-            Assert.Equal([1, 2], (await repo.TemporalManyAsync<DualModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID, cancellationToken: TestContext.Current.CancellationToken)).Select(x => x.Value));
+            Assert.Equal([1, 2], repo.TemporalQuery<DualModel>(TemporalOrder.Oldest).Where(x => x.ID == model.ID).ToList().Select(x => x.Value));
+            Assert.Equal([1, 2], (await repo.TemporalQuery<DualModel>(TemporalOrder.Oldest).Where(x => x.ID == model.ID).ToListAsync(cancellationToken: TestContext.Current.CancellationToken)).Select(x => x.Value));
 
             //each store has the change
             var table = Repo.New();
@@ -122,7 +122,7 @@ namespace Zerra.Repository.Test
             Assert.Equal(2, table.Query<DualModel>().SingleOrDefault(x => x.ID == model.ID)!.Value);
             var events = Repo.New();
             events.AddProvider(new EventStoreAsTransactStoreProvider<DualModel>(eventEngine));
-            Assert.Equal(2, events.EventCount<DualModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == model.ID));
+            Assert.Equal(2, events.EventQuery<DualModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == model.ID).LongCount());
         }
 
         public interface IDualQueryHandler : IQueryHandler

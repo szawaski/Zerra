@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using Zerra.Linq;
 using Zerra.Repository.IO;
 using Zerra.Reflection;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository.MariaDb
@@ -39,7 +40,7 @@ namespace Zerra.Repository.MariaDb
         /// <summary>
         /// Converts an update of every row matching a condition to values computed from the row into its SQL statement.
         /// </summary>
-        /// <param name="sets">The members to set from <see cref="LinqExtensions.GetProjectionMembers"/>, each with its value in terms of the row.</param>
+        /// <param name="sets">The members to set from <see cref="ProjectionMember.FromSet"/>, each with its value in terms of the row.</param>
         /// <param name="where">The condition selecting the rows.</param>
         /// <param name="modelDetail">Metadata about the model being changed.</param>
         /// <returns>The SQL.</returns>
@@ -1618,7 +1619,7 @@ namespace Zerra.Repository.MariaDb
                     if (query.ResultOrder is not null)
                     {
                         sbEnd.Write("ORDER BY");
-                        var resultOrders = query.ResultOrder.OrderExpressions;
+                        var resultOrders = query.ResultOrder;
                         for (var o = 0; o < resultOrders.Length; o++)
                         {
                             if (o > 0)
@@ -1645,7 +1646,7 @@ namespace Zerra.Repository.MariaDb
                         sbEnd.Write("ORDER BY");
                         if (query.Order is not null)
                         {
-                            foreach (var orderExp in query.Order.OrderExpressions)
+                            foreach (var orderExp in query.Order)
                             {
                                 ConvertToSql(orderExp.Expression, ref sbEnd, new BuilderContext(rootDependant, operationContext) { IsOrderBy = true, IsSort = true });
                                 if (orderExp.Descending)
@@ -2083,13 +2084,13 @@ namespace Zerra.Repository.MariaDb
             AppendLineBreak(ref sb);
         }
         /// <inheritdoc/>
-        protected override void GenerateOrderSkipTake(QueryOrder? order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
+        protected override void GenerateOrderSkipTake(LinqOrder[]? order, int? skip, int? take, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {
-            if (order?.OrderExpressions.Length > 0)
+            if (order?.Length > 0)
             {
                 sb.Write("ORDER BY");
                 var hasOrder = false;
-                foreach (var orderExp in order.OrderExpressions)
+                foreach (var orderExp in order)
                 {
                     var context = new BuilderContext(rootDependant, operationContext) { IsOrderBy = true, IsSort = true };
                     if (hasOrder)

@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using Zerra.Linq;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
 using Zerra.Reflection;
 using System.Text;
@@ -14,6 +15,7 @@ using System.Runtime.CompilerServices;
 using Npgsql;
 using Zerra.Repository.IO;
 using System.Collections;
+using Zerra.Repository.Transactions;
 
 namespace Zerra.Repository.PostgreSql
 {
@@ -1404,7 +1406,7 @@ namespace Zerra.Repository.PostgreSql
         /// <inheritdoc/>
         public int ExecuteUpdateWhere<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
         {
-            var sql = LinqPostgreSqlConverter.ConvertPersistUpdate(set.GetProjectionMembers(), where, modelDetail);
+            var sql = LinqPostgreSqlConverter.ConvertPersistUpdate(ProjectionMember.FromSet(set), where, modelDetail);
 
             using (var connection = OpenConnection())
             {
@@ -1643,7 +1645,7 @@ namespace Zerra.Repository.PostgreSql
         /// <inheritdoc/>
         public async Task<int> ExecuteUpdateWhereAsync<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
-            var sql = LinqPostgreSqlConverter.ConvertPersistUpdate(set.GetProjectionMembers(), where, modelDetail);
+            var sql = LinqPostgreSqlConverter.ConvertPersistUpdate(ProjectionMember.FromSet(set), where, modelDetail);
 
             using (var connection = await OpenConnectionAsync(cancellationToken))
             {

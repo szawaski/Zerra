@@ -11,6 +11,7 @@ using Zerra.Collections;
 using Zerra.Reflection;
 using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
+using Zerra.Repository.Transactions;
 
 namespace Zerra.Repository
 {
@@ -500,22 +501,12 @@ namespace Zerra.Repository
             //the repository sends a set here when every query of it runs as it is in this engine
             if (query.Set is not null)
                 return ExecuteLinq(query);
+            if (query.Temporal is not null)
+                return QueryTemporal(query);
             if (query is LinqModelQuery modelQuery)
             {
                 if (ModelTypeDetail.RelatedMembers.Count > 0)
                     query.Where = SplitCrossEngineWhere(query.Where);
-                if (modelQuery.Events)
-                {
-                    return query.Terminal switch
-                    {
-                        LinqTerminal.Sequence => QueryEventMany(modelQuery),
-                        LinqTerminal.FirstOrDefault => QueryEventFirst(modelQuery),
-                        LinqTerminal.SingleOrDefault => QueryEventSingle(modelQuery),
-                        LinqTerminal.LongCount => QueryEventCount(modelQuery),
-                        LinqTerminal.Any => QueryEventAny(modelQuery),
-                        _ => throw new NotSupportedException($"{query.Terminal} doesn't load models"),
-                    };
-                }
                 return query.Terminal switch
                 {
                     LinqTerminal.Sequence => QueryMany(modelQuery),
@@ -545,22 +536,12 @@ namespace Zerra.Repository
         {
             if (query.Set is not null)
                 return await ExecuteLinqAsync(query, cancellationToken);
+            if (query.Temporal is not null)
+                return await QueryTemporalAsync(query, cancellationToken);
             if (query is LinqModelQuery modelQuery)
             {
                 if (ModelTypeDetail.RelatedMembers.Count > 0)
                     query.Where = await SplitCrossEngineWhereAsync(query.Where, cancellationToken);
-                if (modelQuery.Events)
-                {
-                    return query.Terminal switch
-                    {
-                        LinqTerminal.Sequence => await QueryEventManyAsync(modelQuery, cancellationToken),
-                        LinqTerminal.FirstOrDefault => await QueryEventFirstAsync(modelQuery, cancellationToken),
-                        LinqTerminal.SingleOrDefault => await QueryEventSingleAsync(modelQuery, cancellationToken),
-                        LinqTerminal.LongCount => await QueryEventCountAsync(modelQuery, cancellationToken),
-                        LinqTerminal.Any => await QueryEventAnyAsync(modelQuery, cancellationToken),
-                        _ => throw new NotSupportedException($"{query.Terminal} doesn't load models"),
-                    };
-                }
                 return query.Terminal switch
                 {
                     LinqTerminal.Sequence => await QueryManyAsync(modelQuery, cancellationToken),
@@ -592,9 +573,30 @@ namespace Zerra.Repository
                 throw new NotSupportedException("Models are loaded by their provider");
             if (query.Terminal != LinqTerminal.Sequence)
                 throw new NotSupportedException($"A stream gives the elements of a query, not its {query.Terminal}");
+            if (query.Temporal is not null)
+                return query.StreamFrom(() => QueryTemporal(query), null);
             if (query.Set is not null || (!query.HasSubquery && ModelTypeDetail.RelatedMembers.Count == 0))
                 return ExecuteLinqStream(query);
             return query.StreamFrom(() => OpenStream(query), null);
+        }
+        //the history of models is read by the store over the states it reads, which load the relations the query reads themselves
+        private object? QueryTemporal(LinqQuery query)
+        {
+            if (query.HasSubquery)
+            {
+                query.Where = ReadForeignSubqueries(query.Where);
+                query.Select = ReadForeignSubqueries(query.Select);
+            }
+            return ExecuteLinq(query);
+        }
+        private async Task<object?> QueryTemporalAsync(LinqQuery query, CancellationToken cancellationToken)
+        {
+            if (query.HasSubquery)
+            {
+                query.Where = await ReadForeignSubqueriesAsync(query.Where, cancellationToken);
+                query.Select = await ReadForeignSubqueriesAsync(query.Select, cancellationToken);
+            }
+            return await ExecuteLinqAsync(query, cancellationToken);
         }
         private object? OpenStream(LinqQuery query)
         {
@@ -626,6 +628,8 @@ namespace Zerra.Repository
                 throw new NotSupportedException("Models are loaded by their provider");
             if (query.Terminal != LinqTerminal.Sequence)
                 throw new NotSupportedException($"A stream gives the elements of a query, not its {query.Terminal}");
+            if (query.Temporal is not null)
+                return query.StreamFromAsync(cancellation => QueryTemporalAsync(query, cancellation), null, cancellationToken);
             if (query.Set is not null || (!query.HasSubquery && ModelTypeDetail.RelatedMembers.Count == 0))
                 return ExecuteLinqStreamAsync(query, cancellationToken);
             return query.StreamFromAsync(cancellation => OpenStreamAsync(query, cancellation), null, cancellationToken);
@@ -661,7 +665,7 @@ namespace Zerra.Repository
             if (query.Order is null)
                 return true;
             var finder = new GraphFinder(this, new Graph());
-            foreach (var order in query.Order.OrderExpressions)
+            foreach (var order in query.Order)
                 finder.Read(order.Expression);
             return !finder.Crosses;
         }
@@ -744,7 +748,7 @@ namespace Zerra.Repository
             finder.Read(query.Value);
             if (query.Order is not null)
             {
-                foreach (var order in query.Order.OrderExpressions)
+                foreach (var order in query.Order)
                     finder.Read(order.Expression);
             }
             if (!finder.Crosses)
@@ -769,7 +773,7 @@ namespace Zerra.Repository
             finder.Read(query.Value);
             if (query.Order is not null)
             {
-                foreach (var order in query.Order.OrderExpressions)
+                foreach (var order in query.Order)
                     finder.Read(order.Expression);
             }
             return OnGetWithRelations(models, finder.Graph);
@@ -791,7 +795,7 @@ namespace Zerra.Repository
             finder.Read(query.Value);
             if (query.Order is not null)
             {
-                foreach (var order in query.Order.OrderExpressions)
+                foreach (var order in query.Order)
                     finder.Read(order.Expression);
             }
             return OnGetWithRelationsAsync(models, finder.Graph, cancellationToken);
@@ -847,58 +851,6 @@ namespace Zerra.Repository
         {
             return Any(query);
         }
-        private IReadOnlyCollection<EventModel<TModel>> QueryEventMany(LinqModelQuery query)
-        {
-            OnQueryWithRelations(query.Graph);
-
-            var models = EventMany(query);
-
-            if (models.Count > 0)
-            {
-                var returnModels = OnGetWithRelations(models.Select(x => x.Model).ToArray(), query.Graph);
-                return models.Where(x => returnModels.Contains(x.Model)).ToArray();
-            }
-
-            return models;
-        }
-        private EventModel<TModel>? QueryEventFirst(LinqModelQuery query)
-        {
-            OnQueryWithRelations(query.Graph);
-
-            var model = EventFirst(query);
-
-            if (model is not null)
-            {
-                var returnModel = OnGetWithRelations([model.Model], query.Graph).FirstOrDefault();
-                if (returnModel is null)
-                    model = null;
-            }
-
-            return model;
-        }
-        private EventModel<TModel>? QueryEventSingle(LinqModelQuery query)
-        {
-            OnQueryWithRelations(query.Graph);
-
-            var model = EventSingle(query);
-
-            if (model is not null)
-            {
-                var returnModel = OnGetWithRelations([model.Model], query.Graph).FirstOrDefault();
-                if (returnModel is null)
-                    model = null;
-            }
-
-            return model;
-        }
-        private long QueryEventCount(LinqModelQuery query)
-        {
-            return EventCount(query);
-        }
-        private bool QueryEventAny(LinqModelQuery query)
-        {
-            return EventAny(query);
-        }
 
         private async Task<IReadOnlyCollection<TModel>> QueryManyAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
@@ -950,59 +902,6 @@ namespace Zerra.Repository
         {
             return AnyAsync(query, cancellationToken);
         }
-        private async Task<IReadOnlyCollection<EventModel<TModel>>> QueryEventManyAsync(LinqModelQuery query, CancellationToken cancellationToken)
-        {
-            OnQueryWithRelations(query.Graph);
-
-            var models = await EventManyAsync(query, cancellationToken);
-
-            if (models.Count > 0)
-            {
-                var returnModels = await OnGetWithRelationsAsync(models.Select(x => x.Model).ToArray(), query.Graph, cancellationToken);
-                return models.Where(x => returnModels.Contains(x.Model)).ToArray();
-            }
-
-            return models;
-        }
-        private async Task<EventModel<TModel>?> QueryEventFirstAsync(LinqModelQuery query, CancellationToken cancellationToken)
-        {
-            OnQueryWithRelations(query.Graph);
-
-            var model = await EventFirstAsync(query, cancellationToken);
-
-            if (model is not null)
-            {
-                var returnModel = (await OnGetWithRelationsAsync([model.Model], query.Graph, cancellationToken)).FirstOrDefault();
-                if (returnModel is null)
-                    model = null;
-            }
-
-            return model;
-        }
-        private async Task<EventModel<TModel>?> QueryEventSingleAsync(LinqModelQuery query, CancellationToken cancellationToken)
-        {
-            OnQueryWithRelations(query.Graph);
-
-            var model = await EventSingleAsync(query, cancellationToken);
-
-            if (model is not null)
-            {
-                var returnModel = (await OnGetWithRelationsAsync([model.Model], query.Graph, cancellationToken)).FirstOrDefault();
-                if (returnModel is null)
-                    model = null;
-            }
-
-            return model;
-        }
-        private Task<long> QueryEventCountAsync(LinqModelQuery query, CancellationToken cancellationToken)
-        {
-            return EventCountAsync(query, cancellationToken);
-        }
-        private Task<bool> QueryEventAnyAsync(LinqModelQuery query, CancellationToken cancellationToken)
-        {
-            return EventAnyAsync(query, cancellationToken);
-        }
-
         /// <summary>Queries and returns multiple models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <returns>A collection of matching models.</returns>
@@ -1027,26 +926,6 @@ namespace Zerra.Repository
         /// <param name="query">The query parameters.</param>
         /// <returns><see langword="true"/> if any matching model exists; otherwise <see langword="false"/>.</returns>
         protected abstract bool Any(LinqModelQuery query);
-        /// <summary>Queries and returns multiple event models matching the given query.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>A collection of matching event models.</returns>
-        protected abstract IReadOnlyCollection<EventModel<TModel>> EventMany(LinqModelQuery query);
-        /// <summary>Queries and returns the first event model matching the given query, or <see langword="null"/>.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>The first matching event model, or <see langword="null"/>.</returns>
-        protected abstract EventModel<TModel>? EventFirst(LinqModelQuery query);
-        /// <summary>Queries and returns the single event model matching the given query, or <see langword="null"/>.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>The single matching event model, or <see langword="null"/>.</returns>
-        protected abstract EventModel<TModel>? EventSingle(LinqModelQuery query);
-        /// <summary>Returns the count of event models matching the given query.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns>The count of matching event models.</returns>
-        protected abstract long EventCount(LinqModelQuery query);
-        /// <summary>Returns whether any event model exists matching the given query.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <returns><see langword="true"/> if any matching event model exists; otherwise <see langword="false"/>.</returns>
-        protected abstract bool EventAny(LinqModelQuery query);
 
         /// <summary>Asynchronously queries and returns multiple models matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
@@ -1087,32 +966,6 @@ namespace Zerra.Repository
         /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task containing <see langword="true"/> if any matching model exists; otherwise <see langword="false"/>.</returns>
         protected abstract Task<bool> AnyAsync(LinqModelQuery query, CancellationToken cancellationToken);
-        /// <summary>Asynchronously queries and returns multiple event models matching the given query.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <param name="cancellationToken">A token that cancels the query.</param>
-        /// <returns>A task containing a collection of matching event models.</returns>
-        protected abstract Task<IReadOnlyCollection<EventModel<TModel>>> EventManyAsync(LinqModelQuery query, CancellationToken cancellationToken);
-        /// <summary>Asynchronously queries and returns the first event model matching the given query, or <see langword="null"/>.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <param name="cancellationToken">A token that cancels the query.</param>
-        /// <returns>A task containing the first matching event model, or <see langword="null"/>.</returns>
-        protected abstract Task<EventModel<TModel>?> EventFirstAsync(LinqModelQuery query, CancellationToken cancellationToken);
-        /// <summary>Asynchronously queries and returns the single event model matching the given query, or <see langword="null"/>.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <param name="cancellationToken">A token that cancels the query.</param>
-        /// <returns>A task containing the single matching event model, or <see langword="null"/>.</returns>
-        protected abstract Task<EventModel<TModel>?> EventSingleAsync(LinqModelQuery query, CancellationToken cancellationToken);
-        /// <summary>Asynchronously returns the count of event models matching the given query.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <param name="cancellationToken">A token that cancels the query.</param>
-        /// <returns>A task containing the count of matching event models.</returns>
-        protected abstract Task<long> EventCountAsync(LinqModelQuery query, CancellationToken cancellationToken);
-        /// <summary>Asynchronously returns whether any event model exists matching the given query.</summary>
-        /// <param name="query">The query parameters.</param>
-        /// <param name="cancellationToken">A token that cancels the query.</param>
-        /// <returns>A task containing <see langword="true"/> if any matching event model exists; otherwise <see langword="false"/>.</returns>
-        protected abstract Task<bool> EventAnyAsync(LinqModelQuery query, CancellationToken cancellationToken);
-
         /// <summary>The <see cref="Type"/> of <see cref="PersistEvent"/>, used for persist event metadata.</summary>
         protected static readonly Type EventInfoType = typeof(PersistEvent);
 

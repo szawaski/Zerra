@@ -376,7 +376,7 @@ namespace Zerra.Repository.Test
             modelCheck = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
-            var graphEvent = Assert.Single(repo.EventMany<TestTypesModel>(TemporalOrder.Oldest, (ulong?)2, null, null, null, x => x.KeyA == model.KeyA));
+            var graphEvent = Assert.Single(repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest, numberFrom: 2).Where(x => x.Model.KeyA == model.KeyA).ToList());
             Assert.Equal("UpdatedInt32", graphEvent.EventName);
             Assert.NotNull(graphEvent.GraphChange);
             Assert.True(graphEvent.GraphChange.HasMember(nameof(TestTypesModel.Int32Thing)));
@@ -392,19 +392,19 @@ namespace Zerra.Repository.Test
             Assert.Equal(0, repo.Query<TestTypesModel>().Count(x => x.KeyA == model.KeyA));
             Assert.False(repo.Query<TestTypesModel>().Any(x => x.KeyA == model.KeyA));
 
-            Assert.Empty(repo.TemporalMany<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.Equal(0, repo.TemporalCount<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.False(repo.TemporalAny<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
+            Assert.Empty(repo.TemporalQuery<TestTypesModel>().Where(x => x.KeyA == model.KeyA).ToList());
+            Assert.Equal(0, repo.TemporalQuery<TestTypesModel>().Where(x => x.KeyA == model.KeyA).LongCount());
+            Assert.False(repo.TemporalQuery<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Any());
 
             //the model is gone but its events are still the record of what happened
-            var historyAfterDelete = repo.EventMany<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA);
+            var historyAfterDelete = repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).ToList();
             Assert.Equal(3, historyAfterDelete.Count);
             Assert.Equal(["Created", "Updated", "UpdatedInt32"], historyAfterDelete.Select(x => x.EventName));
-            Assert.Equal(3, repo.EventCount<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.True(repo.EventAny<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
+            Assert.Equal(3, repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).LongCount());
+            Assert.True(repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).Any());
 
-            //reading newest first starts from the saved state, which records the delete
-            Assert.Null(repo.EventFirst<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
+            //the newest event is the first of the events, the last before the delete
+            Assert.Equal("UpdatedInt32", repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA).FirstOrDefault()!.EventName);
 
             //an update or delete by condition finds the streams the condition names and records the change on each
             var byCondition = TestTypesModel.Create();
@@ -413,7 +413,7 @@ namespace Zerra.Repository.Test
             var changed = repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == byCondition.KeyA);
             Assert.Equal(77, changed.Int32Thing);
             Assert.Equal(byCondition.StringThing, changed.StringThing);
-            var conditionEvent = repo.EventFirst<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == byCondition.KeyA);
+            var conditionEvent = repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == byCondition.KeyA).FirstOrDefault();
             Assert.Equal("UpdatedByCondition", conditionEvent.EventName);
             Assert.True(conditionEvent.GraphChange.HasMember(nameof(TestTypesModel.Int32Thing)));
             Assert.Equal(0, repo.Delete<TestTypesModel>(x => x.KeyA == byCondition.KeyA && x.Int32Thing == 1));
@@ -467,7 +467,7 @@ namespace Zerra.Repository.Test
             modelCheck = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA);
             AssertAreEqual(model, modelCheck);
 
-            var graphEvent = Assert.Single(await repo.EventManyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)2, null, null, null, x => x.KeyA == model.KeyA));
+            var graphEvent = Assert.Single(await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest, numberFrom: 2).Where(x => x.Model.KeyA == model.KeyA).ToListAsync());
             Assert.Equal("UpdatedInt32", graphEvent.EventName);
             Assert.NotNull(graphEvent.GraphChange);
             Assert.True(graphEvent.GraphChange.HasMember(nameof(TestTypesModel.Int32Thing)));
@@ -483,19 +483,19 @@ namespace Zerra.Repository.Test
             Assert.Equal(0, await repo.Query<TestTypesModel>().CountAsync(x => x.KeyA == model.KeyA));
             Assert.False(await repo.Query<TestTypesModel>().AnyAsync(x => x.KeyA == model.KeyA));
 
-            Assert.Empty(await repo.TemporalManyAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.Equal(0, await repo.TemporalCountAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.False(await repo.TemporalAnyAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
+            Assert.Empty(await repo.TemporalQuery<TestTypesModel>().Where(x => x.KeyA == model.KeyA).ToListAsync());
+            Assert.Equal(0, await repo.TemporalQuery<TestTypesModel>().Where(x => x.KeyA == model.KeyA).LongCountAsync());
+            Assert.False(await repo.TemporalQuery<TestTypesModel>().Where(x => x.KeyA == model.KeyA).AnyAsync());
 
             //the model is gone but its events are still the record of what happened
-            var historyAfterDelete = await repo.EventManyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA);
+            var historyAfterDelete = await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).ToListAsync();
             Assert.Equal(3, historyAfterDelete.Count);
             Assert.Equal(["Created", "Updated", "UpdatedInt32"], historyAfterDelete.Select(x => x.EventName));
-            Assert.Equal(3, await repo.EventCountAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.True(await repo.EventAnyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
+            Assert.Equal(3, await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).LongCountAsync());
+            Assert.True(await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).AnyAsync());
 
-            //reading newest first starts from the saved state, which records the delete
-            Assert.Null(await repo.EventFirstAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
+            //the newest event is the first of the events, the last before the delete
+            Assert.Equal("UpdatedInt32", (await repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA).FirstOrDefaultAsync())!.EventName);
 
             //an update or delete by condition finds the streams the condition names and records the change on each
             var byCondition = TestTypesModel.Create();
@@ -504,7 +504,7 @@ namespace Zerra.Repository.Test
             var changed = await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == byCondition.KeyA);
             Assert.Equal(77, changed.Int32Thing);
             Assert.Equal(byCondition.StringThing, changed.StringThing);
-            var conditionEvent = await repo.EventFirstAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == byCondition.KeyA);
+            var conditionEvent = await repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == byCondition.KeyA).FirstOrDefaultAsync();
             Assert.Equal("UpdatedByCondition", conditionEvent.EventName);
             Assert.Equal(0, await repo.DeleteAsync<TestTypesModel>(x => x.KeyA == byCondition.KeyA && x.Int32Thing == 1));
             Assert.Equal(1, await repo.DeleteAsync<TestTypesModel>("DeletedByCondition", x => x.KeyA == byCondition.KeyA));
@@ -520,8 +520,8 @@ namespace Zerra.Repository.Test
             AssertAreEqual(model, repo.Query<TestTypesModel>().FirstOrDefault(x => x.KeyA == model.KeyA));
 
             //the state after every event, oldest first, is a history query
-            var manyResult = repo.TemporalMany<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA).ToArray();
-            Assert.Equal(2, manyResult.Length);
+            var manyResult = repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == model.KeyA).ToList();
+            Assert.Equal(2, manyResult.Count);
             AssertAreEqual(createdModel, manyResult.First());
             AssertAreEqual(model, manyResult.Last());
 
@@ -534,7 +534,7 @@ namespace Zerra.Repository.Test
             Assert.False(repo.Query<TestTypesModel>().Any(x => x.KeyA == missingKey));
 
             //the events themselves, each carrying the change that produced it and the state it produced
-            var events = repo.EventMany<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA);
+            var events = repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).ToList();
             Assert.Equal(2, events.Count);
             Assert.Equal(["Created", "Updated"], events.Select(x => x.EventName));
             Assert.Equal([0UL, 1UL], events.Select(x => x.Number));
@@ -548,68 +548,70 @@ namespace Zerra.Repository.Test
             var updatedDate = events.Last().Date;
             Assert.True(updatedDate > createdDate, $"{updatedDate:O} is not after {createdDate:O}");
 
-            Assert.Equal(2, repo.EventCount<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.True(repo.EventAny<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.Equal(0, repo.EventCount<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == missingKey));
-            Assert.False(repo.EventAny<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == missingKey));
+            Assert.Equal(2, repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).LongCount());
+            Assert.True(repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).Any());
+            Assert.Equal(0, repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == missingKey).LongCount());
+            Assert.False(repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == missingKey).Any());
 
             //bounded by event number
-            var eventsFromUpdate = repo.EventMany<TestTypesModel>(TemporalOrder.Oldest, (ulong?)1, null, null, null, x => x.KeyA == model.KeyA);
+            var eventsFromUpdate = repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest, numberFrom: 1).Where(x => x.Model.KeyA == model.KeyA).ToList();
             AssertAreEqual(model, Assert.Single(eventsFromUpdate).Model);
 
             //bounded by event date
-            var eventsToCreate = repo.EventMany<TestTypesModel>(TemporalOrder.Oldest, (DateTime?)null, createdDate, null, null, x => x.KeyA == model.KeyA);
+            var eventsToCreate = repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest, dateTo: createdDate).Where(x => x.Model.KeyA == model.KeyA).ToList();
             AssertAreEqual(createdModel, Assert.Single(eventsToCreate).Model);
-            var eventsFromUpdateDate = repo.EventMany<TestTypesModel>(TemporalOrder.Oldest, updatedDate, (DateTime?)null, null, null, x => x.KeyA == model.KeyA);
+            var eventsFromUpdateDate = repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest, dateFrom: updatedDate).Where(x => x.Model.KeyA == model.KeyA).ToList();
             AssertAreEqual(model, Assert.Single(eventsFromUpdateDate).Model);
 
             //take counts from the end of the stream for newest and skip drops the oldest
-            var newestEvent = repo.EventMany<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, 1, x => x.KeyA == model.KeyA);
+            var newestEvent = repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA).Take(1).ToList();
             AssertAreEqual(model, Assert.Single(newestEvent).Model);
-            var eventsAfterFirst = repo.EventMany<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, 1, null, x => x.KeyA == model.KeyA);
+            var eventsAfterFirst = repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).Skip(1).ToList();
             AssertAreEqual(model, Assert.Single(eventsAfterFirst).Model);
 
             //the model state at every point in its history
-            var states = repo.TemporalMany<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA);
+            var states = repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == model.KeyA).ToList();
             Assert.Equal(2, states.Count);
             AssertAreEqual(createdModel, states.First());
             AssertAreEqual(model, states.Last());
 
-            Assert.Equal(2, repo.TemporalCount<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.True(repo.TemporalAny<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.Equal(0, repo.TemporalCount<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == missingKey));
-            Assert.False(repo.TemporalAny<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == missingKey));
+            Assert.Equal(2, repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == model.KeyA).LongCount());
+            Assert.True(repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == model.KeyA).Any());
+            Assert.Equal(0, repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == missingKey).LongCount());
+            Assert.False(repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == missingKey).Any());
 
             //first gives the state the replay ends on
-            AssertAreEqual(model, repo.TemporalFirst<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA, null, null));
-            Assert.Null(repo.TemporalFirst<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == missingKey, null, null));
+            AssertAreEqual(model, repo.TemporalQuery<TestTypesModel>().Where(x => x.KeyA == model.KeyA).FirstOrDefault());
+            Assert.Null(repo.TemporalQuery<TestTypesModel>().Where(x => x.KeyA == missingKey).FirstOrDefault());
 
             //the event the replay ends on
-            var lastEvent = repo.EventFirst<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA);
+            var lastEvent = repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA).FirstOrDefault();
             Assert.NotNull(lastEvent);
             Assert.Equal("Updated", lastEvent.EventName);
             Assert.Equal(1UL, lastEvent.Number);
             AssertAreEqual(model, lastEvent.Model);
-            Assert.Null(repo.EventFirst<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == missingKey));
+            Assert.Null(repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == missingKey).FirstOrDefault());
 
-            var singleEvent = repo.EventSingle<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA);
+            //single is LINQ's single, so a history of two events is one too many
+            _ = Assert.Throws<InvalidOperationException>(() => repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA).SingleOrDefault());
+            var singleEvent = repo.EventQuery<TestTypesModel>(numberFrom: 1).Where(x => x.Model.KeyA == model.KeyA).SingleOrDefault();
             Assert.NotNull(singleEvent);
             Assert.Equal("Updated", singleEvent.EventName);
             AssertAreEqual(model, singleEvent.Model);
-            Assert.Null(repo.EventSingle<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == missingKey));
+            Assert.Null(repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == missingKey).SingleOrDefault());
 
             //states bounded by event date
-            var statesToCreate = repo.TemporalMany<TestTypesModel>(TemporalOrder.Oldest, (DateTime?)null, createdDate, null, null, x => x.KeyA == model.KeyA);
+            var statesToCreate = repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest, dateTo: createdDate).Where(x => x.KeyA == model.KeyA).ToList();
             AssertAreEqual(createdModel, Assert.Single(statesToCreate));
-            var statesFromUpdate = repo.TemporalMany<TestTypesModel>(TemporalOrder.Oldest, updatedDate, (DateTime?)null, null, null, x => x.KeyA == model.KeyA);
+            var statesFromUpdate = repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest, dateFrom: updatedDate).Where(x => x.KeyA == model.KeyA).ToList();
             AssertAreEqual(model, Assert.Single(statesFromUpdate));
 
             //states bounded by count from either end of the stream
-            var oldestState = repo.TemporalMany<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, 1, x => x.KeyA == model.KeyA);
+            var oldestState = repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == model.KeyA).Take(1).ToList();
             AssertAreEqual(createdModel, Assert.Single(oldestState));
-            var newestState = repo.TemporalMany<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, 1, x => x.KeyA == model.KeyA);
+            var newestState = repo.TemporalQuery<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Take(1).ToList();
             AssertAreEqual(model, Assert.Single(newestState));
-            var statesAfterFirst = repo.TemporalMany<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, 1, null, x => x.KeyA == model.KeyA);
+            var statesAfterFirst = repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == model.KeyA).Skip(1).ToList();
             AssertAreEqual(model, Assert.Single(statesAfterFirst));
         }
 
@@ -622,8 +624,8 @@ namespace Zerra.Repository.Test
             AssertAreEqual(model, await repo.Query<TestTypesModel>().FirstOrDefaultAsync(x => x.KeyA == model.KeyA));
 
             //the state after every event, oldest first, is a history query
-            var manyResult = (await repo.TemporalManyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA)).ToArray();
-            Assert.Equal(2, manyResult.Length);
+            var manyResult = (await repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == model.KeyA).ToListAsync()).ToList();
+            Assert.Equal(2, manyResult.Count);
             AssertAreEqual(createdModel, manyResult.First());
             AssertAreEqual(model, manyResult.Last());
 
@@ -636,7 +638,7 @@ namespace Zerra.Repository.Test
             Assert.False(await repo.Query<TestTypesModel>().AnyAsync(x => x.KeyA == missingKey));
 
             //the events themselves, each carrying the change that produced it and the state it produced
-            var events = await repo.EventManyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA);
+            var events = await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).ToListAsync();
             Assert.Equal(2, events.Count);
             Assert.Equal(["Created", "Updated"], events.Select(x => x.EventName));
             Assert.Equal([0UL, 1UL], events.Select(x => x.Number));
@@ -650,68 +652,69 @@ namespace Zerra.Repository.Test
             var updatedDate = events.Last().Date;
             Assert.True(updatedDate > createdDate, $"{updatedDate:O} is not after {createdDate:O}");
 
-            Assert.Equal(2, await repo.EventCountAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.True(await repo.EventAnyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.Equal(0, await repo.EventCountAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == missingKey));
-            Assert.False(await repo.EventAnyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == missingKey));
+            Assert.Equal(2, await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).LongCountAsync());
+            Assert.True(await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).AnyAsync());
+            Assert.Equal(0, await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == missingKey).LongCountAsync());
+            Assert.False(await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == missingKey).AnyAsync());
 
             //bounded by event number
-            var eventsFromUpdate = await repo.EventManyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)1, null, null, null, x => x.KeyA == model.KeyA);
+            var eventsFromUpdate = await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest, numberFrom: 1).Where(x => x.Model.KeyA == model.KeyA).ToListAsync();
             AssertAreEqual(model, Assert.Single(eventsFromUpdate).Model);
 
             //bounded by event date
-            var eventsToCreate = await repo.EventManyAsync<TestTypesModel>(TemporalOrder.Oldest, (DateTime?)null, createdDate, null, null, x => x.KeyA == model.KeyA);
+            var eventsToCreate = await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest, dateTo: createdDate).Where(x => x.Model.KeyA == model.KeyA).ToListAsync();
             AssertAreEqual(createdModel, Assert.Single(eventsToCreate).Model);
-            var eventsFromUpdateDate = await repo.EventManyAsync<TestTypesModel>(TemporalOrder.Oldest, updatedDate, (DateTime?)null, null, null, x => x.KeyA == model.KeyA);
+            var eventsFromUpdateDate = await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest, dateFrom: updatedDate).Where(x => x.Model.KeyA == model.KeyA).ToListAsync();
             AssertAreEqual(model, Assert.Single(eventsFromUpdateDate).Model);
 
             //take counts from the end of the stream for newest and skip drops the oldest
-            var newestEvent = await repo.EventManyAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, 1, x => x.KeyA == model.KeyA);
+            var newestEvent = await repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA).Take(1).ToListAsync();
             AssertAreEqual(model, Assert.Single(newestEvent).Model);
-            var eventsAfterFirst = await repo.EventManyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, 1, null, x => x.KeyA == model.KeyA);
+            var eventsAfterFirst = await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).Skip(1).ToListAsync();
             AssertAreEqual(model, Assert.Single(eventsAfterFirst).Model);
 
             //the model state at every point in its history
-            var states = await repo.TemporalManyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA);
+            var states = await repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == model.KeyA).ToListAsync();
             Assert.Equal(2, states.Count);
             AssertAreEqual(createdModel, states.First());
             AssertAreEqual(model, states.Last());
 
-            Assert.Equal(2, await repo.TemporalCountAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.True(await repo.TemporalAnyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA));
-            Assert.Equal(0, await repo.TemporalCountAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == missingKey));
-            Assert.False(await repo.TemporalAnyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.KeyA == missingKey));
+            Assert.Equal(2, await repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == model.KeyA).LongCountAsync());
+            Assert.True(await repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == model.KeyA).AnyAsync());
+            Assert.Equal(0, await repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == missingKey).LongCountAsync());
+            Assert.False(await repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == missingKey).AnyAsync());
 
             //first gives the state the replay ends on
-            AssertAreEqual(model, await repo.TemporalFirstAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA, null));
-            Assert.Null(await repo.TemporalFirstAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == missingKey, null));
+            AssertAreEqual(model, await repo.TemporalQuery<TestTypesModel>().Where(x => x.KeyA == model.KeyA).FirstOrDefaultAsync());
+            Assert.Null(await repo.TemporalQuery<TestTypesModel>().Where(x => x.KeyA == missingKey).FirstOrDefaultAsync());
 
             //the event the replay ends on
-            var lastEvent = await repo.EventFirstAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA);
+            var lastEvent = await repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA).FirstOrDefaultAsync();
             Assert.NotNull(lastEvent);
             Assert.Equal("Updated", lastEvent.EventName);
             Assert.Equal(1UL, lastEvent.Number);
             AssertAreEqual(model, lastEvent.Model);
-            Assert.Null(await repo.EventFirstAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == missingKey));
+            Assert.Null(await repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == missingKey).FirstOrDefaultAsync());
 
-            var singleEvent = await repo.EventSingleAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == model.KeyA);
+            _ = await Assert.ThrowsAsync<InvalidOperationException>(() => repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA).SingleOrDefaultAsync());
+            var singleEvent = await repo.EventQuery<TestTypesModel>(numberFrom: 1).Where(x => x.Model.KeyA == model.KeyA).SingleOrDefaultAsync();
             Assert.NotNull(singleEvent);
             Assert.Equal("Updated", singleEvent.EventName);
             AssertAreEqual(model, singleEvent.Model);
-            Assert.Null(await repo.EventSingleAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, null, x => x.KeyA == missingKey));
+            Assert.Null(await repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == missingKey).SingleOrDefaultAsync());
 
             //states bounded by event date
-            var statesToCreate = await repo.TemporalManyAsync<TestTypesModel>(TemporalOrder.Oldest, (DateTime?)null, createdDate, null, null, x => x.KeyA == model.KeyA);
+            var statesToCreate = await repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest, dateTo: createdDate).Where(x => x.KeyA == model.KeyA).ToListAsync();
             AssertAreEqual(createdModel, Assert.Single(statesToCreate));
-            var statesFromUpdate = await repo.TemporalManyAsync<TestTypesModel>(TemporalOrder.Oldest, updatedDate, (DateTime?)null, null, null, x => x.KeyA == model.KeyA);
+            var statesFromUpdate = await repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest, dateFrom: updatedDate).Where(x => x.KeyA == model.KeyA).ToListAsync();
             AssertAreEqual(model, Assert.Single(statesFromUpdate));
 
             //states bounded by count from either end of the stream
-            var oldestState = await repo.TemporalManyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, null, 1, x => x.KeyA == model.KeyA);
+            var oldestState = await repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == model.KeyA).Take(1).ToListAsync();
             AssertAreEqual(createdModel, Assert.Single(oldestState));
-            var newestState = await repo.TemporalManyAsync<TestTypesModel>(TemporalOrder.Newest, (ulong?)null, null, null, 1, x => x.KeyA == model.KeyA);
+            var newestState = await repo.TemporalQuery<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Take(1).ToListAsync();
             AssertAreEqual(model, Assert.Single(newestState));
-            var statesAfterFirst = await repo.TemporalManyAsync<TestTypesModel>(TemporalOrder.Oldest, (ulong?)null, null, 1, null, x => x.KeyA == model.KeyA);
+            var statesAfterFirst = await repo.TemporalQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.KeyA == model.KeyA).Skip(1).ToListAsync();
             AssertAreEqual(model, Assert.Single(statesAfterFirst));
         }
 

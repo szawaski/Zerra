@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+﻿// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -10,7 +10,7 @@ namespace Zerra.Repository.Linq
     /// <summary>
     /// Finds whether an expression reads given members of its parameter, so a layer can refuse to work on a column it transforms.
     /// </summary>
-    public static class LinqMemberFinder
+    internal static class LinqMemberFinder
     {
         /// <summary>
         /// Returns whether <paramref name="expression"/> reads any of <paramref name="members"/> directly from its first parameter.
@@ -69,7 +69,14 @@ namespace Zerra.Repository.Linq
             public bool Found;
             protected override Expression VisitMember(MemberExpression node)
             {
-                if (parameter is not null ? node.Expression == parameter : node.Expression is ParameterExpression p && p.Type == parameterType)
+                //the model of an event query is read through the event's Model, and the event's own members aren't the model's
+                var eventParameter = node.Expression is MemberExpression { Member.Name: "Model", Expression: ParameterExpression modelOf } && IsEvent(modelOf.Type) ? modelOf : null;
+                bool reads;
+                if (parameter is not null)
+                    reads = eventParameter is not null ? eventParameter == parameter : node.Expression == parameter && !IsEvent(parameter.Type);
+                else
+                    reads = eventParameter is not null ? node.Expression!.Type == parameterType : node.Expression is ParameterExpression p && p.Type == parameterType;
+                if (reads)
                 {
                     foreach (var member in members)
                     {
@@ -82,6 +89,7 @@ namespace Zerra.Repository.Linq
                 }
                 return base.VisitMember(node);
             }
+            private static bool IsEvent(Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(EventModel<>);
         }
     }
 }

@@ -5,6 +5,7 @@
 using System.Reflection;
 using Xunit;
 using Zerra.Encryption;
+using Zerra.Repository.Linq;
 using Zerra.Repository.Memory;
 
 namespace Zerra.Repository.Test
@@ -114,8 +115,8 @@ namespace Zerra.Repository.Test
                 _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => repo.Query<Parent>().AnyAsync(x => x.ID == parent.ID, token));
             }
             _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => plain.Query<Parent>().AllAsync(x => x.ID == parent.ID, token));
-            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => events.EventManyAsync<Parent>(TemporalOrder.Oldest, (DateTime?)null, null, null, null, x => x.ID == parent.ID, cancellationToken: token));
-            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => events.TemporalManyAsync<Parent>(TemporalOrder.Oldest, (DateTime?)null, null, null, null, x => x.ID == parent.ID, cancellationToken: token));
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => events.EventQuery<Parent>(TemporalOrder.Oldest).Where(x => x.Model.ID == parent.ID).ToListAsync(cancellationToken: token));
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => events.TemporalQuery<Parent>(TemporalOrder.Oldest).Where(x => x.ID == parent.ID).ToListAsync(cancellationToken: token));
 
             //a change doesn't run either
             var added = new Parent { ID = Guid.NewGuid(), Number = 2 };
