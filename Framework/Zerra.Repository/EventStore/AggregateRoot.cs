@@ -118,7 +118,10 @@ namespace Zerra.Repository
 
             var applyMethod = GetApplyMethod(eventType);
 
-            var eventNumber = await this.eventStore.TerminateAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any, cancellationToken);
+            var eventBytes = EventStoreCommon.Serialize(@event);
+            if (RepoTransaction.Current is not null)
+                throw new NotSupportedException("An event store can't take part in a transaction");
+            var eventNumber = await this.eventStore.TerminateAsync(Guid.NewGuid(), eventName, streamName, validateEventNumber ? LastEventNumber : null, validateEventNumber ? (LastEventNumber.HasValue ? EventStoreState.Existing : EventStoreState.NotExisting) : EventStoreState.Any, eventBytes, cancellationToken);
 
             await (Task)applyMethod.CallerBoxed!(this, [@event])!;
 
@@ -163,9 +166,10 @@ namespace Zerra.Repository
                 this.LastEventName = eventData.EventName;
                 if (eventData.Deleted)
                 {
-                    //a terminating event carries no data, there is nothing to apply
                     this.IsDeleted = true;
-                    continue;
+                    //a terminating event stored before they carried data has nothing to apply
+                    if (eventData.Data.IsEmpty)
+                        continue;
                 }
                 //read as object, the stored type name gives the event's type
                 var eventModel = EventStoreCommon.Deserialize<object>(eventData.Data.Span);

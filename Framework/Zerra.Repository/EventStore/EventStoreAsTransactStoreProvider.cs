@@ -305,7 +305,7 @@ namespace Zerra.Repository
                 for (var i = eventDatas.Length - 1; i >= 0; i--)
                 {
                     var eventData = eventDatas[i];
-                    //a terminating event carries no data, the model no longer exists
+                    //after a terminating event the model no longer exists, so it has no states
                     if (eventData.Deleted)
                         return;
                     if (PastTo(temporal, eventData))
@@ -346,7 +346,7 @@ namespace Zerra.Repository
             for (var i = eventDatas.Length - 1; i >= 0; i--)
             {
                 var eventData = eventDatas[i];
-                //a terminating event carries no data, the model no longer exists
+                //after a terminating event the model no longer exists, so it has no states
                 if (eventData.Deleted)
                 {
                     models.RemoveRange(start, models.Count - start);
@@ -384,17 +384,19 @@ namespace Zerra.Repository
                 for (var i = eventDatas.Length - 1; i >= 0; i--)
                 {
                     var eventData = eventDatas[i];
-                    //a terminating event carries no data, there is nothing to replay from it
-                    if (eventData.Deleted)
-                        continue;
                     if (PastTo(temporal, eventData))
                         break;
 
-                    lastData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
+                    //a terminating event changes nothing, its model is the state it deleted, and one stored before they carried data has none
+                    if (eventData.Deleted && eventData.Data.IsEmpty)
+                        lastData = new();
+                    else
+                        lastData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                     if (lastData is null)
                         throw new Exception("Failed to deserialize Model");
 
-                    Mapper.MapTo(lastData.Model, modelState, lastData.Graph);
+                    if (!eventData.Deleted)
+                        Mapper.MapTo(lastData.Model, modelState, lastData.Graph);
                     last = eventData;
                 }
                 if (last is not null && InRange(temporal, last))
@@ -409,8 +411,6 @@ namespace Zerra.Repository
                 for (var i = eventDatas.Length - 1; i >= 0; i--)
                 {
                     var eventData = eventDatas[i];
-                    if (eventData.Deleted)
-                        continue;
                     if (PastTo(temporal, eventData))
                         break;
                     if (InRange(temporal, eventData))
@@ -424,17 +424,19 @@ namespace Zerra.Repository
             for (var i = eventDatas.Length - 1; i >= 0; i--)
             {
                 var eventData = eventDatas[i];
-                //a terminating event carries no data, there is nothing to replay from it
-                if (eventData.Deleted)
-                    continue;
                 if (PastTo(temporal, eventData))
                     break;
 
-                var eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
+                EventStoreEventModelData<TModel>? eventModelData;
+                if (eventData.Deleted && eventData.Data.IsEmpty)
+                    eventModelData = new();
+                else
+                    eventModelData = EventStoreCommon.Deserialize<EventStoreEventModelData<TModel>>(eventData.Data.Span);
                 if (eventModelData is null)
                     throw new Exception("Failed to deserialize Model");
 
-                Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
+                if (!eventData.Deleted)
+                    Mapper.MapTo(eventModelData.Model, modelState, eventModelData.Graph);
 
                 if (!InRange(temporal, eventData) || index++ < keepFrom)
                     continue;
@@ -648,7 +650,15 @@ namespace Zerra.Repository
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var eventNumber = engine.Terminate(@event.ID, "Delete", streamName, null, EventStoreState.Existing);
+                var eventStoreModel = new EventStoreEventModelData<TModel>()
+                {
+                    Source = @event.Source,
+                    SourceType = @event.Source?.GetType().Name
+                };
+
+                var data = EventStoreCommon.Serialize(eventStoreModel);
+
+                var eventNumber = engine.Terminate(@event.ID, @event.Name, streamName, null, EventStoreState.Existing, data);
 
                 SaveModelState(id, null, eventNumber, null);
             }
@@ -692,7 +702,15 @@ namespace Zerra.Repository
             {
                 var streamName = EventStoreCommon.GetStreamName<TModel>(id);
 
-                var eventNumber = await engine.TerminateAsync(@event.ID, "Delete", streamName, null, EventStoreState.Existing, cancellationToken);
+                var eventStoreModel = new EventStoreEventModelData<TModel>()
+                {
+                    Source = @event.Source,
+                    SourceType = @event.Source?.GetType().Name
+                };
+
+                var data = EventStoreCommon.Serialize(eventStoreModel);
+
+                var eventNumber = await engine.TerminateAsync(@event.ID, @event.Name, streamName, null, EventStoreState.Existing, data, cancellationToken);
 
                 await SaveModelStateAsync(id, null, eventNumber, null, cancellationToken);
             }

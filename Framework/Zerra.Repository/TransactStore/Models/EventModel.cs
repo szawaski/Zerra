@@ -23,12 +23,12 @@ namespace Zerra.Repository
         /// <summary>Indicates whether this event marks the model as deleted.</summary>
         public bool Deleted { get; set; }
 
-        /// <summary>The partial model instance representing only the properties changed by this event.</summary>
-        public TModel ModelChange { get; set; } = null!;
+        /// <summary>The partial model instance representing only the properties changed by this event, or <see langword="null"/> when it deleted the model.</summary>
+        public TModel? ModelChange { get; set; }
         /// <summary>The graph describing which properties are included in <see cref="ModelChange"/>, or <see langword="null"/> if all properties are included.</summary>
         public Graph? GraphChange { get; set; }
 
-        /// <summary>The full reconstructed model state after applying this event.</summary>
+        /// <summary>The full reconstructed model state after applying this event. When the event deleted the model, the state it deleted.</summary>
         public TModel Model { get; set; } = null!;
         /// <summary>The source object that initiated the event, or <see langword="null"/> if not recorded.</summary>
         public object? Source { get; set; }

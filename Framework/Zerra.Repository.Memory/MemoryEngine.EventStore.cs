@@ -64,7 +64,7 @@ namespace Zerra.Repository.Memory
             }
         }
         /// <inheritdoc/>
-        public ulong Terminate(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState)
+        public ulong Terminate(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data)
         {
             var stream = streams.GetOrAdd(streamName, static () => new MemoryEventStream());
             lock (stream)
@@ -95,13 +95,13 @@ namespace Zerra.Repository.Memory
                     }
                 }
 
-                //the marker has no data which flags it deleted, no more events may be appended after it
+                //no more events may be appended after it
                 var number = (ulong)stream.Events.Count;
                 stream.Events.Add(new EventStoreEventData()
                 {
                     EventID = eventID,
                     EventName = eventName,
-                    Data = default,
+                    Data = data,
                     Deleted = true,
                     Date = DateTime.UtcNow,
                     Number = number
@@ -252,7 +252,7 @@ namespace Zerra.Repository.Memory
             }
         }
         /// <inheritdoc/>
-        public Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, CancellationToken cancellationToken = default)
+        public Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data, CancellationToken cancellationToken = default)
         {
             if (cancellationToken.IsCancellationRequested)
                 return Task.FromCanceled<ulong>(cancellationToken);
@@ -285,13 +285,13 @@ namespace Zerra.Repository.Memory
                     }
                 }
 
-                //the marker has no data which flags it deleted, no more events may be appended after it
+                //no more events may be appended after it
                 var number = (ulong)stream.Events.Count;
                 stream.Events.Add(new EventStoreEventData()
                 {
                     EventID = eventID,
                     EventName = eventName,
-                    Data = default,
+                    Data = data,
                     Deleted = true,
                     Date = DateTime.UtcNow,
                     Number = number

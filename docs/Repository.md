@@ -361,6 +361,8 @@ var shipped = await Repo.EventQuery<OrderDataModel>().CountAsync(x => x.Model.ID
 
 `EventModel<T>` has `Number`, `Date`, `EventName`, `Deleted`, `Model` (the full model after the change), `ModelChange` and `GraphChange` (what was written), and `Source`/`SourceType` (what started the change, when it was recorded).
 
+A deleted model's events end with the delete, which has `Deleted` set, the delete's name and source, and the state it deleted as its `Model`. Its `ModelChange` is null. Add `!x.Deleted` to the `Where` to leave it out.
+
 ## Provider Layers
 
 A layer wraps another provider and is registered in its place. Layers can stack, such as rules over encryption over the table.
@@ -460,7 +462,7 @@ await cart.Append(new CartItemAddedEvent { ProductID = command.ProductID, Quanti
 
 - `validateEventNumber: true` rejects the append if another command changed the stream since this instance rebuilt it.
 - `Rebuild(maxEventNumber, maxEventDate)` rebuilds the state as of an earlier point, and `RebuildOneEvent()` steps forward one event at a time.
-- `Delete` appends a terminating event. `IsCreated`, `IsDeleted`, `LastEventNumber`, `LastEventDate`, and `LastEventName` describe the stream.
+- `Delete` appends a terminating event and applies it like any other, and `Rebuild` applies it too. `IsCreated`, `IsDeleted`, `LastEventNumber`, `LastEventDate`, and `LastEventName` describe the stream.
 
 Aggregate events are the aggregate's state, not bus messages: they never implement `IEvent` and live with the aggregate in the service project. See [Aggregate Events Are Not CQRS Events](Events.md#aggregate-events-are-not-cqrs-events). `Demo/Store/Store.Carts` is a complete example on KurrentDB, with an in-memory fallback.
 

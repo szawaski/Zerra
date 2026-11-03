@@ -187,7 +187,7 @@ catch (TimeoutException)
 
 ## Idempotency
 
-Zerra doesn't redeliver commands unless they're [resilient](Reliability.md#resilient-commands), but a caller that retries after a `TimeoutException` may send one that already ran. Make handlers safe to run twice where you can, like the "already active" check in `ActivateUserCommand` above, or give the command an ID the caller creates and skip IDs already handled. See [Making Handlers Safe](Reliability.md#making-handlers-safe).
+Zerra doesn't redeliver commands unless they're [resilient](Reliability.md#resilient-commands), but a caller that retries after a `TimeoutException` may send one that already ran. Make handlers safe to run twice where you can, like the "already active" check in `ActivateUserCommand` above, or give the command an ID the caller creates and skip IDs already handled. See [Building Handlers for It](Reliability.md#building-handlers-for-it).
 
 ## Coordinating Several Services
 

@@ -84,6 +84,105 @@ namespace Zerra.Repository.Test
 
         private static int[] Values(IEnumerable<HistoryModel> models) => models.Select(x => x.Value).ToArray();
 
+        public sealed class DeleteSource
+        {
+            public string? User { get; set; }
+        }
+
+        //the delete is the last event of a deleted model's history, with its name and source, and the state it deleted as its model
+        [Theory]
+        [MemberData(nameof(Snapshots))]
+        public async Task DeleteIsAnEvent(bool snapshots)
+        {
+            var (repo, a, _) = Create(snapshots);
+            var cancellationToken = TestContext.Current.CancellationToken;
+
+            var c = new HistoryModel { ID = Guid.NewGuid(), Value = 100, Name = "c" };
+            repo.Create(c);
+            c.Value = 200;
+            repo.Update(c);
+            repo.Delete("Removed", new DeleteSource { User = "admin" }, c);
+
+            var deleted = repo.EventQuery<HistoryModel>().First(x => x.Model.ID == c.ID);
+            Assert.Equal(2UL, deleted.Number);
+            Assert.Equal("Removed", deleted.EventName);
+            Assert.True(deleted.Deleted);
+            Assert.Equal(200, deleted.Model.Value);
+            Assert.Equal("c", deleted.Model.Name);
+            Assert.Null(deleted.ModelChange);
+            Assert.Null(deleted.GraphChange);
+            Assert.Equal("admin", Assert.IsType<DeleteSource>(deleted.Source).User);
+            Assert.Equal(nameof(DeleteSource), deleted.SourceType);
+            Assert.Equal(2UL, (await repo.EventQuery<HistoryModel>().FirstOrDefaultAsync(x => x.Model.ID == c.ID, cancellationToken))!.Number);
+            Assert.Equal(2UL, repo.EventQuery<HistoryModel>().Single(x => x.Model.ID == c.ID && x.Deleted).Number);
+
+            //every order, range, and page counts it like the other events
+            Assert.Equal([0UL, 1UL, 2UL], repo.EventQuery<HistoryModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == c.ID).Select(x => x.Number).ToList());
+            Assert.Equal([2UL], repo.EventQuery<HistoryModel>().Where(x => x.Model.ID == c.ID).Take(1).Select(x => x.Number).ToList());
+            Assert.Equal([1UL], repo.EventQuery<HistoryModel>().Where(x => x.Model.ID == c.ID).Skip(1).Take(1).Select(x => x.Number).ToList());
+            Assert.Equal([2UL], repo.EventQuery<HistoryModel>(TemporalOrder.Oldest).Where(x => x.Model.ID == c.ID).Skip(2).Select(x => x.Number).ToList());
+            Assert.Equal([1UL, 0UL], repo.EventQuery<HistoryModel>(numberTo: 1).Where(x => x.Model.ID == c.ID).Select(x => x.Number).ToList());
+            Assert.Equal(1UL, repo.EventQuery<HistoryModel>(numberTo: 1).First(x => x.Model.ID == c.ID).Number);
+            Assert.Equal([2UL], repo.EventQuery<HistoryModel>(numberFrom: 2).Where(x => x.Model.ID == c.ID).Select(x => x.Number).ToList());
+            Assert.Equal(2UL, repo.EventQuery<HistoryModel>(TemporalOrder.Oldest, numberFrom: 2).First(x => x.Model.ID == c.ID).Number);
+            Assert.Equal(3, repo.EventQuery<HistoryModel>().Count(x => x.Model.ID == c.ID));
+            Assert.Equal(5, await repo.EventQuery<HistoryModel>().Where(x => x.Model.ID == c.ID || x.Model.ID == a).CountAsync(x => !x.Deleted, cancellationToken));
+
+            //a condition on the model matches the delete by the state it deleted, and leaving deletes out gives the last change
+            Assert.Equal([2UL, 1UL], repo.EventQuery<HistoryModel>().Where(x => x.Model.ID == c.ID && x.Model.Value == 200).Select(x => x.Number).ToList());
+            Assert.Equal(1UL, repo.EventQuery<HistoryModel>().First(x => x.Model.ID == c.ID && !x.Deleted).Number);
+
+            //a model that isn't deleted has no delete event
+            Assert.False(repo.EventQuery<HistoryModel>().Any(x => x.Model.ID == a && x.Deleted));
+
+            //a delete without a name gets the default name, as other changes do
+            var d = new HistoryModel { ID = Guid.NewGuid(), Value = 1, Name = "d" };
+            repo.Create(d);
+            await repo.DeleteAsync(d, cancellationToken);
+            var unnamed = (await repo.EventQuery<HistoryModel>().FirstOrDefaultAsync(x => x.Model.ID == d.ID, cancellationToken))!;
+            Assert.True(unnamed.Deleted);
+            Assert.StartsWith("Delete", unnamed.EventName);
+            Assert.Null(unnamed.Source);
+        }
+
+        //a rule hides a deleted model's delete event along with its other events, since the delete's model is the state it deleted
+        [Fact]
+        public void DeleteEventFollowsRules()
+        {
+            var (repo, _, _) = Create(false, p => new HiddenRules(p));
+            var hidden = new HistoryModel { ID = Guid.NewGuid(), Value = 1, Name = "hidden" };
+            repo.Create(hidden);
+            repo.Delete(hidden);
+            Assert.Empty(repo.EventQuery<HistoryModel>().Where(x => x.Model.ID == hidden.ID).ToList());
+
+            var shown = new HistoryModel { ID = Guid.NewGuid(), Value = 1, Name = "shown" };
+            repo.Create(shown);
+            repo.Delete(shown);
+            Assert.Equal([true, false], repo.EventQuery<HistoryModel>().Where(x => x.Model.ID == shown.ID).Select(x => x.Deleted).ToList());
+        }
+
+        //a stream whose delete was stored before deletes carried data reads the same, without a source
+        [Fact]
+        public void DeleteWithoutData()
+        {
+            var engine = new MemoryEngine();
+            var repo = Repo.New();
+            repo.AddProvider(new EventStoreAsTransactStoreProvider<HistoryModel>(engine));
+            var e = new HistoryModel { ID = Guid.NewGuid(), Value = 5, Name = "e" };
+            repo.Create(e);
+            _ = engine.Terminate(Guid.NewGuid(), "Delete", EventStoreCommon.GetStreamName<HistoryModel>(e.ID), null, EventStoreState.Existing, []);
+
+            Assert.Null(repo.Query<HistoryModel>().FirstOrDefault(x => x.ID == e.ID));
+            Assert.Empty(repo.TemporalQuery<HistoryModel>().Where(x => x.ID == e.ID).ToList());
+            var events = repo.EventQuery<HistoryModel>().Where(x => x.Model.ID == e.ID).ToList();
+            Assert.Equal([true, false], events.Select(x => x.Deleted));
+            Assert.Equal("Delete", events[0].EventName);
+            Assert.Equal(5, events[0].Model.Value);
+            Assert.Null(events[0].ModelChange);
+            Assert.Null(events[0].Source);
+            Assert.Equal(1UL, repo.EventQuery<HistoryModel>().First(x => x.Model.ID == e.ID).Number);
+        }
+
         //a where of identities alone reads only the states a page needs of each model; one that isn't reads them all, so the two agree
         [Theory]
         [MemberData(nameof(Snapshots))]
@@ -116,10 +215,11 @@ namespace Zerra.Repository.Test
                 Assert.Equal(await repo.EventQuery<HistoryModel>(order).AnyAsync(x => x.Model.ID == a, cancellationToken), await repo.EventQuery<HistoryModel>(order).AnyAsync(x => x.Model.ID == a && x.Number >= 0, cancellationToken));
             }
 
-            //a deleted model has no states, and its events are those before the delete
+            //a deleted model has no states, and its events end with the delete
             Assert.Empty(repo.TemporalQuery<HistoryModel>().Where(x => x.ID == c).ToList());
             Assert.Null(repo.TemporalQuery<HistoryModel>().FirstOrDefault(x => x.ID == c));
-            Assert.Equal([1UL, 0UL], repo.EventQuery<HistoryModel>().Where(x => x.Model.ID == c).Select(x => x.Number).ToList());
+            Assert.Equal([2UL, 1UL, 0UL], repo.EventQuery<HistoryModel>().Where(x => x.Model.ID == c).Select(x => x.Number).ToList());
+            Assert.True(repo.EventQuery<HistoryModel>().FirstOrDefault(x => x.Model.ID == c)!.Deleted);
             Assert.Equal(200, repo.EventQuery<HistoryModel>().FirstOrDefault(x => x.Model.ID == c)!.Model.Value);
             Assert.Equal(200, (await repo.EventQuery<HistoryModel>().FirstOrDefaultAsync(x => x.Model.ID == c, cancellationToken))!.Model.Value);
             Assert.Equal(100, repo.EventQuery<HistoryModel>(TemporalOrder.Oldest).FirstOrDefault(x => x.Model.ID == c)!.Model.Value);

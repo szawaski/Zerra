@@ -21,15 +21,17 @@ namespace Zerra.Repository
         /// <returns>The event number assigned to the appended event.</returns>
         ulong Append(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data);
         /// <summary>
-        /// Appends a terminating (deletion) marker event to the specified stream, marking it as closed.
+        /// Appends a terminating (deletion) event to the specified stream, marking it as closed.
         /// </summary>
+        /// <remarks>The event is read back with <see cref="EventStoreEventData.Deleted"/> set, whatever its data holds.</remarks>
         /// <param name="eventID">The unique identifier of the termination event.</param>
         /// <param name="eventName">The name of the termination event type.</param>
         /// <param name="streamName">The name of the stream to terminate.</param>
         /// <param name="expectedEventNumber">The event number expected to be the last in the stream for optimistic concurrency, or <see langword="null"/> to skip the check.</param>
         /// <param name="expectedState">The expected existence state of the stream.</param>
+        /// <param name="data">The serialized event payload.</param>
         /// <returns>The event number assigned to the termination event.</returns>
-        ulong Terminate(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState);
+        ulong Terminate(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data);
         /// <summary>
         /// Reads events from the specified stream in forward order.
         /// </summary>
@@ -66,16 +68,18 @@ namespace Zerra.Repository
         /// <returns>A task that resolves to the event number assigned to the appended event.</returns>
         Task<ulong> AppendAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data, CancellationToken cancellationToken = default);
         /// <summary>
-        /// Asynchronously appends a terminating (deletion) marker event to the specified stream, marking it as closed.
+        /// Asynchronously appends a terminating (deletion) event to the specified stream, marking it as closed.
         /// </summary>
+        /// <remarks>The event is read back with <see cref="EventStoreEventData.Deleted"/> set, whatever its data holds.</remarks>
         /// <param name="eventID">The unique identifier of the termination event.</param>
         /// <param name="eventName">The name of the termination event type.</param>
         /// <param name="streamName">The name of the stream to terminate.</param>
         /// <param name="expectedEventNumber">The event number expected to be the last in the stream for optimistic concurrency, or <see langword="null"/> to skip the check.</param>
         /// <param name="expectedState">The expected existence state of the stream.</param>
+        /// <param name="data">The serialized event payload.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that resolves to the event number assigned to the termination event.</returns>
-        Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, CancellationToken cancellationToken = default);
+        Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data, CancellationToken cancellationToken = default);
         /// <summary>
         /// Asynchronously reads events from the specified stream in forward order.
         /// </summary>

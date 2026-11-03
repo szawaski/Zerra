@@ -383,7 +383,7 @@ namespace Zerra.Repository.Test
             Assert.False(graphEvent.GraphChange.HasMember(nameof(TestTypesModel.StringThing)));
             AssertAreEqual(model, graphEvent.Model);
 
-            //a delete terminates the stream, the terminating event carries no state so the model is gone
+            //a delete terminates the stream, so the model is gone
             repo.Delete<TestTypesModel>("Deleted", model);
 
             Assert.Null(repo.Query<TestTypesModel>().SingleOrDefault(x => x.KeyA == model.KeyA));
@@ -398,13 +398,20 @@ namespace Zerra.Repository.Test
 
             //the model is gone but its events are still the record of what happened
             var historyAfterDelete = repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).ToList();
-            Assert.Equal(3, historyAfterDelete.Count);
-            Assert.Equal(["Created", "Updated", "UpdatedInt32"], historyAfterDelete.Select(x => x.EventName));
-            Assert.Equal(3, repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).LongCount());
+            Assert.Equal(4, historyAfterDelete.Count);
+            Assert.Equal(["Created", "Updated", "UpdatedInt32", "Deleted"], historyAfterDelete.Select(x => x.EventName));
+            Assert.Equal([false, false, false, true], historyAfterDelete.Select(x => x.Deleted));
+            Assert.Equal(4, repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).LongCount());
             Assert.True(repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).Any());
 
-            //the newest event is the first of the events, the last before the delete
-            Assert.Equal("UpdatedInt32", repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA).FirstOrDefault()!.EventName);
+            //the newest event is the delete, its model is the state it deleted and it changed nothing
+            var deleteEvent = repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA).FirstOrDefault()!;
+            Assert.Equal("Deleted", deleteEvent.EventName);
+            Assert.True(deleteEvent.Deleted);
+            AssertAreEqual(model, deleteEvent.Model);
+            Assert.Null(deleteEvent.ModelChange);
+            Assert.Null(deleteEvent.GraphChange);
+            Assert.Equal("UpdatedInt32", repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA && !x.Deleted).FirstOrDefault()!.EventName);
 
             //an update or delete by condition finds the streams the condition names and records the change on each
             var byCondition = TestTypesModel.Create();
@@ -474,7 +481,7 @@ namespace Zerra.Repository.Test
             Assert.False(graphEvent.GraphChange.HasMember(nameof(TestTypesModel.StringThing)));
             AssertAreEqual(model, graphEvent.Model);
 
-            //a delete terminates the stream, the terminating event carries no state so the model is gone
+            //a delete terminates the stream, so the model is gone
             await repo.DeleteAsync<TestTypesModel>("Deleted", model);
 
             Assert.Null(await repo.Query<TestTypesModel>().SingleOrDefaultAsync(x => x.KeyA == model.KeyA));
@@ -489,13 +496,20 @@ namespace Zerra.Repository.Test
 
             //the model is gone but its events are still the record of what happened
             var historyAfterDelete = await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).ToListAsync();
-            Assert.Equal(3, historyAfterDelete.Count);
-            Assert.Equal(["Created", "Updated", "UpdatedInt32"], historyAfterDelete.Select(x => x.EventName));
-            Assert.Equal(3, await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).LongCountAsync());
+            Assert.Equal(4, historyAfterDelete.Count);
+            Assert.Equal(["Created", "Updated", "UpdatedInt32", "Deleted"], historyAfterDelete.Select(x => x.EventName));
+            Assert.Equal([false, false, false, true], historyAfterDelete.Select(x => x.Deleted));
+            Assert.Equal(4, await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).LongCountAsync());
             Assert.True(await repo.EventQuery<TestTypesModel>(TemporalOrder.Oldest).Where(x => x.Model.KeyA == model.KeyA).AnyAsync());
 
-            //the newest event is the first of the events, the last before the delete
-            Assert.Equal("UpdatedInt32", (await repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA).FirstOrDefaultAsync())!.EventName);
+            //the newest event is the delete, its model is the state it deleted and it changed nothing
+            var deleteEvent = (await repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA).FirstOrDefaultAsync())!;
+            Assert.Equal("Deleted", deleteEvent.EventName);
+            Assert.True(deleteEvent.Deleted);
+            AssertAreEqual(model, deleteEvent.Model);
+            Assert.Null(deleteEvent.ModelChange);
+            Assert.Null(deleteEvent.GraphChange);
+            Assert.Equal("UpdatedInt32", (await repo.EventQuery<TestTypesModel>().Where(x => x.Model.KeyA == model.KeyA && !x.Deleted).FirstOrDefaultAsync())!.EventName);
 
             //an update or delete by condition finds the streams the condition names and records the change on each
             var byCondition = TestTypesModel.Create();

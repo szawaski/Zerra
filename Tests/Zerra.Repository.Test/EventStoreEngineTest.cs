@@ -12,7 +12,7 @@ namespace Zerra.Repository.Test
         private sealed class Calls
         {
             public required Func<Guid, string, string, ulong?, EventStoreState, byte[], Task<ulong>> Append { get; init; }
-            public required Func<Guid, string, string, ulong?, EventStoreState, Task<ulong>> Terminate { get; init; }
+            public required Func<Guid, string, string, ulong?, EventStoreState, byte[], Task<ulong>> Terminate { get; init; }
             public required Func<string, ulong?, long?, ulong?, DateTime?, DateTime?, Task<EventStoreEventData[]>> Read { get; init; }
             public required Func<string, ulong?, long?, ulong?, DateTime?, DateTime?, Task<EventStoreEventData[]>> ReadBackwards { get; init; }
         }
@@ -20,7 +20,7 @@ namespace Zerra.Repository.Test
         public static Task TestAsync(IEventStoreEngine engine) => TestCalls(new Calls()
         {
             Append = (id, name, stream, number, state, data) => engine.AppendAsync(id, name, stream, number, state, data),
-            Terminate = (id, name, stream, number, state) => engine.TerminateAsync(id, name, stream, number, state),
+            Terminate = (id, name, stream, number, state, data) => engine.TerminateAsync(id, name, stream, number, state, data),
             Read = (stream, start, count, end, startDate, endDate) => engine.ReadAsync(stream, start, count, end, startDate, endDate),
             ReadBackwards = (stream, start, count, end, startDate, endDate) => engine.ReadBackwardsAsync(stream, start, count, end, startDate, endDate),
         });
@@ -28,7 +28,7 @@ namespace Zerra.Repository.Test
         public static Task TestSync(IEventStoreEngine engine) => TestCalls(new Calls()
         {
             Append = (id, name, stream, number, state, data) => Task.FromResult(engine.Append(id, name, stream, number, state, data)),
-            Terminate = (id, name, stream, number, state) => Task.FromResult(engine.Terminate(id, name, stream, number, state)),
+            Terminate = (id, name, stream, number, state, data) => Task.FromResult(engine.Terminate(id, name, stream, number, state, data)),
             Read = (stream, start, count, end, startDate, endDate) => Task.FromResult(engine.Read(stream, start, count, end, startDate, endDate)),
             ReadBackwards = (stream, start, count, end, startDate, endDate) => Task.FromResult(engine.ReadBackwards(stream, start, count, end, startDate, endDate)),
         });
@@ -98,19 +98,23 @@ namespace Zerra.Repository.Test
             await AssertReadBackwards(engine, pages, pagesAll, null, null, null, null, null);
             await AssertReadBackwards(engine, pages, pagesAll, 24, null, null, null, null);
 
-            //termination writes a deleted marker as the last event
-            Assert.Equal(61UL, await engine.Terminate(Guid.NewGuid(), "Deleted", stream, 60, EventStoreState.Any));
+            //termination writes a deleted event with its data as the last event
+            Assert.Equal(61UL, await engine.Terminate(Guid.NewGuid(), "Deleted", stream, 60, EventStoreState.Any, [7, 8]));
             var last = await engine.ReadBackwards(stream, null, 1, null, null, null);
             Assert.Single(last);
             Assert.Equal(61UL, last[0].Number);
             Assert.True(last[0].Deleted);
             Assert.Equal("Deleted", last[0].EventName);
+            Assert.Equal([7, 8], last[0].Data.ToArray());
+            Assert.True((await engine.Read(stream, 61, null, null, null, null))[0].Deleted);
 
             var terminated = $"EngineTest-{Guid.NewGuid():N}";
             _ = await engine.Append(Guid.NewGuid(), "E0", terminated, null, EventStoreState.Any, [0]);
-            _ = await Assert.ThrowsAnyAsync<Exception>(() => engine.Terminate(Guid.NewGuid(), "Deleted", terminated, null, EventStoreState.NotExisting));
-            Assert.Equal(1UL, await engine.Terminate(Guid.NewGuid(), "Deleted", terminated, null, EventStoreState.Existing));
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => engine.Terminate(Guid.NewGuid(), "Deleted", terminated, null, EventStoreState.NotExisting, [1]));
+            //a terminating event without data, as streams stored before they carried data have, is still deleted
+            Assert.Equal(1UL, await engine.Terminate(Guid.NewGuid(), "Deleted", terminated, null, EventStoreState.Existing, []));
             Assert.True((await engine.Read(terminated, null, null, null, null, null))[1].Deleted);
+            Assert.True((await engine.ReadBackwards(terminated, null, 1, null, null, null))[0].Deleted);
         }
 
         private static async Task AssertRead(Calls engine, string stream, EventStoreEventData[] all, ulong? start, long? count, ulong? end, DateTime? startDate, DateTime? endDate)

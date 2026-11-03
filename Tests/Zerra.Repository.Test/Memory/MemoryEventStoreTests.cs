@@ -90,17 +90,17 @@ namespace Zerra.Repository.Test.Memory
             var streamName = NewStreamName();
 
             _ = engine.Append(Guid.NewGuid(), "Created", streamName, null, EventStoreState.NotExisting, [1]);
-            Assert.Equal(1UL, engine.Terminate(Guid.NewGuid(), "Delete", streamName, null, EventStoreState.Existing));
+            Assert.Equal(1UL, engine.Terminate(Guid.NewGuid(), "Delete", streamName, null, EventStoreState.Existing, [9]));
 
             var eventDatas = engine.Read(streamName, null, null, null, null, null);
 
             Assert.Equal(2, eventDatas.Length);
             Assert.False(eventDatas[0].Deleted);
             Assert.True(eventDatas[1].Deleted);
-            Assert.True(eventDatas[1].Data.IsEmpty);
+            Assert.Equal([9], eventDatas[1].Data.ToArray());
 
             _ = Assert.Throws<InvalidOperationException>(() => engine.Append(Guid.NewGuid(), "Updated", streamName, null, EventStoreState.Any, [2]));
-            _ = Assert.Throws<InvalidOperationException>(() => engine.Terminate(Guid.NewGuid(), "Delete", streamName, null, EventStoreState.Any));
+            _ = Assert.Throws<InvalidOperationException>(() => engine.Terminate(Guid.NewGuid(), "Delete", streamName, null, EventStoreState.Any, [9]));
         }
 
         [Fact]
@@ -110,11 +110,12 @@ namespace Zerra.Repository.Test.Memory
             var streamName = NewStreamName();
 
             _ = await engine.AppendAsync(Guid.NewGuid(), "Created", streamName, null, EventStoreState.NotExisting, [1], TestContext.Current.CancellationToken);
-            Assert.Equal(1UL, await engine.TerminateAsync(Guid.NewGuid(), "Delete", streamName, null, EventStoreState.Existing, TestContext.Current.CancellationToken));
+            Assert.Equal(1UL, await engine.TerminateAsync(Guid.NewGuid(), "Delete", streamName, null, EventStoreState.Existing, [9], TestContext.Current.CancellationToken));
 
             var eventDatas = await engine.ReadAsync(streamName, null, null, null, null, null, TestContext.Current.CancellationToken);
 
             Assert.True(eventDatas[1].Deleted);
+            Assert.Equal([9], eventDatas[1].Data.ToArray());
             _ = await Assert.ThrowsAsync<InvalidOperationException>(() => engine.AppendAsync(Guid.NewGuid(), "Updated", streamName, null, EventStoreState.Any, [2], TestContext.Current.CancellationToken));
         }
 

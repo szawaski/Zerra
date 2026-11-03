@@ -120,17 +120,29 @@ namespace Zerra.Repository.Test
             Assert.True(await replayedDeleted.Rebuild());
             _ = await Assert.ThrowsAnyAsync<Exception>(() => replayedDeleted.Append(new TestAggregateAmountAdded() { Amount = 1 }));
 
-            //the terminating event carries no data, a rebuild sees the deletion but has nothing to apply from it
+            //the terminating event is stored like any other, a rebuild applies it as the delete did
             var rebuiltDeleted = new TestAggregate(id, eventStore);
             Assert.True(await rebuiltDeleted.Rebuild());
             Assert.True(rebuiltDeleted.IsCreated);
             Assert.True(rebuiltDeleted.IsDeleted);
             Assert.Equal("Second", rebuiltDeleted.Name);
             Assert.Equal(15, rebuiltDeleted.Amount);
-            Assert.Equal(3, rebuiltDeleted.AppliedCount);
-            Assert.Null(rebuiltDeleted.RemovedReason);
+            Assert.Equal(4, rebuiltDeleted.AppliedCount);
+            Assert.Equal("Done", rebuiltDeleted.RemovedReason);
             Assert.Equal(3UL, rebuiltDeleted.LastEventNumber);
             Assert.Equal(nameof(TestAggregateRemoved), rebuiltDeleted.LastEventName);
+
+            //a terminating event without data, as streams stored before they carried data have, is a deletion with nothing to apply
+            var oldDeleted = new TestAggregate(Guid.NewGuid(), eventStore);
+            await oldDeleted.Append(new TestAggregateCreated() { Name = "Old", Amount = 2 });
+            _ = await eventStore.TerminateAsync(Guid.NewGuid(), nameof(TestAggregateRemoved), $"{typeof(TestAggregate).FullName}-{oldDeleted.ID}", null, EventStoreState.Existing, []);
+            var rebuiltOldDeleted = new TestAggregate(oldDeleted.ID, eventStore);
+            Assert.True(await rebuiltOldDeleted.Rebuild());
+            Assert.True(rebuiltOldDeleted.IsDeleted);
+            Assert.Equal("Old", rebuiltOldDeleted.Name);
+            Assert.Equal(1, rebuiltOldDeleted.AppliedCount);
+            Assert.Null(rebuiltOldDeleted.RemovedReason);
+            Assert.Equal(1UL, rebuiltOldDeleted.LastEventNumber);
 
             //each aggregate has its own stream
             var another = new TestAggregate(Guid.NewGuid(), eventStore);

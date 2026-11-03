@@ -16,6 +16,9 @@ namespace Zerra.Repository.KurrentDB
         private const int maxPerQuery = 25;
         private const int saveStateEvery = 100;
 
+        //streams written before terminating events carried data flag them by having none
+        private static readonly byte[] terminatedMetadata = "{\"terminated\":true}"u8.ToArray();
+
         private readonly KurrentDBClient client;
         /// <summary>
         /// Initializes a new instance of the <see cref="KurrentDBEngine"/> class.
@@ -42,7 +45,7 @@ namespace Zerra.Repository.KurrentDB
             throw new NotSupportedException($"{nameof(KurrentDBEngine)} does not support synchronous operations");
         }
         /// <inheritdoc/>
-        public ulong Terminate(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState)
+        public ulong Terminate(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data)
         {
             throw new NotSupportedException($"{nameof(KurrentDBEngine)} does not support synchronous operations");
         }
@@ -91,12 +94,12 @@ namespace Zerra.Repository.KurrentDB
             }
         }
         /// <inheritdoc/>
-        public async Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, CancellationToken cancellationToken = default)
+        public async Task<ulong> TerminateAsync(Guid eventID, string eventName, string streamName, ulong? expectedEventNumber, EventStoreState expectedState, byte[] data, CancellationToken cancellationToken = default)
         {
             try
             {
-                //the marker has no data which flags it deleted, the stream is not tombstoned so its history stays readable for rebuilds
-                var eventData = new EventData(Uuid.FromGuid(eventID), eventName, null, null);
+                //the metadata flags it deleted, the stream is not tombstoned so its history stays readable for rebuilds
+                var eventData = new EventData(Uuid.FromGuid(eventID), eventName, data, terminatedMetadata);
 
                 if (expectedEventNumber.HasValue)
                 {
@@ -177,7 +180,7 @@ namespace Zerra.Repository.KurrentDB
                             EventName = streamEvent.Event.EventType,
                             EventID = streamEvent.Event.EventId.ToGuid(),
                             Data = streamEvent.Event.Data,
-                            Deleted = streamEvent.Event.Data.IsEmpty,
+                            Deleted = streamEvent.Event.Data.IsEmpty || streamEvent.Event.Metadata.Span.SequenceEqual(terminatedMetadata),
                             Date = streamEvent.Event.Created,
                             Number = streamEvent.Event.EventNumber
                         };
@@ -260,7 +263,7 @@ namespace Zerra.Repository.KurrentDB
                             EventName = streamEvent.Event.EventType,
                             EventID = streamEvent.Event.EventId.ToGuid(),
                             Data = streamEvent.Event.Data,
-                            Deleted = streamEvent.Event.Data.IsEmpty,
+                            Deleted = streamEvent.Event.Data.IsEmpty || streamEvent.Event.Metadata.Span.SequenceEqual(terminatedMetadata),
                             Date = streamEvent.Event.Created,
                             Number = streamEvent.Event.EventNumber
                         };

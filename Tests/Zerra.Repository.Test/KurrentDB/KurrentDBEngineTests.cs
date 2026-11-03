@@ -37,7 +37,7 @@ namespace Zerra.Repository.Test.KurrentDB
             cancelled.Cancel();
             var token = cancelled.Token;
             _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.AppendAsync(Guid.NewGuid(), "E", stream, null, EventStoreState.Any, data, token));
-            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.TerminateAsync(Guid.NewGuid(), "E", stream, null, EventStoreState.Any, token));
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.TerminateAsync(Guid.NewGuid(), "E", stream, null, EventStoreState.Any, data, token));
             _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.ReadAsync(stream, null, null, null, null, null, token));
             _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.ReadBackwardsAsync(stream, null, null, null, null, null, token));
             Assert.Empty(await engine.ReadAsync(stream, null, null, null, null, null, TestContext.Current.CancellationToken));
@@ -124,7 +124,7 @@ namespace Zerra.Repository.Test.KurrentDB
         {
             using var engine = new KurrentDBEngine(KurrentDBTestDataContext.ConnectionString, KurrentDBTestDataContext.Insecure);
             _ = Assert.Throws<NotSupportedException>(() => engine.Append(Guid.NewGuid(), "E", "Stream", null, EventStoreState.Any, [0]));
-            _ = Assert.Throws<NotSupportedException>(() => engine.Terminate(Guid.NewGuid(), "E", "Stream", null, EventStoreState.Any));
+            _ = Assert.Throws<NotSupportedException>(() => engine.Terminate(Guid.NewGuid(), "E", "Stream", null, EventStoreState.Any, [0]));
             _ = Assert.Throws<NotSupportedException>(() => engine.Read("Stream", null, null, null, null, null));
             _ = Assert.Throws<NotSupportedException>(() => engine.ReadBackwards("Stream", null, null, null, null, null));
         }
