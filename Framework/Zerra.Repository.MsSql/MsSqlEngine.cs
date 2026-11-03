@@ -676,6 +676,7 @@ namespace Zerra.Repository.MsSql
             }
             public SqlTransaction? BeginWhenNone() => transaction is null ? connection.BeginTransaction() : null;
             public async ValueTask<SqlTransaction?> BeginWhenNoneAsync(CancellationToken cancellationToken) => transaction is null ? (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken) : null;
+            public void HoldForStream() => part?.HoldForStream();
             public void Dispose()
             {
                 if (part is null)
@@ -1180,6 +1181,61 @@ namespace Zerra.Repository.MsSql
             catch (SqlException ex) when (cancellationToken.IsCancellationRequested)
             {
                 throw new OperationCanceledException(ex.Message, ex, cancellationToken);
+            }
+        }
+        /// <inheritdoc/>
+        public IEnumerable<TResult> ExecuteLinqStream<TModel, TResult>(LinqQuery query, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var statement = LinqMsSqlConverter.ConvertLinq(query, modelDetail);
+            using var connection = OpenConnection();
+            var pieces = ReadLinqPieces(connection, statement);
+            connection.HoldForStream();
+            using var command = connection.CreateCommand();
+            command.CommandTimeout = 0;
+            command.CommandText = statement.Sql;
+            using var pooled = AddParameters(command, statement.Parameters);
+            using var reader = command.ExecuteReader(CommandBehavior.SequentialAccess);
+            var shape = statement.Plan.Shape!;
+            while (reader.Read())
+                yield return (TResult)ReadLinqElement(reader, shape, pieces)!;
+        }
+        /// <inheritdoc/>
+        public async IAsyncEnumerable<TResult> ExecuteLinqStreamAsync<TModel, TResult>(LinqQuery query, ModelDetail modelDetail, [EnumeratorCancellation] CancellationToken cancellationToken = default) where TModel : class, new()
+        {
+            var statement = LinqMsSqlConverter.ConvertLinq(query, modelDetail);
+            using var connection = await OpenConnectionAsync(cancellationToken);
+            var pieces = await ReadLinqPiecesAsync(connection, statement, cancellationToken);
+            connection.HoldForStream();
+            using var command = connection.CreateCommand();
+            command.CommandTimeout = 0;
+            command.CommandText = statement.Sql;
+            using var pooled = AddParameters(command, statement.Parameters);
+            SqlDataReader reader;
+            try
+            {
+                reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken);
+            }
+            //SqlClient reports a command it cancelled as its own error
+            catch (SqlException ex) when (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(ex.Message, ex, cancellationToken);
+            }
+            using (reader)
+            {
+                var shape = statement.Plan.Shape!;
+                while (true)
+                {
+                    try
+                    {
+                        if (!await reader.ReadAsync(cancellationToken))
+                            break;
+                    }
+                    catch (SqlException ex) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw new OperationCanceledException(ex.Message, ex, cancellationToken);
+                    }
+                    yield return (TResult)ReadLinqElement(reader, shape, pieces)!;
+                }
             }
         }
         private static async Task<LinqPieceElements[]?> ReadLinqPiecesAsync(EngineConnection connection, LinqStatement statement, CancellationToken cancellationToken)

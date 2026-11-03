@@ -5,6 +5,7 @@
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using Zerra.Repository.Reflection;
 using Zerra.Reflection;
 using System.Collections;
@@ -43,6 +44,28 @@ namespace Zerra.Repository.Memory
             var store = part?.Store ?? data;
             var source = (ConcurrentList<TModel>)store.GetOrAdd(typeof(TModel), NewTable<TModel>);
             return Task.FromResult(query.Execute(source, caseSensitive));
+        }
+        /// <inheritdoc/>
+        public IEnumerable<TResult> ExecuteLinqStream<TModel, TResult>(LinqQuery query, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var part = RepoTransaction.Current?.Enlist(this, nameof(MemoryEngine), BeginTransactionPart);
+            var store = part?.Store ?? data;
+            var source = (ConcurrentList<TModel>)store.GetOrAdd(typeof(TModel), NewTable<TModel>);
+            return (IEnumerable<TResult>)query.Execute(source, caseSensitive)!;
+        }
+        /// <inheritdoc/>
+        public async IAsyncEnumerable<TResult> ExecuteLinqStreamAsync<TModel, TResult>(LinqQuery query, ModelDetail modelDetail, [EnumeratorCancellation] CancellationToken cancellationToken = default) where TModel : class, new()
+        {
+            await Task.CompletedTask;
+            cancellationToken.ThrowIfCancellationRequested();
+            var part = RepoTransaction.Current?.Enlist(this, nameof(MemoryEngine), BeginTransactionPart);
+            var store = part?.Store ?? data;
+            var source = (ConcurrentList<TModel>)store.GetOrAdd(typeof(TModel), NewTable<TModel>);
+            foreach (var element in (IEnumerable<TResult>)query.Execute(source, caseSensitive)!)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return element;
+            }
         }
         /// <inheritdoc/>
         public object ExecuteInsertGetIdentities<TModel>(TModel model, Graph? graph, ModelDetail modelDetail) where TModel : class, new()

@@ -39,6 +39,27 @@ namespace Zerra.Repository
         /// <returns>A task containing the elements as a list of <typeparamref name="TResult"/>, or the value as <typeparamref name="TResult"/> boxed, <see langword="null"/> when there is none.</returns>
         Task<object?> ExecuteLinqAsync<TModel, TResult>(LinqQuery query, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new();
 
+        /// <summary>
+        /// Runs a LINQ query ending in its elements and gives each one as it's read, with the relations the statement reads after the rows loaded first. The connection stays open until the elements are read or the reading stops.
+        /// </summary>
+        /// <typeparam name="TModel">The model type.</typeparam>
+        /// <typeparam name="TResult">The type of the elements.</typeparam>
+        /// <param name="query">The query.</param>
+        /// <param name="modelDetail">Metadata about the model being queried.</param>
+        /// <returns>The elements.</returns>
+        IEnumerable<TResult> ExecuteLinqStream<TModel, TResult>(LinqQuery query, ModelDetail modelDetail) where TModel : class, new();
+
+        /// <summary>
+        /// Runs a LINQ query ending in its elements and gives each one as it's read, with the relations the statement reads after the rows loaded first. The connection stays open until the elements are read or the reading stops.
+        /// </summary>
+        /// <typeparam name="TModel">The model type.</typeparam>
+        /// <typeparam name="TResult">The type of the elements.</typeparam>
+        /// <param name="query">The query.</param>
+        /// <param name="modelDetail">Metadata about the model being queried.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
+        /// <returns>The elements.</returns>
+        IAsyncEnumerable<TResult> ExecuteLinqStreamAsync<TModel, TResult>(LinqQuery query, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new();
+
         /// <summary>Executes an insert and returns the auto-generated identities.</summary>
         /// <typeparam name="TModel">The model type to insert.</typeparam>
         /// <param name="model">The model to insert.</param>

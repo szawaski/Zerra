@@ -4,6 +4,7 @@
 
 using System.Collections;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using Zerra.Repository.Linq;
 using Zerra.Repository.Reflection;
 
@@ -94,6 +95,9 @@ namespace Zerra.Repository
         /// <param name="graph">The graph used during the query.</param>
         /// <returns>The filtered or transformed models.</returns>
         public virtual IEnumerable OnGet(IEnumerable models, Graph? graph) { return models; }
+
+        /// <summary>Gets or sets the memory the models of a stream may hold while they wait for <see cref="OnGet"/>, which is called on each chunk of them that fits. 1 MB by default.</summary>
+        public int StreamChunkBytes { get; set; } = 1024 * 1024;
         /// <inheritdoc/>
         public override sealed IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph)
         {
@@ -154,6 +158,86 @@ namespace Zerra.Repository
             finally
             {
                 query.Where = where;
+            }
+        }
+        /// <inheritdoc/>
+        public override sealed object QueryStream(LinqQuery query)
+        {
+            OnQuery(query.Graph);
+            LambdaExpression? where = null;
+            var elements = query.StreamFrom(() =>
+            {
+                where = query.Where;
+                query.Where = AppendWhereExpression(where, query.Graph);
+                return NextProvider.QueryStream(query);
+            }, () => query.Where = where);
+            if (!query.ReturnsModels)
+                return elements;
+            return OnGetStream((IEnumerable<TModel>)elements, query.Graph);
+        }
+        private IEnumerable<TModel> OnGetStream(IEnumerable<TModel> models, Graph? graph)
+        {
+            var size = new LinqStreamSize(ModelAnalyzer.GetModel(typeof(TModel)));
+            var chunk = new List<TModel>();
+            var bytes = 0L;
+            foreach (var model in models)
+            {
+                chunk.Add(model);
+                bytes += size.WithRelations(model);
+                if (bytes < StreamChunkBytes)
+                    continue;
+                foreach (var returned in OnGet(chunk, graph))
+                    yield return (TModel)returned;
+                chunk = new List<TModel>(chunk.Count);
+                bytes = 0;
+            }
+            if (chunk.Count > 0)
+            {
+                foreach (var returned in OnGet(chunk, graph))
+                    yield return (TModel)returned;
+            }
+        }
+        /// <inheritdoc/>
+        public override sealed object QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken)
+        {
+            OnQuery(query.Graph);
+            LambdaExpression? where = null;
+            var elements = query.StreamFromAsync(cancellation =>
+            {
+                where = query.Where;
+                query.Where = AppendWhereExpression(where, query.Graph);
+                return Task.FromResult<object?>(NextProvider.QueryStreamAsync(query, cancellation));
+            }, () => query.Where = where, cancellationToken);
+            if (!query.ReturnsModels)
+                return elements;
+            return OnGetStreamAsync((IAsyncEnumerable<TModel>)elements, query.Graph, cancellationToken);
+        }
+        private async IAsyncEnumerable<TModel> OnGetStreamAsync(IAsyncEnumerable<TModel> models, Graph? graph, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            var size = new LinqStreamSize(ModelAnalyzer.GetModel(typeof(TModel)));
+            var chunk = new List<TModel>();
+            var bytes = 0L;
+            await foreach (var model in models.WithCancellation(cancellationToken))
+            {
+                chunk.Add(model);
+                bytes += size.WithRelations(model);
+                if (bytes < StreamChunkBytes)
+                    continue;
+                foreach (var returned in OnGet(chunk, graph))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    yield return (TModel)returned;
+                }
+                chunk = new List<TModel>(chunk.Count);
+                bytes = 0;
+            }
+            if (chunk.Count > 0)
+            {
+                foreach (var returned in OnGet(chunk, graph))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    yield return (TModel)returned;
+                }
             }
         }
         private object? OnResult(LinqQuery query, object? result)

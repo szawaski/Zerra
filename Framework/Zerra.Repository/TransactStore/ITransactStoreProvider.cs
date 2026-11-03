@@ -34,6 +34,21 @@ namespace Zerra.Repository
         /// <returns>A task containing the elements or the value.</returns>
         Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken);
 
+        /// <summary>
+        /// Runs a LINQ query from <see cref="IRepo.Query{TModel}"/> ending in its elements and gives each one as it's read.
+        /// </summary>
+        /// <param name="query">The query, which a layer may add conditions to until its first element is read.</param>
+        /// <returns>The elements, an <see cref="IEnumerable{T}"/> of the query's result type.</returns>
+        object QueryStream(LinqQuery query);
+
+        /// <summary>
+        /// Runs a LINQ query from <see cref="IRepo.Query{TModel}"/> ending in its elements and gives each one as it's read.
+        /// </summary>
+        /// <param name="query">The query, which a layer may add conditions to until its first element is read.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
+        /// <returns>The elements, an <see cref="IAsyncEnumerable{T}"/> of the query's result type.</returns>
+        object QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken);
+
         //a query of this provider's model the provider of another makes, with the result type it has and this model's type only known here
         internal LinqQuery ReadElements<TResult>(System.Linq.Expressions.Expression expression, LinqElements elements, LinqTerminal? terminal, System.Linq.Expressions.LambdaExpression? argument);
     }

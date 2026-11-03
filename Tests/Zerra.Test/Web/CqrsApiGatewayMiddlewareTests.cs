@@ -628,14 +628,31 @@ namespace Zerra.Test.Web
         [Fact(Timeout = timeout)]
         public async Task Canceled_RespondsWithoutAnError()
         {
-            var bus = new MockBus { QueryException = new OperationCanceledException() };
+            //the client aborted the request while the query ran
+            using var requestAborted = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            var bus = new MockBus { QueryException = new OperationCanceledException(requestAborted.Token), CancelDuringQuery = requestAborted };
             var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
-            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), requestAborted.Token);
 
             await middleware.Invoke(context);
 
             Assert.Equal(200, context.Response.StatusCode);
             Assert.Empty(ReadResponse(context));
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task CanceledNotByClient_RespondsWithError()
+        {
+            //a cancel from inside the handler, such as a timeout, is an error since the client is still waiting
+            var bus = new MockBus { QueryException = new OperationCanceledException("query timed out") };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(500, context.Response.StatusCode);
+            var exception = ExceptionSerializer.Deserialize(source, serializer, ReadResponse(context));
+            Assert.Equal("query timed out", exception.Message);
         }
 
         [Fact(Timeout = timeout)]
@@ -703,6 +720,7 @@ namespace Zerra.Test.Web
         {
             public RemoteQueryCallResponse? QueryResponse { get; set; }
             public Exception? QueryException { get; set; }
+            public CancellationTokenSource? CancelDuringQuery { get; set; }
             public Type? QueryInterfaceType { get; private set; }
             public string? QueryMethodName { get; private set; }
             public byte[]? QueryArgumentStreamBytes { get; private set; }
@@ -720,6 +738,7 @@ namespace Zerra.Test.Web
                     argumentStream.CopyTo(ms);
                     QueryArgumentStreamBytes = ms.ToArray();
                 }
+                CancelDuringQuery?.Cancel();
                 if (QueryException is not null)
                     return Task.FromException<RemoteQueryCallResponse>(QueryException);
                 return Task.FromResult(QueryResponse ?? new RemoteQueryCallResponse(null));

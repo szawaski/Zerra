@@ -55,6 +55,10 @@ namespace Zerra.Repository.Benchmark.EFData
 
                 entity.Property(e => e.StringThing).IsRequired(false);
                 entity.Property(e => e.StringThingNull).IsRequired(false);
+                entity.Property(e => e.StringLengthThing).HasMaxLength(128);
+                entity.Property(e => e.StringLengthThingNull).HasMaxLength(64).IsRequired(false);
+                //no precision, so the column is SQL Server's legacy datetime as the Zerra side creates it
+                entity.Property(e => e.DateTimeDefaultPrecisionThing).HasColumnType("datetime");
                 entity.Property(e => e.BytesThing).IsRequired(false);
                 entity.Property(e => e.BytesThingNull).IsRequired(false);
 

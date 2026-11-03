@@ -17,12 +17,22 @@ namespace Zerra.Repository
         internal object Key = null!;
         internal string Name = null!;
         internal volatile bool Closed;
+        private volatile bool streaming;
+        internal bool Streaming => streaming;
 
         /// <summary>Whether this part commits after the others, for an engine whose commit is the least likely to fail.</summary>
         public virtual bool CommitsLast => false;
 
         /// <summary>Ends an operation started with <see cref="RepoTransaction.Enter{TPart}(object, string, Func{System.Data.IsolationLevel, TPart})"/>.</summary>
-        public void Exit() => Gate.Release();
+        public void Exit()
+        {
+            if (streaming)
+                streaming = false;
+            _ = Gate.Release();
+        }
+
+        /// <summary>Marks the part as held by a stream until <see cref="Exit"/>, so another operation of the transaction is refused rather than waiting on the stream it may run inside of.</summary>
+        public void HoldForStream() => streaming = true;
 
         /// <summary>Commits the work.</summary>
         public abstract void Commit();

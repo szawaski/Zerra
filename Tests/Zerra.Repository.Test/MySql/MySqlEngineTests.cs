@@ -90,7 +90,7 @@ namespace Zerra.Repository.Test.MySql
 
             DropDatabase(connectionString);
 
-            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).Concat(BatchWriteTests.ModelTypes).Concat(CompositeRelationTests.ModelTypes).ToArray();
+            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).Concat(BatchWriteTests.ModelTypes).Concat(CompositeRelationTests.ModelTypes).Concat(StreamTests.ModelTypes).ToArray();
 
             CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
             RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
@@ -109,6 +109,8 @@ namespace Zerra.Repository.Test.MySql
             CompositeRelationTests.TestSequence(engine, true);
             CompositeRelationTests.TestAcrossEngines(engine, new Zerra.Repository.Memory.MemoryEngine());
             await CompositeRelationTests.TestSequenceAsync(engine);
+            await StreamTests.TestSequence(engine, true);
+            await StreamTests.TestAcrossEngines(engine, new Zerra.Repository.Memory.MemoryEngine());
             TransactionTests.TestAcrossEngines(engine);
             TransactionTests.TestSameStore(engine, new MySqlEngine(connectionString));
             SchemaChangeTests.Test(engine, table => ExecuteSql(connectionString, $"DROP TABLE IF EXISTS `{table}`"));

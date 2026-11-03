@@ -4,6 +4,7 @@
 
 using System.Collections;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using Zerra.Map;
 using Zerra.Reflection;
 using Zerra.Repository.Linq;
@@ -217,6 +218,46 @@ namespace Zerra.Repository
             {
                 query.Where = where;
             }
+        }
+        /// <inheritdoc/>
+        public override sealed object QueryStream(LinqQuery query)
+        {
+            RefuseCompressedReads(query);
+            LambdaExpression? where = null;
+            var elements = query.StreamFrom(() =>
+            {
+                where = query.Where;
+                query.Where = CompressWhere(where);
+                return NextProvider.QueryStream(query);
+            }, () => query.Where = where);
+            if (!query.ReturnsModels)
+                return elements;
+            return DecompressStream((IEnumerable<TModel>)elements, query.Graph);
+        }
+        private IEnumerable<TModel> DecompressStream(IEnumerable<TModel> models, Graph? graph)
+        {
+            foreach (var model in models)
+                yield return DecompressModel(model, graph, true);
+        }
+        /// <inheritdoc/>
+        public override sealed object QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken)
+        {
+            RefuseCompressedReads(query);
+            LambdaExpression? where = null;
+            var elements = query.StreamFromAsync(cancellation =>
+            {
+                where = query.Where;
+                query.Where = CompressWhere(where);
+                return Task.FromResult<object?>(NextProvider.QueryStreamAsync(query, cancellation));
+            }, () => query.Where = where, cancellationToken);
+            if (!query.ReturnsModels)
+                return elements;
+            return DecompressStreamAsync((IAsyncEnumerable<TModel>)elements, query.Graph, cancellationToken);
+        }
+        private async IAsyncEnumerable<TModel> DecompressStreamAsync(IAsyncEnumerable<TModel> models, Graph? graph, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var model in models.WithCancellation(cancellationToken))
+                yield return DecompressModel(model, graph, true);
         }
         private object? DecompressResult(LinqQuery query, object? result)
         {

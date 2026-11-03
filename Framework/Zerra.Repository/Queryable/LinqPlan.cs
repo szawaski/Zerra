@@ -142,6 +142,64 @@ namespace Zerra.Repository
             return plan;
         }
 
+        /// <summary>
+        /// Reads the plan of a Select of a set's elements, each value a column computed from the element's columns.
+        /// </summary>
+        /// <param name="select">The Select.</param>
+        /// <param name="modelDetail">The model of the set's first query.</param>
+        /// <returns>The plan.</returns>
+        public static LinqPlan ReadSetSelect(LambdaExpression select, ModelDetail modelDetail)
+        {
+            var plan = new LinqPlan(modelDetail);
+            plan.Shape = plan.ReadSetElement(select.Body, select.Parameters[0]);
+            return plan;
+        }
+        private LinqShape ReadSetElement(Expression expression, ParameterExpression parameter)
+        {
+            switch (expression)
+            {
+                case NewExpression { Members: not null } anonymous:
+                    {
+                        var arguments = new LinqShape[anonymous.Arguments.Count];
+                        var names = new string[arguments.Length];
+                        for (var i = 0; i < arguments.Length; i++)
+                        {
+                            arguments[i] = ReadSetElement(anonymous.Arguments[i], parameter);
+                            names[i] = anonymous.Members[i].Name;
+                        }
+                        return LinqShape.OfObject(anonymous.Type, anonymous.Constructor, arguments, names, null, null);
+                    }
+                case NewExpression constructed:
+                    {
+                        var arguments = new LinqShape[constructed.Arguments.Count];
+                        for (var i = 0; i < arguments.Length; i++)
+                            arguments[i] = ReadSetElement(constructed.Arguments[i], parameter);
+                        return LinqShape.OfObject(constructed.Type, constructed.Constructor, arguments, null, null, null);
+                    }
+                case MemberInitExpression init:
+                    {
+                        var arguments = new LinqShape[init.NewExpression.Arguments.Count];
+                        for (var i = 0; i < arguments.Length; i++)
+                            arguments[i] = ReadSetElement(init.NewExpression.Arguments[i], parameter);
+                        var typeDetail = TypeAnalyzer.GetTypeDetail(init.Type);
+                        var members = new MemberDetail[init.Bindings.Count];
+                        var values = new LinqShape[members.Length];
+                        for (var i = 0; i < members.Length; i++)
+                        {
+                            if (init.Bindings[i] is not MemberAssignment assignment)
+                                throw new NotSupportedException($"A repository query sets each member of {init.Type.Name} directly");
+                            members[i] = typeDetail.GetMember(assignment.Member.Name);
+                            if (members[i].SetterBoxed is null)
+                                throw new NotSupportedException($"{init.Type.Name}.{members[i].Name} has no setter");
+                            values[i] = ReadSetElement(assignment.Expression, parameter);
+                        }
+                        return LinqShape.OfObject(init.Type, init.NewExpression.Constructor, arguments, null, members, values);
+                    }
+                default:
+                    return LinqShape.OfColumn(expression.Type, AddColumn(LinqColumnKind.Value, expression, parameter, 0, expression.Type));
+            }
+        }
+
         private void PlaceRelations()
         {
             for (var r = 0; r < Relations.Count; r++)

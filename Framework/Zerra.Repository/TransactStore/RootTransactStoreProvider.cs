@@ -6,6 +6,7 @@ using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.Reflection;
 using Zerra.Repository.Linq;
@@ -31,6 +32,9 @@ namespace Zerra.Repository
 
         /// <summary>The analyzed model metadata for <typeparamref name="TModel"/>.</summary>
         protected ModelDetail ModelTypeDetail => modelTypeDetail;
+
+        /// <summary>Gets or sets the memory the models of a stream may hold while the relations it reads from other engines load for them, which happens for each chunk of them that fits. 1 MB by default.</summary>
+        public int StreamChunkBytes { get; set; } = 1024 * 1024;
 
         /// <summary>Initializes the provider, which needs the model to be an entity.</summary>
         protected RootTransactStoreProvider()
@@ -581,6 +585,152 @@ namespace Zerra.Repository
             }
             return await ExecuteLinqAsync(query, cancellationToken);
         }
+        /// <inheritdoc/>
+        public object QueryStream(LinqQuery query)
+        {
+            if (query is LinqModelQuery)
+                throw new NotSupportedException("Models are loaded by their provider");
+            if (query.Terminal != LinqTerminal.Sequence)
+                throw new NotSupportedException($"A stream gives the elements of a query, not its {query.Terminal}");
+            if (query.Set is not null || (!query.HasSubquery && ModelTypeDetail.RelatedMembers.Count == 0))
+                return ExecuteLinqStream(query);
+            return query.StreamFrom(() => OpenStream(query), null);
+        }
+        private object? OpenStream(LinqQuery query)
+        {
+            if (query.HasSubquery)
+            {
+                query.Where = ReadForeignSubqueries(query.Where);
+                query.Select = ReadForeignSubqueries(query.Select);
+            }
+            if (ModelTypeDetail.RelatedMembers.Count > 0)
+            {
+                var graph = CrossEngineLinqGraph(query);
+                if (graph is not null)
+                {
+                    if (StreamsWithRelations(query))
+                    {
+                        query.Where = SplitCrossEngineWhere(query.Where);
+                        return StreamWithRelations(query, graph);
+                    }
+                    return query.Execute((IReadOnlyCollection<TModel>)Query(new LinqModelQuery(modelType, LinqTerminal.Sequence, query.Where, null, null, null, graph))!, false);
+                }
+                query.Where = SplitCrossEngineWhere(query.Where);
+            }
+            return ExecuteLinqStream(query);
+        }
+        /// <inheritdoc/>
+        public object QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken)
+        {
+            if (query is LinqModelQuery)
+                throw new NotSupportedException("Models are loaded by their provider");
+            if (query.Terminal != LinqTerminal.Sequence)
+                throw new NotSupportedException($"A stream gives the elements of a query, not its {query.Terminal}");
+            if (query.Set is not null || (!query.HasSubquery && ModelTypeDetail.RelatedMembers.Count == 0))
+                return ExecuteLinqStreamAsync(query, cancellationToken);
+            return query.StreamFromAsync(cancellation => OpenStreamAsync(query, cancellation), null, cancellationToken);
+        }
+        private async Task<object?> OpenStreamAsync(LinqQuery query, CancellationToken cancellationToken)
+        {
+            if (query.HasSubquery)
+            {
+                query.Where = await ReadForeignSubqueriesAsync(query.Where, cancellationToken);
+                query.Select = await ReadForeignSubqueriesAsync(query.Select, cancellationToken);
+            }
+            if (ModelTypeDetail.RelatedMembers.Count > 0)
+            {
+                var graph = CrossEngineLinqGraph(query);
+                if (graph is not null)
+                {
+                    if (StreamsWithRelations(query))
+                    {
+                        query.Where = await SplitCrossEngineWhereAsync(query.Where, cancellationToken);
+                        return StreamWithRelationsAsync(query, graph, cancellationToken);
+                    }
+                    return query.Execute((IReadOnlyCollection<TModel>)(await QueryAsync(new LinqModelQuery(modelType, LinqTerminal.Sequence, query.Where, null, null, null, graph), cancellationToken))!, false);
+                }
+                query.Where = await SplitCrossEngineWhereAsync(query.Where, cancellationToken);
+            }
+            return ExecuteLinqStreamAsync(query, cancellationToken);
+        }
+        //models whose graph reads relations on other engines stream when nothing else reads them; in a transaction a chunk's relations would wait on the connection the stream holds, so the models load first
+        private bool StreamsWithRelations(LinqQuery query)
+        {
+            if (!query.ReturnsModels || !query.GraphRelations || query.Distinct || RepoTransaction.Current is not null)
+                return false;
+            if (query.Order is null)
+                return true;
+            var finder = new GraphFinder(this, new Graph());
+            foreach (var order in query.Order.OrderExpressions)
+                finder.Read(order.Expression);
+            return !finder.Crosses;
+        }
+        private IEnumerable<TModel> StreamWithRelations(LinqQuery query, Graph graph)
+        {
+            OnQueryWithRelations(graph);
+            var models = (IEnumerable<TModel>)ExecuteLinqStream(new LinqQuery<TModel, TModel>(query.Where, query.Order, query.Skip, query.Take, graph, LinqTerminal.Sequence));
+            var size = new LinqStreamSize(ModelTypeDetail);
+            var relationBytes = size.EstimateRelations(graph);
+            var chunk = new List<TModel>();
+            var bytes = 0L;
+            foreach (var model in models)
+            {
+                chunk.Add(model);
+                bytes += size.Columns(model) + relationBytes;
+                if (bytes < StreamChunkBytes)
+                    continue;
+                var loaded = OnGetWithRelations(chunk, graph);
+                var loadedBytes = 0L;
+                foreach (var related in loaded)
+                    loadedBytes += size.Relations(related);
+                relationBytes = loadedBytes / chunk.Count;
+                foreach (var related in loaded)
+                    yield return related;
+                chunk = new List<TModel>(chunk.Count);
+                bytes = 0;
+            }
+            if (chunk.Count > 0)
+            {
+                foreach (var related in OnGetWithRelations(chunk, graph))
+                    yield return related;
+            }
+        }
+        private async IAsyncEnumerable<TModel> StreamWithRelationsAsync(LinqQuery query, Graph graph, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            OnQueryWithRelations(graph);
+            var models = (IAsyncEnumerable<TModel>)ExecuteLinqStreamAsync(new LinqQuery<TModel, TModel>(query.Where, query.Order, query.Skip, query.Take, graph, LinqTerminal.Sequence), cancellationToken);
+            var size = new LinqStreamSize(ModelTypeDetail);
+            var relationBytes = size.EstimateRelations(graph);
+            var chunk = new List<TModel>();
+            var bytes = 0L;
+            await foreach (var model in models.WithCancellation(cancellationToken))
+            {
+                chunk.Add(model);
+                bytes += size.Columns(model) + relationBytes;
+                if (bytes < StreamChunkBytes)
+                    continue;
+                var loaded = await OnGetWithRelationsAsync(chunk, graph, cancellationToken);
+                var loadedBytes = 0L;
+                foreach (var related in loaded)
+                    loadedBytes += size.Relations(related);
+                relationBytes = loadedBytes / chunk.Count;
+                foreach (var related in loaded)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    yield return related;
+                }
+                chunk = new List<TModel>(chunk.Count);
+                bytes = 0;
+            }
+            if (chunk.Count > 0)
+            {
+                foreach (var related in await OnGetWithRelationsAsync(chunk, graph, cancellationToken))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    yield return related;
+                }
+            }
+        }
         //a projected member, a key, a value, or an order through a relation on another engine can't join, so the models load with what the query reads, the relations through their own providers, and the query runs over them in memory
         private Graph? CrossEngineLinqGraph(LinqQuery query)
         {
@@ -923,6 +1073,15 @@ namespace Zerra.Repository
         /// <param name="cancellationToken">A token that cancels the query.</param>
         /// <returns>A task containing the elements or the value.</returns>
         protected abstract Task<object?> ExecuteLinqAsync(LinqQuery query, CancellationToken cancellationToken);
+        /// <summary>Runs a LINQ query whose conditions are on this engine and gives its elements as they're read, as <see cref="ITransactStoreEngine.ExecuteLinqStream{TModel, TResult}"/> does, or as <see cref="ExecuteLinq"/> gives them when the query runs over the models in memory.</summary>
+        /// <param name="query">The query.</param>
+        /// <returns>The elements, an <see cref="IEnumerable{T}"/> of the query's result type.</returns>
+        protected abstract object ExecuteLinqStream(LinqQuery query);
+        /// <summary>Runs a LINQ query whose conditions are on this engine and gives its elements as they're read, as <see cref="ITransactStoreEngine.ExecuteLinqStreamAsync{TModel, TResult}"/> does, or as <see cref="ExecuteLinqAsync"/> gives them when the query runs over the models in memory.</summary>
+        /// <param name="query">The query.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
+        /// <returns>The elements, an <see cref="IAsyncEnumerable{T}"/> of the query's result type.</returns>
+        protected abstract object ExecuteLinqStreamAsync(LinqQuery query, CancellationToken cancellationToken);
         /// <summary>Asynchronously returns whether any model exists matching the given query.</summary>
         /// <param name="query">The query parameters.</param>
         /// <param name="cancellationToken">A token that cancels the query.</param>

@@ -46,6 +46,23 @@ namespace Zerra.Repository
         Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken);
 
         /// <summary>
+        /// Runs a query ending in its elements and gives each one as it's read.
+        /// </summary>
+        /// <param name="query">The query to execute.</param>
+        /// <returns>The elements, an <see cref="IEnumerable{T}"/> of the query's result type.</returns>
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        object QueryStream(LinqQuery query);
+
+        /// <summary>
+        /// Runs a query ending in its elements and gives each one as it's read.
+        /// </summary>
+        /// <param name="query">The query to execute.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
+        /// <returns>The elements, an <see cref="IAsyncEnumerable{T}"/> of the query's result type.</returns>
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        object QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken);
+
+        /// <summary>
         /// Attempts to retrieve the <see cref="ITransactStoreProvider"/> registered for the specified model type.
         /// </summary>
         /// <param name="modelType">The model type to look up.</param>

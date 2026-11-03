@@ -6,7 +6,7 @@
 
 ## Compared with Entity Framework
 
-It is a lighter alternative designed for Zerra services, not a replacement for Entity Framework.
+It replaces Entity Framework in Zerra services, with less overhead and the same code on every store.
 
 | | Zerra Repository | Entity Framework |
 |---|---|---|
@@ -16,7 +16,7 @@ It is a lighter alternative designed for Zerra services, not a replacement for E
 | **Bus integration** | ✅ `BaseHandlerWithRepo` | ❌ Manual wiring |
 | **Change tracking** | ✅ None; every operation is explicit | ⚠️ Automatic, with overhead |
 | **Loading related data** | ✅ Named in a graph or the `Select` | ⚠️ `.Include()` chains |
-| **Query complexity** | ⚠️ Filters, calculations, groupings, and projections, through relations, even across stores | ✅ Any LINQ, including joins between unrelated models |
+| **Query complexity** | ⚠️ Filters, calculations, groupings, projections, and set operations, through relations, even across stores | ✅ Any LINQ, including joins between unrelated models |
 | **Migrations** | ⚠️ Code First generation, no migration history | ✅ Rich migration tooling |
 | **Maturity** | ⚠️ Newer, small community | ✅ Mature, large community |
 
@@ -24,14 +24,16 @@ Against SQL Server, with `AsNoTracking()` and a new `DbContext` per query on the
 
 | Scenario | Speed | Memory |
 |---|---|---|
-| Query many (all rows) | ~45% faster | ~40% less |
-| Query many with a where clause | ~1.8× faster | ~65% less |
-| Query first with a where clause | ~1.9× faster | ~65% less |
-| Query many with a one-to-one relation | ~30% faster | ~15% less |
-| Query many with a one-to-many relation | ~4.5× faster | ~80% less |
-| Update | ~40% faster | ~95% less |
+| Query many (all rows) | ~2.2× faster | ~45% less |
+| Query many with a where clause | ~1.7× faster | ~75% less |
+| Query first with a where clause | ~1.9× faster | ~75% less |
+| Query many with a one-to-one relation | ~3.3× faster | ~45% less |
+| Query many with a one-to-many relation | ~6.3× faster | ~85% less |
+| Update | ~2.2× faster | ~90% less |
+| Create 1,000 models in one call | ~7.9× faster | ~85% less |
+| Stream 10,000 rows | ~1.7× faster | ~25% less |
 
-For one-to-many includes, Zerra loads the related rows of every parent in one additional query, while EF joins them into one query by default. With EF's `AsSplitQuery()`, which loads them separately like Zerra, Zerra is ~25% faster with ~40% less memory. Results vary by environment. The benchmarks are in [`EFBenchmark.cs`](../Benchmarks/Zerra.Repository.Benchmark/Benchmarks/EFBenchmark.cs).
+For one-to-many includes, Zerra loads the related rows of every parent in one additional query, while EF joins them into one query by default. With EF's `AsSplitQuery()`, which loads them separately like Zerra, Zerra is ~2× faster with ~65% less memory. Reading 10,000 rows as a stream takes about 20% less time than reading them into a list, and a rule layer's chunks add no measurable time. Measured November 2, 2026. Results vary by environment. The benchmarks are in [`EFBenchmark.cs`](../Benchmarks/Zerra.Repository.Benchmark/Benchmarks/EFBenchmark.cs) and [`StreamBenchmark.cs`](../Benchmarks/Zerra.Repository.Benchmark/Benchmarks/StreamBenchmark.cs).
 
 ## Packages
 
@@ -162,18 +164,19 @@ var sales = Repo.Query<OrderLineDataModel>().GroupBy(x => x.ProductID)
     .Where(r => r.Lines >= 10).OrderByDescending(r => r.Revenue).Take(20).ToArray();
 ```
 
-- `Where`, `OrderBy`/`OrderByDescending`/`ThenBy`/`ThenByDescending`, `Skip`, `Take`, `Select`, `Distinct`, and `GroupBy` compose the query. Filter and order before `Select` and before paging.
+- `Where`, `OrderBy`/`OrderByDescending`/`ThenBy`/`ThenByDescending`, `Skip`, `Take`, `Select`, `Distinct`, and `GroupBy` compose the query. Filter and order before paging.
 - End it by enumerating it, or with `First`, `FirstOrDefault`, `Single`, `SingleOrDefault`, `Count`, `LongCount`, `Any`, `All`, `Sum`, `Min`, `Max`, or `Average`, with a condition or value in the call or selected before it. `First` and `Single` throw when there is nothing, as LINQ does. The `Async` versions, `ToArrayAsync`, `ToListAsync`, `FirstAsync`, `CountAsync`, `SumAsync`, and the rest, are in `RepoQueryableExtensions`.
 - `Last` and `Reverse` need an `OrderBy`, and the store reads that order the other way round.
 - `ElementAt` skips to its place in the store, and `Count` or a calculation after `Skip` or `Take` is of that page.
 - `Select(x => x.ID).Contains(id)` looks for one value.
 - `SelectMany(x => x.Lines)` goes over to the related model, and what follows is a query of it. The rows have no order unless you add one after it. `SelectMany(x => x.Lines, (x, l) => new { x.Name, l.Quantity })` reads the model through the relation back to it, so that relation has to exist.
 - `Where(x => ids.Contains(x.ID))` where `ids` is a repository query selecting one value is one statement in the same store, and reads `ids` first otherwise. It works in a `Select` value and in an update or delete by condition too. It can't read the outer model.
-- `Union`, `Concat`, `Intersect`, and `Except` combine two repository queries, of one model or two, that build the same elements. Each query can filter, order, and page before combining, and the combined elements can be filtered with `Where`, ordered, paged, and ended with `First`, `Single`, `Count`, or `Any`, but not selected from again. Both on the same engine are one statement, otherwise each runs on its own and the elements combine in memory, compared by their values as rows are. A class built in each query sets its members in the same order.
+- `Union`, `Concat`, `Intersect`, and `Except` combine two repository queries, of one model or two, that build the same elements. Each query can filter, order, and page before combining, and the combined elements can be filtered with `Where`, ordered, paged, built from with `Select`, and ended with `First`, `Single`, `Count`, or `Any`. Both on the same engine are one statement, otherwise each runs on its own and the elements combine in memory, compared by their values as rows are. A class built in each query sets its members in the same order.
 - A `Where` or `OrderBy` after a `Select` is written back onto the model, from what the `Select` set, so it has to read members the `Select` set and come before paging.
 - `ToHashSetAsync` and `ToDictionaryAsync` build their result after the rows are read, so their selectors run in memory.
+- `AsAsyncEnumerable(cancellationToken)` and `AsEnumerable()` give each element as it's read, for large results: `await foreach (var order in Repo.Query<OrderDataModel>().AsAsyncEnumerable(cancellationToken))`. The connection stays open until the loop ends. A plain `foreach` over the query, `ToList`, and `ToArray` read everything first, as before. A query that runs in memory, such as a set across two engines or a query of an event store, reads everything before the first element. Relations on another engine load for each chunk of models, and rules see the models in chunks. A chunk is as many models as fit in `StreamChunkBytes` on the provider, 1 MB by default, measured from their columns and text.
 - A call the store can't run, such as `Count` after `GroupBy`, throws `NotSupportedException` instead of running in memory.
-- The `Async` endings, the [history queries](#history-queries), and the [changes](#changes) take a `CancellationToken` last. Cancelling stops the statement in the store and throws `OperationCanceledException`, whichever engine it's on. A change of several rows or relations keeps what it already wrote, as there is no transaction around them.
+- The `Async` endings, the [history queries](#history-queries), and the [changes](#changes) take a `CancellationToken` last. Cancelling stops the statement in the store and throws `OperationCanceledException`, whichever engine it's on. Creating or updating many models in one call is all or nothing. A change that also writes related models keeps what it already wrote, unless it runs in a [transaction](#transactions).
 - With Entity Framework in the same file, the `Async` endings of both are in scope, so call EF's through `EntityFrameworkQueryableExtensions`.
 
 ### Selecting and Loading Relations
@@ -224,7 +227,7 @@ var perPair   = await Repo.Query<OrderDataModel>().GroupBy(x => new { x.Customer
 
 ### Layers and Event Stores
 
-- A rule's `WhereExpression` applies to a query, and its `OnGet` to the models given back.
+- A rule's `WhereExpression` applies to a query, and its `OnGet` to the models given back, in chunks when they're streamed.
 - An encryption or compression layer refuses a `Select` or order of one of its properties, and gives the models back plain. A graph reads them, and only the ones it names are decrypted or decompressed.
 - A member, an order, or a graph's relation on another engine, or on a related model with its own layers, loads the models with what the query reads and runs the query over them in memory.
 - An event store runs the query over the current state of its models. Each change it kept is read with the [History Queries](#history-queries).
@@ -262,6 +265,7 @@ Creating or updating a list of models in one call saves them together or not at 
 
 - **Begin and commit in the same method.** Starting one inside an async method doesn't carry over to the caller, as it ends with the method.
 - **One at a time.** Beginning a second inside the first throws. Parallel calls inside one take turns, as they share a connection.
+- **Streams:** a stream read with `AsAsyncEnumerable` or `AsEnumerable` holds the connection until its loop ends, so another call to the same engine or a commit inside the loop throws. A rule's `OnGet` runs while the stream reads too, so it can't query the same engine in a transaction either. A plain `foreach` over the query reads everything first, so writing inside it works.
 - **After it finishes,** the flow that began it carries on outside it. A background task it started that still uses it gets an error.
 - **Handlers:** a handler the bus runs is its own unit of work, even when it runs in the same process.
 - **Layers:** a layer's `OnCreateComplete` and similar methods run before the commit, so a layer that caches shouldn't keep what it sees until the work is committed.
@@ -284,7 +288,7 @@ int removed  = await Repo.DeleteAsync<OrderLineDataModel>(x => x.OrderID == orde
 - The graph says which members take the model's values, so it is required and can't name the identity or a relation. The other members of the model are ignored.
 - A computed update sets each member from the row as the database reads it, so `Total = x.Price * x.Quantity` is one statement. A value takes what a `where` takes of the model's own members, not a relation, and can't set the identity or a relation.
 - Zero matching rows is a normal result of 0, not an error.
-- The condition takes what a `where` takes. One through a related model becomes a subquery selecting the identities, which needs a single identity.
+- The condition takes what a `where` takes. One through a related model becomes a subquery selecting the identities.
 - A rule's `WhereExpression` is added to the condition. Rules see the condition in `OnUpdateWhere`/`OnDeleteWhere` instead of the rows in `OnUpdate`/`OnDelete`, since the rows aren't loaded.
 - An encryption or compression layer encrypts the values it sets and refuses a condition on one of its properties, and refuses a computed update that reads or sets one.
 - Related models named in a persist graph aren't deleted along with the rows, as they are with `Delete(model, graph)`; delete them first with their own condition.
@@ -390,7 +394,7 @@ repo.AddProvider(new OrderRules(engine));
 |---|---|
 | `WhereExpression` | on every query, joined to its `where` with `&&` |
 | `OnQuery` | before a query, to change the graph |
-| `OnGet` | after models are read, to filter or change them |
+| `OnGet` | after models are read, to filter or change them, once per chunk when they're streamed |
 | `OnCreate`/`OnUpdate`/`OnDelete` | before saving, to check, change, or filter what is saved |
 | `OnCreateComplete`/`OnUpdateComplete`/`OnDeleteComplete` | after saving |
 

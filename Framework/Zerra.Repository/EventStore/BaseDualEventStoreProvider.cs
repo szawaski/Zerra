@@ -51,6 +51,10 @@ namespace Zerra.Repository
 
         /// <inheritdoc/>
         public Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken) => query is LinqModelQuery { IsTemporal: true } ? EventStoreProvider.QueryAsync(query, cancellationToken) : NextProvider.QueryAsync(query, cancellationToken);
+        /// <inheritdoc/>
+        public object QueryStream(LinqQuery query) => query is LinqModelQuery { IsTemporal: true } ? EventStoreProvider.QueryStream(query) : NextProvider.QueryStream(query);
+        /// <inheritdoc/>
+        public object QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken) => query is LinqModelQuery { IsTemporal: true } ? EventStoreProvider.QueryStreamAsync(query, cancellationToken) : NextProvider.QueryStreamAsync(query, cancellationToken);
 
         /// <inheritdoc/>
         public void Persist(Persist persist)

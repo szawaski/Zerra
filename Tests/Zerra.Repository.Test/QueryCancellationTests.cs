@@ -45,6 +45,13 @@ namespace Zerra.Repository.Test
                 QueryToken = cancellationToken;
                 return Task.FromResult<object?>(Array.Empty<TModel>());
             }
+            object ITransactStoreProvider.QueryStream(LinqQuery query) => throw new NotSupportedException();
+            object ITransactStoreProvider.QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken)
+            {
+                Query = query;
+                QueryToken = cancellationToken;
+                return query.StreamFromAsync(_ => Task.FromResult<object?>(Array.Empty<TModel>()), null, cancellationToken);
+            }
             void ITransactStoreProvider.Persist(Persist persist) => throw new NotSupportedException();
             Task ITransactStoreProvider.PersistAsync(Persist persist, CancellationToken cancellationToken)
             {

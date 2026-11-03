@@ -544,6 +544,7 @@ namespace Zerra.Repository.PostgreSql
             }
             public NpgsqlTransaction? BeginWhenNone() => transaction is null ? connection.BeginTransaction() : null;
             public async ValueTask<NpgsqlTransaction?> BeginWhenNoneAsync(CancellationToken cancellationToken) => transaction is null ? await connection.BeginTransactionAsync(cancellationToken) : null;
+            public void HoldForStream() => part?.HoldForStream();
             public void Dispose()
             {
                 if (part is null)
@@ -1122,6 +1123,36 @@ namespace Zerra.Repository.PostgreSql
                         }
                 }
             }
+        }
+        /// <inheritdoc/>
+        public IEnumerable<TResult> ExecuteLinqStream<TModel, TResult>(LinqQuery query, ModelDetail modelDetail) where TModel : class, new()
+        {
+            var statement = LinqPostgreSqlConverter.ConvertLinq(query, modelDetail);
+            using var connection = OpenConnection();
+            var pieces = ReadLinqPieces(connection, statement);
+            connection.HoldForStream();
+            using var command = connection.CreateCommand();
+            command.CommandTimeout = 0;
+            command.CommandText = statement.Sql;
+            using var reader = command.ExecuteReader(CommandBehavior.SequentialAccess);
+            var shape = statement.Plan.Shape!;
+            while (reader.Read())
+                yield return (TResult)ReadLinqElement(reader, shape, pieces)!;
+        }
+        /// <inheritdoc/>
+        public async IAsyncEnumerable<TResult> ExecuteLinqStreamAsync<TModel, TResult>(LinqQuery query, ModelDetail modelDetail, [EnumeratorCancellation] CancellationToken cancellationToken = default) where TModel : class, new()
+        {
+            var statement = LinqPostgreSqlConverter.ConvertLinq(query, modelDetail);
+            using var connection = await OpenConnectionAsync(cancellationToken);
+            var pieces = await ReadLinqPiecesAsync(connection, statement, cancellationToken);
+            connection.HoldForStream();
+            using var command = connection.CreateCommand();
+            command.CommandTimeout = 0;
+            command.CommandText = statement.Sql;
+            using var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken);
+            var shape = statement.Plan.Shape!;
+            while (await reader.ReadAsync(cancellationToken))
+                yield return (TResult)ReadLinqElement(reader, shape, pieces)!;
         }
         private static async Task<LinqPieceElements[]?> ReadLinqPiecesAsync(EngineConnection connection, LinqStatement statement, CancellationToken cancellationToken)
         {

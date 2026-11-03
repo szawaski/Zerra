@@ -237,6 +237,10 @@ namespace Zerra.Repository
             return query.Execute(await LoadLinqRelationsAsync(query, models as IReadOnlyCollection<TModel> ?? models.ToArray(), cancellationToken), false);
         }
         /// <inheritdoc/>
+        protected override sealed object ExecuteLinqStream(LinqQuery query) => query.StreamFrom(() => ExecuteLinq(query), null);
+        /// <inheritdoc/>
+        protected override sealed object ExecuteLinqStreamAsync(LinqQuery query, CancellationToken cancellationToken) => query.StreamFromAsync(cancellation => ExecuteLinqAsync(query, cancellation), null, cancellationToken);
+        /// <inheritdoc/>
         protected override sealed async Task<IReadOnlyCollection<EventModel<TModel>>> EventManyAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
             var eventModels = await ReadEventModelsAsync(query, cancellationToken);
@@ -436,20 +440,21 @@ namespace Zerra.Repository
                             if (query.TemporalSkip.HasValue && query.TemporalTake.HasValue)
                             {
                                 modelStates.Reverse();
-                                return modelStates.Skip(query.TemporalSkip.Value).Take(query.TemporalTake.Value).Reverse().ToArray();
+                                return modelStates.Skip(query.TemporalSkip.Value).Take(query.TemporalTake.Value).ToArray();
                             }
                             else if (query.TemporalSkip.HasValue)
                             {
                                 modelStates.Reverse();
-                                return modelStates.Skip(query.TemporalSkip.Value).Reverse().ToArray();
+                                return modelStates.Skip(query.TemporalSkip.Value).ToArray();
                             }
                             else if (query.TemporalTake.HasValue)
                             {
                                 modelStates.Reverse();
-                                return modelStates.Take(query.TemporalTake.Value).Reverse().ToArray();
+                                return modelStates.Take(query.TemporalTake.Value).ToArray();
                             }
                             else
                             {
+                                modelStates.Reverse();
                                 return modelStates;
                             }
                         }
@@ -597,20 +602,21 @@ namespace Zerra.Repository
                             if (query.TemporalSkip.HasValue && query.TemporalTake.HasValue)
                             {
                                 eventModels.Reverse();
-                                return eventModels.Skip(query.TemporalSkip.Value).Take(query.TemporalTake.Value).Reverse().ToArray();
+                                return eventModels.Skip(query.TemporalSkip.Value).Take(query.TemporalTake.Value).ToArray();
                             }
                             else if (query.TemporalSkip.HasValue)
                             {
                                 eventModels.Reverse();
-                                return eventModels.Skip(query.TemporalSkip.Value).Reverse().ToArray();
+                                return eventModels.Skip(query.TemporalSkip.Value).ToArray();
                             }
                             else if (query.TemporalTake.HasValue)
                             {
                                 eventModels.Reverse();
-                                return eventModels.Take(query.TemporalTake.Value).Reverse().ToArray();
+                                return eventModels.Take(query.TemporalTake.Value).ToArray();
                             }
                             else
                             {
+                                eventModels.Reverse();
                                 return eventModels;
                             }
                         }

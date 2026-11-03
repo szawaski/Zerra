@@ -23,6 +23,12 @@ namespace Zerra.Repository
             return result is null ? default! : (TResult)result;
         }
 
+        /// <summary>Gives the elements of the query as they're read, rather than once all are; the query runs when they're read, and what follows runs in memory as with <see cref="Enumerable.AsEnumerable{TSource}(IEnumerable{TSource})"/>.</summary>
+        //another provider's query is given as it is, as LINQ's AsEnumerable gives it, since this one is chosen wherever both are in scope
+        public static IEnumerable<TSource> AsEnumerable<TSource>(this IQueryable<TSource> source) => source.Provider is RepoQueryProvider provider ? new RepoQueryEnumerable<TSource>(provider, source.Expression) : source;
+        /// <summary>Gives the elements of the query as they're read, rather than once all are; the query runs when they're read, cancelled by <paramref name="cancellationToken"/> or one given to <see cref="TaskAsyncEnumerableExtensions.WithCancellation{T}(IAsyncEnumerable{T}, CancellationToken)"/>.</summary>
+        public static IAsyncEnumerable<TSource> AsAsyncEnumerable<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default) => new RepoQueryStream<TSource>(Provider(source), source.Expression, cancellationToken);
+
         /// <summary>Asynchronously runs the query and returns its elements as an array.</summary>
         public static async Task<TSource[]> ToArrayAsync<TSource>(this IQueryable<TSource> source, CancellationToken cancellationToken = default) => (await Provider(source).ExecuteSequenceAsync<TSource>(source.Expression, cancellationToken)).ToArray();
         /// <summary>Asynchronously runs the query and returns its elements as a list.</summary>

@@ -60,8 +60,8 @@ namespace Zerra.Repository
         {
             List<object>? parameters = null;
             var sql = ConvertSetSql(query.Set!, ref parameters, out var plan);
-            if (query.Having is not null || query.ResultOrder is not null || query.Skip.HasValue || query.Take.HasValue)
-                sql = ConvertSetResults(query, sql, plan, parameters);
+            if (query.Having is not null || query.ResultOrder is not null || query.Skip.HasValue || query.Take.HasValue || query.Select is not null || query.SelectedHaving is not null || query.SelectedOrder is not null)
+                sql = ConvertSetResults(query, sql, ref plan, parameters);
             sql = query.Terminal switch
             {
                 LinqTerminal.Count or LinqTerminal.LongCount => $"SELECT COUNT(1) FROM({sql})AS Z",
@@ -71,7 +71,7 @@ namespace Zerra.Repository
             return new LinqStatement(sql, plan, null, parameters);
         }
         //the condition, order, and page of the elements on the combined rows, each member of an element the column holding it
-        private string ConvertSetResults(LinqQuery query, string sql, LinqPlan plan, List<object>? parameters)
+        private string ConvertSetResults(LinqQuery query, string sql, ref LinqPlan plan, List<object>? parameters)
         {
             var columns = new Dictionary<string, string>();
             var enums = new HashSet<string>();
@@ -102,34 +102,98 @@ namespace Zerra.Repository
             var sb = new CharWriter();
             try
             {
-                sb.Write("SELECT * FROM(");
+                var select = query.Select is not null && (query.ReadsElements || query.SelectedHaving is not null) ? LinqPlan.ReadSetSelect(query.Select, ModelAnalyzer.GetModel(query.ModelType)) : null;
+                Dictionary<string, string>? selectedColumns = null;
+                HashSet<string>? selectedEnums = null;
+                if (select is null)
+                {
+                    sb.Write("SELECT * FROM(");
+                }
+                else
+                {
+                    var values = new string[select.Columns.Count];
+                    var valueEnums = new bool[values.Length];
+                    for (var i = 0; i < values.Length; i++)
+                    {
+                        var column = select.Columns[i];
+                        var value = new CharWriter();
+                        try
+                        {
+                            ConvertSetValue(column.Expression!, column.Parameter!, columns, ref value, rootDependant, operationContext);
+                            values[i] = value.ToString();
+                        }
+                        finally
+                        {
+                            value.Dispose();
+                        }
+                        valueEnums[i] = column.Expression == column.Parameter ? enums.Contains(String.Empty) : column.Expression is MemberExpression { Expression: ParameterExpression owner } member && owner == column.Parameter && enums.Contains(member.Member.Name);
+                    }
+                    selectedColumns = new();
+                    selectedEnums = new();
+                    AddSelectedColumn(selectedColumns, selectedEnums, String.Empty, select.Shape!, values, valueEnums);
+
+                    sb.Write("SELECT ");
+                    for (var i = 0; i < values.Length; i++)
+                    {
+                        if (i > 0)
+                            sb.Write(',');
+                        sb.Write(values[i]);
+                        sb.Write(" AS C");
+                        sb.Write(i);
+                    }
+                    sb.Write(" FROM(");
+                    if (query.ReadsElements)
+                        plan = select;
+                }
                 sb.Write(sql);
                 sb.Write(")AS Z");
                 var none = query.Take == 0;
-                if (query.Having is not null || none)
+                var selectedHaving = selectedColumns is null ? null : query.SelectedHaving;
+                if (query.Having is not null || selectedHaving is not null || none)
                 {
                     sb.Write(" WHERE");
                     if (query.Having is not null)
                         ConvertSetExpression(query.Having, columns, false, ref sb, rootDependant, operationContext);
+                    if (selectedHaving is not null)
+                    {
+                        if (query.Having is not null)
+                            sb.Write(" AND");
+                        operationContext.ResultEnums = selectedEnums;
+                        ConvertSetExpression(selectedHaving, selectedColumns!, false, ref sb, rootDependant, operationContext);
+                        operationContext.ResultEnums = enums;
+                    }
                     //a page of no rows is a condition of none, as SQL Server refuses to fetch none
                     if (none)
-                        sb.Write(query.Having is null ? " 1=0" : " AND 1=0");
+                        sb.Write(query.Having is null && selectedHaving is null ? " 1=0" : " AND 1=0");
                 }
                 var paged = !none && (query.Skip.HasValue || query.Take.HasValue);
                 //an order only matters to the elements read or to a page of them
-                var ordered = query.ResultOrder is not null && (query.ReadsElements || paged);
+                var selectedOrder = selectedColumns is null ? null : query.SelectedOrder;
+                var ordered = (query.ResultOrder is not null || selectedOrder is not null) && (query.ReadsElements || paged);
                 if (ordered)
                 {
                     sb.Write(" ORDER BY");
-                    var orders = query.ResultOrder!.OrderExpressions;
-                    for (var o = 0; o < orders.Length; o++)
+                    var first = true;
+                    foreach (var order in query.ResultOrder?.OrderExpressions ?? [])
                     {
-                        if (o > 0)
+                        if (!first)
                             sb.Write(',');
-                        ConvertSetExpression(orders[o].Expression, columns, true, ref sb, rootDependant, operationContext);
-                        if (orders[o].Descending)
+                        first = false;
+                        ConvertSetExpression(order.Expression, columns, true, ref sb, rootDependant, operationContext);
+                        if (order.Descending)
                             sb.Write("DESC");
                     }
+                    operationContext.ResultEnums = selectedEnums;
+                    foreach (var order in selectedOrder?.OrderExpressions ?? [])
+                    {
+                        if (!first)
+                            sb.Write(',');
+                        first = false;
+                        ConvertSetExpression(order.Expression, selectedColumns!, true, ref sb, rootDependant, operationContext);
+                        if (order.Descending)
+                            sb.Write("DESC");
+                    }
+                    operationContext.ResultEnums = enums;
                 }
                 if (paged)
                     GeneratePage(query.Skip, query.Take, ordered, ref sb, operationContext);
@@ -153,6 +217,37 @@ namespace Zerra.Repository
             columns[name] = QuoteColumn("Z", $"C{value.Column!.Index}");
             if (value.Column.Member is { EnumType: not null })
                 _ = enums.Add(name);
+        }
+        private static void AddSelectedColumn(Dictionary<string, string> columns, HashSet<string> enums, string name, LinqShape value, string[] values, bool[] valueEnums)
+        {
+            if (value.Kind == LinqShapeKind.Object)
+            {
+                for (var i = 0; i < (value.ArgumentNames?.Length ?? 0); i++)
+                    AddSelectedColumn(columns, enums, name.Length == 0 ? value.ArgumentNames![i] : $"{name}.{value.ArgumentNames![i]}", value.Arguments![i], values, valueEnums);
+                if (name.Length == 0)
+                {
+                    for (var i = 0; i < (value.Members?.Length ?? 0); i++)
+                        AddSelectedColumn(columns, enums, value.Members![i].Name, value.Values![i], values, valueEnums);
+                }
+                return;
+            }
+            if (value.Kind != LinqShapeKind.Column)
+                return;
+            columns[name] = values[value.Column!.Index];
+            if (valueEnums[value.Column.Index])
+                _ = enums.Add(name);
+        }
+        private void ConvertSetValue(Expression value, ParameterExpression parameter, Dictionary<string, string> columns, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
+        {
+            operationContext.ResultColumns ??= new();
+            operationContext.ResultColumns[parameter] = columns;
+            operationContext.OperatorStack.Push(Operator.Lambda);
+            sb.Write('(');
+            //a condition is a value here, as it is in the columns of a query
+            ConvertToSql(value, ref sb, new BuilderContext(rootDependant, operationContext) { IsOrderBy = true });
+            sb.Write(')');
+            _ = operationContext.OperatorStack.Pop();
+            _ = operationContext.ResultColumns.Remove(parameter);
         }
         private void ConvertSetExpression(LambdaExpression lambda, Dictionary<string, string> columns, bool isOrder, ref CharWriter sb, ParameterDependant rootDependant, MemberContext operationContext)
         {

@@ -5,6 +5,7 @@
 using BenchmarkDotNet.Attributes;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Zerra.Map;
 using Zerra.Repository.Benchmark.EFData;
 using Zerra.Repository.Test;
 using Zerra.Repository.MsSql;
@@ -23,6 +24,10 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         EFDataContext reuseContext;
         //a different value each call, as an application's are, so a store compiles what it can't reuse
         int changing = -1_000_000;
+        //the models a create of many saves, made before each iteration and deleted after it
+        TestTypesModel[] createModels;
+        EFTestTypesModel[] createEF;
+        private const int createCount = 1000;
 
         [GlobalSetup]
         public void Setup()
@@ -237,6 +242,36 @@ namespace Zerra.Repository.Benchmark.Benchmarks
             singleEF.Int32Thing = changing--;
             using var context = new EFDataContext();
             context.Attach(singleEF).State = EntityState.Modified;
+            _ = await context.SaveChangesAsync();
+        }
+
+        [IterationSetup(Target = nameof(CreateMany_Zerra))]
+        public void SetupCreateMany() => createModels = Enumerable.Range(0, createCount).Select(_ => TestTypesModel.Create()).ToArray();
+        [IterationCleanup(Target = nameof(CreateMany_Zerra))]
+        public void CleanupCreateMany()
+        {
+            var keys = createModels.Select(x => x.KeyA).ToArray();
+            _ = repo.Delete<TestTypesModel>(x => keys.Contains(x.KeyA));
+        }
+        [Benchmark]
+        public async Task CreateMany_Zerra()
+        {
+            await repo.CreateAsync<TestTypesModel>(createModels);
+        }
+
+        [IterationSetup(Target = nameof(CreateMany_EF))]
+        public void SetupCreateManyEF() => createEF = Enumerable.Range(0, createCount).Select(_ => TestTypesModel.Create().Map<TestTypesModel, EFTestTypesModel>()).ToArray();
+        [IterationCleanup(Target = nameof(CreateMany_EF))]
+        public void CleanupCreateManyEF()
+        {
+            var keys = createEF.Select(x => x.KeyA).ToArray();
+            _ = repo.Delete<TestTypesModel>(x => keys.Contains(x.KeyA));
+        }
+        [Benchmark]
+        public async Task CreateMany_EF()
+        {
+            using var context = new EFDataContext();
+            context.TestTypes.AddRange(createEF);
             _ = await context.SaveChangesAsync();
         }
     }

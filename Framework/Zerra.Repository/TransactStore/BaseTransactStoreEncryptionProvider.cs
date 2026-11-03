@@ -4,6 +4,7 @@
 
 using System.Collections;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Zerra.Collections;
 using Zerra.Encryption;
@@ -243,6 +244,46 @@ namespace Zerra.Repository
             {
                 query.Where = where;
             }
+        }
+        /// <inheritdoc/>
+        public override sealed object QueryStream(LinqQuery query)
+        {
+            RefuseEncryptedReads(query);
+            LambdaExpression? where = null;
+            var elements = query.StreamFrom(() =>
+            {
+                where = query.Where;
+                query.Where = EncryptWhere(where);
+                return NextProvider.QueryStream(query);
+            }, () => query.Where = where);
+            if (!query.ReturnsModels)
+                return elements;
+            return DecryptStream((IEnumerable<TModel>)elements, query.Graph);
+        }
+        private IEnumerable<TModel> DecryptStream(IEnumerable<TModel> models, Graph? graph)
+        {
+            foreach (var model in models)
+                yield return DecryptModel(model, graph, true);
+        }
+        /// <inheritdoc/>
+        public override sealed object QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken)
+        {
+            RefuseEncryptedReads(query);
+            LambdaExpression? where = null;
+            var elements = query.StreamFromAsync(cancellation =>
+            {
+                where = query.Where;
+                query.Where = EncryptWhere(where);
+                return Task.FromResult<object?>(NextProvider.QueryStreamAsync(query, cancellation));
+            }, () => query.Where = where, cancellationToken);
+            if (!query.ReturnsModels)
+                return elements;
+            return DecryptStreamAsync((IAsyncEnumerable<TModel>)elements, query.Graph, cancellationToken);
+        }
+        private async IAsyncEnumerable<TModel> DecryptStreamAsync(IAsyncEnumerable<TModel> models, Graph? graph, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var model in models.WithCancellation(cancellationToken))
+                yield return DecryptModel(model, graph, true);
         }
         private object? DecryptResult(LinqQuery query, object? result)
         {

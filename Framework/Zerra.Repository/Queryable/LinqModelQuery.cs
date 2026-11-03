@@ -79,6 +79,10 @@ namespace Zerra.Repository
         internal override object CombineSet(IEnumerable left, IEnumerable right, bool caseSensitive) => throw new NotSupportedException("Models are loaded by their provider");
         internal override object? Execute(ITransactStoreEngine engine, ModelDetail modelDetail) => throw new NotSupportedException("Models are loaded by their provider");
         internal override Task<object?> ExecuteAsync(ITransactStoreEngine engine, ModelDetail modelDetail, CancellationToken cancellationToken) => throw new NotSupportedException("Models are loaded by their provider");
+        internal override object Stream(ITransactStoreEngine engine, ModelDetail modelDetail) => throw new NotSupportedException("Models are loaded by their provider");
+        internal override object StreamFrom(Func<object?> open, Action? opened) => throw new NotSupportedException("Models are loaded by their provider");
+        internal override object StreamAsync(ITransactStoreEngine engine, ModelDetail modelDetail, CancellationToken cancellationToken) => throw new NotSupportedException("Models are loaded by their provider");
+        internal override object StreamFromAsync(Func<CancellationToken, Task<object?>> open, Action? opened, CancellationToken cancellationToken) => throw new NotSupportedException("Models are loaded by their provider");
         /// <inheritdoc/>
         public override object? Execute(IEnumerable<object> models, bool caseSensitive) => throw new NotSupportedException("Models are loaded by their provider");
     }

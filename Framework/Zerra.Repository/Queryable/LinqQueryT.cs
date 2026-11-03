@@ -4,6 +4,7 @@
 
 using System.Collections;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using Zerra.Repository.Reflection;
 
 namespace Zerra.Repository
@@ -55,6 +56,8 @@ namespace Zerra.Repository
                 LinqSetOperation.Except => first.Except(second, comparer),
                 _ => throw new NotSupportedException($"{Set.Operation} isn't a set operation"),
             };
+            if (Select is not null && (ReadsElements || SelectedHaving is not null))
+                return CombineSelected(elements, caseSensitive);
             if (Having is not null)
             {
                 var condition = ElementFunction(Having, caseSensitive);
@@ -82,6 +85,54 @@ namespace Zerra.Repository
                 LinqTerminal.Count or LinqTerminal.LongCount => elements.LongCount(),
                 LinqTerminal.Any => elements.Any(),
                 _ => elements.Cast<TResult>().ToList(),
+            };
+        }
+        private object CombineSelected(IEnumerable<object?> combined, bool caseSensitive)
+        {
+            var select = ElementFunction(Select!, caseSensitive);
+            var elements = combined.Select(x => new KeyValuePair<object?, object?>(x, select(x)));
+            if (Having is not null)
+            {
+                var condition = ElementFunction(Having, caseSensitive);
+                elements = elements.Where(x => (bool)condition(x.Key)!);
+            }
+            if (SelectedHaving is not null)
+            {
+                var condition = ElementFunction(SelectedHaving, caseSensitive);
+                elements = elements.Where(x => (bool)condition(x.Value)!);
+            }
+            if ((ResultOrder is not null || SelectedOrder is not null) && (ReadsElements || Skip.HasValue || Take.HasValue))
+            {
+                IOrderedEnumerable<KeyValuePair<object?, object?>>? ordered = null;
+                foreach (var order in ResultOrder?.OrderExpressions ?? [])
+                {
+                    var key = ElementFunction(order.Expression, caseSensitive);
+                    Func<KeyValuePair<object?, object?>, object?> pairKey = x => key(x.Key);
+                    if (ordered is null)
+                        ordered = order.Descending ? elements.OrderByDescending(pairKey) : elements.OrderBy(pairKey);
+                    else
+                        ordered = order.Descending ? ordered.ThenByDescending(pairKey) : ordered.ThenBy(pairKey);
+                }
+                foreach (var order in SelectedOrder?.OrderExpressions ?? [])
+                {
+                    var key = ElementFunction(order.Expression, caseSensitive);
+                    Func<KeyValuePair<object?, object?>, object?> pairKey = x => key(x.Value);
+                    if (ordered is null)
+                        ordered = order.Descending ? elements.OrderByDescending(pairKey) : elements.OrderBy(pairKey);
+                    else
+                        ordered = order.Descending ? ordered.ThenByDescending(pairKey) : ordered.ThenBy(pairKey);
+                }
+                elements = ordered!;
+            }
+            if (Skip.HasValue)
+                elements = elements.Skip(Skip.Value);
+            if (Take.HasValue)
+                elements = elements.Take(Take.Value);
+            return Terminal switch
+            {
+                LinqTerminal.Count or LinqTerminal.LongCount => elements.LongCount(),
+                LinqTerminal.Any => elements.Any(),
+                _ => elements.Select(x => x.Value).Cast<TResult>().ToList(),
             };
         }
 
@@ -112,6 +163,103 @@ namespace Zerra.Repository
 
         internal override object? Execute(ITransactStoreEngine engine, ModelDetail modelDetail) => engine.ExecuteLinq<TModel, TResult>(this, modelDetail);
         internal override async Task<object?> ExecuteAsync(ITransactStoreEngine engine, ModelDetail modelDetail, CancellationToken cancellationToken) => await engine.ExecuteLinqAsync<TModel, TResult>(this, modelDetail, cancellationToken);
+        internal override object Stream(ITransactStoreEngine engine, ModelDetail modelDetail) => engine.ExecuteLinqStream<TModel, TResult>(this, modelDetail);
+        internal override object StreamFrom(Func<object?> open, Action? opened) => StreamOpened(open, opened);
+        private static IEnumerable<TResult> StreamOpened(Func<object?> open, Action? opened)
+        {
+            IEnumerator<TResult> elements;
+            bool any;
+            try
+            {
+                elements = ((IEnumerable<TResult>)open()!).GetEnumerator();
+                try
+                {
+                    any = elements.MoveNext();
+                }
+                catch
+                {
+                    elements.Dispose();
+                    throw;
+                }
+            }
+            finally
+            {
+                opened?.Invoke();
+            }
+            using (elements)
+            {
+                while (any)
+                {
+                    yield return elements.Current;
+                    any = elements.MoveNext();
+                }
+            }
+        }
+        internal override object StreamAsync(ITransactStoreEngine engine, ModelDetail modelDetail, CancellationToken cancellationToken) => engine.ExecuteLinqStreamAsync<TModel, TResult>(this, modelDetail, cancellationToken);
+        internal override object StreamFromAsync(Func<CancellationToken, Task<object?>> open, Action? opened, CancellationToken cancellationToken) => StreamOpenedAsync(open, opened, cancellationToken);
+        private static async IAsyncEnumerable<TResult> StreamOpenedAsync(Func<CancellationToken, Task<object?>> open, Action? opened, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            IAsyncEnumerator<TResult>? stream = null;
+            IEnumerator<TResult>? list = null;
+            bool any;
+            try
+            {
+                var source = await open(cancellationToken);
+                if (source is IAsyncEnumerable<TResult> elements)
+                {
+                    stream = elements.GetAsyncEnumerator(cancellationToken);
+                    any = await stream.MoveNextAsync();
+                }
+                else
+                {
+                    list = ((IEnumerable<TResult>)source!).GetEnumerator();
+                    any = list.MoveNext();
+                }
+            }
+            catch
+            {
+                if (stream is not null)
+                    await stream.DisposeAsync();
+                list?.Dispose();
+                throw;
+            }
+            finally
+            {
+                opened?.Invoke();
+            }
+
+            if (stream is not null)
+            {
+                try
+                {
+                    while (any)
+                    {
+                        yield return stream.Current;
+                        any = await stream.MoveNextAsync();
+                    }
+                }
+                finally
+                {
+                    await stream.DisposeAsync();
+                }
+            }
+            else
+            {
+                try
+                {
+                    while (any)
+                    {
+                        yield return list!.Current;
+                        cancellationToken.ThrowIfCancellationRequested();
+                        any = list.MoveNext();
+                    }
+                }
+                finally
+                {
+                    list!.Dispose();
+                }
+            }
+        }
 
         /// <inheritdoc/>
         //each column and relation of an element read from the model, as the memory engine and an event store run the query

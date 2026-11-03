@@ -37,6 +37,14 @@ namespace Zerra.Repository
         {
             return (IEnumerable<TElement>)(await repo.QueryAsync(Read<TElement>(expression, null, null), cancellationToken))!;
         }
+        public override IEnumerable<TElement> ExecuteStream<TElement>(Expression expression)
+        {
+            return (IEnumerable<TElement>)repo.QueryStream(Read<TElement>(expression, null, null));
+        }
+        public override IAsyncEnumerable<TElement> ExecuteStreamAsync<TElement>(Expression expression, CancellationToken cancellationToken)
+        {
+            return (IAsyncEnumerable<TElement>)repo.QueryStreamAsync(Read<TElement>(expression, null, null), cancellationToken);
+        }
 
         internal override LinqSubquery ReadSubquery(Expression expression)
         {

@@ -9,6 +9,11 @@ namespace Zerra.Repository.Benchmark.EFData
         public Guid KeyA { get; set; }
         public int KeyB { get; set; }
 
+        public bool BooleanThing { get; set; }
+        public bool? BooleanNullableThing { get; set; }
+        public bool? BooleanNullableThingNull { get; set; }
+        public DateTime DateTimeDefaultPrecisionThing { get; set; }
+
         public byte ByteThing { get; set; }
         public short Int16Thing { get; set; }
         public int Int32Thing { get; set; }
@@ -56,6 +61,8 @@ namespace Zerra.Repository.Benchmark.EFData
 
         public string? StringThing { get; set; }
         public string? StringThingNull { get; set; }
+        public string StringLengthThing { get; set; } = null!;
+        public string? StringLengthThingNull { get; set; }
 
         public byte[]? BytesThing { get; set; }
         public byte[]? BytesThingNull { get; set; }

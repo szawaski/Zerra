@@ -41,6 +41,8 @@ namespace Zerra.Repository.Test
             }
             object? ITransactStoreProvider.Query(LinqQuery query) => Result(query);
             Task<object?> ITransactStoreProvider.QueryAsync(LinqQuery query, CancellationToken cancellationToken) => Task.FromResult(Result(query));
+            object ITransactStoreProvider.QueryStream(LinqQuery query) => throw new NotSupportedException();
+            object ITransactStoreProvider.QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken) => throw new NotSupportedException();
             void ITransactStoreProvider.Persist(Persist persist) => Persist = persist;
             Task ITransactStoreProvider.PersistAsync(Persist persist, CancellationToken cancellationToken)
             {
@@ -2010,6 +2012,60 @@ namespace Zerra.Repository.Test
                 Assert.Equal(graph.Signature, p.Graph?.Signature);
                 Assert.Equal(2, p.Models!.Length);
             }
+        }
+        //a change by condition passes its event, condition, and values, whichever overload it takes
+        [Fact]
+        public async Task ChangesByCondition()
+        {
+            var (repo, provider) = Create();
+            var cancellationToken = TestContext.Current.CancellationToken;
+            Expression<Func<Model, Model>> set = x => new Model { ID = x.ID };
+            void Check(PersistOperation operation, string? name, object? eventSource, bool setsByModel, bool computes)
+            {
+                var p = provider.Persist!;
+                Assert.Equal(operation, p.Operation);
+                if (name is null)
+                    Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
+                else
+                    Assert.Equal(name, p.Event.Name);
+                Assert.Same(eventSource, p.Event.Source);
+                Assert.Same(where, p.Where);
+                if (setsByModel)
+                {
+                    Assert.Same(model, Assert.Single(p.Models!));
+                    Assert.Equal(graph.Signature, p.Graph?.Signature);
+                }
+                if (computes)
+                    Assert.Same(set, p.Set);
+                provider.Clear();
+            }
+
+            _ = repo.Update(where, model, graph); Check(PersistOperation.Update, null, null, true, false);
+            _ = repo.Update("evt", where, model, graph); Check(PersistOperation.Update, "evt", null, true, false);
+            _ = repo.Update("evt", source, where, model, graph); Check(PersistOperation.Update, "evt", source, true, false);
+            _ = repo.Update(evt, where, model, graph); Check(PersistOperation.Update, "given", source, true, false);
+            _ = await repo.UpdateAsync(where, model, graph, cancellationToken); Check(PersistOperation.Update, null, null, true, false);
+            _ = await repo.UpdateAsync("evt", where, model, graph, cancellationToken); Check(PersistOperation.Update, "evt", null, true, false);
+            _ = await repo.UpdateAsync("evt", source, where, model, graph, cancellationToken); Check(PersistOperation.Update, "evt", source, true, false);
+            _ = await repo.UpdateAsync(evt, where, model, graph, cancellationToken); Check(PersistOperation.Update, "given", source, true, false);
+
+            _ = repo.Update(where, set); Check(PersistOperation.Update, null, null, false, true);
+            _ = repo.Update("evt", where, set); Check(PersistOperation.Update, "evt", null, false, true);
+            _ = repo.Update("evt", source, where, set); Check(PersistOperation.Update, "evt", source, false, true);
+            _ = repo.Update(evt, where, set); Check(PersistOperation.Update, "given", source, false, true);
+            _ = await repo.UpdateAsync(where, set, cancellationToken); Check(PersistOperation.Update, null, null, false, true);
+            _ = await repo.UpdateAsync("evt", where, set, cancellationToken); Check(PersistOperation.Update, "evt", null, false, true);
+            _ = await repo.UpdateAsync("evt", source, where, set, cancellationToken); Check(PersistOperation.Update, "evt", source, false, true);
+            _ = await repo.UpdateAsync(evt, where, set, cancellationToken); Check(PersistOperation.Update, "given", source, false, true);
+
+            _ = repo.Delete(where); Check(PersistOperation.Delete, null, null, false, false);
+            _ = repo.Delete("evt", where); Check(PersistOperation.Delete, "evt", null, false, false);
+            _ = repo.Delete("evt", source, where); Check(PersistOperation.Delete, "evt", source, false, false);
+            _ = repo.Delete(evt, where); Check(PersistOperation.Delete, "given", source, false, false);
+            _ = await repo.DeleteAsync(where, cancellationToken); Check(PersistOperation.Delete, null, null, false, false);
+            _ = await repo.DeleteAsync("evt", where, cancellationToken); Check(PersistOperation.Delete, "evt", null, false, false);
+            _ = await repo.DeleteAsync("evt", source, where, cancellationToken); Check(PersistOperation.Delete, "evt", source, false, false);
+            _ = await repo.DeleteAsync(evt, where, cancellationToken); Check(PersistOperation.Delete, "given", source, false, false);
         }
     }
 }

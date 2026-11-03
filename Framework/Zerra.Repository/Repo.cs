@@ -85,6 +85,22 @@ namespace Zerra.Repository
                 return QuerySetAsync(query, cancellationToken);
             return provider.QueryAsync(query, cancellationToken);
         }
+        object IRepoInternal.QueryStream(LinqQuery query)
+        {
+            if (!providers.TryGetValue(query.ModelType, out var provider))
+                throw new Exception($"No provider for {query.ModelType.FullName}");
+            if (query.Set is not null && !SetInStore(query.Set))
+                return query.StreamFrom(() => ((IRepoInternal)this).Query(query), null);
+            return provider.QueryStream(query);
+        }
+        object IRepoInternal.QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken)
+        {
+            if (!providers.TryGetValue(query.ModelType, out var provider))
+                throw new Exception($"No provider for {query.ModelType.FullName}");
+            if (query.Set is not null && !SetInStore(query.Set))
+                return query.StreamFromAsync(cancellation => QuerySetAsync(query, cancellation), null, cancellationToken);
+            return provider.QueryStreamAsync(query, cancellationToken);
+        }
         private async Task<object?> QuerySetAsync(LinqQuery query, CancellationToken cancellationToken)
         {
             var left = await ((IRepoInternal)this).QueryAsync(query.Set!.Left, cancellationToken);

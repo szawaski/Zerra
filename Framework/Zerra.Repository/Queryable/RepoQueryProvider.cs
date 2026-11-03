@@ -40,5 +40,9 @@ namespace Zerra.Repository
         public abstract IEnumerable<TElement> ExecuteSequence<TElement>(Expression expression);
         /// <summary>Asynchronously runs a query giving a sequence.</summary>
         public abstract Task<IEnumerable<TElement>> ExecuteSequenceAsync<TElement>(Expression expression, CancellationToken cancellationToken);
+        /// <summary>Runs a query giving a sequence, each element given as it's read.</summary>
+        public abstract IEnumerable<TElement> ExecuteStream<TElement>(Expression expression);
+        /// <summary>Runs a query giving a sequence, each element given as it's read.</summary>
+        public abstract IAsyncEnumerable<TElement> ExecuteStreamAsync<TElement>(Expression expression, CancellationToken cancellationToken);
     }
 }

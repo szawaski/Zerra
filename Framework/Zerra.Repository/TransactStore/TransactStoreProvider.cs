@@ -76,6 +76,10 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         protected override sealed Task<object?> ExecuteLinqAsync(LinqQuery query, CancellationToken cancellationToken) => query.ExecuteAsync(engine, ModelTypeDetail, cancellationToken);
         /// <inheritdoc/>
+        protected override sealed object ExecuteLinqStream(LinqQuery query) => query.Stream(engine, ModelTypeDetail);
+        /// <inheritdoc/>
+        protected override sealed object ExecuteLinqStreamAsync(LinqQuery query, CancellationToken cancellationToken) => query.StreamAsync(engine, ModelTypeDetail, cancellationToken);
+        /// <inheritdoc/>
         protected override sealed IReadOnlyCollection<EventModel<TModel>> EventMany(LinqModelQuery query) => throw new NotSupportedException("Event queries not supported with this provider");
         /// <inheritdoc/>
         protected override sealed EventModel<TModel>? EventFirst(LinqModelQuery query) => throw new NotSupportedException("Event queries not supported with this provider");

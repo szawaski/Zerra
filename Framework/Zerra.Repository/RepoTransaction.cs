@@ -73,6 +73,8 @@ namespace Zerra.Repository
             while (true)
             {
                 var part = Enlist(key, name, begin);
+                if (part.Streaming)
+                    throw new InvalidOperationException($"A stream from {name} is being read in this transaction, so another operation on it can't run until the stream ends");
                 part.Gate.Wait();
                 if (!part.Closed && !finished)
                     return part;
@@ -116,6 +118,8 @@ namespace Zerra.Repository
                 {
                     _ = gate.Release();
                 }
+                if (part.Streaming)
+                    throw new InvalidOperationException($"A stream from {name} is being read in this transaction, so another operation on it can't run until the stream ends");
                 await part.Gate.WaitAsync(cancellationToken);
                 if (!part.Closed && !finished)
                     return part;
@@ -131,27 +135,41 @@ namespace Zerra.Repository
         }
 
         //the flow that opened the transaction goes on without it, a task it started that is still using it gets an error
-        private RepoTransactionPart[] Finish()
+        private RepoTransactionPart[] Finish(bool commit)
         {
             finished = true;
-            if (ReferenceEquals(BusAmbient.Current, this))
-                BusAmbient.Current = null;
+            RepoTransactionPart[] ordered;
             gate.Wait();
             try
             {
-                return parts.Where(x => !x.CommitsLast).Concat(parts.Where(x => x.CommitsLast)).ToArray();
+                ordered = parts.Where(x => !x.CommitsLast).Concat(parts.Where(x => x.CommitsLast)).ToArray();
+                //a commit waits on each part, and a stream holds its part until it ends
+                if (commit)
+                {
+                    foreach (var part in ordered)
+                    {
+                        if (part.Streaming)
+                        {
+                            finished = false;
+                            throw new InvalidOperationException($"A stream from {part.Name} is being read in this transaction, so it commits once the stream ends");
+                        }
+                    }
+                }
             }
             finally
             {
                 _ = gate.Release();
             }
+            if (ReferenceEquals(BusAmbient.Current, this))
+                BusAmbient.Current = null;
+            return ordered;
         }
 
         /// <inheritdoc />
         public void Commit()
         {
             ThrowIfFinished();
-            var ordered = Finish();
+            var ordered = Finish(true);
             //what a part does to commit is not itself in a transaction
             var ambient = BusAmbient.Current;
             BusAmbient.Current = null;
@@ -183,7 +201,7 @@ namespace Zerra.Repository
         {
             ThrowIfFinished();
             //before the first await, so the flow that opened the transaction sees it finished
-            return CommitAsync(Finish(), cancellationToken);
+            return CommitAsync(Finish(true), cancellationToken);
         }
         private static async Task CommitAsync(RepoTransactionPart[] ordered, CancellationToken cancellationToken)
         {
@@ -299,7 +317,7 @@ namespace Zerra.Repository
                     BusAmbient.Current = null;
                 return;
             }
-            var ordered = Finish();
+            var ordered = Finish(false);
             foreach (var part in ordered)
             {
                 RollbackPart(part, true);
@@ -316,7 +334,7 @@ namespace Zerra.Repository
                 return default;
             }
             //before the first await, so the flow that opened the transaction sees it finished
-            return DisposeAsync(Finish());
+            return DisposeAsync(Finish(false));
         }
         private static async ValueTask DisposeAsync(RepoTransactionPart[] ordered)
         {

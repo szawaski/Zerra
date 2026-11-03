@@ -36,6 +36,10 @@ namespace Zerra.Repository
         public LambdaExpression? Having { get; private set; }
         /// <summary>Gets the order of the results of a grouped query, the OrderBy and ThenBy calls after its Select as one, or <see langword="null"/>.</summary>
         public QueryOrder? ResultOrder { get; private set; }
+        /// <summary>Gets the condition on the elements a <see cref="Select"/> after a set operation builds, the Where calls after it as one.</summary>
+        public LambdaExpression? SelectedHaving { get; private set; }
+        /// <summary>Gets the order of the elements a <see cref="Select"/> after a set operation builds, after <see cref="ResultOrder"/>, or <see langword="null"/>.</summary>
+        public QueryOrder? SelectedOrder { get; private set; }
         /// <summary>Gets whether an element the same as another counts once.</summary>
         public bool Distinct { get; private set; }
         /// <summary>Gets the call that ends the query.</summary>
@@ -56,7 +60,7 @@ namespace Zerra.Repository
         public bool ReadsElements => Terminal is LinqTerminal.Sequence or LinqTerminal.First or LinqTerminal.FirstOrDefault or LinqTerminal.Single or LinqTerminal.SingleOrDefault or LinqTerminal.Last or LinqTerminal.LastOrDefault or LinqTerminal.ElementAt or LinqTerminal.ElementAtOrDefault;
         /// <summary>Gets whether the condition looks in another query.</summary>
         public bool HasSubquery { get; private set; }
-        /// <summary>Gets the two queries a set operation combines into the elements, whose condition is <see cref="Having"/> and order <see cref="ResultOrder"/>, then paged by <see cref="Skip"/> and <see cref="Take"/>; <see langword="null"/> for none.</summary>
+        /// <summary>Gets the two queries a set operation combines into the elements, whose condition is <see cref="Having"/> and order <see cref="ResultOrder"/>, built from by <see cref="Select"/> with its condition <see cref="SelectedHaving"/> and order <see cref="SelectedOrder"/>, then paged by <see cref="Skip"/> and <see cref="Take"/>; <see langword="null"/> for none.</summary>
         public LinqSet? Set { get; private set; }
         internal ModelMemberDetail? KeyMember { get; private set; }
         /// <summary>Gets whether the projection picks one value rather than building an object.</summary>
@@ -135,6 +139,11 @@ namespace Zerra.Repository
 
         internal abstract object? Execute(ITransactStoreEngine engine, ModelDetail modelDetail);
         internal abstract Task<object?> ExecuteAsync(ITransactStoreEngine engine, ModelDetail modelDetail, CancellationToken cancellationToken);
+        internal abstract object Stream(ITransactStoreEngine engine, ModelDetail modelDetail);
+        //opened runs once the first element is read, so a layer puts back what it changed for the statement
+        internal abstract object StreamFrom(Func<object?> open, Action? opened);
+        internal abstract object StreamAsync(ITransactStoreEngine engine, ModelDetail modelDetail, CancellationToken cancellationToken);
+        internal abstract object StreamFromAsync(Func<CancellationToken, Task<object?>> open, Action? opened, CancellationToken cancellationToken);
         /// <summary>
         /// Runs the query over models already loaded, as the memory engine and an event store do, with its result types; the models have the relations the query reads.
         /// </summary>
@@ -401,6 +410,11 @@ namespace Zerra.Repository
                 case "Where":
                     SetCondition(lambda ?? throw new NotSupportedException("Where takes a condition"));
                     return;
+                case "Select":
+                    if (Select is not null)
+                        throw new NotSupportedException("A repository query has one Select");
+                    Select = lambda ?? throw new NotSupportedException("Select takes what to build from each element");
+                    return;
                 case "OrderBy":
                 case "OrderByDescending":
                 case "ThenBy":
@@ -411,7 +425,25 @@ namespace Zerra.Repository
                         if (Skip.HasValue || Take.HasValue)
                             throw new NotSupportedException("OrderBy after Skip or Take isn't supported, order before paging");
                         var expression = new ProjectionOrderExpression(lambda, call.Method.Name is "OrderByDescending" or "ThenByDescending");
-                        if (ResultOrder is null || call.Method.Name is "OrderBy" or "OrderByDescending")
+                        var restart = call.Method.Name is "OrderBy" or "OrderByDescending";
+                        if (Select is not null)
+                        {
+                            if (restart || (ResultOrder is null && SelectedOrder is null))
+                            {
+                                ResultOrder = null;
+                                SelectedOrder = new ProjectionOrder([expression]);
+                            }
+                            else
+                            {
+                                var selected = SelectedOrder?.OrderExpressions ?? [];
+                                var appended = new OrderExpression[selected.Length + 1];
+                                selected.CopyTo(appended, 0);
+                                appended[^1] = expression;
+                                SelectedOrder = new ProjectionOrder(appended);
+                            }
+                            return;
+                        }
+                        if (ResultOrder is null || restart)
                         {
                             ResultOrder = new ProjectionOrder([expression]);
                         }
@@ -457,7 +489,7 @@ namespace Zerra.Repository
                     EndSetTerminal(LinqTerminal.Any, lambda);
                     return;
             }
-            throw new NotSupportedException($"{call.Method.Name} after a set operation isn't supported, select in each query before combining them");
+            throw new NotSupportedException($"{call.Method.Name} after a set operation isn't supported in a repository query");
         }
         private void EndSetTerminal(LinqTerminal terminal, LambdaExpression? argument)
         {
@@ -477,7 +509,10 @@ namespace Zerra.Repository
         {
             if (Skip.HasValue || Take.HasValue)
                 throw new NotSupportedException("A condition after Skip or Take isn't supported, filter before paging");
-            Having = Having is null ? condition : AppendAnd(Having, condition);
+            if (Select is not null)
+                SelectedHaving = SelectedHaving is null ? condition : AppendAnd(SelectedHaving, condition);
+            else
+                Having = Having is null ? condition : AppendAnd(Having, condition);
         }
         //the query before a set operation, of this query's model and elements
         private protected abstract LinqQuery SetPart(Expression expression);

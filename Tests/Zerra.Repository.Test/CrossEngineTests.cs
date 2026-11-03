@@ -72,6 +72,22 @@ namespace Zerra.Repository.Test
         }
 
         [Fact]
+        public async Task SubqueryInChangesOnOtherEngineAsync()
+        {
+            var cancellationToken = TestContext.Current.CancellationToken;
+            var (repo, parents, children) = Repos();
+            var tagged = repo.Query<Child>().Where(c => c.Tag == "x").Select(c => c.ParentID);
+            Assert.Equal(2, await repo.UpdateAsync<Parent>(x => tagged.Contains(x.ID), new Parent { Rank = 9 }, new Graph<Parent>(x => x.Rank), cancellationToken));
+            Assert.Equal(2, await repo.Query<Parent>().CountAsync(x => x.Rank == 9, cancellationToken));
+            Assert.Equal(2, await repo.UpdateAsync<Parent>(x => tagged.Contains(x.ID), x => new Parent { Rank = x.Rank + 1 }, cancellationToken));
+            Assert.Equal(2, await repo.Query<Parent>().CountAsync(x => x.Rank == 10, cancellationToken));
+
+            var taggedChildren = repo.Query<Parent>().Where(x => x.Name == "a").Select(x => x.ID);
+            Assert.Equal(children.Count(c => c.ParentID == parents[0].ID), await repo.DeleteAsync<Child>(x => taggedChildren.Contains(x.ParentID), cancellationToken));
+            Assert.Equal(1, await repo.Query<Child>().CountAsync(cancellationToken));
+        }
+
+        [Fact]
         public async Task SubqueryAndSelectManyOnOtherEngine()
         {
             foreach (var sameEngine in new[] { false, true })
@@ -152,12 +168,32 @@ namespace Zerra.Repository.Test
             Assert.True(ranks.Intersect(quantities).Any());
             Assert.Equal(parents.Select(x => x.Rank).Union(children.Select(c => c.Qty)).OrderByDescending(x => x).Take(2), ranks.Union(quantities).OrderByDescending(x => x).Take(2).ToArray());
             Assert.Equal(parents.Select(x => x.Rank).Concat(children.Select(c => c.Qty)).Count(x => x > 1), ranks.Concat(quantities).Count(x => x > 1));
+            Assert.Equal(parents.Select(x => x.Rank).Union(children.Select(c => c.Qty)).Order().Select(x => x * 10), ranks.Union(quantities).OrderBy(x => x).Select(x => x * 10).ToArray());
+            Assert.Equal(parents.Select(x => x.Rank).Union(children.Select(c => c.Qty)).Select(x => x * 10).Where(x => x > 10).OrderByDescending(x => x), ranks.Union(quantities).Select(x => x * 10).Where(x => x > 10).OrderByDescending(x => x).ToArray());
 
             //objects compare by their members, and a part reads a relation on another engine through its provider
             var named = repo.Query<Parent>().Select(x => new ChildRow { Qty = x.Rank, ParentName = x.Name });
             var tagged = repo.Query<Child>().Select(c => new ChildRow { Qty = c.Qty, ParentName = c.Parent!.Name });
             Assert.Equal(4, named.Union(tagged).Count());
             Assert.Equal(2, named.Intersect(tagged).Count());
+        }
+
+        //a count of the related rows on another engine compared either way round, and after a condition on the rows
+        [Fact]
+        public void CountsOnOtherEngine()
+        {
+            var (repo, parents, children) = Repos();
+            int Count(Parent parent, Func<Child, bool>? where = null) => children.Count(c => c.ParentID == parent.ID && (where is null || where(c)));
+            void Names(Func<Parent, bool> expected, IQueryable<Parent> actual) => Assert.Equal(parents.Where(expected).Select(x => x.Name).Order(), actual.Select(x => x.Name).ToArray().Order());
+
+            Names(x => 1 < Count(x), repo.Query<Parent>().Where(x => 1 < x.Children!.Count()));
+            Names(x => 2 >= Count(x), repo.Query<Parent>().Where(x => 2 >= x.Children!.Count()));
+            Names(x => 1 > Count(x), repo.Query<Parent>().Where(x => 1 > x.Children!.Count()));
+            Names(x => 1 <= Count(x), repo.Query<Parent>().Where(x => 1 <= x.Children!.Count()));
+            Names(x => Count(x) != 2, repo.Query<Parent>().Where(x => x.Children!.Count() != 2));
+            Names(x => Count(x) <= 1, repo.Query<Parent>().Where(x => x.Children!.Count() <= 1));
+            Names(x => Count(x, c => c.Qty > 1) >= 1, repo.Query<Parent>().Where(x => x.Children!.Where(c => c.Qty > 1).Count() >= 1));
+            Names(x => Count(x, c => c.Qty > 1 && c.Tag == "x") > 0, repo.Query<Parent>().Where(x => x.Children!.Where(c => c.Qty > 1).Where(c => c.Tag == "x").Count() > 0));
         }
 
         private static (IRepo Repo, Parent[] Parents, Child[] Children) Repos(bool sameEngine = false)

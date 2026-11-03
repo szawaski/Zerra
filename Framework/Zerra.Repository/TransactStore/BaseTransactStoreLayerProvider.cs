@@ -69,6 +69,17 @@ namespace Zerra.Repository
         /// <returns>A task containing the elements or the value.</returns>
         public abstract Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken);
 
+        /// <summary>Runs a query giving each element as it's read. A layer swaps its condition onto <see cref="LinqQuery.Where"/> until the first element is read and puts the original back, and treats the models as they come.</summary>
+        /// <param name="query">The query.</param>
+        /// <returns>The elements, an <see cref="IEnumerable{T}"/> of the query's result type.</returns>
+        public abstract object QueryStream(LinqQuery query);
+
+        /// <summary>Runs a query giving each element as it's read. A layer swaps its condition onto <see cref="LinqQuery.Where"/> until the first element is read and puts the original back, and treats the models as they come.</summary>
+        /// <param name="query">The query.</param>
+        /// <param name="cancellationToken">A token that cancels the query.</param>
+        /// <returns>The elements, an <see cref="IAsyncEnumerable{T}"/> of the query's result type.</returns>
+        public abstract object QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken);
+
         /// <summary>Executes a synchronous persist operation (create, update, or delete).</summary>
         /// <param name="persist">The persist operation to execute.</param>
         public void Persist(Persist persist)

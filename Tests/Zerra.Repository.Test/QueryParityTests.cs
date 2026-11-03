@@ -235,6 +235,19 @@ namespace Zerra.Repository.Test
             public string? Text { get; set; }
         }
 
+        //built through its constructor, with or without members set after it
+        public sealed class BuiltRow
+        {
+            public BuiltRow(int number) => Number = number;
+            public BuiltRow(int number, string? text)
+            {
+                Number = number;
+                Text = text;
+            }
+            public int Number { get; }
+            public string? Text { get; set; }
+        }
+
         private static Expression<Func<ParityModel, bool>> Build(Func<ParameterExpression, Expression> body)
         {
             var x = Expression.Parameter(typeof(ParityModel), "x");
@@ -461,6 +474,8 @@ namespace Zerra.Repository.Test
             Same(ordered.Select(x => Double.Parse(x.Number.ToString())), q.Select(x => Double.Parse(x.Number.ToString())).ToArray(), "double parse");
             Same(ordered.Select(x => Guid.Parse(x.ID.ToString())), q.Select(x => Guid.Parse(x.ID.ToString())).ToArray(), "guid parse");
             Same(ordered.Select(x => Convert.ToString(x.Number)), q.Select(x => Convert.ToString(x.Number)).ToArray(), "convert to text");
+            Same(ordered.Select(x => Convert.ToString(x.Flag)), q.Select(x => Convert.ToString(x.Flag)).ToArray(), "convert a bool to text");
+            Same(ordered.Select(x => Convert.ToString(x.ID)), q.Select(x => Convert.ToString(x.ID)).ToArray(), "convert a Guid to text");
             Same(ordered.Select(x => Convert.ToDouble(x.Number)), q.Select(x => Convert.ToDouble(x.Number)).ToArray(), "convert to double");
             Same(ordered.Select(x => Convert.ToInt64(x.Number)), q.Select(x => Convert.ToInt64(x.Number)).ToArray(), "convert to long");
             Same(ordered.Select(x => Convert.ToInt32(x.Ratio + 0.25)), q.Select(x => Convert.ToInt32(x.Ratio + 0.25)).ToArray(), "convert rounds");
@@ -550,6 +565,14 @@ namespace Zerra.Repository.Test
             Same(ordered.Select(x => (x.Span + x.Span).TotalMinutes), q.Select(x => (x.Span + x.Span).TotalMinutes).ToArray(), "total of a sum of time spans");
             Same(ordered.Select(x => (x.Span - TimeSpan.FromMinutes(5)).TotalSeconds), q.Select(x => (x.Span - TimeSpan.FromMinutes(5)).TotalSeconds).ToArray(), "total of a difference of time spans");
             Same(ordered.Select(x => x.Span.TotalHours), q.Select(x => x.Span.TotalHours).ToArray(), "total of a stored time span");
+            Same(ordered.Select(x => x.Date.Subtract(x.Span)), q.Select(x => x.Date.Subtract(x.Span)).ToArray(), "subtract a stored time span");
+            Same(ordered.Select(x => x.Date.AddDays(2).Subtract(x.Date).TotalHours), q.Select(x => x.Date.AddDays(2).Subtract(x.Date).TotalHours).ToArray(), "total of a subtracted date");
+            Same(ordered.Select(x => x.Span.Add(x.Span).TotalMinutes), q.Select(x => x.Span.Add(x.Span).TotalMinutes).ToArray(), "total of an added time span");
+            Same(ordered.Select(x => (x.Date.AddSeconds(x.Number * 3725 + 1) - x.Date).Minutes), q.Select(x => (x.Date.AddSeconds(x.Number * 3725 + 1) - x.Date).Minutes).ToArray(), "minutes of a difference");
+            Same(ordered.Select(x => (x.Date.AddSeconds(x.Number * 3725 + 1) - x.Date).Seconds), q.Select(x => (x.Date.AddSeconds(x.Number * 3725 + 1) - x.Date).Seconds).ToArray(), "seconds of a difference");
+            Same(ordered.Select(x => (x.Date.AddSeconds(x.Number * 3725 + 1) - x.Date).Milliseconds), q.Select(x => (x.Date.AddSeconds(x.Number * 3725 + 1) - x.Date).Milliseconds).ToArray(), "milliseconds of a difference");
+            Same(ordered.Select(x => (x.Date.AddSeconds(x.Number * 3725 + 1) - x.Date).Ticks), q.Select(x => (x.Date.AddSeconds(x.Number * 3725 + 1) - x.Date).Ticks).ToArray(), "ticks of a difference");
+            Same(ordered.Select(x => (x.Date.AddSeconds(x.Number * 3725 + 1) - x.Date).TotalMilliseconds), q.Select(x => (x.Date.AddSeconds(x.Number * 3725 + 1) - x.Date).TotalMilliseconds).ToArray(), "total milliseconds of a difference");
             var hour = TimeSpan.FromHours(1);
             Same(ordered.Where(x => x.Date.AddMinutes(x.Number * 30) - x.Date > hour).Select(x => x.Number), q.Where(x => x.Date.AddMinutes(x.Number * 30) - x.Date > hour).Select(x => x.Number).ToArray(), "compare a difference");
             Same(ordered.Where(x => x.Date.AddDays(1) > new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc)).Select(x => x.Number), q.Where(x => x.Date.AddDays(1) > new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc)).Select(x => x.Number).ToArray(), "compare an added date");
@@ -787,13 +810,51 @@ namespace Zerra.Repository.Test
             Assert.Equal(models.Select(x => x.Number).OrderByDescending(x => x).Take(2), classRows.Union(otherClassRows).OrderByDescending(r => r.Number).Take(2).ToArray().Select(x => x.Number));
             Assert.Equal(models.OrderBy(x => x.Number).Skip(1).Take(2).Select(x => x.Number), q.Where(x => x.Number < 3).Union(q.Where(x => x.Number >= 2)).OrderBy(x => x.Number).Skip(1).Take(2).ToArray().Select(x => x.Number));
             Same(models.Select(x => x.Number).Where(x => x is > 0 and < 4), q.Where(x => x.Number < 3).Union(q.Where(x => x.Number >= 2)).Where(x => x.Number > 0 && x.Number < 4).ToArray().Select(x => x.Number), "models filtered");
+            //an order with a tie broken by another, and a single element or none
+            Assert.Equal(models.Where(x => x.Number < 3).Select(x => new { x.Number, Text = x.Name }).Union(models.Where(x => x.Number > 1).Select(x => new { x.Number, Text = x.Name })).OrderBy(r => r.Text == null).ThenByDescending(r => r.Number).Select(r => r.Number),
+                rows.Union(otherRows).OrderBy(r => r.Text == null).ThenByDescending(r => r.Number).ToArray().Select(r => r.Number));
+            Assert.Equal(2, lowQuery.Union(highQuery).SingleOrDefault(x => x == 2));
+            Assert.Equal(0, lowQuery.Union(highQuery).SingleOrDefault(x => x > 5));
+            //classes built through a constructor, in a query and after a set
+            Same(models.Select(x => $"{x.Number}:{x.Name}"), q.Select(x => new BuiltRow(x.Number, x.Name)).ToArray().Select(r => $"{r.Number}:{r.Text}"), "constructed");
+            Same(models.Select(x => $"{x.Number}:{x.Name}"), q.Select(x => new BuiltRow(x.Number) { Text = x.Name }).ToArray().Select(r => $"{r.Number}:{r.Text}"), "constructed and set");
+            Same(low.Union(high).Select(x => x + 1), lowQuery.Union(highQuery).Select(x => new BuiltRow(x + 1)).ToArray().Select(r => r.Number), "constructed after a set");
+            Same(low.Union(high).Select(x => $"{x}:{x * 2}"), lowQuery.Union(highQuery).Select(x => new BuiltRow(x) { Text = (x * 2).ToString() }).ToArray().Select(r => $"{r.Number}:{r.Text}"), "constructed and set after a set");
+            //an object within an element is read a member at a time
+            var nested = q.Where(x => x.Number < 3).Select(x => new { x.Number, Inner = new { Text = x.Name, Twice = x.Number * 2 } });
+            var otherNested = q.Where(x => x.Number > 1).Select(x => new { x.Number, Inner = new { Text = x.Name, Twice = x.Number * 2 } });
+            Same(models.Where(x => x.Number * 2 > 2).Select(x => x.Number), nested.Union(otherNested).Where(r => r.Inner.Twice > 2).ToArray().Select(r => r.Number), "nested objects filtered");
+            Assert.Equal(models.OrderByDescending(x => x.Number).Select(x => x.Name), nested.Union(otherNested).OrderByDescending(r => r.Inner.Twice).ToArray().Select(r => r.Inner.Text));
 
             //an enum element compares and orders by its numbers, as in C#, where the column holds its name
             var kinds = q.Select(x => x.Kind);
             Assert.Equal(models.Select(x => x.Kind).Union(models.Select(x => x.Kind)).Count(x => x == ParityKind.Medium), kinds.Union(kinds).Count(x => x == ParityKind.Medium));
             Assert.Equal(models.Select(x => x.Kind).Distinct().Order(), kinds.Union(kinds).OrderBy(x => x).ToArray());
 
-            _ = Assert.Throws<NotSupportedException>(() => lowQuery.Union(highQuery).Select(x => x + 1).ToArray());
+            //the combined elements built from, after their condition, order, and page
+            Same(low.Union(high).Select(x => x + 1), lowQuery.Union(highQuery).Select(x => x + 1).ToArray(), "select of values");
+            Assert.Equal(all.OrderByDescending(x => x).Take(3).Select(x => x * 2), lowQuery.Concat(highQuery).OrderByDescending(x => x).Take(3).Select(x => x * 2).ToArray());
+            Same(low.Union(high).Where(x => x > 0).Select(x => $"{x > 1}:{x}"), lowQuery.Union(highQuery).Where(x => x > 0).Select(x => new { Value = x, Big = x > 1 }).ToArray().Select(x => $"{x.Big}:{x.Value}"), "select of objects from values");
+            Same(models.Where(x => x.Number < 3).Select(x => x.Name).Union(models.Where(x => x.Number > 1).Select(x => x.Name)), rows.Union(otherRows).Select(r => r.Text).ToArray(), "select from objects");
+            Same(models.Where(x => x.Number is > 1 and < 3).Select(x => x.Number + 10), classRows.Intersect(otherClassRows).Select(r => new SetRow { Number = r.Number + 10, Text = r.Text }).ToArray().Select(x => x.Number), "select of classes");
+            Same(models.Select(x => x.Number * 2), q.Where(x => x.Number < 3).Union(q.Where(x => x.Number >= 2)).Select(x => x.Number * 2).ToArray(), "select from models");
+            Same(models.Select(x => x.Kind), q.Where(x => x.Number < 3).Union(q.Where(x => x.Number >= 2)).Select(x => x.Kind).ToArray(), "select of an enum from models");
+            Assert.Equal(models.OrderBy(x => x.Number).Select(x => x.Name).First(), q.Where(x => x.Number < 3).Union(q.Where(x => x.Number >= 2)).OrderBy(x => x.Number).Select(x => x.Name).First());
+            Assert.Equal(low.Union(high).Count(), lowQuery.Union(highQuery).Select(x => x + 1).Count());
+
+            //what a Select builds filtered and ordered, after or in place of the order before it
+            Same(low.Union(high).Select(x => x + 1).Where(x => x > 1), lowQuery.Union(highQuery).Select(x => x + 1).Where(x => x > 1).ToArray(), "select filtered");
+            Assert.Equal(low.Union(high).Select(x => x * -1).Order(), lowQuery.Union(highQuery).Select(x => x * -1).OrderBy(x => x).ToArray());
+            Assert.Equal(all.Where(x => x > 0).Select(x => x + 1).OrderByDescending(x => x).Skip(1).Take(2), lowQuery.Concat(highQuery).Where(x => x > 0).Select(x => x + 1).OrderByDescending(x => x).Skip(1).Take(2).ToArray());
+            Assert.Equal(all.Count(x => x + 1 > 1), lowQuery.Concat(highQuery).Select(x => x + 1).Count(x => x > 1));
+            Assert.Equal(all.Order().Select(x => x * 2).Where(x => x > 0).First(), lowQuery.Concat(highQuery).OrderBy(x => x).Select(x => x * 2).Where(x => x > 0).First());
+            Assert.True(lowQuery.Union(highQuery).Select(x => x + 1).Any(x => x == 3));
+            var allModels = models.Select(x => new { x.Number, Text = x.Name, x.Kind });
+            Assert.Equal(allModels.OrderBy(x => x.Number % 2).ThenByDescending(x => x.Number).Select(x => x.Number),
+                q.Where(x => x.Number < 3).Union(q.Where(x => x.Number >= 2)).Select(x => new { x.Number, Text = x.Name, x.Kind }).OrderBy(x => x.Number % 2).ThenByDescending(x => x.Number).ToArray().Select(x => x.Number));
+            Same(allModels.Where(x => x.Kind == ParityKind.Medium).Select(x => x.Number), q.Where(x => x.Number < 3).Union(q.Where(x => x.Number >= 2)).Select(x => new { x.Number, Text = x.Name, x.Kind }).Where(x => x.Kind == ParityKind.Medium).ToArray().Select(x => x.Number), "selected enum filtered");
+            Assert.Equal(models.Select(x => x.Kind).Distinct().Order(), kinds.Union(kinds).Select(k => k).OrderBy(k => k).ToArray());
+            Same(models.Where(x => x.Number is > 1 and < 3).Select(x => x.Number + 10).Where(x => x > 11), classRows.Intersect(otherClassRows).Select(r => new SetRow { Number = r.Number + 10, Text = r.Text }).Where(r => r.Number > 11).ToArray().Select(x => x.Number), "selected classes filtered");
             _ = Assert.Throws<NotSupportedException>(() => lowQuery.Union(new[] { 1 }.AsQueryable()).ToArray());
 
             //rows combine by position, so the members of a class are built in the same order

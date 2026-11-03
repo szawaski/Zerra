@@ -187,6 +187,9 @@ namespace Zerra.Repository.Test
             Assert.Equal("Scaled", history.Last().EventName);
             Assert.True(history.Last().GraphChange!.HasMember(nameof(WhereModel.Number)));
             Assert.Equal("bulk", history.Last().Model.Note);
+            Assert.Equal(2, await repo.UpdateAsync<WhereModel>("ScaledAsync", x => ids.Contains(x.ID) && x.Number > 2, x => new WhereModel { Number = x.Number + 1 }, TestContext.Current.CancellationToken));
+            Assert.Equal([1, 2, 7, 9], models.Select(m => repo.Query<WhereModel>().SingleOrDefault(x => x.ID == m.ID)!.Number));
+            Assert.Equal("ScaledAsync", repo.EventMany<WhereModel>(TemporalOrder.Oldest, (ulong?)null, null, null, null, x => x.ID == models[3].ID).Last().EventName);
 
             Assert.Equal(1, await repo.DeleteAsync<WhereModel>(x => ids.Contains(x.ID) && x.Number == 1, TestContext.Current.CancellationToken));
             Assert.Null(repo.Query<WhereModel>().SingleOrDefault(x => x.ID == models[0].ID));
@@ -225,6 +228,8 @@ namespace Zerra.Repository.Test
             public Persist? Persist { get; private set; }
             object? ITransactStoreProvider.Query(LinqQuery query) => throw new NotSupportedException();
             Task<object?> ITransactStoreProvider.QueryAsync(LinqQuery query, CancellationToken cancellationToken) => throw new NotSupportedException();
+            object ITransactStoreProvider.QueryStream(LinqQuery query) => throw new NotSupportedException();
+            object ITransactStoreProvider.QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken) => throw new NotSupportedException();
             void ITransactStoreProvider.Persist(Persist persist)
             {
                 Persist = persist;
@@ -308,6 +313,27 @@ namespace Zerra.Repository.Test
             _ = Assert.Throws<ArgumentException>(() => repo.Update<WhereModel>(x => true, x => x));
             Assert.Equal(4, repo.Update<WhereModel>(x => true, x => new WhereModel { Number = x.Number + 1 }));
             Assert.Equal([2, 3, 4, 5], repo.Query<WhereModel>().ToArray().OrderBy(x => x.Number).Select(x => x.Number));
+        }
+
+        [Fact]
+        public async Task UpdateAsyncNeedsAGraphWithoutIdentityOrRelation()
+        {
+            var cancellationToken = TestContext.Current.CancellationToken;
+            var repo = Repo.New();
+            repo.AddProvider(new TransactStoreProvider<WhereModel>(new MemoryEngine()));
+            await repo.CreateAsync<WhereModel>(Models(), cancellationToken);
+
+            _ = await Assert.ThrowsAsync<ArgumentException>(() => repo.UpdateAsync<WhereModel>(x => true, new WhereModel(), new Graph<WhereModel>(), cancellationToken));
+            _ = await Assert.ThrowsAsync<ArgumentException>(() => repo.UpdateAsync<WhereModel>(x => true, new WhereModel(), new Graph<WhereModel>(x => x.ID), cancellationToken));
+            _ = await Assert.ThrowsAsync<ArgumentException>(() => repo.UpdateAsync<WhereModel>(x => true, new WhereModel(), new Graph<WhereModel>(x => x.Parent), cancellationToken));
+            _ = await Assert.ThrowsAsync<ArgumentException>(() => repo.UpdateAsync<WhereModel>(x => true, x => new WhereModel { ID = Guid.NewGuid() }, cancellationToken));
+            _ = await Assert.ThrowsAsync<ArgumentException>(() => repo.UpdateAsync<WhereModel>(x => true, x => new WhereModel { Parent = null }, cancellationToken));
+            _ = await Assert.ThrowsAsync<ArgumentException>(() => repo.UpdateAsync<WhereModel>(x => true, x => new WhereModel(), cancellationToken));
+            _ = await Assert.ThrowsAsync<ArgumentException>(() => repo.UpdateAsync<WhereModel>(x => true, x => x, cancellationToken));
+            _ = await Assert.ThrowsAsync<ArgumentException>(() => repo.UpdateAsync<WhereModel>(null!, x => new WhereModel { Number = 1 }, cancellationToken));
+            _ = await Assert.ThrowsAsync<NotSupportedException>(() => repo.UpdateAsync<WhereModel>(x => true, x => new WhereModel { Name = x.Parent!.Name }, cancellationToken));
+            Assert.Equal(4, await repo.UpdateAsync<WhereModel>(x => true, x => new WhereModel { Number = x.Number + 1 }, cancellationToken));
+            Assert.Equal([2, 3, 4, 5], (await repo.Query<WhereModel>().ToArrayAsync(cancellationToken)).OrderBy(x => x.Number).Select(x => x.Number));
         }
     }
 }

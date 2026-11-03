@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 
 namespace Zerra.Repository
 {
-    internal sealed class RepoQueryable<T> : IOrderedQueryable<T>
+    internal sealed class RepoQueryable<T> : IOrderedQueryable<T>, IAsyncEnumerable<T>
     {
         private readonly RepoQueryProvider provider;
 
@@ -23,5 +23,7 @@ namespace Zerra.Repository
 
         public IEnumerator<T> GetEnumerator() => provider.ExecuteSequence<T>(Expression).GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => provider.ExecuteStreamAsync<T>(Expression, cancellationToken).GetAsyncEnumerator(cancellationToken);
     }
 }

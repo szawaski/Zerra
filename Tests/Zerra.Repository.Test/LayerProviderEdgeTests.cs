@@ -169,6 +169,31 @@ namespace Zerra.Repository.Test
             Assert.Equal(model.Text, Assert.Single(repo.Query<EdgeModel>().Where(x => x.ID == model.ID).ToArray()).Text);
         }
 
+        //a change by condition sets transformed values without loading the rows, and refuses a condition or value through a transformed member
+        [Theory]
+        [MemberData(nameof(Compression))]
+        public void ChangesByCondition(bool compression)
+        {
+            var engine = new MemoryEngine();
+            var repo = Repo.New();
+            repo.AddProvider(Layer(compression, new TransactStoreProvider<EdgeModel>(engine)));
+            var model = NewModel();
+            repo.Create(model);
+
+            Assert.Equal(1, repo.Update(x => x.ID == model.ID, new EdgeModel { Text = "set by condition" }, new Graph<EdgeModel>(x => x.Text)));
+            Assert.Equal("set by condition", repo.Query<EdgeModel>().Single(x => x.ID == model.ID).Text);
+            Assert.Equal(1, repo.Update<EdgeModel>(x => x.ID == model.ID, x => new EdgeModel { Number = x.Number + 5 }));
+            Assert.Equal(model.Number + 5, repo.Query<EdgeModel>().Single(x => x.ID == model.ID).Number);
+
+            _ = Assert.Throws<NotSupportedException>(() => repo.Update(x => x.Text == "a", new EdgeModel { Number = 1 }, new Graph<EdgeModel>(x => x.Number)));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Update<EdgeModel>(x => x.Text == "a", x => new EdgeModel { Number = 1 }));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Update<EdgeModel>(x => x.ID == model.ID, x => new EdgeModel { Text = "computed" }));
+            _ = Assert.Throws<NotSupportedException>(() => repo.Delete<EdgeModel>(x => x.Text == "a"));
+
+            Assert.Equal(1, repo.Delete<EdgeModel>(x => x.ID == model.ID));
+            Assert.Empty(repo.Query<EdgeModel>().ToArray());
+        }
+
         [Theory]
         [MemberData(nameof(Compression))]
         public async Task UpdateWithGraph_TransformsOnlyThoseMembers(bool compression)

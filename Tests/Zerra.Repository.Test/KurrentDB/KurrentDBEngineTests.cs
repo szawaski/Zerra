@@ -74,6 +74,43 @@ namespace Zerra.Repository.Test.KurrentDB
             Assert.False(await aggregate.Rebuild(cancellationToken: TestContext.Current.CancellationToken));
         }
 
+        //a stream of an event store gives the current state of each model it names, rebuilt before the first is given
+        [Fact]
+        public async Task StreamsQueries()
+        {
+            var cancellationToken = TestContext.Current.CancellationToken;
+            using var engine = new KurrentDBEngine(KurrentDBTestDataContext.ConnectionString, KurrentDBTestDataContext.Insecure);
+            var repo = Repo.New();
+            repo.AddProvider(new EventStoreAsTransactStoreProvider<CancelModel>(engine));
+            var models = Enumerable.Range(0, 5).Select(i => new CancelModel { ID = Guid.NewGuid(), Number = i }).ToArray();
+            await repo.CreateAsync<CancelModel>(models, cancellationToken);
+            models[1].Number = 10;
+            await repo.UpdateAsync(models[1], cancellationToken);
+
+            var ids = models.Select(x => x.ID).ToArray();
+            var streamed = new List<int>();
+            await foreach (var model in repo.Query<CancelModel>().Where(x => ids.Contains(x.ID) && x.Number != 3).OrderBy(x => x.Number).AsAsyncEnumerable(cancellationToken))
+                streamed.Add(model.Number);
+            Assert.Equal([0, 2, 4, 10], streamed);
+            var numbers = new List<int>();
+            await foreach (var number in repo.Query<CancelModel>().Where(x => ids.Contains(x.ID)).Select(x => x.Number).AsAsyncEnumerable(cancellationToken))
+                numbers.Add(number);
+            Assert.Equal([0, 2, 3, 4, 10], numbers.Order());
+
+            //cancelled before it reads
+            using var cancelled = new CancellationTokenSource();
+            cancelled.Cancel();
+            _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            {
+                await foreach (var model in repo.Query<CancelModel>().Where(x => ids.Contains(x.ID)).AsAsyncEnumerable(cancelled.Token))
+                {
+                }
+            });
+
+            //the engine reads only asynchronously, as its other calls do
+            _ = Assert.Throws<NotSupportedException>(() => repo.Query<CancelModel>().Where(x => ids.Contains(x.ID)).AsEnumerable().ToArray());
+        }
+
         [Entity("KurrentCancelModel")]
         public sealed class CancelModel
         {
