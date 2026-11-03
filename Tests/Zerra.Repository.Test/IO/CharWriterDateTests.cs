@@ -73,7 +73,7 @@ namespace Zerra.Repository.Test.IO
                     var value = new DateTimeOffset(unspecified, offset);
 
                     Assert.Equal(value.ToString("yyyy-MM-dd'T'HH:mm:ss.FFFFFFFzzz", CultureInfo.InvariantCulture), Write((ref CharWriter x) => x.Write(value, CharWriter.DateTimeFormat.ISO8601)));
-                    Assert.Equal(value.ToString("yyyy-MM-dd HH:mm:ss.FFFzzz", CultureInfo.InvariantCulture), Write((ref CharWriter x) => x.Write(value, CharWriter.DateTimeFormat.MsSql)));
+                    Assert.Equal(value.ToString("yyyy-MM-dd HH:mm:ss.FFFFFFFzzz", CultureInfo.InvariantCulture), Write((ref CharWriter x) => x.Write(value, CharWriter.DateTimeFormat.MsSql)));
                     Assert.Equal(value.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss.FFFFFF", CultureInfo.InvariantCulture), Write((ref CharWriter x) => x.Write(value, CharWriter.DateTimeFormat.MySql)));
                     Assert.Equal(value.ToString("yyyy-MM-dd HH:mm:ss.FFFFFFzzz", CultureInfo.InvariantCulture), Write((ref CharWriter x) => x.Write(value, CharWriter.DateTimeFormat.PostgreSql)));
                 }

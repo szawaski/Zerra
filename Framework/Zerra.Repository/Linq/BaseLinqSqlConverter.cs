@@ -810,6 +810,20 @@ namespace Zerra.Repository
             if (!TryConvertToSqlSpanComparison(operation, exp, ref sb, context))
                 ConvertToSqlBinary(operation, exp, ref sb, context);
         }
+        //C# compares chars as their numbers, so a char literal arrives as an int where the column holds the character
+        private static void ConvertCharComparison(ref Expression left, ref Expression right)
+        {
+            if (left is UnaryExpression { NodeType: ExpressionType.Convert, Operand: var leftChar } && (leftChar.Type == typeof(char) || leftChar.Type == typeof(char?)) && right is ConstantExpression { Value: int rightNumber })
+            {
+                left = leftChar;
+                right = Expression.Constant((char)rightNumber, leftChar.Type);
+            }
+            else if (right is UnaryExpression { NodeType: ExpressionType.Convert, Operand: var rightChar } && (rightChar.Type == typeof(char) || rightChar.Type == typeof(char?)) && left is ConstantExpression { Value: int leftNumber })
+            {
+                right = rightChar;
+                left = Expression.Constant((char)leftNumber, rightChar.Type);
+            }
+        }
         private void ConvertToSqlBinary(Operator operation, Expression exp, ref CharWriter sb, BuilderContext context)
         {
             context.MemberContext.OperatorStack.Push(operation);
@@ -835,7 +849,10 @@ namespace Zerra.Repository
             }
 
             if (binaryRight is not null && operation is Operator.Equals or Operator.NotEquals or Operator.LessThan or Operator.LessThanOrEquals or Operator.GreaterThan or Operator.GreaterThanOrEquals)
+            {
                 ConvertEnumComparison(operation, ref binaryLeft, ref binaryRight!, context.MemberContext);
+                ConvertCharComparison(ref binaryLeft, ref binaryRight);
+            }
 
             //SQL comparisons with NULL are unknown, C# gives true or false, the null cases C# counts as true are added
             if (binaryRight is not null && (operation == Operator.Equals || operation == Operator.NotEquals || operation == Operator.LessThan || operation == Operator.LessThanOrEquals || operation == Operator.GreaterThan || operation == Operator.GreaterThanOrEquals))

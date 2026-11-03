@@ -15,10 +15,10 @@ Line coverage of each framework project is listed below, measured with `dotnet-c
 | `Zerra.CQRS.AzureServiceBus` | 88% | `Zerra.CQRS.Test` |
 | `Zerra.Repository` | 93% | `Zerra.Repository.Test` |
 | `Zerra.Repository.Memory` | 95% | `Zerra.Repository.Test` |
-| `Zerra.Repository.MsSql` | 89% | `Zerra.Repository.Test` |
-| `Zerra.Repository.PostgreSql` | 92% | `Zerra.Repository.Test` |
-| `Zerra.Repository.MySql` | 92% | `Zerra.Repository.Test` |
-| `Zerra.Repository.MariaDb` | 92% | `Zerra.Repository.Test` |
+| `Zerra.Repository.MsSql` | 93% | `Zerra.Repository.Test` |
+| `Zerra.Repository.PostgreSql` | 93% | `Zerra.Repository.Test` |
+| `Zerra.Repository.MySql` | 94% | `Zerra.Repository.Test` |
+| `Zerra.Repository.MariaDb` | 93% | `Zerra.Repository.Test` |
 | `Zerra.Repository.KurrentDB` | 94% | `Zerra.Repository.Test` |
 | `Zerra.SourceGeneration` | 93% | `Zerra.SourceGeneration.Test` |
 | `Zerra.T4` | not measured, the coverage tool can't load into its .NET Framework test process | `Zerra.T4.Test` |

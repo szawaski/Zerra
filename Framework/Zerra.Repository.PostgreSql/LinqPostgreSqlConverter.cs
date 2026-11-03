@@ -386,7 +386,7 @@ namespace Zerra.Repository.PostgreSql
                                 WriteRelationKey(ref sb, subModelInfo.DataSourceEntityName, subMemberTable, RelationKey(propertyInfo, subMemberModel));
                                 if (sbWhere.Length > 0)
                                 {
-                                    sb.Write("AND(");
+                                    sb.Write(" AND(");
                                     sb.Write(sbWhere);
                                     sb.Write(')');
                                 }

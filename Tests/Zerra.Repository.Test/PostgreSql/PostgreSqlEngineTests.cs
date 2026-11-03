@@ -93,6 +93,7 @@ namespace Zerra.Repository.Test.PostgreSql
             CompositeRelationTests.TestAcrossEngines(engine, new Zerra.Repository.Memory.MemoryEngine());
             await CompositeRelationTests.TestSequenceAsync(engine);
             await StreamTests.TestSequence(engine, true);
+            CharComparisonTests.TestSequence(engine);
             await StreamTests.TestAcrossEngines(engine, new Zerra.Repository.Memory.MemoryEngine());
             TransactionTests.TestAcrossEngines(engine);
             TransactionTests.TestSameStore(engine, new PostgreSqlEngine(connectionString));

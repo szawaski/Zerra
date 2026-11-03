@@ -121,6 +121,11 @@ namespace Zerra.Repository.Test.MsSql
             Assert.Equal(new object[] { "first", 7 }, parameters);
         }
 
+        private sealed class ParameterSwap(ParameterExpression from, ParameterExpression to) : ExpressionVisitor
+        {
+            protected override Expression VisitParameter(ParameterExpression node) => node == from ? to : node;
+        }
+
         internal static void TestSequence(ITransactStoreEngine engine, string connectionString)
         {
             var repo = Repo.New();
@@ -144,6 +149,60 @@ namespace Zerra.Repository.Test.MsSql
             //past the limit of parameters the values are in the statement
             var values = Enumerable.Range(1_000_000, 2500).Append(900_001).ToArray();
             Assert.Equal(model.KeyA, repo.Query<TestTypesModel>().Where(x => values.Contains(x.Int32Thing)).Select(x => x.KeyA).Single());
+
+            //values of every kind past the limit, compared with what the store kept
+            var stored = repo.Query<TestTypesModel>().Single(x => x.KeyA == model.KeyA);
+            void PastTheLimit(Expression<Func<TestTypesModel, bool>> condition, string name)
+            {
+                Expression<Func<TestTypesModel, bool>> contains = x => values.Contains(x.Int32Thing);
+                var where = Expression.Lambda<Func<TestTypesModel, bool>>(Expression.AndAlso(new ParameterSwap(contains.Parameters[0], condition.Parameters[0]).Visit(contains.Body), condition.Body), condition.Parameters);
+                Assert.True(repo.Query<TestTypesModel>().Where(where).Select(x => x.KeyA).ToArray().Contains(model.KeyA), name);
+            }
+            PastTheLimit(x => x.ByteThing == stored.ByteThing, "byte");
+            PastTheLimit(x => x.Int16Thing == stored.Int16Thing, "short");
+            PastTheLimit(x => x.Int64Thing == stored.Int64Thing, "long");
+            PastTheLimit(x => x.SingleThing < 0, "float");
+            PastTheLimit(x => x.DoubleThing < 0, "double");
+            PastTheLimit(x => x.DecimalThing == stored.DecimalThing, "decimal");
+            PastTheLimit(x => x.CharThing == stored.CharThing, "char");
+            PastTheLimit(x => x.CharThing != '\'', "quote char");
+            PastTheLimit(x => x.DateTimeThing == stored.DateTimeThing, "DateTime");
+            PastTheLimit(x => x.DateTimeOffsetThing <= stored.DateTimeOffsetThing, "DateTimeOffset");
+            PastTheLimit(x => x.TimeSpanThing == stored.TimeSpanThing, "TimeSpan");
+            PastTheLimit(x => x.DateOnlyThing == stored.DateOnlyThing, "DateOnly");
+            PastTheLimit(x => x.TimeOnlyThing == stored.TimeOnlyThing, "TimeOnly");
+            PastTheLimit(x => x.GuidThing == stored.GuidThing, "Guid");
+            PastTheLimit(x => x.StringThing == stored.StringThing, "string");
+            PastTheLimit(x => x.StringThing!.Contains("World"), "like");
+            PastTheLimit(x => x.BytesThing == stored.BytesThing, "bytes");
+
+            //a change by condition past the limit writes its values in the statement, and stores what parameters store
+            var other = TestTypesModel.Create();
+            other.Int32Thing = 900_002;
+            repo.Create(other);
+            var changes = TestTypesModel.Create();
+            changes.CharThing = '\'';
+            changes.StringThing = "it's";
+            changes.Int32NullableThing = null;
+            var names = ModelAnalyzer.GetModel(typeof(TestTypesModel)).Members.Where(x => !x.IsIdentity && !x.IsRelated && x.Name is not nameof(TestTypesModel.Int32Thing) and not nameof(TestTypesModel.RelationAKey)).Select(x => x.Name).ToArray();
+            var graph = new Graph<TestTypesModel>();
+            graph.AddMembers(names);
+            var many = Enumerable.Range(1_000_000, 2500).Append(900_001).ToArray();
+            Assert.Equal(1, repo.Update(x => many.Contains(x.Int32Thing), changes, graph));
+            Assert.Equal(1, repo.Update(x => x.Int32Thing == 900_002, changes, graph));
+            var literal = repo.Query<TestTypesModel>().Single(x => x.KeyA == model.KeyA);
+            var parameter = repo.Query<TestTypesModel>().Single(x => x.KeyA == other.KeyA);
+            foreach (var name in names)
+            {
+                var member = ModelAnalyzer.GetModel(typeof(TestTypesModel)).GetMember(name);
+                var a = member.GetterBoxed(literal);
+                var b = member.GetterBoxed(parameter);
+                Assert.True(a is byte[] bytes ? bytes.SequenceEqual((byte[])b!) : Equals(a, b), $"{name}: {a} {b}");
+            }
+            Assert.Equal('\'', literal.CharThing);
+            Assert.Equal("it's", literal.StringThing);
+            Assert.Null(literal.Int32NullableThing);
+            repo.Delete(other);
 
             //an update of different values and the reads of them run one plan each
             for (var i = 0; i < 3; i++)

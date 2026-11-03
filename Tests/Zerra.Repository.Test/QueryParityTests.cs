@@ -1476,6 +1476,12 @@ namespace Zerra.Repository.Test
             }
 
             Same("first ordered", m => LinesOf(m).OrderBy(l => l.Price).First().Quantity == 2, x => x.Lines!.OrderBy(l => l.Price).First().Quantity == 2);
+            Same("average of rows", m => LinesOf(m).Average(l => l.Quantity) > 2, x => x.Lines!.Any() && x.Lines!.Average(l => l.Quantity) > 2);
+            Same("sum of filtered rows", m => LinesOf(m).Where(l => l.Quantity > 1).Sum(l => l.Quantity) > 3, x => x.Lines!.Where(l => l.Quantity > 1).Sum(l => l.Quantity) > 3);
+            Same("average of filtered rows", m => LinesOf(m).Any(l => l.Quantity > 1) && LinesOf(m).Where(l => l.Quantity > 1).Average(l => l.Quantity) >= 3, x => x.Lines!.Any(l => l.Quantity > 1) && x.Lines!.Where(l => l.Quantity > 1).Average(l => l.Quantity) >= 3);
+            Same("any of filtered rows", m => LinesOf(m).Where(l => l.Quantity > 1).Any(l => l.Price < 2m), x => x.Lines!.Where(l => l.Quantity > 1).Any(l => l.Price < 2m));
+            Same("count of filtered rows", m => LinesOf(m).Where(l => l.Quantity > 1).Count(l => l.Price < 3m) >= 1, x => x.Lines!.Where(l => l.Quantity > 1).Count(l => l.Price < 3m) >= 1);
+            Assert.Equal(models.Where(m => LinesOf(m).Where(l => l.Quantity > 1).All(l => l.Price < 2m)).Select(m => m.Number).Order(), repo.Query<ParityModel>().Where(x => x.Lines!.Where(l => l.Quantity > 1).All(l => l.Price < 2m)).Select(x => x.Number).ToArray().Order());
             Same("last ordered", m => LinesOf(m).OrderBy(l => l.Quantity).Last().Price < 2m, x => x.Lines!.OrderBy(l => l.Quantity).Last().Price < 2m);
             Same("element at", m => LinesOf(m).OrderByDescending(l => l.Quantity).ElementAt(1).Quantity == 3, x => x.Lines!.OrderByDescending(l => l.Quantity).ElementAt(1).Quantity == 3);
             Same("filtered first", m => LinesOf(m).Any(l => l.Quantity > 2) && LinesOf(m).Where(l => l.Quantity > 2).OrderBy(l => l.Price).First().Quantity == 3, x => x.Lines!.Where(l => l.Quantity > 2).OrderBy(l => l.Price).First().Quantity == 3);
@@ -1692,6 +1698,12 @@ namespace Zerra.Repository.Test
 
             //values, results, and the different values
             Assert.Equal(named.Where(x => x.Number < 5).OrderBy(x => x.Number).Select(x => x.Name!.ToUpper()), q.Where(x => x.Name != null && x.Number < 5).OrderBy(x => x.Number).Select(x => x.Name!.ToUpper()));
+            Assert.Equal(named.OrderBy(x => x.Number).Select(x => (" " + x.Name + " ").TrimStart()), q.Where(x => x.Name != null).OrderBy(x => x.Number).Select(x => (" " + x.Name + " ").TrimStart()).ToArray());
+            Assert.Equal(named.OrderBy(x => x.Number).Select(x => (" " + x.Name + " ").TrimEnd()), q.Where(x => x.Name != null).OrderBy(x => x.Number).Select(x => (" " + x.Name + " ").TrimEnd()).ToArray());
+            Assert.Equal(models.Count(x => null == x.Maybe), q.Count(x => null == x.Maybe));
+            Assert.Equal(models.Count(x => null != x.Maybe), q.Count(x => null != x.Maybe));
+            Assert.Equal(models.Length - 2, q.Skip(2).ToArray().Length);
+            Assert.Equal(models.Select(x => (float)x.Number).Order(), q.Select(x => (float)x.Number).ToArray().Order());
             Assert.Equal(models.OrderByDescending(x => x.Number).Select(x => x.Number * 2).First(), q.OrderByDescending(x => x.Number).Select(x => x.Number * 2).First());
             Assert.Equal(models.Select(x => x.Other).Distinct().Order(), q.Select(x => x.Other).Distinct().ToArray().Order());
             var results = q.Where(x => x.Number > 0).OrderBy(x => x.Number).Skip(1).Take(3).Select(x => new ParitySelectResult { Number = x.Number, Doubled = x.Number * 2, LineCount = x.Lines!.Count() }).ToArray();
