@@ -81,8 +81,11 @@ No relation between the models is needed, and a model can join itself.
 | `Join` | `orders.Join(customers, o => o.CustomerID, c => c.ID, (o, c) => new { o.OrderNumber, c.Name })` |
 | `join` in query syntax | `from o in orders join c in customers on o.CustomerID equals c.ID select new { o.OrderNumber, c.Name }` |
 | `Join` on several keys | `orders.Join(invoices, o => new { o.CustomerID, o.OrderNumber }, i => new { i.CustomerID, i.OrderNumber }, (o, i) => new { o, i })` |
-| `LeftJoin`, `RightJoin` | `customers.LeftJoin(orders, c => c.ID, o => o.CustomerID, (c, o) => new { c.Name, o })` gives a null `o` for a customer with no orders |
+| `LeftJoin`, `RightJoin` | `customers.LeftJoin(orders, c => c.ID, o => o.CustomerID, (c, o) => new { c.Name, o.OrderNumber })` gives a null `OrderNumber` for a customer with no orders |
 | left join in query syntax | `from c in customers join o in orders on c.ID equals o.CustomerID into g from o in g.DefaultIfEmpty() select new { c.Name, o }` |
+| left join with a filter | `... into g from o in g.Where(o => o.Status == "Open").DefaultIfEmpty()` keeps the customers with no open orders |
+| `SelectMany` of another query | `from o in orders from c in customers.Where(c => c.ID == o.CustomerID) select new { o.OrderNumber, c.Name }`, with `.DefaultIfEmpty()` for a left join |
+| cross join | `from o in orders from c in customers select new { o.ID, CustomerID = c.ID }` pairs every order with every customer |
 | `GroupJoin` | `customers.GroupJoin(orders, c => c.ID, o => o.CustomerID, (c, g) => new { c.Name, Orders = g.Count(), Spent = g.Sum(o => o.Total) })` |
 | `Zip` | `orders.OrderBy(x => x.ID).Zip(invoices.OrderBy(x => x.OrderID), (o, i) => new { o.ID, i.Amount })` pairs by place |
 | `Union`, `Concat`, `Intersect`, `Except` | `orders.Select(x => x.CustomerID).Union(returns.Select(x => x.CustomerID))` |
@@ -90,7 +93,7 @@ No relation between the models is needed, and a model can join itself.
 | `IntersectBy`, `ExceptBy` | `orders.ExceptBy(invoices.Select(i => i.OrderID), x => x.ID)` gives orders with no invoice |
 | `Contains` of another query | `orders.Where(x => customers.Where(c => c.Vip).Select(c => c.ID).Contains(x.CustomerID))` |
 
-After a join or set operation, the elements can be filtered, ordered, paged, selected from, and ended like any query: `orders.Join(customers, o => o.CustomerID, c => c.ID, (o, c) => new { o, c }).Where(x => x.o.Total > x.c.CreditLimit).Count()`. A `GroupJoin` group is read with `Count`, `Any`, `All`, `Sum`, `Min`, `Max`, or `Average`.
+A member of a row a left join doesn't have reads as null, on every store and in memory, so `o.OrderNumber` needs no null check. After a join or set operation, the elements can be filtered, ordered, paged, selected from, and ended like any query: `orders.Join(customers, o => o.CustomerID, c => c.ID, (o, c) => new { o, c }).Where(x => x.o.Total > x.c.CreditLimit).Count()`. A `GroupJoin` group is read with `Count`, `Any`, `All`, `Sum`, `Min`, `Max`, or `Average`.
 
 **Ending the query**
 

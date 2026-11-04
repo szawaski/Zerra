@@ -96,7 +96,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `Math.Round` rounds as C# does with every `MidpointRounding`, to even by default, where it used to round midpoints away from zero. Flags enums can be cast, sorted, and checked with `HasFlag` in a query, and their `ToString` is the `EnumName` text.
 - `string.Join` in a query is no longer cut off at 1024 characters on MySQL.
 - Queries combine with `Union`, `Concat`, `Intersect`, and `Except`, in one statement when both are on the same engine, and the combined elements can be filtered, ordered, paged, and selected from.
-- Queries join any two models with `Join`, `GroupJoin`, `LeftJoin`, and `RightJoin`, with no relation needed, in one statement when both are on the same engine.
+- Queries join any two models with `Join`, `GroupJoin`, `LeftJoin`, `RightJoin`, or `SelectMany` of another query, including cross joins, with no relation needed, in one statement when both are on the same engine. A member of a row a left join doesn't have reads as null on every store and in memory.
 - Queries also support `Cast`, `OfType`, `Order`, `MinBy`, `MaxBy`, `CountBy`, `DefaultIfEmpty`, `Chunk`, the `GroupBy` and `FirstOrDefault` overloads, and operations by position: `Index`, `TakeWhile`, `SkipWhile`, `TakeLast`, `SkipLast`, `DistinctBy`, `UnionBy`, `IntersectBy`, `ExceptBy`, `Append`, `Prepend`, `Zip`, and `SequenceEqual`.
 - `[Relation]` takes several foreign key members, so a relation can refer to a model identified by more than one member. `RelationAttribute.ForeignIdentity` is now `ForeignIdentities`.
 - SQL Server receives values as parameters, so a query or change run with different values reuses one plan instead of compiling a new one each time.

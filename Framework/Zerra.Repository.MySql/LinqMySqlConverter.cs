@@ -2288,6 +2288,23 @@ namespace Zerra.Repository.MySql
         }
         /// <inheritdoc/>
         protected override string QuoteColumn(string table, string column) => $"`{table}`.`{column}`";
+        /// <inheritdoc/>
+        //a bit column combined with a value is read as a number, which a value can be too
+        protected override string AppendedColumn(LinqColumn column, string sql) => column.Type == typeof(bool) || column.Type == typeof(bool?) ? $"({sql}+0)" : sql;
+        /// <inheritdoc/>
+        //a date or time written as text would make the column text, so it's cast to the column's type
+        protected override string AppendedValue(LinqColumn column, string value)
+        {
+            if (column.Member?.ColumnCoreType is not (CoreType.DateTime or CoreType.DateTimeNullable or CoreType.DateTimeOffset or CoreType.DateTimeOffsetNullable or CoreType.TimeSpan or CoreType.TimeSpanNullable or CoreType.DateOnly or CoreType.DateOnlyNullable or CoreType.TimeOnly or CoreType.TimeOnlyNullable))
+                return value;
+            var type = new System.Text.StringBuilder();
+            MySqlEngine.WriteSqlTypeFromModel(type, column.Member);
+            var sql = type.ToString();
+            var nullability = sql.IndexOf(" NOT NULL", StringComparison.Ordinal);
+            if (nullability < 0)
+                nullability = sql.IndexOf(" NULL", StringComparison.Ordinal);
+            return $"CAST({value} AS {(nullability < 0 ? sql : sql.Substring(0, nullability))})";
+        }
 
         /// <inheritdoc/>
         protected override void GenerateJoin(ParameterDependant dependant, ref CharWriter sb)

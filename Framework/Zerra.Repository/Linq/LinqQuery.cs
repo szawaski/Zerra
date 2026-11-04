@@ -627,10 +627,14 @@ namespace Zerra.Repository.Linq
                 case "GroupJoin":
                     return LinqJoinKind.Group;
                 case "SelectMany":
-                    if (call.Arguments.Count != 3 || call.Arguments[0] is not MethodCallExpression { Method.Name: "GroupJoin" } groupJoin || groupJoin.Method.DeclaringType != typeof(System.Linq.Queryable))
-                        return null;
-                    var collection = Quoted(call.Arguments[1]);
-                    return collection.Body is MethodCallExpression { Method.Name: "DefaultIfEmpty", Arguments.Count: 1 } empty && empty.Method.DeclaringType == typeof(Enumerable) ? LinqJoinKind.Left : LinqJoinKind.Inner;
+                    {
+                        //of a GroupJoin's group, or of another query, a join; of a relation, a query of the related model
+                        var groupJoined = call.Arguments[0] is MethodCallExpression { Method.Name: "GroupJoin" } groupJoin && groupJoin.Method.DeclaringType == typeof(System.Linq.Queryable);
+                        if (groupJoined ? call.Arguments.Count != 3 : ReadsRelation(call))
+                            return null;
+                        var collection = Quoted(call.Arguments[1]);
+                        return collection.Body is MethodCallExpression { Method.Name: "DefaultIfEmpty", Arguments.Count: 1 } empty && empty.Method.DeclaringType is { } declaring && (declaring == typeof(Enumerable) || declaring == typeof(System.Linq.Queryable)) ? LinqJoinKind.Left : LinqJoinKind.Inner;
+                    }
                 case "Zip":
                     return LinqJoinKind.Zip;
                 case "SequenceEqual":
@@ -832,6 +836,27 @@ namespace Zerra.Repository.Linq
             var source = call.Arguments[argument].Type;
             return source.IsGenericType && source.GetGenericArguments().Length == 1 ? source.GetGenericArguments()[0] : typeof(object);
         }
+        //whether a SelectMany reads a relation of the model, such as x => x.Lines, rather than another query
+        internal static bool ReadsRelation(MethodCallExpression selectMany)
+        {
+            var collection = Quoted(selectMany.Arguments[1]);
+            var root = collection.Body;
+            while (true)
+            {
+                if (root is MethodCallExpression call)
+                    root = call.Object ?? (call.Arguments.Count > 0 ? call.Arguments[0] : call);
+                else if (root is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked or ExpressionType.Quote } convert)
+                    root = convert.Operand;
+                else if (root is MemberExpression { Expression: not null } member)
+                    root = member.Expression;
+                else
+                    break;
+                if (root is MethodCallExpression { Arguments.Count: 0, Object: null })
+                    break;
+            }
+            return root == collection.Parameters[0];
+        }
+
         private LinqJoin ReadJoin(LinqJoinKind kind, MethodCallExpression call)
         {
             if (kind is not (LinqJoinKind.Inner or LinqJoinKind.Left or LinqJoinKind.Right or LinqJoinKind.Group))
@@ -839,12 +864,15 @@ namespace Zerra.Repository.Linq
             Expression result;
             ParameterExpression leftElement;
             ParameterExpression rightElement;
+            Expression? condition = null;
+            if (call.Method.Name == "SelectMany" && call.Arguments[0] is not MethodCallExpression { Method.Name: "GroupJoin" })
+                return ReadSelectManyJoin(kind, call);
             if (call.Method.Name == "SelectMany")
             {
                 var groupJoin = (MethodCallExpression)call.Arguments[0];
                 if (groupJoin.Arguments.Count != 5)
                     throw new NotSupportedException("GroupJoin with a comparer isn't supported in a repository query, keys compare by their values");
-                result = FlattenGroupJoin(Quoted(groupJoin.Arguments[4]), Quoted(call.Arguments[1]), Quoted(call.Arguments[2]), out leftElement, out rightElement);
+                result = FlattenGroupJoin(Quoted(groupJoin.Arguments[4]), Quoted(call.Arguments[1]), Quoted(call.Arguments[2]), out leftElement, out rightElement, out condition);
                 call = groupJoin;
             }
             else
@@ -872,16 +900,81 @@ namespace Zerra.Repository.Linq
             var rightKey = Quoted(call.Arguments[3]);
             if (leftKey.Body is NewExpression leftParts && rightKey.Body is NewExpression rightParts && leftParts.Arguments.Count != rightParts.Arguments.Count)
                 throw new NotSupportedException("The keys of a join have the same parts");
-            return provider.ReadJoin(kind, left, queryable.Expression, leftKey, rightKey, result, leftElement, rightElement);
+            return provider.ReadJoin(kind, left, queryable.Expression, leftKey, rightKey, result, leftElement, rightElement, condition);
+        }
+        //SelectMany of another query pairs each element with its elements: every pair when it doesn't read the element, those its conditions on the element keep when it does, or none as a left join with DefaultIfEmpty
+        private LinqJoin ReadSelectManyJoin(LinqJoinKind kind, MethodCallExpression call)
+        {
+            var collection = Quoted(call.Arguments[1]);
+            if (collection.Parameters.Count != 1)
+                throw new NotSupportedException("SelectMany with the index isn't supported in a repository query");
+            var outer = collection.Parameters[0];
+            var source = collection.Body;
+            if (source is MethodCallExpression { Method.Name: "DefaultIfEmpty" } empty)
+                source = empty.Arguments[0];
+            //its Where calls are the join's conditions, a left join keeping an element they leave no rows of; what comes before them is the other query
+            var calls = new List<MethodCallExpression>();
+            while (source is MethodCallExpression chain && chain.Method.DeclaringType == typeof(System.Linq.Queryable) && (chain.Method.Name == "Where" || LinqPlan.Uses(chain, outer)))
+            {
+                if (chain.Method.Name != "Where" || chain.Arguments.Count != 2 || Quoted(chain.Arguments[1]).Parameters.Count != 1)
+                    throw new NotSupportedException($"A query SelectMany pairs with reads the element only in Where, as a join condition; {chain.Method.Name} of it is the same for every element, write it without the element");
+                calls.Add(chain);
+                source = chain.Arguments[0];
+            }
+            object? queryable;
+            try
+            {
+                queryable = Expression.Lambda<Func<object?>>(Expression.Convert(source, typeof(object))).Compile()();
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new NotSupportedException("The query SelectMany pairs with reads the element only in Where, as a join condition", ex);
+            }
+            if (queryable is not IQueryable { Provider: RepoQueryProvider provider } query)
+                throw new NotSupportedException("SelectMany pairs a repository query with a relation of its model or another query from IRepo.Query");
+
+            ParameterExpression leftElement;
+            ParameterExpression rightElement;
+            Expression result;
+            if (call.Arguments.Count == 3)
+            {
+                var built = Quoted(call.Arguments[2]);
+                leftElement = built.Parameters[0];
+                rightElement = built.Parameters[1];
+                result = built.Body;
+            }
+            else
+            {
+                leftElement = outer;
+                rightElement = Expression.Parameter(collection.ReturnType.GetGenericArguments()[0], "y");
+                result = rightElement;
+            }
+            Expression? condition = null;
+            for (var i = calls.Count - 1; i >= 0; i--)
+            {
+                var where = Quoted(calls[i].Arguments[1]);
+                var body = LinqRebinder.RebindExpression(where.Body, where.Parameters[0], rightElement);
+                body = LinqRebinder.RebindExpression(body, outer, leftElement);
+                condition = condition is null ? body : Expression.AndAlso(condition, body);
+            }
+            var left = SetPart(call.Arguments[0]);
+            return provider.ReadJoin(kind, left, query.Expression, null, null, result, leftElement, rightElement, condition);
         }
         //GroupJoin(.., (o, g) => new { o, g }).SelectMany(t => t.g.DefaultIfEmpty(), (t, i) => r) is the pair (o, i) building r, each member of t read as GroupJoin built it
-        private static Expression FlattenGroupJoin(LambdaExpression grouped, LambdaExpression collection, LambdaExpression result, out ParameterExpression outer, out ParameterExpression inner)
+        private static Expression FlattenGroupJoin(LambdaExpression grouped, LambdaExpression collection, LambdaExpression result, out ParameterExpression outer, out ParameterExpression inner, out Expression? condition)
         {
             outer = grouped.Parameters[0];
             var group = grouped.Parameters[1];
             var source = collection.Body;
             if (source is MethodCallExpression { Method.Name: "DefaultIfEmpty" } empty)
                 source = empty.Arguments[0];
+            //a Where of the group is a condition of the join, so a left join still keeps an element whose group it empties
+            var wheres = new List<LambdaExpression>();
+            while (source is MethodCallExpression { Method.Name: "Where" } filter && filter.Method.DeclaringType == typeof(Enumerable) && filter.Arguments.Count == 2 && Quoted(filter.Arguments[1]).Parameters.Count == 1)
+            {
+                wheres.Add(Quoted(filter.Arguments[1]));
+                source = filter.Arguments[0];
+            }
             var readsGroup = source == collection.Parameters[0] && grouped.Body == group;
             if (!readsGroup && source is MemberExpression { Expression: ParameterExpression owner } groupMember && owner == collection.Parameters[0] && grouped.Body is NewExpression { Members: not null } built)
             {
@@ -896,6 +989,13 @@ namespace Zerra.Repository.Linq
             inner = result.Parameters[1];
             var pair = grouped.Body == group ? (Expression)Expression.Default(group.Type) : new ParameterReplacer(group, Expression.Default(group.Type)).Visit(grouped.Body)!;
             var body = new ParameterReplacer(result.Parameters[0], pair).Visit(result.Body)!;
+            condition = null;
+            for (var i = wheres.Count - 1; i >= 0; i--)
+            {
+                var where = new ParameterReplacer(wheres[i].Parameters[0], inner).Visit(wheres[i].Body)!;
+                where = NewMemberSimplifier.Instance.Visit(new ParameterReplacer(collection.Parameters[0], pair).Visit(where)!)!;
+                condition = condition is null ? where : Expression.AndAlso(condition, where);
+            }
             return NewMemberSimplifier.Instance.Visit(body)!;
         }
         private static LambdaExpression Quoted(Expression argument)

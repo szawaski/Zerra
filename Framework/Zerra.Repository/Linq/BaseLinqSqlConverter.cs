@@ -916,8 +916,8 @@ namespace Zerra.Repository.Linq
             //SQL comparisons with NULL are unknown, C# gives true or false, the null cases C# counts as true are added
             if (binaryRight is not null && (operation == Operator.Equals || operation == Operator.NotEquals || operation == Operator.LessThan || operation == Operator.LessThanOrEquals || operation == Operator.GreaterThan || operation == Operator.GreaterThanOrEquals))
             {
-                var leftCanBeNull = CanBeNull(binaryLeft);
-                var rightCanBeNull = CanBeNull(binaryRight);
+                var leftCanBeNull = CanBeNull(binaryLeft, context);
+                var rightCanBeNull = CanBeNull(binaryRight, context);
                 var addNulls = operation switch
                 {
                     Operator.Equals => leftCanBeNull && rightCanBeNull,
@@ -1026,13 +1026,29 @@ namespace Zerra.Repository.Linq
         /// Whether bitwise operators give an unsigned 64 bit result, such as in MySQL, so the result is cast back to a signed number to match .NET.
         /// </summary>
         protected virtual bool BitwiseResultUnsigned => false;
-        private bool CanBeNull(Expression exp)
+        private bool CanBeNull(Expression exp, BuilderContext context)
         {
-            //a value read from one row of a related collection is null when there is no row
+            //a value read from one row of a related collection, or of a row a join may not have, is null when there is no row
             if (exp.Type.IsValueType && Nullable.GetUnderlyingType(exp.Type) is null)
-                return !IsEvaluatable(exp) && RelatedElementFinder.Reads(exp);
+                return !IsEvaluatable(exp) && (RelatedElementFinder.Reads(exp) || ReadsResult(exp, context));
             //a value is known, a null value is written as IS NULL instead
             return !IsEvaluatable(exp);
+        }
+        //whether an expression reads a column of the elements of a join or set
+        private static bool ReadsResult(Expression exp, BuilderContext context)
+        {
+            if (context.MemberContext.ResultColumns is null)
+                return false;
+            while (true)
+            {
+                if (exp is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } convert)
+                    exp = convert.Operand;
+                else if (exp is MemberExpression { Expression: not null } member)
+                    exp = member.Expression;
+                else
+                    break;
+            }
+            return exp is ParameterExpression parameter && context.MemberContext.ResultColumns.ContainsKey(parameter);
         }
         //whether an expression reads one row of a related collection, such as x.Lines.OrderBy(l => l.Price).First().Quantity
         private sealed class RelatedElementFinder : ExpressionVisitor

@@ -79,9 +79,13 @@ namespace Zerra.Repository.Linq
                 return CombinePosition(left.Cast<object?>().ToList(), right?.Cast<object?>().ToList(), caseSensitive);
             if (right is null)
                 throw new InvalidOperationException("A join reads two queries");
-            var leftKey = KeyFunction(join.LeftKey!, caseSensitive);
-            var rightKey = KeyFunction(join.RightKey!, caseSensitive);
             var pair = PairFunction(join.Result!, join.LeftElement, join.RightElement, caseSensitive);
+            //a pair the condition keeps, besides the keys or in place of them
+            var condition = join.Condition is null ? null : PairFunction(join.Condition, join.LeftElement, join.RightElement, caseSensitive);
+            if (join.LeftKey is null)
+                return EndCombined(Pairs(join.Kind, left, right, pair, condition), caseSensitive);
+            var leftKey = KeyFunction(join.LeftKey, caseSensitive);
+            var rightKey = KeyFunction(join.RightKey!, caseSensitive);
 
             //the elements of one query by their keys, a key of one part that is null matching none as in LINQ
             var comparer = new AggregateCommon.KeyComparer(caseSensitive);
@@ -107,15 +111,19 @@ namespace Zerra.Repository.Linq
                 foreach (var element in right)
                 {
                     var key = rightKey(element);
+                    var matched = false;
                     if (key is not null && lookup.TryGetValue(key, out var matches))
                     {
                         foreach (var match in matches)
+                        {
+                            if (condition is not null && !(bool)condition(match, element)!)
+                                continue;
+                            matched = true;
                             elements.Add(pair(match, element));
+                        }
                     }
-                    else
-                    {
+                    if (!matched)
                         elements.Add(pair(null, element));
-                    }
                 }
             }
             else if (join.Kind == LinqJoinKind.Group)
@@ -137,19 +145,62 @@ namespace Zerra.Repository.Linq
                 foreach (var element in left)
                 {
                     var key = leftKey(element);
+                    var matched = false;
                     if (key is not null && lookup.TryGetValue(key, out var matches))
                     {
                         foreach (var match in matches)
+                        {
+                            if (condition is not null && !(bool)condition(element, match)!)
+                                continue;
+                            matched = true;
                             elements.Add(pair(element, match));
+                        }
                     }
-                    else if (join.Kind == LinqJoinKind.Left)
-                    {
+                    if (!matched && join.Kind == LinqJoinKind.Left)
                         elements.Add(pair(element, null));
-                    }
                 }
             }
             return EndCombined(elements, caseSensitive);
         }
+        //the pairs of a join with nothing to match them by but the condition, every pair when there is none
+        private static List<object?> Pairs(LinqJoinKind kind, IEnumerable left, IEnumerable right, Func<object?, object?, object?> pair, Func<object?, object?, object?>? condition)
+        {
+            var lefts = left.Cast<object?>().ToList();
+            var rights = right.Cast<object?>().ToList();
+            var elements = new List<object?>();
+            if (kind == LinqJoinKind.Right)
+            {
+                foreach (var second in rights)
+                {
+                    var matched = false;
+                    foreach (var first in lefts)
+                    {
+                        if (condition is not null && !(bool)condition(first, second)!)
+                            continue;
+                        matched = true;
+                        elements.Add(pair(first, second));
+                    }
+                    if (!matched)
+                        elements.Add(pair(null, second));
+                }
+                return elements;
+            }
+            foreach (var first in lefts)
+            {
+                var matched = false;
+                foreach (var second in rights)
+                {
+                    if (condition is not null && !(bool)condition(first, second)!)
+                        continue;
+                    matched = true;
+                    elements.Add(pair(first, second));
+                }
+                if (!matched && kind == LinqJoinKind.Left)
+                    elements.Add(pair(first, null));
+            }
+            return elements;
+        }
+
         //an expression over two elements run on them read as objects; no element of one is its type's default, as LINQ gives
         private static Func<object?, object?, object?> PairFunction(Expression result, ParameterExpression left, ParameterExpression right, bool caseSensitive)
         {
@@ -158,7 +209,7 @@ namespace Zerra.Repository.Linq
             static Expression Element(ParameterExpression element, Type type) => type.IsValueType ? Expression.Condition(Expression.Equal(element, Expression.Constant(null)), Expression.Default(type), Expression.Convert(element, type)) : Expression.Convert(element, type);
             var body = LinqRebinder.RebindExpression(result, left, Element(first, left.Type));
             body = LinqRebinder.RebindExpression(body, right, Element(second, right.Type));
-            return MemoryExpressionRewriter.Rewrite(Expression.Lambda<Func<object?, object?, object?>>(Expression.Convert(body, typeof(object)), first, second), caseSensitive).Compile();
+            return MemoryExpressionRewriter.Rewrite(Expression.Lambda<Func<object?, object?, object?>>(Expression.Convert(body, typeof(object)), first, second), caseSensitive, true).Compile();
         }
 
         //an operation by position over the elements of each query in their order
@@ -387,8 +438,11 @@ namespace Zerra.Repository.Linq
         private static Func<object?, object?> ElementFunction(LambdaExpression lambda, bool caseSensitive)
         {
             var element = Expression.Parameter(typeof(object), "element");
-            var rewritten = MemoryExpressionRewriter.Rewrite(lambda, caseSensitive);
-            var body = Expression.Invoke(rewritten, Expression.Convert(element, lambda.Parameters[0].Type));
+            //an element of a join or set may be a row that isn't there, a value of it its type's default
+            var rewritten = MemoryExpressionRewriter.Rewrite(lambda, caseSensitive, true);
+            var type = lambda.Parameters[0].Type;
+            Expression typed = type.IsValueType && Nullable.GetUnderlyingType(type) is null ? Expression.Condition(Expression.Equal(element, Expression.Constant(null)), Expression.Default(type), Expression.Convert(element, type)) : Expression.Convert(element, type);
+            var body = Expression.Invoke(rewritten, typed);
             return Expression.Lambda<Func<object?, object?>>(Expression.Convert(body, typeof(object)), element).Compile();
         }
 

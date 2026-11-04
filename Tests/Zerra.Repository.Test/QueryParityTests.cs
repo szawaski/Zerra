@@ -956,6 +956,33 @@ namespace Zerra.Repository.Test
             Same(models.Where(x => x.Number < 3).RightJoin(lines, x => x.ID, l => l.ParityID, (x, l) => $"{x?.Number}:{l.Quantity}"), q.Where(x => x.Number < 3).RightJoin(lq, x => x.ID, l => l.ParityID, (x, l) => new { x, l.Quantity }).ToArray().Select(r => $"{r.x?.Number}:{r.Quantity}"), "RightJoin");
             Assert.Equal(models.LeftJoin(lines, x => x.ID, l => l.ParityID, (x, l) => l).Count(l => l == null), q.LeftJoin(lq, x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l }).Count(r => r.l == null));
 
+            //a member of the row that isn't there reads as null, in memory as in SQL
+            Same(from x in models join l in lines on x.ID equals l.ParityID into g from l in g.DefaultIfEmpty() select $"{x.Number}:{l?.Quantity}:{l?.Price:0.##}",
+                (from x in q join l in lq on x.ID equals l.ParityID into g from l in g.DefaultIfEmpty() select new { x.Number, Quantity = (int?)l.Quantity, Price = (decimal?)l.Price }).ToArray().Select(r => $"{r.Number}:{r.Quantity}:{r.Price:0.##}"), "missing member");
+            Same(models.LeftJoin(lines, x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l }).Where(r => r.l != null && r.l.Quantity < 3).Select(r => r.Number),
+                q.LeftJoin(lq, x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l }).Where(r => r.l.Quantity < 3).ToArray().Select(r => r.Number), "missing member condition");
+            Same(models.LeftJoin(lines, x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l }).Where(r => r.l == null || r.l.Quantity != 3).Select(r => r.Number),
+                q.LeftJoin(lq, x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l }).Where(r => r.l.Quantity != 3).ToArray().Select(r => r.Number), "missing member not equal");
+
+            //a filter of the group is a condition of the left join, which keeps a model it leaves no lines of
+            Same(from x in models join l in lines on x.ID equals l.ParityID into g from l in g.Where(l => l.Quantity > 2).DefaultIfEmpty() select $"{x.Number}:{l?.Quantity}",
+                (from x in q join l in lq on x.ID equals l.ParityID into g from l in g.Where(l => l.Quantity > 2).DefaultIfEmpty() select new { x.Number, Quantity = (int?)l.Quantity }).ToArray().Select(r => $"{r.Number}:{r.Quantity}"), "filtered left join");
+            Same(from x in models join l in lines on x.ID equals l.ParityID into g from l in g.Where(l => l.Quantity > x.Number) select $"{x.Number}:{l.Quantity}",
+                (from x in q join l in lq on x.ID equals l.ParityID into g from l in g.Where(l => l.Quantity > x.Number) select new { x.Number, l.Quantity }).ToArray().Select(r => $"{r.Number}:{r.Quantity}"), "filtered by the outer");
+
+            //SelectMany of another query: every pair, or those its conditions keep
+            Same(from x in models.Where(x => x.Number < 3) from y in models.Where(y => y.Number < 2) select $"{x.Number}:{y.Number}",
+                (from x in q.Where(x => x.Number < 3) from y in q.Where(y => y.Number < 2) select new { A = x.Number, B = y.Number }).ToArray().Select(r => $"{r.A}:{r.B}"), "cross join");
+            Same(from x in models from l in lines where l.ParityID == x.ID && l.Quantity > 2 select $"{x.Number}:{l.Quantity}",
+                (from x in q from l in lq where l.ParityID == x.ID && l.Quantity > 2 select new { x.Number, l.Quantity }).ToArray().Select(r => $"{r.Number}:{r.Quantity}"), "cross join filtered");
+            Same(from x in models from l in lines.Where(l => l.ParityID == x.ID) select $"{x.Number}:{l.Quantity}",
+                (from x in q from l in lq.Where(l => l.ParityID == x.ID) select new { x.Number, l.Quantity }).ToArray().Select(r => $"{r.Number}:{r.Quantity}"), "correlated");
+            Same(from x in models from l in lines.Where(l => l.ParityID == x.ID).Where(l => l.Quantity < 4).DefaultIfEmpty() select $"{x.Number}:{l?.Quantity}",
+                (from x in q from l in lq.Where(l => l.ParityID == x.ID).Where(l => l.Quantity < 4).DefaultIfEmpty() select new { x.Number, Quantity = (int?)l.Quantity }).ToArray().Select(r => $"{r.Number}:{r.Quantity}"), "correlated left");
+            Same(models.SelectMany(x => lines.Where(l => l.ParityID == x.ID && l.Quantity > x.Number)).Select(l => l.Quantity),
+                q.SelectMany(x => lq.Where(l => l.ParityID == x.ID && l.Quantity > x.Number)).ToArray().Select(l => l.Quantity), "correlated without a result");
+            Assert.Equal(models.Length * lines.Length, (from x in q from l in lq select x.Number + l.Quantity).Count());
+
             //a group read by aggregates of it
             Same(models.GroupJoin(lines, x => x.ID, l => l.ParityID, (x, g) => $"{x.Number}:{g.Count()}:{g.Sum(l => l.Quantity)}:{g.Any(l => l.Quantity > 3)}:{g.All(l => l.Quantity > 1)}:{g.Max(l => (int?)l.Quantity)}:{g.Where(l => l.Quantity > 2).Count()}"),
                 q.GroupJoin(lq, x => x.ID, l => l.ParityID, (x, g) => new { x.Number, Count = g.Count(), Sum = g.Sum(l => l.Quantity), Big = g.Any(l => l.Quantity > 3), Small = g.All(l => l.Quantity > 1), Max = g.Max(l => (int?)l.Quantity), Over = g.Where(l => l.Quantity > 2).Count() }).ToArray().Select(r => $"{r.Number}:{r.Count}:{r.Sum}:{r.Big}:{r.Small}:{r.Max}:{r.Over}"), "group join");

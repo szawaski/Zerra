@@ -173,13 +173,13 @@ namespace Zerra.Repository.Linq
         }
         internal override IRepoInternal Repo => repo;
 
-        internal override LinqJoin ReadJoin(LinqJoinKind kind, LinqQuery left, Expression expression, LambdaExpression leftKey, LambdaExpression rightKey, Expression result, ParameterExpression leftElement, ParameterExpression rightElement)
+        internal override LinqJoin ReadJoin(LinqJoinKind kind, LinqQuery left, Expression expression, LambdaExpression? leftKey, LambdaExpression? rightKey, Expression result, ParameterExpression leftElement, ParameterExpression rightElement, Expression? condition)
         {
             if (graph is not null || temporal is not null)
                 throw new NotSupportedException("A query paired by a join reads the current state of models without a graph");
             var query = new LinqQuery<TModel, object?>(expression, null, null);
             query.ReadAsSetPart();
-            return new LinqJoin(repo, kind, left, query, leftKey, rightKey, result, leftElement, rightElement);
+            return new LinqJoin(repo, kind, left, query, leftKey, rightKey, result, leftElement, rightElement) { Condition = condition };
         }
 
         private LinqQuery Read<TResult>(Expression expression, LinqTerminal? terminal, LambdaExpression? argument)
@@ -189,8 +189,8 @@ namespace Zerra.Repository.Linq
             var node = expression;
             while (node is MethodCallExpression call && call.Arguments.Count > 0)
             {
-                //a SelectMany of a GroupJoin's group is a join
-                if (call.Method.Name == "SelectMany" && call.Method.DeclaringType == typeof(System.Linq.Queryable) && call.Arguments[0] is not MethodCallExpression { Method.Name: "GroupJoin" })
+                //a SelectMany of a GroupJoin's group, or of another query, is a join
+                if (call.Method.Name == "SelectMany" && call.Method.DeclaringType == typeof(System.Linq.Queryable) && call.Arguments[0] is not MethodCallExpression { Method.Name: "GroupJoin" } && LinqQuery.ReadsRelation(call))
                     selectMany = call;
                 node = call.Arguments[0];
             }

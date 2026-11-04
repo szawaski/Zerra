@@ -60,7 +60,7 @@ namespace Zerra.Repository.Linq
         public Expression? Result { get; }
         /// <summary>The ValueTuple an element is when <see cref="Result"/> is <see langword="null"/>: the place and the element for <see cref="LinqJoinKind.Index"/>, the pair for <see cref="LinqJoinKind.Zip"/>.</summary>
         public Type? TupleType { get; init; }
-        /// <summary>The condition of <see cref="LinqJoinKind.While"/>, or of <c>Where</c> for <see cref="LinqJoinKind.Index"/>, of <see cref="LeftElement"/> and its place <see cref="RightElement"/>.</summary>
+        /// <summary>For a join, a condition on the pair of <see cref="LeftElement"/> and <see cref="RightElement"/> besides the keys, or in place of them; for <see cref="LinqJoinKind.While"/>, and <c>Where</c> of <see cref="LinqJoinKind.Index"/>, the condition of <see cref="LeftElement"/> and its place <see cref="RightElement"/>.</summary>
         public Expression? Condition { get; init; }
         /// <summary>Whether the elements are those skipped rather than taken, for <see cref="LinqJoinKind.While"/> and <see cref="LinqJoinKind.Last"/>.</summary>
         public bool Skips { get; init; }

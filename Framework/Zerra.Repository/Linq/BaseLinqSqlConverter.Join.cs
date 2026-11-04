@@ -95,10 +95,16 @@ namespace Zerra.Repository.Linq
             var operationContext = new MemberContext() { Parameters = parameters, ResultColumns = new(), ResultParameterEnums = new() };
             operationContext.ResultColumns[join.LeftElement] = leftColumns;
             operationContext.ResultParameterEnums[join.LeftElement] = leftEnums;
-            operationContext.ResultColumns[join.LeftKey!.Parameters[0]] = leftColumns;
-            operationContext.ResultParameterEnums[join.LeftKey.Parameters[0]] = leftEnums;
-            operationContext.ResultColumns[join.RightKey!.Parameters[0]] = rightColumns;
-            operationContext.ResultParameterEnums[join.RightKey.Parameters[0]] = rightEnums;
+            if (join.LeftKey is not null)
+            {
+                operationContext.ResultColumns[join.LeftKey.Parameters[0]] = leftColumns;
+                operationContext.ResultParameterEnums[join.LeftKey.Parameters[0]] = leftEnums;
+            }
+            if (join.RightKey is not null)
+            {
+                operationContext.ResultColumns[join.RightKey.Parameters[0]] = rightColumns;
+                operationContext.ResultParameterEnums[join.RightKey.Parameters[0]] = rightEnums;
+            }
             if (group)
             {
                 operationContext.JoinGroups = new() { [join.RightElement] = new JoinGroup(right, rightColumns, rightEnums, join) };
@@ -127,15 +133,30 @@ namespace Zerra.Repository.Linq
                 sb.Write(")AS L");
                 if (!group)
                 {
+                    //every pair, when there is nothing to match them by
+                    var cross = join.LeftKey is null && join.Condition is null;
                     sb.Write(join.Kind switch
                     {
                         LinqJoinKind.Left => " LEFT JOIN(",
                         LinqJoinKind.Right => " RIGHT JOIN(",
-                        _ => " INNER JOIN(",
+                        _ => cross ? " CROSS JOIN(" : " INNER JOIN(",
                     });
                     sb.Write(right);
-                    sb.Write(")AS R ON");
-                    ConvertJoinMatch(join, ref sb, rootDependant, operationContext);
+                    sb.Write(")AS R");
+                    if (!cross || join.Kind != LinqJoinKind.Inner)
+                    {
+                        sb.Write(" ON");
+                        if (join.LeftKey is not null)
+                            ConvertJoinMatch(join, ref sb, rootDependant, operationContext);
+                        if (join.Condition is not null)
+                        {
+                            if (join.LeftKey is not null)
+                                sb.Write(" AND");
+                            ConvertJoinExpression(join.Condition, false, ref sb, rootDependant, operationContext);
+                        }
+                        if (cross)
+                            sb.Write(" 1=1");
+                    }
                 }
                 return sb.ToString();
             }
@@ -315,7 +336,7 @@ namespace Zerra.Repository.Linq
                 {
                     if (i > 0)
                         sb.Write(',');
-                    sb.Write(QuoteColumn("L", $"C{i}"));
+                    sb.Write(i == leftPlan.NumberColumn ? QuoteColumn("L", $"C{i}") : AppendedColumn(leftPlan.Columns[i], QuoteColumn("L", $"C{i}")));
                     sb.Write(" AS C");
                     sb.Write(i);
                 }
@@ -349,7 +370,16 @@ namespace Zerra.Repository.Linq
                     }
                     else
                     {
-                        ConvertToSqlValue(Nullable.GetUnderlyingType(column.Type) ?? column.Type, values[i], ref sb, context);
+                        var value = new CharWriter();
+                        try
+                        {
+                            ConvertToSqlValue(Nullable.GetUnderlyingType(column.Type) ?? column.Type, values[i], ref value, context);
+                            sb.Write(AppendedValue(column, value.ToString()));
+                        }
+                        finally
+                        {
+                            value.Dispose();
+                        }
                     }
                     sb.Write(" AS C");
                     sb.Write(i);
@@ -362,6 +392,20 @@ namespace Zerra.Repository.Linq
                 sb.Dispose();
             }
         }
+        /// <summary>
+        /// Writes a value added as a row so the rows combined with it keep the type of its column, for a store that would otherwise take the column as the value's type.
+        /// </summary>
+        /// <param name="column">The column of the query the value is added to.</param>
+        /// <param name="value">The SQL of the value.</param>
+        /// <returns>The SQL.</returns>
+        protected virtual string AppendedValue(LinqColumn column, string value) => value;
+        /// <summary>
+        /// Writes a column of the rows a value is added to, for a store whose type for the column and the value would otherwise differ.
+        /// </summary>
+        /// <param name="column">The column.</param>
+        /// <param name="sql">The SQL of the column.</param>
+        /// <returns>The SQL.</returns>
+        protected virtual string AppendedColumn(LinqColumn column, string sql) => sql;
         /// <summary>
         /// Writes a bool as a value of the store's bool type, so rows combined with a bool column keep its type.
         /// </summary>
@@ -423,17 +467,28 @@ namespace Zerra.Repository.Linq
                 ConvertJoinExpression(rightParts[0], true, ref sb, rootDependant, operationContext);
                 return;
             }
-            Expression? match = null;
+            //both rows are there, so a part that can't be null is compared as it is
             for (var i = 0; i < leftParts.Length; i++)
             {
+                if (i > 0)
+                    sb.Write(" AND");
                 var leftPart = leftParts[i];
                 var rightPart = rightParts[i].Type == leftPart.Type ? rightParts[i] : Expression.Convert(rightParts[i], leftPart.Type);
+                var nullable = !leftPart.Type.IsValueType || Nullable.GetUnderlyingType(leftPart.Type) is not null;
+                if (!nullable && IsStoredEnum(WithoutConvert(leftPart), operationContext) == IsStoredEnum(WithoutConvert(rightPart), operationContext))
+                {
+                    sb.Write('(');
+                    ConvertJoinExpression(leftPart, true, ref sb, rootDependant, operationContext);
+                    sb.Write('=');
+                    ConvertJoinExpression(rightPart, true, ref sb, rootDependant, operationContext);
+                    sb.Write(')');
+                    continue;
+                }
                 Expression equal = Expression.Equal(leftPart, rightPart);
-                if (leftParts.Length == 1 && (!leftPart.Type.IsValueType || Nullable.GetUnderlyingType(leftPart.Type) is not null))
+                if (leftParts.Length == 1 && nullable)
                     equal = Expression.AndAlso(Expression.NotEqual(leftPart, Expression.Constant(null, leftPart.Type)), equal);
-                match = match is null ? equal : Expression.AndAlso(match, equal);
+                ConvertJoinExpression(equal, false, ref sb, rootDependant, operationContext);
             }
-            ConvertJoinExpression(match!, false, ref sb, rootDependant, operationContext);
         }
 
         //an expression over the elements of a join's queries, a value or a condition

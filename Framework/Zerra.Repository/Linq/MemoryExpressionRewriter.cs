@@ -16,13 +16,48 @@ namespace Zerra.Repository.Linq
         private static readonly MethodInfo enumNameMethod = typeof(EnumName).GetMethod(nameof(EnumName.GetName), [typeof(Type), typeof(object)])!;
 
         private readonly bool caseSensitive;
-        public MemoryExpressionRewriter(bool caseSensitive)
+        //the parameters are elements of a join or a set, which may be a row that isn't there
+        private readonly bool liftParameters;
+        public MemoryExpressionRewriter(bool caseSensitive, bool liftParameters = false)
         {
             this.caseSensitive = caseSensitive;
+            this.liftParameters = liftParameters;
         }
 
-        public static TExpression Rewrite<TExpression>(TExpression expression, bool caseSensitive) where TExpression : Expression
-            => (TExpression)new MemoryExpressionRewriter(caseSensitive).Visit(expression)!;
+        public static TExpression Rewrite<TExpression>(TExpression expression, bool caseSensitive, bool liftParameters = false) where TExpression : Expression
+            => (TExpression)new MemoryExpressionRewriter(caseSensitive, liftParameters).Visit(expression)!;
+
+        //a value read from a row, which a database reads as null when the row or the value isn't there; a value the query is given is never lifted
+        private bool MayBeMissing(Expression owner)
+        {
+            if (owner.Type.IsValueType)
+                return false;
+            var root = owner;
+            while (true)
+            {
+                if (root is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked or ExpressionType.TypeAs } convert)
+                    root = convert.Operand;
+                else if (root is MemberExpression { Expression: not null } member)
+                    root = member.Expression;
+                else
+                    break;
+            }
+            if (root is not ParameterExpression)
+                return false;
+            return liftParameters || owner is not ParameterExpression && !(owner is UnaryExpression { Operand: ParameterExpression });
+        }
+        //the owner read into a variable, missing when it is null or anything it was read through is
+        private Expression LiftOwner(Expression owner)
+        {
+            var source = VisitChild(owner, out var outer);
+            var row = Expression.Variable(owner.Type, "row");
+            var lift = new Lift();
+            lift.Variables.Add(row);
+            lift.Assignments.Add(Expression.Assign(row, outer is null ? source : Expression.Condition(outer.Missing, Expression.Constant(null, owner.Type), source)));
+            lift.Missing = Expression.ReferenceEqual(row, Expression.Constant(null, owner.Type));
+            pending = Lift.Merge(pending, Lift.Merge(outer, lift));
+            return row;
+        }
 
         //One row of a related collection, such as x.Lines.OrderBy(l => l.Price).First(), is a row a database reads as null when there is none, where LINQ fails or gives a default.
         //The row is read into a variable and whatever is computed from it carries that the row may be missing up to where a null makes a difference:
@@ -141,22 +176,21 @@ namespace Zerra.Repository.Linq
                 pending = Lift.Merge(pending, lift);
                 return row;
             }
+            //a call on a value of a row, such as x.Name.StartsWith("a"), is null when the value is, as in a database
+            if (node.Object is not null && MayBeMissing(node.Object))
+            {
+                var instance = LiftOwner(node.Object);
+                return node.Update(instance, Visit(node.Arguments));
+            }
             return base.VisitMethodCall(node);
         }
 
-        //a member of one related model reads as null when there is no related model, as a join does
+        //a member of a related model, of an element of a join, or of a value of a row reads as null when that isn't there, as a database reads it
         protected override Expression VisitMember(MemberExpression node)
         {
-            if (node.Expression is not MemberExpression { Expression: not null } related || !related.Type.IsDefined(typeof(EntityAttribute), false))
+            if (node.Expression is null || !MayBeMissing(node.Expression))
                 return base.VisitMember(node);
-            var source = VisitChild(related, out var outer);
-            var row = Expression.Variable(related.Type, "row");
-            var lift = new Lift();
-            lift.Variables.Add(row);
-            lift.Assignments.Add(Expression.Assign(row, outer is null ? source : Expression.Condition(outer.Missing, Expression.Constant(null, related.Type), source)));
-            lift.Missing = Expression.ReferenceEqual(row, Expression.Constant(null, related.Type));
-            pending = Lift.Merge(pending, Lift.Merge(outer, lift));
-            return Expression.MakeMemberAccess(row, node.Member);
+            return Expression.MakeMemberAccess(LiftOwner(node.Expression), node.Member);
         }
 
         protected override Expression VisitBinary(BinaryExpression node)
@@ -211,11 +245,36 @@ namespace Zerra.Repository.Linq
             var test = VisitChild(node.Test, out var testLift);
             if (testLift is not null)
                 test = Consume(test, testLift, Expression.Constant(false));
+            //a branch is only read when it's taken, as CASE reads it
             var ifTrue = VisitChild(node.IfTrue, out var trueLift);
+            if (trueLift is not null)
+                ifTrue = Consume(ifTrue, trueLift, Missing(ifTrue.Type));
             var ifFalse = VisitChild(node.IfFalse, out var falseLift);
-            pending = Lift.Merge(trueLift, falseLift);
+            if (falseLift is not null)
+                ifFalse = Consume(ifFalse, falseLift, Missing(ifFalse.Type));
             return node.Update(test, ifTrue, ifFalse);
         }
+
+        //each member of an object built is a column of its own, null when what it reads isn't there
+        protected override Expression VisitNew(NewExpression node)
+        {
+            var arguments = new Expression[node.Arguments.Count];
+            for (var i = 0; i < arguments.Length; i++)
+            {
+                arguments[i] = VisitChild(node.Arguments[i], out var lift);
+                if (lift is not null)
+                    arguments[i] = Consume(arguments[i], lift, Missing(arguments[i].Type));
+            }
+            return node.Update(arguments);
+        }
+        protected override MemberAssignment VisitMemberAssignment(MemberAssignment node)
+        {
+            var value = VisitChild(node.Expression, out var lift);
+            if (lift is not null)
+                value = Consume(value, lift, Missing(value.Type));
+            return node.Update(value);
+        }
+        private static Expression Missing(Type type) => type == typeof(bool) ? Expression.Constant(false) : Expression.Default(type);
 
         protected override Expression VisitLambda<T>(Expression<T> node)
         {

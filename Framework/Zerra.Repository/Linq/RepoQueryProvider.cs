@@ -23,7 +23,7 @@ namespace Zerra.Repository.Linq
         /// <summary>Reads a query into what a condition of another query looks in.</summary>
         internal abstract LinqSubquery ReadSubquery(Expression expression);
         internal abstract LinqSet ReadSet(LinqSetOperation operation, LinqQuery left, Expression expression);
-        internal abstract LinqJoin ReadJoin(LinqJoinKind kind, LinqQuery left, Expression expression, LambdaExpression leftKey, LambdaExpression rightKey, Expression result, ParameterExpression leftElement, ParameterExpression rightElement);
+        internal abstract LinqJoin ReadJoin(LinqJoinKind kind, LinqQuery left, Expression expression, LambdaExpression? leftKey, LambdaExpression? rightKey, Expression result, ParameterExpression leftElement, ParameterExpression rightElement, Expression? condition);
         /// <summary>Reads a query an operation by position reads, its rows numbered in its order.</summary>
         internal abstract LinqQuery ReadNumbered(Expression expression, string operation);
         internal abstract IRepoInternal Repo { get; }
