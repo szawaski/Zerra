@@ -147,35 +147,30 @@ namespace Zerra.Test.Collections
         {
             var queue = new AsyncConcurrentQueue<int>();
             using var cts = new CancellationTokenSource();
+            var allRead = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var enumerateTask = Task.Run(async () =>
             {
                 var count = 0;
-                try
+                var enumerator = queue.GetAsyncEnumerator(cts.Token);
+                while (await enumerator.MoveNextAsync())
                 {
-                    var enumerator = queue.GetAsyncEnumerator(cts.Token);
-                    while (await enumerator.MoveNextAsync())
-                    {
-                        count++;
-                    }
-                }
-                catch (TaskCanceledException)
-                {
-                    // Expected when cancelled
-                    return -1;
+                    count++;
+                    if (count == 3)
+                        _ = allRead.TrySetResult(true);
                 }
                 return count;
             });
 
-            await Task.Delay(50, TestContext.Current.CancellationToken);
             queue.Enqueue(1);
             queue.Enqueue(2);
             queue.Enqueue(3);
-            await Task.Delay(50, TestContext.Current.CancellationToken);
+            await allRead.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             cts.Cancel();
 
+            await enumerateTask.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             var count = await enumerateTask;
-            Assert.Equal(-1, count);
+            Assert.Equal(3, count);
         }
 
         [Fact]

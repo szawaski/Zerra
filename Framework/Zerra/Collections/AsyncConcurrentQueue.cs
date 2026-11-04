@@ -10,7 +10,7 @@ namespace Zerra.Collections
     public class AsyncConcurrentQueue<T> : IAsyncEnumerable<T>
     {
         private readonly Queue<T> queue;
-        private readonly Queue<TaskCompletionSource<T>> waiters;
+        private readonly Queue<Waiter> waiters;
 
         /// <summary>
         /// Creates a new empty queue.
@@ -18,7 +18,7 @@ namespace Zerra.Collections
         public AsyncConcurrentQueue()
         {
             this.queue = new Queue<T>();
-            this.waiters = new Queue<TaskCompletionSource<T>>();
+            this.waiters = new Queue<Waiter>();
         }
 
         /// <summary>
@@ -49,8 +49,9 @@ namespace Zerra.Collections
             {
                 if (queue.Count > 0)
                     return Task.FromResult(queue.Dequeue());
-                var waiter = new TaskCompletionSource<T>();
-                _ = cancellationToken.Register(() => waiter.TrySetCanceled(cancellationToken));
+                var waiter = new Waiter(cancellationToken);
+                if (cancellationToken.CanBeCanceled)
+                    waiter.Registration = cancellationToken.Register(static (state) => ((Waiter)state!).Cancel(), waiter);
                 waiters.Enqueue(waiter);
                 return waiter.Task;
             }
@@ -67,9 +68,9 @@ namespace Zerra.Collections
                 while (waiters.Count > 0)
                 {
                     var waiter = waiters.Dequeue();
-                    if (waiter.Task.IsCompleted)
+                    if (!waiter.TrySetResult(item))
                         continue;
-                    waiter.SetResult(item);
+                    waiter.Registration.Dispose();
                     return;
                 }
                 queue.Enqueue(item);
@@ -104,7 +105,14 @@ namespace Zerra.Collections
             {
                 if (cancellationToken.IsCancellationRequested)
                     return false;
-                current = await queue.DequeueAsync(cancellationToken);
+                try
+                {
+                    current = await queue.DequeueAsync(cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return false;
+                }
                 return true;
             }
 
@@ -112,6 +120,19 @@ namespace Zerra.Collections
             {
                 return default;
             }
+        }
+
+        private sealed class Waiter : TaskCompletionSource<T>
+        {
+            private readonly CancellationToken cancellationToken;
+            public CancellationTokenRegistration Registration;
+
+            public Waiter(CancellationToken cancellationToken)
+            {
+                this.cancellationToken = cancellationToken;
+            }
+
+            public void Cancel() => _ = TrySetCanceled(cancellationToken);
         }
     }
 }

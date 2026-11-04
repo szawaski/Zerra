@@ -90,6 +90,27 @@ namespace Zerra.Test.Collections
             //an enumerator with a canceled token ends
             await using var enumerator = queue.GetAsyncEnumerator(new CancellationToken(true));
             Assert.False(await enumerator.MoveNextAsync());
+
+            //an enumerator canceled while waiting ends, and a later item is not lost
+            using (var canceller = new CancellationTokenSource())
+            {
+                await using var waitingEnumerator = queue.GetAsyncEnumerator(canceller.Token);
+                var moving = waitingEnumerator.MoveNextAsync().AsTask();
+                Assert.False(moving.IsCompleted);
+                canceller.Cancel();
+                Assert.False(await moving);
+            }
+            queue.Enqueue(6);
+            Assert.Equal(6, await queue.DequeueAsync(TestContext.Current.CancellationToken));
+
+            //a waiter with a token that is canceled after it is served does not throw
+            using (var canceller = new CancellationTokenSource())
+            {
+                var waiting = queue.DequeueAsync(canceller.Token);
+                queue.Enqueue(7);
+                canceller.Cancel();
+                Assert.Equal(7, await waiting);
+            }
         }
 
         [Fact]
