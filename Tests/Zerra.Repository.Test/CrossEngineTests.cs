@@ -178,6 +178,33 @@ namespace Zerra.Repository.Test
             Assert.Equal(2, named.Intersect(tagged).Count());
         }
 
+        //the queries of a join on different engines each run through their own providers, and their elements pair in memory by their keys
+        [Fact]
+        public async Task JoinsOnOtherEngine()
+        {
+            foreach (var sameEngine in new[] { false, true })
+            {
+                var (repo, parents, children) = Repos(sameEngine);
+                var parentQuery = repo.Query<Parent>();
+                var childQuery = repo.Query<Child>();
+                Assert.Equal(parents.Join(children, x => x.ID, c => c.ParentID, (x, c) => $"{x.Name}:{c.Qty}").Order(), parentQuery.Join(childQuery, x => x.ID, c => c.ParentID, (x, c) => new { x.Name, c.Qty }).ToArray().Select(r => $"{r.Name}:{r.Qty}").Order());
+                Assert.Equal(parents.Join(children, x => x.Rank, c => c.Qty, (x, c) => $"{x.Name}:{c.Tag}").Order(), (await parentQuery.Join(childQuery, x => x.Rank, c => c.Qty, (x, c) => new { x, c }).ToArrayAsync(TestContext.Current.CancellationToken)).Select(r => $"{r.x.Name}:{r.c.Tag}").Order());
+                Assert.Equal(parents.LeftJoin(children, x => x.ID, c => c.ParentID, (x, c) => $"{x.Name}:{c?.Qty}").Order(), parentQuery.LeftJoin(childQuery, x => x.ID, c => c.ParentID, (x, c) => new { x.Name, c }).ToArray().Select(r => $"{r.Name}:{r.c?.Qty}").Order());
+                Assert.Equal(parents.GroupJoin(children, x => x.ID, c => c.ParentID, (x, g) => $"{x.Name}:{g.Count()}:{g.Sum(c => c.Qty)}").Order(), parentQuery.GroupJoin(childQuery, x => x.ID, c => c.ParentID, (x, g) => new { x.Name, Count = g.Count(), Total = g.Sum(c => c.Qty) }).ToArray().Select(r => $"{r.Name}:{r.Count}:{r.Total}").Order());
+                Assert.Equal(parents.Join(children, x => x.ID, c => c.ParentID, (x, c) => c.Qty).Where(q => q > 1).Order(), parentQuery.Join(childQuery, x => x.ID, c => c.ParentID, (x, c) => c.Qty).Where(q => q > 1).OrderBy(q => q).ToArray());
+                Assert.Equal(children.Count(c => parents.Any(x => x.ID == c.ParentID)), await parentQuery.Join(childQuery, x => x.ID, c => c.ParentID, (x, c) => c).CountAsync(TestContext.Current.CancellationToken));
+
+                //operations by position read each query in its order
+                Assert.Equal(parents.OrderBy(x => x.Rank).Zip(children.OrderBy(c => c.Qty), (x, c) => $"{x.Name}:{c.Qty}"), parentQuery.OrderBy(x => x.Rank).Zip(childQuery.OrderBy(c => c.Qty), (x, c) => new { x.Name, c.Qty }).ToArray().Select(r => $"{r.Name}:{r.Qty}"));
+                Assert.True(parentQuery.OrderBy(x => x.Rank).Take(2).Select(x => x.Rank).SequenceEqual(childQuery.OrderBy(c => c.Qty).Take(2).Select(c => c.Qty)));
+                Assert.False(parentQuery.OrderBy(x => x.Rank).Select(x => x.Rank).SequenceEqual(childQuery.OrderBy(c => c.Qty).Select(c => c.Qty)));
+                Assert.Equal(parents.OrderBy(x => x.Rank).IntersectBy(children.Select(c => c.ParentID), x => x.ID).Select(x => x.Name), parentQuery.OrderBy(x => x.Rank).IntersectBy(childQuery.Select(c => c.ParentID), x => x.ID).ToArray().Select(x => x.Name));
+                Assert.Equal(parents.OrderBy(x => x.Rank).ExceptBy(children.Select(c => c.ParentID), x => x.ID).Select(x => x.Name), parentQuery.OrderBy(x => x.Rank).ExceptBy(childQuery.Select(c => c.ParentID), x => x.ID).ToArray().Select(x => x.Name));
+                Assert.Equal(parents.OrderBy(x => x.Rank).Select(x => x.Rank).UnionBy(children.OrderByDescending(c => c.Qty).Select(c => c.Qty), n => n % 2), parentQuery.OrderBy(x => x.Rank).Select(x => x.Rank).UnionBy(childQuery.OrderByDescending(c => c.Qty).Select(c => c.Qty), n => n % 2).ToArray());
+                Assert.Equal(parents.OrderByDescending(x => x.Rank).Select(x => x.Name).Index().Select(t => $"{t.Index}:{t.Item}"), parentQuery.OrderByDescending(x => x.Rank).Select(x => x.Name).Index().ToArray().Select(t => $"{t.Index}:{t.Item}"));
+            }
+        }
+
         //a count of the related rows on another engine compared either way round, and after a condition on the rows
         [Fact]
         public void CountsOnOtherEngine()
@@ -262,7 +289,7 @@ namespace Zerra.Repository.Test
         }
 
         [Fact]
-        public async Task CalculationsProjectionsAndChangesUseTheSplitCondition()
+        public async Task AggregatesProjectionsAndChangesUseTheSplitCondition()
         {
             var (repo, _, _) = Repos();
 

@@ -323,7 +323,7 @@ namespace Zerra.Repository
                     default:
                         {
                             var groups = new Dictionary<object, List<object?>>();
-                            var getValue = Selector is null ? null : CalculationCommon.CompileBoxed<object>(Expression.Invoke(Selector, Expression.Convert(objectParameter, RelatedType)), objectParameter, false);
+                            var getValue = Selector is null ? null : AggregateCommon.CompileBoxed<object>(Expression.Invoke(Selector, Expression.Convert(objectParameter, RelatedType)), objectParameter, false);
                             foreach (var match in Matches!)
                             {
                                 var parent = Key(ModelAnalyzer.GetForeignIdentity(RelatedType, RelatedForeignIdentity!, match));
@@ -341,13 +341,13 @@ namespace Zerra.Repository
                             var failing = new HashSet<object>();
                             foreach (var group in groups)
                             {
-                                if (Passes(CalculationCommon.Aggregate(Operation, group.Value, valueType)))
+                                if (Passes(AggregateCommon.Aggregate(Operation, group.Value, valueType)))
                                     passing.Add(group.Key);
                                 else
                                     failing.Add(group.Key);
                             }
                             //a model with nothing related counts or sums to zero, which the condition may accept, so then only the ones that fail are excluded
-                            if ((Operation == LinqColumnKind.Count || Operation == LinqColumnKind.Sum) && Passes(CalculationCommon.Aggregate(Operation, new List<object?>(), valueType)))
+                            if ((Operation == LinqColumnKind.Count || Operation == LinqColumnKind.Sum) && Passes(AggregateCommon.Aggregate(Operation, new List<object?>(), valueType)))
                                 return Expression.Not(Expression.Call(Expression.Constant(failing, hashSetObjectType), hashSetContainsMethod, member));
                             return Expression.Call(Expression.Constant(passing, hashSetObjectType), hashSetContainsMethod, member);
                         }

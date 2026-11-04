@@ -436,7 +436,7 @@ A solution that relies heavily on a removed helper can keep it. Examples are `Co
 | `LinqExtensions.ForEach` (`Zerra.Linq`) | A `foreach` loop, or a copy (see [Copying removed code](#copying-removed-code)) |
 | `LinqChunkExtensions.Chunk`, `Batch` (`Zerra.Collections`) | .NET `Enumerable.Chunk` (returns arrays). The rest of `Zerra.Collections`, such as `ConcurrentHashSet<T>`, is still there, so keep that `using` |
 | `.AppendAnd(`, `.AppendOr(`, `.AppendExpressionOnMember(`, `.ToLinqString()`, `ReadMemberName`, `LinqExtensions.Contains(IEnumerable, IEnumerable)` | The extension methods were removed. Rewrite with plain LINQ/expressions, or add a `Where` to the query for each condition |
-| `WhereBuilder` | Removed. Add a `Where` to the query for each condition, see [Building a Where in Code](Repository.md#building-a-where-in-code) |
+| `WhereBuilder` | Removed. Add a `Where` to the query for each condition, see [Building a Where in Code](RepositoryQueries.md#building-a-where-in-code) |
 | `LinqStringConverter`, `LinqAppender` | Removed. Add a `Where` to the query for each condition |
 | `Zerra.Threading` `WaitAsync` extension, `MethodWait` | .NET `Task.WaitAsync(TimeSpan / CancellationToken)` |
 | `Misc/Zerra.Tools`: `Locker<T>`, `TaskThrottler`, `ZerraThreadPool`, `Concurrent`, `MathParser`, `Secret` | Removed. If used, copy the source from `release/5.4.0` `Misc/Zerra.Tools` into the solution, following [Copying removed code](#copying-removed-code) |

@@ -32,7 +32,7 @@ namespace Zerra.Repository.Linq
         public LinqColumn[]? ModelColumns { get; }
         /// <summary>The relations of the model read with it, each set on the member of its <see cref="Piece"/>.</summary>
         public LinqShape[]? ModelRelations { get; private set; }
-        /// <summary>For a model read by a join: the column of its identity, null when there is no related row.</summary>
+        /// <summary>For a model read by a join, the column of its identity, null when there is no related row; for an element of a query a join may have no row of, the column saying it had one.</summary>
         public LinqColumn? JoinedKey { get; private set; }
         /// <summary>The member of the parent a relation of a model is set on.</summary>
         public ModelMemberDetail? RelationMember { get; private set; }
@@ -74,8 +74,12 @@ namespace Zerra.Repository.Linq
         }
         internal static LinqShape OfColumn(Type type, LinqColumn column) => new(LinqShapeKind.Column, type, column, null, null, null, null, null, null, null, null, null, 0);
         internal static LinqShape OfModel(ModelDetail model, ModelMemberDetail[] members, LinqColumn[] columns, LinqShape[]? relations) => new(LinqShapeKind.Model, model.Type, null, model, members, columns, null, null, null, null, null, null, 0) { ModelRelations = relations };
+        internal static LinqShape OfCreated(Type type, Func<object?[]?, object> creator, LinqShape[] arguments, string[] argumentNames) => new(LinqShapeKind.Object, type, null, null, null, null, null, arguments, argumentNames, null, null, null, 0) { creator = creator };
         internal static LinqShape OfObject(Type type, ConstructorInfo? constructor, LinqShape[]? arguments, string[]? argumentNames, MemberDetail[]? members, LinqShape[]? values) => new(LinqShapeKind.Object, type, null, null, null, null, constructor, arguments, argumentNames, members, values, null, 0);
         internal static LinqShape OfRelation(Type type, LinqColumn column, LinqPiece piece, int pieceIndex) => new(LinqShapeKind.Relation, type, column, null, null, null, null, null, null, null, null, piece, pieceIndex) { arrayElement = ReadOnlyElement(type), RelationMember = piece.Relation };
+        //an element of a query a join may have no row of, null when its match column is
+        internal static LinqShape OfOptionalModel(ModelDetail model, ModelMemberDetail[] members, LinqColumn[] columns, LinqColumn? key) => new(LinqShapeKind.Model, model.Type, null, model, members, columns, null, null, null, null, null, null, 0) { JoinedKey = key };
+        internal static LinqShape OfOptionalObject(LinqShape shape, LinqShape[]? arguments, LinqShape[]? values, LinqColumn? key) => new(LinqShapeKind.Object, shape.Type, null, null, null, null, shape.Constructor, arguments, shape.ArgumentNames, shape.Members, values, null, 0) { JoinedKey = key, creator = shape.creator };
         internal static LinqShape OfJoined(ModelDetail model, ModelMemberDetail[] members, LinqColumn[] columns, LinqColumn key, LinqColumn relationColumn, ModelMemberDetail relation) => new(LinqShapeKind.Model, model.Type, relationColumn, model, members, columns, null, null, null, null, null, null, 0) { JoinedKey = key, RelationMember = relation };
 
         internal void ReadWith(MethodInfo toList)
@@ -109,7 +113,12 @@ namespace Zerra.Repository.Linq
                 case LinqShapeKind.Model:
                     {
                         if (JoinedKey is not null)
-                            return CopyRelation(row[Column!.Index]);
+                        {
+                            if (Column is not null)
+                                return CopyRelation(row[Column.Index]);
+                            if (row[JoinedKey.Index] is null)
+                                return null;
+                        }
                         var model = Model!.Creator();
                         for (var i = 0; i < ModelMembers!.Length; i++)
                         {
@@ -131,6 +140,8 @@ namespace Zerra.Repository.Linq
                     }
                 case LinqShapeKind.Object:
                     {
+                        if (JoinedKey is not null && row[JoinedKey.Index] is null)
+                            return null;
                         object instance;
                         if (Arguments is null || Arguments.Length == 0)
                         {
@@ -141,7 +152,7 @@ namespace Zerra.Repository.Linq
                             var arguments = ArgumentValues();
                             for (var i = 0; i < arguments.Length; i++)
                                 arguments[i] = Arguments[i].Build(row, pieces);
-                            instance = Constructor!.Invoke(arguments);
+                            instance = Construct(arguments);
                         }
                         if (Members is not null)
                         {
@@ -158,6 +169,13 @@ namespace Zerra.Repository.Linq
                     return pieces is null ? row[Column!.Index] : BuildRelation(Piece!.CompositeKey ? LinqKey.Of(row, Piece.ParentColumns) : row[Piece.ParentColumn], pieces);
             }
         }
+
+        /// <summary>Builds an <see cref="LinqShapeKind.Object"/> from its constructor's arguments.</summary>
+        /// <param name="arguments">The arguments, from <see cref="ArgumentValues"/>.</param>
+        /// <returns>The object.</returns>
+        public object Construct(object?[] arguments) => creator is null ? Constructor!.Invoke(arguments) : creator(arguments);
+        //a type the query names no constructor of, such as the KeyValuePair of CountBy, is built through its type detail
+        private Func<object?[]?, object>? creator;
 
         /// <summary>The array a row's constructor arguments are read into, the same for every row as a shape belongs to one query and a constructor doesn't keep it.</summary>
         /// <returns>The array, of the length of <see cref="Arguments"/>.</returns>
@@ -226,7 +244,7 @@ namespace Zerra.Repository.Linq
             var underlying = Nullable.GetUnderlyingType(type) ?? type;
             if (valueType == underlying || underlying == typeof(object) || underlying.IsAssignableFrom(valueType))
                 return value;
-            //an enum's smallest and largest are calculated as its number
+            //an enum's smallest and largest are found by its number
             if (underlying.IsEnum)
                 return Enum.ToObject(underlying, System.Convert.ChangeType(value, Enum.GetUnderlyingType(underlying), System.Globalization.CultureInfo.InvariantCulture));
             return TypeAnalyzer.Convert(value, type)!;

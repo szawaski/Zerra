@@ -34,6 +34,14 @@ namespace Zerra.Repository.Linq
         internal bool Joined { get; init; }
         /// <summary>The separator of a <see cref="LinqColumnKind.Join"/>.</summary>
         public string? Separator { get; init; }
+        /// <summary>For a join, the column of the first or second query this column reads, its index there, or -1 for the column saying the query had a row; <see langword="null"/> for a column computed from <see cref="Expression"/>.</summary>
+        public int? From { get; init; }
+        /// <summary>For a join, whether <see cref="From"/> is of the second query.</summary>
+        public bool FromRight { get; init; }
+        /// <summary>Whether the column is of a query a join may have no row of, so it can be null whatever its member's type.</summary>
+        public bool Optional { get; init; }
+        /// <summary>The order a <see cref="LinqColumnKind.RowNumber"/> numbers the rows in, or <see langword="null"/> for the order the store reads them in.</summary>
+        public LinqOrder[]? Orders { get; init; }
 
         internal LinqColumn(int index, LinqColumnKind kind, Expression? expression, ParameterExpression? parameter, int keyPart, Type type, ModelMemberDetail? member)
         {

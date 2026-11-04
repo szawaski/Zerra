@@ -11,15 +11,15 @@ using Zerra.Repository.Linq;
 namespace Zerra.Repository
 {
     /// <summary>
-    /// The parts of a calculation query (a count per group, or a sum, average, minimum, or maximum over all records or per group) that are the same for every engine:
+    /// The parts of an aggregate query (a count per group, or a sum, average, minimum, or maximum over all records or per group) that are the same for every engine:
     /// the key parts of a group expression, the CLR type of a result, building the typed keys, and aggregating values in memory.
     /// </summary>
     /// <remarks>
-    /// An engine returns a calculation over all records as the boxed result, or <see langword="null"/> when nothing matched (a sum returns 0),
-    /// a calculation per group as an <see cref="IReadOnlyList{T}"/> of <c>(object? Key, object? Value)</c>, the key being the value of a one-member key or an <c>object?[]</c> of the parts of several, one per <see cref="GetKeyParts"/> element,
+    /// An engine returns an aggregate over all records as the boxed result, or <see langword="null"/> when nothing matched (a sum returns 0),
+    /// an aggregate per group as an <see cref="IReadOnlyList{T}"/> of <c>(object? Key, object? Value)</c>, the key being the value of a one-member key or an <c>object?[]</c> of the parts of several, one per <see cref="GetKeyParts"/> element,
     /// and distinct values as an <see cref="IReadOnlyList{T}"/> of the keys alone.
     /// </remarks>
-    public static class CalculationCommon
+    public static class AggregateCommon
     {
         /// <summary>
         /// Splits a group expression into the expressions of its key parts: the arguments of an anonymous object or a <c>new ValueTuple</c>, or the whole body for a single key.
@@ -34,9 +34,9 @@ namespace Zerra.Repository
         }
 
         /// <summary>
-        /// Returns the CLR type an engine returns for a calculation: <see cref="long"/> for a count, <see cref="double"/> for an average of integers, and otherwise the type of the value expression.
+        /// Returns the CLR type an engine returns for an aggregate: <see cref="long"/> for a count, <see cref="double"/> for an average of integers, and otherwise the type of the value expression.
         /// </summary>
-        /// <param name="operation">The calculation.</param>
+        /// <param name="operation">The aggregate.</param>
         /// <param name="value">The value expression, or <see langword="null"/> for a count.</param>
         /// <returns>The result type, nullable when the value is.</returns>
         public static Type GetResultType(LinqColumnKind operation, LambdaExpression? value)
@@ -59,7 +59,7 @@ namespace Zerra.Repository
                         return valueType == type ? typeof(double) : typeof(double?);
                     }
                 default:
-                    throw new NotSupportedException($"{operation} is not a calculation");
+                    throw new NotSupportedException($"{operation} is not an aggregate");
             }
         }
 
@@ -87,8 +87,8 @@ namespace Zerra.Repository
             return MemoryExpressionRewriter.Rewrite(lambda, caseSensitive).Compile();
         }
 
-        /// <summary>Calculates one result over boxed values with the same empty and null rules as LINQ: a count of all of them or of the different ones that aren't null, or a sum, average, minimum, or maximum of the ones that aren't null.</summary>
-        /// <param name="operation">The calculation.</param>
+        /// <summary>Aggregates boxed values into one result with the same empty and null rules as LINQ: a count of all of them or of the different ones that aren't null, or a sum, average, minimum, or maximum of the ones that aren't null.</summary>
+        /// <param name="operation">The aggregate.</param>
         /// <param name="values">The values.</param>
         /// <param name="valueType">The type of the values.</param>
         /// <returns>The boxed result, or <see langword="null"/> when nothing but nulls is averaged or compared.</returns>
@@ -221,7 +221,7 @@ namespace Zerra.Repository
                         return best;
                     }
                 default:
-                    throw new NotSupportedException($"{operation} is not a calculation");
+                    throw new NotSupportedException($"{operation} is not an aggregate");
             }
         }
 

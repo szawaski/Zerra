@@ -878,7 +878,7 @@ namespace Zerra.Repository.Test
             Assert.Equal(1, relationGroup.Rows);
             Assert.Equal(1, relationGroup.Total);
 
-            //calculations through the relations
+            //aggregates through the relations
             Assert.Equal(1, repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Sum(x => x.RelationB.Count()));
             Assert.Equal(1, repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Select(x => x.StringThing).Distinct().Count());
             Assert.Equal([model.BooleanThing], repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Select(x => x.BooleanThing).Distinct().ToArray());
@@ -1165,7 +1165,7 @@ namespace Zerra.Repository.Test
             Assert.Equal(1, relationGroup.Rows);
             Assert.Equal(1, relationGroup.Total);
 
-            //calculations through the relations
+            //aggregates through the relations
             Assert.Equal(1, await repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).SumAsync(x => x.RelationB.Count()));
             Assert.Equal(1, await repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Select(x => x.StringThing).Distinct().CountAsync());
             Assert.Equal([model.BooleanThing], await repo.Query<TestTypesModel>().Where(x => x.KeyA == model.KeyA).Select(x => x.BooleanThing).Distinct().ToArrayAsync());

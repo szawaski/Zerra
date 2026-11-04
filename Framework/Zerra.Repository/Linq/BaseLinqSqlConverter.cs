@@ -52,64 +52,100 @@ namespace Zerra.Repository.Linq
         /// <returns>The statement, the plan of its rows, and the statements of the relations.</returns>
         protected LinqStatement ConvertLinqInternal(LinqQuery query, ModelDetail modelDetail)
         {
-            if (query.Set is not null)
-                return ConvertLinqSet(query);
+            if (query.Combines)
+                return ConvertLinqCombined(query);
             return ConvertLinq(query, LinqPlan.Read(query, modelDetail), modelDetail, null);
         }
 
-        //each query of a set is a derived table and the set is one too before it's combined again, so they combine in the order written where SQL's INTERSECT would bind tighter than UNION
-        private LinqStatement ConvertLinqSet(LinqQuery query)
+        //each query of a set or a join is a derived table and the set or join is one too before it's combined again, so they combine in the order written where SQL's INTERSECT would bind tighter than UNION
+        private LinqStatement ConvertLinqCombined(LinqQuery query)
         {
             List<object>? parameters = null;
-            var sql = ConvertSetSql(query.Set!, ref parameters, out var plan);
-            if (query.Having is not null || query.ResultOrder is not null || query.Skip.HasValue || query.Take.HasValue || query.Select is not null || query.SelectedHaving is not null || query.SelectedOrder is not null)
-                sql = ConvertSetResults(query, sql, ref plan, parameters);
+            var sql = ConvertCombinedSql(query, ref parameters, out var plan, true);
             sql = query.Terminal switch
             {
                 LinqTerminal.Count or LinqTerminal.LongCount => $"SELECT COUNT(1) FROM({sql})AS Z",
                 LinqTerminal.Any => AnySql(sql),
+                LinqTerminal.Sum or LinqTerminal.Min or LinqTerminal.Max or LinqTerminal.Average => ConvertCombinedAggregate(query, sql, plan, parameters),
                 _ => sql,
             };
             return new LinqStatement(sql, plan, null, parameters);
         }
-        //the condition, order, and page of the elements on the combined rows, each member of an element the column holding it
-        private string ConvertSetResults(LinqQuery query, string sql, ref LinqPlan plan, List<object>? parameters)
+        //an aggregate of the combined elements, its value read from the columns of each
+        private string ConvertCombinedAggregate(LinqQuery query, string sql, LinqPlan plan, List<object>? parameters)
         {
             var columns = new Dictionary<string, string>();
             var enums = new HashSet<string>();
-            var shape = plan.Shape!;
-            switch (shape.Kind)
+            AddSetColumns(columns, enums, "Z", String.Empty, plan.Shape!);
+            var operationContext = new MemberContext() { Parameters = parameters, ResultEnums = enums };
+            var rootDependant = new ParameterDependant(ModelAnalyzer.GetModel(query.ModelType), null);
+            var value = query.Value!;
+            var body = value.Body is UnaryExpression { NodeType: ExpressionType.Convert } boxed && boxed.Type == typeof(object) ? boxed.Operand : value.Body;
+            //an enum's smallest and largest are by its number, whatever the store holds
+            var type = Nullable.GetUnderlyingType(body.Type) ?? body.Type;
+            if (query.Terminal is LinqTerminal.Min or LinqTerminal.Max && type.IsEnum)
+                body = Expression.Convert(body, Enum.GetUnderlyingType(type));
+            var sb = new CharWriter();
+            try
             {
-                case LinqShapeKind.Column:
-                    AddSetColumn(columns, enums, String.Empty, shape);
-                    break;
-                case LinqShapeKind.Model:
-                    for (var i = 0; i < shape.ModelMembers!.Length; i++)
-                    {
-                        columns[shape.ModelMembers[i].Name] = QuoteColumn("Z", $"C{shape.ModelColumns![i].Index}");
-                        if (shape.ModelMembers[i].EnumType is not null)
-                            _ = enums.Add(shape.ModelMembers[i].Name);
-                    }
-                    break;
-                case LinqShapeKind.Object:
-                    for (var i = 0; i < (shape.ArgumentNames?.Length ?? 0); i++)
-                        AddSetColumn(columns, enums, shape.ArgumentNames![i], shape.Arguments![i]);
-                    for (var i = 0; i < (shape.Members?.Length ?? 0); i++)
-                        AddSetColumn(columns, enums, shape.Members![i].Name, shape.Values![i]);
-                    break;
+                sb.Write(query.Terminal switch
+                {
+                    //SUM of no rows is NULL where the LINQ sum is 0
+                    LinqTerminal.Sum => "SELECT COALESCE(SUM(",
+                    LinqTerminal.Min => "SELECT MIN(",
+                    LinqTerminal.Max => "SELECT MAX(",
+                    _ => "SELECT AVG(",
+                });
+                var sbValue = new CharWriter();
+                try
+                {
+                    ConvertSetValue(body, value.Parameters[0], columns, ref sbValue, rootDependant, operationContext);
+                    //an average of integers is a fraction in LINQ
+                    sb.Write(query.Terminal == LinqTerminal.Average && IsInteger(type) ? Cast(sbValue.ToString(), typeof(double)) : sbValue.ToString());
+                }
+                finally
+                {
+                    sbValue.Dispose();
+                }
+                sb.Write(query.Terminal == LinqTerminal.Sum ? "),0) FROM(" : ") FROM(");
+                sb.Write(sql);
+                sb.Write(")AS Z");
+                return sb.ToString();
             }
+            finally
+            {
+                sb.Dispose();
+            }
+        }
+        //the elements of a set or a join and what follows them
+        //the statement read on its own keeps the elements of an operation by position in their places, a derived table has no order
+        private string ConvertCombinedSql(LinqQuery query, ref List<object>? parameters, out LinqPlan plan, bool top = false)
+        {
+            var sql = query.Set is not null ? ConvertSetSql(query.Set, ref parameters, out plan) : ConvertJoinSql(query.Join!, ref parameters, out plan);
+            var placed = plan.PositionColumns is not null && (top || query.Skip.HasValue || query.Take.HasValue);
+            if (query.Having is not null || query.ResultOrder is not null || query.Skip.HasValue || query.Take.HasValue || query.Select is not null || query.SelectedHaving is not null || query.SelectedOrder is not null || query.Distinct || placed)
+                sql = ConvertSetResults(query, sql, ref plan, parameters, top);
+            return sql;
+        }
+        //the condition, order, and page of the elements on the combined rows, each member of an element the column holding it
+        private string ConvertSetResults(LinqQuery query, string sql, ref LinqPlan plan, List<object>? parameters, bool top = false)
+        {
+            var columns = new Dictionary<string, string>();
+            var enums = new HashSet<string>();
+            AddSetColumns(columns, enums, "Z", String.Empty, plan.Shape!);
+            var positions = plan.PositionColumns;
 
             var operationContext = new MemberContext() { Parameters = parameters, ResultEnums = enums };
             var rootDependant = new ParameterDependant(ModelAnalyzer.GetModel(query.ModelType), null);
             var sb = new CharWriter();
             try
             {
-                var select = query.Select is not null && (query.ReadsElements || query.SelectedHaving is not null) ? LinqPlan.ReadSetSelect(query.Select, ModelAnalyzer.GetModel(query.ModelType)) : null;
+                var select = query.Select is not null && (query.ReadsElements || query.SelectedHaving is not null || query.Distinct) ? LinqPlan.ReadSetSelect(query.Select, ModelAnalyzer.GetModel(query.ModelType)) : null;
                 Dictionary<string, string>? selectedColumns = null;
                 HashSet<string>? selectedEnums = null;
                 if (select is null)
                 {
-                    sb.Write("SELECT * FROM(");
+                    sb.Write(query.Distinct ? "SELECT DISTINCT * FROM(" : "SELECT * FROM(");
                 }
                 else
                 {
@@ -134,7 +170,7 @@ namespace Zerra.Repository.Linq
                     selectedEnums = new();
                     AddSelectedColumn(selectedColumns, selectedEnums, String.Empty, select.Shape!, values, valueEnums);
 
-                    sb.Write("SELECT ");
+                    sb.Write(query.Distinct ? "SELECT DISTINCT " : "SELECT ");
                     for (var i = 0; i < values.Length; i++)
                     {
                         if (i > 0)
@@ -144,7 +180,7 @@ namespace Zerra.Repository.Linq
                         sb.Write(i);
                     }
                     sb.Write(" FROM(");
-                    if (query.ReadsElements)
+                    if (query.ReadsElements || query.Distinct)
                         plan = select;
                 }
                 sb.Write(sql);
@@ -172,7 +208,40 @@ namespace Zerra.Repository.Linq
                 //an order only matters to the elements read or to a page of them
                 var selectedOrder = selectedColumns is null ? null : query.SelectedOrder;
                 var ordered = (query.ResultOrder is not null || selectedOrder is not null) && (query.ReadsElements || paged);
-                if (ordered)
+                //elements of an operation by position are in their places unless ordered otherwise, which the Distinct of what a Select builds loses
+                var byPosition = !ordered && positions is not null && ((query.ReadsElements && top) || paged) && !(query.Distinct && select is not null);
+                //the different elements are ordered and paged once they are found, each member the column of the elements holding it
+                if (query.Distinct && (ordered || paged || byPosition))
+                {
+                    var distinct = sb.ToString();
+                    sb.Dispose();
+                    sb = new CharWriter();
+                    sb.Write("SELECT * FROM(");
+                    sb.Write(distinct);
+                    sb.Write(")AS D");
+                    columns = new();
+                    enums = new();
+                    AddSetColumns(columns, enums, "D", String.Empty, (select ?? plan).Shape!);
+                    operationContext.ResultEnums = enums;
+                    if (selectedColumns is not null)
+                    {
+                        selectedColumns = columns;
+                        selectedEnums = enums;
+                    }
+                }
+                if (byPosition)
+                {
+                    sb.Write(" ORDER BY ");
+                    var table = query.Distinct ? "D" : "Z";
+                    for (var i = 0; i < positions!.Length; i++)
+                    {
+                        if (i > 0)
+                            sb.Write(',');
+                        sb.Write(QuoteColumn(table, $"C{positions[i]}"));
+                    }
+                    ordered = true;
+                }
+                else if (ordered)
                 {
                     sb.Write(" ORDER BY");
                     var first = true;
@@ -205,20 +274,6 @@ namespace Zerra.Repository.Linq
             {
                 sb.Dispose();
             }
-        }
-        private void AddSetColumn(Dictionary<string, string> columns, HashSet<string> enums, string name, LinqShape value)
-        {
-            if (value.Kind == LinqShapeKind.Object && value.ArgumentNames is not null)
-            {
-                for (var i = 0; i < value.ArgumentNames.Length; i++)
-                    AddSetColumn(columns, enums, name.Length == 0 ? value.ArgumentNames[i] : $"{name}.{value.ArgumentNames[i]}", value.Arguments![i]);
-                return;
-            }
-            if (value.Kind != LinqShapeKind.Column)
-                return;
-            columns[name] = QuoteColumn("Z", $"C{value.Column!.Index}");
-            if (value.Column.Member is { EnumType: not null })
-                _ = enums.Add(name);
         }
         private static void AddSelectedColumn(Dictionary<string, string> columns, HashSet<string> enums, string name, LinqShape value, string[] values, bool[] valueEnums)
         {
@@ -257,7 +312,9 @@ namespace Zerra.Repository.Linq
             operationContext.ResultColumns[lambda.Parameters[0]] = columns;
             operationContext.OperatorStack.Push(Operator.Lambda);
             sb.Write('(');
-            ConvertToSql(lambda.Body, ref sb, new BuilderContext(rootDependant, operationContext) { IsOrderBy = isOrder, IsSort = isOrder });
+            //a value boxed for a lambda over objects is ordered as the value, an enum by its number
+            var body = lambda.Body is UnaryExpression { NodeType: ExpressionType.Convert } boxed && boxed.Type == typeof(object) ? boxed.Operand : lambda.Body;
+            ConvertToSql(body, ref sb, new BuilderContext(rootDependant, operationContext) { IsOrderBy = isOrder, IsSort = isOrder });
             sb.Write(')');
             _ = operationContext.OperatorStack.Pop();
             _ = operationContext.ResultColumns.Remove(lambda.Parameters[0]);
@@ -289,8 +346,8 @@ namespace Zerra.Repository.Linq
         }
         private string ConvertSetPart(LinqQuery part, ref List<object>? parameters, out LinqPlan plan)
         {
-            if (part.Set is not null)
-                return ConvertSetSql(part.Set, ref parameters, out plan);
+            if (part.Combines)
+                return ConvertCombinedSql(part, ref parameters, out plan);
             var modelDetail = ModelAnalyzer.GetModel(part.ModelType);
             var statement = ConvertLinq(part, LinqPlan.Read(part, modelDetail), modelDetail, parameters);
             if (statement.Pieces is not null)
@@ -342,7 +399,7 @@ namespace Zerra.Repository.Linq
         protected virtual string AnySql(string sql) => $"SELECT 1 WHERE EXISTS({sql})";
 
         /// <summary>
-        /// Builds the statements of a LINQ query. The statement over the model: the plan's columns, or the count, the one row of an any, or the calculation, then the from, joins, where, and for a grouped query the group by, having, and the order and paging of the results, otherwise the order and paging of the models. Then for each piece of the plan, nested: its plan's columns, the key matching each row to its parent among them, the from, joins, a where of the parents' keys as the parent's statement selects them and the relation's own condition, and the relation's order.
+        /// Builds the statements of a LINQ query. The statement over the model: the plan's columns, or the count, the one row of an any, or the aggregate, then the from, joins, where, and for a grouped query the group by, having, and the order and paging of the results, otherwise the order and paging of the models. Then for each piece of the plan, nested: its plan's columns, the key matching each row to its parent among them, the from, joins, a where of the parents' keys as the parent's statement selects them and the relation's own condition, and the relation's order.
         /// </summary>
         /// <param name="query">The query.</param>
         /// <param name="plan">The plan of the rows, from <see cref="LinqPlan.Read"/>.</param>
@@ -1025,21 +1082,29 @@ namespace Zerra.Repository.Linq
         {
             var member = (MemberExpression)exp;
 
-            if (member.Expression is ParameterExpression resultParameter && context.MemberContext.ResultColumns is not null && context.MemberContext.ResultColumns.TryGetValue(resultParameter, out var resultColumns))
+            if (context.MemberContext.ResultColumns is not null)
             {
-                //a member of a grouped result in its having or order is the column that computes it
-                if (!resultColumns.TryGetValue(member.Member.Name, out var column))
-                    throw new NotSupportedException($"{member.Member.Name} isn't a value of the grouped result, so its results can't be filtered or ordered by it");
-                sb.Write(column);
-                return;
-            }
-
-            if (member.Expression is MemberExpression { Expression: ParameterExpression partParameter } whole && context.MemberContext.ResultColumns is not null && context.MemberContext.ResultColumns.TryGetValue(partParameter, out var partColumns))
-            {
-                if (!partColumns.TryGetValue($"{whole.Member.Name}.{member.Member.Name}", out var column))
-                    throw new NotSupportedException($"{whole.Member.Name}.{member.Member.Name} isn't a value of the grouped result, so its results can't be filtered or ordered by it");
-                sb.Write(column);
-                return;
+                //a member of a result in its having or order, at any depth, is the column that computes it, named by the members from the result down
+                var owner = member.Expression;
+                var path = member.Member.Name;
+                while (owner is MemberExpression parent)
+                {
+                    path = $"{parent.Member.Name}.{path}";
+                    owner = parent.Expression;
+                }
+                if (owner is ParameterExpression resultParameter && context.MemberContext.ResultColumns.TryGetValue(resultParameter, out var resultColumns))
+                {
+                    if (resultColumns.TryGetValue(path, out var column))
+                    {
+                        sb.Write(column);
+                        ConvertToSqlBooleanColumn(member.Type, ref sb, context);
+                        return;
+                    }
+                    //a member of a value, such as a string's Length, reads the column of the value
+                    var ownerPath = path.Length == member.Member.Name.Length ? String.Empty : path.Substring(0, path.Length - member.Member.Name.Length - 1);
+                    if (!resultColumns.ContainsKey(ownerPath))
+                        throw new NotSupportedException($"{path} isn't a value of the result, so its results can't be filtered or ordered by it");
+                }
             }
 
             if (TryConvertToSqlSpanMember(member, ref sb, context))
@@ -1326,6 +1391,21 @@ namespace Zerra.Repository.Linq
 
             _ = context.MemberContext.OperatorStack.Pop();
         }
+        //a column of a result that is a bool used as a condition is compared, which also carries any NOT around it, as a model's bool member is
+        private void ConvertToSqlBooleanColumn(Type type, ref CharWriter sb, BuilderContext context)
+        {
+            if (type != typeof(bool) && type != typeof(bool?))
+                return;
+            var lastOperator = context.MemberContext.OperatorStack.Peek();
+            if (lastOperator == Operator.And || lastOperator == Operator.Or || lastOperator == Operator.Not || (lastOperator == Operator.Lambda && !context.IsOrderBy))
+                sb.Write(BooleanCondition(context.Inverted));
+        }
+        /// <summary>
+        /// Writes the comparison making a bool column a condition.
+        /// </summary>
+        /// <param name="inverted">Whether the condition is that the column is false.</param>
+        /// <returns>The comparison.</returns>
+        protected virtual string BooleanCondition(bool inverted) => inverted ? "=0" : "=1";
         private void ConvertToSqlParameter(Expression exp, ref CharWriter sb, BuilderContext context)
         {
             var parameter = (ParameterExpression)exp;
@@ -1334,6 +1414,7 @@ namespace Zerra.Repository.Linq
             if (context.MemberContext.ResultColumns is not null && context.MemberContext.ResultColumns.TryGetValue(parameter, out var resultColumns) && resultColumns.TryGetValue(String.Empty, out var resultColumn))
             {
                 sb.Write(resultColumn);
+                ConvertToSqlBooleanColumn(parameter.Type, ref sb, context);
                 return;
             }
 

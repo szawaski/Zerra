@@ -1007,7 +1007,7 @@ namespace Zerra.Repository.MsSql
                 }
             }
         }
-        //a Where before Any, Count, or a calculation folds into its condition, so x.Lines.Where(l => a).Any(l => b) reads the rows where a and b; before All it reads the rows where a that fail b, since All is written as not any failing
+        //a Where before Any, Count, or an aggregate folds into its condition, so x.Lines.Where(l => a).Any(l => b) reads the rows where a and b; before All it reads the rows where a that fail b, since All is written as not any failing
         private static Expression UnwrapWhere(Expression source, ref LambdaExpression? condition, bool all)
         {
             while (source is MethodCallExpression { Method.Name: "Where" } chain && (chain.Method.DeclaringType == typeof(Enumerable) || chain.Method.DeclaringType == typeof(Queryable)) && chain.Arguments.Count == 2)
@@ -1679,7 +1679,7 @@ namespace Zerra.Repository.MsSql
                 var skip = noRows ? null : query.Skip;
                 var take = noRows ? null : query.Take;
                 //SQL Server can't aggregate an expression with a subquery, so the keys and values come from a derived table
-                //a count or calculation of a page reads the rows of the page from a derived table too
+                //a count or aggregate of a page reads the rows of the page from a derived table too
                 var pagedValue = !query.ReadsElements && (skip.HasValue || take.HasValue) && !(query.Distinct && query.Terminal is LinqTerminal.Count or LinqTerminal.LongCount);
                 var derived = pagedValue || ReadsSubquery(plan);
                 //a take on its own is TOP, an offset is for a skip or for the keys of the relations
@@ -2117,6 +2117,9 @@ namespace Zerra.Repository.MsSql
         {
             switch (column.Kind)
             {
+                case LinqColumnKind.RowNumber:
+                    ConvertRowNumber(column.Orders, ref sb, rootDependant, operationContext);
+                    break;
                 case LinqColumnKind.Value:
                     if (column.Member is not null)
                     {
@@ -2466,6 +2469,10 @@ namespace Zerra.Repository.MsSql
         }
         /// <inheritdoc/>
         protected override string QuoteColumn(string table, string column) => $"[{table}].[{column}]";
+        /// <inheritdoc/>
+        protected override string UnorderedRowNumber => "ROW_NUMBER()OVER(ORDER BY(SELECT NULL))";
+        /// <inheritdoc/>
+        protected override string BooleanValue(bool value) => value ? "CAST(1 AS BIT)" : "CAST(0 AS BIT)";
 
         //a relation only being read is found by its primary key row by row, where the optimizer can sort every wide row to merge them
         //a condition, group, or order on it stays the optimizer's choice, as a join hint fixes the order and it may want to start from that table

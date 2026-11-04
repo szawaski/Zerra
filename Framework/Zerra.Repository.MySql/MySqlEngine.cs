@@ -778,6 +778,8 @@ namespace Zerra.Repository.MySql
                     }
                 case LinqShapeKind.Object:
                     {
+                        if (shape.JoinedKey is not null && reader.IsDBNull(shape.JoinedKey.Index))
+                            return null;
                         object instance;
                         if (shape.Arguments is null || shape.Arguments.Length == 0)
                         {
@@ -788,7 +790,7 @@ namespace Zerra.Repository.MySql
                             var arguments = shape.ArgumentValues();
                             for (var i = 0; i < arguments.Length; i++)
                                 arguments[i] = ReadLinqElement(reader, shape.Arguments[i], pieces);
-                            instance = shape.Constructor!.Invoke(arguments);
+                            instance = shape.Construct(arguments);
                         }
                         if (shape.Members is not null)
                         {
@@ -797,7 +799,7 @@ namespace Zerra.Repository.MySql
                                 var member = shape.Members[i];
                                 var value = shape.Values![i];
                                 //a member set from a column of the model's type reads it typed, as the model's own members do
-                                if (value.Kind == LinqShapeKind.Column && value.Column!.Member is { CoreType: not null } column && column.Type == member.Type)
+                                if (value.Kind == LinqShapeKind.Column && value.Column!.Member is { CoreType: not null } column && column.Type == member.Type && !value.Column.Optional)
                                 {
                                     ReadLinqMember(reader, value.Column.Index, column.CoreType.Value, member.Setter!, instance);
                                     continue;

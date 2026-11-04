@@ -208,6 +208,8 @@ namespace Zerra.Repository.Linq
 
         private string? FunctionSql(MethodCallExpression call, BuilderContext context)
         {
+            if (context.MemberContext.JoinGroups is not null && JoinGroupSql(call, context) is { } groupSql)
+                return groupSql;
             var declaring = call.Method.DeclaringType;
             if (call.Method.Name == "ToString" && call.Object is not null)
                 return ToStringSql(call, context);

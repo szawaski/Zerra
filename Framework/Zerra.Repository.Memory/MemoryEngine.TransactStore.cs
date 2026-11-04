@@ -239,7 +239,7 @@ namespace Zerra.Repository.Memory
             var members = new ModelMemberDetail[sets.Length];
             for (var i = 0; i < sets.Length; i++)
             {
-                getters[i] = CalculationCommon.CompileBoxed<TModel>(sets[i].Expression!, sets[i].Parameter!, caseSensitive);
+                getters[i] = AggregateCommon.CompileBoxed<TModel>(sets[i].Expression!, sets[i].Parameter!, caseSensitive);
                 members[i] = modelDetail.GetMember(sets[i].MemberDetail.Name);
             }
             var values = new object?[sets.Length];
@@ -430,7 +430,7 @@ namespace Zerra.Repository.Memory
             var members = new ModelMemberDetail[sets.Length];
             for (var i = 0; i < sets.Length; i++)
             {
-                getters[i] = CalculationCommon.CompileBoxed<TModel>(sets[i].Expression!, sets[i].Parameter!, caseSensitive);
+                getters[i] = AggregateCommon.CompileBoxed<TModel>(sets[i].Expression!, sets[i].Parameter!, caseSensitive);
                 members[i] = modelDetail.GetMember(sets[i].MemberDetail.Name);
             }
             var values = new object?[sets.Length];

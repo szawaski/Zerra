@@ -35,6 +35,8 @@ namespace Zerra.Repository.Linq
         /// <summary>The largest value over the group's records.</summary>
         Max,
         /// <summary>The values over the group's records joined into one text.</summary>
-        Join
+        Join,
+        /// <summary>The place of the row in the order of the query, from 1, which an operation by position reads.</summary>
+        RowNumber
     }
 }

@@ -739,7 +739,7 @@ namespace Zerra.Repository
             var names = new string[sets.Length];
             for (var i = 0; i < sets.Length; i++)
             {
-                getters[i] = CalculationCommon.CompileBoxed<TModel>(sets[i].Expression!, sets[i].Parameter!, false);
+                getters[i] = AggregateCommon.CompileBoxed<TModel>(sets[i].Expression!, sets[i].Parameter!, false);
                 names[i] = sets[i].MemberDetail.Name;
             }
             var graph = new Graph(names);
@@ -782,7 +782,7 @@ namespace Zerra.Repository
             var names = new string[sets.Length];
             for (var i = 0; i < sets.Length; i++)
             {
-                getters[i] = CalculationCommon.CompileBoxed<TModel>(sets[i].Expression!, sets[i].Parameter!, false);
+                getters[i] = AggregateCommon.CompileBoxed<TModel>(sets[i].Expression!, sets[i].Parameter!, false);
                 names[i] = sets[i].MemberDetail.Name;
             }
             var graph = new Graph(names);

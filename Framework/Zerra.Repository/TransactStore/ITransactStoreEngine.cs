@@ -27,7 +27,7 @@ namespace Zerra.Repository
         /// <typeparam name="TResult">The type of the elements, or of the value the query ends in.</typeparam>
         /// <param name="query">The query.</param>
         /// <param name="modelDetail">Metadata about the model being queried.</param>
-        /// <returns>The elements as a list of <typeparamref name="TResult"/>, or the value as <typeparamref name="TResult"/> boxed: a count, whether there is any, or a calculation, <see langword="null"/> when there is none.</returns>
+        /// <returns>The elements as a list of <typeparamref name="TResult"/>, or the value as <typeparamref name="TResult"/> boxed: a count, whether there is any, or an aggregate, <see langword="null"/> when there is none.</returns>
         object? ExecuteLinq<TModel, TResult>(LinqQuery query, ModelDetail modelDetail) where TModel : class, new();
 
         /// <summary>

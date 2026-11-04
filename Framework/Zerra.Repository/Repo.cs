@@ -39,28 +39,32 @@ namespace Zerra.Repository
             var modelType = query.Temporal?.ModelType ?? query.ModelType;
             if (!providers.TryGetValue(modelType, out var provider))
                 throw new Exception($"No provider for {modelType.FullName}");
-            if (query.Set is not null && !SetInStore(query.Set))
+            if (query.Combines && !CombinedInStore(query))
             {
-                var left = ((IRepoInternal)this).Query(query.Set.Left);
-                var right = ((IRepoInternal)this).Query(query.Set.Right);
-                return query.CombineSet((IEnumerable)left!, (IEnumerable)right!, true);
+                query.Join?.ReadPartsInOrder();
+                var left = ((IRepoInternal)this).Query(query.Set?.Left ?? query.Join!.Left);
+                var rightPart = query.Set?.Right ?? query.Join!.Right;
+                var right = rightPart is null ? null : ((IRepoInternal)this).Query(rightPart);
+                return query.Set is not null ? query.CombineSet((IEnumerable)left!, (IEnumerable)right!, true) : query.CombineJoin((IEnumerable)left!, (IEnumerable?)right, true);
             }
             return provider.Query(query);
         }
 
-        //a set is one statement when every query of it runs as it is on one engine: no layer, no query a condition looks in, and no relation on another engine; otherwise each query runs through its own providers
-        private bool SetInStore(LinqSet set)
+        //a set or a join is one statement when every query of it runs as it is on one engine: no layer, no query a condition looks in, and no relation on another engine; otherwise each query runs through its own providers
+        private bool CombinedInStore(LinqQuery query)
         {
             object? engine = null;
-            return SetInStore(set, ref engine);
+            return CombinedInStore(query, ref engine);
         }
-        private bool SetInStore(LinqSet set, ref object? engine)
+        private bool CombinedInStore(LinqQuery query, ref object? engine)
         {
-            foreach (var part in (ReadOnlySpan<LinqQuery>)[set.Left, set.Right])
+            foreach (var part in (ReadOnlySpan<LinqQuery?>)[query.Set?.Left ?? query.Join!.Left, query.Set?.Right ?? query.Join!.Right])
             {
-                if (part.Set is not null)
+                if (part is null)
+                    continue;
+                if (part.Combines)
                 {
-                    if (!SetInStore(part.Set, ref engine))
+                    if (!CombinedInStore(part, ref engine))
                         return false;
                     continue;
                 }
@@ -87,8 +91,8 @@ namespace Zerra.Repository
             var modelType = query.Temporal?.ModelType ?? query.ModelType;
             if (!providers.TryGetValue(modelType, out var provider))
                 throw new Exception($"No provider for {modelType.FullName}");
-            if (query.Set is not null && !SetInStore(query.Set))
-                return QuerySetAsync(query, cancellationToken);
+            if (query.Combines && !CombinedInStore(query))
+                return QueryCombinedAsync(query, cancellationToken);
             return provider.QueryAsync(query, cancellationToken);
         }
         object IRepoInternal.QueryStream(LinqQuery query)
@@ -97,7 +101,7 @@ namespace Zerra.Repository
             var modelType = query.Temporal?.ModelType ?? query.ModelType;
             if (!providers.TryGetValue(modelType, out var provider))
                 throw new Exception($"No provider for {modelType.FullName}");
-            if (query.Set is not null && !SetInStore(query.Set))
+            if (query.Combines && !CombinedInStore(query))
                 return query.StreamFrom(() => ((IRepoInternal)this).Query(query), null);
             return provider.QueryStream(query);
         }
@@ -107,15 +111,17 @@ namespace Zerra.Repository
             var modelType = query.Temporal?.ModelType ?? query.ModelType;
             if (!providers.TryGetValue(modelType, out var provider))
                 throw new Exception($"No provider for {modelType.FullName}");
-            if (query.Set is not null && !SetInStore(query.Set))
-                return query.StreamFromAsync(cancellation => QuerySetAsync(query, cancellation), null, cancellationToken);
+            if (query.Combines && !CombinedInStore(query))
+                return query.StreamFromAsync(cancellation => QueryCombinedAsync(query, cancellation), null, cancellationToken);
             return provider.QueryStreamAsync(query, cancellationToken);
         }
-        private async Task<object?> QuerySetAsync(LinqQuery query, CancellationToken cancellationToken)
+        private async Task<object?> QueryCombinedAsync(LinqQuery query, CancellationToken cancellationToken)
         {
-            var left = await ((IRepoInternal)this).QueryAsync(query.Set!.Left, cancellationToken);
-            var right = await ((IRepoInternal)this).QueryAsync(query.Set.Right, cancellationToken);
-            return query.CombineSet((IEnumerable)left!, (IEnumerable)right!, true);
+            query.Join?.ReadPartsInOrder();
+            var left = await ((IRepoInternal)this).QueryAsync(query.Set?.Left ?? query.Join!.Left, cancellationToken);
+            var rightPart = query.Set?.Right ?? query.Join!.Right;
+            var right = rightPart is null ? null : await ((IRepoInternal)this).QueryAsync(rightPart, cancellationToken);
+            return query.Set is not null ? query.CombineSet((IEnumerable)left!, (IEnumerable)right!, true) : query.CombineJoin((IEnumerable)left!, (IEnumerable?)right, true);
         }
 
         Task IRepoInternal.PersistAsync(Persist persist, CancellationToken cancellationToken)

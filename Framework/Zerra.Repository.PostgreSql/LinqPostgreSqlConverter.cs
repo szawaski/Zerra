@@ -963,7 +963,7 @@ namespace Zerra.Repository.PostgreSql
                 }
             }
         }
-        //a Where before Any, Count, or a calculation folds into its condition, so x.Lines.Where(l => a).Any(l => b) reads the rows where a and b; before All it reads the rows where a that fail b, since All is written as not any failing
+        //a Where before Any, Count, or an aggregate folds into its condition, so x.Lines.Where(l => a).Any(l => b) reads the rows where a and b; before All it reads the rows where a that fail b, since All is written as not any failing
         private static Expression UnwrapWhere(Expression source, ref LambdaExpression? condition, bool all)
         {
             while (source is MethodCallExpression { Method.Name: "Where" } chain && (chain.Method.DeclaringType == typeof(Enumerable) || chain.Method.DeclaringType == typeof(Queryable)) && chain.Arguments.Count == 2)
@@ -1525,7 +1525,7 @@ namespace Zerra.Repository.PostgreSql
             var sbEnd = new CharWriter();
             try
             {
-                //a count or calculation of a page reads the rows of the page from a derived table
+                //a count or aggregate of a page reads the rows of the page from a derived table
                 var pagedValue = !query.ReadsElements && (query.Skip.HasValue || query.Take.HasValue) && !(query.Distinct && query.Terminal is LinqTerminal.Count or LinqTerminal.LongCount);
                 var deferColumns = false;
                 switch (query.Terminal)
@@ -1878,6 +1878,9 @@ namespace Zerra.Repository.PostgreSql
         {
             switch (column.Kind)
             {
+                case LinqColumnKind.RowNumber:
+                    ConvertRowNumber(column.Orders, ref sb, rootDependant, operationContext);
+                    break;
                 case LinqColumnKind.Value:
                     if (column.Member is not null)
                     {
@@ -2221,6 +2224,10 @@ namespace Zerra.Repository.PostgreSql
         }
         /// <inheritdoc/>
         protected override string QuoteColumn(string table, string column) => $"{table.ToLower()}.{column.ToLower()}";
+        /// <inheritdoc/>
+        protected override string BooleanCondition(bool inverted) => inverted ? "=FALSE" : "=TRUE";
+        /// <inheritdoc/>
+        protected override string BooleanValue(bool value) => value ? "TRUE" : "FALSE";
 
         /// <inheritdoc/>
         protected override void GenerateJoin(ParameterDependant dependant, ref CharWriter sb)

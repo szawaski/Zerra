@@ -42,6 +42,10 @@ namespace Zerra.Repository.Linq
             public Dictionary<ParameterExpression, Dictionary<string, string>>? ResultColumns { get; set; }
             /// <summary>The members of a grouped result, as named in <see cref="ResultColumns"/>, that are an enum's stored text.</summary>
             public HashSet<string>? ResultEnums { get; set; }
+            /// <summary>The members of each query of a join, as named in <see cref="ResultColumns"/>, that are an enum's stored text, in place of <see cref="ResultEnums"/> for those parameters.</summary>
+            public Dictionary<ParameterExpression, HashSet<string>>? ResultParameterEnums { get; set; }
+            /// <summary>The groups of a GroupJoin, each read by an aggregate in a subquery of the second query.</summary>
+            public Dictionary<ParameterExpression, JoinGroup>? JoinGroups { get; set; }
             /// <summary>The name of the table a related collection in a subquery belongs to, by the member reading it, as it is known in the statement.</summary>
             public Dictionary<MemberExpression, string>? CallingTables { get; set; }
             /// <summary>The values the statements take as parameters, each named by its index, or <see langword="null"/> where values are written into the statement.</summary>

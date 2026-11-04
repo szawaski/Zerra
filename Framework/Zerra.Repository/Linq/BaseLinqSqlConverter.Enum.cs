@@ -23,9 +23,10 @@ namespace Zerra.Repository.Linq
             var underlying = Nullable.GetUnderlyingType(type) ?? type;
             return IsInteger(underlying) || IsFraction(underlying);
         }
+        //an element taken as an object keeps the conversion to its own type
         private static Expression WithoutConvert(Expression exp)
         {
-            while (exp is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } convert)
+            while (exp is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } convert && convert.Operand.Type != typeof(object))
                 exp = convert.Operand;
             return exp;
         }
@@ -38,14 +39,22 @@ namespace Zerra.Repository.Linq
             switch (exp)
             {
                 case ParameterExpression parameter when memberContext.ResultColumns is not null && memberContext.ResultColumns.TryGetValue(parameter, out var columns) && columns.ContainsKey(String.Empty):
-                    return memberContext.ResultEnums?.Contains(String.Empty) == true;
+                    return ResultEnums(parameter, memberContext)?.Contains(String.Empty) == true;
+                //an element taken as an object, read as its own type
+                case UnaryExpression { NodeType: ExpressionType.Convert, Operand: ParameterExpression element } when memberContext.ResultColumns is not null && memberContext.ResultColumns.TryGetValue(element, out var elementColumns) && elementColumns.ContainsKey(String.Empty):
+                    return ResultEnums(element, memberContext)?.Contains(String.Empty) == true;
                 case MemberExpression { Expression: not null } member:
                     if (memberContext.ResultColumns is not null)
                     {
-                        if (member.Expression is ParameterExpression parameter && memberContext.ResultColumns.ContainsKey(parameter))
-                            return memberContext.ResultEnums?.Contains(member.Member.Name) == true;
-                        if (member.Expression is MemberExpression { Expression: ParameterExpression partParameter } whole && memberContext.ResultColumns.ContainsKey(partParameter))
-                            return memberContext.ResultEnums?.Contains($"{whole.Member.Name}.{member.Member.Name}") == true;
+                        var owner = member.Expression;
+                        var path = member.Member.Name;
+                        while (owner is MemberExpression parent)
+                        {
+                            path = $"{parent.Member.Name}.{path}";
+                            owner = parent.Expression;
+                        }
+                        if (owner is ParameterExpression parameter && memberContext.ResultColumns.ContainsKey(parameter))
+                            return ResultEnums(parameter, memberContext)?.Contains(path) == true;
                     }
                     if (Nullable.GetUnderlyingType(member.Expression.Type) is not null)
                         return IsStoredEnum(member.Expression, memberContext);
@@ -58,6 +67,10 @@ namespace Zerra.Repository.Linq
                     return false;
             }
         }
+
+        //the two queries of a join each have their own results
+        private static HashSet<string>? ResultEnums(ParameterExpression parameter, MemberContext memberContext)
+            => memberContext.ResultParameterEnums is not null && memberContext.ResultParameterEnums.TryGetValue(parameter, out var enums) ? enums : memberContext.ResultEnums;
 
         private static string? EnumLiteral(object? value, Type enumType)
         {

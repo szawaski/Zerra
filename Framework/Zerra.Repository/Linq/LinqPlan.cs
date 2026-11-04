@@ -19,7 +19,7 @@ namespace Zerra.Repository.Linq
     public sealed class LinqPlan
     {
         //an enum's smallest and largest are by its number, whatever the store holds
-        private static Expression CalculationValue(LinqColumnKind kind, Expression value)
+        private static Expression AggregateValue(LinqColumnKind kind, Expression value)
         {
             if (kind is not (LinqColumnKind.Min or LinqColumnKind.Max))
                 return value;
@@ -59,9 +59,16 @@ namespace Zerra.Repository.Linq
         public int? ParentKeyColumn { get; private set; }
         /// <summary>For the rows of a relation, the columns holding the key matching each row to its parent, one for each member of a key of several.</summary>
         public int[]? ParentKeyColumns { get; private set; }
+        /// <summary>For a query an operation by position reads, the column of the place of each row.</summary>
+        public int? NumberColumn { get; private set; }
+        /// <summary>For an operation by position, the columns the elements are in order by.</summary>
+        public int[]? PositionColumns { get; internal set; }
 
         private LinqPlan? parent;
         private NewExpression? keyConstructed;
+        //what each element of a group is when GroupBy selects it, and the key of a result selector of the key and the group
+        private LambdaExpression? groupElement;
+        private ParameterExpression? groupKey;
 
         private LinqPlan(ModelDetail model)
         {
@@ -77,7 +84,7 @@ namespace Zerra.Repository.Linq
         public static LinqPlan Read(LinqQuery query, ModelDetail modelDetail)
         {
             //reading a whole model is most queries and its plan never changes, it has only the columns of the model
-            if (query.Select is null && query.Graph is null && query.GroupBy is null && query.KeyMember is null
+            if (query.Select is null && query.Graph is null && query.GroupBy is null && query.KeyMember is null && !query.Numbered
                 && query.Terminal is not (LinqTerminal.Count or LinqTerminal.LongCount or LinqTerminal.Any or LinqTerminal.Sum or LinqTerminal.Min or LinqTerminal.Max or LinqTerminal.Average))
             {
                 var whole = modelDetail.WholeModelPlan;
@@ -113,14 +120,14 @@ namespace Zerra.Repository.Linq
                             LinqTerminal.Max => LinqColumnKind.Max,
                             _ => LinqColumnKind.Average,
                         };
-                        var type = CalculationCommon.GetResultType(kind, query.Value);
-                        plan.Shape = LinqShape.OfColumn(type, plan.AddColumn(kind, CalculationValue(kind, query.Value!.Body), query.Value.Parameters[0], 0, type));
+                        var type = AggregateCommon.GetResultType(kind, query.Value);
+                        plan.Shape = LinqShape.OfColumn(type, plan.AddColumn(kind, AggregateValue(kind, query.Value!.Body), query.Value.Parameters[0], 0, type));
                         return plan;
                     }
             }
             if (query.GroupBy is not null)
             {
-                plan.KeyParts = CalculationCommon.GetKeyParts(query.GroupBy);
+                plan.KeyParts = AggregateCommon.GetKeyParts(query.GroupBy);
                 plan.KeyParameter = query.GroupBy.Parameters[0];
                 plan.keyConstructed = query.GroupBy.Body as NewExpression;
                 if (query.GroupBy.Body is NewExpression { Members: not null } keyType)
@@ -129,9 +136,21 @@ namespace Zerra.Repository.Linq
                     for (var i = 0; i < plan.KeyNames.Length; i++)
                         plan.KeyNames[i] = keyType.Members[i].Name;
                 }
+                if (query.CountsByKey)
+                {
+                    //each key with how many it has, as a KeyValuePair
+                    if (!query.ResultType.IsGenericType || query.ResultType.GetGenericTypeDefinition() != typeof(KeyValuePair<,>))
+                        throw new NotSupportedException("CountBy gives each key and its count, read them as they are");
+                    var key = plan.ReadKey(query.ResultType.GetGenericArguments()[0]);
+                    var count = LinqShape.OfColumn(typeof(int), plan.AddColumn(LinqColumnKind.Count, null, null, 0, typeof(long)));
+                    plan.Shape = LinqShape.OfCreated(query.ResultType, TypeAnalyzer.GetTypeDetail(query.ResultType).GetConstructor(2).CreatorBoxed, [key, count], ["Key", "Value"]);
+                    return plan;
+                }
                 if (query.Select is null)
                     throw new NotSupportedException("GroupBy needs a Select building a result from each group, such as g => new { g.Key, Rows = g.Count() }");
-                plan.Shape = plan.ReadGroupElement(query.Select.Body, query.Select.Parameters[0]);
+                plan.groupElement = query.GroupElement;
+                plan.groupKey = query.GroupKey;
+                plan.Shape = plan.ReadGroupElement(query.Select.Body, query.Select.Parameters[^1]);
                 return plan;
             }
             if (query.KeyMember is not null)
@@ -140,6 +159,15 @@ namespace Zerra.Repository.Linq
                 return plan;
             }
             plan.Shape = query.Select is null ? plan.ReadModel(modelDetail, query.Graph, query.GraphRelations && query.ReturnsModels) : plan.ReadElement(query.Select.ReturnType == typeof(object) && query.Select.Body is UnaryExpression { NodeType: ExpressionType.Convert } boxed ? boxed.Operand : query.Select.Body, query.Select.Parameters[0], modelDetail);
+            //the place of each row, after the columns of the element
+            if (query.Numbered)
+            {
+                if (plan.Relations.Count > 0)
+                    throw new NotSupportedException("A query an operation by position reads gives its own values, not a relation read after them");
+                var number = new LinqColumn(plan.Columns.Count, LinqColumnKind.RowNumber, null, null, 0, typeof(long), null) { Orders = query.NumberOrder };
+                plan.Columns.Add(number);
+                plan.NumberColumn = number.Index;
+            }
             plan.PlaceRelations();
             return plan;
         }
@@ -199,6 +227,218 @@ namespace Zerra.Repository.Linq
                     }
                 default:
                     return LinqShape.OfColumn(expression.Type, AddColumn(LinqColumnKind.Value, expression, parameter, 0, expression.Type));
+            }
+        }
+
+        /// <summary>
+        /// Reads the plan of a join's statement: each element of a query, whole or a member of it, read from that query's columns, anything else a column computed from them.
+        /// </summary>
+        /// <param name="join">The join.</param>
+        /// <param name="left">How the first query builds its elements.</param>
+        /// <param name="right">How the second query builds its elements, or <see langword="null"/> for an operation by position on one query.</param>
+        /// <param name="leftNumber">For an operation by position, the column of the place of each row of the first query.</param>
+        /// <param name="modelDetail">The model of the first query.</param>
+        /// <returns>The plan.</returns>
+        public static LinqPlan ReadJoin(LinqJoin join, LinqShape left, LinqShape? right, int? leftNumber, ModelDetail modelDetail)
+        {
+            var plan = new LinqPlan(modelDetail);
+            if (join.Kind == LinqJoinKind.SequenceEqual)
+            {
+                //the rows are the pairs that differ, which only say whether there are any
+                plan.Shape = LinqShape.OfColumn(typeof(int), plan.AddColumn(LinqColumnKind.Value, Expression.Constant(1), null, 0, typeof(int)));
+                return plan;
+            }
+            if (join.Result is not null)
+            {
+                plan.Shape = plan.ReadJoinElement(join.Result, join, left, right);
+            }
+            else
+            {
+                //a ValueTuple of the place and the element, or of the pair
+                var creator = TypeAnalyzer.GetTypeDetail(join.TupleType!).GetConstructor(2).CreatorBoxed;
+                var first = join.Kind == LinqJoinKind.Index ? LinqShape.OfColumn(typeof(int), plan.AddColumn(LinqColumnKind.Value, join.RightElement, null, 0, typeof(int))) : plan.ReadJoinPart(left, false, false, true);
+                var second = join.Kind == LinqJoinKind.Index ? plan.ReadJoinPart(left, false, false, true) : plan.ReadJoinPart(right!, true, false, true);
+                plan.Shape = LinqShape.OfCreated(join.TupleType!, creator, [first, second], ["Item1", "Item2"]);
+            }
+            //an operation by position keeps the elements in their places, those of the first query of a UnionBy before the second's
+            if (join.Kind is not (LinqJoinKind.Inner or LinqJoinKind.Left or LinqJoinKind.Right or LinqJoinKind.Group))
+            {
+                var positions = new List<int>();
+                if (join.Kind == LinqJoinKind.UnionBy)
+                {
+                    var part = new LinqColumn(plan.Columns.Count, LinqColumnKind.Value, null, null, 0, typeof(int), null) { From = -2 };
+                    plan.Columns.Add(part);
+                    positions.Add(part.Index);
+                }
+                var place = new LinqColumn(plan.Columns.Count, LinqColumnKind.Value, null, null, 0, typeof(long), null) { From = leftNumber!.Value };
+                plan.Columns.Add(place);
+                positions.Add(place.Index);
+                plan.PositionColumns = positions.ToArray();
+            }
+            return plan;
+        }
+        private LinqShape ReadJoinElement(Expression expression, LinqJoin join, LinqShape left, LinqShape? right)
+        {
+            if (TryJoinPart(expression, join, left, right, out var part, out var fromRight))
+                return ReadJoinPart(part, fromRight, fromRight ? join.Kind == LinqJoinKind.Left : join.Kind == LinqJoinKind.Right, true);
+            switch (expression)
+            {
+                case NewExpression { Members: not null } anonymous:
+                    {
+                        var arguments = new LinqShape[anonymous.Arguments.Count];
+                        var names = new string[arguments.Length];
+                        for (var i = 0; i < arguments.Length; i++)
+                        {
+                            arguments[i] = ReadJoinElement(anonymous.Arguments[i], join, left, right);
+                            names[i] = anonymous.Members[i].Name;
+                        }
+                        return LinqShape.OfObject(anonymous.Type, anonymous.Constructor, arguments, names, null, null);
+                    }
+                case NewExpression constructed:
+                    {
+                        var arguments = new LinqShape[constructed.Arguments.Count];
+                        for (var i = 0; i < arguments.Length; i++)
+                            arguments[i] = ReadJoinElement(constructed.Arguments[i], join, left, right);
+                        return LinqShape.OfObject(constructed.Type, constructed.Constructor, arguments, null, null, null);
+                    }
+                case MemberInitExpression init:
+                    {
+                        var arguments = new LinqShape[init.NewExpression.Arguments.Count];
+                        for (var i = 0; i < arguments.Length; i++)
+                            arguments[i] = ReadJoinElement(init.NewExpression.Arguments[i], join, left, right);
+                        var typeDetail = TypeAnalyzer.GetTypeDetail(init.Type);
+                        var members = new MemberDetail[init.Bindings.Count];
+                        var values = new LinqShape[members.Length];
+                        for (var i = 0; i < members.Length; i++)
+                        {
+                            if (init.Bindings[i] is not MemberAssignment assignment)
+                                throw new NotSupportedException($"A repository query sets each member of {init.Type.Name} directly");
+                            members[i] = typeDetail.GetMember(assignment.Member.Name);
+                            if (members[i].SetterBoxed is null)
+                                throw new NotSupportedException($"{init.Type.Name}.{members[i].Name} has no setter");
+                            values[i] = ReadJoinElement(assignment.Expression, join, left, right);
+                        }
+                        return LinqShape.OfObject(init.Type, init.NewExpression.Constructor, arguments, null, members, values);
+                    }
+                default:
+                    if (join.Kind == LinqJoinKind.Group && expression == join.RightElement)
+                        throw new NotSupportedException("A GroupJoin's group is read by an aggregate of it, such as g.Count() or g.Sum(x => x.Price), or flattened with SelectMany");
+                    return LinqShape.OfColumn(expression.Type, AddColumn(LinqColumnKind.Value, expression, null, 0, expression.Type));
+            }
+        }
+        //an element of either query, or a member of one, found in the shape the query builds it with
+        private static bool TryJoinPart(Expression expression, LinqJoin join, LinqShape left, LinqShape? right, [MaybeNullWhen(false)] out LinqShape part, out bool fromRight)
+        {
+            part = null;
+            fromRight = false;
+            var names = new List<string>();
+            var owner = expression;
+            while (owner is MemberExpression member)
+            {
+                names.Add(member.Member.Name);
+                owner = member.Expression;
+            }
+            if (owner == join.LeftElement)
+            {
+                part = left;
+            }
+            else if (owner == join.RightElement && right is not null && join.Kind != LinqJoinKind.Group)
+            {
+                part = right;
+                fromRight = true;
+            }
+            else
+            {
+                return false;
+            }
+            for (var i = names.Count - 1; i >= 0; i--)
+            {
+                part = Member(part, names[i]);
+                if (part is null)
+                    return false;
+            }
+            return true;
+        }
+        private static LinqShape? Member(LinqShape shape, string name)
+        {
+            switch (shape.Kind)
+            {
+                case LinqShapeKind.Model:
+                    for (var i = 0; i < shape.ModelMembers!.Length; i++)
+                    {
+                        if (shape.ModelMembers[i].Name == name)
+                            return LinqShape.OfColumn(shape.ModelMembers[i].Type, shape.ModelColumns![i]);
+                    }
+                    return null;
+                case LinqShapeKind.Object:
+                    for (var i = 0; i < (shape.ArgumentNames?.Length ?? 0); i++)
+                    {
+                        if (shape.ArgumentNames![i] == name)
+                            return shape.Arguments![i];
+                    }
+                    for (var i = 0; i < (shape.Members?.Length ?? 0); i++)
+                    {
+                        if (shape.Members![i].Name == name)
+                            return shape.Values![i];
+                    }
+                    return null;
+                default:
+                    return null;
+            }
+        }
+        //the shape of an element of a query built again from the columns of that query; one the join may have no row of is null when its match column is
+        private LinqShape ReadJoinPart(LinqShape part, bool fromRight, bool optional, bool top)
+        {
+            LinqColumn From(LinqColumn column, ModelMemberDetail? member, Type type)
+            {
+                var from = new LinqColumn(Columns.Count, LinqColumnKind.Value, null, null, 0, type, member) { From = column.Index, FromRight = fromRight, Optional = optional };
+                Columns.Add(from);
+                return from;
+            }
+            LinqColumn? Key()
+            {
+                if (!optional || !top)
+                    return null;
+                var key = new LinqColumn(Columns.Count, LinqColumnKind.Value, null, null, 0, typeof(int), null) { From = -1, FromRight = fromRight, Optional = true };
+                Columns.Add(key);
+                return key;
+            }
+            switch (part.Kind)
+            {
+                case LinqShapeKind.Column:
+                    return LinqShape.OfColumn(part.Type, From(part.Column!, part.Column!.Member, part.Column.Type));
+                case LinqShapeKind.Model:
+                    {
+                        if (part.ModelRelations is not null)
+                            throw new NotSupportedException("A query paired by a join reads its own rows, not a relation read after them");
+                        //the key comes first as it says whether the rest are there to read
+                        var key = Key() ?? (part.JoinedKey is null ? null : From(part.JoinedKey, null, part.JoinedKey.Type));
+                        var columns = new LinqColumn[part.ModelColumns!.Length];
+                        for (var i = 0; i < columns.Length; i++)
+                            columns[i] = From(part.ModelColumns[i], part.ModelMembers![i], part.ModelMembers[i].Type);
+                        return LinqShape.OfOptionalModel(part.Model!, part.ModelMembers!, columns, key);
+                    }
+                case LinqShapeKind.Object:
+                    {
+                        var key = Key();
+                        LinqShape[]? arguments = null;
+                        if (part.Arguments is not null)
+                        {
+                            arguments = new LinqShape[part.Arguments.Length];
+                            for (var i = 0; i < arguments.Length; i++)
+                                arguments[i] = ReadJoinPart(part.Arguments[i], fromRight, optional, false);
+                        }
+                        LinqShape[]? values = null;
+                        if (part.Values is not null)
+                        {
+                            values = new LinqShape[part.Values.Length];
+                            for (var i = 0; i < values.Length; i++)
+                                values[i] = ReadJoinPart(part.Values[i], fromRight, optional, false);
+                        }
+                        return LinqShape.OfOptionalObject(part, arguments, values, key);
+                    }
+                default:
+                    throw new NotSupportedException("A query paired by a join reads its own rows, not a relation read after them");
             }
         }
 
@@ -474,10 +714,30 @@ namespace Zerra.Repository.Linq
             return shape;
         }
 
+        //the key of a group, a column or an object of its parts
+        private LinqShape ReadKey(Type type)
+        {
+            if (KeyParts!.Length != 1)
+            {
+                var keyArguments = new LinqShape[KeyParts.Length];
+                for (var i = 0; i < keyArguments.Length; i++)
+                    keyArguments[i] = LinqShape.OfColumn(KeyParts[i].Type, AddColumn(LinqColumnKind.KeyPart, null, null, i, KeyParts[i].Type));
+                //a ValueTuple's parts have no names in its constructor, they are its fields
+                var keyMembers = KeyNames;
+                if (keyMembers is null)
+                {
+                    keyMembers = new string[keyArguments.Length];
+                    for (var i = 0; i < keyMembers.Length; i++)
+                        keyMembers[i] = $"Item{i + 1}";
+                }
+                return LinqShape.OfObject(keyConstructed!.Type, keyConstructed.Constructor, keyArguments, keyMembers, null, null);
+            }
+            return LinqShape.OfColumn(type, AddColumn(LinqColumnKind.KeyPart, null, null, 0, KeyParts[0].Type));
+        }
         private LinqShape ReadGroupElement(Expression expression, ParameterExpression group)
         {
             var type = expression.Type;
-            //a member wider than the calculation, such as a long set to Count(), wraps it in a conversion which building the element does anyway
+            //a member wider than the aggregate, such as a long set to Count(), wraps it in a conversion which building the element does anyway
             while (expression is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } conversion)
                 expression = conversion.Operand;
             switch (expression)
@@ -513,23 +773,10 @@ namespace Zerra.Repository.Linq
                         return LinqShape.OfObject(init.Type, init.NewExpression.Constructor, arguments, null, members, values);
                     }
                 case MemberExpression { Member.Name: "Key" } key when key.Expression == group:
-                    if (KeyParts!.Length != 1)
-                    {
-                        var keyArguments = new LinqShape[KeyParts.Length];
-                        for (var i = 0; i < keyArguments.Length; i++)
-                            keyArguments[i] = LinqShape.OfColumn(KeyParts[i].Type, AddColumn(LinqColumnKind.KeyPart, null, null, i, KeyParts[i].Type));
-                        //a ValueTuple's parts have no names in its constructor, they are its fields
-                        var keyMembers = KeyNames;
-                        if (keyMembers is null)
-                        {
-                            keyMembers = new string[keyArguments.Length];
-                            for (var i = 0; i < keyMembers.Length; i++)
-                                keyMembers[i] = $"Item{i + 1}";
-                        }
-                        return LinqShape.OfObject(keyConstructed!.Type, keyConstructed.Constructor, keyArguments, keyMembers, null, null);
-                    }
-                    return LinqShape.OfColumn(type, AddColumn(LinqColumnKind.KeyPart, null, null, 0, KeyParts[0].Type));
-                case MemberExpression part when part.Expression is MemberExpression { Member.Name: "Key" } key && key.Expression == group:
+                    return ReadKey(type);
+                case ParameterExpression keyParameter when keyParameter == groupKey:
+                    return ReadKey(type);
+                case MemberExpression part when (part.Expression is MemberExpression { Member.Name: "Key" } key && key.Expression == group) || (groupKey is not null && part.Expression == groupKey):
                     {
                         var index = KeyNames is null ? -1 : Array.IndexOf(KeyNames, part.Member.Name);
                         if (index < 0 && part.Member.Name.StartsWith("Item", StringComparison.Ordinal) && Int32.TryParse(part.Member.Name.AsSpan(4), out var item) && item >= 1 && item <= KeyParts!.Length)
@@ -542,17 +789,17 @@ namespace Zerra.Repository.Linq
                     && count.Arguments[0] is MethodCallExpression { Method.Name: "Distinct" } distinct && distinct.Method.DeclaringType == typeof(Enumerable) && distinct.Arguments.Count == 1
                     && distinct.Arguments[0] is MethodCallExpression { Method.Name: "Select" } selectCall && selectCall.Method.DeclaringType == typeof(Enumerable) && selectCall.Arguments.Count == 2 && selectCall.Arguments[0] == group:
                     {
-                        var selector = Lambda(selectCall.Arguments[1]);
-                        return LinqShape.OfColumn(type, AddColumn(LinqColumnKind.CountDistinct, selector.Body, selector.Parameters[0], 0, typeof(long)));
+                        var (value, parameter) = OfElement(Lambda(selectCall.Arguments[1]));
+                        return LinqShape.OfColumn(type, AddColumn(LinqColumnKind.CountDistinct, value, parameter, 0, typeof(long)));
                     }
                 case MethodCallExpression { Method.Name: "Join" } join when join.Method.DeclaringType == typeof(string) && join.Arguments.Count == 2
                     && join.Arguments[1] is MethodCallExpression { Method.Name: "Select" } joined && joined.Method.DeclaringType == typeof(Enumerable) && joined.Arguments.Count == 2 && joined.Arguments[0] == group:
                     {
                         if (ParameterFinder.Uses(join.Arguments[0], group))
                             throw new NotSupportedException("string.Join of a group takes a separator from outside the group");
-                        var selector = Lambda(joined.Arguments[1]);
+                        var (value, parameter) = OfElement(Lambda(joined.Arguments[1]));
                         var separator = Expression.Lambda<Func<string?>>(join.Arguments[0]).Compile()() ?? "";
-                        var column = new LinqColumn(Columns.Count, LinqColumnKind.Join, selector.Body, selector.Parameters[0], 0, typeof(string), null) { Separator = separator };
+                        var column = new LinqColumn(Columns.Count, LinqColumnKind.Join, value, parameter, 0, typeof(string), null) { Separator = separator };
                         Columns.Add(column);
                         return LinqShape.OfColumn(type, column);
                     }
@@ -564,17 +811,17 @@ namespace Zerra.Repository.Linq
                             {
                                 if (call.Arguments.Count == 1)
                                     return LinqShape.OfColumn(type, AddColumn(LinqColumnKind.Count, null, null, 0, typeof(long)));
-                                var predicate = Lambda(call.Arguments[1]);
-                                return LinqShape.OfColumn(type, AddColumn(LinqColumnKind.CountIf, predicate.Body, predicate.Parameters[0], 0, typeof(long)));
+                                var (predicate, parameter) = OfElement(Lambda(call.Arguments[1]));
+                                return LinqShape.OfColumn(type, AddColumn(LinqColumnKind.CountIf, predicate, parameter, 0, typeof(long)));
                             }
                         case "Sum":
                         case "Average":
                         case "Min":
                         case "Max":
                             {
-                                if (call.Arguments.Count != 2)
-                                    throw new NotSupportedException($"A group's {call.Method.Name} takes the value to calculate");
-                                var selector = Lambda(call.Arguments[1]);
+                                //a group of values GroupBy selects is aggregated as it is
+                                if (call.Arguments.Count != 2 && (call.Arguments.Count != 1 || groupElement is null))
+                                    throw new NotSupportedException($"A group's {call.Method.Name} takes the value to aggregate");
                                 var kind = call.Method.Name switch
                                 {
                                     "Sum" => LinqColumnKind.Sum,
@@ -582,10 +829,12 @@ namespace Zerra.Repository.Linq
                                     "Min" => LinqColumnKind.Min,
                                     _ => LinqColumnKind.Max,
                                 };
-                                return LinqShape.OfColumn(type, AddColumn(kind, CalculationValue(kind, selector.Body), selector.Parameters[0], 0, CalculationCommon.GetResultType(kind, selector)));
+                                var selector = call.Arguments.Count == 2 ? Lambda(call.Arguments[1]) : groupElement!;
+                                var (value, parameter) = call.Arguments.Count == 2 ? OfElement(selector) : (groupElement!.Body, groupElement.Parameters[0]);
+                                return LinqShape.OfColumn(type, AddColumn(kind, AggregateValue(kind, value), parameter, 0, AggregateCommon.GetResultType(kind, selector)));
                             }
                         default:
-                            throw new NotSupportedException($"{call.Method.Name} is not a group calculation; use Count, Sum, Average, Min, or Max");
+                            throw new NotSupportedException($"{call.Method.Name} is not a group aggregate; use Count, Sum, Average, Min, or Max");
                     }
                 default:
                     throw new NotSupportedException("A group's Select builds from the group's Key, a part of it, Count() with or without a condition, Select(..).Distinct().Count(), or Sum, Average, Min, or Max of a value");
@@ -597,6 +846,13 @@ namespace Zerra.Repository.Linq
             if (argument.NodeType == ExpressionType.Quote)
                 argument = ((UnaryExpression)argument).Operand;
             return (LambdaExpression)argument;
+        }
+        //a lambda over an element of a group as an expression over the model, through the element GroupBy selects
+        private (Expression Body, ParameterExpression Parameter) OfElement(LambdaExpression lambda)
+        {
+            if (groupElement is null)
+                return (lambda.Body, lambda.Parameters[0]);
+            return (Zerra.Linq.LinqRebinder.RebindExpression(lambda.Body, lambda.Parameters[0], groupElement.Body), groupElement.Parameters[0]);
         }
 
         internal static bool Uses(Expression expression, ParameterExpression parameter) => ParameterFinder.Uses(expression, parameter);

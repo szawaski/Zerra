@@ -338,7 +338,7 @@ namespace Zerra.Repository
                 return;
             var properties = GetEncryptableProperties(typeof(TModel), this.Properties);
             if (LinqMemberFinder.ReadsMember(query.GroupBy, properties) || LinqMemberFinder.ReadsMember(query.Value, properties) || LinqMemberFinder.ReadsMember(query.Select, typeof(TModel), properties))
-                throw new NotSupportedException($"{GetType().Name} cannot project or calculate on an encrypted property");
+                throw new NotSupportedException($"{GetType().Name} cannot project or aggregate an encrypted property");
             if (query.Order is null)
                 return;
             foreach (var order in query.Order)

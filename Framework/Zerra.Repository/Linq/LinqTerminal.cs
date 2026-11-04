@@ -47,6 +47,10 @@ namespace Zerra.Repository.Linq
         /// <summary>The largest value.</summary>
         Max,
         /// <summary>The average of a value.</summary>
-        Average
+        Average,
+        /// <summary>The element with the smallest key, read as the first of the order by it.</summary>
+        MinBy,
+        /// <summary>The element with the largest key, read as the first of the order by it the other way round.</summary>
+        MaxBy
     }
 }

@@ -498,8 +498,8 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public object? Query(LinqQuery query)
         {
-            //the repository sends a set here when every query of it runs as it is in this engine
-            if (query.Set is not null)
+            //the repository sends a set or a join here when every query of it runs as it is in this engine
+            if (query.Combines)
                 return ExecuteLinq(query);
             if (query.Temporal is not null)
                 return QueryTemporal(query);
@@ -534,7 +534,7 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public async Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken)
         {
-            if (query.Set is not null)
+            if (query.Combines)
                 return await ExecuteLinqAsync(query, cancellationToken);
             if (query.Temporal is not null)
                 return await QueryTemporalAsync(query, cancellationToken);
@@ -575,7 +575,7 @@ namespace Zerra.Repository
                 throw new NotSupportedException($"A stream gives the elements of a query, not its {query.Terminal}");
             if (query.Temporal is not null)
                 return query.StreamFrom(() => QueryTemporal(query), null);
-            if (query.Set is not null || (!query.HasSubquery && ModelTypeDetail.RelatedMembers.Count == 0))
+            if (query.Combines || (!query.HasSubquery && ModelTypeDetail.RelatedMembers.Count == 0))
                 return ExecuteLinqStream(query);
             return query.StreamFrom(() => OpenStream(query), null);
         }
@@ -630,7 +630,7 @@ namespace Zerra.Repository
                 throw new NotSupportedException($"A stream gives the elements of a query, not its {query.Terminal}");
             if (query.Temporal is not null)
                 return query.StreamFromAsync(cancellation => QueryTemporalAsync(query, cancellation), null, cancellationToken);
-            if (query.Set is not null || (!query.HasSubquery && ModelTypeDetail.RelatedMembers.Count == 0))
+            if (query.Combines || (!query.HasSubquery && ModelTypeDetail.RelatedMembers.Count == 0))
                 return ExecuteLinqStreamAsync(query, cancellationToken);
             return query.StreamFromAsync(cancellation => OpenStreamAsync(query, cancellation), null, cancellationToken);
         }

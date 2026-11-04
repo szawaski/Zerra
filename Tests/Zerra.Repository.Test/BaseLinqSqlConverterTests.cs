@@ -880,19 +880,19 @@ namespace Zerra.Repository.Test
 
         #endregion
 
-        #region Calculations
+        #region Aggregates
 
         private static readonly Expression<Func<TestTypesModel, int>> int32Value = x => x.Int32Thing;
         private static readonly Expression<Func<TestTypesModel, decimal>> decimalValue = x => x.DecimalThing;
         private static readonly Expression<Func<TestTypesModel, bool>> boolKey = x => x.BooleanThing;
-        private static readonly Expression<Func<TestTypesModel, bool>> calculationWhere = x => x.Int32Thing > 1;
+        private static readonly Expression<Func<TestTypesModel, bool>> aggregateWhere = x => x.Int32Thing > 1;
         private static LambdaExpression Key<TKey>(Expression<Func<TestTypesModel, TKey>> groupBy) => groupBy;
 
         [Fact]
         public void ConvertPersistWhere_PlainCondition_IsAWhereClause()
         {
             var d = GetDialect();
-            var sql = ConvertPersistWhereToSql(calculationWhere, testTypesModelDetail);
+            var sql = ConvertPersistWhereToSql(aggregateWhere, testTypesModelDetail);
 
             Assert.StartsWith(" WHERE", sql);
             Assert.Contains(d.Column("TestTypes", "Int32Thing"), sql);
@@ -930,7 +930,7 @@ namespace Zerra.Repository.Test
         {
             var d = GetDialect();
             Expression<Func<TestTypesModel, TestTypesModel>> set = x => new TestTypesModel { Int32Thing = x.Int32Thing + 1, StringThing = x.StringThing + "!" };
-            var sql = ConvertPersistUpdateToSql(ProjectionMember.FromSet(set), calculationWhere, testTypesModelDetail);
+            var sql = ConvertPersistUpdateToSql(ProjectionMember.FromSet(set), aggregateWhere, testTypesModelDetail);
 
             Assert.StartsWith("UPDATE " + d.Table("TestTypes") + " SET ", sql);
             var column = d.LowercaseIdentifiers ? "int32thing" : "Int32Thing";

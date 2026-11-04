@@ -83,7 +83,7 @@ namespace Zerra.Repository.Test
             Assert.Equal(6, (await ordered.LastOrDefaultAsync(cancellationToken))!.Int);
             Assert.Null(await ordered.LastOrDefaultAsync(x => x.Int > 10, cancellationToken));
 
-            //per group, as the memory engine calculates them
+            //per group, as the memory engine aggregates them
             var groups = (await q.GroupBy(x => x.Int % 2).Select(g => new { g.Key, F = g.Sum(x => x.Float), FN = g.Sum(x => x.FloatNullable), D = g.Sum(x => x.Double), DN = g.Average(x => x.DoubleNullable), M = g.Average(x => x.Decimal), MN = g.Sum(x => x.DecimalNullable), L = g.Average(x => x.LongNullable), I = g.Average(x => x.IntNullable) }).ToArrayAsync(cancellationToken)).OrderBy(g => g.Key).ToArray();
             var expectedGroups = models.GroupBy(x => x.Int % 2).Select(g => new { g.Key, F = g.Sum(x => x.Float), FN = g.Sum(x => x.FloatNullable), D = g.Sum(x => x.Double), DN = g.Average(x => x.DoubleNullable), M = g.Average(x => x.Decimal), MN = g.Sum(x => x.DecimalNullable), L = g.Average(x => x.LongNullable), I = g.Average(x => x.IntNullable) }).OrderBy(g => g.Key).ToArray();
             Assert.Equal(expectedGroups, groups);

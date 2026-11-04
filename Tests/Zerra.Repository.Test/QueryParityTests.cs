@@ -669,7 +669,7 @@ namespace Zerra.Repository.Test
             Same(models.OrderByDescending(x => x.MaybeKind ?? ParityKind.Medium).ThenBy(x => x.Number).Select(x => x.Number), repo.Query<ParityModel>().OrderByDescending(x => x.MaybeKind ?? ParityKind.Medium).ThenBy(x => x.Number).Select(x => x.Number).ToArray(), "order coalesce");
             Same(models.OrderBy(x => (int)x.Kind).ThenBy(x => x.Number).Select(x => x.Number), repo.Query<ParityModel>().OrderBy(x => (int)x.Kind).ThenBy(x => x.Number).Select(x => x.Number).ToArray(), "order number");
 
-            //calculations
+            //aggregates
             Assert.Equal(models.Sum(x => (int)x.Kind), repo.Query<ParityModel>().Sum(x => (int)x.Kind));
             Assert.Equal(models.Max(x => x.Kind), repo.Query<ParityModel>().Max(x => x.Kind));
             Assert.Equal(models.Min(x => x.Kind), repo.Query<ParityModel>().Min(x => x.Kind));
@@ -865,6 +865,279 @@ namespace Zerra.Repository.Test
             }
         }
 
+        private static void AssertJoins(IRepo repo, ParityModel[] models, ParityLineModel[] lines, ParityNoteModel[] notes, bool inStore)
+        {
+            void Same<T>(IEnumerable<T> expected, IEnumerable<T> actual, string name)
+            {
+                var e = expected.Select(x => x?.ToString() ?? "null").Order(StringComparer.Ordinal).ToArray();
+                var a = actual.Select(x => x?.ToString() ?? "null").Order(StringComparer.Ordinal).ToArray();
+                Assert.True(e.SequenceEqual(a), $"{name}: expected [{String.Join("|", e)}] found [{String.Join("|", a)}]");
+            }
+            var q = repo.Query<ParityModel>();
+            var lq = repo.Query<ParityLineModel>();
+            var nq = repo.Query<ParityNoteModel>();
+
+            //pairs by keys, of values and of whole models
+            Same(models.Join(lines, x => x.ID, l => l.ParityID, (x, l) => $"{x.Number}:{l.Quantity}"), q.Join(lq, x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l.Quantity }).ToArray().Select(r => $"{r.Number}:{r.Quantity}"), "join");
+            Same(models.Join(lines, x => x.ID, l => l.ParityID, (x, l) => $"{x.Name}:{l.Price:0.##}"), q.Join(lq, x => x.ID, l => l.ParityID, (x, l) => new { x, l }).ToArray().Select(r => $"{r.x.Name}:{r.l.Price:0.##}"), "join of models");
+            Same(models.Join(lines, x => x.Number, l => l.Quantity, (x, l) => $"{x.Number}:{l.Price:0.##}"), q.Join(lq, x => x.Number, l => l.Quantity, (x, l) => new { x.Number, l.Price }).ToArray().Select(r => $"{r.Number}:{r.Price:0.##}"), "join of unrelated values");
+            Same(models.Join(lines, x => x.ID, l => l.ParityID, (x, l) => x.Number * 10 + l.Quantity), q.Join(lq, x => x.ID, l => l.ParityID, (x, l) => x.Number * 10 + l.Quantity).ToArray(), "join of a value");
+            Same(models.Join(lines, x => x.ID, l => l.ParityID, (x, l) => x.Kind), q.Join(lq, x => x.ID, l => l.ParityID, (x, l) => x.Kind).ToArray(), "join of an enum");
+
+            //a model with itself, keys of several parts, and keys that can be null, which match none on their own and each other as parts
+            Same(models.Join(models, a => a.Number, b => b.Number + 1, (a, b) => $"{a.Number}:{b.Number}"), q.Join(q, a => a.Number, b => b.Number + 1, (a, b) => new { A = a.Number, B = b.Number }).ToArray().Select(r => $"{r.A}:{r.B}"), "self join");
+            Same(models.Join(models, a => new { a.Flag, a.Kind }, b => new { b.Flag, b.Kind }, (a, b) => $"{a.Number}:{b.Number}"), q.Join(q, a => new { a.Flag, a.Kind }, b => new { b.Flag, b.Kind }, (a, b) => new { A = a.Number, B = b.Number }).ToArray().Select(r => $"{r.A}:{r.B}"), "composite key");
+            Same(models.Join(models, a => a.Maybe, b => b.Other, (a, b) => $"{a.Number}:{b.Number}"), q.Join(q, a => a.Maybe, b => b.Other, (a, b) => new { A = a.Number, B = b.Number }).ToArray().Select(r => $"{r.A}:{r.B}"), "nullable key");
+            Same(models.Join(models, a => a.Name, b => b.Name, (a, b) => $"{a.Number}:{b.Number}"), q.Join(q, a => a.Name, b => b.Name, (a, b) => new { A = a.Number, B = b.Number }).ToArray().Select(r => $"{r.A}:{r.B}"), "string key");
+            Same(models.Join(models, a => new { a.Maybe, a.Flag }, b => new { Maybe = b.Other, b.Flag }, (a, b) => $"{a.Number}:{b.Number}"), q.Join(q, a => new { a.Maybe, a.Flag }, b => new { Maybe = b.Other, b.Flag }, (a, b) => new { A = a.Number, B = b.Number }).ToArray().Select(r => $"{r.A}:{r.B}"), "composite nullable key");
+            Same(models.Join(models, a => a.Kind, b => b.Kind, (a, b) => $"{a.Number}:{b.Number}"), q.Join(q, a => a.Kind, b => b.Kind, (a, b) => new { A = a.Number, B = b.Number }).ToArray().Select(r => $"{r.A}:{r.B}"), "enum key");
+
+            //query syntax, with a condition on both after the join and a third query
+            Same(from x in models join l in lines on x.ID equals l.ParityID where l.Quantity > x.Number select $"{x.Name}:{l.Price:0.##}",
+                (from x in q join l in lq on x.ID equals l.ParityID where l.Quantity > x.Number select new { x.Name, l.Price }).ToArray().Select(r => $"{r.Name}:{r.Price:0.##}"), "query syntax");
+            Same(from x in models join l in lines on x.ID equals l.ParityID join n in notes on l.ID equals n.LineID select $"{x.Number}:{l.Quantity}:{n.Text}",
+                (from x in q join l in lq on x.ID equals l.ParityID join n in nq on l.ID equals n.LineID select new { x.Number, l.Quantity, n.Text }).ToArray().Select(r => $"{r.Number}:{r.Quantity}:{r.Text}"), "three queries");
+            Same(from x in models join l in lines on x.ID equals l.ParityID orderby x.Number, l.Quantity descending select l.Quantity,
+                (from x in q join l in lq on x.ID equals l.ParityID orderby x.Number, l.Quantity descending select l.Quantity).ToArray(), "ordered");
+            Assert.Equal((from x in models join l in lines on x.ID equals l.ParityID orderby x.Number descending, l.Quantity select l.Quantity).Skip(1).Take(3),
+                (from x in q join l in lq on x.ID equals l.ParityID orderby x.Number descending, l.Quantity select l.Quantity).Skip(1).Take(3).ToArray());
+
+            //filtered, paged, and projected queries paired
+            Same(models.Where(x => x.Number > 1).Join(lines.Where(l => l.Quantity < 4), x => x.ID, l => l.ParityID, (x, l) => $"{x.Number}:{l.Quantity}"),
+                q.Where(x => x.Number > 1).Join(lq.Where(l => l.Quantity < 4), x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l.Quantity }).ToArray().Select(r => $"{r.Number}:{r.Quantity}"), "filtered");
+            Same(models.OrderBy(x => x.Number).Take(3).Join(lines, x => x.ID, l => l.ParityID, (x, l) => $"{x.Number}:{l.Quantity}"),
+                q.OrderBy(x => x.Number).Take(3).Join(lq, x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l.Quantity }).ToArray().Select(r => $"{r.Number}:{r.Quantity}"), "paged");
+            Same(models.Select(x => new { x.ID, Twice = x.Number * 2 }).Join(lines.Select(l => new { l.ParityID, l.Quantity }), x => x.ID, l => l.ParityID, (x, l) => $"{x.Twice}:{l.Quantity}"),
+                q.Select(x => new { x.ID, Twice = x.Number * 2 }).Join(lq.Select(l => new { l.ParityID, l.Quantity }), x => x.ID, l => l.ParityID, (x, l) => new { x.Twice, l.Quantity }).ToArray().Select(r => $"{r.Twice}:{r.Quantity}"), "projected");
+            Same(models.Select(x => x.Number).Join(lines.Select(l => l.Quantity), n => n, n => n, (a, b) => a + b), q.Select(x => x.Number).Join(lq.Select(l => l.Quantity), n => n, n => n, (a, b) => a + b).ToArray(), "values");
+
+            //ended, filtered, ordered, and built from after the join
+            var joined = models.Join(lines, x => x.ID, l => l.ParityID, (x, l) => new { x, l });
+            var joinedQuery = q.Join(lq, x => x.ID, l => l.ParityID, (x, l) => new { x, l });
+            Assert.Equal(joined.Count(), joinedQuery.Count());
+            Assert.Equal(joined.Count(r => r.l.Quantity > 2), joinedQuery.Count(r => r.l.Quantity > 2));
+            Assert.True(joinedQuery.Any(r => r.x.Name == "banana"));
+            Assert.False(joinedQuery.Any(r => r.x.Number == 0));
+            Assert.Equal(joined.OrderBy(r => r.l.Price).ThenBy(r => r.l.Quantity).First().l.Quantity, joinedQuery.OrderBy(r => r.l.Price).ThenBy(r => r.l.Quantity).First().l.Quantity);
+            Same(joined.Where(r => r.x.Kind == ParityKind.Medium).Select(r => r.l.Quantity), joinedQuery.Where(r => r.x.Kind == ParityKind.Medium).Select(r => r.l.Quantity).ToArray(), "enum after");
+            Same(joined.Where(r => r.x.Name != null && r.x.Name.StartsWith("a")).Select(r => r.l.Quantity * 2), joinedQuery.Where(r => r.x.Name != null && r.x.Name.StartsWith("a")).Select(r => r.l.Quantity * 2).ToArray(), "function after");
+
+            //different elements, aggregates, and the other endings after the join
+            Same(joined.Select(r => r.x.Number).Distinct(), joinedQuery.Select(r => r.x.Number).Distinct().ToArray(), "distinct");
+            Assert.Equal(joined.Select(r => r.x.Number).Distinct().Count(), joinedQuery.Select(r => r.x.Number).Distinct().Count());
+            Assert.Equal(joined.Select(r => r.x.Number).Distinct().OrderByDescending(n => n).Take(2), joinedQuery.Select(r => r.x.Number).Distinct().OrderByDescending(n => n).Take(2).ToArray());
+            Assert.Equal(joined.Select(r => new { r.x.Flag }).Distinct().Count(), joinedQuery.Select(r => new { r.x.Flag }).Distinct().Count());
+            Assert.Equal(joined.Sum(r => r.l.Price * r.l.Quantity), joinedQuery.Sum(r => r.l.Price * r.l.Quantity));
+            Assert.Equal(joined.Select(r => r.l.Quantity).Sum(), joinedQuery.Select(r => r.l.Quantity).Sum());
+            Assert.Equal(joined.Min(r => r.x.Number + r.l.Quantity), joinedQuery.Min(r => r.x.Number + r.l.Quantity));
+            Assert.Equal(joined.Max(r => r.x.Kind), joinedQuery.Max(r => r.x.Kind));
+            Assert.Equal(joined.Average(r => r.l.Quantity), joinedQuery.Average(r => r.l.Quantity), 9);
+            Assert.Equal(joined.Where(r => r.x.Number > 2).Sum(r => r.l.Quantity), joinedQuery.Where(r => r.x.Number > 2).Sum(r => r.l.Quantity));
+            Assert.Equal(0, joinedQuery.Where(r => r.x.Number > 100).Sum(r => r.l.Quantity));
+            Assert.Equal(joined.OrderBy(r => r.l.Quantity).Take(3).Sum(r => r.l.Quantity), joinedQuery.OrderBy(r => r.l.Quantity).Take(3).Sum(r => r.l.Quantity));
+            Assert.True(joinedQuery.All(r => r.l.Quantity > 0));
+            Assert.False(joinedQuery.All(r => r.l.Quantity > 1));
+            Assert.Equal(joined.OrderBy(r => r.l.Quantity).ThenBy(r => r.x.Number).Last().l.Quantity, joinedQuery.OrderBy(r => r.l.Quantity).ThenBy(r => r.x.Number).Last().l.Quantity);
+            Assert.Equal(joined.OrderBy(r => r.x.Number).ThenBy(r => r.l.Quantity).ElementAt(3).l.Quantity, joinedQuery.OrderBy(r => r.x.Number).ThenBy(r => r.l.Quantity).ElementAt(3).l.Quantity);
+            Assert.Null(joinedQuery.OrderBy(r => r.x.Number).ElementAtOrDefault(100));
+            Assert.Equal(joined.Select(r => r.l.Quantity).OrderBy(n => n).Last(), joinedQuery.Select(r => r.l.Quantity).OrderBy(n => n).Last());
+
+            //every model, with its lines or none
+            Same(from x in models join l in lines on x.ID equals l.ParityID into g from l in g.DefaultIfEmpty() select $"{x.Number}:{l?.Quantity}",
+                (from x in q join l in lq on x.ID equals l.ParityID into g from l in g.DefaultIfEmpty() select new { x.Number, l }).ToArray().Select(r => $"{r.Number}:{r.l?.Quantity}"), "left join");
+            Same(from x in models join l in lines on x.ID equals l.ParityID into g from l in g.DefaultIfEmpty() select $"{x.Number}:{(l == null ? -1 : l.Quantity)}",
+                (from x in q join l in lq on x.ID equals l.ParityID into g from l in g.DefaultIfEmpty() select new { x.Number, Quantity = l == null ? -1 : l.Quantity }).ToArray().Select(r => $"{r.Number}:{r.Quantity}"), "left join null check");
+            Same(from x in models join l in lines on x.ID equals l.ParityID into g from l in g.DefaultIfEmpty() where l == null select x.Number,
+                (from x in q join l in lq on x.ID equals l.ParityID into g from l in g.DefaultIfEmpty() where l == null select x.Number).ToArray(), "left join without a match");
+            Same(from x in models join l in lines on x.ID equals l.ParityID into g from l in g select $"{x.Number}:{l.Quantity}",
+                (from x in q join l in lq on x.ID equals l.ParityID into g from l in g select new { x.Number, l.Quantity }).ToArray().Select(r => $"{r.Number}:{r.Quantity}"), "group join flattened");
+            Same(models.LeftJoin(lines, x => x.ID, l => l.ParityID, (x, l) => $"{x.Number}:{l?.Quantity}"), q.LeftJoin(lq, x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l }).ToArray().Select(r => $"{r.Number}:{r.l?.Quantity}"), "LeftJoin");
+            Same(models.LeftJoin(lines.Select(l => new { l.ParityID, l.Quantity }), x => x.ID, l => l.ParityID, (x, l) => $"{x.Number}:{l?.Quantity}"), q.LeftJoin(lq.Select(l => new { l.ParityID, l.Quantity }), x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l }).ToArray().Select(r => $"{r.Number}:{r.l?.Quantity}"), "LeftJoin of objects");
+            Same(models.Where(x => x.Number < 3).RightJoin(lines, x => x.ID, l => l.ParityID, (x, l) => $"{x?.Number}:{l.Quantity}"), q.Where(x => x.Number < 3).RightJoin(lq, x => x.ID, l => l.ParityID, (x, l) => new { x, l.Quantity }).ToArray().Select(r => $"{r.x?.Number}:{r.Quantity}"), "RightJoin");
+            Assert.Equal(models.LeftJoin(lines, x => x.ID, l => l.ParityID, (x, l) => l).Count(l => l == null), q.LeftJoin(lq, x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l }).Count(r => r.l == null));
+
+            //a group read by aggregates of it
+            Same(models.GroupJoin(lines, x => x.ID, l => l.ParityID, (x, g) => $"{x.Number}:{g.Count()}:{g.Sum(l => l.Quantity)}:{g.Any(l => l.Quantity > 3)}:{g.All(l => l.Quantity > 1)}:{g.Max(l => (int?)l.Quantity)}:{g.Where(l => l.Quantity > 2).Count()}"),
+                q.GroupJoin(lq, x => x.ID, l => l.ParityID, (x, g) => new { x.Number, Count = g.Count(), Sum = g.Sum(l => l.Quantity), Big = g.Any(l => l.Quantity > 3), Small = g.All(l => l.Quantity > 1), Max = g.Max(l => (int?)l.Quantity), Over = g.Where(l => l.Quantity > 2).Count() }).ToArray().Select(r => $"{r.Number}:{r.Count}:{r.Sum}:{r.Big}:{r.Small}:{r.Max}:{r.Over}"), "group join");
+            Same(models.GroupJoin(lines, x => x.ID, l => l.ParityID, (x, g) => $"{x.Number}:{(g.Any() ? g.Average(l => l.Quantity) : 0)}"),
+                q.GroupJoin(lq, x => x.ID, l => l.ParityID, (x, g) => new { x.Number, Average = g.Any() ? g.Average(l => l.Quantity) : 0 }).ToArray().Select(r => $"{r.Number}:{r.Average}"), "group join average");
+            Same(models.GroupJoin(lines, x => x.ID, l => l.ParityID, (x, g) => new { x.Number, Count = g.Count() }).Where(r => r.Count > 0).Select(r => r.Number),
+                q.GroupJoin(lq, x => x.ID, l => l.ParityID, (x, g) => new { x.Number, Count = g.Count() }).Where(r => r.Count > 0).Select(r => r.Number).ToArray(), "group join filtered");
+
+            //what LINQ can't pair in a store
+            _ = Assert.Throws<NotSupportedException>(() => q.Join(lq, x => x.ID, l => l.ParityID, (x, l) => new { x, l }, EqualityComparer<Guid>.Default).ToArray());
+            //a group is read whole in memory, a store reads it by aggregates
+            if (inStore)
+                _ = Assert.Throws<NotSupportedException>(() => q.GroupJoin(lq, x => x.ID, l => l.ParityID, (x, g) => new { x, g }).ToArray());
+            _ = Assert.Throws<NotSupportedException>(() => q.Join(new[] { lines[0] }.AsQueryable(), x => x.ID, l => l.ParityID, (x, l) => x.Number).ToArray());
+        }
+
+        private static void AssertOperators(IRepo repo, ParityModel[] models, ParityLineModel[] lines)
+        {
+            void Same<T>(IEnumerable<T> expected, IEnumerable<T> actual, string name)
+            {
+                var e = expected.Select(x => x?.ToString() ?? "null").Order(StringComparer.Ordinal).ToArray();
+                var a = actual.Select(x => x?.ToString() ?? "null").Order(StringComparer.Ordinal).ToArray();
+                Assert.True(e.SequenceEqual(a), $"{name}: expected [{String.Join("|", e)}] found [{String.Join("|", a)}]");
+            }
+            var q = repo.Query<ParityModel>();
+            var lq = repo.Query<ParityLineModel>();
+            var none = q.Where(x => x.Number > 100);
+
+            //elements typed again, and values that aren't null
+            Assert.Equal(models.Select(x => x.Number).Order(), q.Select(x => x.Number).Cast<int>().ToArray().Order());
+            Assert.Equal(models.Length, q.Cast<object>().ToArray().Length);
+            Assert.Equal(models.Select(x => (int?)x.Number).Order(), q.Select(x => x.Number).Cast<int?>().ToArray().Order());
+            Assert.Equal(models.Where(x => x.Maybe != null).Select(x => x.Maybe!.Value).Order(), q.Select(x => x.Maybe).OfType<int>().ToArray().Order());
+            Assert.Equal(models.Select(x => x.Name).OfType<string>().Order(), q.Select(x => x.Name).OfType<string>().ToArray().Order());
+            Assert.Equal(models.Length, q.OfType<ParityModel>().Count());
+            _ = Assert.Throws<NotSupportedException>(() => q.Select(x => x.Number).Cast<long>().ToArray());
+
+            //values ordered as they are
+            Assert.Equal(models.Select(x => x.Number).Order(), q.Select(x => x.Number).Order().ToArray());
+            Assert.Equal(models.Select(x => x.Money).OrderDescending(), q.Select(x => x.Money).OrderDescending().ToArray());
+            Assert.Equal(models.Select(x => x.Kind).Order(), q.Select(x => x.Kind).Order().ToArray());
+            Assert.Equal(models.Select(x => x.Number).Order().Skip(1).Take(2), q.Select(x => x.Number).Order().Skip(1).Take(2).ToArray());
+            _ = Assert.Throws<NotSupportedException>(() => q.Order().ToArray());
+
+            //the value given for no element
+            Assert.Equal(-1, none.Select(x => x.Number).FirstOrDefault(-1));
+            Assert.Equal(-1, q.Select(x => x.Number).FirstOrDefault(n => n > 100, -1));
+            Assert.Equal(3, q.Select(x => x.Number).FirstOrDefault(n => n == 3, -1));
+            Assert.Equal(-1, q.Select(x => x.Number).SingleOrDefault(n => n > 100, -1));
+            Assert.Equal(-1, q.Select(x => x.Number).OrderBy(n => n).LastOrDefault(n => n > 100, -1));
+            Assert.Equal(5, q.Select(x => x.Number).OrderBy(n => n).LastOrDefault(-1));
+
+            //the element with the smallest or largest key
+            Assert.Equal(models.MinBy(x => x.Money)!.Number, q.MinBy(x => x.Money)!.Number);
+            Assert.Equal(models.MaxBy(x => x.Date)!.Number, q.MaxBy(x => x.Date)!.Number);
+            Assert.Equal(models.Where(x => x.Flag).MaxBy(x => x.Number)!.Number, q.Where(x => x.Flag).MaxBy(x => x.Number)!.Number);
+            Assert.Null(none.MinBy(x => x.Number));
+            Assert.Equal(models.Select(x => new { x.Number, x.Ratio }).MaxBy(r => r.Ratio)!.Number, q.Select(x => new { x.Number, x.Ratio }).MaxBy(r => r.Ratio)!.Number);
+            Assert.Equal(lines.MaxBy(l => l.Price * l.Quantity)!.Quantity, lq.MaxBy(l => l.Price * l.Quantity)!.Quantity);
+            Assert.Equal(models.Select(x => x.Number).Max(), q.Select(x => x.Number).MaxBy(n => n));
+            _ = Assert.Throws<InvalidOperationException>(() => none.Select(x => x.Number).MinBy(n => n));
+
+            //groups of what GroupBy selects, and results of the key and the group
+            Same(models.GroupBy(x => x.Flag, x => x.Number).Select(g => $"{g.Key}:{g.Sum()}:{g.Count()}:{g.Max()}:{g.Count(n => n > 1)}"),
+                q.GroupBy(x => x.Flag, x => x.Number).Select(g => new { g.Key, Sum = g.Sum(), Count = g.Count(), Max = g.Max(), Big = g.Count(n => n > 1) }).ToArray().Select(r => $"{r.Key}:{r.Sum}:{r.Count}:{r.Max}:{r.Big}"), "element selector");
+            Same(models.GroupBy(x => x.Flag, (k, g) => $"{k}:{g.Count()}:{g.Sum(x => x.Number)}"),
+                q.GroupBy(x => x.Flag, (k, g) => new { Key = k, Count = g.Count(), Sum = g.Sum(x => x.Number) }).ToArray().Select(r => $"{r.Key}:{r.Count}:{r.Sum}"), "result selector");
+            Same(models.GroupBy(x => x.Kind, x => x.Money, (k, g) => $"{k}:{g.Sum():0.##}"),
+                q.GroupBy(x => x.Kind, x => x.Money, (k, g) => new { k, Total = g.Sum() }).ToArray().Select(r => $"{r.k}:{r.Total:0.##}"), "both selectors");
+            Same(from x in models group x.Number by x.Flag into g select $"{g.Key}:{g.Sum()}",
+                (from x in q group x.Number by x.Flag into g select new { g.Key, Total = g.Sum() }).ToArray().Select(r => $"{r.Key}:{r.Total}"), "query syntax");
+            Same(models.GroupBy(x => new { x.Flag, x.Kind }, (k, g) => $"{k.Flag}:{k.Kind}:{g.Count()}").Where(r => !r.EndsWith(":1")),
+                q.GroupBy(x => new { x.Flag, x.Kind }, (k, g) => new { k.Flag, k.Kind, Count = g.Count() }).Where(r => r.Count > 1).ToArray().Select(r => $"{r.Flag}:{r.Kind}:{r.Count}"), "composite result selector");
+
+            //how many each key has
+            Same(models.CountBy(x => x.Flag).Select(p => $"{p.Key}:{p.Value}"), q.CountBy(x => x.Flag).ToArray().Select(p => $"{p.Key}:{p.Value}"), "count by");
+            Same(models.CountBy(x => x.Kind).Select(p => $"{p.Key}:{p.Value}"), q.CountBy(x => x.Kind).ToArray().Select(p => $"{p.Key}:{p.Value}"), "count by enum");
+            Same(models.CountBy(x => x.Number % 3).Where(p => p.Value > 1).Select(p => p.Key), q.CountBy(x => x.Number % 3).Where(p => p.Value > 1).ToArray().Select(p => p.Key), "count by filtered");
+            Assert.Equal(models.CountBy(x => x.Number % 4).OrderByDescending(p => p.Value).ThenBy(p => p.Key).Select(p => p.Key), q.CountBy(x => x.Number % 4).OrderByDescending(p => p.Value).ThenBy(p => p.Key).ToArray().Select(p => p.Key));
+
+            //no element is one of the default
+            Assert.Equal(0, none.Select(x => x.Number).DefaultIfEmpty().Max());
+            Assert.Equal(7, none.Select(x => x.Number).DefaultIfEmpty(7).Max());
+            Assert.Equal(models.Max(x => x.Number), q.Select(x => x.Number).DefaultIfEmpty().Max());
+            Assert.Equal(0m, none.Select(x => x.Money).DefaultIfEmpty().Sum());
+            Assert.Equal([0], none.Select(x => x.Number).DefaultIfEmpty().ToArray());
+            Assert.Equal([9], none.Select(x => x.Number).DefaultIfEmpty(9).ToArray());
+            Assert.Equal(1, none.DefaultIfEmpty().Count());
+            Assert.True(none.DefaultIfEmpty().Any());
+            Assert.Null(none.DefaultIfEmpty().First());
+            Assert.Equal(models.Length, q.DefaultIfEmpty().Count());
+            _ = Assert.Throws<NotSupportedException>(() => none.Select(x => x.Number).DefaultIfEmpty().Where(n => n > 0).ToArray());
+
+            //chunks of the elements in order
+            Assert.Equal(String.Join("|", models.OrderBy(x => x.Number).Select(x => x.Number).Chunk(4).Select(c => String.Join(",", c))), String.Join("|", q.OrderBy(x => x.Number).Select(x => x.Number).Chunk(4).ToArray().Select(c => String.Join(",", c))));
+            Assert.Equal([5, 1], q.OrderBy(x => x.Number).Chunk(5).ToArray().Select(c => c.Length));
+            _ = Assert.Throws<NotSupportedException>(() => q.Chunk(2).Count());
+
+            //what no store runs
+            _ = Assert.Throws<NotSupportedException>(() => q.Select(x => x.Number).Aggregate((a, b) => a + b));
+
+            //after a join or a set
+            var joinedValues = q.Join(lq, x => x.ID, l => l.ParityID, (x, l) => l.Quantity);
+            Assert.Equal(lines.Select(l => l.Quantity).Order(), joinedValues.Order().ToArray());
+            Assert.Equal(lines.Select(l => l.Quantity).OrderDescending().Take(3), joinedValues.OrderDescending().Take(3).ToArray());
+            Assert.Equal(lines.Max(l => l.Quantity), joinedValues.MaxBy(n => n));
+            Assert.Equal(lines.Min(l => l.Price), q.Join(lq, x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l.Price }).MinBy(r => r.Price)!.Price);
+            Assert.Equal(-1, joinedValues.Where(n => n > 100).FirstOrDefault(-1));
+            Assert.Equal(0, joinedValues.Where(n => n > 100).DefaultIfEmpty().Max());
+            Assert.Equal(lines.Length, joinedValues.Cast<int>().Count());
+            Assert.Equal(lines.Length, q.LeftJoin(lq, x => x.ID, l => l.ParityID, (x, l) => l == null ? (int?)null : l.Quantity).OfType<int>().Count());
+            var low = q.Where(x => x.Number < 4).Select(x => x.Number % 3);
+            var high = q.Where(x => x.Number > 1).Select(x => x.Number % 3);
+            Assert.Equal(models.Where(x => x.Number < 4).Select(x => x.Number % 3).Union(models.Where(x => x.Number > 1).Select(x => x.Number % 3)).Order(), low.Union(high).Order().ToArray());
+            Assert.Equal(models.Select(x => x.Kind).Distinct().Order(), q.Select(x => x.Kind).Union(q.Select(x => x.Kind)).Order().ToArray());
+        }
+
+        private static void AssertPositions(IRepo repo, ParityModel[] models, ParityLineModel[] lines)
+        {
+            var q = repo.Query<ParityModel>();
+            var lq = repo.Query<ParityLineModel>();
+            var ordered = models.OrderBy(x => x.Number).ToArray();
+            var oq = q.OrderBy(x => x.Number);
+
+            //the place of each element in the order
+            Assert.Equal(ordered.Index().Select(t => $"{t.Index}:{t.Item.Number}"), oq.Index().ToArray().Select(t => $"{t.Index}:{t.Item.Number}"));
+            Assert.Equal(ordered.Select((x, i) => x.Number * 10 + i), oq.Select((x, i) => x.Number * 10 + i).ToArray());
+            Assert.Equal(ordered.Where((x, i) => i % 2 == 0).Select(x => x.Number), oq.Where((x, i) => i % 2 == 0).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.Select(x => x.Name).Index().Where(t => t.Index > 2).Select(t => t.Item), oq.Select(x => x.Name).Index().Where(t => t.Index > 2).Select(t => t.Item).ToArray());
+            Assert.Equal(ordered.Where((x, i) => i > 1).Count(), oq.Where((x, i) => i > 1).Count());
+            Assert.Equal(ordered.Index().Where(t => t.Index % 2 == 1).Sum(t => t.Item.Number), oq.Index().Where(t => t.Index % 2 == 1).Sum(t => t.Item.Number));
+            Assert.Equal(ordered.Select(x => x.Number).Index().Skip(2).First().Index, oq.Select(x => x.Number).Index().Skip(2).First().Index);
+
+            //the elements before the first that fails, or from it on
+            Assert.Equal(ordered.TakeWhile(x => x.Number < 3).Select(x => x.Number), oq.TakeWhile(x => x.Number < 3).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.SkipWhile(x => x.Name != null).Select(x => x.Number), oq.SkipWhile(x => x.Name != null).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.TakeWhile((x, i) => i < 2 || x.Flag).Select(x => x.Number), oq.TakeWhile((x, i) => i < 2 || x.Flag).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.Select(x => x.Money).SkipWhile(m => m < 3).Sum(), oq.Select(x => x.Money).SkipWhile(m => m < 3).Sum());
+
+            //the last elements, all but them, and one counted from the end
+            Assert.Equal(ordered.TakeLast(2).Select(x => x.Number), oq.TakeLast(2).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.SkipLast(4).Select(x => x.Number), oq.SkipLast(4).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.Select(x => x.Number).Take(^3..), oq.Select(x => x.Number).Take(^3..).ToArray());
+            Assert.Equal(ordered.Select(x => x.Number).Take(..^3), oq.Select(x => x.Number).Take(..^3).ToArray());
+            Assert.Equal(ordered.Select(x => x.Number).Take(1..3), oq.Select(x => x.Number).Take(1..3).ToArray());
+            Assert.Equal(ordered[^2].Number, oq.ElementAt(^2).Number);
+            Assert.Null(oq.ElementAtOrDefault(^100));
+            _ = Assert.Throws<ArgumentOutOfRangeException>(() => oq.ElementAt(^100));
+            Assert.Equal(ordered.TakeLast(3).OrderByDescending(x => x.Money).First().Number, oq.TakeLast(3).OrderByDescending(x => x.Money).First().Number);
+
+            //the first element of each key
+            Assert.Equal(ordered.DistinctBy(x => x.Flag).Select(x => x.Number), oq.DistinctBy(x => x.Flag).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.DistinctBy(x => new { x.Kind, x.Flag }).Select(x => x.Number), oq.DistinctBy(x => new { x.Kind, x.Flag }).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.DistinctBy(x => x.Maybe).Count(), oq.DistinctBy(x => x.Maybe).Count());
+            var parents = lq.Select(l => l.ParityID);
+            Assert.Equal(ordered.IntersectBy(lines.Select(l => l.ParityID), x => x.ID).Select(x => x.Number), oq.IntersectBy(parents, x => x.ID).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.ExceptBy(lines.Select(l => l.ParityID), x => x.ID).Select(x => x.Number), oq.ExceptBy(parents, x => x.ID).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.Where(x => x.Number < 3).UnionBy(models.Where(x => x.Number > 1).OrderByDescending(x => x.Number), x => x.Number % 3).Select(x => x.Number),
+                q.Where(x => x.Number < 3).OrderBy(x => x.Number).UnionBy(q.Where(x => x.Number > 1).OrderByDescending(x => x.Number), x => x.Number % 3).ToArray().Select(x => x.Number));
+
+            //one more element at either end
+            Assert.Equal(ordered.Select(x => x.Number).Append(99), oq.Select(x => x.Number).Append(99).ToArray());
+            Assert.Equal(ordered.Select(x => x.Number).Prepend(-1), oq.Select(x => x.Number).Prepend(-1).ToArray());
+            Assert.Equal(-1, oq.Select(x => x.Number).Prepend(-1).First());
+            Assert.Equal(ordered.Select(x => x.Name).Append("end"), oq.Select(x => x.Name).Append("end").ToArray());
+            Assert.Equal(ordered.Select(x => $"{x.Number}:{x.Name}").Append("9:z"), oq.Select(x => new { x.Number, x.Name }).Append(new { Number = 9, Name = (string?)"z" }).ToArray().Select(r => $"{r.Number}:{r.Name}"));
+            var added = new ParityModel { ID = Guid.NewGuid(), Number = 42, Name = "added", Money = 1.5m, Date = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc), Moment = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero), Kind = ParityKind.Large, Access = ParityAccess.ReadWrite, Clock = new TimeOnly(1, 2, 3), Day = new DateOnly(2020, 1, 2), Span = TimeSpan.FromHours(1) };
+            var appended = q.Where(x => x.Number < 2).OrderBy(x => x.Number).Append(added).ToArray();
+            Assert.Equal([0, 1, 42], appended.Select(x => x.Number));
+            Assert.Equal(("added", ParityKind.Large, ParityAccess.ReadWrite, 1.5m), (appended[^1].Name, appended[^1].Kind, appended[^1].Access, appended[^1].Money));
+
+            //elements paired by their places
+            Assert.Equal(ordered.Zip(lines.OrderBy(l => l.Quantity).ThenBy(l => l.Price), (x, l) => $"{x.Number}:{l.Quantity}"), oq.Zip(lq.OrderBy(l => l.Quantity).ThenBy(l => l.Price), (x, l) => new { x.Number, l.Quantity }).ToArray().Select(r => $"{r.Number}:{r.Quantity}"));
+            Assert.Equal(ordered.Select(x => x.Number).Zip(ordered.Select(x => x.Name)).Select(t => $"{t.First}:{t.Second}"), oq.Select(x => x.Number).Zip(oq.Select(x => x.Name)).ToArray().Select(t => $"{t.First}:{t.Second}"));
+            Assert.Equal(3, oq.Zip(oq.Skip(3), (a, b) => a.Number + b.Number).Count());
+            Assert.True(oq.Select(x => x.Number).SequenceEqual(q.OrderBy(x => x.Number).Select(x => x.Number)));
+            Assert.False(oq.Select(x => x.Number).SequenceEqual(q.OrderByDescending(x => x.Number).Select(x => x.Number)));
+            Assert.False(oq.Select(x => x.Number).SequenceEqual(oq.Take(3).Select(x => x.Number)));
+            Assert.True(oq.Select(x => new { x.Number, x.Name }).SequenceEqual(oq.Select(x => new { x.Number, x.Name })));
+            Assert.False(oq.Select(x => x.Name).SequenceEqual(oq.Select(x => x.Title)));
+        }
+
         private static void AssertLookIns(IRepo repo, ParityModel[] models, ParityLineModel[] lines)
         {
             var big = repo.Query<ParityLineModel>().Where(l => l.Quantity > 2).Select(l => l.ParityID);
@@ -919,7 +1192,7 @@ namespace Zerra.Repository.Test
             var q = repo.Query<ParityModel>().OrderBy(x => x.Number);
             int[] Numbers(IEnumerable<ParityModel> rows) => rows.Select(x => x.Number).ToArray();
 
-            //a count or calculation of a page
+            //a count or aggregate of a page
             Assert.Equal(2, q.Skip(1).Take(2).Count());
             Assert.Equal(2L, q.Take(2).LongCount());
             Assert.Equal(ordered.Length - 1, q.Skip(1).Count());
@@ -1254,7 +1527,7 @@ namespace Zerra.Repository.Test
                 repo.Update(pointing, new Graph<ParityModel>(x => x.SelfID));
             }
 
-            //an order by a calculation of a relation
+            //an order by an aggregate of a relation
             Assert.Equal(Numbers(ordered.OrderByDescending(m => lines.Count(l => l.ParityID == m.ID)).ThenBy(m => m.Number)), Numbers(repo.Query<ParityModel>().OrderByDescending(x => x.Lines!.Count()).ThenBy(x => x.Number).ToArray()));
             Assert.Equal(Numbers(ordered.OrderBy(m => lines.Where(l => l.ParityID == m.ID).Sum(l => l.Quantity)).ThenBy(m => m.Number)), Numbers(repo.Query<ParityModel>().OrderBy(x => x.Lines!.Sum(l => l.Quantity)).ThenBy(x => x.Number).ToArray()));
         }
@@ -1367,7 +1640,7 @@ namespace Zerra.Repository.Test
             foreach (var line in withParent)
                 Assert.Equal(models.Single(m => m.ID == line.ParityID).Number, line.Parent!.Number);
 
-            //the calculations read what they read
+            //the aggregates read what they read
             Assert.Equal(models.Length, repo.Query<ParityModel>(wholeGraph).Count());
             Assert.True(repo.Query<ParityModel>(wholeGraph).Any());
             Assert.Equal(models.Sum(x => x.Number), repo.Query<ParityModel>(wholeGraph).Sum(x => x.Number));
@@ -1417,8 +1690,8 @@ namespace Zerra.Repository.Test
                     Assert.True((expected.Length > 0) == repo.Query<ParityModel>().Any(where), $"{name} any");
                 }
 
-                AssertCalculation(repo, models);
-                AssertCalculationRelations(repo, models, lines);
+                AssertAggregates(repo, models);
+                AssertAggregatesOfRelations(repo, models, lines);
                 AssertProjections(repo, models, lines, notes);
                 AssertRelationElements(repo, models, lines);
                 AssertQueryable(repo, models, lines);
@@ -1428,6 +1701,9 @@ namespace Zerra.Repository.Test
                 AssertEnums(repo, models, engine is not MemoryEngine);
                 AssertLookIns(repo, models, lines);
                 AssertSets(repo, models, lines, engine is not MemoryEngine);
+                AssertJoins(repo, models, lines, notes, engine is not MemoryEngine);
+                AssertOperators(repo, models, lines);
+                AssertPositions(repo, models, lines);
 
                 //a member with a store name reads back, an excluded member isn't stored
                 var stored = repo.Query<ParityModel>().SingleOrDefault(x => x.Number == 1)!;
@@ -1448,7 +1724,7 @@ namespace Zerra.Repository.Test
         }
 
         //the key and the value reach through relations: a join for a single related model and a subquery for a collection
-        private static void AssertCalculationRelations(IRepo repo, ParityModel[] models, ParityLineModel[] lines)
+        private static void AssertAggregatesOfRelations(IRepo repo, ParityModel[] models, ParityLineModel[] lines)
         {
             var parents = models.ToDictionary(x => x.ID);
             int LineQuantities(ParityModel model) => lines.Where(l => l.ParityID == model.ID).Sum(l => l.Quantity);
@@ -1497,8 +1773,8 @@ namespace Zerra.Repository.Test
             Assert.Equal([(1, 2), (2, 3), (3, 4), (4, 5)], rows.OrderBy(r => r.Number).Select(r => (r.Number, r.LineCount)).ToArray());
         }
 
-        //every calculation gives what LINQ gives over the same models, over all of them and per group
-        private static void AssertCalculation(IRepo repo, ParityModel[] models)
+        //every aggregate gives what LINQ gives over the same models, over all of them and per group
+        private static void AssertAggregates(IRepo repo, ParityModel[] models)
         {
             Expression<Func<ParityModel, bool>> some = x => x.Number > 0 && x.Number < 5;
             Expression<Func<ParityModel, bool>> none = x => x.Number > 100;
@@ -1607,7 +1883,7 @@ namespace Zerra.Repository.Test
                     Assert.Equal(NotesOf(expectedLines[i]).Where(n => n.Rank > 0).OrderByDescending(n => n.Rank).Select(n => (n.Rank, n.Text)).ToArray(), result.Lines[i].Notes!.Select(n => (n.Rank, n.Text)).ToArray());
             }
 
-            //a Guid key and a Guid grouped calculation, which some stores keep as bytes
+            //a Guid key and a Guid grouped aggregate, which some stores keep as bytes
             var byParentID = repo.Query<ParityLineModel>().GroupBy(x => x.ParityID).Select(g => new ParityLineGroupResult { ParentID = g.Key, Lines = g.Count() }).ToArray();
             Assert.Equal(lines.GroupBy(l => l.ParityID).Select(g => (g.Key, g.Count())).OrderBy(x => x.Key).ToArray(), byParentID.Select(r => (r.ParentID, r.Lines)).OrderBy(x => x.Item1).ToArray());
             AssertGroups("sum quantity by parent id", lines.GroupBy(l => l.ParityID).Select(g => (g.Key, g.Sum(l => l.Quantity))), repo.Query<ParityLineModel>().GroupBy(x => x.ParityID).Select(g => new { g.Key, Value = g.Sum(x => x.Quantity) }).ToArray().Select(r => (r.Key, r.Value)).ToArray());
@@ -1687,7 +1963,7 @@ namespace Zerra.Repository.Test
             Assert.True(q.All(x => x.Number < 6));
             Assert.False(q.All(x => x.Flag));
 
-            //calculations, with the value in the call or selected before it
+            //aggregates, with the value in the call or selected before it
             Assert.Equal(models.Sum(x => x.Number), q.Sum(x => x.Number));
             Assert.Equal(models.Where(x => x.Flag).Sum(x => x.Money), q.Where(x => x.Flag).Select(x => x.Money).Sum());
             Assert.Equal(models.Max(x => x.Name), q.Max(x => x.Name));
@@ -1800,6 +2076,10 @@ namespace Zerra.Repository.Test
                 var setValues = await repo.Query<ParityModel>().Where(x => x.Number < 4).Select(x => x.Number).Union(repo.Query<ParityLineModel>().Select(l => l.Quantity)).ToArrayAsync();
                 Assert.Equal(models.Where(x => x.Number < 4).Select(x => x.Number).Union(lines.Select(l => l.Quantity)).Order(), setValues.Order());
                 Assert.Equal(models.Select(x => x.Number).Concat(lines.Select(l => l.Quantity)).Count(), await repo.Query<ParityModel>().Select(x => x.Number).Concat(repo.Query<ParityLineModel>().Select(l => l.Quantity)).CountAsync());
+                var joinedValues = await repo.Query<ParityModel>().Join(repo.Query<ParityLineModel>(), x => x.ID, l => l.ParityID, (x, l) => new { x.Number, l.Quantity }).ToArrayAsync();
+                Assert.Equal(models.Join(lines, x => x.ID, l => l.ParityID, (x, l) => $"{x.Number}:{l.Quantity}").Order(), joinedValues.Select(r => $"{r.Number}:{r.Quantity}").Order());
+                Assert.Equal(lines.Max(l => l.Quantity), await repo.Query<ParityModel>().Join(repo.Query<ParityLineModel>(), x => x.ID, l => l.ParityID, (x, l) => new { x, l }).MaxAsync(r => r.l.Quantity));
+                Assert.Equal(models.Length - 2, await repo.Query<ParityModel>().GroupJoin(repo.Query<ParityLineModel>(), x => x.ID, l => l.ParityID, (x, g) => new { x.Number, Count = g.Count() }).CountAsync(r => r.Count > 0));
                 var selected = await repo.Query<ParityModel>().Where(x => x.Number < 2).Select(x => new ParitySelectResult { Number = x.Number, Doubled = x.Number * 2 }).ToArrayAsync();
                 Assert.Equal(models.Where(x => x.Number < 2).Select(x => x.Number * 2).Order(), selected.Select(r => r.Doubled).Order());
                 var grouped = await repo.Query<ParityModel>().GroupBy(x => x.Flag).Select(g => new ParityGroupResult { Flag = g.Key, Rows = g.Count() }).ToArrayAsync();

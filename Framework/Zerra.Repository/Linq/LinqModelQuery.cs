@@ -30,7 +30,9 @@ namespace Zerra.Repository.Linq
 
         private protected override LambdaExpression ModelLambda(Expression body, ParameterExpression parameter) => throw new NotSupportedException("Models are loaded by their provider");
         private protected override LinqQuery SetPart(Expression expression) => throw new NotSupportedException("Models are loaded by their provider");
+        private protected override LinqQuery NumberedPart(Expression expression, string operation) => throw new NotSupportedException("Models are loaded by their provider");
         internal override object CombineSet(IEnumerable left, IEnumerable right, bool caseSensitive) => throw new NotSupportedException("Models are loaded by their provider");
+        internal override object CombineJoin(IEnumerable left, IEnumerable? right, bool caseSensitive) => throw new NotSupportedException("Models are loaded by their provider");
         internal override object? Execute(ITransactStoreEngine engine, ModelDetail modelDetail) => throw new NotSupportedException("Models are loaded by their provider");
         internal override Task<object?> ExecuteAsync(ITransactStoreEngine engine, ModelDetail modelDetail, CancellationToken cancellationToken) => throw new NotSupportedException("Models are loaded by their provider");
         internal override object Stream(ITransactStoreEngine engine, ModelDetail modelDetail) => throw new NotSupportedException("Models are loaded by their provider");

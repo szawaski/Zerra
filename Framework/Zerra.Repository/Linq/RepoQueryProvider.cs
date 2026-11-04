@@ -23,8 +23,12 @@ namespace Zerra.Repository.Linq
         /// <summary>Reads a query into what a condition of another query looks in.</summary>
         internal abstract LinqSubquery ReadSubquery(Expression expression);
         internal abstract LinqSet ReadSet(LinqSetOperation operation, LinqQuery left, Expression expression);
+        internal abstract LinqJoin ReadJoin(LinqJoinKind kind, LinqQuery left, Expression expression, LambdaExpression leftKey, LambdaExpression rightKey, Expression result, ParameterExpression leftElement, ParameterExpression rightElement);
+        /// <summary>Reads a query an operation by position reads, its rows numbered in its order.</summary>
+        internal abstract LinqQuery ReadNumbered(Expression expression, string operation);
+        internal abstract IRepoInternal Repo { get; }
 
-        /// <summary>Runs a query ending in a value: a first or single result, a count, whether any, or a calculation.</summary>
+        /// <summary>Runs a query ending in a value: a first or single result, a count, whether any, or an aggregate.</summary>
         /// <typeparam name="TResult">The type of the value.</typeparam>
         /// <param name="expression">The query, the terminal call included unless given apart.</param>
         /// <param name="terminal">The terminal call when it isn't in the expression, as the Async methods pass it.</param>
