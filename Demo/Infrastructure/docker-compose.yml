@@ -118,7 +118,24 @@ services:
       #the JVM otherwise sizes the heap and thread pools to the VM's memory and CPUs
       KAFKA_HEAP_OPTS: "-Xmx256m -Xms256m"
       KAFKA_OPTS: "-XX:ActiveProcessorCount=2"
-    #the image's default single node KRaft config listens and advertises on localhost:9092
+      #any broker setting here replaces the image's default config, so its single node KRaft settings, listening and advertising on localhost:9092, are repeated
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
+      KAFKA_NUM_PARTITIONS: "1"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR: "1"
+      #a new consumer group is assigned right away instead of waiting 3 seconds for more members, for a single developer machine
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
     ports:
       - "9092:9092"
     healthcheck:

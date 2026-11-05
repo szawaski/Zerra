@@ -8,7 +8,7 @@
         <IsPackable>false</IsPackable>
         <IsRoslynComponent>true</IsRoslynComponent>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-        <LangVersion>14.0</LangVersion>
+        <LangVersion>15.0</LangVersion>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
     </PropertyGroup>
 

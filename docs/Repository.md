@@ -47,7 +47,7 @@ For one-to-many includes, Zerra loads the related rows of every parent in one ad
 | `Zerra.Repository.Memory` | in memory, for tests and fallbacks |
 | `Zerra.Repository.KurrentDB` | KurrentDB event store, for aggregates |
 
-The repository packages target .NET 10 only.
+The repository packages target .NET 10 and .NET 11 only.
 
 ## Data Models
 

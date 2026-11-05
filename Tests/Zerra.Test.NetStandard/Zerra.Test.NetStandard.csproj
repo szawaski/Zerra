@@ -11,7 +11,7 @@
         <Product>Zerra Framework</Product>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <LangVersion>14.0</LangVersion>
+        <LangVersion>15.0</LangVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <!--Tests Zerra's netstandard2.0 build, so the shared tests use the same checks as Zerra-->
         <DefineConstants>$(DefineConstants);NETSTANDARD2_0</DefineConstants>

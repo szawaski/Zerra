@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <!--<Nullable>enable</Nullable>-->
         <NoWarn>CS8632</NoWarn>
         <ImplicitUsings>enable</ImplicitUsings>
         <InvariantGlobalization>true</InvariantGlobalization>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <LangVersion>14.0</LangVersion>
+        <LangVersion>15.0</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>

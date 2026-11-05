@@ -66,9 +66,9 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 
 ### Platform
 
-- Targets .NET 10. `Zerra`, `Zerra.Web`, and the `Zerra.CQRS.*` transports also target .NET Standard 2.0, including .NET Framework 4.7.2+.
+- Targets .NET 10 and .NET 11. `Zerra`, `Zerra.Web`, and the `Zerra.CQRS.*` transports also target .NET Standard 2.0, including .NET Framework 4.7.2+.
 - Source generation for every CQRS type, model, and enum, and Native AOT compatibility throughout.
-- No external dependencies on .NET 10.
+- No external dependencies on .NET 10 and 11.
 - `StringExtensions` parses numbers and dates with the invariant culture, with an optional `provider` for other cultures.
 - Fixed `TypeDetail.GetConstructor()` failing on types with several constructors.
 - For types that aren't source generated, members read and write through the property unless it's an auto-property, and only public fields are listed, like generated types. Before, a private field with the property's name was used instead, so a computed property such as `Dictionary.Count` read the wrong value. `MemberDetail.IsBacked` is removed.

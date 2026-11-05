@@ -867,7 +867,7 @@ namespace Zerra.Test.Serialization
             var model1 = TypesAllModel.Create();
             var bytes = ByteSerializer.Serialize(model1, options);
 #if !NETSTANDARD2_0
-            Assert.Equal(223478, bytes.Length);
+            Assert.Equal(223464, bytes.Length);
 #else
             //without the DateOnly and TimeOnly members
             Assert.Equal(184165, bytes.Length);

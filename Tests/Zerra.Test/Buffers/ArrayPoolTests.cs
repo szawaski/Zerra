@@ -17,8 +17,7 @@ namespace Zerra.Test.Buffers
             var length = buffer.Length;
             Assert.True(length >= minSize);
 
-            for (int i = 0; i < length; i++)
-                Assert.Equal(0, buffer[i]);
+            //the shared pool can hand back arrays other code returned without clearing, so rented and grown space isn't checked for zeros
             for (int i = 0; i < length; i++)
                 buffer[i] = 1;
 
@@ -29,8 +28,6 @@ namespace Zerra.Test.Buffers
             Assert.True(newLength >= newMinSize);
             for (int i = 0; i < length; i++)
                 Assert.Equal(1, buffer[i]);
-            for (int i = length; i < newLength; i++)
-                Assert.Equal(0, buffer[i]);
 
             for (int i = length; i < newLength; i++)
                 buffer[i] = 2;

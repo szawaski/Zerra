@@ -451,8 +451,9 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             await using var client = new Azure.Messaging.ServiceBus.ServiceBusClient(host);
             try
             {
-                await using var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null);
+                //the consumer is disposed first, its handler's acknowledgement goes out before the producer deletes its queue instead of being retried for a minute
                 await using var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null);
+                await using var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null);
                 try
                 {
                     Zerra.Reflection.TypeFinder.Register(typeof(TestCommand));

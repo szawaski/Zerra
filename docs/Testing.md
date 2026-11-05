@@ -46,8 +46,8 @@ The test projects use xunit v3. Build the solution, then run a project's test ex
 
 ```bash
 dotnet build Zerra.slnx
-Tests/Zerra.Test/bin/Debug/net10.0/Zerra.Test.exe
-Tests/Zerra.CQRS.Test/bin/Debug/net10.0/Zerra.CQRS.Test.exe -class "Zerra.CQRS.Test.Kafka.KafkaMessageTests"
+Tests/Zerra.Test/bin/Debug/net11.0/Zerra.Test.exe
+Tests/Zerra.CQRS.Test/bin/Debug/net11.0/Zerra.CQRS.Test.exe -class "Zerra.CQRS.Test.Kafka.KafkaMessageTests"
 ```
 
 To measure coverage, run a test executable under `dotnet-coverage collect -f cobertura`.

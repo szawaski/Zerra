@@ -28,9 +28,9 @@ A high-performance, distributed CQRS (Command Query Responsibility Segregation) 
 
 🗜️ **Message Compression** - Optional Deflate, GZip, ZLib, or Brotli compression applied before encryption
 
-✨ **Zero Dependencies** - No external package dependencies on .NET 10; the .NET Standard 2.0 build adds only Microsoft's System.* compatibility packages
+✨ **Zero Dependencies** - No external package dependencies on .NET 10 and 11; the .NET Standard 2.0 build adds only Microsoft's System.* compatibility packages
 
-🧩 **.NET 10 and .NET Standard 2.0** - `Zerra`, `Zerra.Web`, and the `Zerra.CQRS.*` transports also run on .NET Framework 4.7.2+ and other .NET Standard 2.0 platforms
+🧩 **.NET 10, .NET 11, and .NET Standard 2.0** - `Zerra`, `Zerra.Web`, and the `Zerra.CQRS.*` transports also run on .NET Framework 4.7.2+ and other .NET Standard 2.0 platforms
 
 ## Installation
 

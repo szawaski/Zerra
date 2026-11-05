@@ -31,8 +31,9 @@ namespace Zerra.CQRS.Test.Kafka
         public async Task TestConnectionTls()
         {
             Assert.True(await KafkaConnectionTest.TestAsync(host, null, null, TimeSpan.FromSeconds(5), useTls: false));
-            Assert.False(await KafkaConnectionTest.TestAsync(host, null, null, TimeSpan.FromSeconds(5), useTls: true));
-            Assert.False(await KafkaConnectionTest.TestAsync(host, "user", "password", TimeSpan.FromSeconds(5), useTls: true));
+            //a TLS handshake against the plain listener never completes, so these wait out their timeout
+            Assert.False(await KafkaConnectionTest.TestAsync(host, null, null, TimeSpan.FromSeconds(2), useTls: true));
+            Assert.False(await KafkaConnectionTest.TestAsync(host, "user", "password", TimeSpan.FromSeconds(2), useTls: true));
         }
 
         [Fact]
@@ -489,8 +490,9 @@ namespace Zerra.CQRS.Test.Kafka
             using var raw = new ProducerBuilder<string, byte[]>(new ProducerConfig { BootstrapServers = host }).Build();
             try
             {
-                using var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null);
+                //the consumer is disposed first, its handler's acknowledgement goes out before the producer deletes its topic instead of being retried for a minute
                 using var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null);
+                using var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null);
                 try
                 {
                     ackTopic = AckTopic(producer);

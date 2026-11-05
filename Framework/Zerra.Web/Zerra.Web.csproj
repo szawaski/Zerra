@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+        <TargetFrameworks>netstandard2.0;net10.0;net11.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <InvariantGlobalization>true</InvariantGlobalization>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <LangVersion>14.0</LangVersion>
+        <LangVersion>15.0</LangVersion>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
@@ -45,8 +45,8 @@
 
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
         <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.13" />
-        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="10.0.13" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" Version="10.0.14" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
     </ItemGroup>
 
     <ItemGroup>
