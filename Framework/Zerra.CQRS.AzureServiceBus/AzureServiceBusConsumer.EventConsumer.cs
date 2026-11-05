@@ -100,26 +100,31 @@ namespace Zerra.CQRS.AzureServiceBus
                         {
                             await throttle.WaitAsync(canceller.Token);
 
-                            ServiceBusReceivedMessage? serviceBusMessage;
+                            //as many messages as there are free handlers in one round trip, nothing is taken that can't be handled right away
+                            var slots = 1;
+                            while (slots < maxConcurrent && throttle.Wait(0))
+                                slots++;
+
+                            IReadOnlyList<ServiceBusReceivedMessage> serviceBusMessages;
                             try
                             {
-                                serviceBusMessage = await receiver.ReceiveMessageAsync(null, canceller.Token);
+                                serviceBusMessages = await receiver.ReceiveMessagesAsync(slots, null, canceller.Token);
                             }
                             catch
                             {
-                                _ = throttle.Release();
+                                _ = throttle.Release(slots);
                                 throw;
                             }
-                            if (serviceBusMessage is null)
-                            {
-                                _ = throttle.Release();
-                                continue;
-                            }
+                            if (serviceBusMessages.Count < slots)
+                                _ = throttle.Release(slots - serviceBusMessages.Count);
 
-                            var handleTask = Task.Run(() => HandleMessage(throttle, client, serviceBusMessage, handlerAsync));
-                            //tracked until it completes so disposing waits for it
-                            _ = handling.Add(handleTask);
-                            _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                            foreach (var serviceBusMessage in serviceBusMessages)
+                            {
+                                var handleTask = Task.Run(() => HandleMessage(throttle, client, serviceBusMessage, handlerAsync));
+                                //tracked until it completes so disposing waits for it
+                                _ = handling.Add(handleTask);
+                                _ = handleTask.ContinueWith(removeHandling, handling, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                            }
 
                             if (canceller.IsCancellationRequested)
                                 break;
