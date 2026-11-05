@@ -157,7 +157,7 @@ An exception thrown by a handler is returned to the caller as a `CqrsServiceExce
 - `Message`: the original message
 - `ErrorType`: the original exception's type name
 - `Source`: the command type that caused it
-- `StackTrace`: the handler's stack trace
+- `StackTrace`: the handler's stack trace, only when the handler ran locally
 
 There is no `InnerException`, so branch on `ErrorType`:
 

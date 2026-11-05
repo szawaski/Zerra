@@ -38,7 +38,7 @@ Message encryption protects message bodies end to end, including while they sit 
 
 ### Error Details
 
-A handler's exception reaches the caller with its type name, message, and stack trace, including across several service hops and through the gateway. Failures are easy to diagnose anywhere in a call chain, and validation messages reach the user as written. Write exception messages for whoever can call, without secrets, connection strings, or personal data.
+A handler's exception reaches the caller with its type name and message, including across several service hops and through the gateway. The stack trace is never sent, so log it where the handler runs with an `IBusLogger`. Validation messages reach the user as written. Write exception messages for whoever can call, without secrets, connection strings, or personal data.
 
 ### Request Limits
 

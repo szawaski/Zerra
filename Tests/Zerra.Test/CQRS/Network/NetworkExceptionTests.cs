@@ -54,6 +54,37 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
+        public async Task ExceptionSerializer_DoesNotSendTheStackTrace()
+        {
+            InvalidOperationException thrown;
+            try
+            {
+                throw new InvalidOperationException("Failed");
+            }
+            catch (InvalidOperationException caught)
+            {
+                thrown = caught;
+            }
+            Assert.NotNull(thrown.StackTrace);
+
+            INetworkSerializer[] serializers = [new NetworkByteSerializer(), new NetworkJsonSerializer()];
+            foreach (var serializer in serializers)
+            {
+                var fromBytes = ExceptionSerializer.Deserialize("server", serializer, ExceptionSerializer.Serialize(serializer, thrown));
+                Assert.Equal(nameof(InvalidOperationException), fromBytes.ErrorType);
+                Assert.Equal("Failed", fromBytes.Message);
+                Assert.Null(fromBytes.StackTrace);
+
+                using var stream = new MemoryStream();
+                await ExceptionSerializer.SerializeAsync(serializer, stream, thrown, TestContext.Current.CancellationToken);
+                stream.Position = 0;
+                var fromStream = await ExceptionSerializer.DeserializeAsync("server", serializer, stream, TestContext.Current.CancellationToken);
+                Assert.Equal("Failed", fromStream.Message);
+                Assert.Null(fromStream.StackTrace);
+            }
+        }
+
+        [Fact]
         public void NetworkExceptions_Messages()
         {
             var inner = new IOException("io");

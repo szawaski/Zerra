@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+﻿// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -94,6 +94,61 @@ namespace Zerra.Test.Web
             Assert.Equal(500, context.Response.StatusCode);
             var exception = ExceptionSerializer.Deserialize(source, serializer, ReadResponse(context));
             Assert.Equal("query failed", exception.Message);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Query_HandlerThrows_RespondsWithoutStackTrace()
+        {
+            InvalidOperationException thrown;
+            try
+            {
+                throw new InvalidOperationException("query failed");
+            }
+            catch (InvalidOperationException caught)
+            {
+                thrown = caught;
+            }
+            Assert.NotNull(thrown.StackTrace);
+
+            var bus = new MockBus { QueryException = thrown };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(500, context.Response.StatusCode);
+            var exception = ExceptionSerializer.Deserialize(source, serializer, ReadResponse(context));
+            Assert.Equal("query failed", exception.Message);
+            Assert.Null(exception.StackTrace);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task Query_RemoteServiceThrowsWithStackTrace_RespondsWithoutStackTrace()
+        {
+            var bus = new MockBus { QueryException = new CqrsServiceException(nameof(InvalidOperationException), "remote failed", "remote-service", "at Remote()") };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, serializer);
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(500, context.Response.StatusCode);
+            var exception = ExceptionSerializer.Deserialize(source, serializer, ReadResponse(context));
+            Assert.Equal(nameof(InvalidOperationException), exception.ErrorType);
+            Assert.Null(exception.StackTrace);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task JsonServer_HandlerThrows_RespondsWithoutStackTraceProperty()
+        {
+            var jsonSerializer = new NetworkJsonSerializer();
+            var bus = new MockBus { QueryException = new CqrsServiceException(nameof(InvalidOperationException), "remote failed", "remote-service", "at Remote()") };
+            var middleware = new CqrsApiGatewayMiddleware(_ => Task.CompletedTask, bus, jsonSerializer);
+            var context = CreateContext(jsonSerializer, new ApiRequestData() { ProviderType = nameof(ITestQueryHandler), ProviderMethod = nameof(ITestQueryHandler.GetModel), ProviderArguments = [], Source = source }, HttpCommon.ContentTypeJson, TestContext.Current.CancellationToken);
+
+            await middleware.Invoke(context);
+
+            Assert.Equal(500, context.Response.StatusCode);
+            Assert.Equal("{\"ExceptionType\":\"InvalidOperationException\",\"Message\":\"remote failed\"}", System.Text.Encoding.UTF8.GetString(ReadResponse(context)));
         }
 
         [Fact(Timeout = timeout)]

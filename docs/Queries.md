@@ -85,7 +85,7 @@ catch (TimeoutException) { /* timed out */ }
 
 ## Errors
 
-An exception thrown by a handler, local or remote, is returned to the caller as a `CqrsServiceException` carrying the original `Message`, the original type name in `ErrorType`, the query in `Source` (such as `IUserQueryHandler.GetUserById`), and the handler's `StackTrace`. There is no `InnerException`, so branch on `ErrorType`:
+An exception thrown by a handler, local or remote, is returned to the caller as a `CqrsServiceException` carrying the original `Message`, the original type name in `ErrorType`, the query in `Source` (such as `IUserQueryHandler.GetUserById`), and, when the handler ran locally, its `StackTrace`. There is no `InnerException`, so branch on `ErrorType`:
 
 ```csharp
 try

@@ -23,8 +23,7 @@ namespace Zerra.CQRS.Network
             {
                 Message = baseException.Message,
                 //an exception relayed from another service is sent on as the type it was thrown as
-                ExceptionType = baseException is CqrsServiceException remote && remote.ErrorType is not null ? remote.ErrorType : baseException.GetType().Name,
-                StackTrace = baseException.StackTrace
+                ExceptionType = baseException is CqrsServiceException remote && remote.ErrorType is not null ? remote.ErrorType : baseException.GetType().Name
             };
 
             serializer.Serialize(stream, content);
@@ -44,8 +43,7 @@ namespace Zerra.CQRS.Network
             {
                 Message = baseException.Message,
                 //an exception relayed from another service is sent on as the type it was thrown as
-                ExceptionType = baseException is CqrsServiceException remote && remote.ErrorType is not null ? remote.ErrorType : baseException.GetType().Name,
-                StackTrace = baseException.StackTrace
+                ExceptionType = baseException is CqrsServiceException remote && remote.ErrorType is not null ? remote.ErrorType : baseException.GetType().Name
             };
 
             return serializer.SerializeBytes(content);
@@ -62,8 +60,7 @@ namespace Zerra.CQRS.Network
             var content = new ExceptionContent()
             {
                 Message = errorMessage,
-                ExceptionType = "Unknown",
-                StackTrace = null
+                ExceptionType = "Unknown"
             };
 
             return serializer.SerializeBytes(content);
@@ -82,7 +79,7 @@ namespace Zerra.CQRS.Network
             if (content is null)
                 throw new CqrsNetworkException($"Failed to deserialize exception content from remote service for {source}");
 
-            return new CqrsServiceException(content.ExceptionType, content.Message, source, content.StackTrace);
+            return new CqrsServiceException(content.ExceptionType, content.Message, source, null);
         }
 
         /// <summary>
@@ -98,7 +95,7 @@ namespace Zerra.CQRS.Network
             if (content is null)
                 throw new CqrsNetworkException($"Failed to deserialize exception content from remote service for {source}");
 
-            return new CqrsServiceException(content.ExceptionType, content.Message, source, content.StackTrace);
+            return new CqrsServiceException(content.ExceptionType, content.Message, source, null);
         }
 
         /// <summary>
@@ -117,8 +114,7 @@ namespace Zerra.CQRS.Network
             {
                 Message = baseException.Message,
                 //an exception relayed from another service is sent on as the type it was thrown as
-                ExceptionType = baseException is CqrsServiceException remote && remote.ErrorType is not null ? remote.ErrorType : baseException.GetType().Name,
-                StackTrace = baseException.StackTrace
+                ExceptionType = baseException is CqrsServiceException remote && remote.ErrorType is not null ? remote.ErrorType : baseException.GetType().Name
             };
 
             return serializer.SerializeAsync(stream, content, cancellationToken);
@@ -137,7 +133,7 @@ namespace Zerra.CQRS.Network
             if (content is null)
                 throw new CqrsNetworkException($"Failed to deserialize exception content from remote service for {source}");
 
-            return new CqrsServiceException(content.ExceptionType, content.Message, source, content.StackTrace);
+            return new CqrsServiceException(content.ExceptionType, content.Message, source, null);
         }
     }
 }

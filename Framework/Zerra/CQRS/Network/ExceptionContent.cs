@@ -11,6 +11,5 @@ namespace Zerra.CQRS.Network
     {
         public required string ExceptionType { get; set; }
         public string? Message { get; set; }
-        public string? StackTrace { get; set; }
     }
 }
