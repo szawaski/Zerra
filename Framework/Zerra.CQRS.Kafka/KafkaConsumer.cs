@@ -47,6 +47,9 @@ namespace Zerra.CQRS.Kafka
         //librdkafka's max.poll.interval.ms, and session.timeout.ms when that's lower, the tests set it lower to show a consumer with every handler busy isn't dropped from the group
         internal int? MaxPollIntervalMs { get; set; }
 
+        private readonly int maxConcurrentCommands;
+        private readonly int maxConcurrentEvents;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="KafkaConsumer"/> class.
         /// </summary>
@@ -60,6 +63,8 @@ namespace Zerra.CQRS.Kafka
         /// <param name="password">Optional password for SASL authentication. Must be paired with userName.</param>
         /// <param name="useTls">True to connect with TLS, SASL_SSL with a user name and password or SSL without.</param>
         /// <param name="resilientCommands">True to commit a command's offset once its handler finishes instead of when it's received, so a command being handled when the process stops is received again. A command can then run more than once.</param>
+        /// <param name="maxConcurrentCommands">Optional maximum concurrent commands for each topic; defaults to ProcessorCount * 8.</param>
+        /// <param name="maxConcurrentEvents">Optional maximum concurrent events for each topic; defaults to ProcessorCount * 16.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
         //Confluent.Kafka binds its native library by finding these methods and fields through reflection, which native AOT would otherwise trim away
 #if !NETSTANDARD2_0
@@ -68,8 +73,10 @@ namespace Zerra.CQRS.Kafka
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Alpine", "Confluent.Kafka")]
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Centos8", "Confluent.Kafka")]
 #endif
-        public KafkaConsumer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName = null, string? password = null, bool useTls = false, bool resilientCommands = false)
+        public KafkaConsumer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName = null, string? password = null, bool useTls = false, bool resilientCommands = false, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null)
         {
+            this.maxConcurrentCommands = maxConcurrentCommands ?? Environment.ProcessorCount * 8;
+            this.maxConcurrentEvents = maxConcurrentEvents ?? Environment.ProcessorCount * 16;
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.commonHost = KafkaCommon.GetHost(host, userName, password, useTls);
@@ -224,11 +231,10 @@ namespace Zerra.CQRS.Kafka
         /// <summary>
         /// Registers a command type with the consumer.
         /// </summary>
-        /// <param name="maxConcurrent">The maximum number of concurrent messages to process for this command type.</param>
         /// <param name="topic">The Kafka topic name for the command.</param>
         /// <param name="type">The command type.</param>
         /// <exception cref="Exception">Thrown if the consumer is not properly setup.</exception>
-        void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
+        void ICommandConsumer.RegisterCommandType(string topic, Type type)
         {
             if (commandHandlerAsync is null || commandHandlerAwaitAsync is null || commandHandlerWithResultAwaitAsync is null)
                 throw new Exception($"{nameof(KafkaConsumer)} is not setup");
@@ -240,7 +246,7 @@ namespace Zerra.CQRS.Kafka
                     throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, commandTypes, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync, MaxPollIntervalMs, resilientCommands));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrentCommands, commandCounter, topic, commandTypes, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync, MaxPollIntervalMs, resilientCommands));
                 OpenExchanges();
             }
         }
@@ -248,12 +254,11 @@ namespace Zerra.CQRS.Kafka
         /// <summary>
         /// Registers an event type with the consumer.
         /// </summary>
-        /// <param name="maxConcurrent">The maximum number of concurrent messages to process for this event type.</param>
         /// <param name="topic">The Kafka topic name for the event.</param>
         /// <param name="type">The event type.</param>
         /// <param name="eventConsumerMode">Whether every replica of this service gets its own consumer group or the replicas share one and compete for the events.</param>
         /// <exception cref="Exception">Thrown if the consumer is not properly setup.</exception>
-        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode)
+        void IEventConsumer.RegisterEventType(string topic, Type type, EventConsumerMode eventConsumerMode)
         {
             if (eventHandlerAsync is null || serviceName is null)
                 throw new Exception($"{nameof(KafkaConsumer)} is not setup");
@@ -265,7 +270,7 @@ namespace Zerra.CQRS.Kafka
                     throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, eventTypes, serializer, encryptor, compressor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync, MaxPollIntervalMs));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrentEvents, topic, eventTypes, serializer, encryptor, compressor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync, MaxPollIntervalMs));
                 OpenExchanges();
             }
         }

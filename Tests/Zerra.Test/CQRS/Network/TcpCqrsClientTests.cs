@@ -571,9 +571,9 @@ namespace Zerra.Test.CQRS.Network
         {
             using var server = new FakeServer(null, Respond);
             using var client = CreateClient(server, null);
-            ((IQueryClient)client).RegisterInterfaceType(1, typeof(ITestQueryHandler));
-            ((ICommandProducer)client).RegisterCommandType(1, "other", typeof(TestCommand));
-            ((IEventProducer)client).RegisterEventType(1, "other", typeof(TestEvent));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
+            ((ICommandProducer)client).RegisterCommandType("other", typeof(TestCommand));
+            ((IEventProducer)client).RegisterEventType("other", typeof(TestEvent));
 
             await RunAsync(client, Operation.CallTaskGeneric, token: TestContext.Current.CancellationToken);
             await RunAsync(client, Operation.Dispatch, token: TestContext.Current.CancellationToken);
@@ -610,11 +610,11 @@ namespace Zerra.Test.CQRS.Network
         private static TcpCqrsClient CreateClient(FakeServer server, IEncryptor? encryptor, ICompressor? compressor = null, Zerra.Logging.ILogger? log = null)
         {
             var client = new TcpCqrsClient(server.Url, serializer, encryptor, compressor, log);
-            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommand));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithStream));
-            ((IEventProducer)client).RegisterEventType(10, "test", typeof(TestEvent));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommand));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommandWithResult));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommandWithStream));
+            ((IEventProducer)client).RegisterEventType("test", typeof(TestEvent));
             return client;
         }
 

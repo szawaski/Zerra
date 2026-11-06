@@ -60,6 +60,23 @@ bus.AddCommandProducer<IOrderCommandHandler>(kafka);
 
 To send an event to several services over direct connections, register an event producer for each. The bus sends every event to all of them. A broker producer only needs registering once, since the broker delivers to every subscriber.
 
+## Concurrency Limits
+
+Each client, server, producer, and consumer limits how much it runs at once, and further messages wait. Set the limits on its constructor:
+
+```csharp
+var users = new TcpCqrsClient("user-service:9001", serializer, encryptor, null, log,
+    maxConcurrentQueries: 64, maxConcurrentCommands: 16, maxConcurrentEvents: 32);
+```
+
+| Limit | Default | Limits |
+|---|---|---|
+| `maxConcurrentQueries` | `ProcessorCount * 32` | each query interface |
+| `maxConcurrentCommands` | `ProcessorCount * 8` | each topic |
+| `maxConcurrentEvents` | `ProcessorCount * 16` | each topic |
+
+`TcpCqrsServer` and `HttpCqrsServer` apply each limit to the whole server instead, so queries, commands, and events never wait on each other. Broker producers and consumers take the command and event limits, and each Kestrel server component takes the one for what it receives.
+
 ## Local and Remote Together
 
 A service can handle some interfaces itself and call others remotely. The calling code looks the same either way:
@@ -83,14 +100,11 @@ var bus = Bus.New(
     defaultCallTimeout: TimeSpan.FromSeconds(30),
     defaultDispatchTimeout: TimeSpan.FromSeconds(5),
     defaultDispatchAwaitTimeout: TimeSpan.FromSeconds(60),
-    maxConcurrentQueries: Environment.ProcessorCount * 32,
-    maxConcurrentCommandsPerTopic: Environment.ProcessorCount * 8,
-    maxConcurrentEventsPerTopic: Environment.ProcessorCount * 16,
     shutdownTimeout: TimeSpan.FromSeconds(30)
 );
 ```
 
-The concurrency limits and `shutdownTimeout` shown are the defaults. `shutdownTimeout` is described in [Server Setup](ServerSetup.md#shutdown).
+The `shutdownTimeout` shown is the default. `shutdownTimeout` is described in [Server Setup](ServerSetup.md#shutdown).
 
 ### Timeout Configuration
 

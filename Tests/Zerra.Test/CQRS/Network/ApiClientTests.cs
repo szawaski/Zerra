@@ -106,7 +106,7 @@ namespace Zerra.Test.CQRS.Network
         {
             using var server = new FakeGateway(_ => serializer.SerializeBytes(42));
             using var client = new ApiClient(server.Url["http://".Length..], serializer, null, null);
-            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
 
             Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
         }
@@ -122,7 +122,7 @@ namespace Zerra.Test.CQRS.Network
             }
             var log = new ErrorLog();
             using var client = new ApiClient($"http://127.0.0.1:{port}/", serializer, log, null);
-            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
 
             //the failure happens in the returned task, nothing is listening
             _ = await Assert.ThrowsAnyAsync<Exception>(() => ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
@@ -265,7 +265,7 @@ namespace Zerra.Test.CQRS.Network
             }, TestContext.Current.CancellationToken);
 
             using var client = new ApiClient(listenerUrl, jsonSerializer, null, null);
-            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
             Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
             await serving;
             Assert.StartsWith(contentType == ContentType.Json ? HttpCommon.ContentTypeJson : HttpCommon.ContentTypeJsonNameless, received);
@@ -278,7 +278,7 @@ namespace Zerra.Test.CQRS.Network
         {
             using var server = new FakeGateway(_ => serializer.SerializeBytes(42), route: "api");
             using var client = new ApiClient(server.Url, serializer, null, null, route);
-            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
 
             Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
             Assert.Equal("/api", Assert.Single(server.Paths));
@@ -298,10 +298,10 @@ namespace Zerra.Test.CQRS.Network
         private static ApiClient CreateClient(FakeGateway server, ICqrsAuthorizer? authorizer = null, ILogger? log = null)
         {
             var client = new ApiClient(server.Url, serializer, log, authorizer);
-            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommand));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));
-            ((IEventProducer)client).RegisterEventType(10, "test", typeof(TestEvent));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommand));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommandWithResult));
+            ((IEventProducer)client).RegisterEventType("test", typeof(TestEvent));
             return client;
         }
 

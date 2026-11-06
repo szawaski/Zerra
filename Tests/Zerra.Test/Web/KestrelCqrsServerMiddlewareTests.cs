@@ -353,19 +353,19 @@ namespace Zerra.Test.Web
 
             IQueryServer queryServer = new KestrelCqrsServerQueryServer(settings);
             queryServer.Setup(query ?? ((_, _, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(null))));
-            queryServer.RegisterInterfaceType(10, typeof(ITestQueryHandler));
+            queryServer.RegisterInterfaceType(typeof(ITestQueryHandler));
 
             ICommandConsumer commandConsumer = new KestrelCqrsServerCommandConsumer(settings);
             commandConsumer.Setup(commandCounter,
                 command ?? ((_, _, _) => Task.CompletedTask),
                 commandAwait ?? ((_, _, _) => Task.CompletedTask),
                 commandWithResult ?? ((_, _, _) => Task.FromResult<object?>(null)));
-            commandConsumer.RegisterCommandType(10, "test", typeof(TestCommand));
-            commandConsumer.RegisterCommandType(10, "test", typeof(TestCommandWithResult));
+            commandConsumer.RegisterCommandType("test", typeof(TestCommand));
+            commandConsumer.RegisterCommandType("test", typeof(TestCommandWithResult));
 
             IEventConsumer eventConsumer = new KestrelCqrsServerEventConsumer(settings);
             eventConsumer.Setup("test-service", @event ?? ((_, _) => Task.CompletedTask));
-            eventConsumer.RegisterEventType(10, "test", typeof(TestEvent), EventConsumerMode.PerReplica);
+            eventConsumer.RegisterEventType("test", typeof(TestEvent), EventConsumerMode.PerReplica);
 
             return settings;
         }

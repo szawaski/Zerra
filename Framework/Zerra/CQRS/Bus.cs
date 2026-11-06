@@ -53,9 +53,6 @@ namespace Zerra.CQRS
         private readonly TimeSpan? defaultCallTimeout;
         private readonly TimeSpan? defaultDispatchTimeout;
         private readonly TimeSpan? defaultDispatchAwaitTimeout;
-        private readonly int maxConcurrentQueries;
-        private readonly int maxConcurrentCommandsPerTopic;
-        private readonly int maxConcurrentEventsPerTopic;
         private readonly TimeSpan shutdownTimeout;
 
         /// <summary>
@@ -68,34 +65,25 @@ namespace Zerra.CQRS
         /// <param name="defaultCallTimeout">Optional default timeout for query calls.</param>
         /// <param name="defaultDispatchTimeout">Optional default timeout for command dispatch without waiting for acknowledgment.</param>
         /// <param name="defaultDispatchAwaitTimeout">Optional default timeout for command dispatch while waiting for acknowledgment.</param>
-        /// <param name="maxConcurrentQueries">Optional maximum concurrent queries; defaults to ProcessorCount * 32.</param>
-        /// <param name="maxConcurrentCommandsPerTopic">Optional maximum concurrent commands per topic; defaults to ProcessorCount * 8.</param>
-        /// <param name="maxConcurrentEventsPerTopic">Optional maximum concurrent events per topic; defaults to ProcessorCount * 16.</param>
         /// <param name="shutdownTimeout">Optional limit on how long stopping waits while the servers and consumers are disposed, each waiting for the queries, commands, and events it already received to finish. After it the clients are disposed and stopping returns, nothing is cancelled; defaults to 30 seconds.</param>
         /// <returns>A configured bus setup instance ready for handler and producer/consumer registration.</returns>
         public static IBusSetup New(string serviceName, ILogger? log = null, IBusLogger? busLog = null, BusServices? busServices = null,
-            TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
-            int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null, TimeSpan? shutdownTimeout = null)
+            TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null, TimeSpan? shutdownTimeout = null)
         {
             var bus = new Bus(serviceName, log, busLog, busServices,
-                defaultCallTimeout, defaultDispatchTimeout, defaultDispatchAwaitTimeout,
-                maxConcurrentQueries, maxConcurrentCommandsPerTopic, maxConcurrentEventsPerTopic, shutdownTimeout);
+                defaultCallTimeout, defaultDispatchTimeout, defaultDispatchAwaitTimeout, shutdownTimeout);
             Bus.staticBus = bus;
             return bus;
         }
 
         private Bus(string serviceName, ILogger? log, IBusLogger? busLog, BusServices? busServices,
-            TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null,
-            int? maxConcurrentQueries = null, int? maxConcurrentCommandsPerTopic = null, int? maxConcurrentEventsPerTopic = null, TimeSpan? shutdownTimeout = null)
+            TimeSpan? defaultCallTimeout = null, TimeSpan? defaultDispatchTimeout = null, TimeSpan? defaultDispatchAwaitTimeout = null, TimeSpan? shutdownTimeout = null)
         {
             this.context = new BusContext(this, serviceName, log, busServices);
             this.busLog = busLog;
             this.defaultCallTimeout = defaultCallTimeout;
             this.defaultDispatchTimeout = defaultDispatchTimeout;
             this.defaultDispatchAwaitTimeout = defaultDispatchAwaitTimeout;
-            this.maxConcurrentQueries = maxConcurrentQueries ?? Environment.ProcessorCount * 32;
-            this.maxConcurrentCommandsPerTopic = maxConcurrentCommandsPerTopic ?? Environment.ProcessorCount * 8;
-            this.maxConcurrentEventsPerTopic = maxConcurrentEventsPerTopic ?? Environment.ProcessorCount * 16;
             this.shutdownTimeout = shutdownTimeout ?? TimeSpan.FromSeconds(30);
         }
 
@@ -1418,7 +1406,7 @@ namespace Zerra.CQRS
                     context.Log?.Error($"Cannot add Command Producer: type already added as Producer {commandType.Name}");
                     continue;
                 }
-                commandProducer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
+                commandProducer.RegisterCommandType(topic, commandType);
                 commandProducers ??= new();
                 commandProducers.Add(commandType, commandProducer);
                 handledTypes ??= new();
@@ -1476,7 +1464,7 @@ namespace Zerra.CQRS
                     context.Log?.Error($"Cannot add Command Consumer: type already added as Producer {commandType.Name}");
                     continue;
                 }
-                commandConsumer.RegisterCommandType(maxConcurrentCommandsPerTopic, topic, commandType);
+                commandConsumer.RegisterCommandType(topic, commandType);
                 handledTypes ??= new();
                 _ = handledTypes.Add(commandType);
                 handledTypesByName ??= new();
@@ -1519,7 +1507,7 @@ namespace Zerra.CQRS
                     context.Log?.Error($"Cannot add Event Producer: the same producer is already added for {eventType.Name}");
                     continue;
                 }
-                eventProducer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType);
+                eventProducer.RegisterEventType(topic, eventType);
                 eventProducerList.Add(eventProducer);
                 handledTypes ??= new();
                 _ = handledTypes.Add(eventType);
@@ -1553,7 +1541,7 @@ namespace Zerra.CQRS
             var topic = info.InterfaceName;
             foreach (var eventType in info.EventTypes)
             {
-                eventConsumer.RegisterEventType(maxConcurrentEventsPerTopic, topic, eventType, eventConsumerMode);
+                eventConsumer.RegisterEventType(topic, eventType, eventConsumerMode);
                 handledTypes ??= new();
                 _ = handledTypes.Add(eventType);
                 handledTypesByName ??= new();
@@ -1585,7 +1573,7 @@ namespace Zerra.CQRS
                 context.Log?.Error($"Cannot add Query Client: type already added as Client {interfaceType.Name}");
                 return;
             }
-            queryClient.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
+            queryClient.RegisterInterfaceType(interfaceType);
             queryClients ??= new();
             queryClients.Add(interfaceType, queryClient);
             handledTypes ??= new();
@@ -1616,7 +1604,7 @@ namespace Zerra.CQRS
                 context.Log?.Error($"Cannot add Query Server: type already added as Client {interfaceType.Name}");
                 return;
             }
-            queryServer.RegisterInterfaceType(maxConcurrentQueries, interfaceType);
+            queryServer.RegisterInterfaceType(interfaceType);
             handledTypes ??= new();
             _ = handledTypes.Add(interfaceType);
             handledTypesByName ??= new();

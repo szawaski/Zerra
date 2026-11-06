@@ -38,10 +38,10 @@ namespace Zerra.Test.Web
             server.Dispose();
             await server.DisposeAsync();
 
-            queryServer.RegisterInterfaceType(1, typeof(First.ISameName));
-            queryServer.RegisterInterfaceType(5, typeof(First.ISameName));
+            queryServer.RegisterInterfaceType(typeof(First.ISameName));
+            queryServer.RegisterInterfaceType(typeof(First.ISameName));
             Assert.Equal(typeof(First.ISameName), settings.Types[nameof(First.ISameName)].Type);
-            _ = Assert.Throws<InvalidOperationException>(() => queryServer.RegisterInterfaceType(1, typeof(Second.ISameName)));
+            _ = Assert.Throws<InvalidOperationException>(() => queryServer.RegisterInterfaceType(typeof(Second.ISameName)));
         }
 
         [Fact]
@@ -56,9 +56,9 @@ namespace Zerra.Test.Web
             consumer.Dispose();
             await consumer.DisposeAsync();
 
-            commandConsumer.RegisterCommandType(1, "topic", typeof(First.SameCommand));
-            commandConsumer.RegisterCommandType(1, "topic", typeof(First.SameCommand));
-            _ = Assert.Throws<InvalidOperationException>(() => commandConsumer.RegisterCommandType(1, "topic", typeof(Second.SameCommand)));
+            commandConsumer.RegisterCommandType("topic", typeof(First.SameCommand));
+            commandConsumer.RegisterCommandType("topic", typeof(First.SameCommand));
+            _ = Assert.Throws<InvalidOperationException>(() => commandConsumer.RegisterCommandType("topic", typeof(Second.SameCommand)));
 
             HandleRemoteCommandDispatch handler = (_, _, _) => Task.CompletedTask;
             HandleRemoteCommandWithResultDispatch withResult = (_, _, _) => Task.FromResult<object?>(null);
@@ -80,9 +80,9 @@ namespace Zerra.Test.Web
             consumer.Dispose();
             await consumer.DisposeAsync();
 
-            eventConsumer.RegisterEventType(1, "topic", typeof(First.SameEvent), EventConsumerMode.PerService);
-            eventConsumer.RegisterEventType(1, "topic", typeof(First.SameEvent), EventConsumerMode.PerService);
-            _ = Assert.Throws<InvalidOperationException>(() => eventConsumer.RegisterEventType(1, "topic", typeof(Second.SameEvent), EventConsumerMode.PerService));
+            eventConsumer.RegisterEventType("topic", typeof(First.SameEvent), EventConsumerMode.PerService);
+            eventConsumer.RegisterEventType("topic", typeof(First.SameEvent), EventConsumerMode.PerService);
+            _ = Assert.Throws<InvalidOperationException>(() => eventConsumer.RegisterEventType("topic", typeof(Second.SameEvent), EventConsumerMode.PerService));
 
             HandleRemoteEventDispatch handler = (_, _) => Task.CompletedTask;
             eventConsumer.Setup("service", handler);

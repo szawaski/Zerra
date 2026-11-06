@@ -17,12 +17,16 @@ namespace Zerra.Web
     {
         private readonly KestrelCqrsServerLinkedSettings settings;
 
+        private readonly int maxConcurrentQueries;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="KestrelCqrsServerQueryServer"/> class.
         /// </summary>
         /// <param name="settings">The server settings for managing registered types and handlers.</param>
-        public KestrelCqrsServerQueryServer(KestrelCqrsServerLinkedSettings settings)
+        /// <param name="maxConcurrentQueries">Optional maximum concurrent queries for each query interface; defaults to ProcessorCount * 32.</param>
+        public KestrelCqrsServerQueryServer(KestrelCqrsServerLinkedSettings settings, int? maxConcurrentQueries = null)
         {
+            this.maxConcurrentQueries = maxConcurrentQueries ?? Environment.ProcessorCount * 32;
             this.settings = settings;
         }
 
@@ -67,9 +71,8 @@ namespace Zerra.Web
         /// Registers the type and creates a semaphore to control concurrent query processing.
         /// Thread-safe for concurrent registration of multiple types.
         /// </remarks>
-        /// <param name="maxConcurrent">The maximum number of concurrent queries for this type.</param>
         /// <param name="type">The query interface type to register.</param>
-        public void RegisterInterfaceType(int maxConcurrent, Type type)
+        public void RegisterInterfaceType(Type type)
         {
             lock (settings.Types)
             {
@@ -79,7 +82,7 @@ namespace Zerra.Web
                         throw new InvalidOperationException($"{type.FullName} has the same name as {registered.Type.FullName}, the name is what's sent between services");
                     return;
                 }
-                var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+                var throttle = new SemaphoreSlim(maxConcurrentQueries, maxConcurrentQueries);
                 if (!settings.Types.TryAdd(type.Name, (type, throttle)))
                     throttle.Dispose();
             }

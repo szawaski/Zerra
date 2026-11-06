@@ -673,11 +673,11 @@ namespace Zerra.Test.CQRS.Network
         private static HttpCqrsClient CreateClient(FakeServer server, IEncryptor? encryptor, ICqrsAuthorizer? authorizer = null, ICompressor? compressor = null, Zerra.Logging.ILogger? log = null)
         {
             var client = new HttpCqrsClient(server.Url, serializer, encryptor, compressor, authorizer, log);
-            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommand));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithStream));
-            ((IEventProducer)client).RegisterEventType(10, "test", typeof(TestEvent));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommand));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommandWithResult));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommandWithStream));
+            ((IEventProducer)client).RegisterEventType("test", typeof(TestEvent));
             return client;
         }
 

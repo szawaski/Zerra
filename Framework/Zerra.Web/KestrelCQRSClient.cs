@@ -42,7 +42,10 @@ namespace Zerra.Web
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="authorizer">Optional authorizer for providing custom authentication headers.</param>
         /// <param name="route">Optional route path to append to the endpoint (e.g., "/cqrs").</param>
-        public KestrelCqrsClient(string endpoint, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, ICqrsAuthorizer? authorizer, string? route) : base(endpoint, log)
+        /// <param name="maxConcurrentQueries">Optional maximum concurrent queries for each query interface; defaults to ProcessorCount * 32.</param>
+        /// <param name="maxConcurrentCommands">Optional maximum concurrent commands for each topic; defaults to ProcessorCount * 8.</param>
+        /// <param name="maxConcurrentEvents">Optional maximum concurrent events for each topic; defaults to ProcessorCount * 16.</param>
+        public KestrelCqrsClient(string endpoint, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, ICqrsAuthorizer? authorizer, string? route, int? maxConcurrentQueries = null, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null) : base(endpoint, log, maxConcurrentQueries, maxConcurrentCommands, maxConcurrentEvents)
         {
             this.serializer = serializer;
             this.encryptor = encryptor;

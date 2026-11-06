@@ -17,12 +17,16 @@ namespace Zerra.Web
     {
         private readonly KestrelCqrsServerLinkedSettings settings;
 
+        private readonly int maxConcurrentEvents;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="KestrelCqrsServerEventConsumer"/> class.
         /// </summary>
         /// <param name="settings">The server settings for managing registered types and handlers.</param>
-        public KestrelCqrsServerEventConsumer(KestrelCqrsServerLinkedSettings settings)
+        /// <param name="maxConcurrentEvents">Optional maximum concurrent events for each topic; defaults to ProcessorCount * 16.</param>
+        public KestrelCqrsServerEventConsumer(KestrelCqrsServerLinkedSettings settings, int? maxConcurrentEvents = null)
         {
+            this.maxConcurrentEvents = maxConcurrentEvents ?? Environment.ProcessorCount * 16;
             this.settings = settings;
         }
 
@@ -83,11 +87,10 @@ namespace Zerra.Web
         /// Registers the type and creates a semaphore to control concurrent event processing.
         /// Thread-safe for concurrent registration of multiple types.
         /// </remarks>
-        /// <param name="maxConcurrent">The maximum number of concurrent event handlers for this type.</param>
         /// <param name="topic">The topic or routing key for this event type (not used for Kestrel).</param>
         /// <param name="type">The event type to register.</param>
         /// <param name="eventConsumerMode">Not used for Kestrel; the producer's client urls decide whether every replica or one of them receives each event.</param>
-        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode)
+        void IEventConsumer.RegisterEventType(string topic, Type type, EventConsumerMode eventConsumerMode)
         {
             if (settings.Types.TryGetValue(type.Name, out var registered))
             {
@@ -95,7 +98,7 @@ namespace Zerra.Web
                     throw new InvalidOperationException($"{type.FullName} has the same name as {registered.Type.FullName}, the name is what's sent between services");
                 return;
             }
-            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            var throttle = new SemaphoreSlim(maxConcurrentEvents, maxConcurrentEvents);
             if (!settings.Types.TryAdd(type.Name, (type, throttle)))
                 throttle.Dispose();
         }

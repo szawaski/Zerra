@@ -292,7 +292,7 @@ app.UseCqrsApiGateway("/CQRS");
 
 ## Configuration
 
-- **Timeouts, concurrency limits, and shutdown:** the [Bus options](ClientSetup.md#bus-options).
+- **Timeouts and shutdown:** the [Bus options](ClientSetup.md#bus-options). **Concurrency limits:** [Concurrency Limits](ClientSetup.md#concurrency-limits).
 - **Services for handlers:** register them by interface in `BusServices` and get them with `Context.GetService<T>()`. See [Service Injection](ServiceInjection.md).
 - **Logging:** `ILogger` for messages, and `IBusLogger` for the start and end of every command, event, and query. See [Logging](Logging.md).
 - **Serialization, encryption, and compression:** `NetworkByteSerializer` between services, `NetworkJsonSerializer` for browsers, `ZerraEncryptor` with a shared key, and optionally `ZerraCompressor` for large payloads. See [Serializers](Serializers.md), [Encryptors](Encryptors.md), and [Compressors](Compressors.md).

@@ -14,7 +14,7 @@ namespace Zerra.CQRS.Test
     /// </summary>
     public static class MessageEdgeTest
     {
-        private const int maxConcurrent = 4;
+        public const int MaxConcurrent = 4;
         private const string source = "EdgeSource";
         private const string claimType = "edge-claim";
         private static readonly TimeSpan messageTimeout = TimeSpan.FromSeconds(60);
@@ -37,15 +37,15 @@ namespace Zerra.CQRS.Test
             Assert.False(String.IsNullOrWhiteSpace(commandConsumer.MessageHost));
             Assert.False(String.IsNullOrWhiteSpace(eventConsumer.MessageHost));
 
-            _ = Assert.ThrowsAny<Exception>(() => commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand)));
-            _ = Assert.ThrowsAny<Exception>(() => eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica));
+            _ = Assert.ThrowsAny<Exception>(() => commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommand)));
+            _ = Assert.ThrowsAny<Exception>(() => eventConsumer.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica));
 
             commandConsumer.Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null));
             eventConsumer.Setup("EdgeService", (_, _) => Task.CompletedTask);
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
-            _ = Assert.Throws<InvalidOperationException>(() => commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(Other.TestCommand)));
-            _ = Assert.Throws<InvalidOperationException>(() => eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(Other.TestEvent), EventConsumerMode.PerReplica));
+            commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            eventConsumer.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
+            _ = Assert.Throws<InvalidOperationException>(() => commandConsumer.RegisterCommandType(commandTopic, typeof(Other.TestCommand)));
+            _ = Assert.Throws<InvalidOperationException>(() => eventConsumer.RegisterEventType(eventTopic, typeof(Other.TestEvent), EventConsumerMode.PerReplica));
 
             _ = await Assert.ThrowsAnyAsync<Exception>(() => commandProducer.DispatchAsync(new TestCommand(), source, cancellationToken));
             _ = await Assert.ThrowsAnyAsync<Exception>(() => commandProducer.DispatchAwaitAsync(new TestCommand(), source, cancellationToken));
@@ -72,10 +72,10 @@ namespace Zerra.CQRS.Test
                 (command, _, _) => { Expect(((TestCommand)command).ID).TrySetResult(); return Task.CompletedTask; },
                 (command, _, _) => Task.FromResult<object?>(null));
             eventConsumer.Setup("EdgeService", (@event, eventSource) => { Expect(((TestEvent)@event).ID).TrySetResult(); return Task.CompletedTask; });
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+            commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            eventConsumer.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            eventProducer.RegisterEventType(eventTopic, typeof(TestEvent));
 
             async Task SendUntilReceived(bool isEvent)
             {
@@ -145,10 +145,10 @@ namespace Zerra.CQRS.Test
                 (_, _, _) => { _ = Interlocked.Increment(ref handled); return Task.CompletedTask; },
                 (_, _, _) => { _ = Interlocked.Increment(ref handled); return Task.CompletedTask; },
                 (command, _, _) => Task.FromResult<object?>(((TestCommandWithResult)command).Value));
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
+            commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommandWithResult));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommandWithResult));
 
             commandConsumer.Open();
             try
@@ -179,12 +179,12 @@ namespace Zerra.CQRS.Test
                 (command, _, _) => { _ = Expect(((TestCommand)command).ID).TrySetResult(Claim()); return Task.CompletedTask; },
                 (command, _, _) => { var c = (TestCommandWithResult)command; _ = Expect(c.ID).TrySetResult(Claim()); return Task.FromResult<object?>(c.Value + 1); });
             eventConsumer.Setup("EdgeService", (@event, eventSource) => { _ = Expect(((TestEvent)@event).ID).TrySetResult(Claim()); return Task.CompletedTask; });
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
-            eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
-            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+            commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommandWithResult));
+            eventConsumer.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommandWithResult));
+            eventProducer.RegisterEventType(eventTopic, typeof(TestEvent));
 
             commandConsumer.Open();
             eventConsumer.Open();

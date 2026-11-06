@@ -286,7 +286,6 @@ Central message router created via `Bus.New()`:
 - `busLog`: Optional `IBusLogger` for cross-service logging
 - `busServices`: Optional `BusServices` containing registered dependencies
 - `defaultCallTimeout`, `defaultDispatchTimeout`, `defaultDispatchAwaitTimeout`: Optional `TimeSpan` timeouts
-- `maxConcurrentQueries`, `maxConcurrentCommandsPerTopic`, `maxConcurrentEventsPerTopic`: Optional concurrency limits
 - `shutdownTimeout`: Limits how long stopping waits while the servers and consumers finish what they already received (default 30 seconds); nothing is cancelled when it passes
 
 `Bus.New()` returns `IBusSetup` (which extends `IBus`) and also sets the static `Bus` instance.
@@ -370,11 +369,14 @@ Handler registered locally → invoked in-process immediately
 
 ## Concurrency & Throttling
 
+Each client, server, producer, and consumer takes its limits in its constructor (defaults shown):
 ```csharp
-maxConcurrentQueries = Environment.ProcessorCount * 32
-maxConcurrentCommandsPerTopic = Environment.ProcessorCount * 8
-maxConcurrentEventsPerTopic = Environment.ProcessorCount * 16
+new TcpCqrsServer(url, serializer, encryptor, compressor, log,
+    maxConcurrentQueries: Environment.ProcessorCount * 32,
+    maxConcurrentCommands: Environment.ProcessorCount * 8,
+    maxConcurrentEvents: Environment.ProcessorCount * 16);
 ```
+Clients, producers, and consumers apply them to each query interface or topic. `TcpCqrsServer` and `HttpCqrsServer` apply each to the whole server. Broker components take only the command and event limits, and each Kestrel server component takes the one for what it receives.
 
 **Exit after N commands**: a command consumer added with `commandToReceiveUntilExit` exits the service once it has handled that many. It serves only that one interface:
 ```csharp

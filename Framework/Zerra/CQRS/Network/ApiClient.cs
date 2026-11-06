@@ -28,7 +28,10 @@ namespace Zerra.CQRS.Network
         /// <param name="log">An optional logger for diagnostic messages.</param>
         /// <param name="authorizer">An optional authorizer for adding headers needed for the server to validate requests.</param>
         /// <param name="route">An optional route argument to append to the base endpoint URL.</param>
-        public ApiClient(string endpoint, INetworkSerializer serializer, ILogger? log, ICqrsAuthorizer? authorizer, string? route = null) : base(endpoint, log)
+        /// <param name="maxConcurrentQueries">Optional maximum concurrent queries for each query interface; defaults to ProcessorCount * 32.</param>
+        /// <param name="maxConcurrentCommands">Optional maximum concurrent commands for each topic; defaults to ProcessorCount * 8.</param>
+        /// <param name="maxConcurrentEvents">Optional maximum concurrent events for each topic; defaults to ProcessorCount * 16.</param>
+        public ApiClient(string endpoint, INetworkSerializer serializer, ILogger? log, ICqrsAuthorizer? authorizer, string? route = null, int? maxConcurrentQueries = null, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null) : base(endpoint, log, maxConcurrentQueries, maxConcurrentCommands, maxConcurrentEvents)
         {
             this.serializer = serializer;
             this.authorizer = authorizer;

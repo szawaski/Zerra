@@ -90,7 +90,7 @@ Only the handler knows whether repeating its work is safe, so these choices are 
 - **Timeouts.** `defaultCallTimeout`, `defaultDispatchTimeout`, and `defaultDispatchAwaitTimeout` on `Bus.New`, or a `TimeSpan` or `CancellationToken` per call. See [Client Setup](ClientSetup.md#timeout-configuration).
 - **Cancellation.** A query's token reaches the remote handler, so a caller that gives up stops the work too. See [Queries](Queries.md#cancellation-and-timeouts).
 - **Typed failures.** `CqrsServiceException` when a local or remote handler threw, `TimeoutException`, `OperationCanceledException`, and connection exceptions such as `CqrsNetworkException`. See [Client Setup](ClientSetup.md#errors).
-- **Bounded concurrency.** `maxConcurrentQueries`, `maxConcurrentCommandsPerTopic`, and `maxConcurrentEventsPerTopic` on `Bus.New` limit how much each client and server runs at once; further messages wait.
+- **Bounded concurrency.** `maxConcurrentQueries`, `maxConcurrentCommands`, and `maxConcurrentEvents` on each client, server, producer, and consumer limit how much it runs at once; further messages wait. See [Concurrency Limits](ClientSetup.md#concurrency-limits).
 - **Per-hop logging.** An `IBusLogger` records each message's source, service, duration, and exception on both ends. See [Logging](Logging.md#ibuslogger).
 
 Registration in `Program.cs` is the one place that says which interfaces are remote, one line per interface.

@@ -60,9 +60,17 @@ namespace Zerra.CQRS.Network
         /// </summary>
         protected static readonly Action<Task, object?> removeRunning = static (task, state) => _ = ((ConcurrentHashSet<Task>)state!).Remove(task);
         /// <summary>
-        /// A throttle to limit the number of requests processed simultaneously.
+        /// A throttle to limit the number of queries processed simultaneously.
         /// </summary>
-        protected SemaphoreSlim? throttle = null;
+        protected readonly SemaphoreSlim queryThrottle;
+        /// <summary>
+        /// A throttle to limit the number of commands processed simultaneously.
+        /// </summary>
+        protected readonly SemaphoreSlim commandThrottle;
+        /// <summary>
+        /// A throttle to limit the number of events processed simultaneously.
+        /// </summary>
+        protected readonly SemaphoreSlim eventThrottle;
 
         private readonly string serviceUrl;
         /// <summary>
@@ -76,12 +84,21 @@ namespace Zerra.CQRS.Network
         /// </summary>
         /// <param name="serviceUrl">The URL under which the socket will be listening.</param>
         /// <param name="log">The optional logging provider.</param>
-        public CqrsServerBase(string serviceUrl, ILogger? log)
+        /// <param name="maxConcurrentQueries">Optional maximum concurrent queries the server handles; defaults to ProcessorCount * 32.</param>
+        /// <param name="maxConcurrentCommands">Optional maximum concurrent commands the server handles; defaults to ProcessorCount * 8.</param>
+        /// <param name="maxConcurrentEvents">Optional maximum concurrent events the server handles; defaults to ProcessorCount * 16.</param>
+        public CqrsServerBase(string serviceUrl, ILogger? log, int? maxConcurrentQueries = null, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null)
         {
             this.serviceUrl = serviceUrl;
             this.log = log;
             this.types = new();
             this.thisType = this.GetType();
+            var queries = maxConcurrentQueries ?? Environment.ProcessorCount * 32;
+            this.queryThrottle = new SemaphoreSlim(queries, queries);
+            var commands = maxConcurrentCommands ?? Environment.ProcessorCount * 8;
+            this.commandThrottle = new SemaphoreSlim(commands, commands);
+            var events = maxConcurrentEvents ?? Environment.ProcessorCount * 16;
+            this.eventThrottle = new SemaphoreSlim(events, events);
         }
 
         string IQueryServer.ServiceUrl => serviceUrl;
@@ -93,7 +110,7 @@ namespace Zerra.CQRS.Network
             this.providerHandlerAsync = handlerAsync;
         }
 
-        void IQueryServer.RegisterInterfaceType(int maxConcurrent, Type type)
+        void IQueryServer.RegisterInterfaceType(Type type)
         {
             if (types.TryGetValue(type.Name, out var existing))
             {
@@ -101,10 +118,6 @@ namespace Zerra.CQRS.Network
                     throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
                 return;
             }
-
-            if (throttle is not null)
-                throttle.Dispose();
-            throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
             _ = types.TryAdd(type.Name, type);
         }
@@ -119,7 +132,7 @@ namespace Zerra.CQRS.Network
             this.commandHandlerWithResultAwaitAsync = handlerWithResultAwaitAsync;
         }
 
-        void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
+        void ICommandConsumer.RegisterCommandType(string topic, Type type)
         {
             if (types.TryGetValue(type.Name, out var existing))
             {
@@ -127,10 +140,6 @@ namespace Zerra.CQRS.Network
                     throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
                 return;
             }
-
-            if (throttle is not null)
-                throttle.Dispose();
-            throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
             _ = types.TryAdd(type.Name, type);
         }
@@ -144,7 +153,7 @@ namespace Zerra.CQRS.Network
 
         //the producer decides who gets a copy for a direct connection: a client per replica url reaches every replica, one load balanced url reaches one of them,
         //so the server has nothing to change for the mode
-        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode)
+        void IEventConsumer.RegisterEventType(string topic, Type type, EventConsumerMode eventConsumerMode)
         {
             if (types.TryGetValue(type.Name, out var existing))
             {
@@ -152,10 +161,6 @@ namespace Zerra.CQRS.Network
                     throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
                 return;
             }
-
-            if (throttle is not null)
-                throttle.Dispose();
-            throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
             _ = types.TryAdd(type.Name, type);
         }

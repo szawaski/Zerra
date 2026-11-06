@@ -42,6 +42,9 @@ namespace Zerra.CQRS.AzureServiceBus
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, TaskCompletionSource<Acknowledgement>> ackCallbacks;
 
+        private readonly int maxConcurrentCommands;
+        private readonly int maxConcurrentEvents;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="AzureServiceBusProducer"/> class.
         /// </summary>
@@ -51,9 +54,13 @@ namespace Zerra.CQRS.AzureServiceBus
         /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information.</param>
         /// <param name="environment">Optional environment name to prefix queue and topic names for isolation.</param>
+        /// <param name="maxConcurrentCommands">Optional maximum concurrent commands for each topic; defaults to ProcessorCount * 8.</param>
+        /// <param name="maxConcurrentEvents">Optional maximum concurrent events for each topic; defaults to ProcessorCount * 16.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public AzureServiceBusProducer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment)
+        public AzureServiceBusProducer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null)
         {
+            this.maxConcurrentCommands = maxConcurrentCommands ?? Environment.ProcessorCount * 8;
+            this.maxConcurrentEvents = maxConcurrentEvents ?? Environment.ProcessorCount * 16;
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.commonNamespace = AzureServiceBusCommon.GetNamespace(host);
@@ -475,7 +482,7 @@ namespace Zerra.CQRS.AzureServiceBus
         }
 
 
-        void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
+        void ICommandProducer.RegisterCommandType(string topic, Type type)
         {
             if (queueByCommandType.ContainsKey(type))
                 return;
@@ -483,7 +490,7 @@ namespace Zerra.CQRS.AzureServiceBus
             _ = queueByCommandType.TryAdd(type, topic);
             if (throttleByQueueOrTopic.ContainsKey(topic))
                 return;
-            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            var throttle = new SemaphoreSlim(maxConcurrentCommands, maxConcurrentCommands);
             if (!throttleByQueueOrTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
             _ = senderByQueueOrTopic.TryAdd(topic, client.CreateSender(topic));
@@ -522,7 +529,7 @@ namespace Zerra.CQRS.AzureServiceBus
             }
         }
 
-        void IEventProducer.RegisterEventType(int maxConcurrent, string topic, Type type)
+        void IEventProducer.RegisterEventType(string topic, Type type)
         {
             if (topicByEventType.ContainsKey(type))
                 return;
@@ -530,7 +537,7 @@ namespace Zerra.CQRS.AzureServiceBus
             _ = topicByEventType.TryAdd(type, topic);
             if (throttleByQueueOrTopic.ContainsKey(topic))
                 return;
-            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            var throttle = new SemaphoreSlim(maxConcurrentEvents, maxConcurrentEvents);
             if (!throttleByQueueOrTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
             _ = senderByQueueOrTopic.TryAdd(topic, client.CreateSender(topic));

@@ -16,7 +16,7 @@ namespace Zerra.CQRS.Test
     public static class MessageTest
     {
         private const string source = "Zerra.CQRS.Test";
-        private const int maxConcurrent = 10;
+        public const int MaxConcurrent = 10;
         private const string claimType = "ZerraMessageTest";
         private const string serviceName = "ZerraTestService";
         /// <summary>
@@ -48,14 +48,14 @@ namespace Zerra.CQRS.Test
             var receiver = new Receiver();
 
             commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
+            commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommandWithResult));
             eventConsumer.Setup(serviceName, receiver.HandleEventAsync);
-            eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
+            eventConsumer.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
 
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
-            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommandWithResult));
+            eventProducer.RegisterEventType(eventTopic, typeof(TestEvent));
 
             commandConsumer.Open();
             eventConsumer.Open();
@@ -92,13 +92,13 @@ namespace Zerra.CQRS.Test
 
             var receiver = new Receiver();
 
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommand));
             var command = new TestCommand() { ID = Guid.NewGuid(), Value = 23, Text = "SentBeforeConsumer" };
             var received = receiver.Expect(command.ID);
             await commandProducer.DispatchAsync(command, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken);
 
             commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommand));
             commandConsumer.Open();
             try
             {
@@ -129,27 +129,27 @@ namespace Zerra.CQRS.Test
             if (eventFirst)
             {
                 eventConsumer.Setup(serviceName, receiver.HandleEventAsync);
-                eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
+                eventConsumer.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
                 eventConsumer.Open();
             }
             commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopicA, typeof(TestCommand));
+            commandConsumer.RegisterCommandType(commandTopicA, typeof(TestCommand));
             commandConsumer.Open();
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopicB, typeof(TestCommandWithResult));
+            commandConsumer.RegisterCommandType(commandTopicB, typeof(TestCommandWithResult));
             commandConsumer.Open();
             if (!eventFirst)
             {
                 eventConsumer.Setup(serviceName, receiver.HandleEventAsync);
-                eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
+                eventConsumer.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
                 eventConsumer.Open();
             }
 
             _ = Assert.Throws<InvalidOperationException>(() => commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync));
             _ = Assert.Throws<InvalidOperationException>(() => eventConsumer.Setup(serviceName, receiver.HandleEventAsync));
 
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopicA, typeof(TestCommand));
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopicB, typeof(TestCommandWithResult));
-            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+            commandProducer.RegisterCommandType(commandTopicA, typeof(TestCommand));
+            commandProducer.RegisterCommandType(commandTopicB, typeof(TestCommandWithResult));
+            eventProducer.RegisterEventType(eventTopic, typeof(TestEvent));
 
             try
             {
@@ -177,10 +177,10 @@ namespace Zerra.CQRS.Test
             var received2 = new BlockingReceiver(release.Task);
 
             replica1.Setup(new CommandCounter(1, () => { }), received1.HandleCommandAsync, received1.HandleCommandAsync, received1.HandleCommandWithResultAwaitAsync);
-            replica1.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            replica1.RegisterCommandType(commandTopic, typeof(TestCommand));
             replica2.Setup(new CommandCounter(1, () => { }), received2.HandleCommandAsync, received2.HandleCommandAsync, received2.HandleCommandWithResultAwaitAsync);
-            replica2.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            replica2.RegisterCommandType(commandTopic, typeof(TestCommand));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommand));
 
             replica1.Open();
             replica2.Open();
@@ -216,10 +216,10 @@ namespace Zerra.CQRS.Test
             var blocked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
             replica1.Setup(null, received1.HandleCommandAsync, received1.HandleCommandAsync, received1.HandleCommandWithResultAwaitAsync);
-            replica1.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            replica1.RegisterCommandType(commandTopic, typeof(TestCommand));
             replica2.Setup(null, received2.HandleCommandAsync, received2.HandleCommandAsync, received2.HandleCommandWithResultAwaitAsync);
-            replica2.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            replica2.RegisterCommandType(commandTopic, typeof(TestCommand));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommand));
 
             replica1.Open();
             try
@@ -273,14 +273,14 @@ namespace Zerra.CQRS.Test
             foreach (var (replica, received) in new[] { (replica1, received1), (replica2, received2) })
             {
                 ((ICommandConsumer)replica).Setup(null, received.HandleCommandAsync, received.HandleCommandAsync, received.HandleCommandWithResultAsync);
-                ((ICommandConsumer)replica).RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-                ((ICommandConsumer)replica).RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
+                ((ICommandConsumer)replica).RegisterCommandType(commandTopic, typeof(TestCommand));
+                ((ICommandConsumer)replica).RegisterCommandType(commandTopic, typeof(TestCommandWithResult));
                 ((IEventConsumer)replica).Setup(serviceName, received.HandleEventAsync);
-                ((IEventConsumer)replica).RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
+                ((IEventConsumer)replica).RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
             }
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommandWithResult));
-            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommandWithResult));
+            eventProducer.RegisterEventType(eventTopic, typeof(TestEvent));
 
             ((ICommandConsumer)replica1).Open();
             ((IEventConsumer)replica1).Open();
@@ -325,8 +325,8 @@ namespace Zerra.CQRS.Test
 
                 foreach (var received in new[] { received1, received2 })
                 {
-                    Assert.InRange(received.MaxCommandsHandling, 0, maxConcurrent);
-                    Assert.InRange(received.MaxEventsHandling, 0, maxConcurrent);
+                    Assert.InRange(received.MaxCommandsHandling, 0, MaxConcurrent);
+                    Assert.InRange(received.MaxEventsHandling, 0, MaxConcurrent);
                 }
                 //handlers overlapped, how many depends on how fast the transport receives
                 Assert.True(Math.Max(received1.MaxCommandsHandling, received2.MaxCommandsHandling) > 1);
@@ -353,8 +353,8 @@ namespace Zerra.CQRS.Test
             var receiver = new Receiver();
 
             commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAwaitAsync, receiver.HandleCommandWithResultAwaitAsync);
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommand));
             commandConsumer.Open();
             try
             {
@@ -379,12 +379,12 @@ namespace Zerra.CQRS.Test
             var receiver = new CountingReceiver();
 
             commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAsync, receiver.HandleCommandWithResultAwaitAsync);
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommand));
             eventConsumer.Setup(ServiceAName, receiver.HandleEventAsync);
-            eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
+            eventConsumer.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
 
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            eventProducer.RegisterEventType(eventTopic, typeof(TestEvent));
 
             commandConsumer.Open();
             eventConsumer.Open();
@@ -527,8 +527,8 @@ namespace Zerra.CQRS.Test
 
         private static async Task TestDispatchAwaitAsyncConcurrent(ICommandProducer producer, CancellationToken cancellationToken)
         {
-            //more than maxConcurrent so the producer and consumer throttles are exercised
-            var commands = Enumerable.Range(0, maxConcurrent * 3).Select(x => new TestCommandWithResult() { ID = Guid.NewGuid(), Value = x }).ToArray();
+            //more than MaxConcurrent so the producer and consumer throttles are exercised
+            var commands = Enumerable.Range(0, MaxConcurrent * 3).Select(x => new TestCommandWithResult() { ID = Guid.NewGuid(), Value = x }).ToArray();
 
             var results = await Task.WhenAll(commands.Select(x => producer.DispatchAwaitAsync(x, source, cancellationToken))).WaitAsync(messageTimeout, cancellationToken);
 
@@ -593,7 +593,7 @@ namespace Zerra.CQRS.Test
 
         private static async Task TestEventsConcurrent(IEventProducer producer, Receiver receiver, CancellationToken cancellationToken)
         {
-            var events = Enumerable.Range(0, maxConcurrent * 3).Select(x => new TestEvent() { ID = Guid.NewGuid(), Value = x }).ToArray();
+            var events = Enumerable.Range(0, MaxConcurrent * 3).Select(x => new TestEvent() { ID = Guid.NewGuid(), Value = x }).ToArray();
             var received = events.Select(x => receiver.Expect(x.ID)).ToArray();
 
             await Task.WhenAll(events.Select(x => producer.DispatchAsync(x, source, cancellationToken))).WaitAsync(messageTimeout, cancellationToken);
@@ -617,13 +617,13 @@ namespace Zerra.CQRS.Test
             var receivedB = new EventReceiver();
 
             serviceAReplica1.Setup(ServiceAName, receivedA1.HandleEventAsync);
-            serviceAReplica1.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
+            serviceAReplica1.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
             serviceAReplica2.Setup(ServiceAName, receivedA2.HandleEventAsync);
-            serviceAReplica2.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
+            serviceAReplica2.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
             serviceB.Setup(ServiceBName, receivedB.HandleEventAsync);
-            serviceB.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
+            serviceB.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
 
-            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+            eventProducer.RegisterEventType(eventTopic, typeof(TestEvent));
 
             serviceAReplica1.Open();
             serviceAReplica2.Open();
@@ -637,7 +637,7 @@ namespace Zerra.CQRS.Test
                     await WaitUntil(() => receivedA1.Count + receivedA2.Count > 0 && receivedB.Count > 0, readyAttemptTimeout, attemptCancellationToken);
                 });
 
-                var events = Enumerable.Range(0, maxConcurrent * 3).Select(x => new TestEvent() { ID = Guid.NewGuid(), Value = x }).ToArray();
+                var events = Enumerable.Range(0, MaxConcurrent * 3).Select(x => new TestEvent() { ID = Guid.NewGuid(), Value = x }).ToArray();
                 var expected = events.Select(x => x.ID).OrderBy(x => x).ToArray();
 
                 await Task.WhenAll(events.Select(x => eventProducer.DispatchAsync(x, source, cancellationToken))).WaitAsync(messageTimeout, cancellationToken);
@@ -674,12 +674,12 @@ namespace Zerra.CQRS.Test
             var receiver = new SlowReceiver();
 
             commandConsumer.Setup(null, receiver.HandleCommandAsync, receiver.HandleCommandAsync, receiver.HandleCommandWithResultAwaitAsync);
-            commandConsumer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
+            commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommand));
             eventConsumer.Setup(serviceName, receiver.HandleEventAsync);
-            eventConsumer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
+            eventConsumer.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerReplica);
 
-            commandProducer.RegisterCommandType(maxConcurrent, commandTopic, typeof(TestCommand));
-            eventProducer.RegisterEventType(maxConcurrent, eventTopic, typeof(TestEvent));
+            commandProducer.RegisterCommandType(commandTopic, typeof(TestCommand));
+            eventProducer.RegisterEventType(eventTopic, typeof(TestEvent));
 
             commandConsumer.Open();
             eventConsumer.Open();

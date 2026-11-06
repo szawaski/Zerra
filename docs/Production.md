@@ -43,7 +43,7 @@ A handler's exception reaches the caller with its type name and message, includi
 ### Request Limits
 
 - The gateway runs inside ASP.NET Core, so Kestrel's request size limit and ASP.NET rate limiting apply ([Zerra.Web](ZerraWeb.md#production-checklist)). Stream uploads are let through on purpose.
-- Every client and server is bounded by `maxConcurrentQueries` and the per-topic command and event limits on `Bus.New`; further messages wait ([Client Setup](ClientSetup.md#bus-options)).
+- Every client, server, producer, and consumer is bounded by the concurrency limits on its constructor; further messages wait ([Concurrency Limits](ClientSetup.md#concurrency-limits)).
 
 ## Versioning and Rolling Deployments
 

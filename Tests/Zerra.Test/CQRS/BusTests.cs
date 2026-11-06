@@ -351,10 +351,10 @@ namespace Zerra.Test.CQRS
             var serializer = new NetworkByteSerializer();
 
             var handler = new LoadHandler();
-            var busServer = Bus.New("load-server", null, null, null, maxConcurrentCommandsPerTopic: maxConcurrent, maxConcurrentEventsPerTopic: maxConcurrent);
+            var busServer = Bus.New("load-server", null, null, null);
             busServer.AddHandler<ILoadCommandHandler>(handler);
             busServer.AddHandler<ILoadEventHandler>(handler);
-            var server = http ? (CqrsServerBase)new HttpCqrsServer(url, serializer, null, null, null, null) : new TcpCqrsServer(url, serializer, null, null, null);
+            var server = http ? (CqrsServerBase)new HttpCqrsServer(url, serializer, null, null, null, null, null, maxConcurrentCommands: maxConcurrent, maxConcurrentEvents: maxConcurrent) : new TcpCqrsServer(url, serializer, null, null, null, maxConcurrentCommands: maxConcurrent, maxConcurrentEvents: maxConcurrent);
             busServer.AddCommandConsumer<ILoadCommandHandler>(server);
             busServer.AddEventConsumer<ILoadEventHandler>(server, EventConsumerMode.PerReplica);
 
@@ -365,8 +365,8 @@ namespace Zerra.Test.CQRS
 
             try
             {
-                //the server's one throttle is shared by its commands and events
-                await SustainedLoad(busClient, handler, maxConcurrent, TestContext.Current.CancellationToken);
+                //the server limits its commands and events separately
+                await SustainedLoad(busClient, handler, maxConcurrent * 2, TestContext.Current.CancellationToken);
             }
             finally
             {
@@ -386,9 +386,9 @@ namespace Zerra.Test.CQRS
             var serializer = new NetworkByteSerializer();
 
             var handler = new LoadQueryHandler();
-            var busServer = Bus.New("query-load-server", null, null, null, maxConcurrentQueries: maxConcurrent);
+            var busServer = Bus.New("query-load-server", null, null, null);
             busServer.AddHandler<ILoadQueryHandler>(handler);
-            busServer.AddQueryServer<ILoadQueryHandler>(http ? new HttpCqrsServer(url, serializer, null, null, null, null) : new TcpCqrsServer(url, serializer, null, null, null));
+            busServer.AddQueryServer<ILoadQueryHandler>(http ? new HttpCqrsServer(url, serializer, null, null, null, null, null, maxConcurrentQueries: maxConcurrent) : new TcpCqrsServer(url, serializer, null, null, null, maxConcurrentQueries: maxConcurrent));
 
             var busClient = Bus.New("query-load-client", null, null, null);
             busClient.AddQueryClient<ILoadQueryHandler>(http ? new HttpCqrsClient(url, serializer, null, null, null, null) : new TcpCqrsClient(url, serializer, null, null, null));
@@ -993,7 +993,7 @@ namespace Zerra.Test.CQRS
             string IQueryServer.ServiceUrl => "test";
 
             void IQueryServer.Setup(QueryHandlerDelegate providerHandlerAsync) => Setups++;
-            void IQueryServer.RegisterInterfaceType(int maxConcurrent, Type type) => InterfaceTypes.Add(type);
+            void IQueryServer.RegisterInterfaceType(Type type) => InterfaceTypes.Add(type);
             void IQueryServer.Open() { }
             void IQueryServer.Close() { }
             public void Dispose() { }
@@ -1143,12 +1143,12 @@ namespace Zerra.Test.CQRS
                     throw new InvalidOperationException("Event consumer already setup");
             }
 
-            void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
+            void ICommandConsumer.RegisterCommandType(string topic, Type type)
             {
                 CommandTypes.Add(type);
                 CommandTopics.Add(topic);
             }
-            void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode) => EventTypes.Add(type);
+            void IEventConsumer.RegisterEventType(string topic, Type type, EventConsumerMode eventConsumerMode) => EventTypes.Add(type);
 
             void ICommandConsumer.Open() { }
             void IEventConsumer.Open() { }

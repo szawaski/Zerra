@@ -16,10 +16,9 @@ namespace Zerra.CQRS
         /// <summary>
         /// Registers an event for this producer.
         /// </summary>
-        /// <param name="maxConcurrent">The max number of concurrent requests for this event producer.</param>
         /// <param name="topic">The message service topic.</param>
         /// <param name="type">The event type.</param>
-        void RegisterEventType(int maxConcurrent, string topic, Type type);
+        void RegisterEventType(string topic, Type type);
         /// <summary>
         /// Executes sending an event.
         /// </summary>

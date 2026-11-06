@@ -47,6 +47,9 @@ namespace Zerra.CQRS.RabbitMQ
         private CommandCounter? commandCounter = null;
         private string? serviceName = null;
 
+        private readonly int maxConcurrentCommands;
+        private readonly int maxConcurrentEvents;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="RabbitMQConsumer"/> class.
         /// </summary>
@@ -57,9 +60,13 @@ namespace Zerra.CQRS.RabbitMQ
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="environment">Optional environment name to match exchange name prefixes for isolation.</param>
         /// <param name="resilientCommands">True to acknowledge a command once its handler finishes instead of when it's received, so a command being handled when the process stops is delivered again. A command can then run more than once.</param>
+        /// <param name="maxConcurrentCommands">Optional maximum concurrent commands for each topic; defaults to ProcessorCount * 8.</param>
+        /// <param name="maxConcurrentEvents">Optional maximum concurrent events for each topic; defaults to ProcessorCount * 16.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public RabbitMQConsumer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, bool resilientCommands = false)
+        public RabbitMQConsumer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, bool resilientCommands = false, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null)
         {
+            this.maxConcurrentCommands = maxConcurrentCommands ?? Environment.ProcessorCount * 8;
+            this.maxConcurrentEvents = maxConcurrentEvents ?? Environment.ProcessorCount * 16;
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
@@ -233,7 +240,7 @@ namespace Zerra.CQRS.RabbitMQ
             GC.SuppressFinalize(this);
         }
 
-        void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
+        void ICommandConsumer.RegisterCommandType(string topic, Type type)
         {
             if (commandHandlerAsync is null || commandHandlerAwaitAsync is null || commandHandlerWithResultAwaitAsync is null)
                 throw new Exception($"{nameof(RabbitMQConsumer)} is not setup");
@@ -245,12 +252,12 @@ namespace Zerra.CQRS.RabbitMQ
                     throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
                 if (commandExchanges.ContainsKey(topic))
                     return;
-                commandExchanges.Add(topic, new CommandConsumer(maxConcurrent, commandCounter, topic, commandTypes, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync, resilientCommands));
+                commandExchanges.Add(topic, new CommandConsumer(maxConcurrentCommands, commandCounter, topic, commandTypes, serializer, encryptor, compressor, log, environment, commandHandlerAsync, commandHandlerAwaitAsync, commandHandlerWithResultAwaitAsync, resilientCommands));
                 OpenExchanges();
             }
         }
 
-        void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode)
+        void IEventConsumer.RegisterEventType(string topic, Type type, EventConsumerMode eventConsumerMode)
         {
             if (eventHandlerAsync is null || serviceName is null)
                 throw new Exception($"{nameof(RabbitMQConsumer)} is not setup");
@@ -262,7 +269,7 @@ namespace Zerra.CQRS.RabbitMQ
                     throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
                 if (eventExchanges.ContainsKey(topic))
                     return;
-                eventExchanges.Add(topic, new EventConsumer(maxConcurrent, topic, eventTypes, serializer, encryptor, compressor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync));
+                eventExchanges.Add(topic, new EventConsumer(maxConcurrentEvents, topic, eventTypes, serializer, encryptor, compressor, log, environment, serviceName, eventConsumerMode, eventHandlerAsync));
                 OpenExchanges();
             }
         }

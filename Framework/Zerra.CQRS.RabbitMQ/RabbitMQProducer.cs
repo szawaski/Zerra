@@ -47,6 +47,9 @@ namespace Zerra.CQRS.RabbitMQ
         private IChannel? channel = null;
         private volatile bool disposed = false;
 
+        private readonly int maxConcurrentCommands;
+        private readonly int maxConcurrentEvents;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="RabbitMQProducer"/> class.
         /// </summary>
@@ -56,9 +59,13 @@ namespace Zerra.CQRS.RabbitMQ
         /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="environment">Optional environment name to prefix exchange names for isolation.</param>
+        /// <param name="maxConcurrentCommands">Optional maximum concurrent commands for each topic; defaults to ProcessorCount * 8.</param>
+        /// <param name="maxConcurrentEvents">Optional maximum concurrent events for each topic; defaults to ProcessorCount * 16.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
-        public RabbitMQProducer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment)
+        public RabbitMQProducer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null)
         {
+            this.maxConcurrentCommands = maxConcurrentCommands ?? Environment.ProcessorCount * 8;
+            this.maxConcurrentEvents = maxConcurrentEvents ?? Environment.ProcessorCount * 16;
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.host = host;
@@ -458,7 +465,7 @@ namespace Zerra.CQRS.RabbitMQ
             GC.SuppressFinalize(this);
         }
 
-        void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
+        void ICommandProducer.RegisterCommandType(string topic, Type type)
         {
             if (topicsByCommandType.ContainsKey(type))
                 return;
@@ -466,7 +473,7 @@ namespace Zerra.CQRS.RabbitMQ
             _ = topicsByCommandType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
-            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            var throttle = new SemaphoreSlim(maxConcurrentCommands, maxConcurrentCommands);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
             //declared now so the first send finds it declared
@@ -490,7 +497,7 @@ namespace Zerra.CQRS.RabbitMQ
             });
         }
 
-        void IEventProducer.RegisterEventType(int maxConcurrent, string topic, Type type)
+        void IEventProducer.RegisterEventType(string topic, Type type)
         {
             if (topicsByEventType.ContainsKey(type))
                 return;
@@ -498,7 +505,7 @@ namespace Zerra.CQRS.RabbitMQ
             _ = topicsByEventType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
-            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            var throttle = new SemaphoreSlim(maxConcurrentEvents, maxConcurrentEvents);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
             //declared now so the first send finds it declared

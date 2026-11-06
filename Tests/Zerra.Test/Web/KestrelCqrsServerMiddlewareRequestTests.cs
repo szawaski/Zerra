@@ -37,7 +37,7 @@ namespace Zerra.Test.Web
             var settings = new KestrelCqrsServerLinkedSettings(null, authorizer, serializer.ContentType);
             IQueryServer queryServer = new KestrelCqrsServerQueryServer(settings);
             queryServer.Setup(query);
-            queryServer.RegisterInterfaceType(10, typeof(IRequestQueryHandler));
+            queryServer.RegisterInterfaceType(typeof(IRequestQueryHandler));
             return new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, null, compressor, null, settings);
         }
 
@@ -160,16 +160,16 @@ namespace Zerra.Test.Web
             var settings = new KestrelCqrsServerLinkedSettings(null, null, serializer.ContentType);
             IQueryServer queryServer = new KestrelCqrsServerQueryServer(settings);
             queryServer.Setup(query ?? ((_, _, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(1))));
-            queryServer.RegisterInterfaceType(10, typeof(IRequestQueryHandler));
+            queryServer.RegisterInterfaceType(typeof(IRequestQueryHandler));
             ICommandConsumer commandConsumer = new KestrelCqrsServerCommandConsumer(settings);
-            commandConsumer.RegisterCommandType(10, "topic", typeof(RequestCommand));
-            commandConsumer.RegisterCommandType(10, "topic", typeof(RequestResultCommand));
+            commandConsumer.RegisterCommandType("topic", typeof(RequestCommand));
+            commandConsumer.RegisterCommandType("topic", typeof(RequestResultCommand));
             commandConsumer.Setup(null,
                 (command, _, _) => { handled.Message = command; handled.How = "dispatch"; return Task.CompletedTask; },
                 (command, _, _) => { handled.Message = command; handled.How = "await"; return Task.CompletedTask; },
                 (command, _, _) => { handled.Message = command; handled.How = "result"; return Task.FromResult<object?>(((RequestResultCommand)command).Value * 2); });
             IEventConsumer eventConsumer = new KestrelCqrsServerEventConsumer(settings);
-            eventConsumer.RegisterEventType(10, "topic", typeof(RequestEvent), EventConsumerMode.PerService);
+            eventConsumer.RegisterEventType("topic", typeof(RequestEvent), EventConsumerMode.PerService);
             eventConsumer.Setup("service", (@event, _) => { handled.Message = @event; handled.How = "event"; return Task.CompletedTask; });
             return new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, null, null, null, settings);
         }
@@ -301,7 +301,7 @@ namespace Zerra.Test.Web
             var settings = new KestrelCqrsServerLinkedSettings(null, null, serializer.ContentType);
             IQueryServer queryServer = new KestrelCqrsServerQueryServer(settings);
             queryServer.Setup((_, _, _, _, _, _, _) => Task.FromResult(new RemoteQueryCallResponse(new MemoryStream(streamData))));
-            queryServer.RegisterInterfaceType(10, typeof(IRequestQueryHandler));
+            queryServer.RegisterInterfaceType(typeof(IRequestQueryHandler));
             using var middleware = new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, encryptor, null, null, settings);
             var context = CreateContext(serializer, Request(serializer, nameof(IRequestQueryHandler.GetStream)), HttpCommon.ContentTypeBytes, TestContext.Current.CancellationToken);
             context.Request.Body = new MemoryStream(encryptor.Encrypt(((MemoryStream)context.Request.Body).ToArray()));

@@ -39,8 +39,8 @@ namespace Zerra.CQRS.Test.AzureServiceBus
 
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, encryptor, compressor, log, null, resilientCommands))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, compressor, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, encryptor, compressor, log, null, resilientCommands, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, compressor, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestSequence(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -66,8 +66,8 @@ namespace Zerra.CQRS.Test.AzureServiceBus
 
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestSharedConsumer(producer, producer, consumer, commandTopicA, commandTopicB, eventTopic, eventFirst, TestContext.Current.CancellationToken);
                 }
@@ -90,9 +90,9 @@ namespace Zerra.CQRS.Test.AzureServiceBus
 
             try
             {
-                await using (var replica1 = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
-                await using (var replica2 = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                await using (var replica1 = new AzureServiceBusConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var replica2 = new AzureServiceBusConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestSustainedLoad(producer, producer, replica1, replica2, commandTopic, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -114,9 +114,9 @@ namespace Zerra.CQRS.Test.AzureServiceBus
 
             try
             {
-                await using (var replica1 = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
-                await using (var replica2 = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                await using (var replica1 = new AzureServiceBusConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var replica2 = new AzureServiceBusConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestReceiveLimitHandsOff(producer, replica1, replica2, commandTopic, TestContext.Current.CancellationToken);
                 }
@@ -136,9 +136,9 @@ namespace Zerra.CQRS.Test.AzureServiceBus
 
             try
             {
-                await using (var replica1 = new AzureServiceBusConsumer(host, serializer, null, null, log, null, true))
-                await using (var replica2 = new AzureServiceBusConsumer(host, serializer, null, null, log, null, true))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                await using (var replica1 = new AzureServiceBusConsumer(host, serializer, null, null, log, null, true, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var replica2 = new AzureServiceBusConsumer(host, serializer, null, null, log, null, true, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     //closing the connection is what the broker sees when the process is killed, the lock then expires and the command is delivered again
                     var client = (global::Azure.Messaging.ServiceBus.ServiceBusClient)typeof(AzureServiceBusConsumer).GetField("client", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(replica1)!;
@@ -160,8 +160,8 @@ namespace Zerra.CQRS.Test.AzureServiceBus
 
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestCommandSentBeforeConsumer(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
                 }
@@ -182,8 +182,8 @@ namespace Zerra.CQRS.Test.AzureServiceBus
 
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestHandlerErrorNotReceivedAgain(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -204,8 +204,8 @@ namespace Zerra.CQRS.Test.AzureServiceBus
 
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     //deleted with the administration client directly, not AzureServiceBusCommon, so the cached queue list still has it
                     await MessageTest.TestConsumesAgainAfterTopicDeleted(producer, consumer, commandTopic, async () =>
@@ -230,9 +230,9 @@ namespace Zerra.CQRS.Test.AzureServiceBus
 
             try
             {
-                var producer = new AzureServiceBusProducer(host, new NetworkByteSerializer(), null, null, new TestLogger(), null);
+                var producer = new AzureServiceBusProducer(host, new NetworkByteSerializer(), null, null, new TestLogger(), null, maxConcurrentCommands: 1, maxConcurrentEvents: 1);
                 ackQueue = (string)typeof(AzureServiceBusProducer).GetField("ackQueue", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(producer)!;
-                ((ICommandProducer)producer).RegisterCommandType(1, commandTopic, typeof(TestCommand));
+                ((ICommandProducer)producer).RegisterCommandType(commandTopic, typeof(TestCommand));
 
                 //registering starts the listener, the first command doesn't wait for the queue
                 var admin = AzureServiceBusCommon.CreateAdministrationClient(host);
@@ -270,8 +270,8 @@ namespace Zerra.CQRS.Test.AzureServiceBus
 
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, encryptor, null, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, null, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestFinishesProcessingOnClose(producer, producer, consumer, consumer, commandTopic, eventTopic, disposeAsync, TestContext.Current.CancellationToken);
                 }
@@ -295,10 +295,10 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             try
             {
                 //a consumer per client, standing in for the replicas of two services
-                await using (var serviceAReplica1 = new AzureServiceBusConsumer(host, serializer, encryptor, null, log, null))
-                await using (var serviceAReplica2 = new AzureServiceBusConsumer(host, serializer, encryptor, null, log, null))
-                await using (var serviceB = new AzureServiceBusConsumer(host, serializer, encryptor, null, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, null, log, null))
+                await using (var serviceAReplica1 = new AzureServiceBusConsumer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var serviceAReplica2 = new AzureServiceBusConsumer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var serviceB = new AzureServiceBusConsumer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestEventConsumerModePerService(producer, serviceAReplica1, serviceAReplica2, serviceB, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -349,8 +349,8 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             var serializer = new NetworkByteSerializer();
             try
             {
-                await using var consumer = new AzureServiceBusConsumer(host, serializer, null, null, new TestLogger(), null);
-                await using var producer = new AzureServiceBusProducer(host, serializer, null, null, new TestLogger(), null);
+                await using var consumer = new AzureServiceBusConsumer(host, serializer, null, null, new TestLogger(), null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent);
+                await using var producer = new AzureServiceBusProducer(host, serializer, null, null, new TestLogger(), null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent);
                 await MessageEdgeTest.TestRegistrationRules(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
             }
             finally
@@ -370,8 +370,8 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             var log = new TestLogger();
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, environment))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, environment))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, environment, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, environment, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
                 {
                     await MessageEdgeTest.TestRoundTrip(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -392,8 +392,8 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             var log = new TestLogger();
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
                 {
                     await MessageEdgeTest.TestReceiveLimitAwaited(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
                 }
@@ -419,8 +419,8 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             }
             try
             {
-                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null))
-                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null))
+                await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
+                await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
                 {
                     await MessageEdgeTest.TestMalformedMessages(producer, producer, consumer, consumer, commandTopic, eventTopic, serializer, log,
                         (type, data, source) => serializer.SerializeBytes(new AzureServiceBusMessage { MessageType = type, MessageData = data, Source = source }),
@@ -452,8 +452,8 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             try
             {
                 //the consumer is disposed first, its handler's acknowledgement goes out before the producer deletes its queue instead of being retried for a minute
-                await using var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null);
-                await using var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null);
+                await using var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null, maxConcurrentCommands: 4, maxConcurrentEvents: 4);
+                await using var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: 4, maxConcurrentEvents: 4);
                 try
                 {
                     Zerra.Reflection.TypeFinder.Register(typeof(TestCommand));
@@ -463,8 +463,8 @@ namespace Zerra.CQRS.Test.AzureServiceBus
                         await release.Task;
                     }
                     ((ICommandConsumer)consumer).Setup(null, Handle, Handle, (_, _, _) => Task.FromResult<object?>(null));
-                    ((ICommandConsumer)consumer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
-                    ((ICommandProducer)producer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                    ((ICommandConsumer)consumer).RegisterCommandType(commandTopic, typeof(TestCommand));
+                    ((ICommandProducer)producer).RegisterCommandType(commandTopic, typeof(TestCommand));
                     ((ICommandConsumer)consumer).Open();
 
                     var awaiting = ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand { ID = Guid.NewGuid() }, "test", TestContext.Current.CancellationToken);
@@ -501,13 +501,13 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             string? ackQueue = null;
             try
             {
-                await using var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null);
-                await using var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null);
+                await using var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: 4, maxConcurrentEvents: 4);
+                await using var producer = new AzureServiceBusProducer(host, serializer, null, null, log, null, maxConcurrentCommands: 4, maxConcurrentEvents: 4);
                 ackQueue = AckQueue(producer);
                 Zerra.Reflection.TypeFinder.Register(typeof(TestCommand));
                 ((ICommandConsumer)consumer).Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null));
-                ((ICommandConsumer)consumer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
-                ((ICommandProducer)producer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                ((ICommandConsumer)consumer).RegisterCommandType(commandTopic, typeof(TestCommand));
+                ((ICommandProducer)producer).RegisterCommandType(commandTopic, typeof(TestCommand));
                 ((ICommandConsumer)consumer).Open();
 
                 await ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand { ID = Guid.NewGuid() }, "test", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
@@ -531,15 +531,15 @@ namespace Zerra.CQRS.Test.AzureServiceBus
             var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             var environment = new string('e', 300);
-            await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, environment))
-            await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, environment))
+            await using (var producer = new AzureServiceBusProducer(host, serializer, null, null, log, environment, maxConcurrentCommands: 1, maxConcurrentEvents: 1))
+            await using (var consumer = new AzureServiceBusConsumer(host, serializer, null, null, log, environment, maxConcurrentCommands: 1, maxConcurrentEvents: 1))
             {
-                ((ICommandProducer)producer).RegisterCommandType(1, "topic", typeof(TestCommand));
-                ((IEventProducer)producer).RegisterEventType(1, "topic", typeof(TestEvent));
+                ((ICommandProducer)producer).RegisterCommandType("topic", typeof(TestCommand));
+                ((IEventProducer)producer).RegisterEventType("topic", typeof(TestEvent));
                 ((ICommandConsumer)consumer).Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null));
                 ((IEventConsumer)consumer).Setup("EdgeService", (_, _) => Task.CompletedTask);
-                ((ICommandConsumer)consumer).RegisterCommandType(1, "topic", typeof(TestCommand));
-                ((IEventConsumer)consumer).RegisterEventType(1, "topic", typeof(TestEvent), EventConsumerMode.PerService);
+                ((ICommandConsumer)consumer).RegisterCommandType("topic", typeof(TestCommand));
+                ((IEventConsumer)consumer).RegisterEventType("topic", typeof(TestEvent), EventConsumerMode.PerService);
             }
             //the producer's command queue and event topic, and the consumer's
             Assert.True(log.Warnings >= 4, $"{log.Warnings} warnings");

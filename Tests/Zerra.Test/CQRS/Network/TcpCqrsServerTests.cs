@@ -592,7 +592,7 @@ namespace Zerra.Test.CQRS.Network
             {
                 IQueryServer queryServer = server;
                 queryServer.Setup(handler);
-                queryServer.RegisterInterfaceType(10, typeof(ITestQueryHandler));
+                queryServer.RegisterInterfaceType(typeof(ITestQueryHandler));
                 queryServer.Open();
             });
         }
@@ -611,11 +611,11 @@ namespace Zerra.Test.CQRS.Network
                     command ?? ((_, _, _) => Task.CompletedTask),
                     commandAwait ?? ((_, _, _) => Task.CompletedTask),
                     commandWithResult ?? ((_, _, _) => Task.FromResult<object?>(null)));
-                commandConsumer.RegisterCommandType(10, "test", typeof(TestCommand));
-                commandConsumer.RegisterCommandType(10, "test", typeof(TestCommandWithResult));
+                commandConsumer.RegisterCommandType("test", typeof(TestCommand));
+                commandConsumer.RegisterCommandType("test", typeof(TestCommandWithResult));
                 IEventConsumer eventConsumer = server;
                 eventConsumer.Setup("test-service", @event ?? ((_, _) => Task.CompletedTask));
-                eventConsumer.RegisterEventType(10, "test", typeof(TestEvent), EventConsumerMode.PerReplica);
+                eventConsumer.RegisterEventType("test", typeof(TestEvent), EventConsumerMode.PerReplica);
                 commandConsumer.Open();
             });
         }

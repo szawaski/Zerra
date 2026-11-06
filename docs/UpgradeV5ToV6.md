@@ -318,7 +318,8 @@ Also replace:
 
 - Static `Bus.WaitForExit()` / `Bus.StopServices()` → the same methods on `bus`.
 - `Bus.AddLogger(x)` → the `busLog` argument of `Bus.New`.
-- `Bus.MaxConcurrentQueries`, `MaxConcurrentCommandsPerTopic`, `MaxConcurrentEventsPerTopic`, `DefaultCallTimeout`, `DefaultDispatchTimeout`, `DefaultDispatchAwaitTimeout` → the matching `Bus.New` arguments.
+- `Bus.MaxConcurrentQueries`, `MaxConcurrentCommandsPerTopic`, `MaxConcurrentEventsPerTopic` → the `maxConcurrentQueries`, `maxConcurrentCommands`, and `maxConcurrentEvents` arguments of each client, server, producer, and consumer. See [Concurrency Limits](ClientSetup.md#concurrency-limits).
+- `Bus.DefaultCallTimeout`, `DefaultDispatchTimeout`, `DefaultDispatchAwaitTimeout` → the matching `Bus.New` arguments.
 - The service name → pass it to `Bus.New` directly. v5 used the entry assembly name, and many solutions keep that string.
 - `Bus.ReceiveCommandsBeforeExit = n` → `bus.AddCommandConsumer<T>(consumer, commandToReceiveUntilExit: n)` on the consumer whose commands are counted. That consumer serves only that one interface, so give it its own consumer instance.
 - **Event consumer mode that matches v5.** v5's broker consumers gave every consumer instance its own event subscription: a new Kafka group id, an exclusive RabbitMQ queue, or an `EVT-{guid}` Azure Service Bus subscription. So `EventConsumerMode.PerReplica` reproduces v5 exactly. Switch a subscriber to `PerService` only after checking its handlers.

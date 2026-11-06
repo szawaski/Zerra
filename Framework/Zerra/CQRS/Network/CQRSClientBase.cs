@@ -32,6 +32,9 @@ namespace Zerra.CQRS.Network
         private readonly ConcurrentDictionary<Type, SemaphoreSlim> throttleByInterfaceType;
         private readonly ConcurrentDictionary<Type, string> topicsByMessageType;
         private readonly ConcurrentDictionary<string, SemaphoreSlim> throttleByTopic;
+        private readonly int maxConcurrentQueries;
+        private readonly int maxConcurrentCommands;
+        private readonly int maxConcurrentEvents;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CqrsClientBase"/> class.
@@ -39,7 +42,10 @@ namespace Zerra.CQRS.Network
         /// </summary>
         /// <param name="serviceUrl">The URL of the server to connect to.</param>
         /// <param name="log">The optional logging provider.</param>
-        public CqrsClientBase(string serviceUrl, ILogger? log)
+        /// <param name="maxConcurrentQueries">Optional maximum concurrent queries for each query interface; defaults to ProcessorCount * 32.</param>
+        /// <param name="maxConcurrentCommands">Optional maximum concurrent commands for each topic; defaults to ProcessorCount * 8.</param>
+        /// <param name="maxConcurrentEvents">Optional maximum concurrent events for each topic; defaults to ProcessorCount * 16.</param>
+        public CqrsClientBase(string serviceUrl, ILogger? log, int? maxConcurrentQueries = null, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null)
         {
             if (String.IsNullOrWhiteSpace(serviceUrl))
                 throw new ArgumentNullException(nameof(serviceUrl));
@@ -57,6 +63,9 @@ namespace Zerra.CQRS.Network
             this.throttleByInterfaceType = new();
             this.topicsByMessageType = new();
             this.throttleByTopic = new();
+            this.maxConcurrentQueries = maxConcurrentQueries ?? Environment.ProcessorCount * 32;
+            this.maxConcurrentCommands = maxConcurrentCommands ?? Environment.ProcessorCount * 8;
+            this.maxConcurrentEvents = maxConcurrentEvents ?? Environment.ProcessorCount * 16;
         }
 
         private static readonly Type streamType = typeof(Stream);
@@ -65,35 +74,35 @@ namespace Zerra.CQRS.Network
         string ICommandProducer.MessageHost => serviceUrl;
         string IEventProducer.MessageHost => serviceUrl;
 
-        void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
+        void ICommandProducer.RegisterCommandType(string topic, Type type)
         {
             if (topicsByMessageType.ContainsKey(type))
                 return;
             _ = topicsByMessageType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
-            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            var throttle = new SemaphoreSlim(maxConcurrentCommands, maxConcurrentCommands);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
         }
 
-        void IEventProducer.RegisterEventType(int maxConcurrent, string topic, Type type)
+        void IEventProducer.RegisterEventType(string topic, Type type)
         {
             if (topicsByMessageType.ContainsKey(type))
                 return;
             _ = topicsByMessageType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
-            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            var throttle = new SemaphoreSlim(maxConcurrentEvents, maxConcurrentEvents);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
         }
 
-        void IQueryClient.RegisterInterfaceType(int maxConcurrent, Type type)
+        void IQueryClient.RegisterInterfaceType(Type type)
         {
             if (throttleByInterfaceType.ContainsKey(type))
                 return;
-            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            var throttle = new SemaphoreSlim(maxConcurrentQueries, maxConcurrentQueries);
             if (!throttleByInterfaceType.TryAdd(type, throttle))
                 throttle.Dispose();
         }

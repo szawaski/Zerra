@@ -24,7 +24,7 @@ namespace Zerra.Test.CQRS.Network
             listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
             listener.Listen();
             using var client = new TcpCqrsClient($"127.0.0.1:{((IPEndPoint)listener.LocalEndPoint!).Port}", serializer, null, null, null);
-            ((IQueryClient)client).RegisterInterfaceType(10, typeof(TcpCqrsClientTests.ITestQueryHandler));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(TcpCqrsClientTests.ITestQueryHandler));
             using var cts = new CancellationTokenSource();
 
             var call = ((IQueryClient)client).CallTaskGeneric<int>(typeof(TcpCqrsClientTests.ITestQueryHandler), nameof(TcpCqrsClientTests.ITestQueryHandler.GetThings), [typeof(byte[])], [new byte[64 * 1024 * 1024]], "test-source", cts.Token);

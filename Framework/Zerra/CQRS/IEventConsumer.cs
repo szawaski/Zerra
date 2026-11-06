@@ -17,11 +17,10 @@ namespace Zerra.CQRS
         /// <summary>
         /// Registers an event type for this interface.
         /// </summary>
-        /// <param name="maxConcurrent">The max number of concurrent requests for this event consumer.</param>
         /// <param name="topic">The message service topic.</param>
         /// <param name="type">The event type.</param>
         /// <param name="eventConsumerMode">Whether every replica of this service receives the event or the replicas compete so only one of them does.</param>
-        void RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode);
+        void RegisterEventType(string topic, Type type, EventConsumerMode eventConsumerMode);
         /// <summary>
         /// A method called from <see cref="Bus"/> on startup to provide parts needed for the server.
         /// </summary>

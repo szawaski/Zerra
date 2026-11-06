@@ -41,8 +41,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
 
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, compressor, log, null, resilientCommands))
-                using (var producer = new RabbitMQProducer(host, serializer, encryptor, compressor, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, compressor, log, null, resilientCommands, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new RabbitMQProducer(host, serializer, encryptor, compressor, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestSequence(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -67,8 +67,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
 
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestSharedConsumer(producer, producer, consumer, commandTopicA, commandTopicB, eventTopic, eventFirst, TestContext.Current.CancellationToken);
                 }
@@ -90,9 +90,9 @@ namespace Zerra.CQRS.Test.RabbitMQ
 
             try
             {
-                using (var replica1 = new RabbitMQConsumer(host, serializer, null, null, log, null))
-                using (var replica2 = new RabbitMQConsumer(host, serializer, null, null, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                using (var replica1 = new RabbitMQConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var replica2 = new RabbitMQConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestSustainedLoad(producer, producer, replica1, replica2, commandTopic, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -114,9 +114,9 @@ namespace Zerra.CQRS.Test.RabbitMQ
 
             try
             {
-                using (var replica1 = new RabbitMQConsumer(host, serializer, null, null, log, null))
-                using (var replica2 = new RabbitMQConsumer(host, serializer, null, null, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                using (var replica1 = new RabbitMQConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var replica2 = new RabbitMQConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestReceiveLimitHandsOff(producer, replica1, replica2, commandTopic, TestContext.Current.CancellationToken);
                 }
@@ -137,9 +137,9 @@ namespace Zerra.CQRS.Test.RabbitMQ
 
             try
             {
-                using (var replica1 = new RabbitMQConsumer(host, serializer, null, null, log, null, true))
-                using (var replica2 = new RabbitMQConsumer(host, serializer, null, null, log, null, true))
-                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                using (var replica1 = new RabbitMQConsumer(host, serializer, null, null, log, null, true, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var replica2 = new RabbitMQConsumer(host, serializer, null, null, log, null, true, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     //dropping the connection is what the broker sees when the process is killed
                     await MessageTest.TestResilientCommandDeliveredAgain(producer, replica1, replica2, commandTopic, async () =>
@@ -165,8 +165,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
 
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestCommandSentBeforeConsumer(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
                 }
@@ -191,8 +191,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
 
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, null, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, encryptor, null, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new RabbitMQProducer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestFinishesProcessingOnClose(producer, producer, consumer, consumer, commandTopic, eventTopic, disposeAsync, TestContext.Current.CancellationToken);
                 }
@@ -215,10 +215,10 @@ namespace Zerra.CQRS.Test.RabbitMQ
             try
             {
                 //a consumer per connection, standing in for the replicas of two services
-                using (var serviceAReplica1 = new RabbitMQConsumer(host, serializer, encryptor, null, log, null))
-                using (var serviceAReplica2 = new RabbitMQConsumer(host, serializer, encryptor, null, log, null))
-                using (var serviceB = new RabbitMQConsumer(host, serializer, encryptor, null, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, encryptor, null, log, null))
+                using (var serviceAReplica1 = new RabbitMQConsumer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var serviceAReplica2 = new RabbitMQConsumer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var serviceB = new RabbitMQConsumer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new RabbitMQProducer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestEventConsumerModePerService(producer, serviceAReplica1, serviceAReplica2, serviceB, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -240,8 +240,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
 
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestHandlerErrorNotReceivedAgain(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -271,8 +271,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
 
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, null, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, encryptor, null, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: 10, maxConcurrentEvents: 10))
+                using (var producer = new RabbitMQProducer(host, serializer, encryptor, null, log, null, maxConcurrentCommands: 10, maxConcurrentEvents: 10))
                 {
                     ICommandConsumer commandConsumer = consumer;
                     IEventConsumer eventConsumer = consumer;
@@ -281,11 +281,11 @@ namespace Zerra.CQRS.Test.RabbitMQ
 
                     Task handleCommand(ICommand command, string source, CancellationToken token) { commands[((TestCommand)command).ID] = true; return Task.CompletedTask; }
                     commandConsumer.Setup(null, handleCommand, handleCommand, (command, source, token) => Task.FromResult<object?>(null));
-                    commandConsumer.RegisterCommandType(10, commandTopic, typeof(TestCommand));
+                    commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommand));
                     eventConsumer.Setup(serviceName, (@event, source) => { events[((TestEvent)@event).ID] = true; return Task.CompletedTask; });
-                    eventConsumer.RegisterEventType(10, eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
-                    commandProducer.RegisterCommandType(10, commandTopic, typeof(TestCommand));
-                    eventProducer.RegisterEventType(10, eventTopic, typeof(TestEvent));
+                    eventConsumer.RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
+                    commandProducer.RegisterCommandType(commandTopic, typeof(TestCommand));
+                    eventProducer.RegisterEventType(eventTopic, typeof(TestEvent));
                     commandConsumer.Open();
                     eventConsumer.Open();
 
@@ -315,8 +315,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             var serializer = new NetworkByteSerializer();
             try
             {
-                using var consumer = new RabbitMQConsumer(host, serializer, null, null, new TestLogger(), null);
-                using var producer = new RabbitMQProducer(host, serializer, null, null, new TestLogger(), null);
+                using var consumer = new RabbitMQConsumer(host, serializer, null, null, new TestLogger(), null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent);
+                using var producer = new RabbitMQProducer(host, serializer, null, null, new TestLogger(), null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent);
                 await MessageEdgeTest.TestRegistrationRules(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
             }
             finally
@@ -336,8 +336,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             var log = new TestLogger();
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, environment))
-                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, environment))
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, environment, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, environment, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
                 {
                     await MessageEdgeTest.TestRoundTrip(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -358,8 +358,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             var log = new TestLogger();
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
                 {
                     await MessageEdgeTest.TestReceiveLimitAwaited(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
                 }
@@ -386,8 +386,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
             }
             try
             {
-                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null))
-                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null))
+                using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
+                using (var producer = new RabbitMQProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
                 {
                     await MessageEdgeTest.TestMalformedMessages(producer, producer, consumer, consumer, commandTopic, eventTopic, serializer, log,
                         (type, data, source) => serializer.SerializeBytes(new RabbitMQMessage { MessageType = type, MessageData = data, Source = source }),
@@ -412,15 +412,15 @@ namespace Zerra.CQRS.Test.RabbitMQ
             var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             var environment = new string('e', 300);
-            using (var producer = new RabbitMQProducer(host, serializer, null, null, log, environment))
-            using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, environment))
+            using (var producer = new RabbitMQProducer(host, serializer, null, null, log, environment, maxConcurrentCommands: 1, maxConcurrentEvents: 1))
+            using (var consumer = new RabbitMQConsumer(host, serializer, null, null, log, environment, maxConcurrentCommands: 1, maxConcurrentEvents: 1))
             {
-                ((ICommandProducer)producer).RegisterCommandType(1, "topic", typeof(TestCommand));
-                ((IEventProducer)producer).RegisterEventType(1, "topic", typeof(TestEvent));
+                ((ICommandProducer)producer).RegisterCommandType("topic", typeof(TestCommand));
+                ((IEventProducer)producer).RegisterEventType("topic", typeof(TestEvent));
                 ((ICommandConsumer)consumer).Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null));
                 ((IEventConsumer)consumer).Setup("EdgeService", (_, _) => Task.CompletedTask);
-                ((ICommandConsumer)consumer).RegisterCommandType(1, "topic", typeof(TestCommand));
-                ((IEventConsumer)consumer).RegisterEventType(1, "topic", typeof(TestEvent), EventConsumerMode.PerService);
+                ((ICommandConsumer)consumer).RegisterCommandType("topic", typeof(TestCommand));
+                ((IEventConsumer)consumer).RegisterEventType("topic", typeof(TestEvent), EventConsumerMode.PerService);
             }
             //the producer's command and event exchanges, and the consumer's
             Assert.True(log.Warnings >= 4, $"{log.Warnings} warnings");
@@ -476,16 +476,16 @@ namespace Zerra.CQRS.Test.RabbitMQ
             using var http = ManagementClient();
             try
             {
-                using var producer = new RabbitMQProducer(host, serializer, null, null, log, null);
-                using var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null);
+                using var producer = new RabbitMQProducer(host, serializer, null, null, log, null, maxConcurrentCommands: 4, maxConcurrentEvents: 4);
+                using var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: 4, maxConcurrentEvents: 4);
                 TypeFinder.Register(typeof(TestCommand));
                 TypeFinder.Register(typeof(TestEvent));
                 ((ICommandConsumer)consumer).Setup(null, (c, _, _) => { commands[((TestCommand)c).ID] = true; return Task.CompletedTask; }, (c, _, _) => { commands[((TestCommand)c).ID] = true; return Task.CompletedTask; }, (_, _, _) => Task.FromResult<object?>(null));
                 ((IEventConsumer)consumer).Setup("FaultService", (e, eventSource) => { events[((TestEvent)e).ID] = true; return Task.CompletedTask; });
-                ((ICommandConsumer)consumer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
-                ((IEventConsumer)consumer).RegisterEventType(4, eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
-                ((ICommandProducer)producer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
-                ((IEventProducer)producer).RegisterEventType(4, eventTopic, typeof(TestEvent));
+                ((ICommandConsumer)consumer).RegisterCommandType(commandTopic, typeof(TestCommand));
+                ((IEventConsumer)consumer).RegisterEventType(eventTopic, typeof(TestEvent), EventConsumerMode.PerService);
+                ((ICommandProducer)producer).RegisterCommandType(commandTopic, typeof(TestCommand));
+                ((IEventProducer)producer).RegisterEventType(eventTopic, typeof(TestEvent));
 
                 var before = await ConnectionNames(http);
                 ((ICommandConsumer)consumer).Open();
@@ -518,9 +518,9 @@ namespace Zerra.CQRS.Test.RabbitMQ
             {
                 //the producer connects when it is created
                 var before = await ConnectionNames(http);
-                using var producer = new RabbitMQProducer(host, serializer, null, null, log, null);
+                using var producer = new RabbitMQProducer(host, serializer, null, null, log, null, maxConcurrentCommands: 4, maxConcurrentEvents: 4);
                 var producerConnections = await WaitForNewConnections(http, before);
-                using var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null);
+                using var consumer = new RabbitMQConsumer(host, serializer, null, null, log, null, maxConcurrentCommands: 4, maxConcurrentEvents: 4);
                 try
                 {
                     TypeFinder.Register(typeof(TestCommand));
@@ -533,8 +533,8 @@ namespace Zerra.CQRS.Test.RabbitMQ
                         }
                     }
                     ((ICommandConsumer)consumer).Setup(null, Handle, Handle, (_, _, _) => Task.FromResult<object?>(null));
-                    ((ICommandConsumer)consumer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
-                    ((ICommandProducer)producer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                    ((ICommandConsumer)consumer).RegisterCommandType(commandTopic, typeof(TestCommand));
+                    ((ICommandProducer)producer).RegisterCommandType(commandTopic, typeof(TestCommand));
 
                     ((ICommandConsumer)consumer).Open();
 

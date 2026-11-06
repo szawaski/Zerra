@@ -30,8 +30,11 @@ namespace Zerra.CQRS.Network
         /// <param name="encryptor">Optional encryption provider for encrypting request and response data.</param>
         /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logging provider.</param>
-        public TcpCqrsServer(string serverUrl, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log)
-            : base(serverUrl, log)
+        /// <param name="maxConcurrentQueries">Optional maximum concurrent queries the server handles; defaults to ProcessorCount * 32.</param>
+        /// <param name="maxConcurrentCommands">Optional maximum concurrent commands the server handles; defaults to ProcessorCount * 8.</param>
+        /// <param name="maxConcurrentEvents">Optional maximum concurrent events the server handles; defaults to ProcessorCount * 16.</param>
+        public TcpCqrsServer(string serverUrl, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, int? maxConcurrentQueries = null, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null)
+            : base(serverUrl, log, maxConcurrentQueries, maxConcurrentCommands, maxConcurrentEvents)
         {
             this.serializer = serializer;
             this.encryptor = encryptor;
@@ -41,7 +44,7 @@ namespace Zerra.CQRS.Network
         /// <inheritdoc />
         protected override async Task Handle(Socket socket, CancellationToken cancellationToken)
         {
-            if (throttle is null)
+            if (types.IsEmpty)
             {
                 socket.Dispose();
                 throw new InvalidOperationException($"{nameof(TcpCqrsServer)} is not setup");
@@ -67,7 +70,7 @@ namespace Zerra.CQRS.Network
 
                     var requestBodyRead = false;
                     var inHandlerContext = false;
-                    var throttlerUsed = false;
+                    SemaphoreSlim? throttlerUsed = null;
                     var throttleReleasedByContinuation = false;
                     var monitorIsCancellationRequested = false;
                     var requestBegun = false;
@@ -161,9 +164,6 @@ namespace Zerra.CQRS.Network
                             Thread.CurrentPrincipal = null;
                         }
 
-                        await throttle.WaitAsync(CancellationToken.None);
-                        throttlerUsed = true;
-
                         //Process and Respond
                         //----------------------------------------------------------------------------------------------------
                         if (!String.IsNullOrWhiteSpace(data.ProviderType))
@@ -177,6 +177,9 @@ namespace Zerra.CQRS.Network
 
                             if (!this.types.TryGetValue(data.ProviderType, out var providerType))
                                 throw new CqrsNetworkException($"Unhandled Provider Type {data.ProviderType}");
+
+                            await queryThrottle.WaitAsync(CancellationToken.None);
+                            throttlerUsed = queryThrottle;
 
                             inHandlerContext = true;
                             RemoteQueryCallResponse result;
@@ -320,6 +323,9 @@ namespace Zerra.CQRS.Network
 
                             if (info.CommandTypes.Contains(messageType))
                             {
+                                await commandThrottle.WaitAsync(CancellationToken.None);
+                                throttlerUsed = commandThrottle;
+
                                 if (commandCounter is not null && !commandCounter.BeginReceive())
                                     throw new CqrsNetworkException("Cannot receive any more commands");
                                 isCommand = true;
@@ -365,9 +371,9 @@ namespace Zerra.CQRS.Network
                                     _ = running.Add(commandHandlerTask);
                                     _ = commandHandlerTask.ContinueWith(removeRunning, running, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
                                     if (commandCounter is not null)
-                                        _ = commandHandlerTask.ContinueWith(x => commandCounter.CompleteReceive(throttle));
+                                        _ = commandHandlerTask.ContinueWith(x => commandCounter.CompleteReceive(commandThrottle));
                                     else
-                                        _ = commandHandlerTask.ContinueWith(x => throttle.Release());
+                                        _ = commandHandlerTask.ContinueWith(x => commandThrottle.Release());
                                     throttleReleasedByContinuation = true;
                                     hasResult = false;
                                 }
@@ -375,6 +381,9 @@ namespace Zerra.CQRS.Network
                             }
                             else if (info.EventTypes.Contains(messageType))
                             {
+                                await eventThrottle.WaitAsync(CancellationToken.None);
+                                throttlerUsed = eventThrottle;
+
                                 var @event = (IEvent?)serializer.Deserialize(data.MessageData, messageType);
                                 if (@event is null)
                                     throw new Exception($"Invalid {nameof(data.MessageData)}");
@@ -386,7 +395,7 @@ namespace Zerra.CQRS.Network
                                 //tracked until the handler finishes so disposing waits for it
                                 _ = running.Add(eventHandlerTask);
                                 _ = eventHandlerTask.ContinueWith(removeRunning, running, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-                                _ = eventHandlerTask.ContinueWith(x => throttle.Release());
+                                _ = eventHandlerTask.ContinueWith(x => eventThrottle.Release());
                                 throttleReleasedByContinuation = true;
                                 hasResult = false;
                                 inHandlerContext = false;
@@ -570,12 +579,12 @@ namespace Zerra.CQRS.Network
 #endif
                         }
                         ArrayPoolHelper<byte>.Return(bufferOwner);
-                        if (throttlerUsed && !throttleReleasedByContinuation)
+                        if (throttlerUsed is not null && !throttleReleasedByContinuation)
                         {
                             if (isCommand && commandCounter is not null)
-                                commandCounter.CompleteReceive(throttle);
+                                commandCounter.CompleteReceive(throttlerUsed);
                             else
-                                throttle.Release();
+                                throttlerUsed.Release();
                         }
                     }
                 }

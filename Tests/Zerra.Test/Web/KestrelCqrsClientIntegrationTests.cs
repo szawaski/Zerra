@@ -71,11 +71,11 @@ namespace Zerra.Test.Web
             await app.StartAsync(TestContext.Current.CancellationToken);
 
             var handler = new BusTests.LoadHandler();
-            var busServer = Bus.New("load-server", null, null, null, maxConcurrentCommandsPerTopic: maxConcurrent, maxConcurrentEventsPerTopic: maxConcurrent);
+            var busServer = Bus.New("load-server", null, null, null);
             busServer.AddHandler<BusTests.ILoadCommandHandler>(handler);
             busServer.AddHandler<BusTests.ILoadEventHandler>(handler);
-            busServer.AddCommandConsumer<BusTests.ILoadCommandHandler>(new KestrelCqrsServerCommandConsumer(settings));
-            busServer.AddEventConsumer<BusTests.ILoadEventHandler>(new KestrelCqrsServerEventConsumer(settings), EventConsumerMode.PerReplica);
+            busServer.AddCommandConsumer<BusTests.ILoadCommandHandler>(new KestrelCqrsServerCommandConsumer(settings, maxConcurrent));
+            busServer.AddEventConsumer<BusTests.ILoadEventHandler>(new KestrelCqrsServerEventConsumer(settings, maxConcurrent), EventConsumerMode.PerReplica);
 
             var busClient = Bus.New("load-client", null, null, null);
             var client = new KestrelCqrsClient(app.Urls.First(), serializer, null, null, null, null, null);
@@ -98,9 +98,9 @@ namespace Zerra.Test.Web
         private static KestrelCqrsClient CreateClient(string url)
         {
             var client = new KestrelCqrsClient(url, serializer, null, null, null, null, null);
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommand));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));
-            ((IEventProducer)client).RegisterEventType(10, "test", typeof(TestEvent));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommand));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommandWithResult));
+            ((IEventProducer)client).RegisterEventType("test", typeof(TestEvent));
             return client;
         }
 
@@ -141,12 +141,12 @@ namespace Zerra.Test.Web
                     (_, _, _) => { _ = Interlocked.Increment(ref server.commandCount); return Task.CompletedTask; },
                     (_, _, _) => { _ = Interlocked.Increment(ref server.commandCount); return Task.CompletedTask; },
                     (command, _, _) => { _ = Interlocked.Increment(ref server.commandCount); return Task.FromResult<object?>(((TestCommandWithResult)command).Value * 2); });
-                commandConsumer.RegisterCommandType(10, "test", typeof(TestCommand));
-                commandConsumer.RegisterCommandType(10, "test", typeof(TestCommandWithResult));
+                commandConsumer.RegisterCommandType("test", typeof(TestCommand));
+                commandConsumer.RegisterCommandType("test", typeof(TestCommandWithResult));
 
                 IEventConsumer eventConsumer = new KestrelCqrsServerEventConsumer(settings);
                 eventConsumer.Setup("test-service", (@event, eventSource) => { _ = server.eventReceived.TrySetResult(((TestEvent)@event).Value); return Task.CompletedTask; });
-                eventConsumer.RegisterEventType(10, "test", typeof(TestEvent), EventConsumerMode.PerReplica);
+                eventConsumer.RegisterEventType("test", typeof(TestEvent), EventConsumerMode.PerReplica);
 
                 return server;
             }

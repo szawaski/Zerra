@@ -29,8 +29,11 @@ namespace Zerra.CQRS.Network
         /// <param name="encryptor">Optional encryption provider for encrypting request and response data.</param>
         /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logging provider.</param>
-        public TcpCqrsClient(string serviceUrl, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log)
-            : base(serviceUrl, log)
+        /// <param name="maxConcurrentQueries">Optional maximum concurrent queries for each query interface; defaults to ProcessorCount * 32.</param>
+        /// <param name="maxConcurrentCommands">Optional maximum concurrent commands for each topic; defaults to ProcessorCount * 8.</param>
+        /// <param name="maxConcurrentEvents">Optional maximum concurrent events for each topic; defaults to ProcessorCount * 16.</param>
+        public TcpCqrsClient(string serviceUrl, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, int? maxConcurrentQueries = null, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null)
+            : base(serviceUrl, log, maxConcurrentQueries, maxConcurrentCommands, maxConcurrentEvents)
         {
             this.serializer = serializer;
             this.encryptor = encryptor;

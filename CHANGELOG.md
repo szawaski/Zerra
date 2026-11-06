@@ -13,6 +13,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Graceful shutdown: stopping the bus finishes every message already received, and `WaitForExitAsync` handles SIGTERM and SIGINT for containers. `shutdownTimeout` limits the wait without cancelling handlers.
 - `commandToReceiveUntilExit` for batch jobs and KEDA-style scaling.
 - Services can be hosted in ASP.NET Core/Kestrel with `KestrelCqrsServer*` and called with `KestrelCqrsClient`.
+- Concurrency limits are set on each client, server, producer, and consumer (`maxConcurrentQueries`, `maxConcurrentCommands`, `maxConcurrentEvents`) instead of on `Bus.New`, so each can have its own. `TcpCqrsServer` and `HttpCqrsServer` limit queries, commands, and events separately. See [Concurrency Limits](docs/ClientSetup.md#concurrency-limits).
 
 ### Messaging
 

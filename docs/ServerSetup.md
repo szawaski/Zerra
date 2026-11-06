@@ -39,7 +39,7 @@ await bus.WaitForExitAsync();
 - `AddEventConsumer` always takes an `EventConsumerMode`: `PerReplica` gives every replica of the service a copy of each event, and `PerService` has the replicas compete. See [Choosing per replica or per service](Events.md#choosing-per-replica-or-per-service).
 - `Bus.New` also sets the process-wide static `Bus`, so a process normally has one bus.
 
-The [Bus options](ClientSetup.md#bus-options) (timeouts, concurrency limits, `shutdownTimeout`) apply to services as well.
+The [Bus options](ClientSetup.md#bus-options) (timeouts, `shutdownTimeout`) apply to services as well. Servers and consumers take their [concurrency limits](ClientSetup.md#concurrency-limits) in their constructors.
 
 ## Servers
 

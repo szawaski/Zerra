@@ -244,7 +244,7 @@ namespace Zerra.Test.Web
                 }
             }, TestContext.Current.CancellationToken);
             using var client = new KestrelCqrsClient(baseUrl, json, null, null, null, new SyncAsyncAuthorizer(), "cqrs");
-            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
 
             Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
             Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken));
@@ -271,7 +271,7 @@ namespace Zerra.Test.Web
                 context.Response.Close();
             }, TestContext.Current.CancellationToken);
             using var client = new KestrelCqrsClient(baseUrl, serializer, null, null, null, null, route);
-            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
 
             Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
             await serving;
@@ -323,10 +323,10 @@ namespace Zerra.Test.Web
         private static KestrelCqrsClient CreateClient(FakeServer server, IEncryptor? encryptor)
         {
             var client = new KestrelCqrsClient(server.Url, serializer, encryptor, null, null, null, null);
-            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommand));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));
-            ((IEventProducer)client).RegisterEventType(10, "test", typeof(TestEvent));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommand));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommandWithResult));
+            ((IEventProducer)client).RegisterEventType("test", typeof(TestEvent));
             return client;
         }
 

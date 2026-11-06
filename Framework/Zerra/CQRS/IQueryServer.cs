@@ -19,9 +19,8 @@ namespace Zerra.CQRS
         /// <summary>
         /// Registers a query interface for this server.
         /// </summary>
-        /// <param name="maxConcurrent">The max number of concurrent requests for this query interface.</param>
         /// <param name="type">The query interface type.</param>
-        void RegisterInterfaceType(int maxConcurrent, Type type);
+        void RegisterInterfaceType(Type type);
         /// <summary>
         /// A method called from <see cref="Bus"/> on startup to provide parts needed for the server.
         /// </summary>

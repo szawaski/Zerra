@@ -75,8 +75,8 @@ namespace Zerra.CQRS.Test.Kafka
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, encryptor, compressor, log, null, resilientCommands: resilientCommands))
-                using (var producer = new KafkaProducer(host, serializer, encryptor, compressor, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, encryptor, compressor, log, null, resilientCommands: resilientCommands, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new KafkaProducer(host, serializer, encryptor, compressor, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageTest.TestSequence(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
@@ -105,8 +105,8 @@ namespace Zerra.CQRS.Test.Kafka
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, encryptor, null, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, encryptor, null, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, encryptor, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new KafkaProducer(host, serializer, encryptor, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageTest.TestFinishesProcessingOnClose(producer, producer, consumer, consumer, commandTopic, eventTopic, disposeAsync, TestContext.Current.CancellationToken);
@@ -129,10 +129,10 @@ namespace Zerra.CQRS.Test.Kafka
             try
             {
                 //a consumer per connection, standing in for the replicas of two services
-                using (var serviceAReplica1 = new KafkaConsumer(host, serializer, encryptor, null, log, null, null, null))
-                using (var serviceAReplica2 = new KafkaConsumer(host, serializer, encryptor, null, log, null, null, null))
-                using (var serviceB = new KafkaConsumer(host, serializer, encryptor, null, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, encryptor, null, log, null, null, null))
+                using (var serviceAReplica1 = new KafkaConsumer(host, serializer, encryptor, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var serviceAReplica2 = new KafkaConsumer(host, serializer, encryptor, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var serviceB = new KafkaConsumer(host, serializer, encryptor, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new KafkaProducer(host, serializer, encryptor, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     await MessageTest.TestEventConsumerModePerService(producer, serviceAReplica1, serviceAReplica2, serviceB, eventTopic, TestContext.Current.CancellationToken);
                 }
@@ -161,8 +161,8 @@ namespace Zerra.CQRS.Test.Kafka
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageTest.TestSharedConsumer(producer, producer, consumer, commandTopicA, commandTopicB, eventTopic, eventFirst, TestContext.Current.CancellationToken);
@@ -199,24 +199,24 @@ namespace Zerra.CQRS.Test.Kafka
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null) { MaxPollIntervalMs = 7000 })
-                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: 1, maxConcurrentEvents: 1) { MaxPollIntervalMs = 7000 })
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: 1, maxConcurrentEvents: 1))
                 {
                     ackTopic = AckTopic(producer);
                     Func<Guid, Task> send;
                     if (events)
                     {
                         ((IEventConsumer)consumer).Setup("ZerraTestService", (@event, _) => Handle(((TestEvent)@event).ID));
-                        ((IEventConsumer)consumer).RegisterEventType(1, topic, typeof(TestEvent), EventConsumerMode.PerReplica);
-                        ((IEventProducer)producer).RegisterEventType(1, topic, typeof(TestEvent));
+                        ((IEventConsumer)consumer).RegisterEventType(topic, typeof(TestEvent), EventConsumerMode.PerReplica);
+                        ((IEventProducer)producer).RegisterEventType(topic, typeof(TestEvent));
                         ((IEventConsumer)consumer).Open();
                         send = (id) => ((IEventProducer)producer).DispatchAsync(new TestEvent() { ID = id }, "Test", TestContext.Current.CancellationToken);
                     }
                     else
                     {
                         ((ICommandConsumer)consumer).Setup(null, (command, _, _) => Handle(((TestCommand)command).ID), (command, _, _) => Handle(((TestCommand)command).ID), (_, _, _) => throw new NotSupportedException());
-                        ((ICommandConsumer)consumer).RegisterCommandType(1, topic, typeof(TestCommand));
-                        ((ICommandProducer)producer).RegisterCommandType(1, topic, typeof(TestCommand));
+                        ((ICommandConsumer)consumer).RegisterCommandType(topic, typeof(TestCommand));
+                        ((ICommandProducer)producer).RegisterCommandType(topic, typeof(TestCommand));
                         ((ICommandConsumer)consumer).Open();
                         send = (id) => ((ICommandProducer)producer).DispatchAsync(new TestCommand() { ID = id }, "Test", TestContext.Current.CancellationToken);
                     }
@@ -267,9 +267,9 @@ namespace Zerra.CQRS.Test.Kafka
 
             try
             {
-                using (var replica1 = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
-                using (var replica2 = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                using (var replica1 = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var replica2 = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageTest.TestSustainedLoad(producer, producer, replica1, replica2, commandTopic, eventTopic, TestContext.Current.CancellationToken);
@@ -292,9 +292,9 @@ namespace Zerra.CQRS.Test.Kafka
 
             try
             {
-                using (var replica1 = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
-                using (var replica2 = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                using (var replica1 = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var replica2 = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageTest.TestReceiveLimitHandsOff(producer, replica1, replica2, commandTopic, TestContext.Current.CancellationToken);
@@ -321,9 +321,9 @@ namespace Zerra.CQRS.Test.Kafka
             {
                 //replica1 waits for its stuck command before giving up the partition, so it stops polling and the group drops it after max.poll.interval.ms,
                 //which leaves the partition uncommitted as a killed process would
-                using (var replica1 = new KafkaConsumer(host, serializer, null, null, log, null, resilientCommands: true) { MaxPollIntervalMs = 7000 })
-                using (var replica2 = new KafkaConsumer(host, serializer, null, null, log, null, resilientCommands: true) { MaxPollIntervalMs = 7000 })
-                using (var producer = new KafkaProducer(host, serializer, null, null, log, null))
+                using (var replica1 = new KafkaConsumer(host, serializer, null, null, log, null, resilientCommands: true, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent) { MaxPollIntervalMs = 7000 })
+                using (var replica2 = new KafkaConsumer(host, serializer, null, null, log, null, resilientCommands: true, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent) { MaxPollIntervalMs = 7000 })
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageTest.TestResilientCommandDeliveredAgain(producer, replica1, replica2, commandTopic, () => Task.CompletedTask, TimeSpan.FromSeconds(90), TestContext.Current.CancellationToken);
@@ -348,9 +348,9 @@ namespace Zerra.CQRS.Test.Kafka
 
             try
             {
-                var producer = new KafkaProducer(host, new NetworkByteSerializer(), null, null, new TestLogger(), null, null, null);
+                var producer = new KafkaProducer(host, new NetworkByteSerializer(), null, null, new TestLogger(), null, null, null, maxConcurrentCommands: 1, maxConcurrentEvents: 1);
                 ackTopic = AckTopic(producer);
-                ((ICommandProducer)producer).RegisterCommandType(1, commandTopic, typeof(TestCommand));
+                ((ICommandProducer)producer).RegisterCommandType(commandTopic, typeof(TestCommand));
 
                 //registering starts the listener, the first command doesn't wait for the topic
                 await WaitUntilTopicExists(ackTopic, TestContext.Current.CancellationToken);
@@ -379,8 +379,8 @@ namespace Zerra.CQRS.Test.Kafka
             string? ackTopic = null;
             try
             {
-                await using var consumer = new KafkaConsumer(host, serializer, null, null, new TestLogger(), null, null, null);
-                await using var producer = new KafkaProducer(host, serializer, null, null, new TestLogger(), null, null, null);
+                await using var consumer = new KafkaConsumer(host, serializer, null, null, new TestLogger(), null, null, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent);
+                await using var producer = new KafkaProducer(host, serializer, null, null, new TestLogger(), null, null, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent);
                 ackTopic = AckTopic(producer);
                 await MessageEdgeTest.TestRegistrationRules(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
             }
@@ -401,8 +401,8 @@ namespace Zerra.CQRS.Test.Kafka
             string? ackTopic = null;
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, environment, null, null))
-                using (var producer = new KafkaProducer(host, serializer, null, null, log, environment, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, environment, null, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, environment, null, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageEdgeTest.TestRoundTrip(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
@@ -424,8 +424,8 @@ namespace Zerra.CQRS.Test.Kafka
             string? ackTopic = null;
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageEdgeTest.TestReceiveLimitAwaited(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
@@ -452,8 +452,8 @@ namespace Zerra.CQRS.Test.Kafka
             async Task Send(string topic, string key, byte[] body) => _ = await raw.ProduceAsync(topic, new Message<string, byte[]> { Key = key, Value = body });
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageEdgeTest.MaxConcurrent, maxConcurrentEvents: MessageEdgeTest.MaxConcurrent))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageEdgeTest.TestMalformedMessages(producer, producer, consumer, consumer, commandTopic, eventTopic, serializer, log,
@@ -491,8 +491,8 @@ namespace Zerra.CQRS.Test.Kafka
             try
             {
                 //the consumer is disposed first, its handler's acknowledgement goes out before the producer deletes its topic instead of being retried for a minute
-                using var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null);
-                using var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null);
+                using var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: 4, maxConcurrentEvents: 4);
+                using var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: 4, maxConcurrentEvents: 4);
                 try
                 {
                     ackTopic = AckTopic(producer);
@@ -503,8 +503,8 @@ namespace Zerra.CQRS.Test.Kafka
                         await release.Task;
                     }
                     ((ICommandConsumer)consumer).Setup(null, Handle, Handle, (_, _, _) => Task.FromResult<object?>(null));
-                    ((ICommandConsumer)consumer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
-                    ((ICommandProducer)producer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                    ((ICommandConsumer)consumer).RegisterCommandType(commandTopic, typeof(TestCommand));
+                    ((ICommandProducer)producer).RegisterCommandType(commandTopic, typeof(TestCommand));
                     ((ICommandConsumer)consumer).Open();
 
                     var awaiting = ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand { ID = Guid.NewGuid() }, "test", TestContext.Current.CancellationToken);
@@ -542,13 +542,13 @@ namespace Zerra.CQRS.Test.Kafka
             string? ackTopic = null;
             try
             {
-                using var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null);
-                using var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null);
+                using var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: 4, maxConcurrentEvents: 4);
+                using var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: 4, maxConcurrentEvents: 4);
                 ackTopic = AckTopic(producer);
                 TypeFinder.Register(typeof(TestCommand));
                 ((ICommandConsumer)consumer).Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null));
-                ((ICommandConsumer)consumer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
-                ((ICommandProducer)producer).RegisterCommandType(4, commandTopic, typeof(TestCommand));
+                ((ICommandConsumer)consumer).RegisterCommandType(commandTopic, typeof(TestCommand));
+                ((ICommandProducer)producer).RegisterCommandType(commandTopic, typeof(TestCommand));
                 ((ICommandConsumer)consumer).Open();
 
                 await ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand { ID = Guid.NewGuid() }, "test", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
@@ -573,15 +573,15 @@ namespace Zerra.CQRS.Test.Kafka
             var serializer = new NetworkByteSerializer();
             var log = new TestLogger();
             var environment = new string('e', 300);
-            await using (var producer = new KafkaProducer(host, serializer, null, null, log, environment, null, null))
-            await using (var consumer = new KafkaConsumer(host, serializer, null, null, log, environment, null, null))
+            await using (var producer = new KafkaProducer(host, serializer, null, null, log, environment, null, null, maxConcurrentCommands: 1, maxConcurrentEvents: 1))
+            await using (var consumer = new KafkaConsumer(host, serializer, null, null, log, environment, null, null, maxConcurrentCommands: 1, maxConcurrentEvents: 1))
             {
-                ((ICommandProducer)producer).RegisterCommandType(1, "topic", typeof(TestCommand));
-                ((IEventProducer)producer).RegisterEventType(1, "topic", typeof(TestEvent));
+                ((ICommandProducer)producer).RegisterCommandType("topic", typeof(TestCommand));
+                ((IEventProducer)producer).RegisterEventType("topic", typeof(TestEvent));
                 ((ICommandConsumer)consumer).Setup(null, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.CompletedTask, (_, _, _) => Task.FromResult<object?>(null));
                 ((IEventConsumer)consumer).Setup("EdgeService", (_, _) => Task.CompletedTask);
-                ((ICommandConsumer)consumer).RegisterCommandType(1, "topic", typeof(TestCommand));
-                ((IEventConsumer)consumer).RegisterEventType(1, "topic", typeof(TestEvent), EventConsumerMode.PerService);
+                ((ICommandConsumer)consumer).RegisterCommandType("topic", typeof(TestCommand));
+                ((IEventConsumer)consumer).RegisterEventType("topic", typeof(TestEvent), EventConsumerMode.PerService);
             }
             //the client ID, the producer's command and event topics, and the consumer's
             Assert.True(log.Warnings >= 5, $"{log.Warnings} warnings");
@@ -625,8 +625,8 @@ namespace Zerra.CQRS.Test.Kafka
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageTest.TestCommandSentBeforeConsumer(producer, consumer, commandTopic, TestContext.Current.CancellationToken);
@@ -652,8 +652,8 @@ namespace Zerra.CQRS.Test.Kafka
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     ackTopic = AckTopic(producer);
                     await MessageTest.TestHandlerErrorNotReceivedAgain(producer, producer, consumer, consumer, commandTopic, eventTopic, TestContext.Current.CancellationToken);
@@ -680,8 +680,8 @@ namespace Zerra.CQRS.Test.Kafka
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
-                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
+                using (var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: MessageTest.MaxConcurrent, maxConcurrentEvents: MessageTest.MaxConcurrent))
                 {
                     ackTopic = AckTopic(producer);
                     //deleted with the broker's own admin client, not KafkaCommon, so the cached topic list still has it
@@ -714,19 +714,19 @@ namespace Zerra.CQRS.Test.Kafka
             //each producer's acknowledgements go to its own topic
             async Task SendFromNewProducer()
             {
-                using var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null);
+                using var producer = new KafkaProducer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: 10, maxConcurrentEvents: 10);
                 ackTopics.Add(AckTopic(producer));
-                ((ICommandProducer)producer).RegisterCommandType(10, commandTopic, typeof(TestCommand));
+                ((ICommandProducer)producer).RegisterCommandType(commandTopic, typeof(TestCommand));
                 await ((ICommandProducer)producer).DispatchAwaitAsync(new TestCommand() { ID = Guid.NewGuid() }, "Zerra.CQRS.Test", TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(90), TestContext.Current.CancellationToken);
             }
 
             try
             {
-                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null))
+                using (var consumer = new KafkaConsumer(host, serializer, null, null, log, null, null, null, maxConcurrentCommands: 10, maxConcurrentEvents: 10))
                 {
                     var commandConsumer = (ICommandConsumer)consumer;
                     commandConsumer.Setup(null, (command, source, cancellationToken) => Task.CompletedTask, (command, source, cancellationToken) => Task.CompletedTask, (command, source, cancellationToken) => Task.FromResult<object?>(null));
-                    commandConsumer.RegisterCommandType(10, commandTopic, typeof(TestCommand));
+                    commandConsumer.RegisterCommandType(commandTopic, typeof(TestCommand));
                     commandConsumer.Open();
 
                     await SendFromNewProducer();

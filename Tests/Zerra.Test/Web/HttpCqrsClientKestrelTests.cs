@@ -87,7 +87,7 @@ namespace Zerra.Test.Web
             await using var server = await TestServer.StartAsync(enc);
             using var client = kestrelClient ? (CqrsClientBase)new KestrelCqrsClient(server.Url, serializer, enc, null, null, null, null) : CreateClient(server.Url, enc);
             if (kestrelClient)
-                ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
+                ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
 
             var bytes = new byte[31 * 1024 * 1024];
             new Random(5).NextBytes(bytes);
@@ -113,8 +113,8 @@ namespace Zerra.Test.Web
             using var client = kestrelClient ? (CqrsClientBase)new KestrelCqrsClient(server.Url, serializer, enc, compressor, null, null, null) : CreateClient(server.Url, enc, compressor);
             if (kestrelClient)
             {
-                ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
-                ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));
+                ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
+                ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommandWithResult));
             }
 
             Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
@@ -186,10 +186,10 @@ namespace Zerra.Test.Web
         private static HttpCqrsClient CreateClient(string url, IEncryptor? encryptor, ICompressor? compressor = null)
         {
             var client = new HttpCqrsClient(url, serializer, encryptor, compressor, null, null);
-            ((IQueryClient)client).RegisterInterfaceType(10, typeof(ITestQueryHandler));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommand));
-            ((ICommandProducer)client).RegisterCommandType(10, "test", typeof(TestCommandWithResult));
-            ((IEventProducer)client).RegisterEventType(10, "test", typeof(TestEvent));
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommand));
+            ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommandWithResult));
+            ((IEventProducer)client).RegisterEventType("test", typeof(TestEvent));
             return client;
         }
 
@@ -234,19 +234,19 @@ namespace Zerra.Test.Web
                     nameof(ITestQueryHandler.Fail) => Task.FromException<RemoteQueryCallResponse>(new InvalidOperationException("query failed")),
                     _ => throw new NotSupportedException(methodName)
                 });
-                queryServer.RegisterInterfaceType(10, typeof(ITestQueryHandler));
+                queryServer.RegisterInterfaceType(typeof(ITestQueryHandler));
 
                 ICommandConsumer commandConsumer = new KestrelCqrsServerCommandConsumer(settings);
                 commandConsumer.Setup(null,
                     (_, _, _) => { _ = Interlocked.Increment(ref server.commandCount); return Task.CompletedTask; },
                     (_, _, _) => { _ = Interlocked.Increment(ref server.commandCount); return Task.CompletedTask; },
                     (command, _, _) => { _ = Interlocked.Increment(ref server.commandCount); return Task.FromResult<object?>(((TestCommandWithResult)command).Value * 2); });
-                commandConsumer.RegisterCommandType(10, "test", typeof(TestCommand));
-                commandConsumer.RegisterCommandType(10, "test", typeof(TestCommandWithResult));
+                commandConsumer.RegisterCommandType("test", typeof(TestCommand));
+                commandConsumer.RegisterCommandType("test", typeof(TestCommandWithResult));
 
                 IEventConsumer eventConsumer = new KestrelCqrsServerEventConsumer(settings);
                 eventConsumer.Setup("test-service", (@event, eventSource) => { _ = server.eventReceived.TrySetResult(((TestEvent)@event).Value); return Task.CompletedTask; });
-                eventConsumer.RegisterEventType(10, "test", typeof(TestEvent), EventConsumerMode.PerReplica);
+                eventConsumer.RegisterEventType("test", typeof(TestEvent), EventConsumerMode.PerReplica);
 
                 return server;
             }

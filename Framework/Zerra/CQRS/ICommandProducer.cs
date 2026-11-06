@@ -16,10 +16,9 @@ namespace Zerra.CQRS
         /// <summary>
         /// Registers a command for this producer.
         /// </summary>
-        /// <param name="maxConcurrent">The max number of concurrent requests for this command producer.</param>
         /// <param name="topic">The message service topic.</param>
         /// <param name="type">The command type.</param>
-        void RegisterCommandType(int maxConcurrent, string topic, Type type);
+        void RegisterCommandType(string topic, Type type);
         /// <summary>
         /// Executes sending a command.
         /// </summary>

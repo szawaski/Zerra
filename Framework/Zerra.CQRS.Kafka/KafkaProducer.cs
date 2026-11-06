@@ -47,6 +47,9 @@ namespace Zerra.CQRS.Kafka
         private readonly CancellationTokenSource canceller;
         private readonly ConcurrentDictionary<string, TaskCompletionSource<Acknowledgement>> ackCallbacks;
 
+        private readonly int maxConcurrentCommands;
+        private readonly int maxConcurrentEvents;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="KafkaProducer"/> class.
         /// </summary>
@@ -59,6 +62,8 @@ namespace Zerra.CQRS.Kafka
         /// <param name="userName">Optional username for SASL authentication. Must be paired with password.</param>
         /// <param name="password">Optional password for SASL authentication. Must be paired with userName.</param>
         /// <param name="useTls">True to connect with TLS, SASL_SSL with a user name and password or SSL without.</param>
+        /// <param name="maxConcurrentCommands">Optional maximum concurrent commands for each topic; defaults to ProcessorCount * 8.</param>
+        /// <param name="maxConcurrentEvents">Optional maximum concurrent events for each topic; defaults to ProcessorCount * 16.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="host"/> is null or empty.</exception>
         //Confluent.Kafka binds its native library by finding these methods and fields through reflection, which native AOT would otherwise trim away
 #if !NETSTANDARD2_0
@@ -67,8 +72,10 @@ namespace Zerra.CQRS.Kafka
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Alpine", "Confluent.Kafka")]
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods | DynamicallyAccessedMemberTypes.NonPublicMethods, "Confluent.Kafka.Impl.NativeMethods.NativeMethods_Centos8", "Confluent.Kafka")]
 #endif
-        public KafkaProducer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName = null, string? password = null, bool useTls = false)
+        public KafkaProducer(string host, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, string? environment, string? userName = null, string? password = null, bool useTls = false, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null)
         {
+            this.maxConcurrentCommands = maxConcurrentCommands ?? Environment.ProcessorCount * 8;
+            this.maxConcurrentEvents = maxConcurrentEvents ?? Environment.ProcessorCount * 16;
             if (String.IsNullOrWhiteSpace(host)) throw new ArgumentNullException(nameof(host));
 
             this.serializer = serializer;
@@ -550,7 +557,7 @@ namespace Zerra.CQRS.Kafka
             canceller.Dispose();
         }
 
-        void ICommandProducer.RegisterCommandType(int maxConcurrent, string topic, Type type)
+        void ICommandProducer.RegisterCommandType(string topic, Type type)
         {
             if (topicsByCommandType.ContainsKey(type))
                 return;
@@ -558,7 +565,7 @@ namespace Zerra.CQRS.Kafka
             _ = topicsByCommandType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
-            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            var throttle = new SemaphoreSlim(maxConcurrentCommands, maxConcurrentCommands);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
 
@@ -595,7 +602,7 @@ namespace Zerra.CQRS.Kafka
             }
         }
 
-        void IEventProducer.RegisterEventType(int maxConcurrent, string topic, Type type)
+        void IEventProducer.RegisterEventType(string topic, Type type)
         {
             if (topicsByEventType.ContainsKey(type))
                 return;
@@ -603,7 +610,7 @@ namespace Zerra.CQRS.Kafka
             _ = topicsByEventType.TryAdd(type, topic);
             if (throttleByTopic.ContainsKey(topic))
                 return;
-            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            var throttle = new SemaphoreSlim(maxConcurrentEvents, maxConcurrentEvents);
             if (!throttleByTopic.TryAdd(topic, throttle))
                 throttle.Dispose();
         }

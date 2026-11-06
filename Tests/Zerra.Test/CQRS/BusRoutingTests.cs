@@ -71,6 +71,48 @@ namespace Zerra.Test.CQRS
             await client.StopServicesAsync();
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Server_LimitsEachKindSeparately(bool http)
+        {
+            var url = TestNetwork.NewUrl();
+            var handler = new GatedHandler();
+
+            var server = Bus.New("server", null, null, null);
+            server.AddHandler<IGatedCommandHandler>(handler);
+            server.AddHandler<IRoutingQueryHandler>(new RoutingHandler());
+            var cqrsServer = http
+                ? (CqrsServerBase)new HttpCqrsServer(url, serializer, null, null, null, null, null, maxConcurrentQueries: 1, maxConcurrentCommands: 1, maxConcurrentEvents: 1)
+                : new TcpCqrsServer(url, serializer, null, null, null, maxConcurrentQueries: 1, maxConcurrentCommands: 1, maxConcurrentEvents: 1);
+            server.AddCommandConsumer<IGatedCommandHandler>(cqrsServer);
+            server.AddQueryServer<IRoutingQueryHandler>(cqrsServer);
+
+            var client = Bus.New("client", null, null, null);
+            var cqrsClient = http ? (CqrsClientBase)new HttpCqrsClient(url, serializer, null, null, null, null) : new TcpCqrsClient(url, serializer, null, null, null);
+            client.AddCommandProducer<IGatedCommandHandler>(cqrsClient);
+            client.AddQueryClient<IRoutingQueryHandler>(cqrsClient);
+
+            try
+            {
+                //the command holds the server's only command slot until it's released, the query has its own slot
+                var command = client.DispatchAwaitAsync(new GatedCommand());
+                await handler.Started.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+                Assert.Equal(4, await client.Call<IRoutingQueryHandler>().DoubleAsync(2).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+                Assert.False(command.IsCompleted);
+
+                handler.Release.SetResult();
+                await command;
+            }
+            finally
+            {
+                handler.Release.TrySetResult();
+                await client.StopServicesAsync();
+                await server.StopServicesAsync();
+            }
+        }
+
         [Fact]
         public async Task Events_ToSeveralProducers_Logged()
         {
@@ -468,6 +510,19 @@ namespace Zerra.Test.CQRS
         }
 
         public interface IRoutingCommandHandler : ICommandHandler<RoutingCommand>, ICommandHandler<RoutingCommandWithResult, int> { }
+        public sealed class GatedCommand : ICommand { }
+        public interface IGatedCommandHandler : ICommandHandler<GatedCommand> { }
+        public sealed class GatedHandler : BaseHandler, IGatedCommandHandler
+        {
+            public readonly TaskCompletionSource Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            public readonly TaskCompletionSource Release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public async Task Handle(GatedCommand command, CancellationToken cancellationToken)
+            {
+                _ = Started.TrySetResult();
+                await Release.Task;
+            }
+        }
         public interface IRoutingEventHandler : IEventHandler<RoutingEvent> { }
         public interface IOtherCommandHandler : ICommandHandler<OtherCommand> { }
         public interface IOtherEventHandler : IEventHandler<OtherEvent> { }
@@ -547,7 +602,7 @@ namespace Zerra.Test.CQRS
         public sealed class FailingDisposeConsumer : ICommandConsumer
         {
             public string MessageHost => "failing";
-            public void RegisterCommandType(int maxConcurrent, string topic, Type type) { }
+            public void RegisterCommandType(string topic, Type type) { }
             public void Setup(CommandCounter? commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync) { }
             public void Open() { }
             public void Close() { }

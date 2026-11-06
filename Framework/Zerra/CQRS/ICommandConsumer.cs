@@ -17,10 +17,9 @@ namespace Zerra.CQRS
         /// <summary>
         /// Registers a command type for this interface.
         /// </summary>
-        /// <param name="maxConcurrent">The max number of concurrent requests for this command consumer.</param>
         /// <param name="topic">The message service topic.</param>
         /// <param name="type">The command type.</param>
-        void RegisterCommandType(int maxConcurrent, string topic, Type type);
+        void RegisterCommandType(string topic, Type type);
         /// <summary>
         /// A method called from <see cref="Bus"/> on startup to provide parts needed for the server.
         /// </summary>

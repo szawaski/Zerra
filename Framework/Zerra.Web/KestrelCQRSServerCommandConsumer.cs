@@ -17,12 +17,16 @@ namespace Zerra.Web
     {
         private readonly KestrelCqrsServerLinkedSettings settings;
 
+        private readonly int maxConcurrentCommands;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="KestrelCqrsServerCommandConsumer"/> class.
         /// </summary>
         /// <param name="settings">The server settings for managing registered types and handlers.</param>
-        public KestrelCqrsServerCommandConsumer(KestrelCqrsServerLinkedSettings settings)
+        /// <param name="maxConcurrentCommands">Optional maximum concurrent commands for each topic; defaults to ProcessorCount * 8.</param>
+        public KestrelCqrsServerCommandConsumer(KestrelCqrsServerLinkedSettings settings, int? maxConcurrentCommands = null)
         {
+            this.maxConcurrentCommands = maxConcurrentCommands ?? Environment.ProcessorCount * 8;
             this.settings = settings;
         }
 
@@ -95,10 +99,9 @@ namespace Zerra.Web
         /// Registers the type and creates a semaphore to control concurrent command processing.
         /// Thread-safe for concurrent registration of multiple types.
         /// </remarks>
-        /// <param name="maxConcurrent">The maximum number of concurrent command handlers for this type.</param>
         /// <param name="topic">The topic or routing key for this command type (not used for Kestrel).</param>
         /// <param name="type">The command type to register.</param>
-        void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
+        void ICommandConsumer.RegisterCommandType(string topic, Type type)
         {
             if (settings.Types.TryGetValue(type.Name, out var registered))
             {
@@ -106,7 +109,7 @@ namespace Zerra.Web
                     throw new InvalidOperationException($"{type.FullName} has the same name as {registered.Type.FullName}, the name is what's sent between services");
                 return;
             }
-            var throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+            var throttle = new SemaphoreSlim(maxConcurrentCommands, maxConcurrentCommands);
             if (!settings.Types.TryAdd(type.Name, (type, throttle)))
                 throttle.Dispose();
         }
