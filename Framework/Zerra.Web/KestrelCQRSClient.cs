@@ -100,7 +100,7 @@ namespace Zerra.Web
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
             }
 
-            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, providerName, data, argumentStream, true);
+            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, data, argumentStream, true);
             return model;
         }
 
@@ -140,7 +140,7 @@ namespace Zerra.Web
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
             }
 
-            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, providerName, data, argumentStream, true, cancellationToken);
+            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, data, argumentStream, true, cancellationToken);
             return model;
         }
 
@@ -165,7 +165,7 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, messageType, commandType.Name, data, null, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, commandType.Name, data, null, false, cancellationToken);
         }
         /// <inheritdoc />
         protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
@@ -188,7 +188,7 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<TResult>(throttle, isStream, routeUri, messageType, commandType.Name, data, null, true, cancellationToken)!;
+            return RequestAsync<TResult>(throttle, isStream, routeUri, commandType.Name, data, null, true, cancellationToken)!;
         }
         /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
@@ -211,10 +211,10 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, messageType, eventType.Name, data, null, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, eventType.Name, data, null, false, cancellationToken);
         }
 
-        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, string sourceName, CqrsRequestData data, Stream? argumentStream, bool getResponseData, CancellationToken cancellationToken)
+        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string sourceName, CqrsRequestData data, Stream? argumentStream, bool getResponseData, CancellationToken cancellationToken)
         {
             await throttle.WaitAsync(cancellationToken);
 
@@ -288,9 +288,6 @@ namespace Zerra.Web
                     foreach (var authHeader in authHeaders)
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
-
-                if (!String.IsNullOrWhiteSpace(providerType))
-                    request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
 
                 request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host); //the same as HttpCqrsClient, a server with allowed origins requires one
 
@@ -370,7 +367,7 @@ namespace Zerra.Web
             }
         }
 
-        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string? providerType, string sourceName, CqrsRequestData data, Stream? argumentStream, bool getResponseData)
+        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string sourceName, CqrsRequestData data, Stream? argumentStream, bool getResponseData)
         {
 #if NETSTANDARD2_0
             //HttpClient has no synchronous send in netstandard2.0
@@ -430,9 +427,6 @@ namespace Zerra.Web
                     foreach (var authHeader in authHeaders)
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
-
-                if (!String.IsNullOrWhiteSpace(providerType))
-                    request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
 
                 request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host); //the same as HttpCqrsClient, a server with allowed origins requires one
 

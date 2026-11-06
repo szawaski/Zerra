@@ -17,7 +17,6 @@ namespace Zerra.CQRS.Network
         public int? ContentLength { get; set; }
         public bool Chuncked { get; set; }
 
-        public string? ProviderType { get; set; }
         public bool IsUpload { get; set; }
         public string? Origin { get; set; }
         public bool Preflight { get; set; }

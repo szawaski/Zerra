@@ -76,7 +76,6 @@ namespace Zerra.Test.CQRS.Network
             var header = HttpCommon.ReadHeader(bytes, bytes.Length);
 
             Assert.Equal(ContentType.Json, header.ContentType);
-            Assert.Equal("Provider", header.ProviderType);
             Assert.True(header.Chuncked);
         }
 
@@ -120,7 +119,6 @@ namespace Zerra.Test.CQRS.Network
             Assert.True(header.IsError);
             Assert.Equal(ContentType.Json, header.ContentType);
             Assert.Equal(12, header.ContentLength);
-            Assert.Equal("Provider", header.ProviderType);
             Assert.Equal("example.com", header.Origin);
             Assert.Null(header.Headers);
             Assert.Null(header.Declarations);
@@ -167,7 +165,7 @@ namespace Zerra.Test.CQRS.Network
         {
             var buffer = new byte[HttpCommon.BufferLength];
 
-            var length = HttpCommon.BufferOkResponseHeader(buffer, null, null, ContentType.Bytes, null, false);
+            var length = HttpCommon.BufferOkResponseHeader(buffer, null, ContentType.Bytes, null, false);
 
             var response = System.Text.Encoding.UTF8.GetString(buffer, 0, length);
             Assert.Contains("Content-Length: 0\r\n", response);
@@ -234,14 +232,13 @@ namespace Zerra.Test.CQRS.Network
             var buffer = new byte[HttpCommon.BufferLength];
             var bufferMemory = buffer.AsMemory();
             var url = new Uri("http://localhost:9001/api");
-            var providerType = "ITestQueryHandler";
             var contentType = ContentType.Bytes;
             var authHeaders = new Dictionary<string, List<string?>>
             {
                 { "Authorization", new List<string?> { "Bearer token123" } }
             };
 
-            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, providerType, contentType, authHeaders);
+            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, contentType, authHeaders);
 
             Assert.True(length > 0);
             Assert.True(length < HttpCommon.BufferLength);
@@ -254,10 +251,10 @@ namespace Zerra.Test.CQRS.Network
             var url = new Uri("http://localhost:9001/api");
             var authHeaders = new Dictionary<string, List<string?>> { { "Authorization", new List<string?> { "Bearer token123" } } };
 
-            var length = HttpCommon.BufferPostRequestHeader(buffer, url, "TestProvider", ContentType.Bytes, authHeaders);
+            var length = HttpCommon.BufferPostRequestHeader(buffer, url, ContentType.Bytes, authHeaders);
 
             //response-only Access-Control-Allow headers are not sent
-            var expected = "POST /api HTTP/1.1\r\nProvider-Type: TestProvider\r\nContent-Type: application/octet-stream\r\nAuthorization: Bearer token123\r\nTransfer-Encoding: chunked\r\nHost: localhost:9001\r\nOrigin: localhost\r\n\r\n";
+            var expected = "POST /api HTTP/1.1\r\nContent-Type: application/octet-stream\r\nAuthorization: Bearer token123\r\nTransfer-Encoding: chunked\r\nHost: localhost:9001\r\nOrigin: localhost\r\n\r\n";
             Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(buffer, 0, length));
         }
 
@@ -267,10 +264,9 @@ namespace Zerra.Test.CQRS.Network
             var buffer = new byte[HttpCommon.BufferLength];
             var bufferMemory = buffer.AsMemory();
             var url = new Uri("http://localhost:9001/api");
-            var providerType = "ITestQueryHandler";
             var contentType = ContentType.Json;
 
-            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, providerType, contentType, null);
+            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, contentType, null);
 
             Assert.True(length > 0);
             Assert.True(length < HttpCommon.BufferLength);
@@ -284,7 +280,7 @@ namespace Zerra.Test.CQRS.Network
             var url = new Uri("http://localhost:9001/api");
             var contentType = ContentType.JsonNameless;
 
-            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, null, contentType, null);
+            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, contentType, null);
 
             Assert.True(length > 0);
             Assert.True(length < HttpCommon.BufferLength);
@@ -333,14 +329,13 @@ namespace Zerra.Test.CQRS.Network
             var buffer = new byte[HttpCommon.BufferLength];
             var bufferMemory = buffer.AsMemory();
             var origin = "https://example.com";
-            var providerType = "ITestQueryHandler";
             var contentType = ContentType.Bytes;
             var authHeaders = new Dictionary<string, List<string?>>
             {
                 { "Authorization", new List<string?> { "Bearer token123" } }
             };
 
-            var length = HttpCommon.BufferOkResponseHeader(bufferMemory, origin, providerType, contentType, authHeaders);
+            var length = HttpCommon.BufferOkResponseHeader(bufferMemory, origin, contentType, authHeaders);
 
             Assert.True(length > 0);
             Assert.True(length < HttpCommon.BufferLength);
@@ -353,7 +348,7 @@ namespace Zerra.Test.CQRS.Network
             var bufferMemory = buffer.AsMemory();
             var contentType = ContentType.JsonNameless;
 
-            var length = HttpCommon.BufferOkResponseHeader(bufferMemory, null, null, contentType, null);
+            var length = HttpCommon.BufferOkResponseHeader(bufferMemory, null, contentType, null);
 
             Assert.True(length > 0);
             Assert.True(length < HttpCommon.BufferLength);
@@ -378,14 +373,13 @@ namespace Zerra.Test.CQRS.Network
             var bufferMemory = buffer.AsMemory();
 
             // Buffer a valid response header
-            var headerLength = HttpCommon.BufferOkResponseHeader(bufferMemory, "https://example.com", "TestProvider", ContentType.Bytes, null);
+            var headerLength = HttpCommon.BufferOkResponseHeader(bufferMemory, "https://example.com", ContentType.Bytes, null);
 
             // Read it back
             var header = HttpCommon.ReadHeader(bufferMemory, headerLength);
 
             Assert.NotNull(header);
             Assert.False(header.IsError);
-            Assert.Equal("TestProvider", header.ProviderType);
             Assert.Equal(ContentType.Bytes, header.ContentType);
         }
 
@@ -450,7 +444,7 @@ namespace Zerra.Test.CQRS.Network
                 { "X-Custom-Header", new List<string?> { "value1", "value2" } }
             };
 
-            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, "TestProvider", ContentType.Json, authHeaders);
+            var length = HttpCommon.BufferPostRequestHeader(bufferMemory, url, ContentType.Json, authHeaders);
 
             Assert.True(length > 0);
             Assert.True(length < HttpCommon.BufferLength);
@@ -464,7 +458,7 @@ namespace Zerra.Test.CQRS.Network
                 var buffer = new byte[HttpCommon.BufferLength];
                 var bufferMemory = buffer.AsMemory();
 
-                var length = HttpCommon.BufferOkResponseHeader(bufferMemory, null, null, contentType, null);
+                var length = HttpCommon.BufferOkResponseHeader(bufferMemory, null, contentType, null);
 
                 Assert.True(length > 0);
                 Assert.True(length < HttpCommon.BufferLength);
@@ -510,12 +504,12 @@ namespace Zerra.Test.CQRS.Network
             var authHeaders = new Dictionary<string, List<string?>>() { ["Authorization"] = [null, "Bearer token"] };
             var buffer = new byte[HttpCommon.BufferLength];
 
-            var length = HttpCommon.BufferPostRequestHeader(buffer, new Uri("http://localhost:1234/"), "Provider", ContentType.Json, authHeaders);
+            var length = HttpCommon.BufferPostRequestHeader(buffer, new Uri("http://localhost:1234/"), ContentType.Json, authHeaders);
             var request = System.Text.Encoding.UTF8.GetString(buffer, 0, length);
             Assert.Single(request.Split("\r\n"), x => x.StartsWith("Authorization"));
             Assert.Contains("Authorization: Bearer token", request);
 
-            length = HttpCommon.BufferOkResponseHeader(buffer, null, "Provider", ContentType.Json, authHeaders);
+            length = HttpCommon.BufferOkResponseHeader(buffer, null, ContentType.Json, authHeaders);
             var response = System.Text.Encoding.UTF8.GetString(buffer, 0, length);
             Assert.Single(response.Split("\r\n"), x => x.StartsWith("Authorization"));
             Assert.Contains("Authorization: Bearer token", response);

@@ -685,7 +685,6 @@ namespace Zerra.Test.CQRS.Network
         {
             var providerType = typeof(ITestQueryHandler).Name;
             Assert.StartsWith("POST ", request.Header.Declarations);
-            Assert.Equal(providerType, request.Header.ProviderType);
             Assert.Equal(serializer.ContentType, request.Header.ContentType);
             Assert.Equal(providerType, request.Data.ProviderType);
             Assert.Equal(methodName, request.Data.ProviderMethod);
@@ -697,7 +696,6 @@ namespace Zerra.Test.CQRS.Network
         private static void AssertMessageRequest(FakeRequest request, Type messageType, bool messageAwait, bool messageResult)
         {
             Assert.StartsWith("POST ", request.Header.Declarations);
-            Assert.Equal(messageType.Name, request.Header.ProviderType);
             Assert.Equal(serializer.ContentType, request.Header.ContentType);
             Assert.Equal(messageType.Name, request.Data.MessageType);
             Assert.Equal(messageAwait, request.Data.MessageAwait);
@@ -923,7 +921,7 @@ namespace Zerra.Test.CQRS.Network
                 var buffer = new byte[HttpCommon.BufferLength];
                 var headerLength = isError
                     ? HttpCommon.BufferErrorResponseHeader(buffer, Header.Origin)
-                    : HttpCommon.BufferOkResponseHeader(buffer, Header.Origin, Header.ProviderType, serializer.ContentType, null);
+                    : HttpCommon.BufferOkResponseHeader(buffer, Header.Origin, serializer.ContentType, null);
                 if (splitHeader)
                 {
                     //the client reads the first part before the rest arrives

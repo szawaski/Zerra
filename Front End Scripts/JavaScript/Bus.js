@@ -207,7 +207,6 @@ const Bus = {
         const accept = jsonNameless ? "application/jsonnameless; charset=utf-8" : "application/json; charset=utf-8";
 
         const headers = {};
-        headers["Provider-Type"] = provider;
         for (const property in Bus._customHeaders) {
             const value = Bus._customHeaders[property];
             if (value !== null && value !== "") {
@@ -314,7 +313,6 @@ const Bus = {
         };
 
         const headers = {};
-        headers["Provider-Type"] = type;
         for (const property in Bus._customHeaders) {
             const value = Bus._customHeaders[property];
             if (value !== null && value !== "") {
@@ -364,7 +362,6 @@ const Bus = {
         const accept = jsonNameless ? "application/jsonnameless; charset=utf-8" : "application/json; charset=utf-8";
 
         const headers = {};
-        headers["Provider-Type"] = type;
         for (const property in Bus._customHeaders) {
             const value = Bus._customHeaders[property];
             if (value !== null && value !== "") {

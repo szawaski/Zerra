@@ -594,7 +594,7 @@ namespace Zerra.Test.CQRS.Network
             using var server = StartMessageServer(out var port, null);
 
             await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
-            await connection.SendRawAsync($"POST / HTTP/1.1\r\nHost: 127.0.0.1\r\n{HttpCommon.ProviderTypeHeader}: {nameof(TestCommand)}\r\nContent-Length: 0\r\n\r\n", TestContext.Current.CancellationToken);
+            await connection.SendRawAsync($"POST / HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 0\r\n\r\n", TestContext.Current.CancellationToken);
 
             var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
             Assert.True(header is null || header.IsError);
@@ -623,19 +623,19 @@ namespace Zerra.Test.CQRS.Network
             switch (kind)
             {
                 case "EmptyBody":
-                    await connection.SendBodyAsync<CqrsRequestData>(nameof(TestCommand), null, token);
+                    await connection.SendBodyAsync<CqrsRequestData>(null, token);
                     break;
                 case "NoProviderOrMessage":
-                    await connection.SendBodyAsync(nameof(TestCommand), new CqrsRequestData() { Source = source }, token);
+                    await connection.SendBodyAsync(new CqrsRequestData() { Source = source }, token);
                     break;
                 case "UnregisteredMessage":
                     await connection.SendAsync(MessageRequest(new OtherCommand(), false, false), null, cancellationToken: token);
                     break;
                 case "NullCommand":
-                    await connection.SendBodyAsync(nameof(TestCommand), new CqrsRequestData() { MessageType = nameof(TestCommand), MessageData = serializer.SerializeBytes<TestCommand>(null), Source = source }, token);
+                    await connection.SendBodyAsync(new CqrsRequestData() { MessageType = nameof(TestCommand), MessageData = serializer.SerializeBytes<TestCommand>(null), Source = source }, token);
                     break;
                 case "NullEvent":
-                    await connection.SendBodyAsync(nameof(TestEvent), new CqrsRequestData() { MessageType = nameof(TestEvent), MessageData = serializer.SerializeBytes<TestEvent>(null), Source = source }, token);
+                    await connection.SendBodyAsync(new CqrsRequestData() { MessageType = nameof(TestEvent), MessageData = serializer.SerializeBytes<TestEvent>(null), Source = source }, token);
                     break;
             }
 
@@ -877,7 +877,7 @@ namespace Zerra.Test.CQRS.Network
             public async Task SendAsync(CqrsRequestData data, IEncryptor? encryptor, ContentType? contentType = null, Dictionary<string, List<string?>>? authHeaders = null, string? origin = null, CancellationToken cancellationToken = default)
             {
                 var buffer = new byte[HttpCommon.BufferLength];
-                var headerLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.ProviderType ?? data.MessageType, contentType ?? serializer.ContentType, authHeaders);
+                var headerLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, contentType ?? serializer.ContentType, authHeaders);
                 if (origin is not null)
                 {
                     //a browser sends its own origin instead of the service host
@@ -908,11 +908,11 @@ namespace Zerra.Test.CQRS.Network
                 await stream.WriteAsync(Encoding.UTF8.GetBytes(request), cancellationToken);
             }
 
-            //any body under a header for the provider type, such as null or a request missing its fields
-            public async Task SendBodyAsync<T>(string providerType, T? data, CancellationToken cancellationToken = default)
+            //any body under a header, such as null or a request missing its fields
+            public async Task SendBodyAsync<T>(T? data, CancellationToken cancellationToken = default)
             {
                 var buffer = new byte[HttpCommon.BufferLength];
-                var headerLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, providerType, serializer.ContentType, null);
+                var headerLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, serializer.ContentType, null);
                 await stream.WriteAsync(buffer.AsMemory(0, headerLength), cancellationToken);
 
                 var body = new HttpProtocolBodyStream(null, stream, null, true, true);

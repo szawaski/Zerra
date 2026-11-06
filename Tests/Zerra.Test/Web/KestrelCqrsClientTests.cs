@@ -196,7 +196,6 @@ namespace Zerra.Test.Web
 
             var request = Assert.Single(server.Requests);
             Assert.Equal(typeof(TestCommand).Name, request.Data.MessageType);
-            Assert.Equal(typeof(TestCommand).Name, request.ProviderTypeHeader);
             Assert.Equal(messageAwait, request.Data.MessageAwait);
             Assert.False(request.Data.MessageResult);
         }
@@ -330,7 +329,7 @@ namespace Zerra.Test.Web
             return client;
         }
 
-        private sealed record FakeRequest(string? ProviderTypeHeader, string? OriginHeader, CqrsRequestData Data);
+        private sealed record FakeRequest(string? OriginHeader, CqrsRequestData Data);
 
         private sealed record FakeResponse(int StatusCode, byte[] Body)
         {
@@ -370,7 +369,7 @@ namespace Zerra.Test.Web
                         if (encryptor is not null)
                             body = encryptor.Decrypt(body, false);
                         var data = await serializer.DeserializeAsync<CqrsRequestData>(body, default);
-                        var request = new FakeRequest(context.Request.Headers[HttpCommon.ProviderTypeHeader], context.Request.Headers[HttpCommon.OriginHeader], data!);
+                        var request = new FakeRequest(context.Request.Headers[HttpCommon.OriginHeader], data!);
                         Requests.Enqueue(request);
 
                         var response = Respond(request);

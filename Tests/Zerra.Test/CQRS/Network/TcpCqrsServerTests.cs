@@ -457,19 +457,19 @@ namespace Zerra.Test.CQRS.Network
             switch (kind)
             {
                 case "EmptyBody":
-                    await connection.SendBodyAsync<CqrsRequestData>(nameof(TestCommand), null, token);
+                    await connection.SendBodyAsync<CqrsRequestData>(null, token);
                     break;
                 case "NoProviderOrMessage":
-                    await connection.SendBodyAsync(nameof(TestCommand), new CqrsRequestData() { Source = source }, token);
+                    await connection.SendBodyAsync(new CqrsRequestData() { Source = source }, token);
                     break;
                 case "UnregisteredMessage":
                     await connection.SendAsync(MessageRequest(new OtherCommand(), false, false), null, cancellationToken: token);
                     break;
                 case "NullCommand":
-                    await connection.SendBodyAsync(nameof(TestCommand), new CqrsRequestData() { MessageType = nameof(TestCommand), MessageData = serializer.SerializeBytes<TestCommand>(null), Source = source }, token);
+                    await connection.SendBodyAsync(new CqrsRequestData() { MessageType = nameof(TestCommand), MessageData = serializer.SerializeBytes<TestCommand>(null), Source = source }, token);
                     break;
                 case "NullEvent":
-                    await connection.SendBodyAsync(nameof(TestEvent), new CqrsRequestData() { MessageType = nameof(TestEvent), MessageData = serializer.SerializeBytes<TestEvent>(null), Source = source }, token);
+                    await connection.SendBodyAsync(new CqrsRequestData() { MessageType = nameof(TestEvent), MessageData = serializer.SerializeBytes<TestEvent>(null), Source = source }, token);
                     break;
             }
 
@@ -693,7 +693,7 @@ namespace Zerra.Test.CQRS.Network
             public async Task SendAsync(CqrsRequestData data, IEncryptor? encryptor, ContentType? contentType = null, CancellationToken cancellationToken = default)
             {
                 var buffer = new byte[TcpCommon.BufferLength];
-                var headerLength = TcpCommon.BufferHeader(buffer, data.ProviderType ?? data.MessageType!, contentType ?? serializer.ContentType);
+                var headerLength = TcpCommon.BufferHeader(buffer, contentType ?? serializer.ContentType);
                 await stream.WriteAsync(buffer.AsMemory(0, headerLength), cancellationToken);
 
                 var body = new TcpProtocolBodyStream(stream, null, true, true);
@@ -712,11 +712,11 @@ namespace Zerra.Test.CQRS.Network
                 }
             }
 
-            //any body under a header for the provider type, such as null or a request missing its fields
-            public async Task SendBodyAsync<T>(string providerType, T? data, CancellationToken cancellationToken = default)
+            //any body under a header, such as null or a request missing its fields
+            public async Task SendBodyAsync<T>(T? data, CancellationToken cancellationToken = default)
             {
                 var buffer = new byte[TcpCommon.BufferLength];
-                var headerLength = TcpCommon.BufferHeader(buffer, providerType, serializer.ContentType);
+                var headerLength = TcpCommon.BufferHeader(buffer, serializer.ContentType);
                 await stream.WriteAsync(buffer.AsMemory(0, headerLength), cancellationToken);
 
                 var body = new TcpProtocolBodyStream(stream, null, true, true);

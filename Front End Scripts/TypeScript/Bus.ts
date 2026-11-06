@@ -199,7 +199,6 @@ export class Bus {
             const accept = hasJsonNameless ? "application/jsonnameless; charset=utf-8" : "application/json; charset=utf-8";
 
             const headers: HeadersInit = {};
-            headers["Provider-Type"] = provider;
             if (upload !== null)
                 headers["Upload-Stream"] = "true";
             headers["Content-Type"] = "application/json; charset=utf-8";
@@ -294,7 +293,6 @@ export class Bus {
             };
 
             const headers: HeadersInit = {};
-            headers["Provider-Type"] = type;
             headers["Content-Type"] = "application/json; charset=utf-8";
             for (const property in Bus._customHeaders) {
                 const value = Bus._customHeaders[property];
@@ -363,7 +361,6 @@ export class Bus {
             const accept = hasJsonNameless ? "application/jsonnameless; charset=utf-8" : "application/json; charset=utf-8";
 
             const headers: HeadersInit = {};
-            headers["Provider-Type"] = type;
             headers["Content-Type"] = "application/json; charset=utf-8";
             if (hasResult)
                 headers["Accept"] = accept;

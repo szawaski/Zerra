@@ -140,14 +140,6 @@ namespace Zerra.Web
                 return;
             }
 
-            string? providerTypeRequestHeader;
-            if (!context.Request.Headers.TryGetValue(HttpCommon.ProviderTypeHeader, out var providerTypeRequestHeaderValue))
-            {
-                context.Response.StatusCode = 400;
-                return;
-            }
-            providerTypeRequestHeader = providerTypeRequestHeaderValue;
-
             string? originRequestHeader;
             if (settings.AllowOrigins is not null)
             {
@@ -510,7 +502,6 @@ namespace Zerra.Web
                     }
 
                     //Response Header
-                    context.Response.Headers.Append(HttpCommon.ProviderTypeHeader, data.MessageType);
                     context.Response.Headers.Append(HttpCommon.AccessControlAllowOriginHeader, originRequestHeader);
                     context.Response.Headers.Append(HttpCommon.AccessControlAllowMethodsHeader, "*");
                     context.Response.Headers.Append(HttpCommon.AccessControlAllowHeadersHeader, "*");

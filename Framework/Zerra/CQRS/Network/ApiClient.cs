@@ -221,7 +221,6 @@ namespace Zerra.CQRS.Network
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
 
-                request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
                 request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host); //the same as HttpCqrsClient, a gateway with allowed origins requires one
 
                 //headers only so the body streams instead of buffering, the response stays undisposed for a stream result
@@ -332,7 +331,6 @@ namespace Zerra.CQRS.Network
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
 
-                request.Headers.Add(HttpCommon.ProviderTypeHeader, providerType);
                 request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host); //the same as HttpCqrsClient, a gateway with allowed origins requires one
 
                 //headers only so the body streams instead of buffering, the response stays undisposed for a stream result

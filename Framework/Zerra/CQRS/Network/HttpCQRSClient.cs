@@ -102,7 +102,7 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.ProviderType, serializer.ContentType, authHeaders, argumentStream is not null);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, serializer.ContentType, authHeaders, argumentStream is not null);
 
 #if NETSTANDARD2_0
                     stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, CancellationToken.None);
@@ -343,7 +343,7 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.ProviderType, serializer.ContentType, authHeaders, argumentStream is not null);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, serializer.ContentType, authHeaders, argumentStream is not null);
 
 #if NETSTANDARD2_0
                     stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
@@ -629,7 +629,7 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.MessageType, serializer.ContentType, authHeaders);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, serializer.ContentType, authHeaders);
 
 #if NETSTANDARD2_0
                     stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
@@ -882,7 +882,7 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.MessageType, serializer.ContentType, authHeaders);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, serializer.ContentType, authHeaders);
 
 #if NETSTANDARD2_0
                     stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
@@ -1147,7 +1147,7 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, data.MessageType, serializer.ContentType, authHeaders);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, serializer.ContentType, authHeaders);
 
 #if NETSTANDARD2_0
                     stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);

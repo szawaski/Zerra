@@ -173,7 +173,6 @@ namespace Zerra.CQRS.Network
                             if (String.IsNullOrWhiteSpace(data.ProviderMethod)) throw new Exception("Invalid Request");
                             if (data.ProviderArguments is null) throw new Exception("Invalid Request");
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
-                            if (requestHeader.ProviderType != data.ProviderType) throw new Exception("Invalid Request");
 
                             if (!this.types.TryGetValue(data.ProviderType, out var providerType))
                                 throw new CqrsNetworkException($"Unhandled Provider Type {data.ProviderType}");
@@ -228,7 +227,7 @@ namespace Zerra.CQRS.Network
 
                             //Response Header
 #pragma warning disable CS8629 // Nullable value type may be null. False Positive
-                            var responseHeaderLength = TcpCommon.BufferHeader(buffer, data.ProviderType, requestHeader.ContentType.Value);
+                            var responseHeaderLength = TcpCommon.BufferHeader(buffer, requestHeader.ContentType.Value);
 #pragma warning restore CS8629 // Nullable value type may be null. False Positive
 
                             //Response Body, the header goes out with it
@@ -310,7 +309,6 @@ namespace Zerra.CQRS.Network
                         {
                             if (data.MessageData is null) throw new Exception("Invalid Request");
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
-                            if (requestHeader.ProviderType != data.MessageType) throw new Exception("Invalid Request");
 
                             if (!this.types.TryGetValue(data.MessageType, out var messageType))
                                 throw new CqrsNetworkException($"Unhandled Message Type {data.MessageType}");
@@ -415,7 +413,7 @@ namespace Zerra.CQRS.Network
 
                             //Response Header
 #pragma warning disable CS8629 // Nullable value type may be null. False Positive
-                            var responseHeaderLength = TcpCommon.BufferHeader(buffer, data.MessageType, requestHeader.ContentType.Value);
+                            var responseHeaderLength = TcpCommon.BufferHeader(buffer, requestHeader.ContentType.Value);
 #pragma warning restore CS8629 // Nullable value type may be null. False Positive
 
                             if (hasResult)
@@ -492,7 +490,7 @@ namespace Zerra.CQRS.Network
                         try
                         {
                             //Response Header for Error
-                            var responseHeaderLength = TcpCommon.BufferErrorHeader(buffer, requestHeader.ProviderType, requestHeader.ContentType.Value);
+                            var responseHeaderLength = TcpCommon.BufferErrorHeader(buffer, requestHeader.ContentType.Value);
 
                             //Response Body, the header goes out with it
                             responseBodyStream = new TcpProtocolBodyStream(stream, null, true, true, buffer.Slice(0, responseHeaderLength));

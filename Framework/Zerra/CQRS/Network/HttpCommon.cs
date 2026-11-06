@@ -20,7 +20,6 @@ namespace Zerra.CQRS.Network
 
         public const string ContentLengthHeader = "Content-Length";
         public const string ContentTypeHeader = "Content-Type";
-        public const string ProviderTypeHeader = "Provider-Type";
         //the body is the data in {int32 little endian length}{bytes} segments ended by {int32 0}, then the stream bytes to the end of the body
         public const string UploadStreamHeader = "Upload-Stream";
         public const string UploadStreamValue = "true";
@@ -58,7 +57,6 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] notFoundHeaderBytes = encoding.GetBytes(notFoundResponse);
         private static readonly byte[] serverErrorHeaderBytes = encoding.GetBytes(serverErrorResponse);
         private static readonly byte[] transferEncodingChunckedBytes = encoding.GetBytes("Transfer-Encoding: chunked");
-        private static readonly byte[] providerTypeHeaderBytes = encoding.GetBytes($"{ProviderTypeHeader}{headerSplit}");
         private static readonly byte[] uploadStreamHeaderBytes = encoding.GetBytes($"{UploadStreamHeader}{headerSplit}{UploadStreamValue}");
         private static readonly byte[] contentLengthZeroBytes = encoding.GetBytes($"{ContentLengthHeader}{headerSplit}0");
 
@@ -233,10 +231,6 @@ namespace Zerra.CQRS.Network
                                     }
                                     if (!headerInfo.Chuncked)
                                         throw new CqrsNetworkException($"Unsupported {TransferEncodingHeader}");
-                                }
-                                else if (key.Equals(ProviderTypeHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
-                                {
-                                    headerInfo.ProviderType ??= valueString ?? value.ToString();
                                 }
                                 else if (key.Equals(UploadStreamHeader.AsSpan(), StringComparison.OrdinalIgnoreCase))
                                 {
@@ -413,7 +407,7 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferPostRequestHeader(Memory<byte> buffer, Uri serviceUrl, string? providerType, ContentType? contentType, Dictionary<string, List<string?>>? authHeaders, bool isUpload = false)
+        public static int BufferPostRequestHeader(Memory<byte> buffer, Uri serviceUrl, ContentType? contentType, Dictionary<string, List<string?>>? authHeaders, bool isUpload = false)
         {
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
 
@@ -429,17 +423,6 @@ namespace Zerra.CQRS.Network
             if (isUpload)
             {
                 headerBuffer.Write(uploadStreamHeaderBytes);
-                headerBuffer.Write(newLineBytes);
-            }
-
-            if (!String.IsNullOrWhiteSpace(providerType))
-            {
-                headerBuffer.Write(providerTypeHeaderBytes);
-#if NETSTANDARD2_0
-                headerBuffer.Write(encoding.GetBytes(providerType));
-#else
-                headerBuffer.Advance(encoding.GetBytes(providerType, headerBuffer.Remaining));
-#endif
                 headerBuffer.Write(newLineBytes);
             }
 
@@ -577,23 +560,12 @@ namespace Zerra.CQRS.Network
             return headerBuffer.Position;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferOkResponseHeader(Memory<byte> buffer, string? origion, string? providerType, ContentType? contentType, Dictionary<string, List<string?>>? authHeaders, bool hasBody = true)
+        public static int BufferOkResponseHeader(Memory<byte> buffer, string? origion, ContentType? contentType, Dictionary<string, List<string?>>? authHeaders, bool hasBody = true)
         {
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
 
             headerBuffer.Write(okHeaderBytes);
             headerBuffer.Write(newLineBytes);
-
-            if (!String.IsNullOrWhiteSpace(providerType))
-            {
-                headerBuffer.Write(providerTypeHeaderBytes);
-#if NETSTANDARD2_0
-                headerBuffer.Write(encoding.GetBytes(providerType));
-#else
-                headerBuffer.Advance(encoding.GetBytes(providerType, headerBuffer.Remaining));
-#endif
-                headerBuffer.Write(newLineBytes);
-            }
 
             if (contentType.HasValue)
             {

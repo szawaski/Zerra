@@ -49,18 +49,14 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
-        public void BufferHeader_WithProviderType()
+        public void BufferHeader_EndsWithHeaderEnder()
         {
             var buffer = new byte[TcpCommon.BufferLength];
-            var bufferMemory = buffer.AsMemory();
-            var contentType = ContentType.Bytes;
 
-            var length = TcpCommon.BufferHeader(bufferMemory, "TestProvider", contentType);
+            var length = TcpCommon.BufferHeader(buffer.AsMemory(), ContentType.Bytes);
 
             Assert.True(length > 0);
             Assert.True(length < TcpCommon.BufferLength);
-
-            // Verify the header ends with ~
             Assert.Equal(126, buffer[length - 1]); // 126 is '~'
         }
 
@@ -69,63 +65,21 @@ namespace Zerra.Test.CQRS.Network
         {
             var buffer = new byte[TcpCommon.BufferLength];
 
-            var length = TcpCommon.BufferHeader(buffer, "TestProvider", ContentType.Json);
-            var errorLength = TcpCommon.BufferErrorHeader(buffer.AsMemory(length), "TestProvider", ContentType.Json);
+            var length = TcpCommon.BufferHeader(buffer, ContentType.Json);
+            var uploadLength = TcpCommon.BufferHeader(buffer.AsMemory(length), ContentType.Json, true);
+            var errorLength = TcpCommon.BufferErrorHeader(buffer.AsMemory(length + uploadLength), ContentType.Json);
 
-            Assert.Equal($"RAW|TestProvider|{(int)ContentType.Json}~", System.Text.Encoding.UTF8.GetString(buffer, 0, length));
-            Assert.Equal($"ERR|TestProvider|{(int)ContentType.Json}~", System.Text.Encoding.UTF8.GetString(buffer, length, errorLength));
+            Assert.Equal($"RAW|{(int)ContentType.Json}~", System.Text.Encoding.UTF8.GetString(buffer, 0, length));
+            Assert.Equal($"UPL|{(int)ContentType.Json}~", System.Text.Encoding.UTF8.GetString(buffer, length, uploadLength));
+            Assert.Equal($"ERR|{(int)ContentType.Json}~", System.Text.Encoding.UTF8.GetString(buffer, length + uploadLength, errorLength));
         }
 
         [Fact]
-        public void BufferHeader_WithoutProviderType()
+        public void BufferErrorHeader_EndsWithHeaderEnder()
         {
             var buffer = new byte[TcpCommon.BufferLength];
-            var bufferMemory = buffer.AsMemory();
-            var contentType = ContentType.Bytes;
 
-            var length = TcpCommon.BufferHeader(bufferMemory, "", contentType);
-
-            Assert.True(length > 0);
-            Assert.True(length < TcpCommon.BufferLength);
-            Assert.Equal(126, buffer[length - 1]); // 126 is '~'
-        }
-
-        [Fact]
-        public void BufferHeader_WithNullProviderType()
-        {
-            var buffer = new byte[TcpCommon.BufferLength];
-            var bufferMemory = buffer.AsMemory();
-            var contentType = ContentType.Bytes;
-
-            var length = TcpCommon.BufferHeader(bufferMemory, null, contentType);
-
-            Assert.True(length > 0);
-            Assert.True(length < TcpCommon.BufferLength);
-            Assert.Equal(126, buffer[length - 1]); // 126 is '~'
-        }
-
-        [Fact]
-        public void BufferErrorHeader_WithProviderType()
-        {
-            var buffer = new byte[TcpCommon.BufferLength];
-            var bufferMemory = buffer.AsMemory();
-            var contentType = ContentType.Bytes;
-
-            var length = TcpCommon.BufferErrorHeader(bufferMemory, "TestProvider", contentType);
-
-            Assert.True(length > 0);
-            Assert.True(length < TcpCommon.BufferLength);
-            Assert.Equal(126, buffer[length - 1]); // 126 is '~'
-        }
-
-        [Fact]
-        public void BufferErrorHeader_WithoutProviderType()
-        {
-            var buffer = new byte[TcpCommon.BufferLength];
-            var bufferMemory = buffer.AsMemory();
-            var contentType = ContentType.Bytes;
-
-            var length = TcpCommon.BufferErrorHeader(bufferMemory, null, contentType);
+            var length = TcpCommon.BufferErrorHeader(buffer.AsMemory(), ContentType.Bytes);
 
             Assert.True(length > 0);
             Assert.True(length < TcpCommon.BufferLength);
@@ -139,13 +93,12 @@ namespace Zerra.Test.CQRS.Network
             var bufferMemory = buffer.AsMemory();
 
             // First buffer a header
-            var headerLength = TcpCommon.BufferHeader(bufferMemory, "MyProvider", ContentType.Bytes);
+            var headerLength = TcpCommon.BufferHeader(bufferMemory, ContentType.Bytes);
 
             // Then read it back
             var header = TcpCommon.ReadHeader(bufferMemory, headerLength); // -1 to exclude the enderr
 
             Assert.NotNull(header);
-            Assert.Equal("MyProvider", header.ProviderType);
             Assert.Equal(ContentType.Bytes, header.ContentType);
             Assert.False(header.IsError);
         }
@@ -157,13 +110,12 @@ namespace Zerra.Test.CQRS.Network
             var bufferMemory = buffer.AsMemory();
 
             // Buffer an error header
-            var headerLength = TcpCommon.BufferErrorHeader(bufferMemory, "ErrorProvider", ContentType.Bytes);
+            var headerLength = TcpCommon.BufferErrorHeader(bufferMemory, ContentType.Bytes);
 
             // Then read it back
             var header = TcpCommon.ReadHeader(bufferMemory, headerLength);
 
             Assert.NotNull(header);
-            Assert.Equal("ErrorProvider", header.ProviderType);
             Assert.True(header.IsError);
         }
 
@@ -172,16 +124,14 @@ namespace Zerra.Test.CQRS.Network
         {
             var buffer = new byte[TcpCommon.BufferLength];
             var bufferMemory = buffer.AsMemory();
-            var originalProvider = "RoundTripProvider";
             var originalContentType = ContentType.Json;
 
             // Buffer a header
-            var headerLength = TcpCommon.BufferHeader(bufferMemory, originalProvider, originalContentType);
+            var headerLength = TcpCommon.BufferHeader(bufferMemory, originalContentType);
 
             // Read it back
             var header = TcpCommon.ReadHeader(bufferMemory[..headerLength], headerLength);
 
-            Assert.Equal(originalProvider, header.ProviderType);
             Assert.Equal(originalContentType, header.ContentType);
             Assert.False(header.IsError);
         }
@@ -191,25 +141,24 @@ namespace Zerra.Test.CQRS.Network
         {
             var buffer = new byte[TcpCommon.BufferLength];
             var bufferMemory = buffer.AsMemory();
-            var originalProvider = "ErrorProvider";
             var originalContentType = ContentType.Bytes;
 
             // Buffer an error header
-            var headerLength = TcpCommon.BufferErrorHeader(bufferMemory, originalProvider, originalContentType);
+            var headerLength = TcpCommon.BufferErrorHeader(bufferMemory, originalContentType);
 
             // Read it back
             var header = TcpCommon.ReadHeader(bufferMemory[..headerLength], headerLength);
 
-            Assert.Equal(originalProvider, header.ProviderType);
             Assert.Equal(originalContentType, header.ContentType);
             Assert.True(header.IsError);
         }
 
         [Theory]
-        [InlineData("RAW|Provider|x~")]
-        [InlineData("RAW|Provider~")]
-        [InlineData("RAW|Provider|1|extra~")]
-        [InlineData("BAD|Provider|1~")]
+        [InlineData("RAW|x~")]
+        [InlineData("RAW~")]
+        [InlineData("RAW|1|extra~")]
+        [InlineData("RAW|Provider|1~")]
+        [InlineData("BAD|1~")]
         public void ReadHeader_Invalid_Throws(string header)
         {
             var bytes = System.Text.Encoding.UTF8.GetBytes(header);
@@ -217,12 +166,11 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact]
-        public void ReadHeader_UploadAndNullProvider()
+        public void ReadHeader_Upload()
         {
-            var bytes = System.Text.Encoding.UTF8.GetBytes("UPL|*|1~");
+            var bytes = System.Text.Encoding.UTF8.GetBytes("UPL|1~");
             var header = TcpCommon.ReadHeader(bytes, bytes.Length);
             Assert.True(header.IsUpload);
-            Assert.Null(header.ProviderType);
         }
     }
 }

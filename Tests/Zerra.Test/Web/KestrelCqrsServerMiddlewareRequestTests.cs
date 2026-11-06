@@ -41,14 +41,12 @@ namespace Zerra.Test.Web
             return new KestrelCqrsServerMiddleware(_ => Task.CompletedTask, serializer, null, compressor, null, settings);
         }
 
-        private static DefaultHttpContext CreateContext(INetworkSerializer serializer, CqrsRequestData data, string? contentType, CancellationToken cancellationToken, bool providerHeader = true, ICompressor? compressor = null)
+        private static DefaultHttpContext CreateContext(INetworkSerializer serializer, CqrsRequestData data, string? contentType, CancellationToken cancellationToken, ICompressor? compressor = null)
         {
             var context = new DefaultHttpContext();
             context.RequestAborted = cancellationToken;
             context.Request.Method = "POST";
             context.Request.ContentType = contentType;
-            if (providerHeader)
-                context.Request.Headers[HttpCommon.ProviderTypeHeader] = data.ProviderType;
             context.Request.Headers["Authorization"] = "Bearer token";
             var body = serializer.SerializeBytes(data);
             context.Request.Body = new MemoryStream(compressor is null ? body : compressor.Compress(body));
@@ -68,17 +66,16 @@ namespace Zerra.Test.Web
             => Task.FromResult(new RemoteQueryCallResponse(serializer.Deserialize<int>(arguments[0]!) * 2));
 
         [Theory(Timeout = timeout)]
-        [InlineData(null, true)]
-        [InlineData("text/plain", true)]
-        [InlineData(HttpCommon.ContentTypeJson, true)]
-        [InlineData(HttpCommon.ContentTypeBytes, false)]
-        public async Task BadRequest_Returns400(string? contentType, bool providerHeader)
+        [InlineData(null)]
+        [InlineData("text/plain")]
+        [InlineData(HttpCommon.ContentTypeJson)]
+        public async Task BadRequest_Returns400(string? contentType)
         {
-            //no content type, an unknown one, one the server doesn't use, or no provider header
+            //no content type, an unknown one, or one the server doesn't use
             var serializer = new NetworkByteSerializer();
             var called = false;
             using var middleware = CreateMiddleware(serializer, (_, _, _, _, _, _, _) => { called = true; return Task.FromResult(new RemoteQueryCallResponse(1)); });
-            var context = CreateContext(serializer, Request(serializer, nameof(IRequestQueryHandler.Double), 2), contentType, TestContext.Current.CancellationToken, providerHeader);
+            var context = CreateContext(serializer, Request(serializer, nameof(IRequestQueryHandler.Double), 2), contentType, TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -205,8 +202,7 @@ namespace Zerra.Test.Web
                 2 => Message(serializer, new RequestResultCommand { Value = 5 }, messageResult: true),
                 _ => Message(serializer, new RequestEvent { Value = 5 }),
             };
-            var context = CreateContext(serializer, request, HttpCommon.ContentTypeJson, TestContext.Current.CancellationToken, providerHeader: false);
-            context.Request.Headers[HttpCommon.ProviderTypeHeader] = request.MessageType;
+            var context = CreateContext(serializer, request, HttpCommon.ContentTypeJson, TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 
@@ -245,8 +241,7 @@ namespace Zerra.Test.Web
                 "null event" => new CqrsRequestData() { MessageType = nameof(RequestEvent), MessageData = "null"u8.ToArray(), Source = "test" },
                 _ => Message(serializer, new RequestCommand { Value = 5 }),
             };
-            var context = CreateContext(serializer, request, HttpCommon.ContentTypeJson, TestContext.Current.CancellationToken, providerHeader: false);
-            context.Request.Headers[HttpCommon.ProviderTypeHeader] = request.ProviderType ?? request.MessageType;
+            var context = CreateContext(serializer, request, HttpCommon.ContentTypeJson, TestContext.Current.CancellationToken);
             if (invalid == "empty body")
             {
                 context.Request.Body = new MemoryStream();
@@ -283,8 +278,7 @@ namespace Zerra.Test.Web
             var serializer = new NetworkJsonSerializer();
             var handled = new Handled();
             using var middleware = CreateMessageMiddleware(serializer, handled);
-            var context = CreateContext(serializer, new CqrsRequestData() { Source = "test" }, HttpCommon.ContentTypeJson, TestContext.Current.CancellationToken, providerHeader: false);
-            context.Request.Headers[HttpCommon.ProviderTypeHeader] = "Anything";
+            var context = CreateContext(serializer, new CqrsRequestData() { Source = "test" }, HttpCommon.ContentTypeJson, TestContext.Current.CancellationToken);
 
             await middleware.Invoke(context);
 

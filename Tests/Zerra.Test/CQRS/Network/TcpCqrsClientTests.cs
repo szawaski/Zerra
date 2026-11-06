@@ -190,7 +190,7 @@ namespace Zerra.Test.CQRS.Network
             {
                 //the header and part of a 100 byte segment, the rest never comes
                 var buffer = new byte[TcpCommon.BufferLength];
-                var headerLength = TcpCommon.BufferHeader(buffer, request.Header.ProviderType!, serializer.ContentType);
+                var headerLength = TcpCommon.BufferHeader(buffer, serializer.ContentType);
                 await request.WriteRawAsync(buffer[..headerLength].Concat(BitConverter.GetBytes(100)).Concat(new byte[10]).ToArray());
             });
             using var client = CreateClient(server, null);
@@ -621,7 +621,6 @@ namespace Zerra.Test.CQRS.Network
         private static void AssertQueryRequest(FakeRequest request, string methodName, int argument)
         {
             var providerType = typeof(ITestQueryHandler).Name;
-            Assert.Equal(providerType, request.Header.ProviderType);
             Assert.Equal(serializer.ContentType, request.Header.ContentType);
             Assert.Equal(providerType, request.Data.ProviderType);
             Assert.Equal(methodName, request.Data.ProviderMethod);
@@ -632,7 +631,6 @@ namespace Zerra.Test.CQRS.Network
 
         private static void AssertMessageRequest(FakeRequest request, Type messageType, bool messageAwait, bool messageResult)
         {
-            Assert.Equal(messageType.Name, request.Header.ProviderType);
             Assert.Equal(serializer.ContentType, request.Header.ContentType);
             Assert.Equal(messageType.Name, request.Data.MessageType);
             Assert.Equal(messageAwait, request.Data.MessageAwait);
@@ -817,8 +815,8 @@ namespace Zerra.Test.CQRS.Network
             {
                 var buffer = new byte[TcpCommon.BufferLength];
                 var headerLength = isError
-                    ? TcpCommon.BufferErrorHeader(buffer, Header.ProviderType, serializer.ContentType)
-                    : TcpCommon.BufferHeader(buffer, Header.ProviderType!, serializer.ContentType);
+                    ? TcpCommon.BufferErrorHeader(buffer, serializer.ContentType)
+                    : TcpCommon.BufferHeader(buffer, serializer.ContentType);
                 await stream.WriteAsync(buffer.AsMemory(0, headerLength));
             }
 

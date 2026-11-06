@@ -9,12 +9,11 @@ namespace Zerra.CQRS.Network
     {
         public const int BufferLength = 1024 * 8; //Limits max header size
 
-        //{prefix}|{providerType}|{contentType}~{int-size:body}{int-size:body}{int-size:body}...{0:null}
+        //{prefix}|{contentType}~{int-size:body}{int-size:body}{int-size:body}...{0:null}
         //an upload body is the data in the same segments ended by {0}, then the stream bytes in segments to the body's {0}
         private const string protocolRawPrefix = "RAW";
         private const string protocolUploadPrefix = "UPL";
         private const string protocolErrorPrefix = "ERR";
-        private const string nullProviderType = "*";
         private const char headerSeperator = '|';
         private const char headerEnder = '~';
 
@@ -23,8 +22,6 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] protocolRawPrefixBytes = encoding.GetBytes($"{protocolRawPrefix}{headerSeperator}");
         private static readonly byte[] protocolUploadPrefixBytes = encoding.GetBytes($"{protocolUploadPrefix}{headerSeperator}");
         private static readonly byte[] protocolErrorPrefixBytes = encoding.GetBytes($"{protocolErrorPrefix}{headerSeperator}");
-        private static readonly byte[] nullProviderBytes = encoding.GetBytes($"{nullProviderType}{headerSeperator}");
-        private static readonly byte[] headerSeperatorBytes = encoding.GetBytes($"{headerSeperator}");
         private static readonly byte[] headerEnderBytes = encoding.GetBytes($"{headerEnder}");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -58,7 +55,6 @@ namespace Zerra.CQRS.Network
                 var charsLength = encoding.GetChars(buffer.Span.Slice(0, headerLength), chars.AsSpan());
 #endif
                 string? prefix = null;
-                string? providerType = null;
                 ContentType? contentType = null;
 
                 var propertyIndex = 0;
@@ -84,13 +80,6 @@ namespace Zerra.CQRS.Network
                                         break;
                                     case 1:
                                         {
-                                            providerType = new string(pChars, startIndex, indexLength);
-                                            startIndex = index + 1;
-                                            indexLength = 0;
-                                        }
-                                        break;
-                                    case 2:
-                                        {
                                             var contentTypeString = new string(pChars, startIndex, indexLength);
                                             if (Int32.TryParse(contentTypeString, out var contentTypeValue))
                                                 contentType = (ContentType)contentTypeValue;
@@ -111,7 +100,7 @@ namespace Zerra.CQRS.Network
                     }
                 }
 
-                if (propertyIndex != 3 || !contentType.HasValue)
+                if (propertyIndex != 2 || !contentType.HasValue)
                     throw new CqrsNetworkException("Invalid Header");
 
                 var isError = prefix == protocolErrorPrefix;
@@ -119,10 +108,7 @@ namespace Zerra.CQRS.Network
                 if (!isError && !isUpload && prefix != protocolRawPrefix)
                     throw new CqrsNetworkException("Invalid Header");
 
-                if (providerType is nullProviderType)
-                    providerType = null;
-
-                return new TcpRequestHeader(buffer.Slice(headerLength), isError, isUpload, contentType.Value, providerType);
+                return new TcpRequestHeader(buffer.Slice(headerLength), isError, isUpload, contentType.Value);
 #if !NETSTANDARD2_0
             }
             finally
@@ -133,24 +119,10 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferHeader(Memory<byte> buffer, string providerType, ContentType contentType, bool isUpload = false)
+        public static int BufferHeader(Memory<byte> buffer, ContentType contentType, bool isUpload = false)
         {
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
             headerBuffer.Write(isUpload ? protocolUploadPrefixBytes : protocolRawPrefixBytes);
-            if (!String.IsNullOrWhiteSpace(providerType))
-            {
-#if NETSTANDARD2_0
-                headerBuffer.Write(encoding.GetBytes(providerType));
-#else
-                headerBuffer.Advance(encoding.GetBytes(providerType, headerBuffer.Remaining));
-#endif
-                headerBuffer.Write(headerSeperatorBytes);
-            }
-            else
-            {
-                headerBuffer.Write(nullProviderBytes);
-            }
-
             _ = Utf8Formatter.TryFormat((int)contentType, headerBuffer.Remaining, out var contentTypeLength);
             headerBuffer.Advance(contentTypeLength);
             headerBuffer.Write(headerEnderBytes);
@@ -158,25 +130,11 @@ namespace Zerra.CQRS.Network
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BufferErrorHeader(Memory<byte> buffer, string? providerType, ContentType contentType)
+        public static int BufferErrorHeader(Memory<byte> buffer, ContentType contentType)
         {
             var headerBuffer = new SpanWriter<byte>(buffer.Span);
 
             headerBuffer.Write(protocolErrorPrefixBytes);
-            if (!String.IsNullOrWhiteSpace(providerType))
-            {
-#if NETSTANDARD2_0
-                headerBuffer.Write(encoding.GetBytes(providerType));
-#else
-                headerBuffer.Advance(encoding.GetBytes(providerType, headerBuffer.Remaining));
-#endif
-                headerBuffer.Write(headerSeperatorBytes);
-            }
-            else
-            {
-                headerBuffer.Write(nullProviderBytes);
-            }
-
             _ = Utf8Formatter.TryFormat((int)contentType, headerBuffer.Remaining, out var contentTypeLength);
             headerBuffer.Advance(contentTypeLength);
             headerBuffer.Write(headerEnderBytes);

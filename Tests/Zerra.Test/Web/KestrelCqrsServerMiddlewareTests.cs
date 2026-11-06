@@ -133,7 +133,6 @@ namespace Zerra.Test.Web
             Assert.Equal(200, context.Response.StatusCode);
             Assert.Equal(5, Assert.IsType<TestCommand>(received).Value);
             Assert.Empty(ReadResponse(context, null));
-            Assert.Equal(typeof(TestCommand).Name, context.Response.Headers[HttpCommon.ProviderTypeHeader]);
         }
 
         [Fact(Timeout = timeout)]
@@ -407,7 +406,6 @@ namespace Zerra.Test.Web
             context.RequestAborted = cancellationToken;
             context.Request.Method = "POST";
             context.Request.ContentType = HttpCommon.ContentTypeBytes;
-            context.Request.Headers[HttpCommon.ProviderTypeHeader] = data.ProviderType ?? data.MessageType;
             if (origin is not null)
                 context.Request.Headers.Origin = origin;
             context.Request.Body = new MemoryStream(body.ToArray());

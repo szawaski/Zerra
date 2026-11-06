@@ -256,7 +256,6 @@ namespace Zerra.CQRS.Network
                             if (String.IsNullOrWhiteSpace(data.ProviderMethod)) throw new Exception("Invalid Request");
                             if (data.ProviderArguments is null) throw new Exception("Invalid Request");
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
-                            if (requestHeader.ProviderType != data.ProviderType) throw new Exception("Invalid Request");
 
                             if (!this.types.TryGetValue(data.ProviderType, out var providerType))
                                 throw new CqrsNetworkException($"Unhandled Provider Type {data.ProviderType}");
@@ -310,7 +309,7 @@ namespace Zerra.CQRS.Network
                             responseStarted = true;
 
                             //Response Header
-                            var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, requestHeader.ContentType.Value, null);
+                            var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ContentType.Value, null);
 
                             //Response Body, the header goes out with it
                             responseBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, responseHeaderLength));
@@ -391,7 +390,6 @@ namespace Zerra.CQRS.Network
                         {
                             if (data.MessageData is null) throw new Exception("Invalid Request");
                             if (String.IsNullOrWhiteSpace(data.Source)) throw new Exception("Invalid Request");
-                            if (requestHeader.ProviderType != data.MessageType) throw new Exception("Invalid Request");
 
                             if (!this.types.TryGetValue(data.MessageType, out var messageType))
                                 throw new CqrsNetworkException($"Unhandled Message Type {data.MessageType}");
@@ -494,7 +492,7 @@ namespace Zerra.CQRS.Network
                             responseStarted = true;
 
                             //Response Header
-                            var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, requestHeader.ProviderType, serializer.ContentType, null, hasResult);
+                            var responseHeaderLength = HttpCommon.BufferOkResponseHeader(buffer, requestHeader.Origin, serializer.ContentType, null, hasResult);
 
                             if (hasResult)
                             {
