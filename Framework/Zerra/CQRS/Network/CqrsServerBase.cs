@@ -95,13 +95,18 @@ namespace Zerra.CQRS.Network
 
         void IQueryServer.RegisterInterfaceType(int maxConcurrent, Type type)
         {
+            if (types.TryGetValue(type.Name, out var existing))
+            {
+                if (existing != type)
+                    throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
+                return;
+            }
+
             if (throttle is not null)
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
-            var existing = types.GetOrAdd(type.Name, type);
-            if (existing != type)
-                throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
+            _ = types.TryAdd(type.Name, type);
         }
 
         void ICommandConsumer.Setup(CommandCounter? commandCounter, HandleRemoteCommandDispatch handlerAsync, HandleRemoteCommandDispatch handlerAwaitAsync, HandleRemoteCommandWithResultDispatch handlerWithResultAwaitAsync)
@@ -116,13 +121,18 @@ namespace Zerra.CQRS.Network
 
         void ICommandConsumer.RegisterCommandType(int maxConcurrent, string topic, Type type)
         {
+            if (types.TryGetValue(type.Name, out var existing))
+            {
+                if (existing != type)
+                    throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
+                return;
+            }
+
             if (throttle is not null)
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
-            var existing = types.GetOrAdd(type.Name, type);
-            if (existing != type)
-                throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
+            _ = types.TryAdd(type.Name, type);
         }
 
         void IEventConsumer.Setup(string serviceName, HandleRemoteEventDispatch handlerAsync)
@@ -136,13 +146,18 @@ namespace Zerra.CQRS.Network
         //so the server has nothing to change for the mode
         void IEventConsumer.RegisterEventType(int maxConcurrent, string topic, Type type, EventConsumerMode eventConsumerMode)
         {
+            if (types.TryGetValue(type.Name, out var existing))
+            {
+                if (existing != type)
+                    throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
+                return;
+            }
+
             if (throttle is not null)
                 throttle.Dispose();
             throttle = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
-            var existing = types.GetOrAdd(type.Name, type);
-            if (existing != type)
-                throw new InvalidOperationException($"{type.FullName} has the same name as {existing.FullName}, the name is what's sent between services");
+            _ = types.TryAdd(type.Name, type);
         }
 
         void IQueryServer.Open()
