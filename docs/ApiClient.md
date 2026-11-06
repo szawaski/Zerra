@@ -11,7 +11,7 @@ using Zerra.CQRS;
 using Zerra.CQRS.Network;
 
 var apiClient = new ApiClient(
-    endpoint: "https://myapp.example.com",
+    serviceUrl: "https://myapp.example.com",
     serializer: new NetworkJsonSerializer(), // must match the gateway's registered serializer
     log: log,
     authorizer: authorizer,                  // optional ICqrsAuthorizer supplying request headers

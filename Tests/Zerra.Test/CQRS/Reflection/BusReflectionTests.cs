@@ -6,6 +6,7 @@ using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Reflection;
 using Zerra.CQRS.Reflection.Dynamic;
+using Zerra.Encryption;
 
 namespace Zerra.Test.CQRS.Reflection
 {
@@ -70,6 +71,56 @@ namespace Zerra.Test.CQRS.Reflection
             Assert.Equal(typeof(IInfoEventHandler), BusCommandOrEventInfo.GetByInterfaceTypeOrNull(typeof(IInfoEventHandler))!.InterfaceType);
         }
 
+        public interface IDynamicCaller
+        {
+            int Get(int value);
+            Task Run(int value);
+            Task<int> GetAsync(int value);
+        }
+
+        [Fact]
+        public async Task GenerateBusCaller_PassesTheOverrides()
+        {
+            var creator = BusRouterGenerator.GenerateBusCaller(typeof(IDynamicCaller));
+            var bus = new RecordingBusInternal();
+            var encryptor = new ZerraEncryptor("test", SymmetricAlgorithmType.AES_GCM);
+
+            var caller = (IDynamicCaller)creator(bus, "source", true, "10.1.4.7:9001", encryptor);
+            Assert.Equal(1, caller.Get(1));
+            await caller.Run(2);
+            Assert.Equal(3, await caller.GetAsync(3));
+            Assert.Equal([("Get", "source", true, "10.1.4.7:9001", encryptor), ("Run", "source", true, "10.1.4.7:9001", encryptor), ("GetAsync", "source", true, "10.1.4.7:9001", encryptor)], bus.Calls);
+
+            bus.Calls.Clear();
+            caller = (IDynamicCaller)creator(bus, "source", false, null, null);
+            _ = caller.Get(1);
+            Assert.Equal([("Get", "source", false, (string?)null, (IEncryptor?)null)], bus.Calls);
+        }
+
+        private sealed class RecordingBusInternal : IBusInternal
+        {
+            public readonly List<(string Method, string Source, bool Remote, string? OverrideServiceUrl, IEncryptor? OverrideEncryptor)> Calls = new();
+
+            public TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor)
+            {
+                Calls.Add((methodName, source, remote, overrideServiceUrl, overrideEncryptor));
+                return (TReturn)arguments[0];
+            }
+            public Task _CallMethodTask(Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor)
+            {
+                Calls.Add((methodName, source, remote, overrideServiceUrl, overrideEncryptor));
+                return Task.CompletedTask;
+            }
+            public Task<TReturn> _CallMethodTaskGeneric<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor)
+            {
+                Calls.Add((methodName, source, remote, overrideServiceUrl, overrideEncryptor));
+                return Task.FromResult((TReturn)arguments[0]);
+            }
+            public Task _DispatchCommandInternalAsync(ICommand command, Type commandType, bool requireAffirmation, string source, bool remote, CancellationToken cancellationToken) => throw new NotSupportedException();
+            public Task<TResult> _DispatchCommandWithResultInternalAsync<TResult>(ICommand<TResult> command, Type commandType, string source, bool remote, CancellationToken cancellationToken) => throw new NotSupportedException();
+            public Task _DispatchEventInternalAsync(IEvent @event, Type eventType, string source, CancellationToken cancellationToken) => throw new NotSupportedException();
+        }
+
         [Fact]
         public void Register_RejectsDuplicatesAndClasses()
         {
@@ -78,10 +129,10 @@ namespace Zerra.Test.CQRS.Reflection
             _ = Assert.Throws<ArgumentException>(() => BusCommandOrEventInfo.Register(typeof(IRegisteredInfo), "Registered", [], []));
             _ = Assert.Throws<ArgumentException>(() => BusCommandOrEventInfo.Register(typeof(RegisteredCommand), "Registered", [], []));
 
-            BusRouters.Register(typeof(IRegisteredRouter), (bus, source, remote) => source);
-            Assert.Equal("source", BusRouters.GetBusCaller(typeof(IRegisteredRouter), null!, "source", false));
-            _ = Assert.Throws<InvalidOperationException>(() => BusRouters.Register(typeof(IRegisteredRouter), (bus, source, remote) => source));
-            _ = Assert.Throws<ArgumentException>(() => BusRouters.Register(typeof(RegisteredCommand), (bus, source, remote) => source));
+            BusRouters.Register(typeof(IRegisteredRouter), (bus, source, remote, overrideServiceUrl, overrideEncryptor) => source);
+            Assert.Equal("source", BusRouters.GetBusCaller(typeof(IRegisteredRouter), null!, "source", false, null, null));
+            _ = Assert.Throws<InvalidOperationException>(() => BusRouters.Register(typeof(IRegisteredRouter), (bus, source, remote, overrideServiceUrl, overrideEncryptor) => source));
+            _ = Assert.Throws<ArgumentException>(() => BusRouters.Register(typeof(RegisteredCommand), (bus, source, remote, overrideServiceUrl, overrideEncryptor) => source));
 
             BusRouters.Register(typeof(RegisteredCommand), (bus, command, type, source, remote, cancellationToken) => Task.CompletedTask, task => null);
             Assert.NotNull(BusRouters.GetBusDispatcher(typeof(RegisteredCommand)));

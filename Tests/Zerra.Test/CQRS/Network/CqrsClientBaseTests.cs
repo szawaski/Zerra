@@ -55,8 +55,8 @@ namespace Zerra.Test.CQRS.Network
             public int Port => port;
             public Uri ServiceUri => serviceUri;
 
-            protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source) => throw new NotSupportedException();
-            protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken) => throw new NotSupportedException();
+            protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, Uri? overrideServiceUri, Zerra.Encryption.IEncryptor? overrideEncryptor) => throw new NotSupportedException();
+            protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, Uri? overrideServiceUri, Zerra.Encryption.IEncryptor? overrideEncryptor, CancellationToken cancellationToken) => throw new NotSupportedException();
             protected override Task DispatchInternal(SemaphoreSlim throttle, Type commandType, ICommand command, bool messageAwait, string source, CancellationToken cancellationToken) => throw new NotSupportedException();
             protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) => throw new NotSupportedException();
             protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken) => throw new NotSupportedException();

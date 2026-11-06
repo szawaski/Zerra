@@ -28,6 +28,7 @@ namespace Zerra.Web
         private readonly IEncryptor? encryptor;
         private readonly ICompressor? compressor;
         private readonly ICqrsAuthorizer? authorizer;
+        private readonly string? route;
         private readonly Uri routeUri;
         private readonly HttpClientHandler handler;
         private readonly HttpClient client;
@@ -35,23 +36,24 @@ namespace Zerra.Web
         /// <summary>
         /// Initializes a new instance of the <see cref="KestrelCqrsClient"/> class.
         /// </summary>
-        /// <param name="endpoint">The remote Kestrel server endpoint (e.g., "http://localhost:9001").</param>
+        /// <param name="serviceUrl">The URL of the remote Kestrel server (e.g., "http://localhost:9001").</param>
         /// <param name="serializer">The serializer for request/response serialization and deserialization.</param>
         /// <param name="encryptor">Optional encryptor/decryptor for message encryption. If null, messages are not encrypted.</param>
         /// <param name="compressor">Optional compressor for message compression, applied before encryption. If null, messages are not compressed.</param>
         /// <param name="log">Optional logger for diagnostic information and errors.</param>
         /// <param name="authorizer">Optional authorizer for providing custom authentication headers.</param>
-        /// <param name="route">Optional route path to append to the endpoint (e.g., "/cqrs").</param>
+        /// <param name="route">Optional route path to append to the service URL (e.g., "/cqrs").</param>
         /// <param name="maxConcurrentQueries">Optional maximum concurrent queries for each query interface; defaults to ProcessorCount * 32.</param>
         /// <param name="maxConcurrentCommands">Optional maximum concurrent commands for each topic; defaults to ProcessorCount * 8.</param>
         /// <param name="maxConcurrentEvents">Optional maximum concurrent events for each topic; defaults to ProcessorCount * 16.</param>
-        public KestrelCqrsClient(string endpoint, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, ICqrsAuthorizer? authorizer, string? route, int? maxConcurrentQueries = null, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null) : base(endpoint, log, maxConcurrentQueries, maxConcurrentCommands, maxConcurrentEvents)
+        public KestrelCqrsClient(string serviceUrl, INetworkSerializer serializer, IEncryptor? encryptor, ICompressor? compressor, ILogger? log, ICqrsAuthorizer? authorizer, string? route, int? maxConcurrentQueries = null, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null) : base(serviceUrl, log, maxConcurrentQueries, maxConcurrentCommands, maxConcurrentEvents)
         {
             this.serializer = serializer;
             this.encryptor = encryptor;
             this.compressor = compressor;
             this.authorizer = authorizer;
 
+            this.route = route;
             if (route is not null)
                 routeUri = new Uri($"{base.serviceUri.AbsoluteUri.TrimEnd('/')}/{route.TrimStart('/')}");
             else
@@ -65,8 +67,9 @@ namespace Zerra.Web
         }
 
         /// <inheritdoc />
-        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source)
+        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, Uri? overrideServiceUri, IEncryptor? overrideEncryptor)
         {
+            var callUri = overrideServiceUri is null ? routeUri : (route is null ? overrideServiceUri : new Uri($"{overrideServiceUri.AbsoluteUri.TrimEnd('/')}/{route.TrimStart('/')}"));
             var providerName = interfaceType.Name;
 
             string[][]? claims = null;
@@ -100,13 +103,14 @@ namespace Zerra.Web
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
             }
 
-            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, data, argumentStream, true);
+            var model = Request<TReturn>(throttle, isStream, callUri, overrideEncryptor ?? encryptor, providerName, data, argumentStream, true);
             return model;
         }
 
         /// <inheritdoc />
-        protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
+        protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, Uri? overrideServiceUri, IEncryptor? overrideEncryptor, CancellationToken cancellationToken) where TReturn : default
         {
+            var callUri = overrideServiceUri is null ? routeUri : (route is null ? overrideServiceUri : new Uri($"{overrideServiceUri.AbsoluteUri.TrimEnd('/')}/{route.TrimStart('/')}"));
             var providerName = interfaceType.Name;
 
             string[][]? claims = null;
@@ -140,7 +144,7 @@ namespace Zerra.Web
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
             }
 
-            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, data, argumentStream, true, cancellationToken);
+            var model = RequestAsync<TReturn>(throttle, isStream, callUri, overrideEncryptor ?? encryptor, providerName, data, argumentStream, true, cancellationToken);
             return model;
         }
 
@@ -165,7 +169,7 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, commandType.Name, data, null, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, encryptor, commandType.Name, data, null, false, cancellationToken);
         }
         /// <inheritdoc />
         protected override Task<TResult> DispatchInternal<TResult>(SemaphoreSlim throttle, bool isStream, Type commandType, ICommand<TResult> command, string source, CancellationToken cancellationToken) where TResult : default
@@ -188,7 +192,7 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<TResult>(throttle, isStream, routeUri, commandType.Name, data, null, true, cancellationToken)!;
+            return RequestAsync<TResult>(throttle, isStream, routeUri, encryptor, commandType.Name, data, null, true, cancellationToken)!;
         }
         /// <inheritdoc />
         protected override Task DispatchInternal(SemaphoreSlim throttle, Type eventType, IEvent @event, string source, CancellationToken cancellationToken)
@@ -211,10 +215,10 @@ namespace Zerra.Web
                 Source = source
             };
 
-            return RequestAsync<object>(throttle, false, routeUri, eventType.Name, data, null, false, cancellationToken);
+            return RequestAsync<object>(throttle, false, routeUri, encryptor, eventType.Name, data, null, false, cancellationToken);
         }
 
-        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string sourceName, CqrsRequestData data, Stream? argumentStream, bool getResponseData, CancellationToken cancellationToken)
+        private async Task<TReturn> RequestAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, IEncryptor? callEncryptor, string sourceName, CqrsRequestData data, Stream? argumentStream, bool getResponseData, CancellationToken cancellationToken)
         {
             await throttle.WaitAsync(cancellationToken);
 
@@ -229,8 +233,8 @@ namespace Zerra.Web
                     Stream writeStream = postStream;
                     CryptoFlushStream? cryptoStream = null;
                     Stream? compressStream = null;
-                    if (encryptor is not null)
-                        writeStream = cryptoStream = encryptor.Encrypt(new LeaveOpenStream(postStream), true);
+                    if (callEncryptor is not null)
+                        writeStream = cryptoStream = callEncryptor.Encrypt(new LeaveOpenStream(postStream), true);
                     if (compressor is not null)
                         writeStream = compressStream = compressor.Compress(writeStream, true);
                     if (argumentStream is null)
@@ -289,7 +293,7 @@ namespace Zerra.Web
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
 
-                request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host); //the same as HttpCqrsClient, a server with allowed origins requires one
+                request.Headers.Add(HttpCommon.OriginHeader, url.Host); //the same as HttpCqrsClient, a server with allowed origins requires one
 
                 //headers only so the body streams instead of buffering, the response stays undisposed for a stream result
                 response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -300,8 +304,8 @@ namespace Zerra.Web
                 responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
 #endif
 
-                if (encryptor is not null)
-                    responseStream = encryptor.Decrypt(responseStream, false);
+                if (callEncryptor is not null)
+                    responseStream = callEncryptor.Decrypt(responseStream, false);
                 if (compressor is not null)
                     responseStream = compressor.Decompress(responseStream, false);
 
@@ -367,7 +371,7 @@ namespace Zerra.Web
             }
         }
 
-        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, string sourceName, CqrsRequestData data, Stream? argumentStream, bool getResponseData)
+        private TReturn Request<TReturn>(SemaphoreSlim throttle, bool isStream, Uri url, IEncryptor? callEncryptor, string sourceName, CqrsRequestData data, Stream? argumentStream, bool getResponseData)
         {
 #if NETSTANDARD2_0
             //HttpClient has no synchronous send in netstandard2.0
@@ -386,8 +390,8 @@ namespace Zerra.Web
                     Stream writeStream = postStream;
                     CryptoFlushStream? cryptoStream = null;
                     Stream? compressStream = null;
-                    if (encryptor is not null)
-                        writeStream = cryptoStream = encryptor.Encrypt(new LeaveOpenStream(postStream), true);
+                    if (callEncryptor is not null)
+                        writeStream = cryptoStream = callEncryptor.Encrypt(new LeaveOpenStream(postStream), true);
                     if (compressor is not null)
                         writeStream = compressStream = compressor.Compress(writeStream, true);
                     if (argumentStream is null)
@@ -428,15 +432,15 @@ namespace Zerra.Web
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
 
-                request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host); //the same as HttpCqrsClient, a server with allowed origins requires one
+                request.Headers.Add(HttpCommon.OriginHeader, url.Host); //the same as HttpCqrsClient, a server with allowed origins requires one
 
                 //headers only so the body streams instead of buffering, the response stays undisposed for a stream result
                 response = client.Send(request, HttpCompletionOption.ResponseHeadersRead);
 
                 responseStream = response.Content.ReadAsStream();
 
-                if (encryptor is not null)
-                    responseStream = encryptor.Decrypt(responseStream, false);
+                if (callEncryptor is not null)
+                    responseStream = callEncryptor.Decrypt(responseStream, false);
                 if (compressor is not null)
                     responseStream = compressor.Decompress(responseStream, false);
 

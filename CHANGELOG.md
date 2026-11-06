@@ -37,6 +37,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Azure Service Bus sends wait out throttling instead of failing once the client's retries run out.
 - Kafka waits for a topic it creates to be ready before using it, so consumers no longer log an unknown topic error when they first start.
 - `WriteStreamContent` made with an async delegate throws `NotSupportedException` when sent synchronously, instead of blocking a thread on the delegate. Use the synchronous delegate constructor for synchronous sends.
+- `bus.Call<T>(serviceUrl)` sends a query to a specific replica's address, optionally with a different encryptor. See [Calling a Specific Replica](docs/ClientSetup.md#calling-a-specific-replica).
 - Requests no longer send a `Provider-Type` header. Servers read the type from the request body, and the type name isn't sent unencrypted when the body is encrypted.
 - Remote queries and commands over TCP and HTTP are about 20% faster. The server no longer throws and catches an exception on every request when it stops watching for the caller to cancel.
 

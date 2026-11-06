@@ -5,6 +5,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Zerra.CQRS.Network;
 using Zerra.Logging;
+using Zerra.Encryption;
 
 namespace Zerra.CQRS
 {
@@ -21,6 +22,17 @@ namespace Zerra.CQRS
         /// <typeparam name="TInterface">The interface type.</typeparam>
         /// <returns>An instance of the interface to route queries.</returns>
         TInterface Call<TInterface>();
+        /// <summary>
+        /// Returns in instance of an interface that will route a query to a specific server instead of the query client's service url.
+        /// Use this to reach a particular replica when its address is already known.
+        /// The query goes through the interface's registered query client, even if this service has a handler for the interface.
+        /// The address is trusted, never pass one that comes from user input.
+        /// </summary>
+        /// <typeparam name="TInterface">The interface type.</typeparam>
+        /// <param name="overrideServiceUrl">The server address in the same format as the query client's service url (e.g. "10.1.4.7:9001" or "http://10.1.4.7:9001").</param>
+        /// <param name="overrideEncryptor">An optional encryptor to use instead of the query client's, for a server with a different key.</param>
+        /// <returns>An instance of the interface to route queries.</returns>
+        TInterface Call<TInterface>(string overrideServiceUrl, IEncryptor? overrideEncryptor = null);
 
         /// <summary>
         /// Send a command to the configured destination.

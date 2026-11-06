@@ -145,14 +145,14 @@ namespace Zerra.SourceGeneration.Test
                 {
                     public interface IShadowQueryProvider : IQueryHandler
                     {
-                        Task<int> Get(int bus, int source, int remote);
+                        Task<int> Get(int bus, int source, int remote, int overrideServiceUrl, int overrideEncryptor);
                     }
                 }
                 """);
 
             var caller = output.Sources["Caller_IShadowQueryProvider.cs"];
             Assert.Contains("this.bus._CallMethodTaskGeneric<", caller);
-            Assert.Contains("[@bus, @source, @remote], this.source, this.remote);", caller);
+            Assert.Contains("[@bus, @source, @remote, @overrideServiceUrl, @overrideEncryptor], this.source, this.remote, this.overrideServiceUrl, this.overrideEncryptor);", caller);
         }
 
         [Fact]
@@ -186,7 +186,7 @@ namespace Zerra.SourceGeneration.Test
                 """);
 
             Assert.Contains("Caller_IWidgetQueryProvider.cs", output.Sources.Keys);
-            output.AssertInitializerContains("global::Zerra.Reflection.Register.Router(typeof(global::TestApp.IWidgetQueryProvider), static (global::Zerra.CQRS.IBusInternal bus, string source, bool remote) => new global::TestApp.SourceGeneration.Caller_IWidgetQueryProvider(bus, source, remote));");
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.Router(typeof(global::TestApp.IWidgetQueryProvider), static (global::Zerra.CQRS.IBusInternal bus, string source, bool remote, string? overrideServiceUrl, global::Zerra.Encryption.IEncryptor? overrideEncryptor) => new global::TestApp.SourceGeneration.Caller_IWidgetQueryProvider(bus, source, remote, overrideServiceUrl, overrideEncryptor));");
             output.AssertInitializerContains("global::Zerra.Reflection.Register.Handler(typeof(global::TestApp.IWidgetQueryProvider), \"GetWidget\", true, typeof(global::TestApp.Widget)");
             output.AssertInitializerContains("global::Zerra.Reflection.Register.Handler(typeof(global::TestApp.IWidgetQueryProvider), \"Ping\", true, null");
             output.AssertInitializerContains("global::Zerra.Reflection.Register.Handler(typeof(global::TestApp.IWidgetQueryProvider), \"Count\", false, null");

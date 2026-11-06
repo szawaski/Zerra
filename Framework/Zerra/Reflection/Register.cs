@@ -8,6 +8,7 @@ using Zerra.Map;
 using Zerra.Map.Converters;
 using Zerra.Serialization.Bytes.Converters;
 using Zerra.Serialization.Json.Converters;
+using Zerra.Encryption;
 
 namespace Zerra.Reflection
 {
@@ -24,7 +25,7 @@ namespace Zerra.Reflection
         /// </summary>
         /// <param name="interfaceType">The query or event interface type to register.</param>
         /// <param name="creator">A function that creates instances of the router for the given bus and route key.</param>
-        public static void Router(Type interfaceType, Func<IBusInternal, string, bool, object> creator) => BusRouters.Register(interfaceType, creator);
+        public static void Router(Type interfaceType, Func<IBusInternal, string, bool, string?, IEncryptor?, object> creator) => BusRouters.Register(interfaceType, creator);
         /// <summary>
         /// Registers a command router dispatcher for the specified command type.
         /// </summary>

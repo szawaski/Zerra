@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Encryption;
+
 namespace Zerra.CQRS
 {
     public sealed partial class Bus
@@ -47,5 +49,9 @@ namespace Zerra.CQRS
         [Obsolete("Use IBus instance with dependency injection instead", false)]
         public static TInterface Call<TInterface>()
             => StaticBus.Call<TInterface>();
+        /// <inheritdoc cref="IBus.Call{TInterface}(string, IEncryptor?)"/>
+        [Obsolete("Use IBus instance with dependency injection instead", false)]
+        public static TInterface Call<TInterface>(string overrideServiceUrl, IEncryptor? overrideEncryptor = null)
+            => StaticBus.Call<TInterface>(overrideServiceUrl, overrideEncryptor);
     }
 }

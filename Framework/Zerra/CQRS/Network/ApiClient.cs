@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using Zerra.Logging;
 using Zerra.Serialization.Json;
+using Zerra.Encryption;
 
 namespace Zerra.CQRS.Network
 {
@@ -16,6 +17,7 @@ namespace Zerra.CQRS.Network
     {
         private readonly INetworkSerializer serializer;
         private readonly ICqrsAuthorizer? authorizer;
+        private readonly string? route;
         private readonly Uri routeUri;
         private readonly HttpClientHandler handler;
         private readonly HttpClient client;
@@ -23,19 +25,20 @@ namespace Zerra.CQRS.Network
         /// <summary>
         /// Creates a new API client.
         /// </summary>
-        /// <param name="endpoint">The URL of the service receiving CQRS requests.</param>
+        /// <param name="serviceUrl">The URL of the service receiving CQRS requests.</param>
         /// <param name="serializer">The serializer to use for serializing and deserializing messages.</param>
         /// <param name="log">An optional logger for diagnostic messages.</param>
         /// <param name="authorizer">An optional authorizer for adding headers needed for the server to validate requests.</param>
-        /// <param name="route">An optional route argument to append to the base endpoint URL.</param>
+        /// <param name="route">An optional route argument to append to the service URL.</param>
         /// <param name="maxConcurrentQueries">Optional maximum concurrent queries for each query interface; defaults to ProcessorCount * 32.</param>
         /// <param name="maxConcurrentCommands">Optional maximum concurrent commands for each topic; defaults to ProcessorCount * 8.</param>
         /// <param name="maxConcurrentEvents">Optional maximum concurrent events for each topic; defaults to ProcessorCount * 16.</param>
-        public ApiClient(string endpoint, INetworkSerializer serializer, ILogger? log, ICqrsAuthorizer? authorizer, string? route = null, int? maxConcurrentQueries = null, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null) : base(endpoint, log, maxConcurrentQueries, maxConcurrentCommands, maxConcurrentEvents)
+        public ApiClient(string serviceUrl, INetworkSerializer serializer, ILogger? log, ICqrsAuthorizer? authorizer, string? route = null, int? maxConcurrentQueries = null, int? maxConcurrentCommands = null, int? maxConcurrentEvents = null) : base(serviceUrl, log, maxConcurrentQueries, maxConcurrentCommands, maxConcurrentEvents)
         {
             this.serializer = serializer;
             this.authorizer = authorizer;
 
+            this.route = route;
             if (route is not null)
                 routeUri = new Uri($"{base.serviceUri.AbsoluteUri.TrimEnd('/')}/{route.TrimStart('/')}");
             else
@@ -51,8 +54,11 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
-        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source)
+        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, Uri? overrideServiceUri, IEncryptor? overrideEncryptor)
         {
+            if (overrideEncryptor is not null)
+                throw new NotSupportedException($"{nameof(ApiClient)} doesn't encrypt, it can't use an encryptor");
+            var callUri = overrideServiceUri is null ? routeUri : (route is null ? overrideServiceUri : new Uri($"{overrideServiceUri.AbsoluteUri.TrimEnd('/')}/{route.TrimStart('/')}"));
             var providerName = interfaceType.Name;
 
             var data = new ApiRequestData()
@@ -81,13 +87,16 @@ namespace Zerra.CQRS.Network
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
             }
 
-            var model = Request<TReturn>(throttle, isStream, routeUri, providerName, data, argumentStream, true);
+            var model = Request<TReturn>(throttle, isStream, callUri, providerName, data, argumentStream, true);
             return model;
         }
 
         /// <inheritdoc />
-        protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
+        protected override Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, Uri? overrideServiceUri, IEncryptor? overrideEncryptor, CancellationToken cancellationToken) where TReturn : default
         {
+            if (overrideEncryptor is not null)
+                throw new NotSupportedException($"{nameof(ApiClient)} doesn't encrypt, it can't use an encryptor");
+            var callUri = overrideServiceUri is null ? routeUri : (route is null ? overrideServiceUri : new Uri($"{overrideServiceUri.AbsoluteUri.TrimEnd('/')}/{route.TrimStart('/')}"));
             var providerName = interfaceType.Name;
 
             var data = new ApiRequestData()
@@ -116,7 +125,7 @@ namespace Zerra.CQRS.Network
                 data.ProviderArguments[i] = serializer.SerializeBytes(arguments[i], argumentTypes[i]);
             }
 
-            var model = RequestAsync<TReturn>(throttle, isStream, routeUri, providerName, data, argumentStream, true, cancellationToken);
+            var model = RequestAsync<TReturn>(throttle, isStream, callUri, providerName, data, argumentStream, true, cancellationToken);
             return model;
         }
 
@@ -221,7 +230,7 @@ namespace Zerra.CQRS.Network
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
 
-                request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host); //the same as HttpCqrsClient, a gateway with allowed origins requires one
+                request.Headers.Add(HttpCommon.OriginHeader, url.Host); //the same as HttpCqrsClient, a gateway with allowed origins requires one
 
                 //headers only so the body streams instead of buffering, the response stays undisposed for a stream result
                 response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -331,7 +340,7 @@ namespace Zerra.CQRS.Network
                         request.Headers.Add(authHeader.Key, authHeader.Value);
                 }
 
-                request.Headers.Add(HttpCommon.OriginHeader, serviceUri.Host); //the same as HttpCqrsClient, a gateway with allowed origins requires one
+                request.Headers.Add(HttpCommon.OriginHeader, url.Host); //the same as HttpCqrsClient, a gateway with allowed origins requires one
 
                 //headers only so the body streams instead of buffering, the response stays undisposed for a stream result
                 response = client.Send(request, HttpCompletionOption.ResponseHeadersRead);

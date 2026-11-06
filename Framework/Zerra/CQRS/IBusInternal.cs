@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using Zerra.Encryption;
+
 namespace Zerra.CQRS
 {
     /// <summary>
@@ -21,9 +23,11 @@ namespace Zerra.CQRS
         /// <param name="arguments">The arguments to pass to the query method.</param>
         /// <param name="source">The name of the service making the call.</param>
         /// <param name="remote">Indicates this was initiated by a remote service.</param>
+        /// <param name="overrideServiceUrl">The address of a specific server to call instead of the query client's service url, or null.</param>
+        /// <param name="overrideEncryptor">An encryptor to use instead of the query client's for this call, or null.</param>
         /// <returns>The result returned by the query method.</returns>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, bool remote);
+        TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor);
         /// <summary>
         /// Internal method to call a query method that returns a non-generic task.
         /// </summary>
@@ -32,9 +36,11 @@ namespace Zerra.CQRS
         /// <param name="arguments">The arguments to pass to the query method.</param>
         /// <param name="source">The name of the service making the call.</param>
         /// <param name="remote">Indicates this was initiated by a remote service.</param>
+        /// <param name="overrideServiceUrl">The address of a specific server to call instead of the query client's service url, or null.</param>
+        /// <param name="overrideEncryptor">An encryptor to use instead of the query client's for this call, or null.</param>
         /// <returns>A task representing the asynchronous query operation.</returns>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        Task _CallMethodTask(Type interfaceType, string methodName, object[] arguments, string source, bool remote);
+        Task _CallMethodTask(Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor);
         /// <summary>
         /// Internal method to call a query method that returns a generic task with a result.
         /// </summary>
@@ -44,9 +50,11 @@ namespace Zerra.CQRS
         /// <param name="arguments">The arguments to pass to the query method.</param>
         /// <param name="source">The name of the service making the call.</param>
         /// <param name="remote">Indicates this was initiated by a remote service.</param>
+        /// <param name="overrideServiceUrl">The address of a specific server to call instead of the query client's service url, or null.</param>
+        /// <param name="overrideEncryptor">An encryptor to use instead of the query client's for this call, or null.</param>
         /// <returns>A task that returns the result of the query method.</returns>
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        Task<TReturn> _CallMethodTaskGeneric<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, bool remote);
+        Task<TReturn> _CallMethodTaskGeneric<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor);
 
         /// <summary>
         /// Internal method to dispatch a command asynchronously.

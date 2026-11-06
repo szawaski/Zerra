@@ -838,6 +838,7 @@ namespace Zerra.Test.Web
             public void AddQueryClient<TInterface>(IQueryClient queryClient) => throw new NotImplementedException();
             public void AddQueryServer<TInterface>(IQueryServer queryServer) => throw new NotImplementedException();
             public TInterface Call<TInterface>() where TInterface : notnull => throw new NotImplementedException();
+            public TInterface Call<TInterface>(string overrideServiceUrl, Zerra.Encryption.IEncryptor? overrideEncryptor = null) where TInterface : notnull => throw new NotImplementedException();
             public Task DispatchAsync(ICommand command, CancellationToken? cancellationToken = null) => throw new NotImplementedException();
             public Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null) => throw new NotImplementedException();
             public Task DispatchAsync(IEvent @event, CancellationToken? cancellationToken = null) => throw new NotImplementedException();

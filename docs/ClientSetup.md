@@ -77,6 +77,20 @@ var users = new TcpCqrsClient("user-service:9001", serializer, encryptor, null, 
 
 `TcpCqrsServer` and `HttpCqrsServer` apply each limit to the whole server instead, so queries, commands, and events never wait on each other. Broker producers and consumers take the command and event limits, and each Kestrel server component takes the one for what it receives.
 
+## Calling a Specific Replica
+
+When you already know the address of the replica you want, pass it to `Call`. The query goes through the interface's query client to that address instead of the client's url:
+
+```csharp
+var user = await bus.Call<IUserQueryHandler>("10.1.4.7:9001").GetUser(id, cancellationToken);
+```
+
+The address uses the same format as the client's url, with or without `http://`. The client's serializer, compressor, authorizer, route, and concurrency limits are used as usual. The call always goes to that address, even if this service handles the interface itself, so the interface needs a query client registered.
+
+If that server uses a different key, pass its encryptor too: `bus.Call<IUserQueryHandler>(address, encryptor)`. `ApiClient` doesn't encrypt, so it throws if given one.
+
+The address is trusted. Never build one from user input. Encryption protects the request body, including the caller's claims, but authorizer headers are only protected by TLS (`https://`).
+
 ## Local and Remote Together
 
 A service can handle some interfaces itself and call others remotely. The calling code looks the same either way:

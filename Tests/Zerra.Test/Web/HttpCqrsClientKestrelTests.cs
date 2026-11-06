@@ -34,8 +34,8 @@ namespace Zerra.Test.Web
             await using var server = await TestServer.StartAsync(enc);
             using var client = CreateClient(server.Url, enc);
 
-            var asyncResult = await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken);
-            var syncResult = await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [5], source), TestContext.Current.CancellationToken);
+            var asyncResult = await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken);
+            var syncResult = await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [5], source, null, null), TestContext.Current.CancellationToken);
 
             Assert.Equal(42, asyncResult);
             Assert.Equal(10, syncResult);
@@ -51,7 +51,7 @@ namespace Zerra.Test.Web
             await using var server = await TestServer.StartAsync(enc);
             using var client = CreateClient(server.Url, enc);
 
-            var result = await ((IQueryClient)client).CallTaskGeneric<string>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetLarge), [typeof(int)], [50_000], source, TestContext.Current.CancellationToken);
+            var result = await ((IQueryClient)client).CallTaskGeneric<string>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetLarge), [typeof(int)], [50_000], source, null, null, TestContext.Current.CancellationToken);
 
             Assert.Equal(new string('x', 50_000), result);
         }
@@ -67,12 +67,12 @@ namespace Zerra.Test.Web
             using var client = CreateClient(server.Url, enc);
 
             var exception = await Assert.ThrowsAsync<CqrsServiceException>(() =>
-                ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Fail), [], [], source, TestContext.Current.CancellationToken));
+                ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Fail), [], [], source, null, null, TestContext.Current.CancellationToken));
 
             Assert.Equal("query failed", exception.Message);
 
             //the connection is still good after the error
-            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken));
         }
 
         //larger than Kestrel's default 30 MB request body limit
@@ -93,12 +93,12 @@ namespace Zerra.Test.Web
             new Random(5).NextBytes(bytes);
             var expected = bytes.Sum(x => (long)x) + 3;
 
-            var asyncResult = await ((IQueryClient)client).CallTaskGeneric<long>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(bytes)], source, TestContext.Current.CancellationToken);
-            var syncResult = await Task.Run(() => ((IQueryClient)client).Call<long>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(bytes)], source), TestContext.Current.CancellationToken);
+            var asyncResult = await ((IQueryClient)client).CallTaskGeneric<long>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(bytes)], source, null, null, TestContext.Current.CancellationToken);
+            var syncResult = await Task.Run(() => ((IQueryClient)client).Call<long>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(bytes)], source, null, null), TestContext.Current.CancellationToken);
 
             Assert.Equal(expected, asyncResult);
             Assert.Equal(expected, syncResult);
-            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken));
         }
 
         [Theory(Timeout = timeout)]
@@ -117,17 +117,17 @@ namespace Zerra.Test.Web
                 ((ICommandProducer)client).RegisterCommandType("test", typeof(TestCommandWithResult));
             }
 
-            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
-            Assert.Equal(10, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [5], source), TestContext.Current.CancellationToken));
-            Assert.Equal(new string('x', 50_000), await ((IQueryClient)client).CallTaskGeneric<string>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetLarge), [typeof(int)], [50_000], source, TestContext.Current.CancellationToken));
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken));
+            Assert.Equal(10, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [5], source, null, null), TestContext.Current.CancellationToken));
+            Assert.Equal(new string('x', 50_000), await ((IQueryClient)client).CallTaskGeneric<string>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetLarge), [typeof(int)], [50_000], source, null, null, TestContext.Current.CancellationToken));
 
             var exception = await Assert.ThrowsAsync<CqrsServiceException>(() =>
-                ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Fail), [], [], source, TestContext.Current.CancellationToken));
+                ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Fail), [], [], source, null, null, TestContext.Current.CancellationToken));
             Assert.Equal("query failed", exception.Message);
 
             var bytes = new byte[1024 * 1024 + 7];
             new Random(5).NextBytes(bytes);
-            var uploadResult = await ((IQueryClient)client).CallTaskGeneric<long>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(bytes)], source, TestContext.Current.CancellationToken);
+            var uploadResult = await ((IQueryClient)client).CallTaskGeneric<long>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(bytes)], source, null, null, TestContext.Current.CancellationToken);
             Assert.Equal(bytes.Sum(x => (long)x) + 3, uploadResult);
 
             Assert.Equal(42, await ((ICommandProducer)client).DispatchAwaitAsync(new TestCommandWithResult { Value = 21 }, source, TestContext.Current.CancellationToken));
@@ -141,7 +141,7 @@ namespace Zerra.Test.Web
             using var client = CreateClient(server.Url, null);
 
             var exception = await Assert.ThrowsAsync<CqrsNetworkException>(() =>
-                ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+                ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken));
 
             Assert.Contains("401 Unauthorized", exception.Message);
         }

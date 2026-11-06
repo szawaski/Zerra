@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using Zerra.CQRS.Network;
 using Zerra.CQRS.Reflection;
 using Zerra.Logging;
+using Zerra.Encryption;
 
 namespace Zerra.CQRS
 {
@@ -474,7 +475,7 @@ namespace Zerra.CQRS
                 }
             }
 
-            var callerProvider = BusRouters.GetBusCaller(interfaceType, this, source, true);
+            var callerProvider = BusRouters.GetBusCaller(interfaceType, this, source, true, null, null);
             var result = info.Method(callerProvider, args);
 
             if (info.IsTask)
@@ -533,7 +534,14 @@ namespace Zerra.CQRS
 
         /// <inheritdoc />
         TInterface IBus.Call<TInterface>()
-            => (TInterface)BusRouters.GetBusCaller(typeof(TInterface), this, context.ServiceName, false);
+            => (TInterface)BusRouters.GetBusCaller(typeof(TInterface), this, context.ServiceName, false, null, null);
+        /// <inheritdoc />
+        TInterface IBus.Call<TInterface>(string overrideServiceUrl, IEncryptor? overrideEncryptor)
+        {
+            if (String.IsNullOrWhiteSpace(overrideServiceUrl))
+                throw new ArgumentNullException(nameof(overrideServiceUrl));
+            return (TInterface)BusRouters.GetBusCaller(typeof(TInterface), this, context.ServiceName, false, overrideServiceUrl, overrideEncryptor);
+        }
 
         /// <inheritdoc />
         Task IBus.DispatchAsync(ICommand command, CancellationToken? cancellationToken)
@@ -713,17 +721,17 @@ namespace Zerra.CQRS
 
         /// <inheritdoc />
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, bool remote)
+        public TReturn _CallMethod<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor)
         {
             var metadata = BusMetadata.GetByType(interfaceType);
 
             TReturn result;
 
-            if (handlers != null && handlers.TryGetValue(interfaceType, out var handler))
+            if (overrideServiceUrl is null && handlers != null && handlers.TryGetValue(interfaceType, out var handler))
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.HandlerOnly))
                 {
-                    result = HandleMethodLogged<TReturn>(handler, null, interfaceType, methodName, arguments, source, remote);
+                    result = HandleMethodLogged<TReturn>(handler, null, interfaceType, methodName, arguments, source, remote, null, null);
                 }
                 else
                 {
@@ -748,13 +756,17 @@ namespace Zerra.CQRS
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.SenderOnly))
                 {
-                    result = HandleMethodLogged<TReturn>(null, queryClient, interfaceType, methodName, arguments, source, remote);
+                    result = HandleMethodLogged<TReturn>(null, queryClient, interfaceType, methodName, arguments, source, remote, overrideServiceUrl, overrideEncryptor);
                 }
                 else
                 {
                     var into = BusHandlers.GetMethod(interfaceType, methodName);
-                    result = queryClient.Call<TReturn>(interfaceType, methodName, into.ParameterTypes, arguments, source)!;
+                    result = queryClient.Call<TReturn>(interfaceType, methodName, into.ParameterTypes, arguments, source, overrideServiceUrl, overrideEncryptor)!;
                 }
+            }
+            else if (overrideServiceUrl is not null)
+            {
+                throw new InvalidOperationException($"No query client registered for {interfaceType.FullName} to call {overrideServiceUrl}");
             }
             else
             {
@@ -765,7 +777,7 @@ namespace Zerra.CQRS
         }
         /// <inheritdoc />
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public Task _CallMethodTask(Type interfaceType, string methodName, object[] arguments, string source, bool remote)
+        public Task _CallMethodTask(Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor)
         {
             var metadata = BusMetadata.GetByType(interfaceType);
 
@@ -799,11 +811,11 @@ namespace Zerra.CQRS
 
             Task result;
 
-            if (handlers != null && handlers.TryGetValue(interfaceType, out var handler))
+            if (overrideServiceUrl is null && handlers != null && handlers.TryGetValue(interfaceType, out var handler))
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.HandlerOnly))
                 {
-                    result = HandleMethodTaskLogged(handler, null, interfaceType, methodName, arguments, source, remote, cancellationToken);
+                    result = HandleMethodTaskLogged(handler, null, interfaceType, methodName, arguments, source, remote, null, null, cancellationToken);
                 }
                 else
                 {
@@ -830,13 +842,17 @@ namespace Zerra.CQRS
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.SenderOnly))
                 {
-                    result = HandleMethodTaskLogged(null, queryClient, interfaceType, methodName, arguments, source, remote, cancellationToken);
+                    result = HandleMethodTaskLogged(null, queryClient, interfaceType, methodName, arguments, source, remote, overrideServiceUrl, overrideEncryptor, cancellationToken);
                 }
                 else
                 {
                     var into = BusHandlers.GetMethod(interfaceType, methodName);
-                    result = queryClient.CallTask(interfaceType, methodName, into.ParameterTypes, arguments, source, cancellationToken)!;
+                    result = queryClient.CallTask(interfaceType, methodName, into.ParameterTypes, arguments, source, overrideServiceUrl, overrideEncryptor, cancellationToken)!;
                 }
+            }
+            else if (overrideServiceUrl is not null)
+            {
+                throw new InvalidOperationException($"No query client registered for {interfaceType.FullName} to call {overrideServiceUrl}");
             }
             else
             {
@@ -850,7 +866,7 @@ namespace Zerra.CQRS
         }
         /// <inheritdoc />
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public Task<TReturn> _CallMethodTaskGeneric<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, bool remote)
+        public Task<TReturn> _CallMethodTaskGeneric<TReturn>(Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor)
         {
             var metadata = BusMetadata.GetByType(interfaceType);
 
@@ -884,11 +900,11 @@ namespace Zerra.CQRS
 
             Task<TReturn> result;
 
-            if (handlers != null && handlers.TryGetValue(interfaceType, out var handler))
+            if (overrideServiceUrl is null && handlers != null && handlers.TryGetValue(interfaceType, out var handler))
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.HandlerOnly))
                 {
-                    result = HandleMethodTaskGenericLogged<TReturn>(handler, null, interfaceType, methodName, arguments, source, remote, cancellationToken);
+                    result = HandleMethodTaskGenericLogged<TReturn>(handler, null, interfaceType, methodName, arguments, source, remote, null, null, cancellationToken);
                 }
                 else
                 {
@@ -915,13 +931,17 @@ namespace Zerra.CQRS
             {
                 if (busLog != null && (metadata.BusLogging == BusLogging.SenderAndHandler || metadata.BusLogging == BusLogging.SenderOnly))
                 {
-                    result = HandleMethodTaskGenericLogged<TReturn>(null, queryClient, interfaceType, methodName, arguments, source, remote, cancellationToken);
+                    result = HandleMethodTaskGenericLogged<TReturn>(null, queryClient, interfaceType, methodName, arguments, source, remote, overrideServiceUrl, overrideEncryptor, cancellationToken);
                 }
                 else
                 {
                     var into = BusHandlers.GetMethod(interfaceType, methodName);
-                    result = queryClient.CallTaskGeneric<TReturn>(interfaceType, methodName, into.ParameterTypes, arguments, source, cancellationToken)!;
+                    result = queryClient.CallTaskGeneric<TReturn>(interfaceType, methodName, into.ParameterTypes, arguments, source, overrideServiceUrl, overrideEncryptor, cancellationToken)!;
                 }
+            }
+            else if (overrideServiceUrl is not null)
+            {
+                throw new InvalidOperationException($"No query client registered for {interfaceType.FullName} to call {overrideServiceUrl}");
             }
             else
             {
@@ -934,7 +954,7 @@ namespace Zerra.CQRS
             return result;
         }
 
-        private TReturn HandleMethodLogged<TReturn>(object? handler, IQueryClient? queryClient, Type interfaceType, string methodName, object[] arguments, string source, bool remote)
+        private TReturn HandleMethodLogged<TReturn>(object? handler, IQueryClient? queryClient, Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor)
         {
             var handled = handler != null;
 
@@ -951,7 +971,7 @@ namespace Zerra.CQRS
                 else
                 {
                     var info = BusHandlers.GetMethod(interfaceType, methodName);
-                    result = queryClient!.Call<TReturn>(interfaceType, methodName, info.ParameterTypes, arguments, source)!;
+                    result = queryClient!.Call<TReturn>(interfaceType, methodName, info.ParameterTypes, arguments, source, overrideServiceUrl, overrideEncryptor)!;
                 }
             }
             catch (Exception ex)
@@ -966,7 +986,7 @@ namespace Zerra.CQRS
 
             return result;
         }
-        private async Task HandleMethodTaskLogged(object? handler, IQueryClient? queryClient, Type interfaceType, string methodName, object[] arguments, string source, bool remote, CancellationToken cancellationToken)
+        private async Task HandleMethodTaskLogged(object? handler, IQueryClient? queryClient, Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor, CancellationToken cancellationToken)
         {
             var handled = handler != null;
 
@@ -983,7 +1003,7 @@ namespace Zerra.CQRS
                 else
                 {
                     var info = BusHandlers.GetMethod(interfaceType, methodName);
-                    task = queryClient!.CallTask(interfaceType, methodName, info.ParameterTypes, arguments, source, cancellationToken)!;
+                    task = queryClient!.CallTask(interfaceType, methodName, info.ParameterTypes, arguments, source, overrideServiceUrl, overrideEncryptor, cancellationToken)!;
                 }
 
                 await task;
@@ -998,7 +1018,7 @@ namespace Zerra.CQRS
 
             busLog?.EndCall(interfaceType, methodName, arguments, null, context.ServiceName, source, handled, (Stopwatch.GetTimestamp() - startTimestamp) * 1000 / Stopwatch.Frequency, null);
         }
-        private async Task<TReturn> HandleMethodTaskGenericLogged<TReturn>(object? handler, IQueryClient? queryClient, Type interfaceType, string methodName, object[] arguments, string source, bool remote, CancellationToken cancellationToken)
+        private async Task<TReturn> HandleMethodTaskGenericLogged<TReturn>(object? handler, IQueryClient? queryClient, Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor, CancellationToken cancellationToken)
         {
             var handled = handler != null;
 
@@ -1016,7 +1036,7 @@ namespace Zerra.CQRS
                 else
                 {
                     var info = BusHandlers.GetMethod(interfaceType, methodName);
-                    task = queryClient!.CallTaskGeneric<TReturn>(interfaceType, methodName, info.ParameterTypes, arguments, source, cancellationToken)!;
+                    task = queryClient!.CallTaskGeneric<TReturn>(interfaceType, methodName, info.ParameterTypes, arguments, source, overrideServiceUrl, overrideEncryptor, cancellationToken)!;
                 }
 
                 taskresult = await task;

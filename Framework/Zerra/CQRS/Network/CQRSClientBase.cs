@@ -4,6 +4,7 @@
 
 using System.Collections.Concurrent;
 using Zerra.Logging;
+using Zerra.Encryption;
 
 namespace Zerra.CQRS.Network
 {
@@ -53,12 +54,9 @@ namespace Zerra.CQRS.Network
             this.serviceUrl = serviceUrl;
             this.log = log;
 
-            if (!serviceUrl.Contains("://"))
-                this.serviceUri = new Uri($"http://{serviceUrl}"); //hacky way to make it parse without scheme, http so HttpClient based clients accept it
-            else
-                this.serviceUri = new Uri(serviceUrl, UriKind.RelativeOrAbsolute);
+            this.serviceUri = ParseServiceUrl(serviceUrl);
             host = this.serviceUri.Host;
-            port = this.serviceUri.Port >= 0 ? this.serviceUri.Port : (String.Equals(this.serviceUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ? 443 : 80);
+            port = GetPort(this.serviceUri);
 
             this.throttleByInterfaceType = new();
             this.topicsByMessageType = new();
@@ -69,6 +67,26 @@ namespace Zerra.CQRS.Network
         }
 
         private static readonly Type streamType = typeof(Stream);
+
+        /// <summary>
+        /// Parses a service url, or one given for a single query, into a <see cref="Uri"/>.
+        /// </summary>
+        /// <param name="serviceUrl">The url, with or without a scheme.</param>
+        /// <returns>The parsed url.</returns>
+        protected static Uri ParseServiceUrl(string serviceUrl)
+        {
+            if (!serviceUrl.Contains("://"))
+                return new Uri($"http://{serviceUrl}"); //hacky way to make it parse without scheme, http so HttpClient based clients accept it
+            return new Uri(serviceUrl, UriKind.RelativeOrAbsolute);
+        }
+
+        /// <summary>
+        /// Gets the port of a parsed service url, defaulting by scheme when none is given.
+        /// </summary>
+        /// <param name="serviceUri">The parsed url.</param>
+        /// <returns>The port.</returns>
+        protected static int GetPort(Uri serviceUri)
+            => serviceUri.Port >= 0 ? serviceUri.Port : (String.Equals(serviceUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ? 443 : 80);
 
         string IQueryClient.ServiceUrl => serviceUrl;
         string ICommandProducer.MessageHost => serviceUrl;
@@ -107,7 +125,7 @@ namespace Zerra.CQRS.Network
                 throttle.Dispose();
         }
 
-        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source)
+        TReturn IQueryClient.Call<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, string? overrideServiceUrl, IEncryptor? overrideEncryptor)
         {
             if (!throttleByInterfaceType.TryGetValue(interfaceType, out var throttle))
                 throw new Exception($"{interfaceType.Name} is not registered with {this.GetType().Name}");
@@ -115,7 +133,7 @@ namespace Zerra.CQRS.Network
             try
             {
                 var isStream = typeof(TReturn) == streamType;
-                var result = CallInternal<TReturn>(throttle, isStream, interfaceType, methodName, argumentTypes, arguments, source);
+                var result = CallInternal<TReturn>(throttle, isStream, interfaceType, methodName, argumentTypes, arguments, source, overrideServiceUrl is null ? null : ParseServiceUrl(overrideServiceUrl), overrideEncryptor);
                 return result;
             }
             catch (Exception ex)
@@ -124,14 +142,14 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
-        Task IQueryClient.CallTask(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken)
+        Task IQueryClient.CallTask(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, string? overrideServiceUrl, IEncryptor? overrideEncryptor, CancellationToken cancellationToken)
         {
             if (!throttleByInterfaceType.TryGetValue(interfaceType, out var throttle))
                 throw new Exception($"{interfaceType.Name} is not registered with {this.GetType().Name}");
 
             try
             {
-                return LogFailure(CallInternalAsync<object>(throttle, false, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken), "Call Failed");
+                return LogFailure(CallInternalAsync<object>(throttle, false, interfaceType, methodName, argumentTypes, arguments, source, overrideServiceUrl is null ? null : ParseServiceUrl(overrideServiceUrl), overrideEncryptor, cancellationToken), "Call Failed");
             }
             catch (Exception ex)
             {
@@ -139,7 +157,7 @@ namespace Zerra.CQRS.Network
                 throw;
             }
         }
-        Task<TReturn> IQueryClient.CallTaskGeneric<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken)
+        Task<TReturn> IQueryClient.CallTaskGeneric<TReturn>(Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, string? overrideServiceUrl, IEncryptor? overrideEncryptor, CancellationToken cancellationToken)
         {
             if (!throttleByInterfaceType.TryGetValue(interfaceType, out var throttle))
                 throw new Exception($"{interfaceType.Name} is not registered with {this.GetType().Name}");
@@ -147,7 +165,7 @@ namespace Zerra.CQRS.Network
             try
             {
                 var isStream = typeof(TReturn) == streamType;
-                return LogFailure(CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, argumentTypes, arguments, source, cancellationToken), "Call Failed");
+                return LogFailure(CallInternalAsync<TReturn>(throttle, isStream, interfaceType, methodName, argumentTypes, arguments, source, overrideServiceUrl is null ? null : ParseServiceUrl(overrideServiceUrl), overrideEncryptor, cancellationToken), "Call Failed");
             }
             catch (Exception ex)
             {
@@ -167,8 +185,10 @@ namespace Zerra.CQRS.Network
         /// <param name="argumentTypes">The types of the arguments for the query method.</param>
         /// <param name="arguments">The raw arguments for the query method.</param>
         /// <param name="source">A description of where the request came from.</param>
+        /// <param name="overrideServiceUri">The address of a specific server to call instead of the service url, or null.</param>
+        /// <param name="overrideEncryptor">An encryptor to use instead of the client's for this call, or null.</param>
         /// <returns>The result from the server.</returns>
-        protected abstract TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source);
+        protected abstract TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, Uri? overrideServiceUri, IEncryptor? overrideEncryptor);
 
         /// <summary>
         /// Sends CQRS queries and returns the result from the server asynchronously.
@@ -181,9 +201,11 @@ namespace Zerra.CQRS.Network
         /// <param name="argumentTypes">The types of the arguments for the query method.</param>
         /// <param name="arguments">The raw arguments for the query method.</param>
         /// <param name="source">A description of where the request came from.</param>
+        /// <param name="overrideServiceUri">The address of a specific server to call instead of the service url, or null.</param>
+        /// <param name="overrideEncryptor">An encryptor to use instead of the client's for this call, or null.</param>
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A task to await the result from the server.</returns>
-        protected abstract Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken);
+        protected abstract Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, Uri? overrideServiceUri, IEncryptor? overrideEncryptor, CancellationToken cancellationToken);
 
         Task ICommandProducer.DispatchAsync(ICommand command, string source, CancellationToken cancellationToken)
         {

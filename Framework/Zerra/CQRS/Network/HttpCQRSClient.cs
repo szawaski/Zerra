@@ -45,8 +45,12 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
-        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source)
+        protected override TReturn CallInternal<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, Uri? overrideServiceUri, IEncryptor? overrideEncryptor)
         {
+            var callUri = overrideServiceUri ?? serviceUri;
+            var callHost = overrideServiceUri is null ? host : overrideServiceUri.Host;
+            var callPort = overrideServiceUri is null ? port : GetPort(overrideServiceUri);
+            var callEncryptor = overrideEncryptor ?? encryptor;
             throttle.Wait();
 
             SocketPoolStream? stream = null;
@@ -102,19 +106,19 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, serializer.ContentType, authHeaders, argumentStream is not null);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, callUri, serializer.ContentType, authHeaders, argumentStream is not null);
 
 #if NETSTANDARD2_0
-                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, CancellationToken.None);
+                    stream = socketPool.BeginStream(callHost, callPort, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, CancellationToken.None);
 #else
-                    stream = socketPool.BeginStream(host, port, ProtocolType.Tcp, ReadOnlySpan<byte>.Empty, requireNewConnection, CancellationToken.None);
+                    stream = socketPool.BeginStream(callHost, callPort, ProtocolType.Tcp, ReadOnlySpan<byte>.Empty, requireNewConnection, CancellationToken.None);
 #endif
 
                     requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
                     Stream requestBodyWriteStream = requestBodyStream;
-                    if (encryptor is not null)
-                        requestBodyWriteStream = requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
+                    if (callEncryptor is not null)
+                        requestBodyWriteStream = requestBodyCryptoStream = callEncryptor.Encrypt(requestBodyStream, true);
                     if (compressor is not null)
                         requestBodyWriteStream = requestBodyCompressStream = compressor.Compress(requestBodyWriteStream, true);
                     if (argumentStream is null)
@@ -194,8 +198,8 @@ namespace Zerra.CQRS.Network
                     else
                         responseBodyStream = responseBodyProtocolStream = new HttpProtocolBodyStream(responseHeader.Chuncked ? null : (responseHeader.ContentLength ?? 0), stream, responseHeader.BodyStartBuffer, false, false);
 
-                    if (encryptor is not null)
-                        responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
+                    if (callEncryptor is not null)
+                        responseBodyStream = callEncryptor.Decrypt(responseBodyStream, false);
                     if (compressor is not null)
                         responseBodyStream = compressor.Decompress(responseBodyStream, false);
 
@@ -286,8 +290,12 @@ namespace Zerra.CQRS.Network
         }
 
         /// <inheritdoc />
-        protected override async Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, CancellationToken cancellationToken) where TReturn : default
+        protected override async Task<TReturn> CallInternalAsync<TReturn>(SemaphoreSlim throttle, bool isStream, Type interfaceType, string methodName, IReadOnlyList<Type> argumentTypes, object[] arguments, string source, Uri? overrideServiceUri, IEncryptor? overrideEncryptor, CancellationToken cancellationToken) where TReturn : default
         {
+            var callUri = overrideServiceUri ?? serviceUri;
+            var callHost = overrideServiceUri is null ? host : overrideServiceUri.Host;
+            var callPort = overrideServiceUri is null ? port : GetPort(overrideServiceUri);
+            var callEncryptor = overrideEncryptor ?? encryptor;
             await throttle.WaitAsync(cancellationToken);
 
             SocketPoolStream? stream = null;
@@ -343,19 +351,19 @@ namespace Zerra.CQRS.Network
                 try
                 {
                     //Request Header
-                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, serviceUri, serializer.ContentType, authHeaders, argumentStream is not null);
+                    var requestHeaderLength = HttpCommon.BufferPostRequestHeader(buffer, callUri, serializer.ContentType, authHeaders, argumentStream is not null);
 
 #if NETSTANDARD2_0
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(callHost, callPort, ProtocolType.Tcp, bufferOwner, 0, 0, requireNewConnection, cancellationToken);
 #else
-                    stream = await socketPool.BeginStreamAsync(host, port, ProtocolType.Tcp, Memory<byte>.Empty, requireNewConnection, cancellationToken);
+                    stream = await socketPool.BeginStreamAsync(callHost, callPort, ProtocolType.Tcp, Memory<byte>.Empty, requireNewConnection, cancellationToken);
 #endif
 
                     requestBodyStream = new HttpProtocolBodyStream(null, stream, null, true, true, buffer.Slice(0, requestHeaderLength)); //the header goes out with the body
 
                     Stream requestBodyWriteStream = requestBodyStream;
-                    if (encryptor is not null)
-                        requestBodyWriteStream = requestBodyCryptoStream = encryptor.Encrypt(requestBodyStream, true);
+                    if (callEncryptor is not null)
+                        requestBodyWriteStream = requestBodyCryptoStream = callEncryptor.Encrypt(requestBodyStream, true);
                     if (compressor is not null)
                         requestBodyWriteStream = requestBodyCompressStream = compressor.Compress(requestBodyWriteStream, true);
                     if (argumentStream is null)
@@ -455,8 +463,8 @@ namespace Zerra.CQRS.Network
                     else
                         responseBodyStream = responseBodyProtocolStream = new HttpProtocolBodyStream(responseHeader.Chuncked ? null : (responseHeader.ContentLength ?? 0), stream, responseHeader.BodyStartBuffer, false, false);
 
-                    if (encryptor is not null)
-                        responseBodyStream = encryptor.Decrypt(responseBodyStream, false);
+                    if (callEncryptor is not null)
+                        responseBodyStream = callEncryptor.Decrypt(responseBodyStream, false);
                     if (compressor is not null)
                         responseBodyStream = compressor.Decompress(responseBodyStream, false);
 

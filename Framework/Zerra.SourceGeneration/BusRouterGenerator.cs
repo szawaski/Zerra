@@ -53,11 +53,15 @@ namespace Zerra.SourceGeneration
                         private readonly global::Zerra.CQRS.IBusInternal bus;
                         private readonly string source;
                         private readonly bool remote;
-                        public {{className}}(global::Zerra.CQRS.IBusInternal bus, string source, bool remote)
+                        private readonly string? overrideServiceUrl;
+                        private readonly global::Zerra.Encryption.IEncryptor? overrideEncryptor;
+                        public {{className}}(global::Zerra.CQRS.IBusInternal bus, string source, bool remote, string? overrideServiceUrl, global::Zerra.Encryption.IEncryptor? overrideEncryptor)
                         {
                             this.bus = bus;
                             this.source = source;
                             this.remote = remote;
+                            this.overrideServiceUrl = overrideServiceUrl;
+                            this.overrideEncryptor = overrideEncryptor;
                         }
 
                         {{membersLines}}
@@ -70,7 +74,7 @@ namespace Zerra.SourceGeneration
                 var typeNameForSymbol = Helper.GetTypeOfName(namedTypeSymbol);
                 var fullClassName = $"global::{ns}.SourceGeneration.{className}";
                 _ = sbInitializer.Append(EnvironmentHelper.NewLine);
-                _ = sbInitializer.Append("global::Zerra.Reflection.Register.Router(").Append(typeNameForSymbol).Append(", static (global::Zerra.CQRS.IBusInternal bus, string source, bool remote) => new ").Append(fullClassName).Append("(bus, source, remote)").Append(");");
+                _ = sbInitializer.Append("global::Zerra.Reflection.Register.Router(").Append(typeNameForSymbol).Append(", static (global::Zerra.CQRS.IBusInternal bus, string source, bool remote, string? overrideServiceUrl, global::Zerra.Encryption.IEncryptor? overrideEncryptor) => new ").Append(fullClassName).Append("(bus, source, remote, overrideServiceUrl, overrideEncryptor)").Append(");");
             }
             if (namedTypeSymbol.AllInterfaces.Any(x => x.MetadataName == "ICommandHandler`2" && x.ContainingNamespace.ToString() == "Zerra.CQRS"))
             {
@@ -180,7 +184,7 @@ namespace Zerra.SourceGeneration
                     if (Helper.IsNullable(parameter.Type))
                         _ = sb.Append('!');
                 }
-                _ = sb.Append("], this.source, this.remote);");
+                _ = sb.Append("], this.source, this.remote, this.overrideServiceUrl, this.overrideEncryptor);");
             }
 
             foreach (IPropertySymbol property in members.Where(x => x.Kind == SymbolKind.Property))

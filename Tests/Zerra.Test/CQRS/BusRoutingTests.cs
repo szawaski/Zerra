@@ -9,6 +9,7 @@ using Xunit;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
 using Zerra.Test.Helpers;
+using Zerra.Encryption;
 
 namespace Zerra.Test.CQRS
 {
@@ -110,6 +111,113 @@ namespace Zerra.Test.CQRS
                 handler.Release.TrySetResult();
                 await client.StopServicesAsync();
                 await server.StopServicesAsync();
+            }
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public async Task Call_OverrideServiceUrl_CallsThatServer(bool http, bool logged)
+        {
+            var url1 = TestNetwork.NewUrl();
+            var url2 = TestNetwork.NewUrl();
+            var handler1 = new RoutingHandler();
+            var handler2 = new RoutingHandler();
+            var clientLog = logged ? new RecordingBusLogger() : null;
+
+            var server1 = Bus.New("server1", null, null, null);
+            server1.AddHandler<IRoutingQueryHandler>(handler1);
+            server1.AddQueryServer<IRoutingQueryHandler>(http ? new HttpCqrsServer(url1, serializer, null, null, null, null) : new TcpCqrsServer(url1, serializer, null, null, null));
+            var server2 = Bus.New("server2", null, null, null);
+            server2.AddHandler<IRoutingQueryHandler>(handler2);
+            server2.AddQueryServer<IRoutingQueryHandler>(http ? new HttpCqrsServer(url2, serializer, null, null, null, null) : new TcpCqrsServer(url2, serializer, null, null, null));
+
+            var client = Bus.New("client", null, clientLog, null);
+            client.AddQueryClient<IRoutingQueryHandler>(http ? new HttpCqrsClient(url1, serializer, null, null, null, null) : new TcpCqrsClient(url1, serializer, null, null, null));
+
+            try
+            {
+                var other = client.Call<IRoutingQueryHandler>(url2);
+                Assert.Equal(2, other.Double(1));
+                Assert.Equal(4, await other.DoubleAsync(2));
+                await other.RunAsync(3);
+                await other.RunWithCancellationAsync(4, TestContext.Current.CancellationToken);
+                await client.Call<IRoutingQueryHandler>(url2["http://".Length..]).RunAsync(5);
+                await client.Call<IRoutingQueryHandler>().RunAsync(6);
+
+                Assert.Equal([3, 4, 5], handler2.Received);
+                Assert.Equal([6], handler1.Received);
+
+                if (clientLog is not null)
+                    Assert.Equal(6, clientLog.Entries.Count(x => x.Kind == "Call" && !x.Handled && x.Exception is null));
+            }
+            finally
+            {
+                await client.StopServicesAsync();
+                await server1.StopServicesAsync();
+                await server2.StopServicesAsync();
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Call_OverrideEncryptor_UsesThatKey(bool http)
+        {
+            var url1 = TestNetwork.NewUrl();
+            var url2 = TestNetwork.NewUrl();
+            var keyA = new ZerraEncryptor("keyA", SymmetricAlgorithmType.AES_GCM);
+            var keyB = new ZerraEncryptor("keyB", SymmetricAlgorithmType.AES_GCM);
+
+            var server1 = Bus.New("server1", null, null, null);
+            server1.AddHandler<IRoutingQueryHandler>(new RoutingHandler());
+            server1.AddQueryServer<IRoutingQueryHandler>(http ? new HttpCqrsServer(url1, serializer, keyA, null, null, null) : new TcpCqrsServer(url1, serializer, keyA, null, null));
+            var server2 = Bus.New("server2", null, null, null);
+            server2.AddHandler<IRoutingQueryHandler>(new RoutingHandler());
+            server2.AddQueryServer<IRoutingQueryHandler>(http ? new HttpCqrsServer(url2, serializer, keyB, null, null, null) : new TcpCqrsServer(url2, serializer, keyB, null, null));
+
+            var client = Bus.New("client", null, null, null);
+            client.AddQueryClient<IRoutingQueryHandler>(http ? new HttpCqrsClient(url1, serializer, keyA, null, null, null) : new TcpCqrsClient(url1, serializer, keyA, null, null));
+
+            try
+            {
+                Assert.Equal(2, await client.Call<IRoutingQueryHandler>().DoubleAsync(1));
+                Assert.Equal(4, await client.Call<IRoutingQueryHandler>(url2, keyB).DoubleAsync(2));
+                Assert.Equal(6, client.Call<IRoutingQueryHandler>(url2, keyB).Double(3));
+
+                //the client's own key can't reach the server with the other key
+                _ = await Assert.ThrowsAnyAsync<Exception>(() => client.Call<IRoutingQueryHandler>(url2).DoubleAsync(1).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+            }
+            finally
+            {
+                await client.StopServicesAsync();
+                await server1.StopServicesAsync();
+                await server2.StopServicesAsync();
+            }
+        }
+
+        [Fact]
+        public async Task Call_OverrideServiceUrl_NeedsQueryClient()
+        {
+            var url = TestNetwork.NewUrl();
+            var bus = Bus.New("local", null, null, null);
+            bus.AddHandler<IRoutingQueryHandler>(new RoutingHandler());
+            try
+            {
+                //a local handler is skipped when a service url is given, there's no client to reach it with
+                var exception = Assert.Throws<InvalidOperationException>(() => bus.Call<IRoutingQueryHandler>(url).Double(1));
+                Assert.Contains(url, exception.Message);
+                _ = await Assert.ThrowsAsync<InvalidOperationException>(() => bus.Call<IRoutingQueryHandler>(url).DoubleAsync(1));
+                _ = await Assert.ThrowsAsync<InvalidOperationException>(() => bus.Call<IRoutingQueryHandler>(url).RunAsync(1));
+
+                _ = Assert.Throws<ArgumentNullException>(() => bus.Call<IRoutingQueryHandler>(null!));
+                _ = Assert.Throws<ArgumentNullException>(() => bus.Call<IRoutingQueryHandler>(" "));
+            }
+            finally
+            {
+                await bus.StopServicesAsync();
             }
         }
 

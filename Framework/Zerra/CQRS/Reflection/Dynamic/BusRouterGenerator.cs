@@ -8,6 +8,7 @@ using System.Reflection.Emit;
 using Zerra.Collections;
 using Zerra.Reflection.Dynamic;
 using static Zerra.CQRS.Reflection.BusRouters;
+using Zerra.Encryption;
 
 namespace Zerra.CQRS.Reflection.Dynamic
 {
@@ -23,12 +24,12 @@ namespace Zerra.CQRS.Reflection.Dynamic
         private static readonly MethodInfo call = typeof(IBusInternal).GetMethod(nameof(IBusInternal._CallMethod))!;
         private static readonly MethodInfo typeOfMethod = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle)) ?? throw new Exception($"{nameof(Type)}.{nameof(Type.GetTypeFromHandle)} not found");
 
-        public static Func<IBusInternal, string, bool, object> GenerateBusCaller(Type interfaceType)
+        public static Func<IBusInternal, string, bool, string?, IEncryptor?, object> GenerateBusCaller(Type interfaceType)
         {
             var callerType = GenerateBusCallerClass(interfaceType);
-            var constructor = callerType.GetConstructor([typeof(IBusInternal), typeof(string), typeof(bool)])!;
+            var constructor = callerType.GetConstructor([typeof(IBusInternal), typeof(string), typeof(bool), typeof(string), typeof(IEncryptor)])!;
             var creator = AccessorGenerator.GenerateCreator(constructor)!;
-            object caller(IBusInternal bus, string source, bool remote) => creator.Invoke([bus, source, remote])!;
+            object caller(IBusInternal bus, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor) => creator.Invoke([bus, source, remote, overrideServiceUrl, overrideEncryptor])!;
             return caller;
         }
         private static Type GenerateBusCallerClass(Type interfaceType)
@@ -51,12 +52,16 @@ namespace Zerra.CQRS.Reflection.Dynamic
             var busField = typeBuilder.DefineField("bus", typeof(IBusInternal), FieldAttributes.Private | FieldAttributes.InitOnly);
             var sourceField = typeBuilder.DefineField("source", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
             var remoteField = typeBuilder.DefineField("remote", typeof(bool), FieldAttributes.Private | FieldAttributes.InitOnly);
+            var overrideServiceUrlField = typeBuilder.DefineField("overrideServiceUrl", typeof(string), FieldAttributes.Private | FieldAttributes.InitOnly);
+            var overrideEncryptorField = typeBuilder.DefineField("overrideEncryptor", typeof(IEncryptor), FieldAttributes.Private | FieldAttributes.InitOnly);
 
-            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(IBusInternal), typeof(string), typeof(bool)]);
+            var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(IBusInternal), typeof(string), typeof(bool), typeof(string), typeof(IEncryptor)]);
             {
                 _ = constructorBuilder.DefineParameter(1, ParameterAttributes.None, "bus");
                 _ = constructorBuilder.DefineParameter(2, ParameterAttributes.None, "source");
                 _ = constructorBuilder.DefineParameter(3, ParameterAttributes.None, "remote");
+                _ = constructorBuilder.DefineParameter(4, ParameterAttributes.None, "overrideServiceUrl");
+                _ = constructorBuilder.DefineParameter(5, ParameterAttributes.None, "overrideEncryptor");
 
                 var il = constructorBuilder.GetILGenerator();
                 il.Emit(OpCodes.Ldarg_0);
@@ -75,6 +80,14 @@ namespace Zerra.CQRS.Reflection.Dynamic
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldarg_3);
                 il.Emit(OpCodes.Stfld, remoteField);
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg_S, (byte)4);
+                il.Emit(OpCodes.Stfld, overrideServiceUrlField);
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldarg_S, (byte)5);
+                il.Emit(OpCodes.Stfld, overrideEncryptorField);
 
                 il.Emit(OpCodes.Ret);
             }
@@ -103,7 +116,7 @@ namespace Zerra.CQRS.Reflection.Dynamic
 
                 var il = methodBuilder.GetILGenerator();
 
-                //_Call***(Type interfaceType, string methodName, object[] arguments, string source)
+                //_Call***(Type interfaceType, string methodName, object[] arguments, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor)
 
                 il.Emit(OpCodes.Nop);
 
@@ -132,6 +145,12 @@ namespace Zerra.CQRS.Reflection.Dynamic
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Ldfld, remoteField); //remote
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldfld, overrideServiceUrlField); //overrideServiceUrl
+
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldfld, overrideEncryptorField); //overrideEncryptor
 
                 il.Emit(OpCodes.Callvirt, callMethod);
 

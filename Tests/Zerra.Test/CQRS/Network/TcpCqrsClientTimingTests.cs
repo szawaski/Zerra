@@ -27,7 +27,7 @@ namespace Zerra.Test.CQRS.Network
             ((IQueryClient)client).RegisterInterfaceType(typeof(TcpCqrsClientTests.ITestQueryHandler));
             using var cts = new CancellationTokenSource();
 
-            var call = ((IQueryClient)client).CallTaskGeneric<int>(typeof(TcpCqrsClientTests.ITestQueryHandler), nameof(TcpCqrsClientTests.ITestQueryHandler.GetThings), [typeof(byte[])], [new byte[64 * 1024 * 1024]], "test-source", cts.Token);
+            var call = ((IQueryClient)client).CallTaskGeneric<int>(typeof(TcpCqrsClientTests.ITestQueryHandler), nameof(TcpCqrsClientTests.ITestQueryHandler.GetThings), [typeof(byte[])], [new byte[64 * 1024 * 1024]], "test-source", null, null, cts.Token);
             using var server = await listener.AcceptAsync(TestContext.Current.CancellationToken);
             await Task.Delay(200, TestContext.Current.CancellationToken); //the request fills the buffers and waits
 

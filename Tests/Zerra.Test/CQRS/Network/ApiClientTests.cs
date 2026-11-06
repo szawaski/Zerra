@@ -28,7 +28,7 @@ namespace Zerra.Test.CQRS.Network
             using var client = CreateClient(server);
 
             for (var i = 0; i < 3; i++)
-                Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+                Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken));
 
             Assert.Equal(3, server.Requests.Count);
         }
@@ -40,7 +40,7 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeGateway(_ => serializer.SerializeBytes(42));
             using var client = CreateClient(server);
 
-            _ = await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken);
+            _ = await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken);
 
             Assert.True(server.Origins.TryDequeue(out var origin));
             Assert.Equal("localhost", origin);
@@ -53,7 +53,7 @@ namespace Zerra.Test.CQRS.Network
             using var client = CreateClient(server);
 
             for (var i = 0; i < 3; i++)
-                Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken));
+                Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null), TestContext.Current.CancellationToken));
         }
 
         [Fact(Timeout = timeout)]
@@ -62,7 +62,7 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeGateway(_ => [1, 2, 3, 4, 5]);
             using var client = CreateClient(server);
 
-            await using var stream = await ((IQueryClient)client).CallTaskGeneric<Stream>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream), [], [], source, TestContext.Current.CancellationToken);
+            await using var stream = await ((IQueryClient)client).CallTaskGeneric<Stream>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream), [], [], source, null, null, TestContext.Current.CancellationToken);
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms, TestContext.Current.CancellationToken);
 
@@ -108,7 +108,7 @@ namespace Zerra.Test.CQRS.Network
             using var client = new ApiClient(server.Url["http://".Length..], serializer, null, null);
             ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
 
-            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken));
         }
 
         [Fact(Timeout = timeout)]
@@ -125,7 +125,7 @@ namespace Zerra.Test.CQRS.Network
             ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
 
             //the failure happens in the returned task, nothing is listening
-            _ = await Assert.ThrowsAnyAsync<Exception>(() => ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken));
 
             Assert.Equal("Call Failed", Assert.Single(log.Errors));
         }
@@ -164,8 +164,8 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeGateway(data => data.ProviderMethod is not null || data.MessageResult ? serializer.SerializeBytes(42) : []);
             using var client = CreateClient(server, new TestAuthorizer());
 
-            Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken));
-            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+            Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null), TestContext.Current.CancellationToken));
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken));
             await ((ICommandProducer)client).DispatchAsync(new TestCommand { Value = 5 }, source, TestContext.Current.CancellationToken);
 
             Assert.Equal(["Bearer sync", "Bearer async", "Bearer async"], server.Authorizations);
@@ -179,8 +179,8 @@ namespace Zerra.Test.CQRS.Network
             var upload = new byte[100_000];
             new Random(2).NextBytes(upload);
 
-            Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(upload)], source), TestContext.Current.CancellationToken));
-            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(upload)], source, TestContext.Current.CancellationToken));
+            Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(upload)], source, null, null), TestContext.Current.CancellationToken));
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Upload), [typeof(int), typeof(Stream)], [3, new MemoryStream(upload)], source, null, null, TestContext.Current.CancellationToken));
 
             Assert.Equal(2, server.Uploads.Count);
             Assert.All(server.Uploads, x => Assert.Equal(upload, x));
@@ -196,10 +196,10 @@ namespace Zerra.Test.CQRS.Network
             var queryClient = (IQueryClient)client;
             object[] arguments = [new MemoryStream(), new MemoryStream()];
 
-            _ = Assert.Throws<ArgumentException>(() => queryClient.Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStreams), [typeof(Stream), typeof(Stream)], arguments, source));
+            _ = Assert.Throws<ArgumentException>(() => queryClient.Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStreams), [typeof(Stream), typeof(Stream)], arguments, source, null, null));
             //ApiClient builds the request before its first await, so the failure is thrown before a task is returned
-            _ = Assert.Throws<ArgumentException>(() => { _ = queryClient.CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStreams), [typeof(Stream), typeof(Stream)], arguments, source, TestContext.Current.CancellationToken); });
-            _ = Assert.Throws<ArgumentException>(() => { _ = queryClient.CallTask(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStreams), [typeof(Stream), typeof(Stream)], arguments, source, TestContext.Current.CancellationToken); });
+            _ = Assert.Throws<ArgumentException>(() => { _ = queryClient.CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStreams), [typeof(Stream), typeof(Stream)], arguments, source, null, null, TestContext.Current.CancellationToken); });
+            _ = Assert.Throws<ArgumentException>(() => { _ = queryClient.CallTask(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStreams), [typeof(Stream), typeof(Stream)], arguments, source, null, null, TestContext.Current.CancellationToken); });
             Assert.Equal(3, log.Errors.Count);
             Assert.Empty(server.Requests);
         }
@@ -212,8 +212,8 @@ namespace Zerra.Test.CQRS.Network
             using var server = new FakeGateway(_ => error.ToArray(), 500);
             using var client = CreateClient(server);
 
-            Assert.Equal("gateway failed", (await Assert.ThrowsAsync<CqrsServiceException>(() => Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source), TestContext.Current.CancellationToken))).Message);
-            Assert.Equal("gateway failed", (await Assert.ThrowsAsync<CqrsServiceException>(() => ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken))).Message);
+            Assert.Equal("gateway failed", (await Assert.ThrowsAsync<CqrsServiceException>(() => Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null), TestContext.Current.CancellationToken))).Message);
+            Assert.Equal("gateway failed", (await Assert.ThrowsAsync<CqrsServiceException>(() => ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken))).Message);
             Assert.Equal("gateway failed", (await Assert.ThrowsAsync<CqrsServiceException>(() => ((ICommandProducer)client).DispatchAwaitAsync(new TestCommand { Value = 5 }, source, TestContext.Current.CancellationToken))).Message);
         }
 
@@ -225,7 +225,7 @@ namespace Zerra.Test.CQRS.Network
 
             var bytes = await Task.Run(() =>
             {
-                using var stream = ((IQueryClient)client).Call<Stream>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream), [], [], source);
+                using var stream = ((IQueryClient)client).Call<Stream>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream), [], [], source, null, null);
                 using var ms = new MemoryStream();
                 stream.CopyTo(ms);
                 return ms.ToArray();
@@ -241,7 +241,7 @@ namespace Zerra.Test.CQRS.Network
             using var client = CreateClient(server);
 
             //a Task query has no result to read
-            await ((IQueryClient)client).CallTask(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Run), [], [], source, TestContext.Current.CancellationToken);
+            await ((IQueryClient)client).CallTask(typeof(ITestQueryHandler), nameof(ITestQueryHandler.Run), [], [], source, null, null, TestContext.Current.CancellationToken);
             _ = Assert.Single(server.Requests);
         }
 
@@ -266,7 +266,7 @@ namespace Zerra.Test.CQRS.Network
 
             using var client = new ApiClient(listenerUrl, jsonSerializer, null, null);
             ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
-            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken));
             await serving;
             Assert.StartsWith(contentType == ContentType.Json ? HttpCommon.ContentTypeJson : HttpCommon.ContentTypeJsonNameless, received);
         }
@@ -280,8 +280,62 @@ namespace Zerra.Test.CQRS.Network
             using var client = new ApiClient(server.Url, serializer, null, null, route);
             ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
 
-            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, TestContext.Current.CancellationToken));
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken));
             Assert.Equal("/api", Assert.Single(server.Paths));
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task OverrideServiceUrl_CallsThatServer()
+        {
+            using var configured = new FakeGateway(_ => serializer.SerializeBytes(1));
+            using var other = new FakeGateway(_ => serializer.SerializeBytes(2));
+            using var client = CreateClient(configured);
+
+            Assert.Equal(2, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, other.Url, null, TestContext.Current.CancellationToken));
+            Assert.Equal(2, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, other.Url["http://".Length..], null), TestContext.Current.CancellationToken));
+            Assert.Equal(1, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, TestContext.Current.CancellationToken));
+
+            Assert.Single(configured.Requests);
+            Assert.Equal(2, other.Requests.Count);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task OverrideServiceUrl_SendsItsHostAsOrigin()
+        {
+            using var server = new FakeGateway(_ => serializer.SerializeBytes(42));
+            //the configured address is never called
+            using var client = new ApiClient("http://unused.invalid:1", serializer, null, null);
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
+
+            Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, server.Url, null, TestContext.Current.CancellationToken));
+            Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, server.Url, null), TestContext.Current.CancellationToken));
+
+            Assert.Equal(["localhost", "localhost"], server.Origins);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task OverrideServiceUrl_RouteIsAppended()
+        {
+            using var configured = new FakeGateway(_ => serializer.SerializeBytes(1), route: "api");
+            using var other = new FakeGateway(_ => serializer.SerializeBytes(2), route: "api");
+            using var client = new ApiClient(configured.Url, serializer, null, null, "api");
+            ((IQueryClient)client).RegisterInterfaceType(typeof(ITestQueryHandler));
+
+            Assert.Equal(2, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, other.Url, null, TestContext.Current.CancellationToken));
+            Assert.Equal("/api", Assert.Single(other.Paths));
+            Assert.Empty(configured.Requests);
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task OverrideEncryptor_NotSupported()
+        {
+            using var server = new FakeGateway(_ => serializer.SerializeBytes(42));
+            using var client = CreateClient(server);
+            var encryptor = new Zerra.Encryption.ZerraEncryptor("test", Zerra.Encryption.SymmetricAlgorithmType.AES_GCM);
+
+            _ = await Assert.ThrowsAsync<NotSupportedException>(async () => await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, server.Url, encryptor, TestContext.Current.CancellationToken));
+            _ = Assert.Throws<NotSupportedException>(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, encryptor));
+            Assert.Empty(server.Requests);
         }
 
         private sealed class TestAuthorizer : ICqrsAuthorizer

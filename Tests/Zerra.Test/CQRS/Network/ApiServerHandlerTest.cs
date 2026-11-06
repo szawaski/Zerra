@@ -84,6 +84,7 @@ namespace Zerra.Test.CQRS.Network
             };
 
             public TInterface Call<TInterface>() where TInterface : notnull => throw new NotImplementedException();
+            public TInterface Call<TInterface>(string overrideServiceUrl, Zerra.Encryption.IEncryptor? overrideEncryptor = null) where TInterface : notnull => throw new NotImplementedException();
             public Task DispatchAsync(ICommand command, CancellationToken? cancellationToken = null) => throw new NotImplementedException();
             public Task DispatchAwaitAsync(ICommand command, CancellationToken? cancellationToken = null) => throw new NotImplementedException();
             public Task DispatchAsync(IEvent @event, CancellationToken? cancellationToken = null) => throw new NotImplementedException();

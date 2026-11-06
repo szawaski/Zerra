@@ -6,18 +6,19 @@ using System.Runtime.CompilerServices;
 using Zerra.Collections;
 using Zerra.CQRS;
 using Zerra.CQRS.Reflection.Dynamic;
+using Zerra.Encryption;
 
 namespace Zerra.CQRS.Reflection
 {
     internal static class BusRouters
     {
-        private static readonly ConcurrentFactoryDictionary<Type, Func<IBusInternal, string, bool, object>> interfaceRouterCreators = new();
+        private static readonly ConcurrentFactoryDictionary<Type, Func<IBusInternal, string, bool, string?, IEncryptor?, object>> interfaceRouterCreators = new();
         private static readonly ConcurrentFactoryDictionary<Type, DispatchToBus> dispatchers = new();
 
-        public static object GetBusCaller(Type interfaceType, IBusInternal bus, string source, bool remote)
+        public static object GetBusCaller(Type interfaceType, IBusInternal bus, string source, bool remote, string? overrideServiceUrl, IEncryptor? overrideEncryptor)
         {
             var creator = interfaceRouterCreators.GetOrAdd(interfaceType, GenerateBusCaller);
-            var handler = creator.Invoke(bus, source, remote);
+            var handler = creator.Invoke(bus, source, remote, overrideServiceUrl, overrideEncryptor);
             return handler;
         }
         public static DispatchToBus GetBusDispatcher(Type commandType)
@@ -25,7 +26,7 @@ namespace Zerra.CQRS.Reflection
             return dispatchers.GetOrAdd(commandType, GenerateBusDispatcher);
         }
 
-        private static Func<IBusInternal, string, bool, object> GenerateBusCaller(Type interfaceType)
+        private static Func<IBusInternal, string, bool, string?, IEncryptor?, object> GenerateBusCaller(Type interfaceType)
         {
 #if !NETSTANDARD2_0
             if (!RuntimeFeature.IsDynamicCodeSupported)
@@ -49,7 +50,7 @@ namespace Zerra.CQRS.Reflection
 #pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
         }
 
-        internal static void Register(Type interfaceType, Func<IBusInternal, string, bool, object> creator)
+        internal static void Register(Type interfaceType, Func<IBusInternal, string, bool, string?, IEncryptor?, object> creator)
         {
             if (!interfaceType.IsInterface)
                 throw new ArgumentException($"Type {interfaceType.Name} is not an interface");
