@@ -644,8 +644,9 @@ namespace Zerra.Repository.MsSql
                         parameter.Value = null;
                         parameterPool.Push(parameter);
                     }
+                    //cleared before the lock is released, SqlClient rejects a parameter another command takes from the pool while it's still in this one
+                    parameters.Clear();
                 }
-                parameters.Clear();
             }
         }
 

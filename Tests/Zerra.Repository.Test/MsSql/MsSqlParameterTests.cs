@@ -230,5 +230,53 @@ namespace Zerra.Repository.Test.MsSql
 
             repo.Delete(model);
         }
+
+        //the parameters of a finished command are pooled for the next, so commands on many threads at once must never share one
+        internal static async Task TestConcurrentAsync(ITransactStoreEngine engine)
+        {
+            var repo = Repo.New();
+            repo.AddProvider(new TransactStoreProvider<TestTypesModel>(engine));
+
+            var models = Enumerable.Range(0, 48).Select(i =>
+            {
+                var model = TestTypesModel.Create();
+                model.Int32Thing = 910_000 + i;
+                model.StringThing = "Concurrent" + i;
+                return model;
+            }).ToArray();
+            await repo.CreateAsync<TestTypesModel>(models);
+
+            for (var round = 0; round < 20; round++)
+            {
+                var tasks = new List<Task>();
+                foreach (var model in models)
+                {
+                    var key = model.KeyA;
+                    var number = model.Int32Thing;
+                    var text = model.StringThing;
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        for (var i = 0; i < 20; i++)
+                        {
+                            var found = await repo.Query<TestTypesModel>().Where(x => x.KeyA == key && x.Int32Thing == number && x.StringThing == text).Select(x => x.KeyA).ToArrayAsync();
+                            Assert.Equal(key, Assert.Single(found));
+                        }
+                    }));
+                    tasks.Add(Task.Run(() =>
+                    {
+                        for (var i = 0; i < 20; i++)
+                            Assert.Equal(key, repo.Query<TestTypesModel>().Where(x => x.KeyA == key && x.Int32Thing == number).Select(x => x.KeyA).Single());
+                    }));
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        for (var i = 0; i < 5; i++)
+                            Assert.Equal(1, await repo.UpdateAsync(x => x.KeyA == key, new TestTypesModel() { KeyA = key, Int32Thing = number }, new Graph<TestTypesModel>(x => x.Int32Thing)));
+                    }));
+                }
+                await Task.WhenAll(tasks);
+            }
+
+            await repo.DeleteAsync<TestTypesModel>(models);
+        }
     }
 }

@@ -94,6 +94,7 @@ namespace Zerra.Repository.Test.MsSql
             TransactionTests.TestAcrossEngines(engine);
             TransactionTests.TestSameStore(engine, new MsSqlEngine(connectionString));
             MsSqlParameterTests.TestSequence(engine, connectionString);
+            await MsSqlParameterTests.TestConcurrentAsync(engine);
             SchemaChangeTests.Test(engine, table => ExecuteSql(connectionString, $"IF OBJECT_ID('{table}') IS NOT NULL DROP TABLE [{table}]"));
 
             const string changeColumn = "ALTER TABLE [TestTypes] ALTER COLUMN [Int32Thing] bigint NULL";
