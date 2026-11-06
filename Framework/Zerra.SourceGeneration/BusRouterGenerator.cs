@@ -158,13 +158,13 @@ namespace Zerra.SourceGeneration
                 if (isTask)
                 {
                     if (taskInnerTypeName is not null)
-                        _ = sb.Append("bus._CallMethodTaskGeneric<").Append(taskInnerTypeName).Append(">(");
+                        _ = sb.Append("this.bus._CallMethodTaskGeneric<").Append(taskInnerTypeName).Append(">(");
                     else
-                        _ = sb.Append("bus._CallMethodTask(");
+                        _ = sb.Append("this.bus._CallMethodTask(");
                 }
                 else
                 {
-                    _ = sb.Append("bus._CallMethod<").Append(method.ReturnsVoid ? "object" : Helper.GetFullNameWithNullability(method.ReturnType)).Append(">(");
+                    _ = sb.Append("this.bus._CallMethod<").Append(method.ReturnsVoid ? "object" : Helper.GetFullNameWithNullability(method.ReturnType)).Append(">(");
                 }
 
                 _ = sb.Append(parentTypeOf).Append(", \"").Append(method.Name).Append("\", [");
@@ -180,7 +180,7 @@ namespace Zerra.SourceGeneration
                     if (Helper.IsNullable(parameter.Type))
                         _ = sb.Append('!');
                 }
-                _ = sb.Append("], source, remote);");
+                _ = sb.Append("], this.source, this.remote);");
             }
 
             foreach (IPropertySymbol property in members.Where(x => x.Kind == SymbolKind.Property))

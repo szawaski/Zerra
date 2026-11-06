@@ -134,6 +134,28 @@ namespace Zerra.SourceGeneration.Test
         }
 
         [Fact]
+        public void QueryHandler_ParametersNamedLikeCallerFields()
+        {
+            //the caller's fields are read through this so parameters with the same names don't hide them, the int types fail to compile if they do
+            var output = GeneratorRunner.Run("""
+                using System.Threading.Tasks;
+                using Zerra.CQRS;
+
+                namespace TestApp
+                {
+                    public interface IShadowQueryProvider : IQueryHandler
+                    {
+                        Task<int> Get(int bus, int source, int remote);
+                    }
+                }
+                """);
+
+            var caller = output.Sources["Caller_IShadowQueryProvider.cs"];
+            Assert.Contains("this.bus._CallMethodTaskGeneric<", caller);
+            Assert.Contains("[@bus, @source, @remote], this.source, this.remote);", caller);
+        }
+
+        [Fact]
         public void QueryHandler()
         {
             var output = GeneratorRunner.Run("""
