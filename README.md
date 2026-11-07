@@ -68,7 +68,7 @@ dotnet add package Zerra
 ```
 
 - **[Getting Started](docs/GettingStarted.md)**: build a service and a client, then move between in-process, TCP, HTTP, and brokers
-- **[Store demo](Demo/Store/README.md)**: seven services, five data stores, three message brokers, a browser gateway, and an event-sourced aggregate
+- **[Store demo](Demo/Store/README.md)**: eight services, six data stores, three message brokers, a browser gateway, and an event-sourced aggregate
 - **[Documentation Index](docs/Index.md)**: every guide, from queries and events to serializers and AOT
 - **[Running in Production](docs/Production.md)**: delivery, security, versioning, and observability
 - **[Testing](docs/Testing.md)**: line coverage per library and what the tests cover, including transport tests against real brokers and databases

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Starts the data stores (SQL Server, MySQL, MariaDB, PostgreSQL, KurrentDB) and messaging services (Kafka, RabbitMQ, Azure Service Bus emulator)
+    Starts the data stores (SQL Server, MySQL, MariaDB, PostgreSQL, KurrentDB, MongoDB) and messaging services (Kafka, RabbitMQ, Azure Service Bus emulator)
     the demos use, in Docker, on their default ports and demo credentials. Anything already running locally is left alone.
 
 .DESCRIPTION
@@ -13,7 +13,7 @@
     Rancher or Docker uses that one, stopping the other first since they can't run at the same time.
 
 .PARAMETER Only
-    Limit to these services: mssql, mysql, mariadb, postgresql, kurrentdb, kafka, rabbitmq, servicebus.
+    Limit to these services: mssql, mysql, mariadb, postgresql, kurrentdb, mongodb, kafka, rabbitmq, servicebus.
 
 .PARAMETER Exclude
     Skip these services.
@@ -25,9 +25,9 @@
 param(
     [ValidateSet('Auto', 'Rancher', 'Docker')]
     [string]$Runtime = 'Auto',
-    [ValidateSet('mssql', 'mysql', 'mariadb', 'postgresql', 'kurrentdb', 'kafka', 'rabbitmq', 'servicebus')]
+    [ValidateSet('mssql', 'mysql', 'mariadb', 'postgresql', 'kurrentdb', 'mongodb', 'kafka', 'rabbitmq', 'servicebus')]
     [string[]]$Only,
-    [ValidateSet('mssql', 'mysql', 'mariadb', 'postgresql', 'kurrentdb', 'kafka', 'rabbitmq', 'servicebus')]
+    [ValidateSet('mssql', 'mysql', 'mariadb', 'postgresql', 'kurrentdb', 'mongodb', 'kafka', 'rabbitmq', 'servicebus')]
     [string[]]$Exclude
 )
 
@@ -41,6 +41,7 @@ $services = @(
     [pscustomobject]@{ Name = 'mariadb';    Display = 'MariaDB';                    Port = 3307; MemoryMB = 120;  LocalService = '^MariaDB';      Connection = 'Server=localhost;Port=3307;Uid=root;Pwd=password123' }
     [pscustomobject]@{ Name = 'postgresql'; Display = 'PostgreSQL';                 Port = 5432; MemoryMB = 60;   LocalService = '^postgresql';   Connection = 'Host=localhost;Port=5432;User ID=postgres;Password=password123' }
     [pscustomobject]@{ Name = 'kurrentdb';  Display = 'KurrentDB';                  Port = 2113; MemoryMB = 420;  LocalService = '^(KurrentDB|EventStore)'; Connection = 'kurrentdb://localhost:2113?tls=false (UI http://localhost:2113)' }
+    [pscustomobject]@{ Name = 'mongodb';    Display = 'MongoDB';                    Port = 27017; MemoryMB = 350; LocalService = '^MongoDB';      Connection = 'mongodb://localhost:27017/?directConnection=true' }
     [pscustomobject]@{ Name = 'kafka';      Display = 'Kafka';                      Port = 9092; MemoryMB = 320;  LocalService = '^Kafka';        Connection = 'localhost:9092' }
     [pscustomobject]@{ Name = 'rabbitmq';   Display = 'RabbitMQ';                   Port = 5672; MemoryMB = 130;  LocalService = '^RabbitMQ';     Connection = 'localhost (guest/guest, UI http://localhost:15672)' }
     [pscustomobject]@{ Name = 'servicebus'; Display = 'Azure Service Bus emulator'; Port = 5300; MemoryMB = 1100; LocalService = $null;           Connection = 'Endpoint=sb://localhost:5673;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;' }

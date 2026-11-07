@@ -445,6 +445,11 @@ button.link:hover {
     align-items: center;
 }
 
+/* a product and a note of its own, which needs room to be read */
+.wishlist-item {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) auto;
+}
+
 .order-total {
     display: flex;
     justify-content: space-between;

@@ -17,6 +17,7 @@ namespace Store.Common
         public static string OrdersServiceUrl => Get("STORE_ORDERS_URL", "localhost:9103");
         public static string ReviewsServiceUrl => Get("STORE_REVIEWS_URL", "localhost:9104");
         public static string CartsServiceUrl => Get("STORE_CARTS_URL", "localhost:9106");
+        public static string WishlistsServiceUrl => Get("STORE_WISHLISTS_URL", "localhost:9107");
 
         //Shipping is hosted in ASP.NET Core, so its address is an HTTP endpoint rather than a bare TCP host:port
         public static string ShippingServiceUrl => Get("STORE_SHIPPING_URL", "http://localhost:9105");
@@ -28,6 +29,8 @@ namespace Store.Common
         //used when the SQL Server account can't log in, e.g. a local install without it
         public static string OrdersMsSqlWindowsAuth => Get("STORE_ORDERS_MSSQL_WINDOWS_AUTH", "Data Source=.;Initial Catalog=ZerraStoreOrders;Integrated Security=True;TrustServerCertificate=True;Connect Timeout=3");
         public static string ReviewsMariaDb => Get("STORE_REVIEWS_MARIADB", "Server=localhost;Port=3307;Uid=root;Pwd=password123;Database=ZerraStoreReviews;Connect Timeout=3");
+        //MongoDB names the database in the connection string, a server selection timeout keeps the fallback as quick as the connect timeouts above
+        public static string WishlistsMongoDB => Get("STORE_WISHLISTS_MONGODB", "mongodb://localhost:27017/zerrastorewishlists?directConnection=true&serverSelectionTimeoutMS=3000");
         //KurrentDB's gRPC and HTTP share the node port, the demo container runs without TLS
         public static string CartsKurrentDB => Get("STORE_CARTS_KURRENTDB", "http://localhost:2113");
 

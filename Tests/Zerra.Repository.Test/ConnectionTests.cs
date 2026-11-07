@@ -4,10 +4,12 @@
 
 using Xunit;
 using Zerra.Repository.MariaDb;
+using Zerra.Repository.MongoDB;
 using Zerra.Repository.MsSql;
 using Zerra.Repository.MySql;
 using Zerra.Repository.PostgreSql;
 using Zerra.Repository.Test.MariaDb;
+using Zerra.Repository.Test.MongoDB;
 using Zerra.Repository.Test.MsSql;
 using Zerra.Repository.Test.MySql;
 using Zerra.Repository.Test.PostgreSql;
@@ -30,13 +32,14 @@ namespace Zerra.Repository.Test
             public void Critical(Exception? ex = null) { }
         }
 
-        public static TheoryData<string> Stores => new() { "MsSql", "PostgreSql", "MySql", "MariaDb" };
+        public static TheoryData<string> Stores => new() { "MsSql", "PostgreSql", "MySql", "MariaDb", "MongoDB" };
 
         private static bool Test(string store, string connectionString, Zerra.Logging.ILogger? log) => store switch
         {
             "MsSql" => MsSqlConnectionTest.Test(connectionString, log),
             "PostgreSql" => PostgreSqlConnectionTest.Test(connectionString, log),
             "MySql" => MySqlConnectionTest.Test(connectionString, log),
+            "MongoDB" => MongoDBConnectionTest.Test(connectionString, log),
             _ => MariaDbConnectionTest.Test(connectionString, log),
         };
 
@@ -49,6 +52,7 @@ namespace Zerra.Repository.Test
                 "MsSql" => MsSqlTestSqlDataContext.ConnectionString,
                 "PostgreSql" => PostgreSqlTestSqlDataContext.ConnectionString,
                 "MySql" => MySqlTestSqlDataContext.ConnectionString,
+                "MongoDB" => MongoDBTestDataContext.ConnectionString,
                 _ => MariaDbTestSqlDataContext.ConnectionString,
             };
             var log = new WarnLog();
@@ -64,6 +68,7 @@ namespace Zerra.Repository.Test
             {
                 "MsSql" => "Server=localhost,1;Connect Timeout=1;TrustServerCertificate=True;User ID=x;Password=y",
                 "PostgreSql" => "Host=localhost;Port=1;Timeout=1;Username=x;Password=y",
+                "MongoDB" => "mongodb://localhost:1/?directConnection=true&serverSelectionTimeoutMS=1000&connectTimeoutMS=1000",
                 _ => "Server=localhost;Port=1;Uid=x;Pwd=y;Connection Timeout=1",
             };
             var log = new WarnLog();

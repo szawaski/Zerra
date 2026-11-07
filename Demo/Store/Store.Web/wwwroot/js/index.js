@@ -6,6 +6,7 @@ $(function () {
         catalog: ICatalogQueryHandler,
         inventory: IInventoryQueryHandler,
         carts: ICartsQueryHandler,
+        wishlists: IWishlistsQueryHandler,
         orders: IOrdersQueryHandler,
         shipping: IShippingQueryHandler,
         reviews: IReviewsQueryHandler

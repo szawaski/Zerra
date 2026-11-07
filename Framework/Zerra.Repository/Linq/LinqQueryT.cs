@@ -599,8 +599,9 @@ namespace Zerra.Repository.Linq
             var source = (IEnumerable<TModel>)models;
             if (Where is not null)
                 source = source.Where(MemoryExpressionRewriter.Rewrite((Expression<Func<TModel, bool>>)Where, caseSensitive).Compile());
-            //a count or aggregate of a page reads the rows of the page
-            if (!ReadsElements && (Skip.HasValue || Take.HasValue))
+            //a count or aggregate of a page reads the rows of the page, a count of different elements pages them once they're found
+            var pagesDistinct = Distinct && (Skip.HasValue || Take.HasValue);
+            if (!ReadsElements && (Skip.HasValue || Take.HasValue) && !(pagesDistinct && Terminal is LinqTerminal.Count or LinqTerminal.LongCount))
             {
                 source = Ordered(source, Order, caseSensitive);
                 if (Skip.HasValue)
@@ -645,10 +646,17 @@ namespace Zerra.Repository.Linq
             {
                 //rows numbered for an operation by position come in the order they are numbered in
                 source = Ordered(source, Order ?? NumberOrder, caseSensitive);
-                if (Skip.HasValue)
-                    source = source.Skip(Skip.Value);
-                if (Take.HasValue)
-                    source = source.Take(Take.Value);
+                if (!pagesDistinct)
+                {
+                    if (Skip.HasValue)
+                        source = source.Skip(Skip.Value);
+                    if (Take.HasValue)
+                        source = source.Take(Take.Value);
+                }
+            }
+            else if (pagesDistinct)
+            {
+                source = Ordered(source, Order, caseSensitive);
             }
 
             var getters = new Func<TModel, object?>[plan.Columns.Count + plan.Relations.Count];
@@ -665,6 +673,10 @@ namespace Zerra.Repository.Linq
             for (var r = 0; r < plan.Relations.Count; r++)
                 getters[plan.Columns.Count + r] = plan.Relations[r].Column!.Member is { } relation ? relation.GetterBoxed : AggregateCommon.CompileBoxed<TModel>(plan.Relations[r].Column!.Expression!, plan.Relations[r].Column!.Parameter!, caseSensitive);
             var seen = Distinct ? new HashSet<object?[]>(new AggregateCommon.KeyComparer(caseSensitive)) : null;
+            //the different elements are paged as SQL pages them, after they're found
+            var skip = pagesDistinct ? Skip ?? 0 : 0;
+            var take = pagesDistinct ? Take : null;
+            var count = 0L;
             var results = new List<TResult>();
             foreach (var model in source)
             {
@@ -673,12 +685,20 @@ namespace Zerra.Repository.Linq
                     row[i] = getters[i](model);
                 if (seen is not null && !seen.Add(row))
                     continue;
+                if (skip > 0)
+                {
+                    skip--;
+                    continue;
+                }
+                if (take.HasValue && count >= take.Value)
+                    break;
+                count++;
                 if (Terminal is LinqTerminal.Count or LinqTerminal.LongCount)
                     continue;
                 results.Add((TResult)plan.Shape!.Build(row, null)!);
             }
             if (Terminal is LinqTerminal.Count or LinqTerminal.LongCount)
-                return (long)seen!.Count;
+                return count;
             return results;
         }
 

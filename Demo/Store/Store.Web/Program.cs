@@ -7,6 +7,7 @@ using Store.Web.Domain.Inventory;
 using Store.Web.Domain.Orders;
 using Store.Web.Domain.Reviews;
 using Store.Web.Domain.Shipping;
+using Store.Web.Domain.Wishlists;
 using Zerra.CQRS;
 using Zerra.CQRS.AzureServiceBus;
 using Zerra.CQRS.Network;
@@ -59,6 +60,10 @@ var cartsClient = new TcpCqrsClient(StoreSettings.CartsServiceUrl, serializer, e
 bus.AddQueryClient<ICartsQueryHandler>(cartsClient);
 bus.AddCommandProducer<ICartsCommandHandler>(cartsClient);
 //ICartRepricingHandler is left out too, only the Catalog service sends it. The cart aggregate events never reach the bus at all
+
+var wishlistsClient = new TcpCqrsClient(StoreSettings.WishlistsServiceUrl, serializer, encryptor, null, log);
+bus.AddQueryClient<IWishlistsQueryHandler>(wishlistsClient);
+bus.AddCommandProducer<IWishlistsCommandHandler>(wishlistsClient);
 
 //Shipping is hosted in ASP.NET Core, so it's an HTTP client here instead of the TCP clients above; the gateway doesn't care which transport a service uses
 var shippingClient = new KestrelCqrsClient(StoreSettings.ShippingServiceUrl, serializer, encryptor, null, log, null, null);

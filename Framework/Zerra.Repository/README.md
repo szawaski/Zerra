@@ -17,6 +17,7 @@ dotnet add package Zerra.Repository.MsSql
 | `Zerra.Repository.PostgreSql` | PostgreSQL |
 | `Zerra.Repository.MySql` | MySQL |
 | `Zerra.Repository.MariaDb` | MariaDB |
+| `Zerra.Repository.MongoDB` | MongoDB |
 | `Zerra.Repository.Memory` | in memory, for tests and fallbacks |
 | `Zerra.Repository.KurrentDB` | KurrentDB event store, for aggregates |
 
@@ -60,10 +61,10 @@ public sealed class OrdersQueryHandler : BaseHandlerWithRepo, IOrdersQueryHandle
 {
     public async Task<OrderModel[]> GetOrders(Guid customerID, CancellationToken cancellationToken)
     {
-        var orders = await Repo.ManyAsync<OrderDataModel>(
-            x => x.CustomerID == customerID,
-            QueryOrder<OrderDataModel>.Create(x => x.OrderNumber),
-            new Graph<OrderDataModel>(true, x => x.Lines));
+        var orders = await Repo.Query<OrderDataModel>(new Graph<OrderDataModel>(true, x => x.Lines))
+            .Where(x => x.CustomerID == customerID)
+            .OrderBy(x => x.OrderNumber)
+            .ToArrayAsync(cancellationToken);
         return orders.Select(ToModel).ToArray();
     }
 }

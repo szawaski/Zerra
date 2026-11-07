@@ -107,6 +107,25 @@ services:
       - kurrentdb-data:/var/lib/kurrentdb
       - kurrentdb-logs:/var/log/kurrentdb
 
+  mongodb:
+    image: mongo:8
+    container_name: zerra-mongodb
+    restart: unless-stopped
+    #a single node replica set, MongoDB only has transactions on a replica set; the WiredTiger cache otherwise takes half the VM's memory;
+    #test commands let the repository tests hold commands with a failpoint, since MongoDB reads never wait on a lock
+    command: ["--replSet", "rs0", "--bind_ip_all", "--wiredTigerCacheSizeGB", "0.25", "--setParameter", "enableTestCommands=1"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    #the healthcheck also initiates the replica set the first time, its member is localhost:27017 so clients outside the container can reach it
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }).ok }\" | grep -q 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 10s
+
   #Messaging
   #------------------------------------------------------------------------------------
 
@@ -211,4 +230,5 @@ volumes:
   postgresql-data:
   kurrentdb-data:
   kurrentdb-logs:
+  mongodb-data:
   rabbitmq-data:

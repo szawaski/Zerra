@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Collections;
+using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -10,17 +11,31 @@ namespace Zerra.Repository.Linq
 {
     /// <summary>
     /// A query whose values a condition looks in, written into the statement when it runs on the same store and read first when it doesn't.
+    /// A condition holds it as a call of <see cref="Contains"/> on it as a constant.
     /// </summary>
-    internal sealed class LinqSubquery(IRepoInternal repo, LinqQuery query)
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public sealed class LinqSubquery
     {
-        public static readonly MethodInfo ContainsMethod = typeof(LinqSubquery).GetMethod(nameof(Contains))!;
+        internal static readonly MethodInfo ContainsMethod = typeof(LinqSubquery).GetMethod(nameof(Contains))!;
 
-        public LinqQuery Query { get; } = query;
+        private readonly IRepoInternal repo;
 
+        internal LinqSubquery(IRepoInternal repo, LinqQuery query)
+        {
+            this.repo = repo;
+            this.Query = query;
+        }
+
+        /// <summary>The query whose values are looked in.</summary>
+        public LinqQuery Query { get; }
+
+        /// <summary>Whether the query gives the value, reading the query.</summary>
+        /// <param name="value">The value, or a <see cref="LinqKeyRow"/> of the members of a key of several.</param>
+        /// <returns>Whether the value is one of those the query gives.</returns>
         public bool Contains(object? value) => Read().Contains(value!);
 
-        public HashSet<object> Read() => Values((IEnumerable)repo.Query(Query)!);
-        public async Task<HashSet<object>> ReadAsync(CancellationToken cancellationToken) => Values((IEnumerable)(await repo.QueryAsync(Query, cancellationToken))!);
+        internal HashSet<object> Read() => Values((IEnumerable)repo.Query(Query)!);
+        internal async Task<HashSet<object>> ReadAsync(CancellationToken cancellationToken) => Values((IEnumerable)(await repo.QueryAsync(Query, cancellationToken))!);
 
         private static HashSet<object> Values(IEnumerable rows)
         {
@@ -34,7 +49,7 @@ namespace Zerra.Repository.Linq
         }
 
         //a query's Contains in a condition becomes a call on the subquery, so what follows sees one form whatever the type of the values
-        public static LambdaExpression Rewrite(LambdaExpression condition, out bool found)
+        internal static LambdaExpression Rewrite(LambdaExpression condition, out bool found)
         {
             var rewriter = new Rewriter();
             var body = rewriter.Visit(condition.Body)!;

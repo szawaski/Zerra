@@ -323,7 +323,7 @@ Stopping closes the servers and consumers so nothing new arrives, waits for the 
 
 ## Next Steps
 
-- [Store demo](../Demo/Store/README.md): seven services, five data stores, three brokers, a browser gateway, and event sourcing
+- [Store demo](../Demo/Store/README.md): eight services, six data stores, three brokers, a browser gateway, and event sourcing
 - [Queries](Queries.md), [Commands](Commands.md), [Events](Events.md): the details of each message type
 - [Security](Security.md): claims from the caller to the handler
 - [AOT](AOT.md): source generation and Native AOT

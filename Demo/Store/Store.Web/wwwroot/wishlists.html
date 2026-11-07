@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zerra Store - Wishlists</title>
+    <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="inner">
+            <a class="brand" href="index.html">Zerra <span>Store</span></a>
+            <nav class="site-nav">
+                <a href="index.html">Overview</a>
+                <a href="catalog.html">Catalog</a>
+                <a href="inventory.html">Inventory</a>
+                <a href="carts.html">Carts</a>
+                <a href="wishlists.html" class="active">Wishlists</a>
+                <a href="orders.html">Orders</a>
+                <a href="shipping.html">Shipping</a>
+                <a href="reviews.html">Reviews</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <h1 class="page-title">Wishlists</h1>
+        <p class="page-lead">
+            Owned by the Wishlists service, kept in MongoDB. Each saved product is a document, read and written through the same <code>IRepo</code> queries
+            and commands the services on SQL databases use. The wishlist keeps only the product's ID, so names and prices are the Catalog's current ones.
+        </p>
+
+        <div class="grid grid-2">
+            <section class="card">
+                <div class="card-header">
+                    <h2>Wishlist</h2>
+                    <div class="toolbar">
+                        <select id="customer" aria-label="Customer"></select>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th class="num">Price</th>
+                                <th>Note</th>
+                                <th>Saved</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="items"></tbody>
+                    </table>
+                </div>
+
+                <form id="add-item" autocomplete="off" style="margin-top: 20px">
+                    <label for="product">Save a product</label>
+                    <div class="order-item wishlist-item">
+                        <select id="product"></select>
+                        <input type="text" id="note" maxlength="200" placeholder="Note (optional)" aria-label="Note" />
+                        <button type="submit" id="add">Save</button>
+                    </div>
+                </form>
+                <p class="card-note">A product can be saved once per customer, which a unique index on the customer and product enforces. Discontinued products can't be saved, and one discontinued after it was saved stays on the list marked as such.</p>
+            </section>
+
+            <section class="card">
+                <div class="card-header">
+                    <h2>Most wished</h2>
+                    <button class="secondary small" id="refresh">Refresh</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th class="num">Customers</th>
+                            </tr>
+                        </thead>
+                        <tbody id="most-wished"></tbody>
+                    </table>
+                </div>
+                <p class="card-note">MongoDB groups the saved products, counts each, and keeps the top five, from the same <code>GroupBy</code> a SQL store runs.</p>
+            </section>
+        </div>
+    </main>
+
+    <script src="lib/jquery/jquery.min.js"></script>
+    <script src="js/Bus.js"></script>
+    <script src="js/BusRoutes.js"></script>
+    <script src="js/JavaScriptModels.js"></script>
+    <script src="js/site.js"></script>
+    <script src="js/wishlists.js"></script>
+</body>
+</html>

@@ -142,6 +142,23 @@ const ShipmentModelType =
     DeliveredOn: "Date",
 }
 
+const WishlistItemModelType =
+{
+    ProductID: "string",
+    ProductName: "string",
+    Price: "number",
+    IsActive: "boolean",
+    Note: "string",
+    AddedOn: "Date",
+}
+
+const WishedProductModelType =
+{
+    ProductID: "string",
+    ProductName: "string",
+    Customers: "number",
+}
+
 const CheckoutCartResultType =
 {
     OrderID: "string",
@@ -190,6 +207,8 @@ const ModelTypeDictionary =
     ReviewModel: ReviewModelType,
     ProductRatingModel: ProductRatingModelType,
     ShipmentModel: ShipmentModelType,
+    WishlistItemModel: WishlistItemModelType,
+    WishedProductModel: WishedProductModelType,
     CheckoutCartResult: CheckoutCartResultType,
     AddProductResult: AddProductResultType,
     OrderItemRequest: OrderItemRequestType,
@@ -305,6 +324,21 @@ const IShippingQueryHandler = {
     },
 }
 
+const IWishlistsQueryHandler = {
+    GetDataStoreName: function(onComplete, onFail) {
+        Bus.Call("IWishlistsQueryHandler", "GetDataStoreName", [null], null, false, onComplete, onFail);
+    },
+    GetMessagingName: function(onComplete, onFail) {
+        Bus.Call("IWishlistsQueryHandler", "GetMessagingName", [null], null, false, onComplete, onFail);
+    },
+    GetWishlist: function(customerID, onComplete, onFail) {
+        Bus.Call("IWishlistsQueryHandler", "GetWishlist", [customerID, null], WishlistItemModelType, true, onComplete, onFail);
+    },
+    GetMostWished: function(count, onComplete, onFail) {
+        Bus.Call("IWishlistsQueryHandler", "GetMostWished", [count, null], WishedProductModelType, true, onComplete, onFail);
+    },
+}
+
 const AddToCartCommand = function(properties) {
     this.CustomerID = (properties === undefined || properties.CustomerID === undefined) ? null : properties.CustomerID;
     this.ProductID = (properties === undefined || properties.ProductID === undefined) ? null : properties.ProductID;
@@ -417,6 +451,25 @@ const SubmitReviewCommand = function(properties) {
 const MarkDeliveredCommand = function(properties) {
     this.OrderID = (properties === undefined || properties.OrderID === undefined) ? null : properties.OrderID;
     this.CommandType = "MarkDeliveredCommand";
+    this.CommandWithResult = false;
+    this.ResultType = null;
+    this.ResultTypeHasMany = false;
+}
+
+const AddToWishlistCommand = function(properties) {
+    this.CustomerID = (properties === undefined || properties.CustomerID === undefined) ? null : properties.CustomerID;
+    this.ProductID = (properties === undefined || properties.ProductID === undefined) ? null : properties.ProductID;
+    this.Note = (properties === undefined || properties.Note === undefined) ? null : properties.Note;
+    this.CommandType = "AddToWishlistCommand";
+    this.CommandWithResult = false;
+    this.ResultType = null;
+    this.ResultTypeHasMany = false;
+}
+
+const RemoveFromWishlistCommand = function(properties) {
+    this.CustomerID = (properties === undefined || properties.CustomerID === undefined) ? null : properties.CustomerID;
+    this.ProductID = (properties === undefined || properties.ProductID === undefined) ? null : properties.ProductID;
+    this.CommandType = "RemoveFromWishlistCommand";
     this.CommandWithResult = false;
     this.ResultType = null;
     this.ResultTypeHasMany = false;

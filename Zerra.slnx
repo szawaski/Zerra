@@ -50,12 +50,17 @@
     <Project Path="Demo/Store/Store.Shipping.Test/Store.Shipping.Test.csproj" />
     <Project Path="Demo/Store/Store.Shipping/Store.Shipping.csproj" />
   </Folder>
+  <Folder Name="/Demo/Store/Wishlists/">
+    <Project Path="Demo/Store/Store.Wishlists.Test/Store.Wishlists.Test.csproj" />
+    <Project Path="Demo/Store/Store.Wishlists/Store.Wishlists.csproj" />
+  </Folder>
   <Folder Name="/Framework/">
     <Project Path="Framework/Zerra.CQRS.AzureServiceBus/Zerra.CQRS.AzureServiceBus.csproj" />
     <Project Path="Framework/Zerra.CQRS.Kafka/Zerra.CQRS.Kafka.csproj" />
     <Project Path="Framework/Zerra.CQRS.RabbitMQ/Zerra.CQRS.RabbitMQ.csproj" />
     <Project Path="Framework/Zerra.Repository.KurrentDB/Zerra.Repository.KurrentDB.csproj" />
     <Project Path="Framework/Zerra.Repository.MariaDb/Zerra.Repository.MariaDb.csproj" />
+    <Project Path="Framework/Zerra.Repository.MongoDB/Zerra.Repository.MongoDB.csproj" />
     <Project Path="Framework/Zerra.Repository.Memory/Zerra.Repository.Memory.csproj" />
     <Project Path="Framework/Zerra.Repository.MsSql/Zerra.Repository.MsSql.csproj" />
     <Project Path="Framework/Zerra.Repository.MySql/Zerra.Repository.MySql.csproj" />

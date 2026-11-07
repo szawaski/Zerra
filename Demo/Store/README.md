@@ -2,7 +2,7 @@
 
 # Store Demo
 
-A small storefront built as six microservices behind a CQRS gateway. Each service owns its own data store, and browser pages call the gateway with Zerra's front end scripts. It runs with nothing installed: databases and message brokers are used when they're available and replaced by in-memory stores and direct calls when they're not.
+A small storefront built as seven microservices behind a CQRS gateway. Each service owns its own data store, and browser pages call the gateway with Zerra's front end scripts. It runs with nothing installed: databases and message brokers are used when they're available and replaced by in-memory stores and direct calls when they're not.
 
 ```mermaid
 flowchart LR
@@ -13,6 +13,7 @@ flowchart LR
     Web --> Reviews["Reviews<br/>MariaDB"]
     Web --> Shipping["Shipping<br/>in-memory"]
     Web --> Carts["Carts<br/>KurrentDB"]
+    Web --> Wishlists["Wishlists<br/>MongoDB"]
     Orders -- commands --> Inventory
     Orders -. event .-> Inventory
     Orders -. event .-> Shipping
@@ -22,13 +23,13 @@ flowchart LR
     Carts -- command --> Orders
 ```
 
-Solid lines are queries and commands, dotted lines are events. Services also query each other, for example Orders, Reviews, and Carts all read products from Catalog. Service-to-service traffic is binary and encrypted, over TCP, or over HTTP for Shipping, which is hosted in ASP.NET Core. The encryption key [rotates](../../docs/Encryptors.md#rotating-keys) every hour: `StoreKeySource` derives each period's key from the shared key, so every service moves to the new one together, and a message from the last period still decrypts with the previous key. Traffic to and from Catalog is also compressed with Deflate, since its product lists and CSV export and import are large; the other messages are too small to gain from it.
+Solid lines are queries and commands, dotted lines are events. Services also query each other, for example Orders, Reviews, Carts, and Wishlists all read products from Catalog. Service-to-service traffic is binary and encrypted, over TCP, or over HTTP for Shipping, which is hosted in ASP.NET Core. The encryption key [rotates](../../docs/Encryptors.md#rotating-keys) every hour: `StoreKeySource` derives each period's key from the shared key, so every service moves to the new one together, and a message from the last period still decrypts with the previous key. Traffic to and from Catalog is also compressed with Deflate, since its product lists and CSV export and import are large; the other messages are too small to gain from it.
 
 Each service is one project with a `Domain` folder for its contracts and a `Service` folder for its handlers and data. Services don't reference each other: a service keeps its own copy of the contracts it uses from another service, in `Domain/<Service>/`, and only the type names have to match, not the namespaces. A copy keeps its members in the same order as the original, since the binary serializer matches members by order. Store.Web has copies of every contract the browser calls.
 
 ## Run It
 
-**Visual Studio (17.11 or later):** choose the **Store Demo (In Memory, Direct Messaging)** launch profile and press F5. All seven projects start and the browser opens `http://localhost:5100`. No databases or brokers are needed.
+**Visual Studio (17.11 or later):** choose the **Store Demo (In Memory, Direct Messaging)** launch profile and press F5. All eight projects start and the browser opens `http://localhost:5100`. No databases or brokers are needed.
 
 **Script:**
 
@@ -64,6 +65,7 @@ To run the real databases and brokers in Docker, use `Demo/Infrastructure/start-
 | Message brokers with a fallback to direct calls | `Program.cs` in Orders, Inventory, Shipping, Reviews, and Store.Web |
 | Event sourcing with `AggregateRoot` | `Store.Carts/Service/Aggregates/CartAggregate.cs` |
 | Repository with a database per service and in-memory fallback | `Store.*/Service/Data/`, `Store.Common/Data/DataStoreSetup.cs` |
+| A document store through the same `IRepo` | `Store.Wishlists` on MongoDB: a delete by condition in `WishlistsCommandHandler`, a group counted and ordered by the store in `WishlistsQueryHandler.GetMostWished` |
 | Aggregates and projections done by the store | `CatalogQueryHandler.GetProducts` projects products with their category's name through the relation, `ReviewsQueryHandler.GetProductRatings` groups reviews into an average and count per product, `InventoryQueryHandler.GetStockLevels` projects stock items with `Available` computed in the query |
 | Streaming queries, download and upload | `ICatalogQueryHandler.ExportProductsCsv` and `PreviewProductImport` |
 | Browser calls with generated clients | `Store.Web/wwwroot/js/` |
@@ -97,6 +99,7 @@ Each service tries its database first and falls back to an in-memory store, logg
 | Reviews | MariaDB | `Server=localhost;Port=3307;Uid=root;Pwd=password123;Database=ZerraStoreReviews` |
 | Shipping | none, in-memory by design | — |
 | Carts | KurrentDB (event store) | `http://localhost:2113`, without TLS |
+| Wishlists | MongoDB (document store) | `mongodb://localhost:27017/zerrastorewishlists?directConnection=true` |
 
 ## Settings
 
@@ -105,22 +108,22 @@ Defaults are in `Store.Common/StoreSettings.cs`. Override them with environment 
 | Variable | Default |
 |---|---|
 | `STORE_IN_MEMORY`, `STORE_DIRECT_MESSAGING` | not set; `true` skips the databases or brokers |
-| `STORE_CATALOG_URL` … `STORE_CARTS_URL` | `localhost:9101` to `localhost:9106`; Shipping is `http://localhost:9105` |
-| `STORE_CATALOG_POSTGRESQL`, `STORE_INVENTORY_MYSQL`, `STORE_ORDERS_MSSQL`, `STORE_ORDERS_MSSQL_WINDOWS_AUTH`, `STORE_REVIEWS_MARIADB`, `STORE_CARTS_KURRENTDB` | the connection strings above |
+| `STORE_CATALOG_URL` … `STORE_WISHLISTS_URL` | `localhost:9101` to `localhost:9107`; Shipping is `http://localhost:9105` |
+| `STORE_CATALOG_POSTGRESQL`, `STORE_INVENTORY_MYSQL`, `STORE_ORDERS_MSSQL`, `STORE_ORDERS_MSSQL_WINDOWS_AUTH`, `STORE_REVIEWS_MARIADB`, `STORE_CARTS_KURRENTDB`, `STORE_WISHLISTS_MONGODB` | the connection strings above |
 | `STORE_KAFKA`, `STORE_RABBITMQ`, `STORE_AZURESERVICEBUS` | `localhost:9092`, `localhost`, the emulator in `Demo/Infrastructure` |
 | `STORE_SHARED_KEY` | the demo encryption key |
 | `STORE_KEY_ROTATION_MINUTES` | `60`; how often the encryption key rotates; `1` exercises rotations while you use the store |
 
 ## Tests
 
-Each service has a test project, `Store.Catalog.Test` through `Store.Carts.Test`. Each builds a bus the way the service does, with its real handlers on a fresh in-memory store and small fakes for the services it calls, so no database, broker, or other service needs to be running. Run them from Test Explorer or run the built test exe.
+Each service has a test project, `Store.Catalog.Test` through `Store.Wishlists.Test`. Each builds a bus the way the service does, with its real handlers on a fresh in-memory store and small fakes for the services it calls, so no database, broker, or other service needs to be running. Run them from Test Explorer or run the built test exe.
 
 ## Native AOT
 
 Every project sets `<PublishAot>true</PublishAot>`.
 
 ```powershell
-.\Demo\Store\publish-store-aot.ps1            # publishes all seven to .\Demo\Store\publish\
+.\Demo\Store\publish-store-aot.ps1            # publishes all eight to .\Demo\Store\publish\
 .\Demo\Store\start-store-aot.ps1 -InMemory    # starts the published executables
 ```
 

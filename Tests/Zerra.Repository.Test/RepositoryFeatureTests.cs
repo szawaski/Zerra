@@ -12,26 +12,35 @@ namespace Zerra.Repository.Test
     {
         private sealed class DictionaryByteStoreEngine : IByteStoreEngine
         {
-            private readonly Dictionary<string, byte[]> files = new();
+            private readonly Dictionary<(string, string), byte[]> files = new();
 
-            public bool Exists(string name) => files.ContainsKey(name);
-            public Stream Get(string name) => new MemoryStream(files[name]);
-            public void Save(string name, Stream stream)
+            public Stream Get(string category, string name) => new MemoryStream(files[(category, name)]);
+            public void Save(string category, string name, Stream stream)
             {
                 using var ms = new MemoryStream();
                 stream.CopyTo(ms);
-                files[name] = ms.ToArray();
+                files[(category, name)] = ms.ToArray();
             }
-            public Task<bool> ExistsAsync(string name) => Task.FromResult(Exists(name));
-            public Task<Stream> GetAsync(string name) => Task.FromResult(Get(name));
-            public Task SaveAsync(string name, Stream stream)
+            public void Save(string category, string name, byte[] bytes) => files[(category, name)] = bytes;
+            public bool Delete(string category, string name) => files.Remove((category, name));
+            public bool Exists(string category, string name) => files.ContainsKey((category, name));
+
+            public Task<Stream> GetAsync(string category, string name, CancellationToken cancellationToken) => Task.FromResult(Get(category, name));
+            public Task SaveAsync(string category, string name, Stream stream, CancellationToken cancellationToken)
             {
-                Save(name, stream);
+                Save(category, name, stream);
                 return Task.CompletedTask;
             }
+            public Task SaveAsync(string category, string name, byte[] bytes, CancellationToken cancellationToken)
+            {
+                Save(category, name, bytes);
+                return Task.CompletedTask;
+            }
+            public Task<bool> DeleteAsync(string category, string name, CancellationToken cancellationToken) => Task.FromResult(Delete(category, name));
+            public Task<bool> ExistsAsync(string category, string name, CancellationToken cancellationToken) => Task.FromResult(Exists(category, name));
         }
 
-        //reverses the bytes on the way in and out, so what's stored differs from what's read
+        //reverses the bytes on the way in and out, so what's stored differs from what's read; only the stream hooks, so bytes go through them by default
         private sealed class ReversingLayer(IByteStoreProvider next) : BaseByteStoreLayerProvider<IByteStoreProvider>(next)
         {
             private static Stream Reverse(Stream stream)
@@ -42,8 +51,8 @@ namespace Zerra.Repository.Test
             }
             protected override Stream OnSave(Stream stream) => Reverse(stream);
             protected override Stream OnGet(Stream stream) => Reverse(stream);
-            protected override Task<Stream> OnSaveAsync(Stream stream) => Task.FromResult(Reverse(stream));
-            protected override Task<Stream> OnGetAsync(Stream stream) => Task.FromResult(Reverse(stream));
+            protected override Task<Stream> OnSaveAsync(Stream stream, CancellationToken cancellationToken) => Task.FromResult(Reverse(stream));
+            protected override Task<Stream> OnGetAsync(Stream stream, CancellationToken cancellationToken) => Task.FromResult(Reverse(stream));
         }
 
         private sealed class PassThroughLayer(IByteStoreProvider next) : BaseByteStoreLayerProvider<IByteStoreProvider>(next)
@@ -61,25 +70,69 @@ namespace Zerra.Repository.Test
         public async Task ByteStore_SavesAndReadsThroughLayers()
         {
             _ = Assert.Throws<ArgumentNullException>(() => new ByteStoreProvider(null!));
+            var cancellationToken = TestContext.Current.CancellationToken;
 
             var engine = new DictionaryByteStoreEngine();
             var raw = new ByteStoreProvider(engine);
             var layered = new PassThroughLayer(new ReversingLayer(raw));
 
-            Assert.False(layered.Exists("file"));
-            layered.Save("file", new MemoryStream([1, 2, 3]));
-            Assert.True(layered.Exists("file"));
-            Assert.Equal([1, 2, 3], Read(layered.Get("file")));
-            Assert.Equal([3, 2, 1], Read(raw.Get("file")));
+            Assert.False(layered.Exists("docs", "file"));
+            layered.Save("docs", "file", new MemoryStream([1, 2, 3]));
+            Assert.True(layered.Exists("docs", "file"));
+            Assert.False(layered.Exists("other", "file"));
+            Assert.Equal([1, 2, 3], Read(layered.Get("docs", "file")));
+            Assert.Equal([3, 2, 1], Read(raw.Get("docs", "file")));
 
-            Assert.False(await layered.ExistsAsync("async"));
-            await layered.SaveAsync("async", new MemoryStream([4, 5]));
-            Assert.True(await layered.ExistsAsync("async"));
-            Assert.Equal([4, 5], Read(await layered.GetAsync("async")));
-            Assert.Equal([5, 4], Read(await raw.GetAsync("async")));
-            Assert.True(await raw.ExistsAsync("async"));
-            await raw.SaveAsync("raw", new MemoryStream([6]));
-            Assert.Equal([6], Read(raw.Get("raw")));
+            Assert.False(await layered.ExistsAsync("docs", "async", cancellationToken));
+            await layered.SaveAsync("docs", "async", new MemoryStream([4, 5]), cancellationToken);
+            Assert.True(await layered.ExistsAsync("docs", "async", cancellationToken));
+            Assert.Equal([4, 5], Read(await layered.GetAsync("docs", "async", cancellationToken)));
+            Assert.Equal([5, 4], Read(await raw.GetAsync("docs", "async", cancellationToken)));
+            Assert.True(await raw.ExistsAsync("docs", "async", cancellationToken));
+            await raw.SaveAsync("docs", "raw", new MemoryStream([6]), cancellationToken);
+            Assert.Equal([6], Read(raw.Get("docs", "raw")));
+
+            //the same name in another category is another entry
+            layered.Save("other", "file", [7]);
+            Assert.Equal([7], Read(layered.Get("other", "file")));
+            Assert.Equal([1, 2, 3], Read(layered.Get("docs", "file")));
+
+            //bytes go through the stream hooks of a layer that only has those
+            layered.Save("docs", "bytes", [1, 2]);
+            Assert.Equal([2, 1], Read(raw.Get("docs", "bytes")));
+            Assert.Equal([1, 2], Read(layered.Get("docs", "bytes")));
+            await layered.SaveAsync("docs", "bytesAsync", [3, 4], cancellationToken);
+            Assert.Equal([4, 3], Read(raw.Get("docs", "bytesAsync")));
+            Assert.Equal([3, 4], Read(await layered.GetAsync("docs", "bytesAsync", cancellationToken)));
+            raw.Save("docs", "rawBytes", [8]);
+            await raw.SaveAsync("docs", "rawBytesAsync", [9], cancellationToken);
+            Assert.Equal([8], Read(raw.Get("docs", "rawBytes")));
+            Assert.Equal([9], Read(raw.Get("docs", "rawBytesAsync")));
+
+            //several at once, each through the layers
+            layered.Save("many", [new("a", [1, 2]), new("b", [3, 4, 5])]);
+            Assert.Equal([2, 1], Read(raw.Get("many", "a")));
+            Assert.Equal([1, 2], Read(layered.Get("many", "a")));
+            Assert.Equal([3, 4, 5], Read(layered.Get("many", "b")));
+            await layered.SaveAsync("manyAsync", [new("c", [6, 7]), new("d", [8])], cancellationToken);
+            Assert.Equal([7, 6], Read(raw.Get("manyAsync", "c")));
+            Assert.Equal([6, 7], Read(await layered.GetAsync("manyAsync", "c", cancellationToken)));
+            Assert.Equal([8], Read(await layered.GetAsync("manyAsync", "d", cancellationToken)));
+            raw.Save("rawMany", [new("e", [1])]);
+            await raw.SaveAsync("rawMany", [new("f", [2])], cancellationToken);
+            Assert.Equal([1], Read(raw.Get("rawMany", "e")));
+            Assert.Equal([2], Read(raw.Get("rawMany", "f")));
+
+            Assert.True(layered.Delete("docs", "file"));
+            Assert.False(layered.Exists("docs", "file"));
+            Assert.False(layered.Delete("docs", "file"));
+            Assert.True(layered.Exists("other", "file"));
+            Assert.True(await layered.DeleteAsync("docs", "async", cancellationToken));
+            Assert.False(await layered.ExistsAsync("docs", "async", cancellationToken));
+            Assert.False(await layered.DeleteAsync("docs", "async", cancellationToken));
+            Assert.True(raw.Delete("docs", "raw"));
+            Assert.True(await raw.DeleteAsync("docs", "rawBytes", cancellationToken));
+            Assert.False(raw.Exists("docs", "rawBytes"));
         }
 
         [Entity("DualModel")]

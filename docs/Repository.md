@@ -2,7 +2,7 @@
 
 # Repository
 
-`Zerra.Repository` is LINQ data access that doesn't depend on the data store. Handlers read and write data models through one `IRepo` interface, and each model type can live in a different store: SQL Server, PostgreSQL, MySQL, MariaDB, or in memory. It also supports event-sourced aggregates on KurrentDB. It is AOT compatible.
+`Zerra.Repository` is LINQ data access that doesn't depend on the data store. Handlers read and write data models through one `IRepo` interface, and each model type can live in a different store: SQL Server, PostgreSQL, MySQL, MariaDB, MongoDB, or in memory. It also supports event-sourced aggregates on KurrentDB. It is AOT compatible.
 
 ## Compared with Entity Framework
 
@@ -44,6 +44,7 @@ For one-to-many includes, Zerra loads the related rows of every parent in one ad
 | `Zerra.Repository.PostgreSql` | PostgreSQL |
 | `Zerra.Repository.MySql` | MySQL |
 | `Zerra.Repository.MariaDb` | MariaDB |
+| `Zerra.Repository.MongoDB` | MongoDB |
 | `Zerra.Repository.Memory` | in memory, for tests and fallbacks |
 | `Zerra.Repository.KurrentDB` | KurrentDB event store, for aggregates |
 
@@ -83,13 +84,15 @@ public sealed class OrderDataModel
 
 ### 1. Engines
 
-An engine is a store. Create the one for your database with its connection string: `MsSqlEngine`, `PostgreSqlEngine`, `MySqlEngine`, `MariaDbEngine`, `KurrentDBEngine` (an event store), or `MemoryEngine`.
+An engine is a store. Create the one for your database with its connection string: `MsSqlEngine`, `PostgreSqlEngine`, `MySqlEngine`, `MariaDbEngine`, `MongoDBEngine`, `KurrentDBEngine` (an event store), or `MemoryEngine`.
 
 ```csharp
 var engine = new MsSqlEngine(connectionString);   // doesn't connect until it's used
 ```
 
-Each database also has a connection test: `MsSqlConnectionTest`, `PostgreSqlConnectionTest`, `MySqlConnectionTest`, `MariaDbConnectionTest`, and `KurrentDBConnectionTest`. `Test` returns whether the server answered, and if you pass a logger it logs why it didn't. Test at startup to choose the engine the providers get (see step 3), the same way `RabbitMQConnectionTest.TestAsync` chooses a message transport.
+Each database also has a connection test: `MsSqlConnectionTest`, `PostgreSqlConnectionTest`, `MySqlConnectionTest`, `MariaDbConnectionTest`, `MongoDBConnectionTest`, and `KurrentDBConnectionTest`. `Test` returns whether the server answered, and if you pass a logger it logs why it didn't. Test at startup to choose the engine the providers get (see step 3), the same way `RabbitMQConnectionTest.TestAsync` chooses a message transport.
+
+`MongoDBEngine` takes a connection string that names the database, such as `mongodb://localhost:27017/store`. Each model is a collection and each row a document; see [MongoDB](#mongodb).
 
 ### 2. A Provider
 
@@ -320,14 +323,29 @@ await cart.Append(new CartItemAddedEvent { ProductID = command.ProductID, Quanti
 
 Aggregate events are the aggregate's state, not bus messages: they never implement `IEvent` and live with the aggregate in the service project. See [Aggregate Events Are Not CQRS Events](Events.md#aggregate-events-are-not-cqrs-events). `Demo/Store/Store.Carts` is a complete example on KurrentDB, with an in-memory fallback.
 
+## MongoDB
+
+`MongoDBEngine` reads and writes the same models as the SQL engines, through the same `IRepo`.
+
+- Each model is a collection named by its `[Entity]`. A single identity is the document's `_id`; several identities are an `_id` of them, and each is also a field.
+- Enums are stored as their `EnumName` text, `TimeSpan` and `TimeOnly` as ticks, and dates in UTC to the millisecond.
+- A number identity (`[Identity(true)]`) comes from a counter document per collection in `_identities`. A Guid identity is a new Guid.
+- Relations on the same engine read in one pipeline with `$lookup`. Relations on other engines work as they do for SQL.
+- It works in a native AOT build. The MongoDB driver warns about trimming when you publish; the engine registers the serializers the driver would otherwise create by reflection.
+- Transactions need a replica set or a sharded cluster. A single server can be a one-member replica set, as `Demo/Infrastructure` runs it.
+- Code first generation creates the collections and the `[StoreIndex]` indexes. It also sets a default on documents missing a member that can't be null.
+- Set operations, joins of two queries, and operators by position (`Zip`, `TakeWhile`, `SkipLast`, and the like) run in one pipeline, the second query read with `$unionWith` or `$lookup`.
+
 ## Byte Store
 
-`ByteStoreProvider` saves and reads named streams, such as files, through an `IByteStoreEngine` you write for your storage (a folder, blob storage, and so on). The engine has `Get`, `Save`, and `Exists`, each with an async version. Derive layers from `BaseByteStoreLayerProvider` to change the streams on the way in and out, such as encrypting them. The byte store isn't part of `IRepo`; register the `IByteStoreProvider` as a service.
+`ByteStoreProvider` saves and reads named data, such as files, through an `IByteStoreEngine` you write for your storage (a folder, blob storage, and so on). Every call names a category and a name, so the same name can be used in different categories; a category is whatever your storage groups by, such as a folder or a container. The engine has `Get`, `Save` (a stream, bytes, or several names with their bytes), `Delete`, and `Exists`, each with an async version that takes a cancellation token. Saving several at once saves each in turn unless the engine does it in one go. Derive layers from `BaseByteStoreLayerProvider` to change the data on the way in and out, such as encrypting it; a layer that only changes streams changes saved bytes too. The byte store isn't part of `IRepo`; register the `IByteStoreProvider` as a service.
 
 ```csharp
 var files = new ByteStoreProvider(new FolderByteStoreEngine(path));   // your IByteStoreEngine
-await files.SaveAsync("invoice-1001.pdf", stream);
-using var saved = await files.GetAsync("invoice-1001.pdf");
+await files.SaveAsync("invoices", "1001.pdf", stream, cancellationToken);
+await files.SaveAsync("thumbnails", [new("1001.png", small), new("1002.png", other)], cancellationToken);
+using var saved = await files.GetAsync("invoices", "1001.pdf", cancellationToken);
+await files.DeleteAsync("invoices", "1001.pdf", cancellationToken);
 ```
 
 ## See Also

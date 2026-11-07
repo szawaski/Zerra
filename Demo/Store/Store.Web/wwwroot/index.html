@@ -15,6 +15,7 @@
                 <a href="catalog.html">Catalog</a>
                 <a href="inventory.html">Inventory</a>
                 <a href="carts.html">Carts</a>
+                <a href="wishlists.html">Wishlists</a>
                 <a href="orders.html">Orders</a>
                 <a href="shipping.html">Shipping</a>
                 <a href="reviews.html">Reviews</a>
@@ -23,7 +24,7 @@
     </header>
 
     <main>
-        <h1 class="page-title">A storefront on seven microservices</h1>
+        <h1 class="page-title">A storefront on eight microservices</h1>
         <p class="page-lead">
             These pages are static HTML and JavaScript. Every query and command goes through one CQRS gateway on this site,
             which forwards it to the service that owns it, over encrypted TCP for most services and HTTP for Shipping. Each service keeps its own data store (or none, by design) and seeds it on startup. Some commands and events between services go through Kafka, RabbitMQ, or Azure Service Bus when they're running, and directly when they aren't.
@@ -66,6 +67,16 @@
                 <dl>
                     <dt>Project</dt><dd>Store.Carts</dd>
                     <dt>Address</dt><dd>TCP localhost:9106</dd>
+                    <dt>Data store</dt><dd class="store">Checking…</dd>
+                    <dt>Messaging</dt><dd class="messaging">Checking…</dd>
+                </dl>
+            </section>
+            <section class="card service-card" data-service="wishlists">
+                <h3><span class="status-dot"></span>Wishlists</h3>
+                <p class="role">Products customers saved for later, in a document store</p>
+                <dl>
+                    <dt>Project</dt><dd>Store.Wishlists</dd>
+                    <dt>Address</dt><dd>TCP localhost:9107</dd>
                     <dt>Data store</dt><dd class="store">Checking…</dd>
                     <dt>Messaging</dt><dd class="messaging">Checking…</dd>
                 </dl>
@@ -123,6 +134,7 @@
                     <li>Add a product, restock it in Inventory, then order it.</li>
                     <li>Stop the Inventory service and try to place an order to see how the failure comes back.</li>
                     <li>Write a review as a customer who received the product, then as one who never ordered it, and compare the badges on the Reviews page.</li>
+                    <li>Save a product to a wishlist, then discontinue it in the Catalog. The wishlist keeps it, marked discontinued, and won't take it again.</li>
                     <li>Fill a cart, empty it, fill it again, and check it out. The Carts page lists every event in the cart's stream, and the order appears on the Orders page.</li>
                 </ul>
             </section>

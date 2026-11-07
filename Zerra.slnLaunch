@@ -33,6 +33,11 @@
         "DebugTarget": "In Memory, Direct Messaging"
       },
       {
+        "Path": "Demo\\Store\\Store.Wishlists\\Store.Wishlists.csproj",
+        "Action": "Start",
+        "DebugTarget": "In Memory, Direct Messaging"
+      },
+      {
         "Path": "Demo\\Store\\Store.Web\\Store.Web.csproj",
         "Action": "Start",
         "DebugTarget": "In Memory, Direct Messaging"
@@ -69,6 +74,11 @@
       },
       {
         "Path": "Demo\\Store\\Store.Carts\\Store.Carts.csproj",
+        "Action": "Start",
+        "DebugTarget": "Databases, Message Brokers"
+      },
+      {
+        "Path": "Demo\\Store\\Store.Wishlists\\Store.Wishlists.csproj",
         "Action": "Start",
         "DebugTarget": "Databases, Message Brokers"
       },

@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <IsAotCompatible>true</IsAotCompatible>
+        <PublishAot>true</PublishAot>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>15.0</LangVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Version>6.0.0-rc.3</Version>
+        <Authors>Steven Zawaski</Authors>
+        <Company>KaKush LLC</Company>
+        <Copyright>KaKush LLC</Copyright>
+        <Product>Zerra Repository Framework - Repository MongoDB</Product>
+        <PackageId>Zerra.Repository.MongoDB</PackageId>
+        <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
+        <PackageTags>Zerra;Repository;MongoDB;NoSQL;Document</PackageTags>
+        <Description>MongoDB provider for Zerra.Repository.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\..\LICENSE">
+            <Pack>True</Pack>
+            <PackagePath></PackagePath>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Zerra\Zerra.csproj" PrivateAssets="none" />
+        <ProjectReference Include="..\Zerra.Repository\Zerra.Repository.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="MongoDB.Driver" Version="3.13.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>
