@@ -336,18 +336,6 @@ Aggregate events are the aggregate's state, not bus messages: they never impleme
 - Code first generation creates the collections and the `[StoreIndex]` indexes. It also sets a default on documents missing a member that can't be null.
 - Set operations, joins of two queries, and operators by position (`Zip`, `TakeWhile`, `SkipLast`, and the like) run in one pipeline, the second query read with `$unionWith` or `$lookup`.
 
-## Byte Store
-
-`ByteStoreProvider` saves and reads named data, such as files, through an `IByteStoreEngine` you write for your storage (a folder, blob storage, and so on). Every call names a category and a name, so the same name can be used in different categories; a category is whatever your storage groups by, such as a folder or a container. The engine has `Get`, `Save` (a stream, bytes, or several names with their bytes), `Delete`, and `Exists`, each with an async version that takes a cancellation token. Saving several at once saves each in turn unless the engine does it in one go. Derive layers from `BaseByteStoreLayerProvider` to change the data on the way in and out, such as encrypting it; a layer that only changes streams changes saved bytes too. The byte store isn't part of `IRepo`; register the `IByteStoreProvider` as a service.
-
-```csharp
-var files = new ByteStoreProvider(new FolderByteStoreEngine(path));   // your IByteStoreEngine
-await files.SaveAsync("invoices", "1001.pdf", stream, cancellationToken);
-await files.SaveAsync("thumbnails", [new("1001.png", small), new("1002.png", other)], cancellationToken);
-using var saved = await files.GetAsync("invoices", "1001.pdf", cancellationToken);
-await files.DeleteAsync("invoices", "1001.pdf", cancellationToken);
-```
-
 ## See Also
 
 - [Repository Queries](RepositoryQueries.md) - LINQ functions, joins, relations, and aggregates
