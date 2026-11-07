@@ -403,6 +403,12 @@ Startup order for a service:
   ```
 - **`ApiClient`**: `new ApiClient(endpoint, ContentType.Json, authorizer)` → `new ApiClient(endpoint, new NetworkJsonSerializer(), log, authorizer)`. `ApiCqrsCookieAuthorizer` takes a serializer as its first argument.
 - **Controllers and middleware**: take `IBus` through the constructor instead of calling the static `Bus`.
+- **Browser clients**: the gateway serves them now. Add `app.UseCqrsClientScripts("/CQRSClient", "/CQRS")` before `UseCqrsApiGateway`, then delete your copies of `Bus.js`/`Bus.ts`, `BusRoutes.js`/`BusConfig.ts`, and the T4 model templates and their output.
+  - JavaScript pages load `/CQRSClient/Bus.js` then `/CQRSClient/JavaScriptModels.js`. jQuery is no longer needed for them.
+  - TypeScript apps save `/CQRSClient/Bus.ts` and `/CQRSClient/TypeScriptModels.ts` side by side.
+  - Move what `BusRoutes`/`BusConfig` set into startup code: `Bus.setRoute("Gateway", url)` and `Bus.onFail(callback)`.
+  - Rename calls to camelCase: `Bus.Call` → `Bus.call`, `Bus.Dispatch` → `Bus.dispatch`, `Bus.DispatchAwait` → `Bus.dispatchAwait`, `Bus.DispatchAsync` → `Bus.dispatchAsync`, `Bus.DispatchAwaitAsync` → `Bus.dispatchAwaitAsync`, `Bus.SetHeader` → `Bus.setHeader`.
+  - A `TimeSpan` is now a `string` in the models, not a `Date`. See [Front End Scripts](FrontEndScripts.md).
 - **Custom gateways calling `ApiServerHandler` directly** (for example an `IHttpHandler` in an ASP.NET Web Forms app): `HandleRequestAsync(ContentType? accept, data, token)` became `HandleRequestAsync(bus, serializer, responseSerializer, data, argumentStream, token)`. Deserialize the `ApiRequestData` yourself with the `INetworkSerializer` that matches the request's content type (`NetworkByteSerializer`, `NetworkJsonSerializer`, or `new NetworkJsonSerializer(new JsonSerializerOptions() { Nameless = true })`). `ApiResponseData.Bytes` is gone: write `response.Stream` when it's set, otherwise `await response.Serializer.SerializeAsync(outputStream, response.Model, token)`. `Void` still means an empty 200.
 - **.NET Framework web apps** have no `Program.cs`. Build the bus in `Application_Start`, keep it in a static property for handlers and pages, and call `StopServices` in `Application_End`. Interfaces the app handled in-process in v5 (found by discovery, with no client in `cqrssettings.json`) need `AddHandler` there.
 - **In ASP.NET projects `ILogger` is ambiguous** with Microsoft's, so write `Zerra.Logging.ILogger`.

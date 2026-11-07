@@ -107,7 +107,7 @@ $(function () {
         send(this, new EmptyCartCommand({ CustomerID: $customer.val() }), "Cart emptied");
     });
 
-    //CheckoutCartCommand has a result, DispatchAwait resolves with the CheckoutCartResult
+    //CheckoutCartCommand has a result, dispatchAwait resolves with the CheckoutCartResult
     $("#checkout").on("click", function () {
         send(this, new CheckoutCartCommand({ CustomerID: $customer.val() }), function (result) {
             return "Order " + result.OrderNumber + " placed for " + Store.money(result.Total);

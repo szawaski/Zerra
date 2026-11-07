@@ -28,7 +28,16 @@ namespace Zerra.SourceGeneration
             if (Filter(namedTypeSymbol))
             {
                 if (namedTypeSymbol.TypeKind == TypeKind.Interface)
+                {
                     SearchInterface(namedTypeSymbol, models, stack);
+                    //the gateway's client scripts read a query interface's methods from its type detail
+                    if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IQueryHandler" && x.ContainingNamespace.ToString() == "Zerra.CQRS") && !Helper.IsUnclosedGeneric(namedTypeSymbol))
+                    {
+                        var name = Helper.GetFullName(namedTypeSymbol);
+                        if (!models.ContainsKey(name))
+                            models.Add(name, new TypeToGenerate(namedTypeSymbol, name, String.Empty));
+                    }
+                }
                 else if (namedTypeSymbol.TypeKind == TypeKind.Class)
                     CheckModel(namedTypeSymbol, models, stack);
             }

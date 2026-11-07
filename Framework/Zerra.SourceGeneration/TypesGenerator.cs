@@ -81,8 +81,10 @@ namespace Zerra.SourceGeneration
 
                 _ = sb.Append(", ");
 
-                //methods are only generated where the framework calls them, AggregateRoot looks up the method that applies each event
-                if (Helper.FindBase("Zerra.Repository", "AggregateRoot", model.TypeSymbol) != null)
+                //methods are only generated where the framework uses them, AggregateRoot looks up the method that applies each event
+                //and the gateway's client scripts list a query interface's methods
+                if (Helper.FindBase("Zerra.Repository", "AggregateRoot", model.TypeSymbol) != null
+                    || (model.TypeSymbol.TypeKind == TypeKind.Interface && model.TypeSymbol.AllInterfaces.Any(x => x.Name == "IQueryHandler" && x.ContainingNamespace.ToString() == "Zerra.CQRS")))
                     GenerateMethods(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);
                 else
                     _ = sb.Append("null");

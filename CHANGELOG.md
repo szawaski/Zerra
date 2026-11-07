@@ -14,6 +14,8 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `commandToReceiveUntilExit` for batch jobs and KEDA-style scaling.
 - Services can be hosted in ASP.NET Core/Kestrel with `KestrelCqrsServer*` and called with `KestrelCqrsClient`.
 - Concurrency limits are set on each client, server, producer, and consumer (`maxConcurrentQueries`, `maxConcurrentCommands`, `maxConcurrentEvents`) instead of on `Bus.New`, so each can have its own. `TcpCqrsServer` and `HttpCqrsServer` limit queries, commands, and events separately. See [Concurrency Limits](docs/ClientSetup.md#concurrency-limits).
+- The web gateway serves the browser clients with `app.UseCqrsClientScripts()`: `Bus.js` and `Bus.ts`, already pointed at the gateway, and their models, built from what its bus routes. They replace the copied scripts and the T4 templates, so there's nothing to copy or regenerate after changing a contract. See [Front End Scripts](docs/FrontEndScripts.md).
+- `BusRoutes.js` and `BusConfig.ts` are gone. Set routes, headers, and a global error handler in code with `Bus.setRoute`, `Bus.setHeader`, and `Bus.onFail`. The `Bus` methods are camelCase in both scripts (`Bus.call`, `Bus.dispatch`, `Bus.dispatchAwait`, `Bus.dispatchAsync`, `Bus.dispatchAwaitAsync`), and `Bus.js` no longer needs jQuery.
 
 ### Messaging
 
@@ -76,6 +78,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Fixed `TypeDetail.GetConstructor()` failing on types with several constructors.
 - For types that aren't source generated, members read and write through the property unless it's an auto-property, and only public fields are listed, like generated types. Before, a private field with the property's name was used instead, so a computed property such as `Dictionary.Count` read the wrong value. `MemberDetail.IsBacked` is removed.
 - `AsynmmetricEncryptor` is renamed `AsymmetricEncryptor`.
+- `Zerra.T4` is no longer a NuGet package and only generates database-first models. Templates use `Framework/Zerra.T4/Binaries/Zerra.T4.dll`.
 - The concurrent collections follow the standard `IList` and `IDictionary` rules, like `List<T>` and `ConcurrentDictionary`. For example, `Add` throws on a duplicate key and `Insert` at the end works.
 
 ### Repository

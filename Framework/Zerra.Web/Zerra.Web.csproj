@@ -39,6 +39,12 @@
         <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
     </ItemGroup>
 
+    <!--served by UseCqrsClientScripts-->
+    <ItemGroup>
+        <EmbeddedResource Include="Scripts\Bus.js" LogicalName="Zerra.Web.Bus.js" />
+        <EmbeddedResource Include="Scripts\Bus.ts" LogicalName="Zerra.Web.Bus.ts" />
+    </ItemGroup>
+
     <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>

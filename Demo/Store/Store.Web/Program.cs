@@ -82,6 +82,10 @@ app.Lifetime.ApplicationStopped.Register(bus.StopServices); //after Kestrel has 
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+//The pages load Bus.js from /CQRSClient/Bus.js, already pointed at the gateway below, and the models, query functions, and commands
+//it calls from /CQRSClient/JavaScriptModels.js, generated from what this bus routes
+app.UseCqrsClientScripts("/CQRSClient", "/CQRS");
+
 //Bus.js posts every query and command here. A real site would register an ICqrsAuthorizer and pass allowOrigins.
 app.UseCqrsApiGateway("/CQRS");
 

@@ -165,7 +165,7 @@ $(function () {
             CustomerID: $("#customer").val(),
             Items: readItems()
         });
-        //PlaceOrderCommand has a result, DispatchAwait resolves with the PlaceOrderResult
+        //PlaceOrderCommand has a result, dispatchAwait resolves with the PlaceOrderResult
         Store.busy("#place-order", Store.send(command))
             .then(function (result) {
                 Store.toast("Order " + result.OrderNumber + " placed for " + Store.money(result.Total), "success");

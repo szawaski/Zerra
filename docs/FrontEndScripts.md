@@ -2,93 +2,99 @@
 
 # Front End Scripts
 
-The **Front End Scripts** folder holds JavaScript and TypeScript clients for browsers. They call the CQRS API gateway hosted by [Zerra.Web](ZerraWeb.md), using models generated from your .NET contracts. `Demo/Store/Store.Web/wwwroot/js/` is a working site that uses them.
+Browsers call the CQRS API gateway hosted by [Zerra.Web](ZerraWeb.md) with `Bus.js` or `Bus.ts`, using models, query functions, and commands built from your .NET contracts. The gateway serves all of them. `Demo/Store/Store.Web/wwwroot/` is a working site that uses them.
 
-## Files
+## Serving the Scripts
 
-| File | Purpose |
-|---|---|
-| [`JavaScript/Bus.js`](../Front%20End%20Scripts/JavaScript/Bus.js) | Client for the gateway, callback based. Requires jQuery |
-| [`JavaScript/BusRoutes.js`](../Front%20End%20Scripts/JavaScript/BusRoutes.js) | Gateway routes and the global error handler |
-| [`JavaScript/JavaScriptModels.tt`](../Front%20End%20Scripts/JavaScript/JavaScriptModels.tt) | T4 template generating JavaScript models and query functions |
-| [`TypeScript/Bus.ts`](../Front%20End%20Scripts/TypeScript/Bus.ts) | Client for the gateway, promise based, using `fetch` |
-| [`TypeScript/BusConfig.ts`](../Front%20End%20Scripts/TypeScript/BusConfig.ts) | Gateway routes and the global error handler |
-| [`TypeScript/TypeScriptModels.tt`](../Front%20End%20Scripts/TypeScript/TypeScriptModels.tt) | T4 template generating TypeScript types and query classes |
-| [`Binaries/Zerra.T4.dll`](../Front%20End%20Scripts/Binaries/Zerra.T4.dll) | The generator the templates call, built from `Framework/Zerra.T4` |
+Add `UseCqrsClientScripts` next to the gateway:
 
-## Generating Models
-
-The templates call `Zerra.T4.CQRSClientDomain.GenerateJavaScript(folder)` or `GenerateTypeScript(folder)`, which read the C# sources under `folder` and write a class per command, a function or static class per query interface, and a model type per model the contracts use.
-
-1. Copy `Bus.js` or `Bus.ts`, its routes file, the template, and the `Binaries` folder into your solution.
-2. Point the template's `assembly` directive at `Zerra.T4.dll`, for example `<#@ assembly name="..\Binaries\Zerra.T4.dll" #>`.
-3. Set the folder it scans. The shipped template scans the whole solution folder. Narrow it to the folder with your contracts so unrelated types aren't picked up. With copies in each service, scan only the gateway's copies, or every contract is found more than once; `Demo/Store/Store.Web/wwwroot/js/JavaScriptModels.tt` scans only `Store.Web`.
-4. Save the template in Visual Studio to run it, and run it again after changing a contract.
-
-To run the template on every build instead, add the text templating targets to the web project (see [`Help-ProjectBuildT4.txt`](../Front%20End%20Scripts/JavaScript/Help-ProjectBuildT4.txt)):
-
-```xml
-<Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v17.0\TextTemplating\Microsoft.TextTemplating.targets" />
-<PropertyGroup>
-    <TransformOnBuild>true</TransformOnBuild>
-    <OverwriteReadOnlyOutputFiles>true</OverwriteReadOnlyOutputFiles>
-    <TransformOutOfDateOnly>false</TransformOutOfDateOnly>
-</PropertyGroup>
-<ItemGroup>
-    <None Include="..\Scripts\TypeScriptModels.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <OutputFilePath>..\MyWebApp\src\services</OutputFilePath>
-        <LastGenOutput>TypeScriptModels.ts</LastGenOutput>
-    </None>
-</ItemGroup>
+```csharp
+app.UseCqrsClientScripts("/CQRSClient", "/CQRS");     // the route the scripts are served under, and the gateway's route
+app.UseCqrsApiGateway("/CQRS");
 ```
 
-Generated query functions leave out the trailing `CancellationToken`.
+| Url | What it is |
+|---|---|
+| `/CQRSClient/Bus.js` | Client for the gateway, callback based, using `fetch` |
+| `/CQRSClient/JavaScriptModels.js` | Models, query functions, and commands for `Bus.js` |
+| `/CQRSClient/Bus.ts` | Client for the gateway, promise based, using `fetch` |
+| `/CQRSClient/TypeScriptModels.ts` | Models, query classes, and commands for `Bus.ts` |
+
+The served `Bus.js` and `Bus.ts` already call the gateway's route. The models are built from what the gateway's bus routes: a class per command, a function or static class per query interface, and a model type per model they use. They always match the running gateway, so there's nothing to regenerate after changing a contract.
+
+Anyone who can reach the route sees the names and members of your queries, commands, and models. That's what shipped scripts show anyway, but if you save the TypeScript files, you only need the route in development.
+
+How C# types appear in the scripts:
+
+- Numbers are `number`, `DateTime` and `DateTimeOffset` are `Date`, and enums are their names as `string`.
+- `Guid`, `char`, `TimeSpan`, `DateOnly`, `TimeOnly`, and `byte[]` are `string`, as they are in JSON.
+- A `Stream` is a `Blob`. Dictionaries and `object` are `any`.
+- Members follow the JSON serializer, including `[JsonIgnore]` and `[JsonPropertyName]`.
+- A generic model is named with its type arguments, so `PagedResult<Order>` is `PagedResultOfOrder`.
+- Query functions leave out the trailing `CancellationToken`.
+
+The browser knows each query, command, and model only by its class name, so two with the same name in different namespaces fail the request with an error naming both. Rename one of them.
+
+## Settings
+
+Set these once when the page or app starts:
+
+| Method | What it does |
+|---|---|
+| `Bus.setRoute("Gateway", url)` | Calls a different gateway, such as one on another site |
+| `Bus.setRoute("IOrdersQueryHandler", url)` | Sends one query interface or command to its own gateway |
+| `Bus.setHeader(name, value)` | Sends a header with every request. A function value is called for each request, such as for a token that changes |
+| `Bus.onFail((message, url) => ...)` | Called for every failed query or command, after its own fail callback, such as to show a message |
 
 ## JavaScript
 
+Load `Bus.js` before the models:
+
 ```html
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="JavaScriptModels.js"></script>
-<script src="Bus.js"></script>
-<script src="BusRoutes.js"></script>
+<script src="/CQRSClient/Bus.js"></script>
+<script src="/CQRSClient/JavaScriptModels.js"></script>
 
 <script>
-BusRoutes["Gateway"] = "/CQRS";                            // required; a route keyed by an interface name overrides it for that interface
-Bus.setHeader("X-API-Key", "my-secret-key");               // sent with every request
+Bus.setHeader("X-API-Key", "my-secret-key");
+Bus.onFail(function (message) { alert(message); });
 
 // query
 IUserQueryHandler.GetUser("12345", function (user) { ... }, function (errorText) { ... });
 
 // command, waiting for the handler and its result
-Bus.DispatchAwait(new CreateUserCommand({ Email: "user@example.com", Name: "John Doe" }),
+Bus.dispatchAwait(new CreateUserCommand({ Email: "user@example.com", Name: "John Doe" }),
     function (result) { ... }, function (errorText) { ... });
 
 // command, fire and forget
-Bus.Dispatch(new UpdateUserCommand({ UserId: "12345", Name: "Jane Doe" }));
+Bus.dispatch(new UpdateUserCommand({ UserId: "12345", Name: "Jane Doe" }));
 </script>
 ```
 
-`onFail` receives the error message as a string. For a global handler, edit the `BusFail` function in `BusRoutes.js`; it is a `const`, so page script can't reassign it.
-
-To call a query without a generated function, use `Bus.Call(provider, method, args, modelType, hasMany, onComplete, onFail)`, where `modelType` is the generated model type and `hasMany` is `true` for arrays.
+The fail callbacks receive the error message as a string. To call a query without a generated function, use `Bus.call(provider, method, args, modelType, hasMany, onComplete, onFail)`, where `modelType` is the generated model type and `hasMany` is `true` for arrays.
 
 ## TypeScript
 
-`Bus.ts` returns promises: `Bus.Call(provider, method, args, modelType, hasMany)`, `Bus.DispatchAsync(command)`, `Bus.DispatchAwaitAsync(command)`, and `Bus.SetHeader(header, value)`. The generated query classes wrap `Bus.Call`.
+Save `Bus.ts` and `TypeScriptModels.ts` side by side in the app, for example with an npm script:
+
+```json
+"scripts": {
+    "zerra": "curl -o src/zerra/Bus.ts http://localhost:5000/CQRSClient/Bus.ts && curl -o src/zerra/TypeScriptModels.ts http://localhost:5000/CQRSClient/TypeScriptModels.ts"
+}
+```
+
+Run it again after changing a contract. `Bus.ts` returns promises: `Bus.call(provider, method, args, modelType, hasMany)`, `Bus.dispatchAsync(command)`, and `Bus.dispatchAwaitAsync(command)`. The generated query classes wrap `Bus.call`.
 
 ```typescript
-import { Bus } from "./Bus";
-import { SetBusRoute, SetBusFailCallback } from "./BusConfig";
-import { IUserQueryHandler, CreateUserCommand } from "./TypeScriptModels";
+import { Bus } from "./zerra/Bus";
+import { IUserQueryHandler, CreateUserCommand } from "./zerra/TypeScriptModels";
 
-SetBusRoute("Gateway", "https://myapp.example.com/CQRS");  // defaults to /CQRS
-Bus.SetHeader("X-API-Key", "my-secret-key");
-SetBusFailCallback((message: string) => console.error(message));
+Bus.setRoute("Gateway", "https://myapp.example.com/CQRS");  // the saved Bus.ts calls the route it was served with
+Bus.setHeader("X-API-Key", "my-secret-key");
+Bus.onFail((message: string) => console.error(message));
 
 const user = await IUserQueryHandler.GetUser("12345");
-const result = await Bus.DispatchAwaitAsync(new CreateUserCommand({ Email: "user@example.com", Name: "John Doe" }));
-await Bus.DispatchAsync(new CreateUserCommand({ Email: "other@example.com", Name: "Jane Doe" }));
+const result = await Bus.dispatchAwaitAsync(new CreateUserCommand({ Email: "user@example.com", Name: "John Doe" }));
+await Bus.dispatchAsync(new CreateUserCommand({ Email: "other@example.com", Name: "Jane Doe" }));
 ```
 
 A failed call rejects its promise with the error message.
@@ -104,7 +110,10 @@ IImportQueryHandler.PreviewImport(fileInput.files[0], function (preview) { ... }
 //Task<Stream> ExportCsv(CancellationToken cancellationToken)
 IImportQueryHandler.ExportCsv(function (blob) {
     const url = URL.createObjectURL(blob);
-    $("<a>").attr({ href: url, download: "export.csv" })[0].click();
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "export.csv";
+    link.click();
     URL.revokeObjectURL(url);
 });
 ```
@@ -119,5 +128,5 @@ When a call has a model type, the scripts ask for nameless JSON (`Accept: applic
 
 ## See Also
 
-- [Zerra.Web](ZerraWeb.md) - The CQRS API gateway the scripts call
+- [Zerra.Web](ZerraWeb.md) - The CQRS API gateway that serves and answers the scripts
 - [JsonSerializer](JsonSerializer.md) - JSON and nameless JSON

@@ -129,9 +129,9 @@ Every project sets `<PublishAot>true</PublishAot>`.
 
 Zerra and the Store projects publish with no trim or AOT warnings. Some database and broker client libraries aren't trim-annotated; the services that use them suppress those rolled-up warnings, with a comment naming the package.
 
-## Regenerating the JavaScript Models
+## JavaScript Models
 
-`Store.Web/wwwroot/js/JavaScriptModels.js` is generated from the contracts in `Store.Web/Domain` by `JavaScriptModels.tt`. Visual Studio runs the template when it's saved.
+The pages load `Bus.js` and their models, query functions, and commands from `/CQRSClient/`, which Store.Web serves with `app.UseCqrsClientScripts()`. The models are generated from the contracts its bus routes, so there's nothing to regenerate after changing a contract. `site.js` shows failures with `Bus.onFail`.
 
 ## Simplifications
 

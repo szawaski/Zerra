@@ -829,6 +829,7 @@ namespace Zerra.Test.Web
                 nameof(TestModel) => typeof(TestModel),
                 _ => null
             };
+            public IEnumerable<Type> GetTypes() => [typeof(ITestQueryHandler), typeof(TestCommand), typeof(TestResultCommand)];
 
             public void AddHandler<TInterface>(TInterface handler) where TInterface : notnull => throw new NotImplementedException();
             public void AddCommandProducer<TInterface>(ICommandProducer commandProducer) => throw new NotImplementedException();

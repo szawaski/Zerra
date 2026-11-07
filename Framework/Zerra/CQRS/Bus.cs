@@ -1399,6 +1399,10 @@ namespace Zerra.CQRS
             => handledTypesByName is not null && handledTypesByName.TryGetValue(name, out var type) ? type : null;
 
         /// <inheritdoc />
+        public IEnumerable<Type> GetTypes()
+            => handledTypesByName is not null ? handledTypesByName.Values : Array.Empty<Type>();
+
+        /// <inheritdoc />
         void IBusSetup.AddCommandProducer<TInterface>(ICommandProducer commandProducer)
         {
             var interfaceType = typeof(TInterface);

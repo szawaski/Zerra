@@ -35,7 +35,7 @@ $(function () {
             $products.append(productRow(product));
     }
 
-    //failures are already shown by BusFail in BusRoutes.js
+    //failures are already shown by the Bus.onFail in site.js
     function reload() {
         return loadProducts().catch(function () { });
     }
@@ -109,7 +109,7 @@ $(function () {
             Description: $("#new-description").val(),
             Price: parseFloat($("#new-price").val()) || 0
         });
-        //AddProductCommand has a result, DispatchAwait resolves with it
+        //AddProductCommand has a result, dispatchAwait resolves with it
         Store.busy("#add-product-button", Store.send(command))
             .then(function (result) {
                 Store.toast("Added " + command.Name + " as product " + result.ProductID, "success");

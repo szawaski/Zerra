@@ -1,32 +1,12 @@
 # Zerra.T4
 
-T4 helpers for [Zerra](https://www.nuget.org/packages/Zerra), run from `.tt` templates in Visual Studio:
+T4 helpers for [Zerra](https://www.nuget.org/packages/Zerra), run from `.tt` templates in Visual Studio. **`MsSqlFirst`** reverse-engineers an existing SQL Server database into Zerra.Repository data models.
 
-- **`CQRSClientDomain`** generates JavaScript or TypeScript models, commands, and query functions from your C# contracts, for the `Bus.js` and `Bus.ts` clients that call the Zerra.Web API gateway.
-- **`MsSqlFirst`** reverse-engineers an existing SQL Server database into Zerra.Repository data models.
+The JavaScript and TypeScript browser clients are no longer generated here. The gateway serves them with `app.UseCqrsClientScripts()`, see [Front End Scripts](https://github.com/szawaski/Zerra/blob/master/docs/FrontEndScripts.md).
 
 ## Installation
 
-```bash
-dotnet add package Zerra.T4
-```
-
-T4 templates load assemblies by path, so point the template's `assembly` directive at `Zerra.T4.dll`.
-
-## Front End Models
-
-```
-<#@ template language="C#" debug="false" hostspecific="true" #>
-<#@ output extension=".ts" #>
-<#@ assembly name="Zerra.T4.dll" #>
-<#
-    var directory = this.Host.ResolvePath(@"..\..\MyProject.Domain");
-    var result = Zerra.T4.CQRSClientDomain.GenerateTypeScript(directory);
-    #><#=result#><#
-#>
-```
-
-`GenerateJavaScript(directory)` writes the JavaScript equivalent.
+Zerra.T4 isn't a NuGet package. Copy the pre-built `Binaries/Zerra.T4.dll` into your solution, or build this project. T4 templates load assemblies by path, so point the template's `assembly` directive at `Zerra.T4.dll`.
 
 ## Database First Models
 
@@ -44,7 +24,6 @@ Register a `TransactStoreProvider<TModel>` for each generated model.
 
 ## Documentation
 
-- [Front End Scripts](https://github.com/szawaski/Zerra/blob/master/docs/FrontEndScripts.md) - The browser clients and model templates
 - [Repository Generation](https://github.com/szawaski/Zerra/blob/master/docs/RepositoryGeneration.md) - Database First generation
 - [Zerra documentation](https://github.com/szawaski/Zerra/blob/master/docs/Index.md)
 

@@ -22,7 +22,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 - [Logging](Logging.md) - Implement ILogger and IBusLogger for comprehensive logging
 - [Service Injection](ServiceInjection.md) - Manage dependencies with BusServices
 - [Zerra.Web](ZerraWeb.md) - ASP.NET integration and CQRS API Gateway
-  - [Front End Scripts](FrontEndScripts.md) - JavaScript and TypeScript browser clients with generated models
+  - [Front End Scripts](FrontEndScripts.md) - JavaScript and TypeScript browser clients, with models served by the gateway
   - [ApiClient](ApiClient.md) - .NET clients for the API Gateway
 - [Client Setup](ClientSetup.md) - Configure client-side applications in Program.cs
 - [Server Setup](ServerSetup.md) - Configure server-side applications in Program.cs

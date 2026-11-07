@@ -159,6 +159,11 @@ namespace Zerra.CQRS
         /// <param name="name">The name of the type without its namespace.</param>
         /// <returns>The type, or null if no type with the name was added.</returns>
         Type? GetTypeByName(string name);
+        /// <summary>
+        /// Gets every query interface, command, and event type added to the bus.
+        /// </summary>
+        /// <returns>The types, empty if none were added.</returns>
+        IEnumerable<Type> GetTypes();
 
         /// <summary>
         /// Gets the logger instance for recording diagnostic and operational events for this handler.

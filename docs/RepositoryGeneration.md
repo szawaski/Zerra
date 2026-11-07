@@ -111,7 +111,7 @@ The `Zerra.T4` project provides T4 templates that connect to an existing SQL Ser
 
 ### Setup
 
-1. Add a reference to `Zerra.T4.dll` in your project. A pre-built binary is available at `Front End Scripts/Binaries/Zerra.T4.dll`.
+1. Add a reference to `Zerra.T4.dll` in your project. A pre-built binary is available at `Framework/Zerra.T4/Binaries/Zerra.T4.dll`.
 2. Add the T4 template files to your project (copy from `Framework\Zerra.T4\MsSqlFirst\`).
 
 ### Generate Model Classes
@@ -120,7 +120,7 @@ Add a `.tt` file to your project with the following content, filling in your con
 
 ```
 <#@ template language="C#" debug="false" hostspecific="true" #>
-<#@ assembly name="Front End Scripts\Binaries\Zerra.T4.dll" #>
+<#@ assembly name="Framework\Zerra.T4\Binaries\Zerra.T4.dll" #>
 <#
     const string connectionString = "data source=.;initial catalog=MyDatabase;integrated security=True;MultipleActiveResultSets=True;";
     const string namespaceString = "MyProject.Domain.DataModels";

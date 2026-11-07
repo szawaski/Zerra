@@ -12,7 +12,7 @@ const Store = {
     //Dispatches a command and waits for the service to finish handling it, resolving with the result for commands that have one
     send: function (command) {
         return new Promise(function (resolve, reject) {
-            Bus.DispatchAwait(command, resolve, reject);
+            Bus.dispatchAwait(command, resolve, reject);
         });
     },
 
@@ -63,3 +63,8 @@ const Store = {
         }, kind === "error" ? 7000 : 3500);
     }
 };
+
+//Bus.js calls the gateway that served it, every failed query or command shows the message from the service that threw it
+Bus.onFail(function (message) {
+    Store.toast(message, "error");
+});

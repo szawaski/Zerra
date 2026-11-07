@@ -82,6 +82,7 @@ namespace Zerra.Test.CQRS.Network
                 nameof(TestCommandWithResult) => typeof(TestCommandWithResult),
                 _ => null
             };
+            public IEnumerable<Type> GetTypes() => throw new NotImplementedException();
 
             public TInterface Call<TInterface>() where TInterface : notnull => throw new NotImplementedException();
             public TInterface Call<TInterface>(string overrideServiceUrl, Zerra.Encryption.IEncryptor? overrideEncryptor = null) where TInterface : notnull => throw new NotImplementedException();

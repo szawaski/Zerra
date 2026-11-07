@@ -235,7 +235,7 @@ Callers use `KestrelCqrsClient` instead of `TcpCqrsClient`, with the same constr
 
 ### Browser Clients
 
-Browsers call the gateway with `Bus.js` or `Bus.ts`, using JavaScript or TypeScript models generated from your contracts. See [Front End Scripts](FrontEndScripts.md).
+Browsers call the gateway with `Bus.js` or `Bus.ts`. `app.UseCqrsClientScripts("/CQRSClient", "/CQRS")` serves both, already pointed at the gateway, along with the models, query functions, and commands for them, built from what the gateway's bus routes. See [Front End Scripts](FrontEndScripts.md).
 
 ### .NET Clients
 
