@@ -1,102 +1,66 @@
-# Documentation Index
+# Documentation
 
-Welcome to the Zerra CQRS Framework documentation. This guide provides comprehensive information about building distributed, message-driven applications using Zerra.
+New to Zerra? Read the [README](../README.md), then [Getting Started](GettingStarted.md).
 
-> 📖 **New to Zerra?** Start with the [Main Project README](../README.md) for an overview, then [Getting Started](GettingStarted.md).
+## Start Here
 
----
+- [Getting Started](GettingStarted.md) - Build a service and a client, then move between in-process, TCP, HTTP, and brokers
+- [Store Demo](../Demo/Store/README.md) - A complete multi-service sample
 
-## Documentation Table of Contents
+## Messages
 
-### Getting Started
-- [Getting Started](GettingStarted.md) - Build a service and a client, then route between in-process, TCP, HTTP, and message brokers
-- [Store Demo](../Demo/Store/README.md) - A complete multi-service sample application
+- [Queries](Queries.md) - Reads, called like methods
+- [Commands](Commands.md) - Changes, handled once
+- [Events](Events.md) - Notifications, to every replica or one per service
+- [Delivery and Failure Handling](Reliability.md) - Acknowledgement, resilient commands, and failures
 
-### Configuration & Setup
-- [AOT (Ahead-of-Time Compilation)](AOT.md) - Automatic source generator for precompiled reflection and Native AOT support (included with Zerra package)
-- [Serializers](Serializers.md) - Configure serialization with NetworkByteSerializer and NetworkJsonSerializer
-  - [ByteSerializer](ByteSerializer.md) - High-performance binary serialization
-  - [JsonSerializer](JsonSerializer.md) - JSON serialization with Graph-based property control
-- [Encryptors](Encryptors.md) - Secure message encryption with ZerraEncryptor and key rotation
-- [Compressors](Compressors.md) - Message compression with ZerraCompressor
-- [Logging](Logging.md) - Implement ILogger and IBusLogger for comprehensive logging
-- [Service Injection](ServiceInjection.md) - Manage dependencies with BusServices
-- [Zerra.Web](ZerraWeb.md) - ASP.NET integration and CQRS API Gateway
-  - [Front End Scripts](FrontEndScripts.md) - JavaScript and TypeScript browser clients, with models served by the gateway
-  - [ApiClient](ApiClient.md) - .NET clients for the API Gateway
-- [Client Setup](ClientSetup.md) - Configure client-side applications in Program.cs
-- [Server Setup](ServerSetup.md) - Configure server-side applications in Program.cs
+## Setup
 
-### Messaging Transports
-- [Azure Service Bus Setup](AzureServiceBusSetup.md) - Use Azure Service Bus for distributed messaging
-- [Kafka Setup](KafkaSetup.md) - Use Apache Kafka for high-throughput messaging
-- [RabbitMQ Setup](RabbitMQSetup.md) - Use RabbitMQ for reliable message delivery
+- [Server Setup](ServerSetup.md) - Hosting handlers, and shutdown
+- [Client Setup](ClientSetup.md) - Calling services, timeouts, and concurrency limits
+- [Service Injection](ServiceInjection.md) - Services for handlers
+- [Logging](Logging.md) - `ILogger` and `IBusLogger`
+- [AOT](AOT.md) - Source generation and Native AOT
+- [Serializers](Serializers.md) - Choosing one: [ByteSerializer](ByteSerializer.md) (binary) or [JsonSerializer](JsonSerializer.md)
+- [Encryptors](Encryptors.md) - Message encryption and key rotation
+- [Compressors](Compressors.md) - Message compression
 
-### Core Concepts
-- [Queries](Queries.md) - Execute read operations with type-safe query interfaces
-- [Commands](Commands.md) - Dispatch state-changing operations with commands
-- [Events](Events.md) - Publish and handle state change notifications
-- [Security](Security.md) - Claims propagation from client to server for Queries, Commands, and Events
-- [Delivery and Failure Handling](Reliability.md) - At-most-once delivery, resilient commands, acknowledgments, retries, and making handlers safe
+## Brokers
 
-### Going to Production
+- [Kafka](KafkaSetup.md)
+- [RabbitMQ](RabbitMQSetup.md)
+- [Azure Service Bus](AzureServiceBusSetup.md)
+
+## Web
+
+- [Zerra.Web](ZerraWeb.md) - The browser API gateway, and hosting services in ASP.NET Core
+- [Front End Scripts](FrontEndScripts.md) - JavaScript and TypeScript clients served by the gateway
+- [ApiClient](ApiClient.md) - .NET clients for the gateway
+- [Security](Security.md) - Trust model, claims, and authorizers
+
+## Repository
+
+- [Repository](Repository.md) - LINQ data access that works the same on every store
+- [Repository Queries](RepositoryQueries.md) - LINQ functions, joins, relations, aggregates, and history
+- [Repository Generation](RepositoryGeneration.md) - Code First schemas and Database First models
+
+## Production
+
 - [Running in Production](Production.md) - Delivery, security, versioning, and observability
-- [Testing](Testing.md) - What the tests cover and how to run them
-- [Benchmarks](Benchmarks.md) - Serializer and mapper benchmark results
+- [Testing](Testing.md) - Coverage and what the tests cover
+- [Benchmarks](Benchmarks.md) - Serializers, mapper, bus, and encryption
 
-### Utility Features
-- [Graph](Graph.md) - Selective member inclusion/exclusion for serialization and mapping
-- [Mapper](Mapper.md) - Object mapping and type conversion with AOT support
-- [Collections](Collections.md) - Thread-safe collection classes (ConcurrentFactoryDictionary, ConcurrentList)
-- [EnumName](EnumName.md) - Attribute-based custom string names for enum values with parse and extension method support
-- [Reflection](Reflection.md) - TypeAnalyzer and TypeDetail for runtime type analysis
-- [String Extensions](StringExtensions.md) - String manipulation, truncation, and type conversion helpers
-- [Stream Wrappers](StreamWrappers.md) - Stream interception, transformation, and monitoring
+## Utilities
 
-### Repository
-- [Repository](Repository.md) - Data store agnostic LINQ-based data access with AOT support
-- [Repository Queries](RepositoryQueries.md) - LINQ functions, joins, relations, and aggregates
-- [Repository Generation](RepositoryGeneration.md) - Code First schema generation and Database First models from an existing database
+- [Graph](Graph.md) - Choosing which members to read, write, or map
+- [Mapper](Mapper.md) - Object mapping and deep copies
+- [Collections](Collections.md) - Thread-safe collections
+- [EnumName](EnumName.md) - Custom enum names
+- [Reflection](Reflection.md) - `TypeAnalyzer` and `TypeDetail`
+- [String Extensions](StringExtensions.md) - Parsing, truncation, and wildcards
+- [Stream Wrappers](StreamWrappers.md) - Stream interception and transforms
 
-### For AI Agents and Upgrading
-- [Agents](Agents.md) - Architectural context for AI agents working with Zerra
-- [Upgrading to Zerra 6](UpgradeV5ToV6.md) - Step-by-step migration of an existing solution, written for AI agents
+## For AI Agents
 
-### Additional Resources
-- [Main Project README](../README.md) - Project overview and packages
-
----
-
-## Quick Reference
-
-### Essential First Steps
-[Getting Started](GettingStarted.md) walks through all of these in one guide.
-
-1. **[Add Zerra Package](AOT.md)** - Reference Zerra NuGet package (includes automatic source generation for CQRS types)
-2. **[Configure Serializer](Serializers.md)** - Choose NetworkByteSerializer (binary) or NetworkJsonSerializer (JSON)
-3. **[Set Up Server](ServerSetup.md)** - Register handlers and start consumers
-4. **[Set Up Client](ClientSetup.md)** - Configure remote connections
-
-### Key Interfaces
-- **`IQueryHandler`** - Handles read operations ([Queries](Queries.md))
-- **`ICommandHandler`** - Handles write operations ([Commands](Commands.md))
-- **`IEventHandler`** - Handles event notifications ([Events](Events.md))
-- **`BaseHandler`** - Base class providing `Bus`, `Log`, and `Context` access
-- **`BaseHandlerWithRepo`** - Extends `BaseHandler` with `Repo` access ([Repository](Repository.md))
-- **`IRepo`** - LINQ-based data store agnostic data access interface ([Repository](Repository.md))
-
-### Common Tasks
-- **Add encryption** → See [Encryptors](Encryptors.md) for ZerraEncryptor setup
-- **Add compression** → See [Compressors](Compressors.md) for ZerraCompressor setup
-- **Add logging** → See [Logging](Logging.md) for ILogger and IBusLogger
-- **Inject services** → See [Service Injection](ServiceInjection.md) for BusServices usage
-- **Map between types** → See [Mapper](Mapper.md) for object mapping and conversions
-- **Custom enum names** → See [EnumName](EnumName.md) for attribute-based enum string representation
-- **Enable AOT** → See [AOT Support](AOT.md) for Native AOT compilation
-- **Access a data store** → See [Repository](Repository.md) for `IRepo` setup and usage
-- **Expose HTTP API** → See [Zerra.Web](ZerraWeb.md) for API Gateway setup
-- **Deploy to Azure** → See [Zerra.Web](ZerraWeb.md) for IIS/Azure App Services hosting
-
-## Support
-
-For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/szawaski/Zerra).
+- [Agents](Agents.md) - Building applications with Zerra, and changing the framework
+- [Upgrading to Zerra 6](UpgradeV5ToV6.md) - Moving a solution step by step

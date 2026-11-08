@@ -56,7 +56,7 @@ To measure coverage, run a test executable under `dotnet-coverage collect -f cob
 
 ## Benchmarks
 
-Serializer and mapper results are in [Benchmarks](Benchmarks.md), and the repository's comparison with Entity Framework is in [Repository](Repository.md#compared-with-entity-framework).
+Serializer, mapper, bus, and encryption results are in [Benchmarks](Benchmarks.md), and the repository's comparison with Entity Framework is in [Repository](Repository.md#compared-with-entity-framework).
 
 ## See Also
 

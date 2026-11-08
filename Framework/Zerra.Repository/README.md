@@ -30,8 +30,8 @@ public sealed class OrderDataModel
     [Identity(false)]                           // primary key, assigned by code
     public Guid ID { get; set; }
 
-    [StoreProperties(true, 32)]                 // not null, max length 32
-    public string? OrderNumber { get; set; }
+    [StoreProperties(32)]                       // max length 32; not null because string isn't nullable
+    public string OrderNumber { get; set; } = null!;
 
     public Guid CustomerID { get; set; }
 

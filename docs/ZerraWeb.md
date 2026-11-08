@@ -40,16 +40,9 @@ var app = builder.Build();
 app.UseCqrsApiGateway("/CQRS");
 await app.RunAsync();
 ```
-### How It Works
+### The Request
 
-The API Gateway:
-1. Listens for HTTP POST (and CORS preflight OPTIONS) requests at the specified route (default: `/CQRS`)
-2. Calls the registered `ICqrsAuthorizer`, if any
-3. Deserializes the request body (`ApiRequestData`) to determine which query or command to invoke
-4. Dispatches the message to the CQRS bus
-5. Serializes the response and returns it to the client
-
-The request body is an `ApiRequestData` object. The front end scripts and `ApiClient` build it for you; the shapes are shown here for reference.
+The gateway takes POST requests (and CORS preflight) at its route, calls the `ICqrsAuthorizer` if one is registered, dispatches the query or command on the bus, and returns the result. The front end scripts and `ApiClient` build the request body for you; the shapes are here for other clients.
 
 **Query request** (`ProviderArguments` holds each argument serialized on its own; the arguments are byte arrays, so JSON carries each one as base64 of its JSON, here `"123"`):
 ```json
@@ -105,46 +98,18 @@ app.UseCqrsApiGateway("/CQRS");
 [Security](Security.md) has complete API key and JWT authorizers, and explains how claims reach the handlers.
 ### Logging Integration
 
-Bridge Zerra logging with ASP.NET Core logging:
+To send ASP.NET Core's own logging to your Zerra `ILogger`:
 
 ```csharp
-using Zerra.Logging;
-using Zerra.Web;
-using Microsoft.Extensions.Logging;
-
-// Create Zerra logger (your implementation)
-Zerra.Logging.ILogger zerraLogger = new ConsoleLogger();
-
-// Add Zerra logger to ASP.NET logging
 builder.Logging.ClearProviders();
-builder.Logging.AddProvider(new ZerraLoggerProvider(zerraLogger));
-
-// Alternatively, on an existing ILoggerFactory: loggerFactory.AddZerraLogger(zerraLogger);
-
-// Now ASP.NET components log through Zerra
-var app = builder.Build();
+builder.Logging.AddProvider(new ZerraLoggerProvider(log));   // or loggerFactory.AddZerraLogger(log)
 ```
-
-ASP.NET Core's own logging then goes to the same destination as Zerra's.
 
 ## Configuration Options
 
-### API Gateway Route
+### Route
 
-Customize the endpoint where the gateway listens:
-
-```csharp
-// Default route
-app.UseCqrsApiGateway(); // Listens at /CQRS
-
-// Custom route
-app.UseCqrsApiGateway(route: "/api/v1/gateway");
-
-// Handle POST requests on any path
-app.UseCqrsApiGateway(route: null);
-```
-
-Every gateway resolves the same `IBus` and `INetworkSerializer` from DI, so multiple routes expose the same bus.
+`UseCqrsApiGateway()` listens at `/CQRS`. Pass another route, or `null` to handle POST requests on any path. Every gateway resolves the same `IBus`, so several routes expose the same bus.
 
 ### Content Type Support
 

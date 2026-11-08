@@ -10,7 +10,7 @@ dotnet add package Zerra.CQRS.AzureServiceBus
 
 ## Producer
 
-The sending side registers a `AzureServiceBusProducer` for the interfaces whose commands and events it sends:
+The sending side registers an `AzureServiceBusProducer` for the interfaces whose commands and events it sends:
 
 ```csharp
 using Zerra.CQRS;
@@ -19,7 +19,7 @@ using Zerra.CQRS.Network;
 using Zerra.CQRS.AzureServiceBus;
 
 INetworkSerializer serializer = new NetworkByteSerializer();
-IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AES_GCM);
+IEncryptor encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AES_GCM);   // a long random key from configuration
 
 var bus = Bus.New("OrderService");
 
@@ -32,7 +32,7 @@ await bus.DispatchAwaitAsync(new CreateUserCommand { Email = "user@example.com" 
 
 ## Consumer
 
-The handling side registers its handlers and a `AzureServiceBusConsumer`, which takes the same constructor arguments:
+The handling side registers its handlers and an `AzureServiceBusConsumer`, which takes the same constructor arguments:
 
 ```csharp
 var bus = Bus.New("UserService");

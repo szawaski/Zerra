@@ -39,7 +39,7 @@ dotnet add package Zerra.Web                   # ASP.NET Core hosting and the br
 
 Services and clients share only the `*.Domain` project, never each other's handlers or data models.
 
-Sharing the project keeps each contract in one place, and the compiler catches every caller a change breaks. A caller can instead keep its own copy of the contracts it uses, since services match contracts by type name, not namespace or assembly. Copies let each service build and deploy from its own repository and pipeline, at the cost of making a contract change in every copy. A copy keeps its members in the same order as the original. `Demo/Store` uses copies; see [Agents](Agents.md#solution-layout).
+A caller can instead keep its own copy of the contracts it uses, since contracts match by type name, not namespace or assembly. Copies let each service deploy from its own repository, at the cost of changing a contract in every copy, and a copy keeps its members in the original's order. `Demo/Store` uses copies; see [Agents](Agents.md#solution-layout).
 
 ## Define the Contracts
 
@@ -296,6 +296,7 @@ app.UseCqrsApiGateway("/CQRS");
 - **Services for handlers:** register them by interface in `BusServices` and get them with `Context.GetService<T>()`. See [Service Injection](ServiceInjection.md).
 - **Logging:** `ILogger` for messages, and `IBusLogger` for the start and end of every command, event, and query. See [Logging](Logging.md).
 - **Serialization, encryption, and compression:** `NetworkByteSerializer` between services, `NetworkJsonSerializer` for browsers, `ZerraEncryptor` with a shared key, and optionally `ZerraCompressor` for large payloads. See [Serializers](Serializers.md), [Encryptors](Encryptors.md), and [Compressors](Compressors.md).
+
 ## Lifecycle
 
 Servers, consumers, clients, and producers start when they are added to the bus.
@@ -312,7 +313,7 @@ Stopping closes the servers and consumers so nothing new arrives, waits for the 
 
 ## Best Practices
 
-1. **Choose command or event deliberately.** Exactly-once work goes in a command or a `PerService` event handler, never a `PerReplica` one.
+1. **Choose between command and event.** Exactly-once work goes in a command or a `PerService` event handler, never a `PerReplica` one.
 2. **Group related commands and events** on one handler interface per service.
 3. **Keep query interfaces focused** on one area.
 4. **Keep handlers stateless** and get dependencies from `Context`.

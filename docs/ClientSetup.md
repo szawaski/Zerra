@@ -118,7 +118,7 @@ var bus = Bus.New(
 );
 ```
 
-The `shutdownTimeout` shown is the default. `shutdownTimeout` is described in [Server Setup](ServerSetup.md#shutdown).
+`shutdownTimeout` defaults to 30 seconds and is described in [Server Setup](ServerSetup.md#shutdown).
 
 ### Timeout Configuration
 

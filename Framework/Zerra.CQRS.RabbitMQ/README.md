@@ -21,7 +21,7 @@ using Zerra.CQRS.Network;
 using Zerra.CQRS.RabbitMQ;
 
 INetworkSerializer serializer = new NetworkByteSerializer();
-IEncryptor encryptor = new ZerraEncryptor("mySecurePassword", SymmetricAlgorithmType.AES_GCM);
+IEncryptor encryptor = new ZerraEncryptor(sharedKey, SymmetricAlgorithmType.AES_GCM);   // a long random key from configuration
 
 var bus = Bus.New("OrderService");
 

@@ -65,7 +65,7 @@ Pass the `ILogger` to `Bus.New` and to every server, client, producer, and consu
 
 ## Testing an Application
 
-- Handlers are tested in memory, registered on a bus with `AddHandler` and an in-memory repository, as the `Store.*.Test` projects do ([Store demo](../Demo/Store/README.md)).
+- Unit test handlers in memory, registered on a bus with `AddHandler` and an in-memory repository, as the `Store.*.Test` projects do ([Store demo](../Demo/Store/README.md)). That doesn't replace integration tests against the real transports and databases.
 - `Demo/Store` falls back to direct TCP and in-memory stores when a broker or database isn't running, so the same services run on a laptop and against real infrastructure.
 - Publish and run a Native AOT build if you deploy with AOT ([AOT](AOT.md)).
 

@@ -2,11 +2,11 @@
 
 # Commands
 
-A command asks for a change of state. It is **handled once**, by one replica of the handling service, however many replicas are running. That is the difference from events, which reach every replica unless the subscriber registers [`EventConsumerMode.PerService`](Events.md#choosing-per-replica-or-per-service). Work that must happen once belongs in a command. See [Events Are Fanned Out to Every Replica](Events.md#events-are-fanned-out-to-every-replica).
+A command asks for a change of state. It is **handled once**, by one replica of the handling service, however many are running. Work that must happen once belongs in a command, not an event ([Events Are Fanned Out to Every Replica](Events.md#events-are-fanned-out-to-every-replica)).
 
-"Once" is about replicas, not delivery: a remote command is delivered at most once and isn't retried if its handler fails or its process crashes. With [resilient commands](Reliability.md#resilient-commands), a command whose process crashes while handling it goes to another replica instead. See [Delivery and Failure Handling](Reliability.md).
+A command is delivered at most once and isn't retried when its handler fails. With [resilient commands](Reliability.md#resilient-commands), one whose process crashes mid-handler goes to another replica instead.
 
-A command can be sent fire-and-forget or awaited, can return a result, and is handled locally or remotely depending only on how the bus is set up.
+A command can be sent fire-and-forget or awaited, can return a result, and is handled locally or remotely depending only on registration.
 
 ## Defining Commands
 
