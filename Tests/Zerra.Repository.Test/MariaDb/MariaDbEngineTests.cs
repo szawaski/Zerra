@@ -75,6 +75,7 @@ namespace Zerra.Repository.Test.MariaDb
 
             CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
             RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
+            DatabaseFirstTests.TestSequence(engine, modelTypes);
 
             RepoTest.TestSequenceTransactStore(engine);
             await RepoTest.TestSequenceTransactStoreAsync(engine);

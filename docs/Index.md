@@ -56,7 +56,7 @@ Welcome to the Zerra CQRS Framework documentation. This guide provides comprehen
 ### Repository
 - [Repository](Repository.md) - Data store agnostic LINQ-based data access with AOT support
 - [Repository Queries](RepositoryQueries.md) - LINQ functions, joins, relations, and aggregates
-- [Repository Generation](RepositoryGeneration.md) - Code First schema generation and Database First T4 reverse engineering
+- [Repository Generation](RepositoryGeneration.md) - Code First schema generation and Database First models from an existing database
 
 ### For AI Agents and Upgrading
 - [Agents](Agents.md) - Architectural context for AI agents working with Zerra

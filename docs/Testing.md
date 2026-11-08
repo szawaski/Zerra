@@ -22,7 +22,6 @@ Line coverage of each framework project is listed below, measured with `dotnet-c
 | `Zerra.Repository.MongoDB` | 91% | `Zerra.Repository.Test` |
 | `Zerra.Repository.KurrentDB` | 94% | `Zerra.Repository.Test` |
 | `Zerra.SourceGeneration` | 93% | `Zerra.SourceGeneration.Test` |
-| `Zerra.T4` | not measured, the coverage tool can't load into its .NET Framework test process | `Zerra.T4.Test` |
 
 ## Failure Scenarios
 

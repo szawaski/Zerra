@@ -30,10 +30,17 @@ The engine doesn't connect until it's used. Create the schema at startup with Co
 CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, [typeof(OrderDataModel)], log);
 ```
 
+For an existing database, write the models from its tables instead:
+
+```csharp
+foreach (var model in DatabaseFirstGeneration.Generate(engine, "MyApp.DataModels"))
+    File.WriteAllText(Path.Combine(folder, model.FileName), model.Source);
+```
+
 ## Documentation
 
 - [Repository](https://github.com/szawaski/Zerra/blob/master/docs/Repository.md) - Models, providers, queries, and relations
-- [Repository Generation](https://github.com/szawaski/Zerra/blob/master/docs/RepositoryGeneration.md) - Code First schema generation
+- [Repository Generation](https://github.com/szawaski/Zerra/blob/master/docs/RepositoryGeneration.md) - Code First schema generation and Database First models
 - [Zerra documentation](https://github.com/szawaski/Zerra/blob/master/docs/Index.md)
 
 ## License

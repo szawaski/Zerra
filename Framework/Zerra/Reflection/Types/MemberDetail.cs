@@ -44,6 +44,11 @@ namespace Zerra.Reflection
         public readonly bool IsStatic;
         /// <summary>Indicates whether this member is an explicit interface implementation.</summary>
         public readonly bool IsExplicitFromInterface;
+        /// <summary>
+        /// Indicates whether the member is declared to allow null: a <see cref="Nullable{T}"/>, or a reference type that isn't declared non-nullable.
+        /// A reference type in code without nullable annotations allows null.
+        /// </summary>
+        public readonly bool AllowsNull;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MemberDetail"/> class with member metadata.
@@ -59,7 +64,8 @@ namespace Zerra.Reflection
         /// <param name="attributes">Custom attributes applied to the method.</param>
         /// <param name="isStatic">Whether the member is static.</param>
         /// <param name="isExplicitFromInterface">Whether the member is an explicit interface implementation.</param>
-        public MemberDetail(Type parentType, Type type, string name, bool isField, Delegate? getter, Func<object, object?>? getterBoxed, Delegate? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
+        /// <param name="allowsNull">Whether the member is declared to allow null, null to decide from the type alone.</param>
+        public MemberDetail(Type parentType, Type type, string name, bool isField, Delegate? getter, Func<object, object?>? getterBoxed, Delegate? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface, bool? allowsNull = null)
         {
             this.ParentType = parentType;
             this.Type = type;
@@ -74,6 +80,7 @@ namespace Zerra.Reflection
             this.Attributes = attributes;
             this.IsStatic = isStatic;
             this.IsExplicitFromInterface = isExplicitFromInterface;
+            this.AllowsNull = allowsNull ?? (!type.IsValueType || Nullable.GetUnderlyingType(type) is not null);
         }
 
         /// <inheritdoc/>

@@ -59,8 +59,8 @@ public sealed class OrderDataModel
     [Identity(false)]                           // primary key; false: assigned by code, not the database
     public Guid ID { get; set; }
 
-    [StoreProperties(true, 32)]                 // not null, max length 32
-    public string? OrderNumber { get; set; }
+    [StoreProperties(32)]                       // max length 32, not null because string isn't nullable
+    public string OrderNumber { get; set; } = null!;
 
     [StoreIndex]                                // index this column
     public Guid CustomerID { get; set; }
@@ -339,6 +339,6 @@ Aggregate events are the aggregate's state, not bus messages: they never impleme
 ## See Also
 
 - [Repository Queries](RepositoryQueries.md) - LINQ functions, joins, relations, and aggregates
-- [Repository Generation](RepositoryGeneration.md) - Creating the schema
+- [Repository Generation](RepositoryGeneration.md) - Creating the schema, or writing models from an existing database
 - [Graph](Graph.md) - Selecting relations and columns
 - [Service Injection](ServiceInjection.md) - `AddRepo` and `BaseHandlerWithRepo`

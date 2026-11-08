@@ -269,5 +269,12 @@ namespace Zerra.Repository
         /// <param name="modelDetail">The collection of model details used to build the generation plan.</param>
         /// <returns>An <see cref="IDataStoreGenerationPlan"/> representing the planned store changes.</returns>
         IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetail);
+
+        /// <summary>
+        /// Reads every table in the data store, described the way a model would declare it, for <see cref="DatabaseFirstGeneration"/>.
+        /// </summary>
+        /// <returns>The tables.</returns>
+        /// <exception cref="NotSupportedException">The engine has no schema to read.</exception>
+        IReadOnlyList<DataStoreSchemaTable> ReadDataStoreSchema() => throw new NotSupportedException($"{GetType().Name} has no schema to read");
     }
 }

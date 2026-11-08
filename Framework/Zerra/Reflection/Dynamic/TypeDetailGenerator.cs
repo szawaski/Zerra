@@ -37,6 +37,7 @@ namespace Zerra.Reflection.Dynamic
         private static readonly Type keyValuePairType = typeof(KeyValuePair<,>);
         private static readonly Type dictionaryEntryType = typeof(DictionaryEntry);
         private static readonly Type memberDetailType = typeof(MemberDetail<>);
+
         private static readonly Type methodDetailType = typeof(MethodDetail<>);
 
         //These should be fine since we are being explicit with the type
@@ -526,16 +527,22 @@ namespace Zerra.Reflection.Dynamic
 
                 var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
 
+                bool? allowsNull = null;
+#if !NETSTANDARD2_0
+                if (!property.PropertyType.IsValueType)
+                    allowsNull = new NullabilityInfoContext().Create(property).ReadState != NullabilityState.NotNull;
+#endif
+
                 MemberDetail member;
                 if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsPointer || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
                 {
-                    member = new MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, false);
+                    member = new MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, false, allowsNull);
                 }
                 else
                 {
                     var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
                     var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, false]);
+                    member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, false, allowsNull]);
                 }
                 items.Add(member);
 
@@ -569,16 +576,22 @@ namespace Zerra.Reflection.Dynamic
 
                 var attributes = @field.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
+                bool? allowsNull = null;
+#if !NETSTANDARD2_0
+                if (!@field.FieldType.IsValueType)
+                    allowsNull = new NullabilityInfoContext().Create(@field).ReadState != NullabilityState.NotNull;
+#endif
+
                 MemberDetail member;
                 if (@field.FieldType.ContainsGenericParameters || @field.FieldType.IsPointer || @field.FieldType.IsByRef || @field.FieldType.IsByRefLike)
                 {
-                    member = new MemberDetail(type, field.FieldType, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, field.IsStatic, false);
+                    member = new MemberDetail(type, field.FieldType, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, field.IsStatic, false, allowsNull);
                 }
                 else
                 {
                     var memberDetailGenericType = memberDetailType.MakeGenericType(@field.FieldType);
                     var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    member = (MemberDetail)constructor.Invoke([type, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, field.IsStatic, false]);
+                    member = (MemberDetail)constructor.Invoke([type, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, field.IsStatic, false, allowsNull]);
                 }
                 items.Add(member);
 
@@ -639,16 +652,22 @@ namespace Zerra.Reflection.Dynamic
                             var attributes = property.GetCustomAttributes(true).Cast<Attribute>().ToArray();
 
                             var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
+
+                            bool? allowsNull = null;
+#if !NETSTANDARD2_0
+                            if (!property.PropertyType.IsValueType)
+                                allowsNull = new NullabilityInfoContext().Create(property).ReadState != NullabilityState.NotNull;
+#endif
                             MemberDetail member;
                             if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsPointer || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
                             {
-                                member = new MemberDetail(type, property.PropertyType, name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, isExplicitFromInterface);
+                                member = new MemberDetail(type, property.PropertyType, name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, isExplicitFromInterface, allowsNull);
                             }
                             else
                             {
                                 var memberDetailGenericType = TypeDetailGenerator.memberDetailType.MakeGenericType(property.PropertyType);
                                 var memberDetailType = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                member = (MemberDetail)memberDetailType.Invoke([type, name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, isExplicitFromInterface]);
+                                member = (MemberDetail)memberDetailType.Invoke([type, name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, isExplicitFromInterface, allowsNull]);
                             }
                             items.Add(member);
                         }

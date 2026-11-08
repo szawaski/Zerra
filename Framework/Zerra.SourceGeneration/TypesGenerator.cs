@@ -163,6 +163,8 @@ namespace Zerra.SourceGeneration
                         continue;
                     if (isExplicitFromInterface)
                         continue;
+                    if (property.ContainingType.Name == "IHandler" && property.ContainingType.ContainingNamespace.ToString() == "Zerra.CQRS")
+                        continue;
 
                     if (hasFirst)
                         _ = sb.Append(", ");
@@ -223,7 +225,10 @@ namespace Zerra.SourceGeneration
                     GenerateAttributes(sb, property);
 
                     _ = sb.Append(", ").Append(Helper.BoolString(property.IsStatic));
-                    _ = sb.Append(", ").Append(Helper.BoolString(isExplicitFromInterface)).Append(")");
+                    _ = sb.Append(", ").Append(Helper.BoolString(isExplicitFromInterface));
+                    if (IsDeclaredNotNull(property.Type))
+                        _ = sb.Append(", false");
+                    _ = sb.Append(")");
                 }
                 foreach (var @field in fields)
                 {
@@ -285,12 +290,18 @@ namespace Zerra.SourceGeneration
                     GenerateAttributes(sb, @field);
 
                     _ = sb.Append(", ").Append(Helper.BoolString(@field.IsStatic));
-                    _ = sb.Append(", false)");
+                    _ = sb.Append(", false");
+                    if (IsDeclaredNotNull(@field.Type))
+                        _ = sb.Append(", false");
+                    _ = sb.Append(")");
                 }
             }
 
             _ = sb.Append("]");
         }
+        private static bool IsDeclaredNotNull(ITypeSymbol typeSymbol)
+            => !typeSymbol.IsValueType && typeSymbol.TypeKind != TypeKind.TypeParameter && typeSymbol.NullableAnnotation == NullableAnnotation.NotAnnotated;
+
         private static void GenerateConstructors(StringBuilder sb, bool isCoreType, string typeName, INamedTypeSymbol? namedTypeSymbol, ImmutableArray<ISymbol> symbolMembers)
         {
             _ = sb.Append("[");
@@ -417,6 +428,8 @@ namespace Zerra.SourceGeneration
                     if (method.IsGenericMethod)
                         continue;
                     if (isExplicitFromInterface)
+                        continue;
+                    if (method.ContainingType.Name == "IHandler" && method.ContainingType.ContainingNamespace.ToString() == "Zerra.CQRS")
                         continue;
                     if (method.Parameters.Any(x => x.Type.IsRefLikeType || x.Type.Kind == SymbolKind.PointerType || x.Type.Kind == SymbolKind.FunctionPointerType || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
                         continue;

@@ -32,8 +32,9 @@ namespace Zerra.Reflection
         /// <param name="attributes">Custom attributes applied to the member.</param>
         /// <param name="isStatic">Whether the member is static.</param>
         /// <param name="isExplicitFromInterface">Whether the member is an explicit interface implementation.</param>
-        public MemberDetail(Type parentType, string name, bool isField, Func<object, T?>? getter, Func<object, object?>? getterBoxed, Action<object, T?>? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
-            : base(parentType, typeof(T), name, isField, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, isExplicitFromInterface)
+        /// <param name="allowsNull">Whether the member is declared to allow null, null to decide from the type alone.</param>
+        public MemberDetail(Type parentType, string name, bool isField, Func<object, T?>? getter, Func<object, object?>? getterBoxed, Action<object, T?>? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface, bool? allowsNull = null)
+            : base(parentType, typeof(T), name, isField, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, isExplicitFromInterface, allowsNull)
         {
             this.Getter = getter;
             this.Setter = setter;

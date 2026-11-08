@@ -73,7 +73,7 @@ public sealed class OrdersQueryHandler : BaseHandlerWithRepo, IOrdersQueryHandle
 ## Documentation
 
 - [Repository](https://github.com/szawaski/Zerra/blob/master/docs/Repository.md) - Models, providers, queries, relations, and aggregates
-- [Repository Generation](https://github.com/szawaski/Zerra/blob/master/docs/RepositoryGeneration.md) - Code First schema generation
+- [Repository Generation](https://github.com/szawaski/Zerra/blob/master/docs/RepositoryGeneration.md) - Code First schema generation and Database First models from an existing database
 - [Graph](https://github.com/szawaski/Zerra/blob/master/docs/Graph.md) - Selecting relations and columns
 - [Zerra documentation](https://github.com/szawaski/Zerra/blob/master/docs/Index.md)
 

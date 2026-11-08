@@ -430,6 +430,53 @@ namespace Zerra.SourceGeneration.Test
             output.AssertInitializerContains("global::Zerra.Reflection.Register.EmptyImplementation(typeof(global::TestApp.IHolder<global::TestApp.Child>), typeof(Empty_IHolder_TestApp_Child_));");
         }
 
+        //a reference type declared non-nullable tells its member detail it can't be null, everything else is left to the type
+        [Fact]
+        public void MemberNullability()
+        {
+            var output = GeneratorRunner.Run("""
+                using Zerra.Reflection;
+
+                namespace TestApp
+                {
+                    [GenerateTypeDetail]
+                    public class Model
+                    {
+                        public string Name { get; set; } = null!;
+                        public string? Nick { get; set; }
+                        public byte[] Data { get; set; } = null!;
+                        public int Count { get; set; }
+                        public int? Maybe { get; set; }
+                        public string Field = null!;
+                        public string? FieldNull;
+                    }
+
+                #nullable disable
+                    [GenerateTypeDetail]
+                    public class Oblivious
+                    {
+                        public string Name { get; set; }
+                    }
+                #nullable enable
+                }
+                """);
+
+            //attributes, isStatic, isExplicitFromInterface, then allowsNull only when it's false
+            const string notNull = "[], false, false, false)";
+            const string byType = "[], false, false)";
+            string Member(string type, string name) => Assert.Single(output.Lines(x => x.Contains($"MemberDetail<{type}>(typeof(global::TestApp.Model)") && x.Contains($"\"{name}\",")));
+
+            Assert.Contains(notNull, Member("string", "Name"));
+            Assert.Contains(notNull, Member("byte[]", "Data"));
+            Assert.Contains(notNull, Member("string", "Field"));
+            Assert.Contains(byType, Member("string", "Nick"));
+            Assert.Contains(byType, Member("int", "Count"));
+            Assert.Contains(byType, Member("int?", "Maybe"));
+            Assert.Contains(byType, Member("string", "FieldNull"));
+            //code without nullable annotations allows null
+            Assert.Contains(byType, Assert.Single(output.Lines(x => x.Contains("MemberDetail<string>(typeof(global::TestApp.Oblivious)"))));
+        }
+
         [Fact]
         public void EmptyImplementationNullability()
         {

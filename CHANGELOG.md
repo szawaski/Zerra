@@ -78,7 +78,6 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Fixed `TypeDetail.GetConstructor()` failing on types with several constructors.
 - For types that aren't source generated, members read and write through the property unless it's an auto-property, and only public fields are listed, like generated types. Before, a private field with the property's name was used instead, so a computed property such as `Dictionary.Count` read the wrong value. `MemberDetail.IsBacked` is removed.
 - `AsynmmetricEncryptor` is renamed `AsymmetricEncryptor`.
-- `Zerra.T4` is no longer a NuGet package and only generates database-first models. Templates use `Framework/Zerra.T4/Binaries/Zerra.T4.dll`.
 - The concurrent collections follow the standard `IList` and `IDictionary` rules, like `List<T>` and `ConcurrentDictionary`. For example, `Add` throws on a duplicate key and `Insert` at the end works.
 
 ### Repository
@@ -89,6 +88,8 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `AggregateRoot` for event-sourced aggregates.
 - SQL queries compare null columns the way C# does, so `x.Maybe != 4` and `!(x.Maybe > 1)` include rows where `Maybe` is null, matching the in-memory engine.
 - `saveStateEvery` sets how often the event store saves a model's state, or 0 to never save it.
+- `DatabaseFirstGeneration.Generate(engine, namespace)` writes a model for each table of an existing SQL Server, PostgreSQL, MySQL, or MariaDB database, with relations in both directions, keys, and indexes. Each is a `partial` class in its own file, and code-first finds nothing to change with them. It replaces the T4 `MsSqlFirst` templates and `Zerra.T4`. See [Database First Generation](docs/RepositoryGeneration.md#database-first-generation).
+- A column is NOT NULL when its member can't be null: `string`, `byte[]`, and `int` can't, `string?` and `int?` can. Before, only value types were, and any `[StoreProperties]` made the column nullable unless it said otherwise, so `[StoreProperties(18, 2)] public decimal Price` was nullable. `[StoreProperties]` still decides when it's given `notNull`, or the now settable `NotNull`. Code-first changes existing columns to match, so run it with `DataStoreGenerationType.Preview` first.
 - `[StoreIndex]` adds a column to an index in the SQL engines. Members with the same name form one combined index, with `Unique`, `Order`, and `Descending` options.
 - `Update<T>(where, model, graph)`, `Update<T>(where, x => new T { Price = x.Price * 1.1m })`, and `Delete<T>(where)` change every matching row in one statement without loading them, and return how many. See [Changing Many Rows](docs/Repository.md#changing-many-rows).
 - A custom provider implements one `Query(LinqQuery)`, and `LinqModelQuery` is the query a provider uses to load models. A history query is a `LinqQuery` with `Temporal` set.

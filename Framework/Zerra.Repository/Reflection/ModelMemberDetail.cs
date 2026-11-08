@@ -232,7 +232,7 @@ namespace Zerra.Repository.Reflection
 
             this.IsDataSourceEntity = entityAttribute is not null;
 
-            this.IsDataSourceNotNull = storePropertyAttribute is not null ? storePropertyAttribute.NotNull : ((ActualType.IsValueType && !memberDetail.TypeDetail.IsNullable) && memberDetail.TypeDetail.CoreType != Zerra.Reflection.CoreType.String);
+            this.IsDataSourceNotNull = storePropertyAttribute is not null && storePropertyAttribute.IsNotNullSet ? storePropertyAttribute.NotNull : !memberDetail.AllowsNull;
             this.DataSourcePrecisionLength = storePropertyAttribute?.PrecisionLength ?? (this.EnumType is null ? null : enumLength);
             this.DataSourceScale = storePropertyAttribute?.Scale;
             this.TextEncoding = storePropertyAttribute is not null ? storePropertyAttribute.TextEncoding : StoreTextEncoding.Unicode;

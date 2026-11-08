@@ -32,6 +32,9 @@ namespace Zerra.SourceGeneration.Discovery
                     continue;
                 if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IEnumerable"))
                     continue;
+                //a query interface's type detail is for its methods, the bus has its own callers
+                if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IQueryHandler" && x.ContainingNamespace.ToString() == "Zerra.CQRS"))
+                    continue;
 
                 var typeNameForClass = Helper.GetClassSafeName(model.TypeSymbol);
                 //models are only closed types, so the class is never generic and restating the interface's constraints would not compile

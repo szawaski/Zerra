@@ -67,7 +67,6 @@
     <Project Path="Framework/Zerra.Repository.PostgreSql/Zerra.Repository.PostgreSql.csproj" />
     <Project Path="Framework/Zerra.Repository/Zerra.Repository.csproj" />
     <Project Path="Framework/Zerra.SourceGeneration/Zerra.SourceGeneration.csproj" />
-    <Project Path="Framework/Zerra.T4/Zerra.T4.csproj" />
     <Project Path="Framework/Zerra.Web/Zerra.Web.csproj" />
     <Project Path="Framework/Zerra/Zerra.csproj" />
   </Folder>
@@ -75,7 +74,6 @@
     <Project Path="Tests/Zerra.CQRS.Test/Zerra.CQRS.Test.csproj" />
     <Project Path="Tests/Zerra.Repository.Test/Zerra.Repository.Test.csproj" />
     <Project Path="Tests/Zerra.SourceGeneration.Test/Zerra.SourceGeneration.Test.csproj" />
-    <Project Path="Tests/Zerra.T4.Test/Zerra.T4.Test.csproj" />
     <Project Path="Tests/Zerra.Test/Zerra.Test.csproj" />
     <Project Path="Tests/Zerra.Test.NetStandard/Zerra.Test.NetStandard.csproj" />
   </Folder>
