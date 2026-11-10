@@ -24,20 +24,27 @@ namespace Zerra.Web
             foreach (var model in models)
             {
                 var members = GetMembers(model.Key);
-                _ = sb.Append("export class ").Append(model.Value).Append(" {").Append(Environment.NewLine);
-                foreach (var member in members)
+                //a command used as a model, such as a member of another command, is declared once by its command class below
+                if (!commands.Exists(x => x.Type == model.Key))
                 {
-                    var type = GetJavaScriptType(member.Type, models);
-                    _ = sb.Append(spacing).Append(member.Name).Append("!: ").Append(type.Name).Append(type.Nullable ? " | null" : null).Append(";").Append(Environment.NewLine);
+                    _ = sb.Append("export class ").Append(model.Value).Append(" {").Append(Environment.NewLine);
+                    foreach (var member in members)
+                    {
+                        var type = GetJavaScriptType(member.Type, models);
+                        _ = sb.Append(spacing).Append(member.Key).Append("!: ").Append(type.Name).Append(type.Nullable ? " | null" : null).Append(";").Append(Environment.NewLine);
+                    }
+                    _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
                 }
-                _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
 
+                //the members the server writes, nameless JSON has a value for each in this order
                 _ = sb.Append("const ").Append(model.Value).Append("Type =").Append(Environment.NewLine);
                 _ = sb.Append("{").Append(Environment.NewLine);
                 foreach (var member in members)
                 {
+                    if (!member.IsWritten)
+                        continue;
                     var type = GetJavaScriptType(member.Type, models);
-                    _ = sb.Append(spacing).Append(member.Name).Append(": \"").Append(type.Name).Append("\",").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append(member.Key).Append(": \"").Append(type.Name).Append("\",").Append(Environment.NewLine);
                 }
                 _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
             }
@@ -66,7 +73,7 @@ namespace Zerra.Web
                         if (i > 0)
                             _ = sb.Append(", ");
                         var parameterType = GetJavaScriptType(method.Parameters[i].Type, models);
-                        _ = sb.Append(method.Parameters[i].Name).Append(": ").Append(parameterType.Name).Append(parameterType.Nullable ? " | null" : null);
+                        _ = sb.Append(GetParameterName(method.Parameters[i])).Append(": ").Append(parameterType.Name).Append(parameterType.Nullable ? " | null" : null);
                     }
                     _ = sb.Append("): Promise<").Append(type is null ? "void" : type.Name).Append(type is not null && type.Nullable ? " | null" : null).Append("> {").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append(spacing).Append("return Bus.call(\"").Append(query.Type.Name).Append("\", \"").Append(method.Name).Append("\", [");
@@ -90,8 +97,7 @@ namespace Zerra.Web
                 if (resultType is not null)
                 {
                     var type = GetJavaScriptType(resultType, models);
-                    //like the queries, results that are JavaScript types have no model type
-                    _ = sb.Append(spacing).Append(spacing).Append("self[\"ResultType\"] = ").Append(type.IsJavaScriptType ? "null" : type.ElementName + "Type").Append(";").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append(spacing).Append("self[\"ResultType\"] = ").Append(GetModelTypeArgument(type)).Append(";").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append(spacing).Append("self[\"ResultTypeHasMany\"] = ").Append(type.HasMany ? "true" : "false").Append(";").Append(Environment.NewLine);
                 }
                 else
@@ -103,7 +109,7 @@ namespace Zerra.Web
                 foreach (var member in GetMembers(command.Type))
                 {
                     var type = GetJavaScriptType(member.Type, models);
-                    _ = sb.Append(spacing).Append(member.Name).Append("!: ").Append(type.Name).Append(type.Nullable ? " | null" : null).Append(";").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append(member.Key).Append("!: ").Append(type.Name).Append(type.Nullable ? " | null" : null).Append(";").Append(Environment.NewLine);
                 }
                 _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
             }
@@ -123,8 +129,11 @@ namespace Zerra.Web
                 _ = sb.Append("{").Append(Environment.NewLine);
                 foreach (var member in GetMembers(model.Key))
                 {
+                    //the members the server writes, nameless JSON has a value for each in this order
+                    if (!member.IsWritten)
+                        continue;
                     var type = GetJavaScriptType(member.Type, models);
-                    _ = sb.Append(spacing).Append(member.Name).Append(": \"").Append(type.Name).Append("\",").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append(member.Key).Append(": \"").Append(type.Name).Append("\",").Append(Environment.NewLine);
                 }
                 _ = sb.Append("}").Append(Environment.NewLine).Append(Environment.NewLine);
             }
@@ -149,7 +158,7 @@ namespace Zerra.Web
                     var clientParameterCount = GetClientParameterCount(method);
                     _ = sb.Append(spacing).Append(method.Name).Append(": function(");
                     for (var i = 0; i < clientParameterCount; i++)
-                        _ = sb.Append(method.Parameters[i].Name).Append(", ");
+                        _ = sb.Append(GetParameterName(method.Parameters[i])).Append(", ");
                     _ = sb.Append("onComplete, onFail) {").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append(spacing).Append("Bus.call(\"").Append(query.Type.Name).Append("\", \"").Append(method.Name).Append("\", [");
                     AppendArguments(sb, method, clientParameterCount);
@@ -164,7 +173,7 @@ namespace Zerra.Web
                 _ = sb.Append("const ").Append(command.Type.Name).Append(" = function(properties) {").Append(Environment.NewLine);
                 foreach (var member in GetMembers(command.Type))
                 {
-                    _ = sb.Append(spacing).Append("this.").Append(member.Name).Append(" = (properties === undefined || properties.").Append(member.Name).Append(" === undefined) ? null : properties.").Append(member.Name).Append(";").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append("this").Append(member.Access).Append(" = (properties === undefined || properties").Append(member.Access).Append(" === undefined) ? null : properties").Append(member.Access).Append(";").Append(Environment.NewLine);
                 }
                 _ = sb.Append(spacing).Append("this.CommandType = \"").Append(command.Type.Name).Append("\";").Append(Environment.NewLine);
                 var resultType = GetCommandResultType(command);
@@ -172,8 +181,7 @@ namespace Zerra.Web
                 if (resultType is not null)
                 {
                     var type = GetJavaScriptType(resultType, models);
-                    //like the queries, results that are JavaScript types have no model type
-                    _ = sb.Append(spacing).Append("this.ResultType = ").Append(type.IsJavaScriptType ? "null" : type.ElementName + "Type").Append(";").Append(Environment.NewLine);
+                    _ = sb.Append(spacing).Append("this.ResultType = ").Append(GetModelTypeArgument(type)).Append(";").Append(Environment.NewLine);
                     _ = sb.Append(spacing).Append("this.ResultTypeHasMany = ").Append(type.HasMany ? "true" : "false").Append(";").Append(Environment.NewLine);
                 }
                 else
@@ -193,6 +201,9 @@ namespace Zerra.Web
                 return "null";
             if (type.ElementName == "Blob")
                 return "\"Blob\"";
+            //Bus reads a date from its JSON text
+            if (type.ElementName == "Date")
+                return "\"Date\"";
             if (type.IsJavaScriptType)
                 return "null";
             return type.ElementName + "Type";
@@ -240,8 +251,23 @@ namespace Zerra.Web
             {
                 if (i > 0)
                     _ = sb.Append(", ");
-                _ = sb.Append(i < clientParameterCount ? method.Parameters[i].Name : "null");
+                _ = sb.Append(i < clientParameterCount ? GetParameterName(method.Parameters[i]) : "null");
             }
+        }
+
+        //the arguments are sent in order, so a name JavaScript can't use as a parameter is changed without the caller knowing
+        private static readonly HashSet<string> reservedParameterNames =
+        [
+            "arguments", "await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do",
+            "else", "enum", "eval", "export", "extends", "false", "finally", "for", "function", "if", "implements", "import",
+            "in", "instanceof", "interface", "let", "new", "null", "package", "private", "protected", "public", "return",
+            "static", "super", "switch", "this", "throw", "true", "try", "typeof", "var", "void", "while", "with", "yield",
+            "onComplete", "onFail"
+        ];
+        private static string GetParameterName(ParameterDetail parameter)
+        {
+            var name = parameter.Name;
+            return reservedParameterNames.Contains(name) ? name + "_" : name;
         }
 
         //the result of a query method, null when it has none
@@ -324,20 +350,43 @@ namespace Zerra.Web
                 AddName(names, name, modelType);
                 models.Add(modelType, name);
             }
+            //each model also has a type map named with Type on the end
+            foreach (var model in models)
+            {
+                if (names.TryGetValue(model.Value + "Type", out var existingType))
+                    throw new InvalidOperationException($"{existingType.FullName} is named {model.Value}Type, which the client scripts use for the model {model.Key.FullName}, rename one of them");
+            }
 
             return (queryInterfaces, commands, models);
         }
 
+        //the names Bus and the browser use, a query, command, or model with one would replace it
+        private static readonly HashSet<string> reservedNames =
+        [
+            "Bus", "ICommand", "Date", "Blob", "string", "number", "boolean", "any",
+            "Object", "Array", "String", "Math", "JSON", "Promise", "TextEncoder", "DataView", "Uint8Array", "fetch", "btoa", "console"
+        ];
+
         private static void AddName(Dictionary<string, Type> names, string name, Type type)
         {
+            if (reservedNames.Contains(name))
+                throw new InvalidOperationException($"{type.FullName} is named {name}, which the client scripts already use, rename it");
             if (names.TryGetValue(name, out var existingType))
+            {
+                //a command can also be a model, such as a member of another command
+                if (existingType == type)
+                    return;
                 throw new InvalidOperationException($"{type.FullName} and {existingType.FullName} are both named {name} in the client scripts, rename one of them");
+            }
             names.Add(name, type);
         }
 
         //a generic model is named with its type arguments, PagedResult<Order> is PagedResultOfOrder
         private static string GetModelName(Type type)
         {
+            //an array type argument, PagedResult<Order[]> is PagedResultOfArrayOfOrder
+            if (type.IsArray)
+                return "ArrayOf" + GetModelName(type.GetElementType()!);
             if (!type.IsGenericType)
                 return type.Name;
             var name = type.Name;
@@ -418,30 +467,40 @@ namespace Zerra.Web
             return null;
         }
 
-        //the members as the JSON serializer writes them, in its order, which nameless JSON depends on
-        private static List<(string Name, Type Type)> GetMembers(Type type)
+        //the members as the JSON serializer reads and writes them, in its order, which nameless JSON depends on
+        //Key is the name as a property in a class or object, Access reads it from an object, IsWritten is false for a member the server only reads
+        private static List<(string Key, string Access, Type Type, bool IsWritten)> GetMembers(Type type)
         {
             var typeDetail = TypeAnalyzer.GetTypeDetail(type);
-            var members = new List<(string, Type)>();
+            var members = new List<(string, string, Type, bool)>();
             foreach (var member in typeDetail.SerializableMembers)
             {
                 string? name = null;
-                var ignore = false;
+                var ignoreCondition = JsonIgnoreCondition.Never;
                 foreach (var attribute in member.Attributes)
                 {
+                    //the same conditions as the serializer
                     if (attribute is JsonIgnoreAttribute jsonIgnore)
                     {
-                        if (jsonIgnore.Condition == JsonIgnoreCondition.Always)
-                            ignore = true;
+                        if (ignoreCondition != JsonIgnoreCondition.Always)
+                            ignoreCondition = jsonIgnore.Condition;
                     }
                     else if (attribute is System.Text.Json.Serialization.JsonIgnoreAttribute jsonIgnore2)
                     {
-                        if (jsonIgnore2.Condition == System.Text.Json.Serialization.JsonIgnoreCondition.Always)
-                            ignore = true;
+                        if (ignoreCondition != JsonIgnoreCondition.Always)
+                        {
+                            ignoreCondition = jsonIgnore2.Condition switch
+                            {
+                                System.Text.Json.Serialization.JsonIgnoreCondition.Never => JsonIgnoreCondition.Never,
+                                System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault => JsonIgnoreCondition.WhenWritingDefault,
+                                System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull => JsonIgnoreCondition.WhenWritingNull,
+                                _ => JsonIgnoreCondition.Always,
+                            };
+                        }
                     }
                     else if (attribute is NonSerializedAttribute)
                     {
-                        ignore = true;
+                        ignoreCondition = JsonIgnoreCondition.Always;
                     }
                     else if (attribute is JsonPropertyNameAttribute jsonPropertyName)
                     {
@@ -452,11 +511,39 @@ namespace Zerra.Web
                         name ??= jsonPropertyName2.Name;
                     }
                 }
-                if (ignore)
+                if (ignoreCondition == JsonIgnoreCondition.Always)
                     continue;
-                members.Add((name ?? member.Name, member.Type));
+
+                name ??= member.Name;
+                var isWritten = ignoreCondition != JsonIgnoreCondition.WhenWriting;
+                if (IsIdentifier(name))
+                {
+                    members.Add((name, "." + name, member.Type, isWritten));
+                }
+                else
+                {
+                    //a JSON name such as my-name is quoted
+                    var quoted = JsonSerializer.Serialize(name);
+                    members.Add((quoted, "[" + quoted + "]", member.Type, isWritten));
+                }
             }
             return members;
+        }
+
+        private static bool IsIdentifier(string name)
+        {
+            if (name.Length == 0)
+                return false;
+            for (var i = 0; i < name.Length; i++)
+            {
+                var c = name[i];
+                if (c == '_' || c == '$' || Char.IsLetter(c))
+                    continue;
+                if (i > 0 && Char.IsDigit(c))
+                    continue;
+                return false;
+            }
+            return true;
         }
 
         private static JavaScriptType GetJavaScriptType(Type type, SortedDictionary<Type, string> models)

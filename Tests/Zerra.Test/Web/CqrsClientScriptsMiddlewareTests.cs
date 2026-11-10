@@ -185,6 +185,123 @@ namespace Zerra.Test.Web
         }
 
         [Fact]
+        public async Task CommandAsModel()
+        {
+            var bus = Bus.New("test", null, null, null);
+            bus.AddHandler<INestedCommandHandler>(new NestedCommandHandler());
+
+            var javaScript = await GetScript(bus, "/CQRSClient/JavaScriptModels.js");
+            Assert.Contains($"const SaveLineCommandType ={Environment.NewLine}{{{Environment.NewLine}    Text: \"string\",", javaScript);
+            Assert.Contains("    SaveLineCommand: SaveLineCommandType,", javaScript);
+            Assert.Contains("const SaveLineCommand = function(properties) {", javaScript);
+            Assert.Contains("const SaveLinesCommand = function(properties) {", javaScript);
+
+            var typeScript = await GetScript(bus, "/CQRSClient/TypeScriptModels.ts");
+            //declared once, by its command class
+            Assert.Equal(2, typeScript.Split("export class SaveLineCommand ").Length);
+            Assert.Contains("export class SaveLineCommand implements ICommand {", typeScript);
+            Assert.Contains("    Lines!: SaveLineCommand[];", typeScript);
+            Assert.Contains("const SaveLineCommandType =", typeScript);
+        }
+
+        [Fact]
+        public async Task MembersNotWritten()
+        {
+            var bus = Bus.New("test", null, null, null);
+            bus.AddHandler<IEdgeQueryHandler>(new EdgeHandler());
+
+            //the server reads Incoming but never writes it, so nameless JSON has no value for it
+            var javaScript = await GetScript(bus, "/CQRSClient/JavaScriptModels.js");
+            Assert.Contains($"const IgnoredType ={Environment.NewLine}{{{Environment.NewLine}    Kept: \"number\",{Environment.NewLine}}}", javaScript);
+            Assert.Equal("[1]", JsonSerializer.Serialize(new Ignored { Kept = 1, Incoming = 2, NotWritten = 3 }, new JsonSerializerOptions() { Nameless = true }));
+
+            var typeScript = await GetScript(bus, "/CQRSClient/TypeScriptModels.ts");
+            Assert.Contains($"export class Ignored {{{Environment.NewLine}    Kept!: number;{Environment.NewLine}    Incoming!: number;{Environment.NewLine}}}", typeScript);
+            Assert.Contains($"const IgnoredType ={Environment.NewLine}{{{Environment.NewLine}    Kept: \"number\",{Environment.NewLine}}}", typeScript);
+        }
+
+        [Fact]
+        public async Task DateResults()
+        {
+            var bus = Bus.New("test", null, null, null);
+            bus.AddHandler<IEdgeQueryHandler>(new EdgeHandler());
+            bus.AddHandler<IEdgeCommandHandler>(new EdgeHandler());
+
+            var javaScript = await GetScript(bus, "/CQRSClient/JavaScriptModels.js");
+            Assert.Contains("        Bus.call(\"IEdgeQueryHandler\", \"GetTime\", [], \"Date\", false, onComplete, onFail);", javaScript);
+            Assert.Contains("        Bus.call(\"IEdgeQueryHandler\", \"GetTimes\", [], \"Date\", true, onComplete, onFail);", javaScript);
+            Assert.Contains($"    this.CommandType = \"TimeCommand\";{Environment.NewLine}    this.CommandWithResult = true;{Environment.NewLine}    this.ResultType = \"Date\";", javaScript);
+
+            var typeScript = await GetScript(bus, "/CQRSClient/TypeScriptModels.ts");
+            Assert.Contains("        return Bus.call(\"IEdgeQueryHandler\", \"GetTime\", [], \"Date\", false);", typeScript);
+            Assert.Contains("        self[\"ResultType\"] = \"Date\";", typeScript);
+        }
+
+        [Fact]
+        public async Task ArrayTypeArgument()
+        {
+            var bus = Bus.New("test", null, null, null);
+            bus.AddHandler<IEdgeQueryHandler>(new EdgeHandler());
+
+            var typeScript = await GetScript(bus, "/CQRSClient/TypeScriptModels.ts");
+            Assert.Contains("export class PageOfArrayOfIgnored {", typeScript);
+            Assert.Contains("    Items!: Ignored[];", typeScript);
+            Assert.Contains("    PageOfArrayOfIgnored: PageOfArrayOfIgnoredType,", typeScript);
+            Assert.Contains("    public static GetPage(): Promise<PageOfArrayOfIgnored | null> {", typeScript);
+            Assert.DoesNotContain("[]Type", typeScript);
+        }
+
+        [Fact]
+        public async Task ReservedParameterNames()
+        {
+            var bus = Bus.New("test", null, null, null);
+            bus.AddHandler<IEdgeQueryHandler>(new EdgeHandler());
+
+            var javaScript = await GetScript(bus, "/CQRSClient/JavaScriptModels.js");
+            Assert.Contains("    Remove: function(delete_, onComplete_, onComplete, onFail) {", javaScript);
+            Assert.Contains("        Bus.call(\"IEdgeQueryHandler\", \"Remove\", [delete_, onComplete_], null, false, onComplete, onFail);", javaScript);
+
+            var typeScript = await GetScript(bus, "/CQRSClient/TypeScriptModels.ts");
+            Assert.Contains("    public static Remove(delete_: number, onComplete_: number): Promise<number> {", typeScript);
+        }
+
+        [Fact]
+        public async Task QuotedMemberNames()
+        {
+            var bus = Bus.New("test", null, null, null);
+            bus.AddHandler<IEdgeCommandHandler>(new EdgeHandler());
+
+            var javaScript = await GetScript(bus, "/CQRSClient/JavaScriptModels.js");
+            Assert.Contains("    this[\"time-zone\"] = (properties === undefined || properties[\"time-zone\"] === undefined) ? null : properties[\"time-zone\"];", javaScript);
+            Assert.Contains("    this.Offset = (properties === undefined || properties.Offset === undefined) ? null : properties.Offset;", javaScript);
+
+            var typeScript = await GetScript(bus, "/CQRSClient/TypeScriptModels.ts");
+            Assert.Contains("    \"time-zone\"!: string | null;", typeScript);
+        }
+
+        [Fact]
+        public async Task ReservedName_Throws()
+        {
+            var bus = Bus.New("test", null, null, null);
+            bus.AddHandler<IReservedNameQueryHandler>(new ReservedNameHandler());
+            var middleware = new CqrsClientScriptsMiddleware(_ => Task.CompletedTask, bus);
+
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => middleware.Invoke(CreateContext("GET", "/CQRSClient/JavaScriptModels.js")));
+            Assert.Contains("is named Date, which the client scripts already use", exception.Message);
+        }
+
+        [Fact]
+        public async Task TypeMapName_Throws()
+        {
+            var bus = Bus.New("test", null, null, null);
+            bus.AddHandler<ITypeMapNameQueryHandler>(new TypeMapNameHandler());
+            var middleware = new CqrsClientScriptsMiddleware(_ => Task.CompletedTask, bus);
+
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => middleware.Invoke(CreateContext("GET", "/CQRSClient/TypeScriptModels.ts")));
+            Assert.Contains("is named OrderType, which the client scripts use for the model", exception.Message);
+        }
+
+        [Fact]
         public async Task CustomRoute()
         {
             var bus = WidgetBus();
@@ -439,6 +556,24 @@ namespace Zerra.Test.Web
             public Task Handle(WidgetSavedEvent @event) => throw new NotImplementedException();
         }
 
+        public sealed class SaveLineCommand : ICommand
+        {
+            public string? Text { get; set; }
+        }
+
+        public sealed class SaveLinesCommand : ICommand
+        {
+            public SaveLineCommand[]? Lines { get; set; }
+        }
+
+        public interface INestedCommandHandler : ICommandHandler<SaveLineCommand>, ICommandHandler<SaveLinesCommand> { }
+
+        public sealed class NestedCommandHandler : BaseHandler, INestedCommandHandler
+        {
+            public Task Handle(SaveLineCommand command, CancellationToken cancellationToken) => throw new NotImplementedException();
+            public Task Handle(SaveLinesCommand command, CancellationToken cancellationToken) => throw new NotImplementedException();
+        }
+
         public static class First
         {
             public sealed class Shared
@@ -465,6 +600,85 @@ namespace Zerra.Test.Web
         {
             public Task<First.Shared> GetFirst() => throw new NotImplementedException();
             public Task<Second.Shared> GetSecond() => throw new NotImplementedException();
+        }
+
+        public sealed class Ignored
+        {
+            public int Kept { get; set; }
+            [Zerra.Serialization.Json.JsonIgnore(Zerra.Serialization.Json.JsonIgnoreCondition.WhenWriting)]
+            public int Incoming { get; set; }
+            [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWriting)]
+            public int NotWritten { get; set; }
+        }
+
+        public sealed class Page<T>
+        {
+            public T? Items { get; set; }
+        }
+
+        public sealed class TimeCommand : ICommand<DateTime>
+        {
+            [JsonPropertyName("time-zone")]
+            public string? TimeZone { get; set; }
+            public int Offset { get; set; }
+        }
+
+        public interface IEdgeQueryHandler : IQueryHandler
+        {
+            Task<Ignored> GetIgnored();
+            Task<DateTime> GetTime();
+            Task<DateTime[]> GetTimes();
+            Task<Page<Ignored[]>> GetPage();
+            Task<int> Remove(int delete, int onComplete);
+        }
+
+        public interface IEdgeCommandHandler : ICommandHandler<TimeCommand, DateTime> { }
+
+        public sealed class EdgeHandler : BaseHandler, IEdgeQueryHandler, IEdgeCommandHandler
+        {
+            public Task<Ignored> GetIgnored() => throw new NotImplementedException();
+            public Task<DateTime> GetTime() => throw new NotImplementedException();
+            public Task<DateTime[]> GetTimes() => throw new NotImplementedException();
+            public Task<Page<Ignored[]>> GetPage() => throw new NotImplementedException();
+            public Task<int> Remove(int delete, int onComplete) => throw new NotImplementedException();
+            public Task<DateTime> Handle(TimeCommand command, CancellationToken cancellationToken) => throw new NotImplementedException();
+        }
+
+        public sealed class Date
+        {
+            public int Day { get; set; }
+        }
+
+        public interface IReservedNameQueryHandler : IQueryHandler
+        {
+            Task<Date> GetDate();
+        }
+
+        public sealed class ReservedNameHandler : BaseHandler, IReservedNameQueryHandler
+        {
+            public Task<Date> GetDate() => throw new NotImplementedException();
+        }
+
+        public sealed class Order
+        {
+            public int ID { get; set; }
+        }
+
+        public sealed class OrderType
+        {
+            public string? Name { get; set; }
+        }
+
+        public interface ITypeMapNameQueryHandler : IQueryHandler
+        {
+            Task<Order> GetOrder();
+            Task<OrderType> GetOrderType();
+        }
+
+        public sealed class TypeMapNameHandler : BaseHandler, ITypeMapNameQueryHandler
+        {
+            public Task<Order> GetOrder() => throw new NotImplementedException();
+            public Task<OrderType> GetOrderType() => throw new NotImplementedException();
         }
     }
 }

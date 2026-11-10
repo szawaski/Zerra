@@ -33,7 +33,7 @@ How C# types appear in the scripts:
 - A generic model is named with its type arguments, so `PagedResult<Order>` is `PagedResultOfOrder`.
 - Query functions leave out the trailing `CancellationToken`.
 
-The browser knows each query, command, and model only by its class name, so two with the same name in different namespaces fail the request with an error naming both. Rename one of them.
+The browser knows each query, command, and model only by its class name, so two with the same name in different namespaces fail the request with an error naming both. Rename one of them. A model also has a type map named with `Type` on the end, so the models `Order` and `OrderType` can't both be used. Names the scripts already use, such as `Date`, `Blob`, and `Bus`, fail the same way.
 
 ## Settings
 
