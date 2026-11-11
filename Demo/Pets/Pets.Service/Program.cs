@@ -134,7 +134,7 @@ await busClient.DispatchAwaitAsync(new DeleteTestDatabaseCommand());
 Console.WriteLine($"Delete Test Database: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 
-CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, [typeof(PetDataModel), typeof(PetTypeDataModel)], log);
+CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints, [typeof(PetDataModel), typeof(PetTypeDataModel)], log);
 Console.WriteLine($"CodeFirstGeneration.Generate: {timer.ElapsedMilliseconds} ms");
 timer.Restart();
 

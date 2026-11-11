@@ -17,7 +17,7 @@ namespace Zerra.Repository.Test
             Second = 2
         }
 
-        public static readonly string[] Tables = ["SchemaIndex", "SchemaChange", "SchemaChangeParent", "SchemaStoreProperties"];
+        public static readonly string[] Tables = ["SchemaIndex", "SchemaChange", "SchemaChangeParent", "SchemaStoreProperties", "SchemaSteps"];
 
         [Entity("SchemaChangeParent")]
         public sealed class Parent
@@ -83,7 +83,7 @@ namespace Zerra.Repository.Test
                 dropTable(table);
 
             var v1Types = new[] { typeof(Parent), typeof(V1.Model) };
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, v1Types);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, v1Types);
             RepoTest.AssertSchemaMatchesModels(engine, v1Types);
 
             var repo1 = Repo.New();
@@ -95,7 +95,7 @@ namespace Zerra.Repository.Test
             repo1.Create(model);
 
             var v2Types = new[] { typeof(Parent), typeof(V2.Model) };
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, v2Types);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, v2Types);
             RepoTest.AssertSchemaMatchesModels(engine, v2Types);
 
             var repo2 = Repo.New();
@@ -124,13 +124,89 @@ namespace Zerra.Repository.Test
             Assert.Equal(SchemaKind.Second, stored2.AddedKind);
             Assert.Equal(SchemaKind.First, stored2.AddedMaybeKind);
 
-            //back to the first version, the relations are added again and the non-null columns come back on a table that has rows
+            //back to the first version, the dropped columns and relations are added again, on an empty table since a new foreign key column holds no parent
             repo2.Delete(model2);
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, v1Types);
+            repo2.Delete(stored);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, v1Types);
             RepoTest.AssertSchemaMatchesModels(engine, v1Types);
 
             TestStoreProperties(engine);
             TestIndexes(engine);
+            TestSteps(engine);
+        }
+
+        public static class StepsV1
+        {
+            [Entity("SchemaSteps")]
+            public sealed class Model
+            {
+                [Identity]
+                public Guid ID { get; set; }
+                [StoreProperties(20)]
+                public string? Name { get; set; }
+                public int Count { get; set; }
+                public int Removed { get; set; }
+            }
+        }
+
+        public static class StepsV2
+        {
+            [Entity("SchemaSteps")]
+            public sealed class Model
+            {
+                [Identity]
+                public Guid ID { get; set; }
+                //wider
+                [StoreProperties(50)]
+                public string? Name { get; set; }
+                public long Count { get; set; }
+                //new, unique, so the rows need their values before the index
+                [StoreIndex(Unique = true)]
+                public int Added { get; set; }
+            }
+        }
+
+        //columns, then moving the data, then constraints, with the code of both versions writing the table between
+        private static void TestSteps(ITransactStoreEngine engine)
+        {
+            var v1Types = new[] { typeof(StepsV1.Model) };
+            var v2Types = new[] { typeof(StepsV2.Model) };
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, v1Types);
+            RepoTest.AssertSchemaMatchesModels(engine, v1Types);
+
+            var repo1 = Repo.New();
+            repo1.AddProvider(new TransactStoreProvider<StepsV1.Model>(engine));
+            var repo2 = Repo.New();
+            repo2.AddProvider(new TransactStoreProvider<StepsV2.Model>(engine));
+
+            var oldIDs = new[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
+            repo1.Create(new StepsV1.Model() { ID = oldIDs[0], Name = "a", Count = 1, Removed = 1 });
+            repo1.Create(new StepsV1.Model() { ID = oldIDs[1], Name = "b", Count = 2, Removed = 2 });
+
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.Columns, v2Types);
+
+            //the old code still writes the removed column, the new code writes the wider columns without it
+            repo1.Create(new StepsV1.Model() { ID = oldIDs[2], Name = "c", Count = 3, Removed = 3 });
+            var newModel = new StepsV2.Model() { ID = Guid.NewGuid(), Name = new string('x', 40), Count = 5_000_000_000L, Added = 100 };
+            repo2.Create(newModel);
+
+            //the old rows have no value for the new column yet
+            _ = Assert.ThrowsAny<Exception>(() => CodeFirstGeneration.Generate(engine, CodeFirstMode.Constraints, v2Types));
+
+            for (var i = 0; i < oldIDs.Length; i++)
+            {
+                var id = oldIDs[i];
+                _ = repo2.Update(x => x.ID == id, new StepsV2.Model() { Added = i + 1 }, new Graph<StepsV2.Model>(x => x.Added));
+            }
+
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.Constraints | CodeFirstMode.DropColumns, v2Types);
+            RepoTest.AssertSchemaMatchesModels(engine, v2Types);
+
+            var stored = repo2.Query<StepsV2.Model>().OrderBy(x => x.Added).ToArray();
+            Assert.Equal([1, 2, 3, 100], stored.Select(x => x.Added).ToArray());
+            Assert.Equal(new string('x', 40), stored[3].Name);
+            Assert.Equal(5_000_000_000L, stored[3].Count);
+            _ = Assert.ThrowsAny<Exception>(() => repo2.Create(new StepsV2.Model() { ID = Guid.NewGuid(), Added = 100 }));
         }
 
         public static class IndexV1
@@ -158,6 +234,12 @@ namespace Zerra.Repository.Test
                 public Guid? ParentID { get; set; }
                 [Relation(nameof(ParentID))]
                 public Parent? Parent { get; set; }
+                [StoreIndex]
+                public int DroppedIndexed { get; set; }
+                [StoreIndex("Pair")]
+                public int PairKept { get; set; }
+                [StoreIndex("Pair")]
+                public int PairDropped { get; set; }
             }
         }
 
@@ -192,13 +274,15 @@ namespace Zerra.Repository.Test
                 public Guid? ParentID { get; set; }
                 [Relation(nameof(ParentID))]
                 public Parent? Parent { get; set; }
+                //the columns DroppedIndexed and PairDropped are dropped with their indexes, the column left from the pair has none
+                public int PairKept { get; set; }
             }
         }
 
         private static void TestIndexes(ITransactStoreEngine engine)
         {
             var v1Types = new[] { typeof(Parent), typeof(IndexV1.Model) };
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, v1Types);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, v1Types);
             RepoTest.AssertSchemaMatchesModels(engine, v1Types);
 
             var repo1 = Repo.New();
@@ -210,7 +294,7 @@ namespace Zerra.Repository.Test
             _ = Assert.ThrowsAny<Exception>(() => repo1.Create(new IndexV1.Model() { ID = Guid.NewGuid(), Number = 1, Code = "a", Date = new DateTime(2024, 1, 1), CustomerID = Guid.NewGuid(), BecomesUnique = 4, Removed = 1, TypeChanged = 1 }));
 
             var v2Types = new[] { typeof(Parent), typeof(IndexV2.Model) };
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, v2Types);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, v2Types);
             RepoTest.AssertSchemaMatchesModels(engine, v2Types);
 
             var repo2 = Repo.New();
@@ -219,7 +303,7 @@ namespace Zerra.Repository.Test
             _ = Assert.ThrowsAny<Exception>(() => repo2.Create(new IndexV2.Model() { ID = Guid.NewGuid(), Code = "b", BecomesUnique = 1 }));
 
             //back to the first version, the indexes it had come back
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, v1Types);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, v1Types);
             RepoTest.AssertSchemaMatchesModels(engine, v1Types);
         }
 
@@ -261,13 +345,13 @@ namespace Zerra.Repository.Test
 
             //a preview logs the plan and changes nothing
             var log = new InfoLog();
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst | DataStoreGenerationType.Preview, types, log);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns | CodeFirstMode.Preview, types, log);
             Assert.Contains(log.Infos, x => x.StartsWith("CodeFirst Plan Preview: "));
-            var planned = engine.BuildStoreGenerationPlan(true, true, true, types.Select(x => Zerra.Repository.Reflection.ModelAnalyzer.GetModel(x)).ToArray()).Plan;
+            var planned = engine.BuildStoreGenerationPlan(true, true, true, true, types.Select(x => Zerra.Repository.Reflection.ModelAnalyzer.GetModel(x)).ToArray()).Plan;
             Assert.NotEmpty(planned);
             Assert.Contains(log.Infos, x => x.StartsWith($"CodeFirst Plan Preview: {planned.Count} Steps"));
 
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, types);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, types);
             RepoTest.AssertSchemaMatchesModels(engine, types);
 
             var repo = Repo.New();

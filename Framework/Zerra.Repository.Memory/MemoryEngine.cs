@@ -25,7 +25,7 @@ namespace Zerra.Repository.Memory
         }
 
         /// <inheritdoc />
-        public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetail)
+        public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool createDataStore, bool columns, bool constraints, bool dropColumns, ICollection<ModelDetail> modelDetail)
         {
             return new MemoryDataStoreGenerationPlan();
         }

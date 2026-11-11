@@ -16,7 +16,7 @@ namespace Store.Common.Data
         public static IDataStoreInfo Prepare(ITransactStoreEngine engine, string preferredStore, Type[] dataModels, ILogger log)
         {
             //creates the database and tables on first run and adds new columns later, the in-memory store needs no schema
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst | DataStoreGenerationType.NoDelete, dataModels, log);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints, dataModels, log);
 
             IDataStoreInfo info;
             if (engine is MemoryEngine)

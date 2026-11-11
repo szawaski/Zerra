@@ -30,7 +30,7 @@ repo.AddProvider(new TransactStoreProvider<OrderDataModel>(engine));
 Create the collections and indexes at startup with Code First generation:
 
 ```csharp
-CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, [typeof(OrderDataModel)], log);
+CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints, [typeof(OrderDataModel)], log);
 ```
 
 Each model is a collection and each row a document. Queries run as aggregation pipelines. Transactions need a replica set or a sharded cluster.

@@ -15,6 +15,20 @@ namespace Zerra.Repository.Test.MsSql
     public class LinqMsSqlConverterTests : BaseLinqSqlConverterTests
     {
 
+        //a date compared to a datetime2 column has every digit cast to its precision, to a datetime column three, the most it takes as text
+        [Xunit.Fact]
+        public void DateTakesTheColumnsPrecision()
+        {
+            var value = new DateTime(2024, 5, 6, 7, 8, 9, DateTimeKind.Utc).AddTicks(1234567);
+            var modelDetail = ModelAnalyzer.GetModel(typeof(TestTypesModel));
+
+            Expression<Func<TestTypesModel, bool>> precise = x => x.DateTimeThing == value;
+            Xunit.Assert.Contains("CAST(N'2024-05-06 07:08:09.1234567' AS datetime2(6))", ConvertToSql(LinqTerminal.Sequence, precise, null, null, null, null, modelDetail));
+
+            Expression<Func<TestTypesModel, bool>> plain = x => x.DateTimeDefaultPrecisionThing < value;
+            Xunit.Assert.Contains("'2024-05-06 07:08:09.123'", ConvertToSql(LinqTerminal.Sequence, plain, null, null, null, null, modelDetail));
+        }
+
         protected override string ConvertPersistWhereToSql(LambdaExpression where, ModelDetail modelDetail)
             => Zerra.Repository.MsSql.LinqMsSqlConverter.ConvertPersistWhere(where, modelDetail);
 

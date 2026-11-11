@@ -738,7 +738,7 @@ namespace Zerra.Repository.Test
         public static void AssertSchemaMatchesModels(ITransactStoreEngine engine, Type[] modelTypes)
         {
                         var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
-            var plan = engine.BuildStoreGenerationPlan(true, true, true, modelDetails);
+            var plan = engine.BuildStoreGenerationPlan(true, true, true, true, modelDetails);
             Assert.True(plan.Plan.Count == 0, $"Schema changes planned right after generation:{Environment.NewLine}{String.Join(Environment.NewLine, plan.Plan)}");
         }
 

@@ -50,6 +50,8 @@ namespace Zerra.Repository.Linq
             public Dictionary<MemberExpression, string>? CallingTables { get; set; }
             /// <summary>The values the statements take as parameters, each named by its index, or <see langword="null"/> where values are written into the statement.</summary>
             public List<object>? Parameters { get; set; }
+            /// <summary>The column a value is compared to or assigned to while the value is written, so a store can write it as that column's type, or <see langword="null"/> when unknown.</summary>
+            public ModelMemberDetail? ValueColumn { get; set; }
 
             /// <summary>
             /// Initializes a new <see cref="MemberContext"/> with empty stacks and zero call-render counters.

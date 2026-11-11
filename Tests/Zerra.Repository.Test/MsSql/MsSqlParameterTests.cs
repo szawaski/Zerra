@@ -50,8 +50,13 @@ namespace Zerra.Repository.Test.MsSql
         public void ADateIsItsText()
         {
             var value = new DateTime(2024, 5, 6, 7, 8, 9);
-            var statement = Convert(repo.Query<TestTypesModel>().Where(x => x.DateTimeThing > value).Expression);
+            //a datetime column converts the text
+            var statement = Convert(repo.Query<TestTypesModel>().Where(x => x.DateTimeDefaultPrecisionThing > value).Expression);
             Assert.Contains(">(@p0)", statement.Sql);
+            Assert.StartsWith("2024-05-06", Assert.IsType<string>(Assert.Single(statement.Parameters!)));
+            //a datetime2 column has it cast to its precision, rounding as the value saved
+            statement = Convert(repo.Query<TestTypesModel>().Where(x => x.DateTimeThing > value).Expression);
+            Assert.Contains(">(CAST(@p0 AS datetime2(6)))", statement.Sql);
             Assert.StartsWith("2024-05-06", Assert.IsType<string>(Assert.Single(statement.Parameters!)));
         }
 

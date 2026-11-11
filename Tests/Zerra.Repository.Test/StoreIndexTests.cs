@@ -141,7 +141,7 @@ namespace Zerra.Repository.Test
         public void MemoryEngineIgnoresIndexes()
         {
             var engine = new MemoryEngine();
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, [typeof(IndexModel)]);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, [typeof(IndexModel)]);
             var repo = Repo.New();
             repo.AddProvider(new TransactStoreProvider<IndexModel>(engine));
             repo.Create(new IndexModel() { ID = Guid.NewGuid(), First = "a" });

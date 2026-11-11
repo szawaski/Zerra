@@ -913,6 +913,10 @@ namespace Zerra.Repository.Linq
                 ConvertCharComparison(ref binaryLeft, ref binaryRight);
             }
 
+            var valueColumn = context.MemberContext.ValueColumn;
+            if (binaryRight is not null && operation is Operator.Equals or Operator.NotEquals or Operator.LessThan or Operator.LessThanOrEquals or Operator.GreaterThan or Operator.GreaterThanOrEquals)
+                context.MemberContext.ValueColumn = ComparedColumn(binaryLeft, binaryRight, context);
+
             //SQL comparisons with NULL are unknown, C# gives true or false, the null cases C# counts as true are added
             if (binaryRight is not null && (operation == Operator.Equals || operation == Operator.NotEquals || operation == Operator.LessThan || operation == Operator.LessThanOrEquals || operation == Operator.GreaterThan || operation == Operator.GreaterThanOrEquals))
             {
@@ -991,12 +995,13 @@ namespace Zerra.Repository.Linq
                     }
 
                     sb.Write(')');
+                    context.MemberContext.ValueColumn = valueColumn;
                     _ = context.MemberContext.OperatorStack.Pop();
                     return;
                 }
             }
 
-            var castSigned = BitwiseResultUnsigned && (operation == Operator.BitwiseAnd || operation == Operator.BitwiseOr || operation == Operator.BitwiseXor);
+            var castSigned =BitwiseResultUnsigned && (operation == Operator.BitwiseAnd || operation == Operator.BitwiseOr || operation == Operator.BitwiseXor);
             if (castSigned)
                 sb.Write("CAST(");
 
@@ -1020,7 +1025,36 @@ namespace Zerra.Repository.Linq
             if (castSigned)
                 sb.Write(" AS SIGNED)");
 
+            context.MemberContext.ValueColumn = valueColumn;
             _ = context.MemberContext.OperatorStack.Pop();
+        }
+        //the column a value is compared to, where one side is a model's column and the other a value
+        private ModelMemberDetail? ComparedColumn(Expression left, Expression right, BuilderContext context)
+        {
+            var bareLeft = WithoutConvert(left);
+            var bareRight = WithoutConvert(right);
+            if (IsEvaluatable(bareRight))
+                return ColumnOf(bareLeft, context);
+            if (IsEvaluatable(bareLeft))
+                return ColumnOf(bareRight, context);
+            return null;
+        }
+        private ModelMemberDetail? ColumnOf(Expression exp, BuilderContext context)
+        {
+            if (exp is not MemberExpression { Expression: not null } member || IsEvaluatable(member))
+                return null;
+            var owner = member.Expression;
+            if (Nullable.GetUnderlyingType(owner.Type) is not null)
+                return member.Member.Name == "Value" ? ColumnOf(owner, context) : null;
+            if (TypeLookup.GetCoreType(owner.Type, out _))
+                return null;
+            //a member of a grouped result or a projection isn't a column of a model
+            var root = owner;
+            while (root is MemberExpression parent)
+                root = parent.Expression!;
+            if (root is not ParameterExpression parameter || !context.MemberContext.ModelContexts.ContainsKey(parameter))
+                return null;
+            return ModelAnalyzer.GetModel(owner.Type).Members.FirstOrDefault(x => x.Name == member.Member.Name);
         }
         /// <summary>
         /// Whether bitwise operators give an unsigned 64 bit result, such as in MySQL, so the result is cast back to a signed number to match .NET.

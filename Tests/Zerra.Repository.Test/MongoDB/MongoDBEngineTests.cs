@@ -48,7 +48,7 @@ namespace Zerra.Repository.Test.MongoDB
 
             var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).Concat(BatchWriteTests.ModelTypes).Concat(CompositeRelationTests.ModelTypes).Concat(StreamTests.ModelTypes).ToArray();
 
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, modelTypes);
             RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
 
             RepoTest.TestSequenceTransactStore(engine);

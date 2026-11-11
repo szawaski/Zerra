@@ -263,12 +263,13 @@ namespace Zerra.Repository
         /// <summary>
         /// Builds a plan for generating or modifying the data store structure based on the provided model details.
         /// </summary>
-        /// <param name="create">Indicates whether to include creation of new store structures.</param>
-        /// <param name="update">Indicates whether to include updates to existing store structures.</param>
-        /// <param name="delete">Indicates whether to include deletion of obsolete store structures.</param>
+        /// <param name="createDataStore">Indicates whether to create the database when it doesn't exist. Without it a missing database throws.</param>
+        /// <param name="columns">Indicates whether to make the changes of <see cref="CodeFirstMode.Columns"/>.</param>
+        /// <param name="constraints">Indicates whether to make the changes of <see cref="CodeFirstMode.Constraints"/>.</param>
+        /// <param name="dropColumns">Indicates whether to drop the columns the models no longer have.</param>
         /// <param name="modelDetail">The collection of model details used to build the generation plan.</param>
         /// <returns>An <see cref="IDataStoreGenerationPlan"/> representing the planned store changes.</returns>
-        IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetail);
+        IDataStoreGenerationPlan BuildStoreGenerationPlan(bool createDataStore, bool columns, bool constraints, bool dropColumns, ICollection<ModelDetail> modelDetail);
 
         /// <summary>
         /// Reads every table in the data store, described the way a model would declare it, for <see cref="DatabaseFirstGeneration"/>.

@@ -424,11 +424,11 @@ namespace Zerra.Repository.MsSql
                 }
                 else if (modelPropertyDetail.CoreType is CoreType.DateTime or CoreType.DateTimeNullable)
                 {
-                    //as the text written in the statement, which converts to the column's datetime, datetime2, or date as before
+                    //as text, which converts to the column's datetime, datetime2, or date, with every digit only for datetime2 since datetime refuses more than three
                     var text = new CharWriter();
                     try
                     {
-                        text.Write((DateTime)value, CharWriter.DateTimeFormat.MsSql);
+                        text.Write((DateTime)value, modelPropertyDetail.DatePart == StoreDatePart.DateTime && modelPropertyDetail.DataSourcePrecisionLength.HasValue ? CharWriter.DateTimeFormat.MsSqlDateTime2 : CharWriter.DateTimeFormat.MsSql);
                         parameter = text.ToString();
                     }
                     finally
@@ -515,7 +515,7 @@ namespace Zerra.Repository.MsSql
                     case CoreType.DateTime:
                     case CoreType.DateTimeNullable:
                         writer.Write('\'');
-                        writer.Write((DateTime)value, CharWriter.DateTimeFormat.MsSql);
+                        writer.Write((DateTime)value, modelPropertyDetail.DatePart == StoreDatePart.DateTime && modelPropertyDetail.DataSourcePrecisionLength.HasValue ? CharWriter.DateTimeFormat.MsSqlDateTime2 : CharWriter.DateTimeFormat.MsSql);
                         writer.Write('\'');
                         return;
                     case CoreType.DateTimeOffset:
@@ -1954,7 +1954,7 @@ namespace Zerra.Repository.MsSql
         }
 
         /// <inheritdoc/>
-        public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetails)
+        public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool createDataStore, bool columns, bool constraints, bool dropColumns, ICollection<ModelDetail> modelDetails)
         {
             var connectionForParsing = new SqlConnection(connectionString);
             var databaseName = connectionForParsing.Database;
@@ -1962,6 +1962,8 @@ namespace Zerra.Repository.MsSql
 
             var sql = new List<string>();
             var needCreateDatabase = NeedCreateDatabase(databaseName);
+            if (needCreateDatabase && !createDataStore)
+                throw new InvalidOperationException($"{nameof(MsSqlEngine)} database {databaseName} does not exist, use {nameof(CodeFirstMode)}.{nameof(CodeFirstMode.CreateDataStore)} to create it");
 
             var columnsToCheck = new List<ModelDetail>();
             var droppedConstraints = new HashSet<string>();
@@ -1969,7 +1971,7 @@ namespace Zerra.Repository.MsSql
             var sqlIndexesByModel = new Dictionary<ModelDetail, SqlIndex[]>();
             foreach (var model in modelDetails)
             {
-                var needCreateTable = AssureTable(create, sql, needCreateDatabase, model);
+                var needCreateTable = AssureTable(columns, sql, needCreateDatabase, model);
                 if (!needCreateTable)
                     columnsToCheck.Add(model);
             }
@@ -1980,20 +1982,20 @@ namespace Zerra.Repository.MsSql
                 var sqlConstraints = GetSqlConstraints(model);
                 var sqlIndexes = GetSqlIndexes(model);
                 sqlIndexesByModel.Add(model, sqlIndexes);
-                AssureColumns(create, update, delete, sql, model, sqlColumns, sqlConstraints, droppedConstraints, sqlIndexes, droppedIndexes);
+                AssureColumns(columns, constraints, dropColumns, sql, model, sqlColumns, sqlConstraints, droppedConstraints, sqlIndexes, droppedIndexes);
             }
 
             foreach (var model in modelDetails)
             {
                 var sqlConstraints = needCreateDatabase ? Array.Empty<SqlConstraint>() : GetSqlConstraints(model);
-                AssureConstraints(create, update, delete, sql, model, sqlConstraints, droppedConstraints);
+                AssureConstraints(columns, constraints, sql, model, sqlConstraints, droppedConstraints);
             }
 
             foreach (var model in modelDetails)
             {
                 if (!sqlIndexesByModel.TryGetValue(model, out var sqlIndexes))
                     sqlIndexes = Array.Empty<SqlIndex>();
-                AssureIndexes(create, update, delete, sql, model, sqlIndexes, droppedIndexes);
+                AssureIndexes(columns, constraints, sql, model, sqlIndexes, droppedIndexes);
             }
 
             var plan = new MsSqlDataStoreGenerationPlan(this, needCreateDatabase ? databaseName : null, sql);
@@ -2102,7 +2104,7 @@ namespace Zerra.Repository.MsSql
             return true;
         }
 
-        private void AssureColumns(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints, SqlIndex[] sqlIndexes, HashSet<SqlIndex> droppedIndexes)
+        private void AssureColumns(bool changeColumns, bool changeConstraints, bool dropColumns, List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints, SqlIndex[] sqlIndexes, HashSet<SqlIndex> droppedIndexes)
         {
             var columns = model.Members.Where(x => !x.IsDataSourceEntity && x.ColumnCoreType.HasValue || x.Type == typeof(byte[])).ToArray();
 
@@ -2113,11 +2115,13 @@ namespace Zerra.Repository.MsSql
                 var sqlColumn = sqlColumns.FirstOrDefault(x => x.Table == model.DataSourceEntityName && x.Column == column.StoreName);
                 if (sqlColumn is null)
                 {
-                    if (create)
+                    if (changeColumns)
                     {
+                        //without constraints a new column is nullable until they run, so the code writing the table before it still can
+                        var nullable = !changeConstraints && !column.IsIdentity;
                         _ = sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] ADD [").Append(column.StoreName).Append("] ");
-                        WriteSqlTypeFromModel(sb, column);
-                        var withDefault = column.IsDataSourceNotNull && !column.IsIdentityAutoGenerated;
+                        WriteSqlTypeFromModel(sb, column, nullable || !column.IsDataSourceNotNull);
+                        var withDefault = !nullable && column.IsDataSourceNotNull && !column.IsIdentityAutoGenerated;
                         if (withDefault)
                         {
                             _ = sb.Append(" CONSTRAINT [DF_").Append(model.DataSourceEntityName).Append('_').Append(column.StoreName).Append("] DEFAULT ");
@@ -2135,13 +2139,28 @@ namespace Zerra.Repository.MsSql
                 }
                 else
                 {
-                    if (update)
+                    if (changeColumns || changeConstraints)
                     {
                         var sameType = ModelMatchesSqlType(column, sqlColumn);
                         if (!sameType)
                         {
                             if (sqlColumn.IsPrimaryKey || sqlColumn.IsAutoGenerated || sqlColumn.IsPrimaryKey != column.IsIdentity || sqlColumn.IsAutoGenerated != column.IsIdentityAutoGenerated)
                                 throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MsSqlEngine)} cannot automatically change column with a Primary Key or Identity {model.Type.Name}.{column.Name}");
+
+                            var nullable = !column.IsDataSourceNotNull;
+                            var typeMatches = ModelMatchesSqlType(column, sqlColumn.WithNullable(nullable));
+                            if (!typeMatches && !ModelRelatesToSqlType(column, sqlColumn))
+                                throw new InvalidOperationException($"{nameof(MsSqlEngine)} cannot change {model.Type.Name}.{column.Name} from {sqlColumn.DataType} to an unrelated type, add a new column and move the data instead");
+
+                            //columns alone only widen a type and allow nulls, changes that never fail on the rows
+                            if (!changeConstraints)
+                            {
+                                if (!typeMatches && !ModelWidensSqlType(column, sqlColumn))
+                                    continue;
+                                nullable = nullable || sqlColumn.IsNullable;
+                                if (typeMatches && nullable == sqlColumn.IsNullable)
+                                    continue;
+                            }
 
                             var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == model.DataSourceEntityName && x.PK_Column == column.Name) || (x.FK_Table == model.DataSourceEntityName && x.FK_Column == column.Name)).ToArray();
                             if (theseSqlConstraints.Length > 0)
@@ -2165,62 +2184,146 @@ namespace Zerra.Repository.MsSql
                                 _ = sb.Clear();
                             }
 
+                            var putBack = new List<string>();
+                            DropColumnDependents(sql, putBack, model.DataSourceEntityName, column.StoreName);
+
                             _ = sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] ALTER COLUMN [").Append(column.StoreName).Append("] ");
-                            WriteSqlTypeFromModel(sb, column);
+                            WriteSqlTypeFromModel(sb, column, nullable);
                             sql.Add(sb.ToString());
                             _ = sb.Clear();
+                            sql.AddRange(putBack);
                         }
                     }
                 }
             }
 
-            if (delete)
+            if (dropColumns || changeColumns)
             {
-                //columns not in model
+                //columns not in model, a column has a row for each key it is in
+                var droppedColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var sqlColumn in sqlColumns.Where(x => x.Table == model.DataSourceEntityName))
                 {
                     var column = columns.FirstOrDefault(x => x.StoreName == sqlColumn.Column);
-                    if (column is null)
+                    if (column is not null || !droppedColumns.Add(sqlColumn.Column))
+                        continue;
+
+                    if (!dropColumns)
                     {
-                        var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == sqlColumn.Table && x.PK_Column == sqlColumn.Column) || (x.FK_Table == sqlColumn.Table && x.FK_Column == sqlColumn.Column)).ToArray();
-                        if (theseSqlConstraints.Length > 0)
+                        //kept until dropped, nullable so the code without it can write the table
+                        if (sqlColumn.IsNullable)
+                            continue;
+                        if (sqlColumns.Any(x => x.Table == sqlColumn.Table && x.Column == sqlColumn.Column && (x.IsPrimaryKey || x.IsAutoGenerated)))
+                            throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MsSqlEngine)} needs to make {sqlColumn.Table}.{sqlColumn.Column} nullable but cannot automatically change column with a Primary Key or Identity");
+
+                        foreach (var sqlConstraint in sqlConstraints.Where(x => (x.PK_Table == sqlColumn.Table && x.PK_Column == sqlColumn.Column) || (x.FK_Table == sqlColumn.Table && x.FK_Column == sqlColumn.Column)))
                         {
-                            foreach (var sqlConstraint in theseSqlConstraints)
-                            {
-                                if (!droppedConstraints.Add(sqlConstraint.FK_Name))
-                                    continue;
-                                _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
-                                sql.Add(sb.ToString());
-                                _ = sb.Clear();
-                            }
-                        }
-
-                        if (!sqlColumn.IsNullable)
-                        {
-                            if (sqlColumn.IsPrimaryKey || sqlColumn.IsAutoGenerated)
-                                throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MsSqlEngine)} needs to make {sqlColumn.Table}.{sqlColumn.Column} nullable but cannot automatically change column with a Primary Key or Identity");
-
-                            foreach (var sqlIndex in sqlIndexes)
-                            {
-                                if (!sqlIndex.Columns.Contains(sqlColumn.Column, StringComparer.OrdinalIgnoreCase) || !droppedIndexes.Add(sqlIndex))
-                                    continue;
-                                _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON [").Append(model.DataSourceEntityName).Append(']');
-                                sql.Add(sb.ToString());
-                                _ = sb.Clear();
-                            }
-
-                            _ = sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] ALTER COLUMN [").Append(sqlColumn.Column).Append("] ");
-                            WriteSqlTypeFromColumn(sb, sqlColumn);
-                            _ = sb.Append(" NULL");
+                            if (!droppedConstraints.Add(sqlConstraint.FK_Name))
+                                continue;
+                            _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
                             sql.Add(sb.ToString());
                             _ = sb.Clear();
                         }
+
+                        foreach (var sqlIndex in sqlIndexes)
+                        {
+                            if (!sqlIndex.Columns.Contains(sqlColumn.Column, StringComparer.OrdinalIgnoreCase) || !droppedIndexes.Add(sqlIndex))
+                                continue;
+                            _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON [").Append(model.DataSourceEntityName).Append(']');
+                            sql.Add(sb.ToString());
+                            _ = sb.Clear();
+                        }
+
+                        var putBack = new List<string>();
+                        DropColumnDependents(sql, putBack, model.DataSourceEntityName, sqlColumn.Column);
+
+                        _ = sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] ALTER COLUMN [").Append(sqlColumn.Column).Append("] ");
+                        WriteSqlTypeFromColumn(sb, sqlColumn);
+                        _ = sb.Append(" NULL");
+                        sql.Add(sb.ToString());
+                        _ = sb.Clear();
+                        sql.AddRange(putBack);
+                        continue;
                     }
+
+                    if (sqlColumns.Any(x => x.Table == sqlColumn.Table && x.Column == sqlColumn.Column && x.IsPrimaryKey))
+                        throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(MsSqlEngine)} cannot automatically drop {sqlColumn.Table}.{sqlColumn.Column} in the Primary Key");
+
+                    var theseSqlConstraints = sqlConstraints.Where(x => (x.PK_Table == sqlColumn.Table && x.PK_Column == sqlColumn.Column) || (x.FK_Table == sqlColumn.Table && x.FK_Column == sqlColumn.Column)).ToArray();
+                    foreach (var sqlConstraint in theseSqlConstraints)
+                    {
+                        if (!droppedConstraints.Add(sqlConstraint.FK_Name))
+                            continue;
+                        _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
+                        sql.Add(sb.ToString());
+                        _ = sb.Clear();
+                    }
+
+                    foreach (var sqlIndex in sqlIndexes)
+                    {
+                        if (!sqlIndex.Columns.Contains(sqlColumn.Column, StringComparer.OrdinalIgnoreCase) || !droppedIndexes.Add(sqlIndex))
+                            continue;
+                        _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON [").Append(model.DataSourceEntityName).Append(']');
+                        sql.Add(sb.ToString());
+                        _ = sb.Clear();
+                    }
+
+                    DropColumnDependents(sql, null, model.DataSourceEntityName, sqlColumn.Column);
+
+                    _ = sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] DROP COLUMN [").Append(sqlColumn.Column).Append(']');
+                    sql.Add(sb.ToString());
+                    _ = sb.Clear();
                 }
             }
         }
 
-        private void AssureConstraints(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints)
+        //SQL Server won't alter or drop a column that defaults, check and unique constraints, or statistics made outside the model depend on, these are dropped first and put back after an alter
+        private void DropColumnDependents(List<string> sql, List<string>? putBack, string table, string column)
+        {
+            var objectID = $"OBJECT_ID('[{table}]')";
+            //SQL Server writes the columns in a definition bracketed
+            var inDefinition = $"'%[[]{column.Replace("_", "[_]")}]%'";
+
+            foreach (var computed in ExecuteSqlQuery($"SELECT C.name FROM sys.computed_columns C WHERE C.object_id = {objectID} AND C.definition LIKE {inDefinition}"))
+                throw new InvalidOperationException($"{nameof(MsSqlEngine)} cannot change {table}.{column} while the computed column {computed} uses it");
+
+            foreach (var row in ExecuteSqlQuery($"SELECT DC.name, DC.definition FROM sys.default_constraints DC JOIN sys.columns C ON C.object_id = DC.parent_object_id AND C.column_id = DC.parent_column_id WHERE DC.parent_object_id = {objectID} AND C.name = '{column}'").Select(x => (IList<object>)x))
+            {
+                sql.Add($"ALTER TABLE [{table}] DROP CONSTRAINT [{row[0]}]");
+                putBack?.Add($"ALTER TABLE [{table}] ADD CONSTRAINT [{row[0]}] DEFAULT {row[1]} FOR [{column}]");
+            }
+
+            foreach (var row in ExecuteSqlQuery($"SELECT CC.name, CC.definition FROM sys.check_constraints CC WHERE CC.parent_object_id = {objectID} AND CC.definition LIKE {inDefinition}").Select(x => (IList<object>)x))
+            {
+                sql.Add($"ALTER TABLE [{table}] DROP CONSTRAINT [{row[0]}]");
+                putBack?.Add($"ALTER TABLE [{table}] WITH CHECK ADD CONSTRAINT [{row[0]}] CHECK {row[1]}");
+            }
+
+            var uniqueQuery = $@"SELECT I.name, C.name, IC.is_descending_key, CAST(CASE WHEN I.type = 1 THEN 1 ELSE 0 END AS bit)
+FROM sys.indexes I
+JOIN sys.index_columns IC ON IC.object_id = I.object_id AND IC.index_id = I.index_id
+JOIN sys.columns C ON C.object_id = IC.object_id AND C.column_id = IC.column_id
+WHERE I.object_id = {objectID} AND I.is_unique_constraint = 1 AND I.index_id IN (SELECT IC2.index_id FROM sys.index_columns IC2 JOIN sys.columns C2 ON C2.object_id = IC2.object_id AND C2.column_id = IC2.column_id WHERE IC2.object_id = {objectID} AND C2.name = '{column}')
+ORDER BY I.name, IC.key_ordinal";
+            foreach (var unique in ExecuteSqlQuery(uniqueQuery).Select(x => (IList<object>)x).GroupBy(x => (string)x[0]))
+            {
+                sql.Add($"ALTER TABLE [{table}] DROP CONSTRAINT [{unique.Key}]");
+                putBack?.Add($"ALTER TABLE [{table}] ADD CONSTRAINT [{unique.Key}] UNIQUE {((bool)unique.First()[3] ? "CLUSTERED" : "NONCLUSTERED")} ({String.Join(", ", unique.Select(x => $"[{x[1]}] {((bool)x[2] ? "DESC" : "ASC")}"))})");
+            }
+
+            var statisticsQuery = $@"SELECT S.name, C.name
+FROM sys.stats S
+JOIN sys.stats_columns SC ON SC.object_id = S.object_id AND SC.stats_id = S.stats_id
+JOIN sys.columns C ON C.object_id = SC.object_id AND C.column_id = SC.column_id
+WHERE S.object_id = {objectID} AND S.user_created = 1 AND S.stats_id IN (SELECT SC2.stats_id FROM sys.stats_columns SC2 JOIN sys.columns C2 ON C2.object_id = SC2.object_id AND C2.column_id = SC2.column_id WHERE SC2.object_id = {objectID} AND C2.name = '{column}')
+ORDER BY S.name, SC.stats_column_id";
+            foreach (var statistics in ExecuteSqlQuery(statisticsQuery).Select(x => (IList<object>)x).GroupBy(x => (string)x[0]))
+            {
+                sql.Add($"DROP STATISTICS [{table}].[{statistics.Key}]");
+                putBack?.Add($"CREATE STATISTICS [{statistics.Key}] ON [{table}]({String.Join(", ", statistics.Select(x => $"[{x[1]}]"))})");
+            }
+        }
+
+        private void AssureConstraints(bool changeColumns, bool changeConstraints, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints)
         {
             var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).Distinct(StringComparer.OrdinalIgnoreCase).ToDictionary(x => x, x => 0, StringComparer.OrdinalIgnoreCase);
 
@@ -2255,7 +2358,8 @@ namespace Zerra.Repository.MsSql
                 var sqlConstraint = constraintColumns?[0];
                 if (sqlConstraint is null || droppedConstraints.Contains(sqlConstraint.FK_Name))
                 {
-                    if (create)
+                    //a new foreign key can fail on the rows, one put back after changing its column can't
+                    if (sqlConstraint is null ? changeConstraints : changeColumns || changeConstraints)
                     {
                         var baseConstraintName = $"FK_{fkTable}_{pkTable}";
                         string constraintName;
@@ -2290,10 +2394,10 @@ namespace Zerra.Repository.MsSql
                 }
             }
 
-            if (delete)
+            if (changeColumns || changeConstraints)
             {
                 //foreign keys not in model
-                foreach (var sqlConstraint in sqlConstraints.Where(x => x.FK_Table == fkTable).GroupBy(x => x.FK_Name).Select(x => x.First()))
+                foreach (var sqlConstraint in sqlConstraints.Where(x => String.Equals(x.FK_Table, fkTable, StringComparison.OrdinalIgnoreCase)).GroupBy(x => x.FK_Name).Select(x => x.First()))
                 {
                     if (!usedSqlConstraints.Any(x => x.FK_Name == sqlConstraint.FK_Name) && !droppedConstraints.Contains(sqlConstraint.FK_Name))
                     {
@@ -2305,8 +2409,11 @@ namespace Zerra.Repository.MsSql
             }
         }
 
-        private void AssureIndexes(bool create, bool update, bool delete, List<string> sql, ModelDetail model, SqlIndex[] sqlIndexes, HashSet<SqlIndex> droppedIndexes)
+        private void AssureIndexes(bool changeColumns, bool changeConstraints, List<string> sql, ModelDetail model, SqlIndex[] sqlIndexes, HashSet<SqlIndex> droppedIndexes)
         {
+            if (!changeColumns && !changeConstraints)
+                return;
+
             var sb = new StringBuilder();
 
             var usedSqlIndexes = new List<SqlIndex>();
@@ -2314,13 +2421,13 @@ namespace Zerra.Repository.MsSql
             {
                 var hasFilter = index.IsUnique && index.Members.Any(x => !x.IsDataSourceNotNull);
                 var sqlIndex = sqlIndexes.FirstOrDefault(x => String.Equals(x.Name, index.StoreName, StringComparison.OrdinalIgnoreCase));
+                var matches = sqlIndex is not null && sqlIndex.IsUnique == index.IsUnique && !sqlIndex.IsClustered && (sqlIndex.FilterDefinition is not null) == hasFilter && sqlIndex.Columns.Count == index.Members.Count;
+                for (var i = 0; matches && i < index.Members.Count; i++)
+                    matches = String.Equals(sqlIndex!.Columns[i], index.Members[i].StoreName, StringComparison.OrdinalIgnoreCase) && sqlIndex.Descending[i] == index.Descending[i];
                 if (sqlIndex is not null && !droppedIndexes.Contains(sqlIndex))
                 {
                     usedSqlIndexes.Add(sqlIndex);
-                    var matches = sqlIndex.IsUnique == index.IsUnique && !sqlIndex.IsClustered && (sqlIndex.FilterDefinition is not null) == hasFilter && sqlIndex.Columns.Count == index.Members.Count;
-                    for (var i = 0; matches && i < index.Members.Count; i++)
-                        matches = String.Equals(sqlIndex.Columns[i], index.Members[i].StoreName, StringComparison.OrdinalIgnoreCase) && sqlIndex.Descending[i] == index.Descending[i];
-                    if (matches || !update)
+                    if (matches)
                         continue;
 
                     _ = droppedIndexes.Add(sqlIndex);
@@ -2328,10 +2435,10 @@ namespace Zerra.Repository.MsSql
                     sql.Add(sb.ToString());
                     _ = sb.Clear();
                 }
-                else if (sqlIndex is null && !create)
-                {
+
+                //a new unique index can fail on the rows, one put back after changing a column can't
+                if (index.IsUnique && !matches && !changeConstraints)
                     continue;
-                }
 
                 _ = sb.Append(index.IsUnique ? "CREATE UNIQUE NONCLUSTERED INDEX [" : "CREATE NONCLUSTERED INDEX [").Append(index.StoreName).Append("] ON [").Append(model.DataSourceEntityName).Append("](");
                 for (var i = 0; i < index.Members.Count; i++)
@@ -2357,38 +2464,14 @@ namespace Zerra.Repository.MsSql
                 _ = sb.Clear();
             }
 
-            if (delete)
+            //indexes not in model
+            foreach (var sqlIndex in sqlIndexes)
             {
-                //indexes not in model
-                foreach (var sqlIndex in sqlIndexes)
-                {
-                    if (usedSqlIndexes.Contains(sqlIndex) || !droppedIndexes.Add(sqlIndex))
-                        continue;
-                    _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON [").Append(model.DataSourceEntityName).Append(']');
-                    sql.Add(sb.ToString());
-                    _ = sb.Clear();
-                }
-            }
-            else
-            {
-                //indexes not in model that were dropped to alter a column
-                foreach (var sqlIndex in sqlIndexes)
-                {
-                    if (usedSqlIndexes.Contains(sqlIndex) || !droppedIndexes.Contains(sqlIndex) || model.Indexes.Any(x => String.Equals(x.StoreName, sqlIndex.Name, StringComparison.OrdinalIgnoreCase)))
-                        continue;
-                    _ = sb.Append(sqlIndex.IsUnique ? "CREATE UNIQUE " : "CREATE ").Append(sqlIndex.IsClustered ? "CLUSTERED INDEX [" : "NONCLUSTERED INDEX [").Append(sqlIndex.Name).Append("] ON [").Append(model.DataSourceEntityName).Append("](");
-                    for (var i = 0; i < sqlIndex.Columns.Count; i++)
-                    {
-                        if (i > 0)
-                            _ = sb.Append(", ");
-                        _ = sb.Append('[').Append(sqlIndex.Columns[i]).Append(sqlIndex.Descending[i] ? "] DESC" : "] ASC");
-                    }
-                    _ = sb.Append(')');
-                    if (sqlIndex.FilterDefinition is not null)
-                        _ = sb.Append(" WHERE ").Append(sqlIndex.FilterDefinition);
-                    sql.Add(sb.ToString());
-                    _ = sb.Clear();
-                }
+                if (usedSqlIndexes.Contains(sqlIndex) || !droppedIndexes.Add(sqlIndex))
+                    continue;
+                _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON [").Append(model.DataSourceEntityName).Append(']');
+                sql.Add(sb.ToString());
+                _ = sb.Clear();
             }
         }
 
@@ -2397,7 +2480,9 @@ namespace Zerra.Repository.MsSql
         /// </summary>
         /// <param name="sb">The <see cref="StringBuilder"/> to write the type definition into.</param>
         /// <param name="property">The model property to derive the SQL type from.</param>
-        public static void WriteSqlTypeFromModel(StringBuilder sb, ModelMemberDetail property)
+        public static void WriteSqlTypeFromModel(StringBuilder sb, ModelMemberDetail property) => WriteSqlTypeFromModel(sb, property, !property.IsDataSourceNotNull);
+
+        private static void WriteSqlTypeFromModel(StringBuilder sb, ModelMemberDetail property, bool nullable)
         {
             var canBeIdentity = false;
             if (property.ColumnCoreType.HasValue)
@@ -2504,7 +2589,7 @@ namespace Zerra.Repository.MsSql
                     _ = sb.Append(" Identity(1,1)");
             }
 
-            if (property.IsDataSourceNotNull) //model checks for identity not null
+            if (!nullable) //model checks for identity not null
             {
                 _ = sb.Append(" NOT NULL");
                 //if (!property.IsIdentityAutoGenerated && allowDefaults)
@@ -2689,9 +2774,122 @@ namespace Zerra.Repository.MsSql
             }
 
             if (property.Type == typeof(byte[]))
-                return sqlColumn.DataType == "varbinary" && sqlColumn.IsNullable == !property.IsDataSourceNotNull;
+                return sqlColumn.DataType == "varbinary" && sqlColumn.IsNullable == !property.IsDataSourceNotNull && sqlColumn.CharacterMaximumLength == (property.DataSourcePrecisionLength ?? -1);
 
             throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} cannot match type {property.Type.Name} to an {nameof(MsSqlEngine)} type.");
+        }
+
+        //whether the column holds the same kind of value as the model, so its type can be changed in place
+        private static bool ModelRelatesToSqlType(ModelMemberDetail property, SqlColumnType sqlColumn)
+        {
+            if (property.Type == typeof(byte[]))
+                return sqlColumn.DataType is "varbinary" or "binary";
+            if (!property.ColumnCoreType.HasValue)
+                return false;
+
+            switch (property.ColumnCoreType.Value)
+            {
+                case CoreType.Boolean:
+                case CoreType.BooleanNullable:
+                    return sqlColumn.DataType == "bit";
+                case CoreType.Byte:
+                case CoreType.ByteNullable:
+                case CoreType.Int16:
+                case CoreType.Int16Nullable:
+                case CoreType.Int32:
+                case CoreType.Int32Nullable:
+                case CoreType.Int64:
+                case CoreType.Int64Nullable:
+                    return sqlColumn.DataType is "tinyint" or "smallint" or "int" or "bigint";
+                case CoreType.Single:
+                case CoreType.SingleNullable:
+                case CoreType.Double:
+                case CoreType.DoubleNullable:
+                    return sqlColumn.DataType is "real" or "float";
+                case CoreType.Decimal:
+                case CoreType.DecimalNullable:
+                    return sqlColumn.DataType is "decimal" or "numeric";
+                case CoreType.Char:
+                case CoreType.CharNullable:
+                case CoreType.String:
+                    return sqlColumn.DataType is "char" or "nchar" or "varchar" or "nvarchar";
+                case CoreType.DateTime:
+                case CoreType.DateTimeNullable:
+                case CoreType.DateOnly:
+                case CoreType.DateOnlyNullable:
+                    return sqlColumn.DataType is "date" or "datetime" or "datetime2" or "smalldatetime";
+                case CoreType.DateTimeOffset:
+                case CoreType.DateTimeOffsetNullable:
+                    return sqlColumn.DataType == "datetimeoffset";
+                case CoreType.TimeSpan:
+                case CoreType.TimeSpanNullable:
+                case CoreType.TimeOnly:
+                case CoreType.TimeOnlyNullable:
+                    return sqlColumn.DataType == "time";
+                case CoreType.Guid:
+                case CoreType.GuidNullable:
+                    return sqlColumn.DataType == "uniqueidentifier";
+                default:
+                    return false;
+            }
+        }
+
+        //whether every value the column holds fits the model's type, nullability aside
+        private static bool ModelWidensSqlType(ModelMemberDetail property, SqlColumnType sqlColumn)
+        {
+            if (sqlColumn.IsPrimaryKey != property.IsIdentity || sqlColumn.IsAutoGenerated != property.IsIdentityAutoGenerated)
+                return false;
+
+            if (property.Type == typeof(byte[]))
+            {
+                var length = property.DataSourcePrecisionLength ?? -1;
+                return sqlColumn.DataType == "varbinary" && (length == -1 || (sqlColumn.CharacterMaximumLength.HasValue && sqlColumn.CharacterMaximumLength.Value != -1 && length >= sqlColumn.CharacterMaximumLength.Value));
+            }
+            if (!property.ColumnCoreType.HasValue)
+                return false;
+
+            switch (property.ColumnCoreType.Value)
+            {
+                case CoreType.Int16:
+                case CoreType.Int16Nullable:
+                    return sqlColumn.DataType == "tinyint";
+                case CoreType.Int32:
+                case CoreType.Int32Nullable:
+                    return sqlColumn.DataType == "tinyint" || sqlColumn.DataType == "smallint";
+                case CoreType.Int64:
+                case CoreType.Int64Nullable:
+                    return sqlColumn.DataType == "tinyint" || sqlColumn.DataType == "smallint" || sqlColumn.DataType == "int";
+                case CoreType.Double:
+                case CoreType.DoubleNullable:
+                    return sqlColumn.DataType == "real";
+                case CoreType.Decimal:
+                case CoreType.DecimalNullable:
+                    {
+                        var precision = property.DataSourcePrecisionLength ?? 19;
+                        var scale = property.DataSourceScale ?? 5;
+                        return sqlColumn.DataType == "decimal" && scale >= (sqlColumn.NumericScale ?? 0) && precision - scale >= (sqlColumn.NumericPrecision ?? 0) - (sqlColumn.NumericScale ?? 0);
+                    }
+                case CoreType.DateTime:
+                case CoreType.DateTimeNullable:
+                    return property.DatePart == StoreDatePart.DateTime && property.DataSourcePrecisionLength.HasValue && ((sqlColumn.DataType == "datetime2" && property.DataSourcePrecisionLength.Value >= (sqlColumn.DatetimePrecision ?? 7)) || (sqlColumn.DataType == "datetime" && property.DataSourcePrecisionLength.Value >= 3));
+                case CoreType.DateTimeOffset:
+                case CoreType.DateTimeOffsetNullable:
+                    return sqlColumn.DataType == "datetimeoffset" && (property.DataSourcePrecisionLength ?? 7) >= (sqlColumn.DatetimePrecision ?? 7);
+                case CoreType.TimeSpan:
+                case CoreType.TimeSpanNullable:
+                case CoreType.TimeOnly:
+                case CoreType.TimeOnlyNullable:
+                    return sqlColumn.DataType == "time" && (property.DataSourcePrecisionLength ?? 7) >= (sqlColumn.DatetimePrecision ?? 7);
+                case CoreType.String:
+                    {
+                        if (sqlColumn.DataType != "varchar" && (sqlColumn.DataType != "nvarchar" || property.TextEncoding == StoreTextEncoding.NonUnicode))
+                            return false;
+                        var length = property.DataSourcePrecisionLength ?? -1;
+                        return length == -1 || (sqlColumn.CharacterMaximumLength.HasValue && sqlColumn.CharacterMaximumLength.Value != -1 && length >= sqlColumn.CharacterMaximumLength.Value);
+                    }
+                default:
+                    return false;
+            }
         }
         private SqlColumnType[] GetSqlColumns(ModelDetail model)
         {

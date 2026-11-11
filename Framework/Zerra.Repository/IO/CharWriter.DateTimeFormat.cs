@@ -18,7 +18,9 @@ namespace Zerra.Repository.IO
             /// <summary>MySQL datetime literal, e.g. <c>yyyy-MM-dd HH:mm:ss.ffffff</c>, converted to UTC.</summary>
             MySql,
             /// <summary>PostgreSQL timestamp literal, e.g. <c>yyyy-MM-dd HH:mm:ss.ffffff</c>, converted to UTC.</summary>
-            PostgreSql
+            PostgreSql,
+            /// <summary>Microsoft SQL Server datetime2 literal, e.g. <c>yyyy-MM-dd HH:mm:ss.fffffff</c>, converted to UTC. A <c>datetime</c> column refuses more than three fractional digits.</summary>
+            MsSqlDateTime2
         }
     }
 }

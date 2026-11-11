@@ -1314,6 +1314,10 @@ namespace Zerra.Repository.MsSql
             _ = context.MemberContext.OperatorStack.Pop();
         }
 
+        //a date with a precision is a datetime2 column, without one a datetime, as the column was created
+        private static bool IsDateTime2(ModelMemberDetail? column)
+            => column is not null && column.CoreType is CoreType.DateTime or CoreType.DateTimeNullable && column.DatePart == StoreDatePart.DateTime && column.DataSourcePrecisionLength.HasValue;
+
         /// <inheritdoc/>
         protected override void ConvertToSqlValueRender(Type type, object? value, ref CharWriter sb, BuilderContext context)
         {
@@ -1350,16 +1354,29 @@ namespace Zerra.Repository.MsSql
                     case CoreType.UInt64: parameter = (decimal)(ulong)value; break;
                     case CoreType.Char: parameter = ((char)value).ToString(); break;
                     case CoreType.DateTime:
-                        //as the text written in the statement, which converts to the column's datetime, datetime2, or date as before
-                        var writer = new CharWriter();
-                        try
                         {
-                            writer.Write((DateTime)value, CharWriter.DateTimeFormat.MsSql);
-                            parameter = writer.ToString();
-                        }
-                        finally
-                        {
-                            writer.Dispose();
+                            //as text, which datetime and date columns convert from as the value saved did, a datetime2 column's every digit cast to its precision since text compares as datetime2(7) and datetime refuses more than three digits
+                            var column = context.MemberContext.ValueColumn;
+                            var dateTime2 = IsDateTime2(column);
+                            var writer = new CharWriter();
+                            try
+                            {
+                                writer.Write((DateTime)value, dateTime2 ? CharWriter.DateTimeFormat.MsSqlDateTime2 : CharWriter.DateTimeFormat.MsSql);
+                                parameter = writer.ToString();
+                            }
+                            finally
+                            {
+                                writer.Dispose();
+                            }
+                            if (dateTime2)
+                            {
+                                sb.Write("CAST(");
+                                WriteParameter(parameter, ref sb, parameters);
+                                sb.Write(" AS datetime2(");
+                                sb.Write(column!.DataSourcePrecisionLength!.Value);
+                                sb.Write("))");
+                                return;
+                            }
                         }
                         break;
                     default: parameter = value; break;
@@ -1403,9 +1420,23 @@ namespace Zerra.Repository.MsSql
                         }
                         return;
                     case CoreType.DateTime:
-                        sb.Write('\'');
-                        sb.Write((DateTime)value, CharWriter.DateTimeFormat.MsSql);
-                        sb.Write('\'');
+                        {
+                            var column = context.MemberContext.ValueColumn;
+                            if (IsDateTime2(column))
+                            {
+                                sb.Write("CAST('");
+                                sb.Write((DateTime)value, CharWriter.DateTimeFormat.MsSqlDateTime2);
+                                sb.Write("' AS datetime2(");
+                                sb.Write(column!.DataSourcePrecisionLength!.Value);
+                                sb.Write("))");
+                            }
+                            else
+                            {
+                                sb.Write('\'');
+                                sb.Write((DateTime)value, CharWriter.DateTimeFormat.MsSql);
+                                sb.Write('\'');
+                            }
+                        }
                         return;
                     case CoreType.DateTimeOffset:
                         sb.Write('\'');
@@ -1659,7 +1690,9 @@ namespace Zerra.Repository.MsSql
                 sb.Write('[');
                 sb.Write(modelDetail.GetMember(sets[i].MemberDetail.Name).StoreName);
                 sb.Write("]=");
+                operationContext.ValueColumn = modelDetail.GetMember(sets[i].MemberDetail.Name);
                 ConvertModelExpression(EnumAssigned(sets[i].Expression!, modelDetail.GetMember(sets[i].MemberDetail.Name), operationContext), sets[i].Parameter!, ref sb, rootDependant, modelDetail, operationContext);
+                operationContext.ValueColumn = null;
             }
             ConvertPersistWhere(ref sb, where, modelDetail, operationContext);
         }

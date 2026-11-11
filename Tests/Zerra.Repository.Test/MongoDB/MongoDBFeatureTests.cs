@@ -106,7 +106,7 @@ namespace Zerra.Repository.Test.MongoDB
         public Task MongoDB()
         {
             var engine = new MongoDBEngine(MongoDBTestDataContext.FeatureConnectionString);
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, [typeof(FeatureModel), typeof(DecimalIdentityModel)]);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, [typeof(FeatureModel), typeof(DecimalIdentityModel)]);
             return TestSequence(engine);
         }
 
@@ -118,7 +118,7 @@ namespace Zerra.Repository.Test.MongoDB
         public void MongoDBStoresDocuments()
         {
             var engine = new MongoDBEngine(MongoDBTestDataContext.FeatureConnectionString);
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, [typeof(CompositeModel)]);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, [typeof(CompositeModel)]);
             var repo = Repo.New();
             repo.AddProvider(new TransactStoreProvider<CompositeModel>(engine));
             _ = repo.Delete<CompositeModel>(x => x.Region >= 0);

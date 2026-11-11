@@ -17,7 +17,7 @@ namespace Zerra.Repository.Test
         {
             //the indexes of every kind come back too
             modelTypes = modelTypes.Append(typeof(StoreIndexTests.IndexModel)).ToArray();
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, [typeof(StoreIndexTests.IndexModel)]);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, [typeof(StoreIndexTests.IndexModel)]);
 
             var models = DatabaseFirstGeneration.Generate(engine, "DatabaseFirstTest", "DataModel");
 
@@ -30,7 +30,7 @@ namespace Zerra.Repository.Test
             Assert.Equal(models.Count, types.Length);
 
             var modelDetails = types.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
-            var plan = engine.BuildStoreGenerationPlan(true, true, true, modelDetails);
+            var plan = engine.BuildStoreGenerationPlan(true, true, true, true, modelDetails);
             Assert.True(plan.Plan.Count == 0, $"Schema changes planned for the generated models:{Environment.NewLine}{String.Join(Environment.NewLine, plan.Plan)}");
 
             //the relations of the test models come back in both directions

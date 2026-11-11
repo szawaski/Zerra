@@ -17,52 +17,53 @@ namespace Zerra.Repository
         /// Generates or updates the data store schema based on the provided model types and generation options.
         /// </summary>
         /// <param name="engine">The engine of the data store to generate.</param>
-        /// <param name="dataStoreGenerationType">Flags that control how schema generation is performed, including options to preview, restrict creates, updates, or deletes.</param>
+        /// <param name="mode">The changes allowed, at least one of <see cref="CodeFirstMode.CreateDataStore"/>, <see cref="CodeFirstMode.Columns"/>, <see cref="CodeFirstMode.Constraints"/>, or <see cref="CodeFirstMode.DropColumns"/>, with <see cref="CodeFirstMode.Preview"/> to only log the plan.</param>
         /// <param name="modelTypes">The model types to analyze and use for schema generation.</param>
         /// <param name="log">An optional logger for reporting generation progress and plan previews.</param>
-        public static void Generate(ITransactStoreEngine engine, DataStoreGenerationType dataStoreGenerationType, Type[] modelTypes, ILogger? log = null)
+        public static void Generate(ITransactStoreEngine engine, CodeFirstMode mode, Type[] modelTypes, ILogger? log = null)
         {
             if (engine is null)
                 throw new ArgumentNullException(nameof(engine));
-            if (dataStoreGenerationType.HasFlag(DataStoreGenerationType.CodeFirst))
+
+            var createDataStore = mode.HasFlag(CodeFirstMode.CreateDataStore);
+            var columns = mode.HasFlag(CodeFirstMode.Columns);
+            var constraints = mode.HasFlag(CodeFirstMode.Constraints);
+            var dropColumns = mode.HasFlag(CodeFirstMode.DropColumns);
+            if (!createDataStore && !columns && !constraints && !dropColumns)
+                throw new ArgumentException($"{nameof(CodeFirstMode)} needs at least one of {nameof(CodeFirstMode.CreateDataStore)}, {nameof(CodeFirstMode.Columns)}, {nameof(CodeFirstMode.Constraints)}, or {nameof(CodeFirstMode.DropColumns)}", nameof(mode));
+
+            log?.Info($"{engine.GetType().Name} Initializing {mode.EnumName()}");
+
+            var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
+            foreach (var modelDetail in modelDetails)
             {
+                if (!modelDetail.IsDataSourceEntity)
+                    throw new Exception($"{modelDetail.Type.Name} does not have an EntityAttribute");
+            }
 
-                log?.Info($"{engine.GetType().Name} Initializing {dataStoreGenerationType.EnumName()}");
+            IDataStoreGenerationPlan plan;
+            try
+            {
+                plan = engine.BuildStoreGenerationPlan(createDataStore, columns, constraints, dropColumns, modelDetails);
+            }
+            catch (Exception ex)
+            {
+                log?.Error($"{engine.GetType().Name} error while reading datastore.", ex);
+                throw;
+            }
 
-                var modelDetails = modelTypes.Select(x => ModelAnalyzer.GetModel(x)).ToArray();
-                foreach (var modelDetail in modelDetails)
-                {
-                    if (!modelDetail.IsDataSourceEntity)
-                        throw new Exception($"{modelDetail.Type.Name} does not have an EntityAttribute");
-                }
-                var create = !dataStoreGenerationType.HasFlag(DataStoreGenerationType.NoCreate);
-                var update = !dataStoreGenerationType.HasFlag(DataStoreGenerationType.NoUpdate);
-                var delete = !dataStoreGenerationType.HasFlag(DataStoreGenerationType.NoDelete);
-
-                IDataStoreGenerationPlan plan;
-                try
-                {
-                    plan = engine.BuildStoreGenerationPlan(create, update, delete, modelDetails);
-                }
-                catch (Exception ex)
-                {
-                    log?.Error($"{engine.GetType().Name} error while reading datastore.", ex);
-                    throw;
-                }
-
-                if (dataStoreGenerationType.HasFlag(DataStoreGenerationType.Preview))
-                {
-                    var sb = new StringBuilder();
-                    var steps = plan.Plan;
-                    _ = sb.AppendLine($"CodeFirst Plan Preview: {steps.Count} Steps");
-                    foreach (var step in steps)
-                        _ = sb.AppendLine(step);
-                    log?.Info(sb.ToString());
-                }
-                else
-                {
-                    plan.Execute(log);
-                }
+            if (mode.HasFlag(CodeFirstMode.Preview))
+            {
+                var sb = new StringBuilder();
+                var steps = plan.Plan;
+                _ = sb.AppendLine($"CodeFirst Plan Preview: {steps.Count} Steps");
+                foreach (var step in steps)
+                    _ = sb.AppendLine(step);
+                log?.Info(sb.ToString());
+            }
+            else
+            {
+                plan.Execute(log);
             }
         }
     }

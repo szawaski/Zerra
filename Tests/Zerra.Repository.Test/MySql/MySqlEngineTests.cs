@@ -25,6 +25,19 @@ namespace Zerra.Repository.Test.MySql
             }
         }
 
+        private static long ExecuteScalar(string connectionString, string sql)
+        {
+            using (var connection = new MySqlConnection(connectionString))
+            {
+                connection.Open();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = sql;
+                    return Convert.ToInt64(command.ExecuteScalar());
+                }
+            }
+        }
+
         private static void DropDatabase(string connectionString)
         {
             var builder = new MySqlConnectionStringBuilder(connectionString);
@@ -92,7 +105,10 @@ namespace Zerra.Repository.Test.MySql
 
             var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).Concat(BatchWriteTests.ModelTypes).Concat(CompositeRelationTests.ModelTypes).Concat(StreamTests.ModelTypes).ToArray();
 
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            //without CreateDataStore a missing database throws
+            _ = Assert.Throws<InvalidOperationException>(() => CodeFirstGeneration.Generate(engine, CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, modelTypes));
+
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, modelTypes);
             RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
             DatabaseFirstTests.TestSequence(engine, modelTypes);
 
@@ -116,15 +132,28 @@ namespace Zerra.Repository.Test.MySql
             TransactionTests.TestAcrossEngines(engine);
             TransactionTests.TestSameStore(engine, new MySqlEngine(connectionString));
             SchemaChangeTests.Test(engine, table => ExecuteSql(connectionString, $"DROP TABLE IF EXISTS `{table}`"));
+            MigrationTests.Test(engine, table => ExecuteSql(connectionString, $"DROP TABLE IF EXISTS `{table}`"));
+            DatePrecisionTests.Test(engine);
+            MigrationTests.TestKeptObjects(engine, () =>
+            {
+                _ = ExecuteSql(connectionString, "ALTER TABLE `MigrationDefaults` ALTER COLUMN `Amount` SET DEFAULT 7");
+                _ = ExecuteSql(connectionString, "ALTER TABLE `MigrationDefaults` ALTER COLUMN `Note` SET DEFAULT 'x'");
+                _ = ExecuteSql(connectionString, "ALTER TABLE `MigrationDefaults` ALTER COLUMN `Removed` SET DEFAULT 3");
+                //not in the model, so kept nullable until dropped, with its default and on update
+                _ = ExecuteSql(connectionString, "ALTER TABLE `MigrationDefaults` ADD `Stamp` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)");
+            }, () =>
+            {
+                Assert.Equal(4, ExecuteScalar(connectionString, "SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = 'migrationdefaults' AND ((COLUMN_NAME = 'Amount' AND COLUMN_DEFAULT = '7') OR (COLUMN_NAME = 'Note' AND COLUMN_DEFAULT LIKE '%x%') OR (COLUMN_NAME = 'Removed' AND COLUMN_DEFAULT = '3') OR (COLUMN_NAME = 'Stamp' AND EXTRA LIKE '%on update%'))"));
+            });
 
             const string changeColumn = "ALTER TABLE `TestTypes` MODIFY `Int32Thing` bigint NULL";
-            const string addColumn = "ALTER TABLE `TestTypes` ADD `DummyToMakeNullable` int NOT NULL";
+            const string addColumn = "ALTER TABLE `TestTypes` ADD `DummyToDrop` int NOT NULL";
             const string dropColumn = "ALTER TABLE `TestTypes` DROP COLUMN `ByteThing`";
             _ = ExecuteSql(connectionString, changeColumn);
             _ = ExecuteSql(connectionString, addColumn);
             _ = ExecuteSql(connectionString, dropColumn);
 
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, modelTypes);
             RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
 
             var sb = new StringBuilder();
@@ -141,7 +170,7 @@ namespace Zerra.Repository.Test.MySql
 
             _ = ExecuteSql(connectionString, dropAllColumns);
 
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, modelTypes);
             RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
 
             _ = sb.Clear();
@@ -163,7 +192,7 @@ namespace Zerra.Repository.Test.MySql
 
             _ = ExecuteSql(connectionString, addJunkColumns);
 
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, modelTypes);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, modelTypes);
             RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
 
             DropDatabase(connectionString);

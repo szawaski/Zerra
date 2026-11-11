@@ -31,7 +31,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         public void Setup()
         {
             var engine = new MsSqlEngine(MsSqlTestSqlDataContext.ConnectionString);
-            CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, [typeof(TestTypesModel), typeof(TestRelationsModel)]);
+            CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, [typeof(TestTypesModel), typeof(TestRelationsModel)]);
 
             var repoSetup = Repo.New();
             repoSetup.AddProvider(new TransactStoreProvider<TestTypesModel>(engine));

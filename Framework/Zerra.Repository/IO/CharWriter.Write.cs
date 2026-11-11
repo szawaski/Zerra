@@ -282,11 +282,12 @@ namespace Zerra.Repository.IO
                         break;
                     }
                 case DateTimeFormat.MsSql:
+                case DateTimeFormat.MsSqlDateTime2:
                     {
                         value = value.ToUniversalTime();
 
-                        //yyyy-MM-dd HH:mm:ss.fff
-                        EnsureBufferSize(23);
+                        //yyyy-MM-dd HH:mm:ss.fff or yyyy-MM-dd HH:mm:ss.fffffff
+                        EnsureBufferSize(27);
 
                         if (value.Year < 10)
                             buffer[position++] = '0';
@@ -322,17 +323,33 @@ namespace Zerra.Repository.IO
                             buffer[position++] = '0';
                         Write(value.Second);
 
-                        var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10000;
-                        if (fraction > 0)
+                        if (format == DateTimeFormat.MsSql)
                         {
-                            buffer[position++] = '.';
-                            if (fraction < 10)
-                                buffer[position++] = '0';
-                            if (fraction < 100)
-                                buffer[position++] = '0';
-                            while (fraction % 10 == 0)
-                                fraction /= 10;
-                            Write(fraction);
+                            var fraction = (value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000) / 10000;
+                            if (fraction > 0)
+                            {
+                                buffer[position++] = '.';
+                                if (fraction < 10)
+                                    buffer[position++] = '0';
+                                if (fraction < 100)
+                                    buffer[position++] = '0';
+                                while (fraction % 10 == 0)
+                                    fraction /= 10;
+                                Write(fraction);
+                            }
+                        }
+                        else
+                        {
+                            var fraction = value.TimeOfDay.Ticks - (value.TimeOfDay.Ticks / 10000000) * 10000000;
+                            if (fraction > 0)
+                            {
+                                buffer[position++] = '.';
+                                for (var digit = 1000000; digit > 1 && fraction < digit; digit /= 10)
+                                    buffer[position++] = '0';
+                                while (fraction % 10 == 0)
+                                    fraction /= 10;
+                                Write(fraction);
+                            }
                         }
 
                         break;

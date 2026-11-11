@@ -27,7 +27,7 @@ repo.AddProvider(new TransactStoreProvider<OrderDataModel>(engine));
 The engine doesn't connect until it's used. Create the schema at startup with Code First generation:
 
 ```csharp
-CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, [typeof(OrderDataModel)], log);
+CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints, [typeof(OrderDataModel)], log);
 ```
 
 For an existing database, write the models from its tables instead:

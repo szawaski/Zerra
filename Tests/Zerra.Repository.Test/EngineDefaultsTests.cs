@@ -50,7 +50,7 @@ namespace Zerra.Repository.Test
             public Task<int> ExecuteUpdateWhereAsync<TModel>(TModel model, Graph graph, LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new() => inner.ExecuteUpdateWhereAsync(model, graph, where, modelDetail, cancellationToken);
             public Task<int> ExecuteUpdateWhereAsync<TModel>(LambdaExpression set, LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new() => inner.ExecuteUpdateWhereAsync<TModel>(set, where, modelDetail, cancellationToken);
             public Task<int> ExecuteDeleteWhereAsync<TModel>(LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new() => inner.ExecuteDeleteWhereAsync<TModel>(where, modelDetail, cancellationToken);
-            public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetail) => inner.BuildStoreGenerationPlan(create, update, delete, modelDetail);
+            public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool createDataStore, bool columns, bool constraints, bool dropColumns, ICollection<ModelDetail> modelDetail) => inner.BuildStoreGenerationPlan(createDataStore, columns, constraints, dropColumns, modelDetail);
         }
 
         [Fact]

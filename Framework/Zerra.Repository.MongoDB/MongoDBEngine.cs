@@ -931,9 +931,12 @@ namespace Zerra.Repository.MongoDB
         }
 
         /// <inheritdoc />
-        public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool create, bool update, bool delete, ICollection<ModelDetail> modelDetails)
+        public IDataStoreGenerationPlan BuildStoreGenerationPlan(bool createDataStore, bool columns, bool constraints, bool dropColumns, ICollection<ModelDetail> modelDetails)
         {
             var steps = new List<MongoDBDataStoreGenerationPlan.Step>();
+            if (!columns && !constraints)
+                return new MongoDBDataStoreGenerationPlan(steps);
+
             var existing = new HashSet<string>(database.ListCollectionNames().ToList());
             foreach (var model in modelDetails)
             {
@@ -941,7 +944,7 @@ namespace Zerra.Repository.MongoDB
                 var exists = existing.Contains(name);
                 if (!exists)
                 {
-                    if (!create)
+                    if (!columns)
                         continue;
                     steps.Add(new($"Create Collection {name}", () => database.CreateCollection(name)));
                 }
@@ -989,22 +992,21 @@ namespace Zerra.Repository.MongoDB
                     {
                         var same = found["key"].Equals(index.Value["key"]) && (found.TryGetValue("unique", out var unique) && unique.ToBoolean()) == index.Value["unique"].AsBoolean
                             && Equals(found.GetValue("partialFilterExpression", BsonNull.Value), index.Value.GetValue("partialFilterExpression", BsonNull.Value));
-                        if (same || !update)
+                        if (same)
                             continue;
                         steps.Add(new($"Drop Index {index.Key} on {name}", () => Collection(name).Indexes.DropOne(index.Key)));
                     }
-                    else if (!(exists ? create || update : create))
-                    {
+                    //a new unique index can fail on the documents
+                    if (index.Value["unique"].AsBoolean && !constraints)
                         continue;
-                    }
                     var keys = index.Value["key"].AsBsonDocument;
                     var options = new CreateIndexOptions<BsonDocument> { Name = index.Key, Unique = index.Value["unique"].AsBoolean };
                     if (index.Value.TryGetValue("partialFilterExpression", out var filter))
                         options.PartialFilterExpression = filter.AsBsonDocument;
                     steps.Add(new($"Create Index {index.Key} on {name} {keys}", () => Collection(name).Indexes.CreateOne(new CreateIndexModel<BsonDocument>(keys, options))));
                 }
-                //a member that can't be null, added to a collection with documents, is given the type's default in them, as SQL fills a new column
-                if (exists && (create || update))
+                //a member that can't be null is missing from documents written before it, filled with the type's default when added with constraints as SQL fills a new column, otherwise it fails as SQL does on a null
+                if (exists && constraints)
                 {
                     foreach (var member in model.Members)
                     {
@@ -1014,18 +1016,20 @@ namespace Zerra.Repository.MongoDB
                         var missing = new BsonDocument(field, new BsonDocument("$exists", false));
                         if (Collection(name).CountDocuments(missing, new CountOptions { Limit = 1 }) == 0)
                             continue;
+                        if (!columns)
+                        {
+                            steps.Add(new($"Check {field} on {name} is in every document", () => throw new InvalidOperationException($"{nameof(MongoDBEngine)} {name} has documents without {field}, which can't be null")));
+                            continue;
+                        }
                         var value = member.EnumType is not null ? (BsonValue)member.EnumDefaultText : member.Type == typeof(string) ? String.Empty : LinqMongoDBConverter.ToBson(member.CreatorBoxed());
                         var set = new BsonDocument("$set", new BsonDocument(field, value));
                         steps.Add(new($"Set {field} to its default on {name} where it is missing", () => Collection(name).UpdateMany(missing, set)));
                     }
                 }
-                if (delete)
+                foreach (var index in current)
                 {
-                    foreach (var index in current)
-                    {
-                        if (!indexes.ContainsKey(index.Key))
-                            steps.Add(new($"Drop Index {index.Key} on {name}", () => Collection(name).Indexes.DropOne(index.Key)));
-                    }
+                    if (!indexes.ContainsKey(index.Key))
+                        steps.Add(new($"Drop Index {index.Key} on {name}", () => Collection(name).Indexes.DropOne(index.Key)));
                 }
             }
             return new MongoDBDataStoreGenerationPlan(steps);

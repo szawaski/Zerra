@@ -80,7 +80,7 @@ public sealed class OrderDataModel
 - A model identified by several `[Identity]` members is referred to by as many foreign key members, named in the order of its identities: `[Relation(nameof(Region), nameof(OrderNumber))]`. It works wherever a relation does, and code first generation adds a foreign key constraint of all its columns.
 - Without a precision, PostgreSQL, MySQL, and MariaDB store date and time columns to the microsecond, and SQL Server stores `DateTime` as `datetime` (about 3 ms). Set `[StoreProperties(notNull, precision)]` to choose.
 - An enum is stored as text: its name, or the text from `[EnumName]`. The column is as long as the longest name unless `[StoreProperties]` sets a length, so an enum can be indexed. A value the enum doesn't name can't be saved.
-- `[StoreIndex]` indexes a column in the SQL engines; the in-memory and KurrentDB engines ignore it. Members with the same `[StoreIndex("Name")]` form one combined index, ordered by `Order` and then by declaration. `Unique = true` allows any number of rows with a null in the index. Indexed strings and `byte[]` need a length from `[StoreProperties]`. Without `NoDelete`, code first generation drops indexes that aren't in the model, except primary keys, unique constraints, and the indexes MySQL and MariaDB keep for foreign keys.
+- `[StoreIndex]` indexes a column in the SQL engines; the in-memory and KurrentDB engines ignore it. Members with the same `[StoreIndex("Name")]` form one combined index, ordered by `Order` and then by declaration. `Unique = true` allows any number of rows with a null in the index. Indexed strings and `byte[]` need a length from `[StoreProperties]`. With `CodeFirstMode.Columns` or `Constraints`, code first generation drops indexes that aren't in the model, except primary keys, unique constraints, and the indexes MySQL and MariaDB keep for foreign keys.
 
 ## Setup
 
@@ -341,7 +341,7 @@ Aggregate events are the aggregate's state, not bus messages: they never impleme
 - Relations on the same engine read in one pipeline with `$lookup`. Relations on other engines work as they do for SQL.
 - It works in a native AOT build. The MongoDB driver warns about trimming when you publish; the engine registers the serializers the driver would otherwise create by reflection.
 - Transactions need a replica set or a sharded cluster. A single server can be a one-member replica set, as `Demo/Infrastructure` runs it.
-- Code first generation creates the collections and the `[StoreIndex]` indexes. It also sets a default on documents missing a member that can't be null.
+- Code first generation creates the collections and the `[StoreIndex]` indexes. With `Columns` and `Constraints` together it also sets a default on documents missing a member that can't be null, and `Constraints` alone fails on them, as SQL does on a null.
 - Set operations, joins of two queries, and operators by position (`Zip`, `TakeWhile`, `SkipLast`, and the like) run in one pipeline, the second query read with `$unionWith` or `$lookup`.
 
 ## See Also

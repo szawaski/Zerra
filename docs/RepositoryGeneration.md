@@ -53,18 +53,40 @@ public sealed class PetDataModel
 ### 2. Generate at Startup
 
 ```csharp
-CodeFirstGeneration.Generate(engine, DataStoreGenerationType.CodeFirst, [typeof(PetTypeDataModel), typeof(PetDataModel)], log);
+CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints, [typeof(PetTypeDataModel), typeof(PetDataModel)], log);
 ```
 
-| `DataStoreGenerationType` | Does |
+| `CodeFirstMode` | Does |
 |---|---|
-| `CodeFirst` | applies the changes |
+| `CreateDataStore` | creates the database when it doesn't exist |
+| `Columns` | creates tables, adds columns, widens columns, allows nulls where the models do, adds indexes that aren't unique, and drops the indexes and foreign keys the models no longer have |
+| `Constraints` | makes columns NOT NULL, narrows their types, and adds unique indexes and foreign keys |
+| `DropColumns` | drops the columns the models no longer have, and their data |
 | `Preview` | logs the plan without applying it |
-| `NoCreate` | skips new tables and columns |
-| `NoUpdate` | skips changes to existing ones |
-| `NoDelete` | skips dropping removed tables, columns, and indexes |
 
-Combine them, such as `CodeFirst | NoDelete` to add and change but never drop.
+Nothing runs unless you name it. Pass at least one of `CreateDataStore`, `Columns`, `Constraints`, or `DropColumns`, or `Generate` throws. Without `CreateDataStore`, a missing database throws.
+
+`Columns` makes the changes that can't fail on existing rows. `Constraints` makes the ones that can, such as NOT NULL on a column that still holds nulls. Fewer decimal places or less time precision rounds the values instead of failing. Together in one call, a new NOT NULL column gets its type's default in existing rows. On MySQL and MariaDB, `Constraints` needs a strict `sql_mode`, the default, so values that don't fit fail instead of being cut.
+
+Defaults, check constraints, and statistics added to a column outside the models are kept when the column changes. Some changes aren't made:
+
+- A column changing to an unrelated type, such as text to a number, throws. Add a new column and move the data.
+- Primary key and identity columns aren't changed.
+- A renamed or removed model's table is left as it is.
+
+`DropColumns` only changes the tables of the models passed in. It never drops a table, so other services' tables in the same database are safe. Run it with `Preview` first.
+
+#### Moving Data
+
+To fill new columns from old ones, run the steps apart with your own code between them:
+
+```csharp
+CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns, modelTypes, log);
+//move the data: read with a model of the old columns, write with the new models
+CodeFirstGeneration.Generate(engine, CodeFirstMode.Constraints | CodeFirstMode.DropColumns, modelTypes, log);
+```
+
+After `Columns`, new columns are nullable and removed columns are still there but nullable, so code built on either the old or the new models can write the table. With several instances running, run the second step once none of them run the old code.
 
 ## Database First
 
