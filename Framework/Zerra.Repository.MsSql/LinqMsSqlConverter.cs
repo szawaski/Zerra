@@ -1904,7 +1904,7 @@ namespace Zerra.Repository.MsSql
                 var sql = sb.ToString();
                 if (query.Distinct && query.Terminal is LinqTerminal.Count or LinqTerminal.LongCount)
                     sql = $"SELECT COUNT(1) FROM ({sql}) AS Z";
-                return new LinqStatement(sql, plan, ConvertLinqPieces(plan, modelDetail, rootDependant, 0, ref sbWhere, ref sbEnd, paged, operationContext.Parameters), operationContext.Parameters);
+                return new LinqStatement(sql, plan, ConvertLinqPieces(plan, modelDetail, rootDependant, 0, ref sbWhere, ref sbEnd, paged, operationContext.Parameters, null, null), operationContext.Parameters);
             }
             finally
             {
@@ -1949,7 +1949,7 @@ namespace Zerra.Repository.MsSql
         }
         //each relation's rows are those of the parents the statement selects: the key they match by, selected with the statement's from, where, and when paged its order and page
         //only the key is selected, so the parent's joins are only those its where or order uses, and those stay the optimizer's choice
-        private LinqStatement[]? ConvertLinqPieces(LinqPlan plan, ModelDetail modelDetail, ParameterDependant rootDependant, int whereStart, ref CharWriter sbWhere, ref CharWriter sbEnd, bool paged, List<object> parameters)
+        private LinqStatement[]? ConvertLinqPieces(LinqPlan plan, ModelDetail modelDetail, ParameterDependant rootDependant, int whereStart, ref CharWriter sbWhere, ref CharWriter sbEnd, bool paged, List<object> parameters, LinqPiece? parent, string? parentKeys)
         {
             if (plan.Pieces.Count == 0)
                 return null;
@@ -1961,6 +1961,13 @@ namespace Zerra.Repository.MsSql
                 var sbKeys = new CharWriter();
                 try
                 {
+                    //a relation keyed by the identity a single relation was found by has the same keys to look for
+                    if (parentKeys is not null && !piece.CompositeKey && piece.ParentKeys[0].StoreName == parent!.RelatedKey.StoreName)
+                    {
+                        sbKeys.Write(parentKeys);
+                        statements[p] = ConvertLinqPiece(piece, ref sbKeys, parameters);
+                        continue;
+                    }
                     sbKeys.Write("SELECT");
                     for (var k = 0; k < piece.ParentKeys.Length; k++)
                     {
@@ -2125,7 +2132,7 @@ namespace Zerra.Repository.MsSql
                 {
                     sb.Write(sbEnd);
                 }
-                return new LinqStatement(sb.ToString(), plan, ConvertLinqPieces(plan, modelDetail, rootDependant, whereStart, ref sbWhere, ref sbEnd, false, parameters), parameters);
+                return new LinqStatement(sb.ToString(), plan, ConvertLinqPieces(plan, modelDetail, rootDependant, whereStart, ref sbWhere, ref sbEnd, false, parameters, piece, plan.Pieces.Count > 0 && piece.Single && !piece.CompositeKey && piece.Where is null && !numbered ? sbKeys.ToString() : null), parameters);
             }
             finally
             {

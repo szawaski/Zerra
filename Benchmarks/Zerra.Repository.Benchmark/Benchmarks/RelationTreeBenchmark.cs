@@ -11,10 +11,9 @@ using Zerra.Repository.Test.MsSql;
 namespace Zerra.Repository.Benchmark.Benchmarks
 {
     //a tree of relations four levels deep with lookups at two levels, read by graph, shaped like an integration's sync history
-    //the database is seeded once and kept, as seeding the tree takes longer than the benchmark
-    //run with --inProcess --warmupCount 5 --iterationCount 20, as BenchmarkDotNet doesn't yet build its own process for .NET 11
     [MemoryDiagnoser]
     [MedianColumn, MinColumn, MaxColumn]
+    [SimpleJob(warmupCount: 2, iterationCount: 5)]
     public class RelationTreeBenchmarks
     {
         private const string database = "ZerraRelationTreeBench";
@@ -37,7 +36,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
             {
                 connection.Open();
                 using var command = connection.CreateCommand();
-                command.CommandText = $"IF DB_ID('{database}') IS NULL CREATE DATABASE [{database}]";
+                command.CommandText = $"IF DB_ID('{database}') IS NOT NULL BEGIN ALTER DATABASE [{database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{database}] END; CREATE DATABASE [{database}]";
                 _ = command.ExecuteNonQuery();
             }
 
@@ -63,12 +62,8 @@ namespace Zerra.Repository.Benchmark.Benchmarks
                 connection.Open();
                 using var command = connection.CreateCommand();
                 command.CommandTimeout = 600;
-                command.CommandText = "SELECT COUNT(1) FROM[Integration].[SyncExecution]";
-                if ((int)command.ExecuteScalar()! == 0)
-                {
-                    command.CommandText = Seed;
-                    _ = command.ExecuteNonQuery();
-                }
+                command.CommandText = Seed;
+                _ = command.ExecuteNonQuery();
                 command.CommandText = $"SELECT[AlternateId] FROM[Integration].[SyncExecution] WHERE[Id]={executions / 2}";
                 executionId = (Guid)command.ExecuteScalar()!;
             }
@@ -79,20 +74,31 @@ namespace Zerra.Repository.Benchmark.Benchmarks
             var ef = (await ExecutionTree_EF())!;
             var zerraCount = $"{zerra.Sync.Id} {zerra.SyncExecutionMessages.Length} {zerra.SyncStepExecutions.Length} {zerra.SyncStepExecutions.Sum(x => x.SyncStepExecutionMessages.Length + x.SyncStepPerformances.Length + x.SyncStepExecutionParameters.Length + x.SyncStepExecutionDetails.Sum(d => d.SyncStepExecutionDetailFiles.Length))} {zerra.SyncStepExecutions.Sum(x => x.SyncStep.Id)}";
             var efCount = $"{ef.Sync.Id} {ef.SyncExecutionMessages.Count} {ef.SyncStepExecutions.Count} {ef.SyncStepExecutions.Sum(x => x.SyncStepExecutionMessages.Count + x.SyncStepPerformances.Count + x.SyncStepExecutionParameters.Count + x.SyncStepExecutionDetails.Sum(d => d.SyncStepExecutionDetailFiles.Count))} {ef.SyncStepExecutions.Sum(x => x.SyncStep.Id)}";
-            var zerraCompany = await CompanyExecutions_Zerra();
-            var efCompany = await CompanyExecutions_EF();
-            zerraCount += $" {zerraCompany.Length} {zerraCompany.Sum(x => x.SyncExecutionMessages.Length + x.SyncStepExecutions.Sum(s => s.SyncStepExecutionDetails.Length))}";
-            efCount += $" {efCompany.Count} {efCompany.Sum(x => x.SyncExecutionMessages.Count + x.SyncStepExecutions.Sum(s => s.SyncStepExecutionDetails.Count))}";
-            Console.WriteLine($"// rows read: Zerra {zerraCount}, EF {efCount}");
+            var zerraCompany = await HistoryForCompany_Zerra();
+            var efCompany = await HistoryForCompany_EF();
+            zerraCount += $" {zerraCompany.Length} {String.Join(",", zerraCompany.Take(20).Select(x => x.Id))} {zerraCompany.Sum(x => x.SyncExecutionMessages.Length + x.Sync.SyncSteps.Length + x.SyncStepExecutions.Sum(s => s.SyncStepExecutionDetails.Length))}";
+            efCount += $" {efCompany.Length} {String.Join(",", efCompany.Take(20).Select(x => x.Id))} {efCompany.Sum(x => x.SyncExecutionMessages.Count + x.Sync.SyncSteps.Count + x.SyncStepExecutions.Sum(s => s.SyncStepExecutionDetails.Count))}";
             if (zerraCount != efCount)
                 throw new Exception($"Zerra read {zerraCount}, EF read {efCount}");
+        }
+
+        [GlobalCleanup]
+        public void Cleanup()
+        {
+            SqlConnection.ClearAllPools();
+            var master = new SqlConnectionStringBuilder(MsSqlTestSqlDataContext.ConnectionString) { InitialCatalog = "master" }.ToString();
+            using var connection = new SqlConnection(master);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = $"ALTER DATABASE [{database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{database}]";
+            _ = command.ExecuteNonQuery();
         }
 
         private static string Numbers(int count) => $"WITH N AS(SELECT TOP({count}) ROW_NUMBER()OVER(ORDER BY(SELECT NULL)) AS I FROM sys.all_objects a CROSS JOIN sys.all_objects b CROSS JOIN sys.all_objects c)";
         private static readonly string Seed = $"""
             {Numbers(syncs)} INSERT INTO[Integration].[Sync]([Id],[Name],[IsEnabled]) SELECT I,CONCAT('Sync ',I),1 FROM N;
             {Numbers(syncs * stepsPerSync)} INSERT INTO[Integration].[SyncStep]([Id],[SyncId],[Name],[StepOrder]) SELECT I,(I-1)/{stepsPerSync}+1,CONCAT('Step ',I),(I-1)%{stepsPerSync}+1 FROM N;
-            {Numbers(executions)} INSERT INTO[Integration].[SyncExecution]([Id],[AlternateId],[SyncId],[CompanyId],[StartedOn],[Status]) SELECT I,NEWID(),I%{syncs}+1,I%{companies}+1,DATEADD(MINUTE,I,'2025-01-01'),'Complete' FROM N;
+            {Numbers(executions)} INSERT INTO[Integration].[SyncExecution]([Id],[AlternateId],[SyncId],[CompanyId],[StartedOn],[LastEventOn],[Status]) SELECT I,NEWID(),CASE WHEN I%97=0 THEN NULL ELSE I%{syncs}+1 END,I%{companies}+1,CASE WHEN I%10=0 THEN NULL ELSE DATEADD(MINUTE,-8*I,SYSUTCDATETIME()) END,DATEADD(MINUTE,5-8*I,SYSUTCDATETIME()),'Complete' FROM N;
             {Numbers(executions * 3)} INSERT INTO[Integration].[SyncExecutionMessage]([Id],[SyncExecutionId],[Message],[CreatedOn]) SELECT I,(I-1)/3+1,CONCAT('Execution message ',I),DATEADD(SECOND,I,'2025-01-01') FROM N;
             {Numbers(executions * stepsPerSync)} INSERT INTO[Integration].[SyncStepExecution]([Id],[SyncExecutionId],[SyncStepId],[StartedOn],[Status]) SELECT I,(I-1)/{stepsPerSync}+1,(((I-1)/{stepsPerSync}+1)%{syncs})*{stepsPerSync}+(I-1)%{stepsPerSync}+1,DATEADD(SECOND,I,'2025-01-01'),'Complete' FROM N;
             {Numbers(executions * stepsPerSync * 2)} INSERT INTO[Integration].[SyncStepExecutionMessage]([Id],[SyncStepExecutionId],[Message]) SELECT I,(I-1)/2+1,CONCAT('Step message ',I) FROM N;
@@ -114,8 +120,9 @@ namespace Zerra.Repository.Benchmark.Benchmarks
 
         private static Graph<TreeSyncExecution> CompanyGraph()
         {
-            var steps = new Graph<TreeSyncStepExecution>(true, x => x.SyncStep, x => x.SyncStepExecutionDetails);
-            var graph = new Graph<TreeSyncExecution>(true, x => x.Sync, x => x.SyncExecutionMessages);
+            var steps = new Graph<TreeSyncStepExecution>(true, x => x.SyncStepExecutionDetails);
+            var graph = new Graph<TreeSyncExecution>(true, x => x.SyncExecutionMessages);
+            graph.AddChildGraph(nameof(TreeSyncExecution.Sync), new Graph<TreeSync>(true, x => x.SyncSteps));
             graph.AddChildGraph(nameof(TreeSyncExecution.SyncStepExecutions), steps);
             return graph;
         }
@@ -139,18 +146,26 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         }
 
         [Benchmark]
-        public Task<TreeSyncExecution[]> CompanyExecutions_Zerra() => repo.Query<TreeSyncExecution>(CompanyGraph()).Where(x => x.CompanyId == companyId).ToArrayAsync();
+        public Task<TreeSyncExecution[]> HistoryForCompany_Zerra()
+        {
+            var enabledOnly = false;
+            return repo.Query<TreeSyncExecution>(CompanyGraph())
+                .Where(x => x.CompanyId == companyId && x.SyncId != null && (x.Sync.IsEnabled || !enabledOnly) && (x.StartedOn == null || x.StartedOn >= DateTime.UtcNow.AddDays(-45)))
+                .OrderByDescending(x => x.StartedOn ?? x.LastEventOn)
+                .ToArrayAsync();
+        }
 
         [Benchmark]
-        public async Task<List<EFSyncExecution>> CompanyExecutions_EF()
+        public async Task<EFSyncExecution[]> HistoryForCompany_EF()
         {
+            var enabledOnly = false;
             using var context = new TreeDataContext();
-            return await EntityFrameworkQueryableExtensions.ToListAsync(context.SyncExecutions.AsNoTracking().AsSplitQuery()
-                .Include(x => x.Sync)
+            return await EntityFrameworkQueryableExtensions.ToArrayAsync(context.SyncExecutions.AsNoTracking().AsSplitQuery()
                 .Include(x => x.SyncExecutionMessages)
-                .Include(x => x.SyncStepExecutions).ThenInclude(x => x.SyncStep)
+                .Include(x => x.Sync).ThenInclude(x => x.SyncSteps)
                 .Include(x => x.SyncStepExecutions).ThenInclude(x => x.SyncStepExecutionDetails)
-                .Where(x => x.CompanyId == companyId));
+                .Where(x => x.CompanyId == companyId && x.Sync != null && (x.Sync.IsEnabled || !enabledOnly) && (x.StartedOn == null || x.StartedOn >= DateTime.UtcNow.AddDays(-45)))
+                .OrderByDescending(x => x.StartedOn ?? x.LastEventOn));
         }
     }
 
@@ -162,6 +177,8 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         [StoreProperties(true, 100)]
         public string Name { get; set; }
         public bool IsEnabled { get; set; }
+        [Relation(nameof(TreeSyncStep.SyncId))]
+        public TreeSyncStep[] SyncSteps { get; set; }
     }
 
     [Entity("Integration", "SyncExecution")]
@@ -172,10 +189,11 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         [StoreIndex(Unique = true)]
         public Guid AlternateId { get; set; }
         [StoreIndex]
-        public int SyncId { get; set; }
+        public int? SyncId { get; set; }
         [StoreIndex]
         public int CompanyId { get; set; }
-        public DateTime StartedOn { get; set; }
+        public DateTime? StartedOn { get; set; }
+        public DateTime? LastEventOn { get; set; }
         [StoreProperties(true, 50)]
         public string Status { get; set; }
         [Relation(nameof(SyncId))]
@@ -296,14 +314,16 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         public int Id { get; set; }
         public string Name { get; set; }
         public bool IsEnabled { get; set; }
+        public List<EFSyncStep> SyncSteps { get; set; }
     }
     public sealed class EFSyncExecution
     {
         public int Id { get; set; }
         public Guid AlternateId { get; set; }
-        public int SyncId { get; set; }
+        public int? SyncId { get; set; }
         public int CompanyId { get; set; }
-        public DateTime StartedOn { get; set; }
+        public DateTime? StartedOn { get; set; }
+        public DateTime? LastEventOn { get; set; }
         public string Status { get; set; }
         public EFSync Sync { get; set; }
         public List<EFSyncExecutionMessage> SyncExecutionMessages { get; set; }
@@ -381,7 +401,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<EFSync>(e => { e.ToTable("Sync", "Integration"); e.Property(x => x.Id).ValueGeneratedNever(); });
+            modelBuilder.Entity<EFSync>(e => { e.ToTable("Sync", "Integration"); e.Property(x => x.Id).ValueGeneratedNever(); e.HasMany(x => x.SyncSteps).WithOne().HasForeignKey(x => x.SyncId); });
             modelBuilder.Entity<EFSyncStep>(e => { e.ToTable("SyncStep", "Integration"); e.Property(x => x.Id).ValueGeneratedNever(); });
             modelBuilder.Entity<EFSyncExecutionMessage>(e => { e.ToTable("SyncExecutionMessage", "Integration"); e.Property(x => x.Id).ValueGeneratedNever(); });
             modelBuilder.Entity<EFSyncStepExecutionMessage>(e => { e.ToTable("SyncStepExecutionMessage", "Integration"); e.Property(x => x.Id).ValueGeneratedNever(); });

@@ -23,6 +23,16 @@ namespace Zerra.Repository.Test
             [Identity(true)]
             public int Id { get; set; }
             public string Name { get; set; }
+            [Relation(nameof(SubqueryLookupItemModel.LookupId))]
+            public SubqueryLookupItemModel[] Items { get; set; }
+        }
+
+        [Entity("SubqueryLookupItem")]
+        public sealed class SubqueryLookupItemModel
+        {
+            [Identity(true)]
+            public int Id { get; set; }
+            public int LookupId { get; set; }
         }
 
         [Entity("SubqueryParent")]
@@ -64,6 +74,7 @@ namespace Zerra.Repository.Test
             var repo = Repo.New();
             var engine = new MemoryEngine();
             repo.AddProvider(new TransactStoreProvider<SubqueryLookupModel>(engine));
+            repo.AddProvider(new TransactStoreProvider<SubqueryLookupItemModel>(engine));
             repo.AddProvider(new TransactStoreProvider<SubqueryParentModel>(engine));
             repo.AddProvider(new TransactStoreProvider<SubqueryChildModel>(engine));
             repo.AddProvider(new TransactStoreProvider<SubqueryGrandChildModel>(engine));
@@ -134,6 +145,47 @@ namespace Zerra.Repository.Test
             var grandChildren = Assert.Single(children.Pieces!);
             Assert.Equal(1, Joins(grandChildren.Sql));
             Assert.DoesNotContain("LOOP", grandChildren.Sql);
+        }
+
+        [Theory]
+        [MemberData(nameof(Engines))]
+        public void AnOptionalFilterTurnedOffAddsNoJoin(string engine)
+        {
+            var enabledOnly = false;
+            var graph = Tree();
+            var statement = Statement(engine, repo.Query<SubqueryParentModel>(graph).Where(x => x.Id > 0 && (x.Lookup.Name == "a" || !enabledOnly)).Expression, graph);
+
+            Assert.Equal(1, Joins(statement.Sql));
+            var children = Assert.Single(statement.Pieces!);
+            Assert.Equal(1, Joins(children.Sql));
+            var grandChildren = Assert.Single(children.Pieces!);
+            Assert.Equal(0, Joins(grandChildren.Sql));
+        }
+
+        [Theory]
+        [MemberData(nameof(Engines))]
+        public void AnOptionalFilterTurnedOnKeepsItsJoin(string engine)
+        {
+            var enabledOnly = true;
+            var graph = Tree();
+            var statement = Statement(engine, repo.Query<SubqueryParentModel>(graph).Where(x => x.Id > 0 && (x.Lookup.Name == "a" || !enabledOnly)).Expression, graph);
+
+            var children = Assert.Single(statement.Pieces!);
+            Assert.Equal(2, Joins(children.Sql));
+        }
+
+        [Theory]
+        [MemberData(nameof(Engines))]
+        public void ARelationOfASingleRelationLooksForItsKeysDirectly(string engine)
+        {
+            var graph = new Graph<SubqueryParentModel>(true);
+            graph.AddChildGraph(nameof(SubqueryParentModel.Lookup), new Graph<SubqueryLookupModel>(true, x => x.Items));
+            var statement = Statement(engine, repo.Query<SubqueryParentModel>(graph).Where(x => x.Id > 0).Expression, graph);
+
+            var lookup = Assert.Single(statement.Pieces!);
+            var items = Assert.Single(lookup.Pieces!);
+            Assert.DoesNotMatch("(?i)subquerylookup(?!item)", items.Sql);
+            Assert.Matches("(?i)subqueryparent", items.Sql);
         }
 
         //a join hint fixes the order of every table, so a relation's statement has none and can start from its parents

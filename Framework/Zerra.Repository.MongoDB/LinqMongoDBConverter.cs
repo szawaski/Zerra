@@ -449,9 +449,15 @@ namespace Zerra.Repository.MongoDB
                 return;
             }
             scopes[where.Parameters[0]] = root;
+            var body = Fold(where.Body);
+            if (body is ConstantExpression { Value: true })
+            {
+                FlushLookups(stages);
+                return;
+            }
             var plain = new BsonArray();
             Expression? rest = null;
-            foreach (var part in AndParts(where.Body))
+            foreach (var part in AndParts(body))
             {
                 var filter = PlainFilter(part);
                 if (filter is not null)
@@ -465,6 +471,40 @@ namespace Zerra.Repository.MongoDB
             FlushLookups(stages);
             if (expression is not null)
                 stages.Add(new BsonDocument("$match", new BsonDocument("$expr", expression)));
+        }
+        //a side known before the query, such as an optional filter's flag, decides the condition or leaves the other side, which then needs no lookup and can be a plain filter
+        private static Expression Fold(Expression exp)
+        {
+            switch (exp.NodeType)
+            {
+                case ExpressionType.AndAlso:
+                case ExpressionType.OrElse:
+                    {
+                        var binary = (BinaryExpression)exp;
+                        var deciding = exp.NodeType == ExpressionType.OrElse;
+                        var left = Fold(binary.Left);
+                        if (left is ConstantExpression { Value: bool leftValue })
+                            return leftValue == deciding ? left : Fold(binary.Right);
+                        var right = Fold(binary.Right);
+                        if (right is ConstantExpression { Value: bool rightValue })
+                            return rightValue == deciding ? right : left;
+                        return left == binary.Left && right == binary.Right ? exp : binary.Update(left, binary.Conversion, right);
+                    }
+                case ExpressionType.Not:
+                    {
+                        var unary = (UnaryExpression)exp;
+                        if (exp.Type != typeof(bool))
+                            return exp;
+                        var operand = Fold(unary.Operand);
+                        if (operand is ConstantExpression { Value: bool value })
+                            return Expression.Constant(!value);
+                        return operand == unary.Operand ? exp : unary.Update(operand);
+                    }
+                default:
+                    if (exp.Type == typeof(bool) && exp is not ConstantExpression && IsEvaluatable(exp))
+                        return Expression.Constant((bool)Evaluate(exp)!);
+                    return exp;
+            }
         }
         private static List<Expression> AndParts(Expression body)
         {

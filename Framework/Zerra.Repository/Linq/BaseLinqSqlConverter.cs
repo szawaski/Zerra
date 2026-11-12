@@ -539,7 +539,7 @@ namespace Zerra.Repository.Linq
                         ConvertToSqlBinary(Operator.BitwiseAnd, exp, ref sb, context);
                     break;
                 case ExpressionType.AndAlso:
-                    if (!ConvertToSqlConditionAsValue(exp, ref sb, context))
+                    if (!ConvertToSqlConditionAsValue(exp, ref sb, context) && !ConvertToSqlDecidedCondition((BinaryExpression)exp, false, context.Inverted ? Operator.Or : Operator.And, ref sb, context))
                         ConvertToSqlBinary(context.Inverted ? Operator.Or : Operator.And, exp, ref sb, context);
                     break;
                 case ExpressionType.AndAssign:
@@ -729,7 +729,7 @@ namespace Zerra.Repository.Linq
                 case ExpressionType.OrAssign:
                     throw new NotImplementedException();
                 case ExpressionType.OrElse:
-                    if (!ConvertToSqlConditionAsValue(exp, ref sb, context))
+                    if (!ConvertToSqlConditionAsValue(exp, ref sb, context) && !ConvertToSqlDecidedCondition((BinaryExpression)exp, true, context.Inverted ? Operator.And : Operator.Or, ref sb, context))
                         ConvertToSqlBinary(context.Inverted ? Operator.And : Operator.Or, exp, ref sb, context);
                     break;
                 case ExpressionType.Parameter:
@@ -862,6 +862,67 @@ namespace Zerra.Repository.Linq
             ConvertToSqlBooleanValue(exp, ref sb, context);
             _ = context.MemberContext.OperatorStack.Pop();
             return true;
+        }
+        //a side known before the query, such as an optional filter's flag, decides the condition or leaves the other side, which then isn't written or joined
+        private bool ConvertToSqlDecidedCondition(BinaryExpression exp, bool deciding, Operator operation, ref CharWriter sb, BuilderContext context)
+        {
+            Expression rest;
+            if (TryDecideCondition(exp.Left, out var value))
+                rest = exp.Right;
+            else if (TryDecideCondition(exp.Right, out value))
+                rest = exp.Left;
+            else
+                return false;
+
+            context.MemberContext.OperatorStack.Push(operation);
+            if (value == deciding)
+                ConvertToSqlValue(typeof(bool), deciding, ref sb, context);
+            else
+                ConvertToSql(rest, ref sb, context);
+            _ = context.MemberContext.OperatorStack.Pop();
+            return true;
+        }
+        private bool TryDecideCondition(Expression exp, out bool value)
+        {
+            switch (exp.NodeType)
+            {
+                case ExpressionType.AndAlso:
+                case ExpressionType.OrElse:
+                    {
+                        var binary = (BinaryExpression)exp;
+                        var deciding = exp.NodeType == ExpressionType.OrElse;
+                        var leftDecided = TryDecideCondition(binary.Left, out var left);
+                        if (leftDecided && left == deciding)
+                        {
+                            value = deciding;
+                            return true;
+                        }
+                        var rightDecided = TryDecideCondition(binary.Right, out var right);
+                        if (rightDecided && right == deciding)
+                        {
+                            value = deciding;
+                            return true;
+                        }
+                        value = !deciding;
+                        return leftDecided && rightDecided;
+                    }
+                case ExpressionType.Not:
+                    if (exp.Type == typeof(bool) && TryDecideCondition(((UnaryExpression)exp).Operand, out value))
+                    {
+                        value = !value;
+                        return true;
+                    }
+                    break;
+                default:
+                    if (exp.Type == typeof(bool) && IsEvaluatable(exp))
+                    {
+                        value = (bool)Evaluate(exp)!;
+                        return true;
+                    }
+                    break;
+            }
+            value = false;
+            return false;
         }
 
         private void ConvertToSqlComparison(Operator operation, Expression exp, ref CharWriter sb, BuilderContext context)

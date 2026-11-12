@@ -31,6 +31,8 @@ How much faster Zerra is, and how much less memory it allocates, than Entity Fra
 | Query first with a where clause | ~1.9× faster | ~75% less |
 | Query many with a one-to-one relation | ~3.3× faster | ~45% less |
 | Query many with a one-to-many relation | ~6.3× faster | ~85% less |
+| Query one with relations four levels deep | ~3.2× faster | ~60% less |
+| Query many with relations two levels deep | ~1.3× faster | ~80% less |
 | Update | ~2.2× faster | ~90% less |
 | Create 1,000 models in one call | ~7.9× faster | ~85% less |
 | Stream 10,000 rows | ~1.7× faster | ~25% less |

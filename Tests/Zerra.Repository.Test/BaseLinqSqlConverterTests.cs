@@ -413,11 +413,22 @@ namespace Zerra.Repository.Test
         [Fact]
         public void Convert_WhereNotCapturedBoolInAnd_InvertsConstant()
         {
+            var value = false;
+            Expression<Func<TestTypesModel, bool>> where = x => !(x.Int32Thing > 0 && value);
+            var sql = ConvertToSql(LinqTerminal.Sequence, where, null, null, null, null, testTypesModelDetail);
+
+            Assert.Contains("1=1", sql);
+            Assert.DoesNotContain("1=0", sql);
+        }
+
+        [Fact]
+        public void Convert_WhereNotCapturedBoolInAnd_FoldsConstantAway()
+        {
             var value = true;
             Expression<Func<TestTypesModel, bool>> where = x => !(x.Int32Thing > 0 && value);
             var sql = ConvertToSql(LinqTerminal.Sequence, where, null, null, null, null, testTypesModelDetail);
 
-            Assert.Contains("1=0", sql);
+            Assert.DoesNotContain("1=0", sql);
             Assert.DoesNotContain("1=1", sql);
         }
 

@@ -99,6 +99,16 @@ namespace Zerra.Repository.Test.MongoDB
             Assert.Equal(ordered.Select(x => Math.Round(Math.Log(x.Ratio), 6)), q.Select(x => Math.Round(Math.Log(x.Ratio), 6)).ToArray());
             Assert.Equal(ordered.Select(x => Math.Round(Math.Log(x.Ratio, 2), 6)), q.Select(x => Math.Round(Math.Log(x.Ratio, 2), 6)).ToArray());
 
+            //a side known before the query decides the condition or leaves the other side
+            foreach (var flag in new[] { true, false })
+            {
+                Assert.Equal(models.Count(x => x.Number > 2 || flag), repo.Query<FeatureModel>().Where(x => x.Number > 2 || flag).Count());
+                Assert.Equal(models.Count(x => x.Number > 2 && flag), repo.Query<FeatureModel>().Where(x => x.Number > 2 && flag).Count());
+                Assert.Equal(models.Count(x => x.Number > 0 && (x.Ratio > 2 || !flag)), repo.Query<FeatureModel>().Where(x => x.Number > 0 && (x.Ratio > 2 || !flag)).Count());
+                Assert.Equal(models.Count(x => !(x.Number > 2 || flag)), repo.Query<FeatureModel>().Where(x => !(x.Number > 2 || flag)).Count());
+                Assert.Equal(0, repo.Delete<FeatureModel>(x => x.Number < 0 && (x.Ratio > 100 || flag)));
+            }
+
             _ = repo.Delete<FeatureModel>(x => x.Number >= 0);
         }
 

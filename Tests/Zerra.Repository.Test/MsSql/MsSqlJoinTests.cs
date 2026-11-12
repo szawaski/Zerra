@@ -61,6 +61,53 @@ namespace Zerra.Repository.Test.MsSql
         public void NoRelationHasNoJoin()
             => Assert.DoesNotContain("JOIN", Sql(repo.Query<TestTypesModel>().Where(x => x.Int32Thing > 0).Expression));
 
+        [Fact]
+        public void AConditionDecidedByAClosureValueIsFoldedAway()
+        {
+            var any = true;
+            var sql = Sql(repo.Query<TestTypesModel>().Where(x => x.Int32Thing > 0 && (x.RelationA.SomeValue == "a" || any)).Select(x => x.KeyA).Expression);
+            Assert.DoesNotContain("JOIN", sql);
+            Assert.DoesNotContain("1=1", sql);
+        }
+
+        [Fact]
+        public void AConditionKeptByAClosureValueStays()
+        {
+            var any = false;
+            var sql = Sql(repo.Query<TestTypesModel>().Where(x => x.Int32Thing > 0 && (x.RelationA.SomeValue == "a" || any)).Select(x => x.KeyA).Expression);
+            Assert.Contains("LEFT JOIN[TestRelations]", sql);
+            Assert.DoesNotContain("1=0", sql);
+        }
+
+        [Fact]
+        public void AConditionDecidedFalseIsFalse()
+        {
+            var all = false;
+            var sql = Sql(repo.Query<TestTypesModel>().Where(x => x.RelationA.SomeValue == "a" && all).Select(x => x.KeyA).Expression);
+            Assert.DoesNotContain("JOIN", sql);
+            Assert.Contains("1=0", sql);
+        }
+
+        [Fact]
+        public void AnInvertedDecidedConditionIsInverted()
+        {
+            var any = true;
+            var sql = Sql(repo.Query<TestTypesModel>().Where(x => !(x.RelationA.SomeValue == "a" || any)).Select(x => x.KeyA).Expression);
+            Assert.DoesNotContain("JOIN", sql);
+            Assert.Contains("1=0", sql);
+        }
+
+        [Fact]
+        public void ARelationsParentSubqueryLeavesOutAFoldedJoin()
+        {
+            var any = true;
+            var graph = new Graph<TestTypesModel>(true, x => x.RelationB);
+            var statement = Statement(repo.Query<TestTypesModel>(graph).Where(x => x.Int32Thing > 0 && (x.RelationA.SomeValue == "a" || any)).Expression, graph);
+            Assert.DoesNotContain("JOIN", statement.Sql);
+            var piece = Assert.Single(statement.Pieces!);
+            Assert.DoesNotContain("JOIN", piece.Sql);
+        }
+
         private static LinqStatement Statement(Expression expression, Graph? graph)
             => LinqMsSqlConverter.ConvertLinq(new LinqQuery<TestTypesModel, object>(expression, null, null, graph), ModelAnalyzer.GetModel(typeof(TestTypesModel)));
 

@@ -813,15 +813,15 @@ namespace Zerra.Repository.MsSql
                         }
                     default:
                         {
-                            var pieces = ReadLinqPieces(connection, statement);
                             var results = query.Take is int take && take <= 1024 ? new List<TResult>(take) : new List<TResult>();
                             using (var command = connection.CreateCommand())
                             {
                                 command.CommandTimeout = 0;
-                                command.CommandText = statement.Sql;
+                                command.CommandText = LinqBatch(statement);
                                 using var pooled = AddParameters(command, statement.Parameters);
                                 using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
                                 {
+                                    var pieces = ReadLinqPieces(reader, statement);
                                     var shape = statement.Plan.Shape!;
                                     while (reader.Read())
                                         results.Add((TResult)ReadLinqElement(reader, shape, pieces)!);
@@ -832,8 +832,36 @@ namespace Zerra.Repository.MsSql
                 }
             }
         }
+        //the statements of the relations go in one batch before the parents' statement, each relation's after its own relations', so all are one round trip
+        private static string LinqBatch(LinqStatement statement)
+        {
+            if (statement.Pieces is null)
+                return statement.Sql;
+            var sb = new CharWriter();
+            try
+            {
+                AppendLinqPieces(statement, ref sb);
+                sb.Write(statement.Sql);
+                return sb.ToString();
+            }
+            finally
+            {
+                sb.Dispose();
+            }
+        }
+        private static void AppendLinqPieces(LinqStatement statement, ref CharWriter sb)
+        {
+            if (statement.Pieces is null)
+                return;
+            foreach (var piece in statement.Pieces)
+            {
+                AppendLinqPieces(piece, ref sb);
+                sb.Write(piece.Sql);
+                sb.Write(';');
+            }
+        }
         //the rows of each relation for all the parents at once, matched to them by the key, read before the parents so each element is built whole from its row
-        private static LinqPieceElements[]? ReadLinqPieces(EngineConnection connection, LinqStatement statement)
+        private static LinqPieceElements[]? ReadLinqPieces(SqlDataReader reader, LinqStatement statement)
         {
             if (statement.Pieces is null)
                 return null;
@@ -841,29 +869,21 @@ namespace Zerra.Repository.MsSql
             for (var p = 0; p < pieces.Length; p++)
             {
                 var piece = statement.Pieces[p];
-                var piecePieces = ReadLinqPieces(connection, piece);
+                var piecePieces = ReadLinqPieces(reader, piece);
                 var elements = statement.Plan.Pieces[p].NewElements();
                 pieces[p] = elements;
-                using (var command = connection.CreateCommand())
+                var shape = piece.Plan.Shape!;
+                var keyColumn = piece.Plan.ParentKeyColumn!.Value;
+                var keyColumns = statement.Plan.Pieces[p].CompositeKey ? piece.Plan.ParentKeyColumns : null;
+                while (reader.Read())
                 {
-                    command.CommandTimeout = 0;
-                    command.CommandText = piece.Sql;
-                    using var pooled = AddParameters(command, piece.Parameters);
-                    using (var reader = command.ExecuteReader(CommandBehavior.SequentialAccess))
-                    {
-                        var shape = piece.Plan.Shape!;
-                        var keyColumn = piece.Plan.ParentKeyColumn!.Value;
-                        var keyColumns = statement.Plan.Pieces[p].CompositeKey ? piece.Plan.ParentKeyColumns : null;
-                        while (reader.Read())
-                        {
-                            var element = ReadLinqElement(reader, shape, piecePieces);
-                            if (keyColumns is null)
-                                AddLinqPiece(reader, keyColumn, elements, element);
-                            else if (LinqKey.Read(reader, keyColumns) is { } key)
-                                elements.Add(key, element);
-                        }
-                    }
+                    var element = ReadLinqElement(reader, shape, piecePieces);
+                    if (keyColumns is null)
+                        AddLinqPiece(reader, keyColumn, elements, element);
+                    else if (LinqKey.Read(reader, keyColumns) is { } key)
+                        elements.Add(key, element);
                 }
+                _ = reader.NextResult();
             }
             return pieces;
         }
@@ -1183,15 +1203,15 @@ namespace Zerra.Repository.MsSql
                             }
                         default:
                             {
-                                var pieces = await ReadLinqPiecesAsync(connection, statement, cancellationToken);
                                 var results = query.Take is int take && take <= 1024 ? new List<TResult>(take) : new List<TResult>();
                                 using (var command = connection.CreateCommand())
                                 {
                                     command.CommandTimeout = 0;
-                                    command.CommandText = statement.Sql;
+                                    command.CommandText = LinqBatch(statement);
                                     using var pooled = AddParameters(command, statement.Parameters);
                                     using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken))
                                     {
+                                        var pieces = await ReadLinqPiecesAsync(reader, statement, cancellationToken);
                                         var shape = statement.Plan.Shape!;
                                         while (await reader.ReadAsync(cancellationToken))
                                             results.Add((TResult)ReadLinqElement(reader, shape, pieces)!);
@@ -1213,13 +1233,13 @@ namespace Zerra.Repository.MsSql
         {
             var statement = LinqMsSqlConverter.ConvertLinq(query, modelDetail);
             using var connection = OpenConnection();
-            var pieces = ReadLinqPieces(connection, statement);
             connection.HoldForStream();
             using var command = connection.CreateCommand();
             command.CommandTimeout = 0;
-            command.CommandText = statement.Sql;
+            command.CommandText = LinqBatch(statement);
             using var pooled = AddParameters(command, statement.Parameters);
             using var reader = command.ExecuteReader(CommandBehavior.SequentialAccess);
+            var pieces = ReadLinqPieces(reader, statement);
             var shape = statement.Plan.Shape!;
             while (reader.Read())
                 yield return (TResult)ReadLinqElement(reader, shape, pieces)!;
@@ -1229,13 +1249,13 @@ namespace Zerra.Repository.MsSql
         {
             var statement = LinqMsSqlConverter.ConvertLinq(query, modelDetail);
             using var connection = await OpenConnectionAsync(cancellationToken);
-            var pieces = await ReadLinqPiecesAsync(connection, statement, cancellationToken);
             connection.HoldForStream();
             using var command = connection.CreateCommand();
             command.CommandTimeout = 0;
-            command.CommandText = statement.Sql;
+            command.CommandText = LinqBatch(statement);
             using var pooled = AddParameters(command, statement.Parameters);
             SqlDataReader reader;
+            LinqPieceElements[]? pieces;
             try
             {
                 reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken);
@@ -1247,6 +1267,14 @@ namespace Zerra.Repository.MsSql
             }
             using (reader)
             {
+                try
+                {
+                    pieces = await ReadLinqPiecesAsync(reader, statement, cancellationToken);
+                }
+                catch (SqlException ex) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw new OperationCanceledException(ex.Message, ex, cancellationToken);
+                }
                 var shape = statement.Plan.Shape!;
                 while (true)
                 {
@@ -1263,7 +1291,7 @@ namespace Zerra.Repository.MsSql
                 }
             }
         }
-        private static async Task<LinqPieceElements[]?> ReadLinqPiecesAsync(EngineConnection connection, LinqStatement statement, CancellationToken cancellationToken)
+        private static async Task<LinqPieceElements[]?> ReadLinqPiecesAsync(SqlDataReader reader, LinqStatement statement, CancellationToken cancellationToken)
         {
             if (statement.Pieces is null)
                 return null;
@@ -1271,29 +1299,21 @@ namespace Zerra.Repository.MsSql
             for (var p = 0; p < pieces.Length; p++)
             {
                 var piece = statement.Pieces[p];
-                var piecePieces = await ReadLinqPiecesAsync(connection, piece, cancellationToken);
+                var piecePieces = await ReadLinqPiecesAsync(reader, piece, cancellationToken);
                 var elements = statement.Plan.Pieces[p].NewElements();
                 pieces[p] = elements;
-                using (var command = connection.CreateCommand())
+                var shape = piece.Plan.Shape!;
+                var keyColumn = piece.Plan.ParentKeyColumn!.Value;
+                var keyColumns = statement.Plan.Pieces[p].CompositeKey ? piece.Plan.ParentKeyColumns : null;
+                while (await reader.ReadAsync(cancellationToken))
                 {
-                    command.CommandTimeout = 0;
-                    command.CommandText = piece.Sql;
-                    using var pooled = AddParameters(command, piece.Parameters);
-                    using (var reader = await command.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken))
-                    {
-                        var shape = piece.Plan.Shape!;
-                        var keyColumn = piece.Plan.ParentKeyColumn!.Value;
-                        var keyColumns = statement.Plan.Pieces[p].CompositeKey ? piece.Plan.ParentKeyColumns : null;
-                        while (await reader.ReadAsync(cancellationToken))
-                        {
-                            var element = ReadLinqElement(reader, shape, piecePieces);
-                            if (keyColumns is null)
-                                AddLinqPiece(reader, keyColumn, elements, element);
-                            else if (LinqKey.Read(reader, keyColumns) is { } key)
-                                elements.Add(key, element);
-                        }
-                    }
+                    var element = ReadLinqElement(reader, shape, piecePieces);
+                    if (keyColumns is null)
+                        AddLinqPiece(reader, keyColumn, elements, element);
+                    else if (LinqKey.Read(reader, keyColumns) is { } key)
+                        elements.Add(key, element);
                 }
+                _ = await reader.NextResultAsync(cancellationToken);
             }
             return pieces;
         }

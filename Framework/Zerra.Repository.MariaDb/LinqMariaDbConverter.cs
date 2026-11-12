@@ -1689,7 +1689,7 @@ namespace Zerra.Repository.MariaDb
                 var sql = sb.ToString();
                 if (query.Distinct && query.Terminal is LinqTerminal.Count or LinqTerminal.LongCount)
                     sql = $"SELECT COUNT(1) FROM ({sql}) AS Z";
-                return new LinqStatement(sql, plan, ConvertLinqPieces(plan, modelDetail, rootDependant, 0, ref sbWhere, ref sbEnd, paged));
+                return new LinqStatement(sql, plan, ConvertLinqPieces(plan, modelDetail, rootDependant, 0, ref sbWhere, ref sbEnd, paged, null, null));
             }
             finally
             {
@@ -1716,7 +1716,7 @@ namespace Zerra.Repository.MariaDb
         }
         //each relation's rows are those of the parents the statement selects: the key they match by, selected with the statement's from, where, and when paged its order and page
         //only the key is selected, so the parent's joins are only those its where or order uses
-        private LinqStatement[]? ConvertLinqPieces(LinqPlan plan, ModelDetail modelDetail, ParameterDependant rootDependant, int whereStart, ref CharWriter sbWhere, ref CharWriter sbEnd, bool paged)
+        private LinqStatement[]? ConvertLinqPieces(LinqPlan plan, ModelDetail modelDetail, ParameterDependant rootDependant, int whereStart, ref CharWriter sbWhere, ref CharWriter sbEnd, bool paged, LinqPiece? parent, string? parentKeys)
         {
             if (plan.Pieces.Count == 0)
                 return null;
@@ -1728,6 +1728,13 @@ namespace Zerra.Repository.MariaDb
                 var sbKeys = new CharWriter();
                 try
                 {
+                    //a relation keyed by the identity a single relation was found by has the same keys to look for
+                    if (parentKeys is not null && !piece.CompositeKey && piece.ParentKeys[0].StoreName == parent!.RelatedKey.StoreName)
+                    {
+                        sbKeys.Write(parentKeys);
+                        statements[p] = ConvertLinqPiece(piece, ref sbKeys);
+                        continue;
+                    }
                     //MySQL and MariaDB refuse a LIMIT in an IN subquery unless it is a derived table
                     //a key of several columns is read from its own derived table already
                     var keyTable = paged && !piece.CompositeKey;
@@ -1902,7 +1909,7 @@ namespace Zerra.Repository.MariaDb
                 {
                     sb.Write(sbEnd);
                 }
-                return new LinqStatement(sb.ToString(), plan, ConvertLinqPieces(plan, modelDetail, rootDependant, whereStart, ref sbWhere, ref sbEnd, false));
+                return new LinqStatement(sb.ToString(), plan, ConvertLinqPieces(plan, modelDetail, rootDependant, whereStart, ref sbWhere, ref sbEnd, false, piece, plan.Pieces.Count > 0 && piece.Single && !piece.CompositeKey && piece.Where is null && !numbered ? sbKeys.ToString() : null));
             }
             finally
             {
