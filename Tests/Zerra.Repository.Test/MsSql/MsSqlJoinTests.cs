@@ -58,6 +58,14 @@ namespace Zerra.Repository.Test.MsSql
         }
 
         [Fact]
+        public void ASubqueryConditionIsTheOptimizersChoice()
+        {
+            var sql = Sql(repo.Query<TestTypesModel>().Where(x => x.RelationB.Any(r => r.SomeValue == "a")).Select(x => x.RelationA.SomeValue).Expression);
+            Assert.Contains("LEFT JOIN[TestRelations]", sql);
+            Assert.DoesNotContain("LOOP", sql);
+        }
+
+        [Fact]
         public void NoRelationHasNoJoin()
             => Assert.DoesNotContain("JOIN", Sql(repo.Query<TestTypesModel>().Where(x => x.Int32Thing > 0).Expression));
 

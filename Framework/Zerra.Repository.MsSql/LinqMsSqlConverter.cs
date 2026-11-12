@@ -2533,12 +2533,13 @@ namespace Zerra.Repository.MsSql
 
         //a relation only being read is found by its primary key row by row, where the optimizer can sort every wide row to merge them
         //a condition, group, or order on it stays the optimizer's choice, as a join hint fixes the order and it may want to start from that table
+        //so does a subquery, which the optimizer may want to start from to find the rows
         private void GenerateLinqJoin(ParameterDependant rootDependant, ref CharWriter sb, ref CharWriter sbWhere, ref CharWriter sbEnd)
         {
             if (rootDependant.Dependants.Count == 0)
                 return;
             var conditions = sbWhere.ToString() + sbEnd.ToString();
-            GenerateJoin(rootDependant, ref sb, !UsesJoin(rootDependant, conditions), null);
+            GenerateJoin(rootDependant, ref sb, !UsesJoin(rootDependant, conditions) && !conditions.Contains("SELECT", StringComparison.Ordinal), null);
         }
         private static bool UsesJoin(ParameterDependant dependant, string conditions)
         {
