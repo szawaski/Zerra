@@ -466,7 +466,7 @@ namespace Zerra.Repository.MongoDB
                 }
                 if (type != typeof(int) && type != typeof(long) && type != typeof(short))
                     throw new NotSupportedException($"MongoDB generates a Guid or a number identity, not {type.Name} for {modelDetail.Type.Name}.{member.Name}");
-                var filter = new BsonDocument(LinqMongoDBConverter.IdField, modelDetail.DataSourceEntityName + "." + member.StoreName);
+                var filter = new BsonDocument(LinqMongoDBConverter.IdField, modelDetail.DataSourceEntityFullName + "." + member.StoreName);
                 var update = new BsonDocument("$inc", new BsonDocument("value", (long)models.Length));
                 var counters = Collection(IdentitiesCollection);
                 var counter = session is null ? counters.FindOneAndUpdate(filter, update, identityOptions) : counters.FindOneAndUpdate(session, filter, update, identityOptions);
@@ -489,7 +489,7 @@ namespace Zerra.Repository.MongoDB
                 }
                 if (type != typeof(int) && type != typeof(long) && type != typeof(short))
                     throw new NotSupportedException($"MongoDB generates a Guid or a number identity, not {type.Name} for {modelDetail.Type.Name}.{member.Name}");
-                var filter = new BsonDocument(LinqMongoDBConverter.IdField, modelDetail.DataSourceEntityName + "." + member.StoreName);
+                var filter = new BsonDocument(LinqMongoDBConverter.IdField, modelDetail.DataSourceEntityFullName + "." + member.StoreName);
                 var update = new BsonDocument("$inc", new BsonDocument("value", (long)models.Length));
                 var counters = Collection(IdentitiesCollection);
                 var counter = session is null ? await counters.FindOneAndUpdateAsync(filter, update, identityOptions, cancellationToken) : await counters.FindOneAndUpdateAsync(session, filter, update, identityOptions, cancellationToken);
@@ -558,7 +558,7 @@ namespace Zerra.Repository.MongoDB
         }
         private void Insert(IClientSessionHandle? session, BsonDocument document, ModelDetail modelDetail)
         {
-            var collection = Collection(modelDetail.DataSourceEntityName);
+            var collection = Collection(modelDetail.DataSourceEntityFullName);
             if (session is null)
                 collection.InsertOne(document);
             else
@@ -573,7 +573,7 @@ namespace Zerra.Repository.MongoDB
             var filter = IdFilter(model, modelDetail);
             using (var session = OpenSession())
             {
-                var collection = Collection(modelDetail.DataSourceEntityName);
+                var collection = Collection(modelDetail.DataSourceEntityFullName);
                 var result = session.Session is null ? collection.UpdateOne(filter, update) : collection.UpdateOne(session.Session, filter, update);
                 return result.MatchedCount > 0;
             }
@@ -603,7 +603,7 @@ namespace Zerra.Repository.MongoDB
                     var documents = new BsonDocument[models.Length];
                     for (var i = 0; i < models.Length; i++)
                         documents[i] = ToDocument(models[i], graph, modelDetail);
-                    var collection = Collection(modelDetail.DataSourceEntityName);
+                    var collection = Collection(modelDetail.DataSourceEntityFullName);
                     if (active is null)
                         collection.InsertMany(documents);
                     else
@@ -629,7 +629,7 @@ namespace Zerra.Repository.MongoDB
                 try
                 {
                     var active = session.Session ?? local;
-                    var collection = Collection(modelDetail.DataSourceEntityName);
+                    var collection = Collection(modelDetail.DataSourceEntityFullName);
                     var result = active is null ? collection.BulkWrite(writes) : collection.BulkWrite(active, writes);
                     //committed only when every model was written, a model that isn't stored fails them all
                     if (result.MatchedCount == writes.Count)
@@ -659,7 +659,7 @@ namespace Zerra.Repository.MongoDB
             var filter = DeleteFilter(ids, modelDetail);
             using (var session = OpenSession())
             {
-                var collection = Collection(modelDetail.DataSourceEntityName);
+                var collection = Collection(modelDetail.DataSourceEntityFullName);
                 var result = session.Session is null ? collection.DeleteMany(filter) : collection.DeleteMany(session.Session, filter);
                 return (int)result.DeletedCount;
             }
@@ -692,7 +692,7 @@ namespace Zerra.Repository.MongoDB
                 return filter;
             lookups!.Add(new BsonDocument("$project", new BsonDocument(LinqMongoDBConverter.IdField, 1)));
             var ids = new BsonArray();
-            foreach (var document in Aggregate(session, modelDetail.DataSourceEntityName, lookups))
+            foreach (var document in Aggregate(session, modelDetail.DataSourceEntityFullName, lookups))
                 ids.Add(document[LinqMongoDBConverter.IdField]);
             return new BsonDocument(LinqMongoDBConverter.IdField, new BsonDocument("$in", ids));
         }
@@ -703,7 +703,7 @@ namespace Zerra.Repository.MongoDB
                 return filter;
             lookups!.Add(new BsonDocument("$project", new BsonDocument(LinqMongoDBConverter.IdField, 1)));
             var ids = new BsonArray();
-            foreach (var document in await AggregateAsync(session, modelDetail.DataSourceEntityName, lookups, cancellationToken))
+            foreach (var document in await AggregateAsync(session, modelDetail.DataSourceEntityFullName, lookups, cancellationToken))
                 ids.Add(document[LinqMongoDBConverter.IdField]);
             return new BsonDocument(LinqMongoDBConverter.IdField, new BsonDocument("$in", ids));
         }
@@ -717,7 +717,7 @@ namespace Zerra.Repository.MongoDB
             using (var session = OpenSession())
             {
                 var filter = WhereFilter(session.Session, where, modelDetail);
-                var collection = Collection(modelDetail.DataSourceEntityName);
+                var collection = Collection(modelDetail.DataSourceEntityFullName);
                 var result = session.Session is null ? collection.UpdateMany(filter, update) : collection.UpdateMany(session.Session, filter, update);
                 return (int)result.MatchedCount;
             }
@@ -729,7 +729,7 @@ namespace Zerra.Repository.MongoDB
             using (var session = OpenSession())
             {
                 var filter = WhereFilter(session.Session, where, modelDetail);
-                var collection = Collection(modelDetail.DataSourceEntityName);
+                var collection = Collection(modelDetail.DataSourceEntityFullName);
                 var result = session.Session is null ? collection.UpdateMany(filter, update) : collection.UpdateMany(session.Session, filter, update);
                 return (int)result.MatchedCount;
             }
@@ -746,7 +746,7 @@ namespace Zerra.Repository.MongoDB
             using (var session = OpenSession())
             {
                 var filter = WhereFilter(session.Session, where, modelDetail);
-                var collection = Collection(modelDetail.DataSourceEntityName);
+                var collection = Collection(modelDetail.DataSourceEntityFullName);
                 var result = session.Session is null ? collection.DeleteMany(filter) : collection.DeleteMany(session.Session, filter);
                 return (int)result.DeletedCount;
             }
@@ -775,7 +775,7 @@ namespace Zerra.Repository.MongoDB
         }
         private Task InsertAsync(IClientSessionHandle? session, BsonDocument document, ModelDetail modelDetail, CancellationToken cancellationToken)
         {
-            var collection = Collection(modelDetail.DataSourceEntityName);
+            var collection = Collection(modelDetail.DataSourceEntityFullName);
             return session is null ? collection.InsertOneAsync(document, null, cancellationToken) : collection.InsertOneAsync(session, document, null, cancellationToken);
         }
         /// <inheritdoc />
@@ -787,7 +787,7 @@ namespace Zerra.Repository.MongoDB
             var filter = IdFilter(model, modelDetail);
             using (var session = await OpenSessionAsync(cancellationToken))
             {
-                var collection = Collection(modelDetail.DataSourceEntityName);
+                var collection = Collection(modelDetail.DataSourceEntityFullName);
                 var result = session.Session is null ? await collection.UpdateOneAsync(filter, update, null, cancellationToken) : await collection.UpdateOneAsync(session.Session, filter, update, null, cancellationToken);
                 return result.MatchedCount > 0;
             }
@@ -817,7 +817,7 @@ namespace Zerra.Repository.MongoDB
                     var documents = new BsonDocument[models.Length];
                     for (var i = 0; i < models.Length; i++)
                         documents[i] = ToDocument(models[i], graph, modelDetail);
-                    var collection = Collection(modelDetail.DataSourceEntityName);
+                    var collection = Collection(modelDetail.DataSourceEntityFullName);
                     if (active is null)
                         await collection.InsertManyAsync(documents, null, cancellationToken);
                     else
@@ -844,7 +844,7 @@ namespace Zerra.Repository.MongoDB
                 try
                 {
                     var active = session.Session ?? local;
-                    var collection = Collection(modelDetail.DataSourceEntityName);
+                    var collection = Collection(modelDetail.DataSourceEntityFullName);
                     var result = active is null ? await collection.BulkWriteAsync(writes, null, cancellationToken) : await collection.BulkWriteAsync(active, writes, null, cancellationToken);
                     if (local is not null && result.MatchedCount == writes.Count)
                         await local.CommitTransactionAsync(cancellationToken);
@@ -862,7 +862,7 @@ namespace Zerra.Repository.MongoDB
             var filter = DeleteFilter(ids, modelDetail);
             using (var session = await OpenSessionAsync(cancellationToken))
             {
-                var collection = Collection(modelDetail.DataSourceEntityName);
+                var collection = Collection(modelDetail.DataSourceEntityFullName);
                 var result = session.Session is null ? await collection.DeleteManyAsync(filter, cancellationToken) : await collection.DeleteManyAsync(session.Session, filter, null, cancellationToken);
                 return (int)result.DeletedCount;
             }
@@ -876,7 +876,7 @@ namespace Zerra.Repository.MongoDB
             using (var session = await OpenSessionAsync(cancellationToken))
             {
                 var filter = await WhereFilterAsync(session.Session, where, modelDetail, cancellationToken);
-                var collection = Collection(modelDetail.DataSourceEntityName);
+                var collection = Collection(modelDetail.DataSourceEntityFullName);
                 var result = session.Session is null ? await collection.UpdateManyAsync(filter, update, null, cancellationToken) : await collection.UpdateManyAsync(session.Session, filter, update, null, cancellationToken);
                 return (int)result.MatchedCount;
             }
@@ -888,7 +888,7 @@ namespace Zerra.Repository.MongoDB
             using (var session = await OpenSessionAsync(cancellationToken))
             {
                 var filter = await WhereFilterAsync(session.Session, where, modelDetail, cancellationToken);
-                var collection = Collection(modelDetail.DataSourceEntityName);
+                var collection = Collection(modelDetail.DataSourceEntityFullName);
                 var result = session.Session is null ? await collection.UpdateManyAsync(filter, update, null, cancellationToken) : await collection.UpdateManyAsync(session.Session, filter, update, null, cancellationToken);
                 return (int)result.MatchedCount;
             }
@@ -899,7 +899,7 @@ namespace Zerra.Repository.MongoDB
             using (var session = await OpenSessionAsync(cancellationToken))
             {
                 var filter = await WhereFilterAsync(session.Session, where, modelDetail, cancellationToken);
-                var collection = Collection(modelDetail.DataSourceEntityName);
+                var collection = Collection(modelDetail.DataSourceEntityFullName);
                 var result = session.Session is null ? await collection.DeleteManyAsync(filter, cancellationToken) : await collection.DeleteManyAsync(session.Session, filter, null, cancellationToken);
                 return (int)result.DeletedCount;
             }
@@ -940,7 +940,7 @@ namespace Zerra.Repository.MongoDB
             var existing = new HashSet<string>(database.ListCollectionNames().ToList());
             foreach (var model in modelDetails)
             {
-                var name = model.DataSourceEntityName;
+                var name = model.DataSourceEntityFullName;
                 var exists = existing.Contains(name);
                 if (!exists)
                 {

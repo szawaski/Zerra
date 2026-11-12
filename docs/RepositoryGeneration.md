@@ -43,6 +43,7 @@ public sealed class PetDataModel
 | Attribute | On | Does |
 |---|---|---|
 | `[Entity("Name")]` | class | names the table; the class name without it |
+| `[Entity("schema", "Name")]` | class | a table in another schema, which Code First creates if it's missing; in MySQL and MariaDB a schema is a database |
 | `[Identity]` | property | the primary key; `true` when the database generates it |
 | `[StoreProperties(...)]` | property | length, precision and scale, `NotNull`, `StoreTextEncoding.NonUnicode` (`varchar` instead of `nvarchar`), or `StoreDatePart.Date`. A column is NOT NULL when its member can't be null (`string`, `int`) and nullable when it can (`string?`, `int?`); without nullable annotations every reference type can |
 | `[StoreName("Name")]` | property | names the column; letters, digits, and underscores |
@@ -129,6 +130,7 @@ public partial class OrderDataModel
 - Add your own members in another file of the `partial` class, so regenerating doesn't overwrite them.
 - Where a column doesn't fit exactly, a comment above the member says why, such as a SQL Server `money` column becoming `decimal(19, 4)`.
 - PostgreSQL names come back lowercase unless they were created quoted.
+- Every schema is read. Tables outside the default schema get `[Entity("schema", "Name")]`, and a table name used in more than one schema gets the schema in its class name, such as `SalesOrderDataModel`. MySQL and MariaDB read the connection's database and the databases its foreign keys refer to.
 - MongoDB, the in-memory engine, and the event stores have no schema to read, and throw `NotSupportedException`.
 
 Register the generated models like any other, with a `TransactStoreProvider<TModel>` each ([Repository](Repository.md#setup)).

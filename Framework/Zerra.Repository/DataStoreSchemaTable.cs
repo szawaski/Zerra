@@ -11,6 +11,8 @@ namespace Zerra.Repository
     {
         /// <summary>The table name in the data store.</summary>
         public string Name { get; }
+        /// <summary>The table's schema, or <see langword="null"/> for the data store's default.</summary>
+        public string? Schema { get; }
         /// <summary>The columns in the data store's order.</summary>
         public IReadOnlyList<DataStoreSchemaColumn> Columns { get; }
         /// <summary>The foreign keys this table holds.</summary>
@@ -25,15 +27,17 @@ namespace Zerra.Repository
         /// <param name="columns">The columns in the data store's order.</param>
         /// <param name="foreignKeys">The foreign keys this table holds.</param>
         /// <param name="indexes">The indexes other than the primary key and the ones the data store keeps for itself.</param>
-        public DataStoreSchemaTable(string name, IReadOnlyList<DataStoreSchemaColumn> columns, IReadOnlyList<DataStoreSchemaForeignKey> foreignKeys, IReadOnlyList<DataStoreSchemaIndex> indexes)
+        /// <param name="schema">The table's schema, or <see langword="null"/> for the data store's default.</param>
+        public DataStoreSchemaTable(string name, IReadOnlyList<DataStoreSchemaColumn> columns, IReadOnlyList<DataStoreSchemaForeignKey> foreignKeys, IReadOnlyList<DataStoreSchemaIndex> indexes, string? schema = null)
         {
             this.Name = name;
+            this.Schema = schema;
             this.Columns = columns;
             this.ForeignKeys = foreignKeys;
             this.Indexes = indexes;
         }
 
         /// <inheritdoc />
-        public override string ToString() => Name;
+        public override string ToString() => Schema is null ? Name : $"{Schema}.{Name}";
     }
 }

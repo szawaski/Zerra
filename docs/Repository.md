@@ -55,7 +55,7 @@ The repository packages target .NET 10 and .NET 11 only.
 ## Data Models
 
 ```csharp
-[Entity("SalesOrder")]                          // table name
+[Entity("SalesOrder")]                          // table name, or [Entity("sales", "SalesOrder")] in another schema
 public sealed class OrderDataModel
 {
     [Identity(false)]                           // primary key; false: assigned by code, not the database

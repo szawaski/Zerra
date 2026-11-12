@@ -1681,6 +1681,11 @@ namespace Zerra.Repository.MsSql
         {
             var rootDependant = new ParameterDependant(modelDetail, null);
             sb.Write("UPDATE [");
+            if (modelDetail.DataSourceSchemaName is not null)
+            {
+                sb.Write(modelDetail.DataSourceSchemaName);
+                sb.Write("].[");
+            }
             sb.Write(modelDetail.DataSourceEntityName);
             sb.Write("] SET ");
             for (var i = 0; i < sets.Length; i++)
@@ -2439,6 +2444,11 @@ namespace Zerra.Repository.MsSql
         protected override void GenerateFrom(ModelDetail modelDetail, ref CharWriter sb)
         {
             sb.Write(" FROM[");
+            if (modelDetail.DataSourceSchemaName is not null)
+            {
+                sb.Write(modelDetail.DataSourceSchemaName);
+                sb.Write("].[");
+            }
             sb.Write(modelDetail.DataSourceEntityName);
             sb.Write(']');
             AppendLineBreak(ref sb);
@@ -2533,6 +2543,11 @@ namespace Zerra.Repository.MsSql
             {
 
                 sb.Write(loop ? "LEFT LOOP JOIN[" : "LEFT JOIN[");
+                if (child.ModelDetail.DataSourceSchemaName is not null)
+                {
+                    sb.Write(child.ModelDetail.DataSourceSchemaName);
+                    sb.Write("].[");
+                }
                 sb.Write(child.ModelDetail.DataSourceEntityName);
                 sb.Write(']');
                 if (child.TableName != child.ModelDetail.DataSourceEntityName)

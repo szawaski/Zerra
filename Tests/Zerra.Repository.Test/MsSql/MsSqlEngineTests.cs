@@ -82,7 +82,7 @@ namespace Zerra.Repository.Test.MsSql
 
             DropDatabase(connectionString);
 
-            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).Concat(BatchWriteTests.ModelTypes).Concat(CompositeRelationTests.ModelTypes).Concat(StreamTests.ModelTypes).ToArray();
+            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).Concat(BatchWriteTests.ModelTypes).Concat(CompositeRelationTests.ModelTypes).Concat(StreamTests.ModelTypes).Concat(SchemaTests.ModelTypes).ToArray();
 
             //without CreateDataStore a missing database throws
             _ = Assert.Throws<InvalidOperationException>(() => CodeFirstGeneration.Generate(engine, CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, modelTypes));
@@ -107,6 +107,8 @@ namespace Zerra.Repository.Test.MsSql
             await CompositeRelationTests.TestSequenceAsync(engine);
             await StreamTests.TestSequence(engine, true);
             CharComparisonTests.TestSequence(engine);
+            SchemaTests.TestSequence(engine);
+            await SchemaTests.TestSequenceAsync(engine);
             await StreamTests.TestAcrossEngines(engine, new Zerra.Repository.Memory.MemoryEngine());
             TransactionTests.TestAcrossEngines(engine);
             TransactionTests.TestSameStore(engine, new MsSqlEngine(connectionString));

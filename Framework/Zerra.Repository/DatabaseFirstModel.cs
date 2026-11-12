@@ -11,6 +11,8 @@ namespace Zerra.Repository
     {
         /// <summary>The table the model is for.</summary>
         public string TableName { get; }
+        /// <summary>The table's schema, or <see langword="null"/> for the data store's default.</summary>
+        public string? SchemaName { get; }
         /// <summary>The model's class name.</summary>
         public string TypeName { get; }
         /// <summary>A file name for the source, the class name with .cs.</summary>
@@ -18,8 +20,9 @@ namespace Zerra.Repository
         /// <summary>The C# source of the model.</summary>
         public string Source { get; }
 
-        internal DatabaseFirstModel(string tableName, string typeName, string source)
+        internal DatabaseFirstModel(string? schemaName, string tableName, string typeName, string source)
         {
+            this.SchemaName = schemaName;
             this.TableName = tableName;
             this.TypeName = typeName;
             this.FileName = typeName + ".cs";

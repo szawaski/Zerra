@@ -79,9 +79,9 @@ namespace Zerra.Repository.MsSql
                         }
 
                         if (sbColumns.Length > 0 && sbValues.Length > 0)
-                            sql = $"INSERT INTO [{modelDetail.DataSourceEntityName}] ({sbColumns.ToString()}) OUTPUT ({sbOutput.ToString()}) VALUES ({sbValues.ToString()})";
+                            sql = $"INSERT INTO {(modelDetail.DataSourceSchemaName is null ? null : $"[{modelDetail.DataSourceSchemaName}].")}[{modelDetail.DataSourceEntityName}] ({sbColumns.ToString()}) OUTPUT ({sbOutput.ToString()}) VALUES ({sbValues.ToString()})";
                         else
-                            sql = $"INSERT INTO [{modelDetail.DataSourceEntityName}] OUTPUT ({sbOutput.ToString()}) DEFAULT VALUES";
+                            sql = $"INSERT INTO {(modelDetail.DataSourceSchemaName is null ? null : $"[{modelDetail.DataSourceSchemaName}].")}[{modelDetail.DataSourceEntityName}] OUTPUT ({sbOutput.ToString()}) DEFAULT VALUES";
                     }
                     finally
                     {
@@ -91,9 +91,9 @@ namespace Zerra.Repository.MsSql
                 else
                 {
                     if (sbColumns.Length > 0 && sbValues.Length > 0)
-                        sql = $"INSERT INTO [{modelDetail.DataSourceEntityName}] ({sbColumns.ToString()}) VALUES ({sbValues.ToString()})";
+                        sql = $"INSERT INTO {(modelDetail.DataSourceSchemaName is null ? null : $"[{modelDetail.DataSourceSchemaName}].")}[{modelDetail.DataSourceEntityName}] ({sbColumns.ToString()}) VALUES ({sbValues.ToString()})";
                     else
-                        sql = $"INSERT INTO [{modelDetail.DataSourceEntityName}] DEFAULT VALUES";
+                        sql = $"INSERT INTO {(modelDetail.DataSourceSchemaName is null ? null : $"[{modelDetail.DataSourceSchemaName}].")}[{modelDetail.DataSourceEntityName}] DEFAULT VALUES";
                 }
                 return sql;
             }
@@ -148,9 +148,14 @@ namespace Zerra.Repository.MsSql
                 GenerateSqlInsertRow((TModel)models[index], graph, modelDetail, ref sbColumns, ref sbValues, parameters);
                 index++;
                 if (sbColumns.Length == 0)
-                    return $"INSERT INTO [{modelDetail.DataSourceEntityName}] DEFAULT VALUES";
+                    return $"INSERT INTO {(modelDetail.DataSourceSchemaName is null ? null : $"[{modelDetail.DataSourceSchemaName}].")}[{modelDetail.DataSourceEntityName}] DEFAULT VALUES";
 
                 sb.Write("INSERT INTO [");
+                if (modelDetail.DataSourceSchemaName is not null)
+                {
+                    sb.Write(modelDetail.DataSourceSchemaName);
+                    sb.Write("].[");
+                }
                 sb.Write(modelDetail.DataSourceEntityName);
                 sb.Write("] (");
                 sb.Write(sbColumns);
@@ -244,6 +249,11 @@ namespace Zerra.Repository.MsSql
             try
             {
                 writer.Write("UPDATE [");
+                if (modelDetail.DataSourceSchemaName is not null)
+                {
+                    writer.Write(modelDetail.DataSourceSchemaName);
+                    writer.Write("].[");
+                }
                 writer.Write(modelDetail.DataSourceEntityName);
                 writer.Write("] SET ");
                 var first = true;
@@ -300,6 +310,11 @@ namespace Zerra.Repository.MsSql
             try
             {
                 sbWhere.Write($"DELETE FROM [");
+                if (modelDetail.DataSourceSchemaName is not null)
+                {
+                    sbWhere.Write(modelDetail.DataSourceSchemaName);
+                    sbWhere.Write("].[");
+                }
                 sbWhere.Write(modelDetail.DataSourceEntityName);
                 sbWhere.Write("] WHERE ");
 
@@ -366,6 +381,11 @@ namespace Zerra.Repository.MsSql
             try
             {
                 writer.Write("UPDATE [");
+                if (modelDetail.DataSourceSchemaName is not null)
+                {
+                    writer.Write(modelDetail.DataSourceSchemaName);
+                    writer.Write("].[");
+                }
                 writer.Write(modelDetail.DataSourceEntityName);
                 writer.Write("] SET ");
                 var first = true;
@@ -1529,7 +1549,7 @@ namespace Zerra.Repository.MsSql
         {
             var parameters = new MsSqlParameterList();
             var sqlWhere = LinqMsSqlConverter.ConvertPersistWhere(where, modelDetail, parameters);
-            var sql = "DELETE FROM [" + modelDetail.DataSourceEntityName + "]" + sqlWhere;
+            var sql = "DELETE FROM [" + (modelDetail.DataSourceSchemaName is null ? null : modelDetail.DataSourceSchemaName + "].[") + modelDetail.DataSourceEntityName + "]" + sqlWhere;
 
             using (var connection = OpenConnection())
             {
@@ -1862,7 +1882,7 @@ namespace Zerra.Repository.MsSql
         {
             var parameters = new MsSqlParameterList();
             var sqlWhere = LinqMsSqlConverter.ConvertPersistWhere(where, modelDetail, parameters);
-            var sql = "DELETE FROM [" + modelDetail.DataSourceEntityName + "]" + sqlWhere;
+            var sql = "DELETE FROM [" + (modelDetail.DataSourceSchemaName is null ? null : modelDetail.DataSourceSchemaName + "].[") + modelDetail.DataSourceEntityName + "]" + sqlWhere;
 
             try
             {
@@ -1965,6 +1985,14 @@ namespace Zerra.Repository.MsSql
             if (needCreateDatabase && !createDataStore)
                 throw new InvalidOperationException($"{nameof(MsSqlEngine)} database {databaseName} does not exist, use {nameof(CodeFirstMode)}.{nameof(CodeFirstMode.CreateDataStore)} to create it");
 
+            var defaultSchema = needCreateDatabase ? "dbo" : ExecuteSqlScalar<string>("SELECT SCHEMA_NAME()");
+            foreach (var schema in modelDetails.Select(x => x.DataSourceSchemaName).Where(x => x is not null).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (!columns || (!needCreateDatabase && ExecuteSqlScalar<int>($"SELECT COUNT(1) FROM sys.schemas WHERE name = '{schema}'") > 0))
+                    continue;
+                sql.Add($"CREATE SCHEMA [{schema}]");
+            }
+
             var columnsToCheck = new List<ModelDetail>();
             var droppedConstraints = new HashSet<string>();
             var droppedIndexes = new HashSet<SqlIndex>();
@@ -1988,7 +2016,7 @@ namespace Zerra.Repository.MsSql
             foreach (var model in modelDetails)
             {
                 var sqlConstraints = needCreateDatabase ? Array.Empty<SqlConstraint>() : GetSqlConstraints(model);
-                AssureConstraints(columns, constraints, sql, model, sqlConstraints, droppedConstraints);
+                AssureConstraints(columns, constraints, sql, model, sqlConstraints, droppedConstraints, defaultSchema);
             }
 
             foreach (var model in modelDetails)
@@ -2054,7 +2082,7 @@ namespace Zerra.Repository.MsSql
 
             if (!needCreateDatabase)
             {
-                var sqlQuery = $"SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = '{model.DataSourceEntityName}'";
+                var sqlQuery = $"SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = '{model.DataSourceEntityName}' AND TABLE_SCHEMA = {(model.DataSourceSchemaName is null ? "SCHEMA_NAME()" : $"'{model.DataSourceSchemaName}'")}";
                 var exists = ExecuteSqlScalar<int>(sqlQuery) > 0;
                 if (exists)
                     return false;
@@ -2063,7 +2091,7 @@ namespace Zerra.Repository.MsSql
             if (create)
             {
                 var sb = new StringBuilder();
-                _ = sb.Append("CREATE TABLE [").Append(model.DataSourceEntityName).Append("](\r\n");
+                _ = sb.Append("CREATE TABLE ").Append(model.DataSourceSchemaName is null ? $"[{model.DataSourceEntityName}]" : $"[{model.DataSourceSchemaName}].[{model.DataSourceEntityName}]").Append("(\r\n");
 
                 for (var i = 0; i < identityColumns.Length; i++)
                 {
@@ -2107,6 +2135,7 @@ namespace Zerra.Repository.MsSql
         private void AssureColumns(bool changeColumns, bool changeConstraints, bool dropColumns, List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints, SqlIndex[] sqlIndexes, HashSet<SqlIndex> droppedIndexes)
         {
             var columns = model.Members.Where(x => !x.IsDataSourceEntity && x.ColumnCoreType.HasValue || x.Type == typeof(byte[])).ToArray();
+            var table = model.DataSourceSchemaName is null ? $"[{model.DataSourceEntityName}]" : $"[{model.DataSourceSchemaName}].[{model.DataSourceEntityName}]";
 
             var sb = new StringBuilder();
 
@@ -2119,7 +2148,7 @@ namespace Zerra.Repository.MsSql
                     {
                         //without constraints a new column is nullable until they run, so the code writing the table before it still can
                         var nullable = !changeConstraints && !column.IsIdentity;
-                        _ = sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] ADD [").Append(column.StoreName).Append("] ");
+                        _ = sb.Append("ALTER TABLE ").Append(table).Append(" ADD [").Append(column.StoreName).Append("] ");
                         WriteSqlTypeFromModel(sb, column, nullable || !column.IsDataSourceNotNull);
                         var withDefault = !nullable && column.IsDataSourceNotNull && !column.IsIdentityAutoGenerated;
                         if (withDefault)
@@ -2131,7 +2160,7 @@ namespace Zerra.Repository.MsSql
                         _ = sb.Clear();
                         if (withDefault)
                         {
-                            _ = sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] DROP CONSTRAINT [DF_").Append(model.DataSourceEntityName).Append('_').Append(column.StoreName).Append(']');
+                            _ = sb.Append("ALTER TABLE ").Append(table).Append(" DROP CONSTRAINT [DF_").Append(model.DataSourceEntityName).Append('_').Append(column.StoreName).Append(']');
                             sql.Add(sb.ToString());
                             _ = sb.Clear();
                         }
@@ -2169,7 +2198,7 @@ namespace Zerra.Repository.MsSql
                                 {
                                     if (!droppedConstraints.Add(sqlConstraint.FK_Name))
                                         continue;
-                                    _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
+                                    _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Schema).Append("].[").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
                                     sql.Add(sb.ToString());
                                     _ = sb.Clear();
                                 }
@@ -2179,15 +2208,15 @@ namespace Zerra.Repository.MsSql
                             {
                                 if (!sqlIndex.Columns.Contains(column.StoreName, StringComparer.OrdinalIgnoreCase) || !droppedIndexes.Add(sqlIndex))
                                     continue;
-                                _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON [").Append(model.DataSourceEntityName).Append(']');
+                                _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON ").Append(table);
                                 sql.Add(sb.ToString());
                                 _ = sb.Clear();
                             }
 
                             var putBack = new List<string>();
-                            DropColumnDependents(sql, putBack, model.DataSourceEntityName, column.StoreName);
+                            DropColumnDependents(sql, putBack, table, column.StoreName);
 
-                            _ = sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] ALTER COLUMN [").Append(column.StoreName).Append("] ");
+                            _ = sb.Append("ALTER TABLE ").Append(table).Append(" ALTER COLUMN [").Append(column.StoreName).Append("] ");
                             WriteSqlTypeFromModel(sb, column, nullable);
                             sql.Add(sb.ToString());
                             _ = sb.Clear();
@@ -2219,7 +2248,7 @@ namespace Zerra.Repository.MsSql
                         {
                             if (!droppedConstraints.Add(sqlConstraint.FK_Name))
                                 continue;
-                            _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
+                            _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Schema).Append("].[").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
                             sql.Add(sb.ToString());
                             _ = sb.Clear();
                         }
@@ -2228,15 +2257,15 @@ namespace Zerra.Repository.MsSql
                         {
                             if (!sqlIndex.Columns.Contains(sqlColumn.Column, StringComparer.OrdinalIgnoreCase) || !droppedIndexes.Add(sqlIndex))
                                 continue;
-                            _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON [").Append(model.DataSourceEntityName).Append(']');
+                            _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON ").Append(table);
                             sql.Add(sb.ToString());
                             _ = sb.Clear();
                         }
 
                         var putBack = new List<string>();
-                        DropColumnDependents(sql, putBack, model.DataSourceEntityName, sqlColumn.Column);
+                        DropColumnDependents(sql, putBack, table, sqlColumn.Column);
 
-                        _ = sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] ALTER COLUMN [").Append(sqlColumn.Column).Append("] ");
+                        _ = sb.Append("ALTER TABLE ").Append(table).Append(" ALTER COLUMN [").Append(sqlColumn.Column).Append("] ");
                         WriteSqlTypeFromColumn(sb, sqlColumn);
                         _ = sb.Append(" NULL");
                         sql.Add(sb.ToString());
@@ -2253,7 +2282,7 @@ namespace Zerra.Repository.MsSql
                     {
                         if (!droppedConstraints.Add(sqlConstraint.FK_Name))
                             continue;
-                        _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
+                        _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Schema).Append("].[").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }
@@ -2262,14 +2291,14 @@ namespace Zerra.Repository.MsSql
                     {
                         if (!sqlIndex.Columns.Contains(sqlColumn.Column, StringComparer.OrdinalIgnoreCase) || !droppedIndexes.Add(sqlIndex))
                             continue;
-                        _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON [").Append(model.DataSourceEntityName).Append(']');
+                        _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON ").Append(table);
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }
 
-                    DropColumnDependents(sql, null, model.DataSourceEntityName, sqlColumn.Column);
+                    DropColumnDependents(sql, null, table, sqlColumn.Column);
 
-                    _ = sb.Append("ALTER TABLE [").Append(model.DataSourceEntityName).Append("] DROP COLUMN [").Append(sqlColumn.Column).Append(']');
+                    _ = sb.Append("ALTER TABLE ").Append(table).Append(" DROP COLUMN [").Append(sqlColumn.Column).Append(']');
                     sql.Add(sb.ToString());
                     _ = sb.Clear();
                 }
@@ -2279,7 +2308,7 @@ namespace Zerra.Repository.MsSql
         //SQL Server won't alter or drop a column that defaults, check and unique constraints, or statistics made outside the model depend on, these are dropped first and put back after an alter
         private void DropColumnDependents(List<string> sql, List<string>? putBack, string table, string column)
         {
-            var objectID = $"OBJECT_ID('[{table}]')";
+            var objectID = $"OBJECT_ID('{table}')";
             //SQL Server writes the columns in a definition bracketed
             var inDefinition = $"'%[[]{column.Replace("_", "[_]")}]%'";
 
@@ -2288,14 +2317,14 @@ namespace Zerra.Repository.MsSql
 
             foreach (var row in ExecuteSqlQuery($"SELECT DC.name, DC.definition FROM sys.default_constraints DC JOIN sys.columns C ON C.object_id = DC.parent_object_id AND C.column_id = DC.parent_column_id WHERE DC.parent_object_id = {objectID} AND C.name = '{column}'").Select(x => (IList<object>)x))
             {
-                sql.Add($"ALTER TABLE [{table}] DROP CONSTRAINT [{row[0]}]");
-                putBack?.Add($"ALTER TABLE [{table}] ADD CONSTRAINT [{row[0]}] DEFAULT {row[1]} FOR [{column}]");
+                sql.Add($"ALTER TABLE {table} DROP CONSTRAINT [{row[0]}]");
+                putBack?.Add($"ALTER TABLE {table} ADD CONSTRAINT [{row[0]}] DEFAULT {row[1]} FOR [{column}]");
             }
 
             foreach (var row in ExecuteSqlQuery($"SELECT CC.name, CC.definition FROM sys.check_constraints CC WHERE CC.parent_object_id = {objectID} AND CC.definition LIKE {inDefinition}").Select(x => (IList<object>)x))
             {
-                sql.Add($"ALTER TABLE [{table}] DROP CONSTRAINT [{row[0]}]");
-                putBack?.Add($"ALTER TABLE [{table}] WITH CHECK ADD CONSTRAINT [{row[0]}] CHECK {row[1]}");
+                sql.Add($"ALTER TABLE {table} DROP CONSTRAINT [{row[0]}]");
+                putBack?.Add($"ALTER TABLE {table} WITH CHECK ADD CONSTRAINT [{row[0]}] CHECK {row[1]}");
             }
 
             var uniqueQuery = $@"SELECT I.name, C.name, IC.is_descending_key, CAST(CASE WHEN I.type = 1 THEN 1 ELSE 0 END AS bit)
@@ -2306,8 +2335,8 @@ WHERE I.object_id = {objectID} AND I.is_unique_constraint = 1 AND I.index_id IN 
 ORDER BY I.name, IC.key_ordinal";
             foreach (var unique in ExecuteSqlQuery(uniqueQuery).Select(x => (IList<object>)x).GroupBy(x => (string)x[0]))
             {
-                sql.Add($"ALTER TABLE [{table}] DROP CONSTRAINT [{unique.Key}]");
-                putBack?.Add($"ALTER TABLE [{table}] ADD CONSTRAINT [{unique.Key}] UNIQUE {((bool)unique.First()[3] ? "CLUSTERED" : "NONCLUSTERED")} ({String.Join(", ", unique.Select(x => $"[{x[1]}] {((bool)x[2] ? "DESC" : "ASC")}"))})");
+                sql.Add($"ALTER TABLE {table} DROP CONSTRAINT [{unique.Key}]");
+                putBack?.Add($"ALTER TABLE {table} ADD CONSTRAINT [{unique.Key}] UNIQUE {((bool)unique.First()[3] ? "CLUSTERED" : "NONCLUSTERED")} ({String.Join(", ", unique.Select(x => $"[{x[1]}] {((bool)x[2] ? "DESC" : "ASC")}"))})");
             }
 
             var statisticsQuery = $@"SELECT S.name, C.name
@@ -2318,18 +2347,19 @@ WHERE S.object_id = {objectID} AND S.user_created = 1 AND S.stats_id IN (SELECT 
 ORDER BY S.name, SC.stats_column_id";
             foreach (var statistics in ExecuteSqlQuery(statisticsQuery).Select(x => (IList<object>)x).GroupBy(x => (string)x[0]))
             {
-                sql.Add($"DROP STATISTICS [{table}].[{statistics.Key}]");
-                putBack?.Add($"CREATE STATISTICS [{statistics.Key}] ON [{table}]({String.Join(", ", statistics.Select(x => $"[{x[1]}]"))})");
+                sql.Add($"DROP STATISTICS {table}.[{statistics.Key}]");
+                putBack?.Add($"CREATE STATISTICS [{statistics.Key}] ON {table}({String.Join(", ", statistics.Select(x => $"[{x[1]}]"))})");
             }
         }
 
-        private void AssureConstraints(bool changeColumns, bool changeConstraints, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints)
+        private void AssureConstraints(bool changeColumns, bool changeConstraints, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints, string defaultSchema)
         {
             var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).Distinct(StringComparer.OrdinalIgnoreCase).ToDictionary(x => x, x => 0, StringComparer.OrdinalIgnoreCase);
 
             var sb = new StringBuilder();
 
             var fkTable = model.DataSourceEntityName;
+            var table = model.DataSourceSchemaName is null ? $"[{model.DataSourceEntityName}]" : $"[{model.DataSourceSchemaName}].[{model.DataSourceEntityName}]";
 
             var usedSqlConstraints = new List<SqlConstraint>();
             foreach (var columnForRelation in model.RelatedNonEnumerableMembers)
@@ -2345,6 +2375,8 @@ ORDER BY S.name, SC.stats_column_id";
                 var fkColumns = columnForRelation.ForeignIdentities.Select(x => model.GetMember(x).StoreName).ToArray();
 
                 var pkTable = relatedModelDetails.DataSourceEntityName;
+                var pkSchema = relatedModelDetails.DataSourceSchemaName ?? defaultSchema;
+                var pkTableQuoted = $"[{pkSchema}].[{pkTable}]";
 
                 var pkColumns = relatedModelDetails.IdentityMembers.Select(x => x.StoreName).ToArray();
 
@@ -2353,7 +2385,7 @@ ORDER BY S.name, SC.stats_column_id";
                 var pkColumn = String.Join("],[", pkColumns);
 
 
-                var constraintColumns = sqlConstraints.Where(x => String.Equals(x.FK_Table, fkTable, StringComparison.OrdinalIgnoreCase) && String.Equals(x.PK_Table, pkTable, StringComparison.OrdinalIgnoreCase)).GroupBy(x => x.FK_Name).FirstOrDefault(x => x.Count() == fkColumns.Length && x.Select((column, index) => String.Equals(column.FK_Column, fkColumns[index], StringComparison.OrdinalIgnoreCase) && String.Equals(column.PK_Column, pkColumns[index], StringComparison.OrdinalIgnoreCase)).All(match => match))?.ToArray();
+                var constraintColumns = sqlConstraints.Where(x => String.Equals(x.FK_Table, fkTable, StringComparison.OrdinalIgnoreCase) && String.Equals(x.PK_Table, pkTable, StringComparison.OrdinalIgnoreCase) && String.Equals(x.PK_Schema, pkSchema, StringComparison.OrdinalIgnoreCase)).GroupBy(x => x.FK_Name).FirstOrDefault(x => x.Count() == fkColumns.Length && x.Select((column, index) => String.Equals(column.FK_Column, fkColumns[index], StringComparison.OrdinalIgnoreCase) && String.Equals(column.PK_Column, pkColumns[index], StringComparison.OrdinalIgnoreCase)).All(match => match))?.ToArray();
 
                 var sqlConstraint = constraintColumns?[0];
                 if (sqlConstraint is null || droppedConstraints.Contains(sqlConstraint.FK_Name))
@@ -2383,7 +2415,7 @@ ORDER BY S.name, SC.stats_column_id";
                             constraintNameDictionary.Add(baseConstraintName, 0);
                             constraintName = baseConstraintName;
                         }
-                        _ = sb.Append("ALTER TABLE [").Append(fkTable).Append("] WITH CHECK ADD CONSTRAINT [").Append(constraintName).Append("] FOREIGN KEY ([").Append(fkColumn).Append("]) REFERENCES [").Append(pkTable).Append("]([").Append(pkColumn).Append("])");
+                        _ = sb.Append("ALTER TABLE ").Append(table).Append(" WITH CHECK ADD CONSTRAINT [").Append(constraintName).Append("] FOREIGN KEY ([").Append(fkColumn).Append("]) REFERENCES ").Append(pkTableQuoted).Append("([").Append(pkColumn).Append("])");
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }
@@ -2401,7 +2433,7 @@ ORDER BY S.name, SC.stats_column_id";
                 {
                     if (!usedSqlConstraints.Any(x => x.FK_Name == sqlConstraint.FK_Name) && !droppedConstraints.Contains(sqlConstraint.FK_Name))
                     {
-                        _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
+                        _ = sb.Append("ALTER TABLE [").Append(sqlConstraint.FK_Schema).Append("].[").Append(sqlConstraint.FK_Table).Append("] DROP CONSTRAINT [").Append(sqlConstraint.FK_Name).Append(']');
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }
@@ -2415,6 +2447,7 @@ ORDER BY S.name, SC.stats_column_id";
                 return;
 
             var sb = new StringBuilder();
+            var table = model.DataSourceSchemaName is null ? $"[{model.DataSourceEntityName}]" : $"[{model.DataSourceSchemaName}].[{model.DataSourceEntityName}]";
 
             var usedSqlIndexes = new List<SqlIndex>();
             foreach (var index in model.Indexes)
@@ -2431,7 +2464,7 @@ ORDER BY S.name, SC.stats_column_id";
                         continue;
 
                     _ = droppedIndexes.Add(sqlIndex);
-                    _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON [").Append(model.DataSourceEntityName).Append(']');
+                    _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON ").Append(table);
                     sql.Add(sb.ToString());
                     _ = sb.Clear();
                 }
@@ -2440,7 +2473,7 @@ ORDER BY S.name, SC.stats_column_id";
                 if (index.IsUnique && !matches && !changeConstraints)
                     continue;
 
-                _ = sb.Append(index.IsUnique ? "CREATE UNIQUE NONCLUSTERED INDEX [" : "CREATE NONCLUSTERED INDEX [").Append(index.StoreName).Append("] ON [").Append(model.DataSourceEntityName).Append("](");
+                _ = sb.Append(index.IsUnique ? "CREATE UNIQUE NONCLUSTERED INDEX [" : "CREATE NONCLUSTERED INDEX [").Append(index.StoreName).Append("] ON ").Append(table).Append('(');
                 for (var i = 0; i < index.Members.Count; i++)
                 {
                     if (i > 0)
@@ -2469,7 +2502,7 @@ ORDER BY S.name, SC.stats_column_id";
             {
                 if (usedSqlIndexes.Contains(sqlIndex) || !droppedIndexes.Add(sqlIndex))
                     continue;
-                _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON [").Append(model.DataSourceEntityName).Append(']');
+                _ = sb.Append("DROP INDEX [").Append(sqlIndex.Name).Append("] ON ").Append(table);
                 sql.Add(sb.ToString());
                 _ = sb.Clear();
             }
@@ -2899,7 +2932,7 @@ ORDER BY S.name, SC.stats_column_id";
 FROM INFORMATION_SCHEMA.COLUMNS C
 LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON KF.COLUMN_NAME = C.COLUMN_NAME AND C.TABLE_NAME = KF.TABLE_NAME AND C.TABLE_SCHEMA = KF.TABLE_SCHEMA
 LEFT OUTER JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS RC ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.TABLE_NAME = KF.TABLE_NAME AND RC.TABLE_SCHEMA = KF.TABLE_SCHEMA
-WHERE C.TABLE_NAME = '{model.DataSourceEntityName}'";
+WHERE C.TABLE_NAME = '{model.DataSourceEntityName}' AND C.TABLE_SCHEMA = {(model.DataSourceSchemaName is null ? "SCHEMA_NAME()" : $"'{model.DataSourceSchemaName}'")}";
 
             var sqlColumns = ExecuteSqlQuery(query).Select(x => (IList<object>)x).Select(x => new SqlColumnType()
             {
@@ -2922,10 +2955,10 @@ WHERE C.TABLE_NAME = '{model.DataSourceEntityName}'";
             var query = $@"SELECT RC.CONSTRAINT_NAME FK_Name, KF.TABLE_SCHEMA FK_Schema, KF.TABLE_NAME FK_Table, KF.COLUMN_NAME FK_Column, RC.UNIQUE_CONSTRAINT_NAME PK_Name, KP.TABLE_SCHEMA PK_Schema, KP.TABLE_NAME PK_Table, KP.COLUMN_NAME PK_Column
 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC
 LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KF.CONSTRAINT_SCHEMA
-LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KP ON RC.UNIQUE_CONSTRAINT_NAME = KP.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KP.CONSTRAINT_SCHEMA AND KP.ORDINAL_POSITION = KF.ORDINAL_POSITION
+LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KP ON RC.UNIQUE_CONSTRAINT_NAME = KP.CONSTRAINT_NAME AND RC.UNIQUE_CONSTRAINT_SCHEMA = KP.CONSTRAINT_SCHEMA AND KP.ORDINAL_POSITION = KF.ORDINAL_POSITION
 LEFT JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS TCKF ON KF.CONSTRAINT_NAME = TCKF.CONSTRAINT_NAME AND KF.CONSTRAINT_SCHEMA = TCKF.CONSTRAINT_SCHEMA
 WHERE TCKF.CONSTRAINT_TYPE = 'FOREIGN KEY'
-AND KF.TABLE_NAME = '{model.DataSourceEntityName}'
+AND KF.TABLE_NAME = '{model.DataSourceEntityName}' AND KF.TABLE_SCHEMA = {(model.DataSourceSchemaName is null ? "SCHEMA_NAME()" : $"'{model.DataSourceSchemaName}'")}
 ORDER BY RC.CONSTRAINT_NAME, KF.ORDINAL_POSITION";
 
             var sqlConstrains = ExecuteSqlQuery(query).Select(x => (IList<object>)x).Select(x => new SqlConstraint()
@@ -2948,7 +2981,7 @@ ORDER BY RC.CONSTRAINT_NAME, KF.ORDINAL_POSITION";
 FROM sys.indexes I
 JOIN sys.index_columns IC ON IC.object_id = I.object_id AND IC.index_id = I.index_id
 JOIN sys.columns C ON C.object_id = IC.object_id AND C.column_id = IC.column_id
-WHERE I.object_id = OBJECT_ID('[{model.DataSourceEntityName}]') AND I.type IN (1, 2) AND I.is_primary_key = 0 AND I.is_unique_constraint = 0 AND I.is_hypothetical = 0 AND IC.is_included_column = 0
+WHERE I.object_id = OBJECT_ID('{(model.DataSourceSchemaName is null ? null : $"[{model.DataSourceSchemaName}].")}[{model.DataSourceEntityName}]') AND I.type IN (1, 2) AND I.is_primary_key = 0 AND I.is_unique_constraint = 0 AND I.is_hypothetical = 0 AND IC.is_included_column = 0
 ORDER BY I.name, IC.key_ordinal";
 
             var sqlIndexes = new List<SqlIndex>();
@@ -2979,34 +3012,38 @@ ORDER BY I.name, IC.key_ordinal";
         /// <inheritdoc />
         public IReadOnlyList<DataStoreSchemaTable> ReadDataStoreSchema()
         {
+            //every user schema, the default one read as no schema
             var columnQuery = @"SELECT C.TABLE_NAME, C.COLUMN_NAME, C.DATA_TYPE, C.IS_NULLABLE, C.CHARACTER_MAXIMUM_LENGTH, C.NUMERIC_PRECISION, C.NUMERIC_SCALE, C.DATETIME_PRECISION
-	,CAST(CASE WHEN COLUMNPROPERTY(OBJECT_ID(C.TABLE_SCHEMA + '.' + C.TABLE_NAME), C.COLUMN_NAME, 'IsIdentity') = 1 OR C.COLUMN_DEFAULT = '(newid())' THEN 1 ELSE 0 END AS bit) AS IS_AUTOGENERATED
+	,CAST(CASE WHEN COLUMNPROPERTY(OBJECT_ID(QUOTENAME(C.TABLE_SCHEMA) + '.' + QUOTENAME(C.TABLE_NAME)), C.COLUMN_NAME, 'IsIdentity') = 1 OR C.COLUMN_DEFAULT = '(newid())' THEN 1 ELSE 0 END AS bit) AS IS_AUTOGENERATED
 	,CAST(CASE WHEN EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS RC ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.TABLE_SCHEMA = KF.TABLE_SCHEMA WHERE RC.CONSTRAINT_TYPE = 'PRIMARY KEY' AND KF.TABLE_SCHEMA = C.TABLE_SCHEMA AND KF.TABLE_NAME = C.TABLE_NAME AND KF.COLUMN_NAME = C.COLUMN_NAME) THEN 1 ELSE 0 END AS bit) AS IS_PRIMARYKEY
+	,CASE WHEN C.TABLE_SCHEMA = SCHEMA_NAME() THEN NULL ELSE C.TABLE_SCHEMA END
 FROM INFORMATION_SCHEMA.COLUMNS C
 JOIN INFORMATION_SCHEMA.TABLES T ON T.TABLE_SCHEMA = C.TABLE_SCHEMA AND T.TABLE_NAME = C.TABLE_NAME
-WHERE T.TABLE_TYPE = 'BASE TABLE' AND C.TABLE_SCHEMA = SCHEMA_NAME()
-ORDER BY C.TABLE_NAME, C.ORDINAL_POSITION";
+WHERE T.TABLE_TYPE = 'BASE TABLE' AND C.TABLE_SCHEMA NOT IN ('sys', 'INFORMATION_SCHEMA')
+ORDER BY CASE WHEN C.TABLE_SCHEMA = SCHEMA_NAME() THEN 0 ELSE 1 END, C.TABLE_SCHEMA, C.TABLE_NAME, C.ORDINAL_POSITION";
 
             var foreignKeyQuery = @"SELECT RC.CONSTRAINT_NAME, KF.TABLE_NAME, KF.COLUMN_NAME, KP.TABLE_NAME, KP.COLUMN_NAME
+	,CASE WHEN KF.TABLE_SCHEMA = SCHEMA_NAME() THEN NULL ELSE KF.TABLE_SCHEMA END
+	,CASE WHEN KP.TABLE_SCHEMA = SCHEMA_NAME() THEN NULL ELSE KP.TABLE_SCHEMA END
 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC
 JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KF.CONSTRAINT_SCHEMA
 JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KP ON RC.UNIQUE_CONSTRAINT_NAME = KP.CONSTRAINT_NAME AND RC.UNIQUE_CONSTRAINT_SCHEMA = KP.CONSTRAINT_SCHEMA AND KP.ORDINAL_POSITION = KF.ORDINAL_POSITION
-WHERE KF.TABLE_SCHEMA = SCHEMA_NAME()
-ORDER BY KF.TABLE_NAME, RC.CONSTRAINT_NAME, KF.ORDINAL_POSITION";
+WHERE KF.TABLE_SCHEMA NOT IN ('sys', 'INFORMATION_SCHEMA')
+ORDER BY KF.TABLE_SCHEMA, KF.TABLE_NAME, RC.CONSTRAINT_NAME, KF.ORDINAL_POSITION";
 
-            var indexQuery = @"SELECT T.name, I.name, I.is_unique, C.name, IC.is_descending_key
+            var indexQuery = @"SELECT T.name, I.name, I.is_unique, C.name, IC.is_descending_key, CASE WHEN T.schema_id = SCHEMA_ID() THEN NULL ELSE SCHEMA_NAME(T.schema_id) END
 FROM sys.indexes I
 JOIN sys.tables T ON T.object_id = I.object_id
 JOIN sys.index_columns IC ON IC.object_id = I.object_id AND IC.index_id = I.index_id
 JOIN sys.columns C ON C.object_id = IC.object_id AND C.column_id = IC.column_id
-WHERE T.schema_id = SCHEMA_ID() AND I.type IN (1, 2) AND I.is_primary_key = 0 AND I.is_unique_constraint = 0 AND I.is_hypothetical = 0 AND IC.is_included_column = 0
-ORDER BY T.name, I.name, IC.key_ordinal";
+WHERE T.is_ms_shipped = 0 AND I.type IN (1, 2) AND I.is_primary_key = 0 AND I.is_unique_constraint = 0 AND I.is_hypothetical = 0 AND IC.is_included_column = 0
+ORDER BY T.schema_id, T.name, I.name, IC.key_ordinal";
 
-            var columnsByTable = new Dictionary<string, List<DataStoreSchemaColumn>>(StringComparer.OrdinalIgnoreCase);
-            var tableNames = new List<string>();
+            var columnsByTable = new Dictionary<(string?, string), List<DataStoreSchemaColumn>>();
+            var tableNames = new List<(string?, string)>();
             foreach (var x in ExecuteSqlQuery(columnQuery).Select(x => (IList<object>)x))
             {
-                var table = (string)x[0];
+                var table = (x[10] != DBNull.Value ? (string)x[10] : null, (string)x[0]);
                 if (!columnsByTable.TryGetValue(table, out var columns))
                 {
                     columns = new();
@@ -3025,38 +3062,41 @@ ORDER BY T.name, I.name, IC.key_ordinal";
                     (bool)x[8]));
             }
 
-            var foreignKeysByTable = new Dictionary<string, List<DataStoreSchemaForeignKey>>(StringComparer.OrdinalIgnoreCase);
-            foreach (var group in ExecuteSqlQuery(foreignKeyQuery).Select(x => (IList<object>)x).GroupBy(x => ((string)x[1], (string)x[0])))
+            var foreignKeysByTable = new Dictionary<(string?, string), List<DataStoreSchemaForeignKey>>();
+            foreach (var group in ExecuteSqlQuery(foreignKeyQuery).Select(x => (IList<object>)x).GroupBy(x => (x[5] != DBNull.Value ? (string)x[5] : null, (string)x[1], (string)x[0])))
             {
                 var rows = group.ToArray();
-                if (!foreignKeysByTable.TryGetValue(group.Key.Item1, out var foreignKeys))
+                var table = (group.Key.Item1, group.Key.Item2);
+                if (!foreignKeysByTable.TryGetValue(table, out var foreignKeys))
                 {
                     foreignKeys = new();
-                    foreignKeysByTable.Add(group.Key.Item1, foreignKeys);
+                    foreignKeysByTable.Add(table, foreignKeys);
                 }
-                foreignKeys.Add(new DataStoreSchemaForeignKey(group.Key.Item2, rows.Select(x => (string)x[2]).ToArray(), (string)rows[0][3], rows.Select(x => (string)x[4]).ToArray()));
+                foreignKeys.Add(new DataStoreSchemaForeignKey(group.Key.Item3, rows.Select(x => (string)x[2]).ToArray(), (string)rows[0][3], rows.Select(x => (string)x[4]).ToArray(), rows[0][6] != DBNull.Value ? (string)rows[0][6] : null));
             }
 
-            var indexesByTable = new Dictionary<string, List<DataStoreSchemaIndex>>(StringComparer.OrdinalIgnoreCase);
-            foreach (var group in ExecuteSqlQuery(indexQuery).Select(x => (IList<object>)x).GroupBy(x => ((string)x[0], (string)x[1])))
+            var indexesByTable = new Dictionary<(string?, string), List<DataStoreSchemaIndex>>();
+            foreach (var group in ExecuteSqlQuery(indexQuery).Select(x => (IList<object>)x).GroupBy(x => (x[5] != DBNull.Value ? (string)x[5] : null, (string)x[0], (string)x[1])))
             {
                 var rows = group.ToArray();
-                if (!indexesByTable.TryGetValue(group.Key.Item1, out var indexes))
+                var table = (group.Key.Item1, group.Key.Item2);
+                if (!indexesByTable.TryGetValue(table, out var indexes))
                 {
                     indexes = new();
-                    indexesByTable.Add(group.Key.Item1, indexes);
+                    indexesByTable.Add(table, indexes);
                 }
-                indexes.Add(new DataStoreSchemaIndex(group.Key.Item2, (bool)rows[0][2], rows.Select(x => (string)x[3]).ToArray(), rows.Select(x => (bool)x[4]).ToArray()));
+                indexes.Add(new DataStoreSchemaIndex(group.Key.Item3, (bool)rows[0][2], rows.Select(x => (string)x[3]).ToArray(), rows.Select(x => (bool)x[4]).ToArray()));
             }
 
             var tables = new List<DataStoreSchemaTable>(tableNames.Count);
             foreach (var table in tableNames)
             {
                 tables.Add(new DataStoreSchemaTable(
-                    table,
+                    table.Item2,
                     columnsByTable[table],
                     foreignKeysByTable.TryGetValue(table, out var foreignKeys) ? foreignKeys : Array.Empty<DataStoreSchemaForeignKey>(),
-                    indexesByTable.TryGetValue(table, out var indexes) ? indexes : Array.Empty<DataStoreSchemaIndex>()));
+                    indexesByTable.TryGetValue(table, out var indexes) ? indexes : Array.Empty<DataStoreSchemaIndex>(),
+                    table.Item1));
             }
             return tables;
         }

@@ -50,7 +50,7 @@ namespace Zerra.Repository.Test.MariaDb
                 connection.Open();
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = $"SELECT CONCAT('KILL ', id, ';') FROM INFORMATION_SCHEMA.PROCESSLIST WHERE `db` = '{testDatabase}'; DROP DATABASE IF EXISTS {testDatabase};";
+                    command.CommandText = $"SELECT CONCAT('KILL ', id, ';') FROM INFORMATION_SCHEMA.PROCESSLIST WHERE `db` = '{testDatabase}'; DROP DATABASE IF EXISTS {testDatabase}; DROP DATABASE IF EXISTS {SchemaTests.Schema};";
                     _ = command.ExecuteNonQuery();
                 }
             }
@@ -84,7 +84,7 @@ namespace Zerra.Repository.Test.MariaDb
 
             DropDatabase(connectionString);
 
-            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).Concat(BatchWriteTests.ModelTypes).Concat(CompositeRelationTests.ModelTypes).Concat(StreamTests.ModelTypes).ToArray();
+            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).Concat(BatchWriteTests.ModelTypes).Concat(CompositeRelationTests.ModelTypes).Concat(StreamTests.ModelTypes).Concat(SchemaTests.ModelTypes).ToArray();
 
             //without CreateDataStore a missing database throws
             _ = Assert.Throws<InvalidOperationException>(() => CodeFirstGeneration.Generate(engine, CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, modelTypes));
@@ -109,6 +109,8 @@ namespace Zerra.Repository.Test.MariaDb
             await CompositeRelationTests.TestSequenceAsync(engine);
             await StreamTests.TestSequence(engine, true);
             CharComparisonTests.TestSequence(engine);
+            SchemaTests.TestSequence(engine);
+            await SchemaTests.TestSequenceAsync(engine);
             await StreamTests.TestAcrossEngines(engine, new Zerra.Repository.Memory.MemoryEngine());
             TransactionTests.TestAcrossEngines(engine);
             TransactionTests.TestSameStore(engine, new MariaDbEngine(connectionString));

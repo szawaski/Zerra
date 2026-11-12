@@ -46,7 +46,7 @@ namespace Zerra.Repository.Test.MongoDB
 
             DropDatabase(connectionString);
 
-            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).Concat(BatchWriteTests.ModelTypes).Concat(CompositeRelationTests.ModelTypes).Concat(StreamTests.ModelTypes).ToArray();
+            var modelTypes = new[] { typeof(TestTypesModel), typeof(TestRelationsModel) }.Concat(RelationPersistTests.ModelTypes).Concat(QueryParityTests.ModelTypes).Concat(TransactionTests.ModelTypes).Concat(BatchWriteTests.ModelTypes).Concat(CompositeRelationTests.ModelTypes).Concat(StreamTests.ModelTypes).Concat(SchemaTests.ModelTypes).ToArray();
 
             CodeFirstGeneration.Generate(engine, CodeFirstMode.CreateDataStore | CodeFirstMode.Columns | CodeFirstMode.Constraints | CodeFirstMode.DropColumns, modelTypes);
             RepoTest.AssertSchemaMatchesModels(engine, modelTypes);
@@ -67,6 +67,8 @@ namespace Zerra.Repository.Test.MongoDB
             await CompositeRelationTests.TestSequenceAsync(engine);
             await StreamTests.TestSequence(engine, false);
             CharComparisonTests.TestSequence(engine);
+            SchemaTests.TestSequence(engine);
+            await SchemaTests.TestSequenceAsync(engine);
             await StreamTests.TestAcrossEngines(engine, new Zerra.Repository.Memory.MemoryEngine());
             TransactionTests.TestAcrossEngines(engine);
             TransactionTests.TestSameStore(engine, new MongoDBEngine(connectionString));

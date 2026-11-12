@@ -73,7 +73,7 @@ namespace Zerra.Repository.MongoDB
             var converter = new LinqMongoDBConverter();
             var stages = new List<BsonDocument>();
             converter.WriteQuery(query, plan, modelDetail, stages);
-            return new MongoDBStatement(modelDetail.DataSourceEntityName, stages, plan, null, ConvertPieces(plan));
+            return new MongoDBStatement(modelDetail.DataSourceEntityFullName, stages, plan, null, ConvertPieces(plan));
         }
 
         //each relation read after the rows is a statement of the related collection, matched at run time by the keys of the parents read
@@ -132,7 +132,7 @@ namespace Zerra.Repository.MongoDB
                 converter.FlushLookups(stages);
                 stages.Add(new BsonDocument("$project", project));
 
-                statements[p] = new MongoDBStatement(related.DataSourceEntityName, stages, piece.Plan, keyFields, ConvertPieces(piece.Plan));
+                statements[p] = new MongoDBStatement(related.DataSourceEntityFullName, stages, piece.Plan, keyFields, ConvertPieces(piece.Plan));
             }
             return statements;
         }
@@ -1005,7 +1005,7 @@ namespace Zerra.Repository.MongoDB
                     localFields[i] = scope.FieldPath + FieldName(model.GetMember(names[i]), model);
                     foreignFields[i] = FieldName(related.IdentityMembers[i], related);
                 }
-                pendingLookups.Add(LookupStage(related.DataSourceEntityName, localFields, foreignFields, name));
+                pendingLookups.Add(LookupStage(related.DataSourceEntityFullName, localFields, foreignFields, name));
                 pendingLookups.Add(new BsonDocument("$unwind", new BsonDocument
                 {
                     { "path", "$" + name },
@@ -1062,7 +1062,7 @@ namespace Zerra.Repository.MongoDB
                     localFields[i] = scope.FieldPath + FieldName(model.IdentityMembers[i], model);
                     foreignFields[i] = FieldName(related.GetMember(names[i]), related);
                 }
-                pendingLookups.Add(LookupStage(related.DataSourceEntityName, localFields, foreignFields, name));
+                pendingLookups.Add(LookupStage(related.DataSourceEntityFullName, localFields, foreignFields, name));
             }
             return name;
         }

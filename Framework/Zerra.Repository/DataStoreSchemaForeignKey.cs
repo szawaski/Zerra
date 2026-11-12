@@ -15,6 +15,8 @@ namespace Zerra.Repository
         public IReadOnlyList<string> Columns { get; }
         /// <summary>The table the key refers to.</summary>
         public string ReferencedTable { get; }
+        /// <summary>The schema of the table the key refers to, or <see langword="null"/> for the data store's default.</summary>
+        public string? ReferencedSchema { get; }
         /// <summary>The columns referred to, in the key's order.</summary>
         public IReadOnlyList<string> ReferencedColumns { get; }
 
@@ -25,8 +27,10 @@ namespace Zerra.Repository
         /// <param name="columns">The columns of the table holding the key, in the key's order.</param>
         /// <param name="referencedTable">The table the key refers to.</param>
         /// <param name="referencedColumns">The columns referred to, in the key's order.</param>
-        public DataStoreSchemaForeignKey(string name, IReadOnlyList<string> columns, string referencedTable, IReadOnlyList<string> referencedColumns)
+        /// <param name="referencedSchema">The schema of the table the key refers to, or <see langword="null"/> for the data store's default.</param>
+        public DataStoreSchemaForeignKey(string name, IReadOnlyList<string> columns, string referencedTable, IReadOnlyList<string> referencedColumns, string? referencedSchema = null)
         {
+            this.ReferencedSchema = referencedSchema;
             this.Name = name;
             this.Columns = columns;
             this.ReferencedTable = referencedTable;

@@ -78,9 +78,9 @@ namespace Zerra.Repository.PostgreSql
                         }
 
                         if (sbColumns.Length > 0 && sbValues.Length > 0)
-                            sql = $"INSERT INTO {modelDetail.DataSourceEntityName} ({sbColumns.ToString()}) VALUES ({sbValues.ToString()}) RETURNING {sbReturns.ToString()}";
+                            sql = $"INSERT INTO {(modelDetail.DataSourceSchemaName is null ? null : $"{modelDetail.DataSourceSchemaName}.")}{modelDetail.DataSourceEntityName} ({sbColumns.ToString()}) VALUES ({sbValues.ToString()}) RETURNING {sbReturns.ToString()}";
                         else
-                            sql = $"INSERT INTO {modelDetail.DataSourceEntityName} DEFAULT VALUES RETURNING {sbReturns.ToString()}";
+                            sql = $"INSERT INTO {(modelDetail.DataSourceSchemaName is null ? null : $"{modelDetail.DataSourceSchemaName}.")}{modelDetail.DataSourceEntityName} DEFAULT VALUES RETURNING {sbReturns.ToString()}";
                     }
                     finally
                     {
@@ -90,9 +90,9 @@ namespace Zerra.Repository.PostgreSql
                 else
                 {
                     if (sbColumns.Length > 0 && sbValues.Length > 0)
-                        sql = $"INSERT INTO {modelDetail.DataSourceEntityName} ({sbColumns.ToString()}) VALUES ({sbValues.ToString()})";
+                        sql = $"INSERT INTO {(modelDetail.DataSourceSchemaName is null ? null : $"{modelDetail.DataSourceSchemaName}.")}{modelDetail.DataSourceEntityName} ({sbColumns.ToString()}) VALUES ({sbValues.ToString()})";
                     else
-                        sql = $"INSERT INTO {modelDetail.DataSourceEntityName} DEFAULT VALUES";
+                        sql = $"INSERT INTO {(modelDetail.DataSourceSchemaName is null ? null : $"{modelDetail.DataSourceSchemaName}.")}{modelDetail.DataSourceEntityName} DEFAULT VALUES";
                 }
                 return sql;
             }
@@ -144,9 +144,14 @@ namespace Zerra.Repository.PostgreSql
                 GenerateSqlInsertRow((TModel)models[index], graph, modelDetail, ref sbColumns, ref sbValues);
                 index++;
                 if (sbColumns.Length == 0)
-                    return $"INSERT INTO {modelDetail.DataSourceEntityName} DEFAULT VALUES";
+                    return $"INSERT INTO {(modelDetail.DataSourceSchemaName is null ? null : $"{modelDetail.DataSourceSchemaName}.")}{modelDetail.DataSourceEntityName} DEFAULT VALUES";
 
                 sb.Write("INSERT INTO ");
+                if (modelDetail.DataSourceSchemaName is not null)
+                {
+                    sb.Write(modelDetail.DataSourceSchemaName);
+                    sb.Write('.');
+                }
                 sb.Write(modelDetail.DataSourceEntityName);
                 sb.Write(" (");
                 sb.Write(sbColumns);
@@ -241,6 +246,11 @@ namespace Zerra.Repository.PostgreSql
             try
             {
                 writer.Write("UPDATE ");
+                if (modelDetail.DataSourceSchemaName is not null)
+                {
+                    writer.Write(modelDetail.DataSourceSchemaName);
+                    writer.Write('.');
+                }
                 writer.Write(modelDetail.DataSourceEntityName);
                 writer.Write(" SET ");
                 var first = true;
@@ -293,6 +303,11 @@ namespace Zerra.Repository.PostgreSql
             try
             {
                 sbWhere.Write($"DELETE FROM ");
+                if (modelDetail.DataSourceSchemaName is not null)
+                {
+                    sbWhere.Write(modelDetail.DataSourceSchemaName);
+                    sbWhere.Write('.');
+                }
                 sbWhere.Write(modelDetail.DataSourceEntityName);
                 sbWhere.Write(" WHERE ");
 
@@ -356,6 +371,11 @@ namespace Zerra.Repository.PostgreSql
             try
             {
                 writer.Write("UPDATE ");
+                if (modelDetail.DataSourceSchemaName is not null)
+                {
+                    writer.Write(modelDetail.DataSourceSchemaName);
+                    writer.Write('.');
+                }
                 writer.Write(modelDetail.DataSourceEntityName);
                 writer.Write(" SET ");
                 var first = true;
@@ -1424,7 +1444,7 @@ namespace Zerra.Repository.PostgreSql
         public int ExecuteDeleteWhere<TModel>(LambdaExpression where, ModelDetail modelDetail) where TModel : class, new()
         {
             var sqlWhere = LinqPostgreSqlConverter.ConvertPersistWhere(where, modelDetail);
-            var sql = "DELETE FROM " + modelDetail.DataSourceEntityName + sqlWhere;
+            var sql = "DELETE FROM " + (modelDetail.DataSourceSchemaName is null ? null : modelDetail.DataSourceSchemaName + ".") + modelDetail.DataSourceEntityName + sqlWhere;
 
             using (var connection = OpenConnection())
             {
@@ -1663,7 +1683,7 @@ namespace Zerra.Repository.PostgreSql
         public async Task<int> ExecuteDeleteWhereAsync<TModel>(LambdaExpression where, ModelDetail modelDetail, CancellationToken cancellationToken = default) where TModel : class, new()
         {
             var sqlWhere = LinqPostgreSqlConverter.ConvertPersistWhere(where, modelDetail);
-            var sql = "DELETE FROM " + modelDetail.DataSourceEntityName + sqlWhere;
+            var sql = "DELETE FROM " + (modelDetail.DataSourceSchemaName is null ? null : modelDetail.DataSourceSchemaName + ".") + modelDetail.DataSourceEntityName + sqlWhere;
 
             using (var connection = await OpenConnectionAsync(cancellationToken))
             {
@@ -1759,6 +1779,14 @@ namespace Zerra.Repository.PostgreSql
 
             AssureExtensions(sql, needCreateDatabase);
 
+            var defaultSchema = needCreateDatabase ? "public" : ExecuteSqlScalar<string>("SELECT current_schema()");
+            foreach (var schema in modelDetails.Select(x => x.DataSourceSchemaName?.ToLower()).Where(x => x is not null).Distinct())
+            {
+                if (!columns || (!needCreateDatabase && ExecuteSqlScalar<long>($"SELECT COUNT(1) FROM pg_namespace WHERE nspname = '{schema}'") > 0))
+                    continue;
+                sql.Add($"CREATE SCHEMA {schema};");
+            }
+
             var columnsToCheck = new List<ModelDetail>();
             var droppedConstraints = new HashSet<string>();
             var droppedIndexes = new HashSet<SqlIndex>();
@@ -1782,7 +1810,7 @@ namespace Zerra.Repository.PostgreSql
             foreach (var model in modelDetails)
             {
                 var sqlConstraints = needCreateDatabase ? Array.Empty<SqlConstraint>() : GetSqlConstraints(model);
-                AssureConstraints(columns, constraints, sql, model, sqlConstraints, droppedConstraints);
+                AssureConstraints(columns, constraints, sql, model, sqlConstraints, droppedConstraints, defaultSchema);
             }
 
             foreach (var model in modelDetails)
@@ -1855,6 +1883,7 @@ namespace Zerra.Repository.PostgreSql
 
         private bool AssureTable(bool create, List<string> sql, bool needCreateDatabase, ModelDetail model)
         {
+            var table = model.DataSourceSchemaName is null ? model.DataSourceEntityName.ToLower() : $"{model.DataSourceSchemaName.ToLower()}.{model.DataSourceEntityName.ToLower()}";
             var nonIdentityColumns = model.Members.Where(x => !x.IsIdentity && !x.IsDataSourceEntity && x.ColumnCoreType.HasValue || x.Type == typeof(byte[])).ToArray();
             var identityColumns = model.Members.Where(x => x.IsIdentity).ToArray();
 
@@ -1863,7 +1892,7 @@ namespace Zerra.Repository.PostgreSql
 
             if (!needCreateDatabase)
             {
-                var sqlQuery = $"SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
+                var sqlQuery = $"SELECT COUNT(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = '{model.DataSourceEntityName.ToLower()}' AND TABLE_SCHEMA = {(model.DataSourceSchemaName is null ? "current_schema()" : $"'{model.DataSourceSchemaName.ToLower()}'")}";
                 var exists = ExecuteSqlScalar<long>(sqlQuery) > 0;
                 if (exists)
                     return false;
@@ -1872,7 +1901,7 @@ namespace Zerra.Repository.PostgreSql
             if (create)
             {
                 var sb = new StringBuilder();
-                _ = sb.Append("CREATE TABLE ").Append(model.DataSourceEntityName).Append("(\r\n");
+                _ = sb.Append("CREATE TABLE ").Append(table).Append("(\r\n");
 
                 for (var i = 0; i < identityColumns.Length; i++)
                 {
@@ -1916,6 +1945,7 @@ namespace Zerra.Repository.PostgreSql
 
         private void AssureColumns(bool changeColumns, bool changeConstraints, bool dropColumns, List<string> sql, ModelDetail model, SqlColumnType[] sqlColumns, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints, SqlIndex[] sqlIndexes, HashSet<SqlIndex> droppedIndexes)
         {
+            var table = model.DataSourceSchemaName is null ? model.DataSourceEntityName.ToLower() : $"{model.DataSourceSchemaName.ToLower()}.{model.DataSourceEntityName.ToLower()}";
             var columns = model.Members.Where(x => !x.IsDataSourceEntity && x.ColumnCoreType.HasValue || x.Type == typeof(byte[])).ToArray();
 
             var sb = new StringBuilder();
@@ -1929,7 +1959,7 @@ namespace Zerra.Repository.PostgreSql
                     {
                         //without constraints a new column is nullable until they run, so the code writing the table before it still can
                         var nullable = !changeConstraints && !column.IsIdentity;
-                        _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ADD ").Append(column.StoreName).Append(' ');
+                        _ = sb.Append("ALTER TABLE ").Append(table).Append(" ADD ").Append(column.StoreName).Append(' ');
                         WriteSqlTypeFromModel(sb, column);
                         WriteTypeEndingFromModel(sb, column, nullable || !column.IsDataSourceNotNull);
                         var withDefault = !nullable && column.IsDataSourceNotNull && !column.IsIdentityAutoGenerated;
@@ -1943,7 +1973,7 @@ namespace Zerra.Repository.PostgreSql
                         _ = sb.Clear();
                         if (withDefault)
                         {
-                            _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.StoreName.ToLower()).Append(" DROP DEFAULT;");
+                            _ = sb.Append("ALTER TABLE ").Append(table).Append(" ALTER COLUMN ").Append(column.StoreName.ToLower()).Append(" DROP DEFAULT;");
                             sql.Add(sb.ToString());
                             _ = sb.Clear();
                         }
@@ -1980,7 +2010,7 @@ namespace Zerra.Repository.PostgreSql
                                 {
                                     if (!droppedConstraints.Add(sqlConstraint.FK_Name))
                                         continue;
-                                    _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
+                                    _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Schema).Append('.').Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
                                     sql.Add(sb.ToString());
                                     _ = sb.Clear();
                                 }
@@ -1988,7 +2018,7 @@ namespace Zerra.Repository.PostgreSql
 
                             if (changeType)
                             {
-                                _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.StoreName.ToLower()).Append(" TYPE ");
+                                _ = sb.Append("ALTER TABLE ").Append(table).Append(" ALTER COLUMN ").Append(column.StoreName.ToLower()).Append(" TYPE ");
                                 WriteSqlTypeFromModel(sb, column);
                                 _ = sb.Append(';');
                                 sql.Add(sb.ToString());
@@ -1997,7 +2027,7 @@ namespace Zerra.Repository.PostgreSql
 
                             if (nullable != sqlColumn.IsNullable)
                             {
-                                _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(column.StoreName.ToLower()).Append(nullable ? " DROP NOT NULL;" : " SET NOT NULL;");
+                                _ = sb.Append("ALTER TABLE ").Append(table).Append(" ALTER COLUMN ").Append(column.StoreName.ToLower()).Append(nullable ? " DROP NOT NULL;" : " SET NOT NULL;");
                                 sql.Add(sb.ToString());
                                 _ = sb.Clear();
                             }
@@ -2024,7 +2054,7 @@ namespace Zerra.Repository.PostgreSql
                         if (sqlColumns.Any(x => x.Table == sqlColumn.Table && x.Column == sqlColumn.Column && (x.IsPrimaryKey || x.IsAutoGenerated)))
                             throw new Exception($"{nameof(ITransactStoreEngine.BuildStoreGenerationPlan)} {nameof(PostgreSqlEngine)} needs to make {sqlColumn.Table}.{sqlColumn.Column} nullable but cannot automatically change column with a Primary Key or Identity");
 
-                        _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" ALTER COLUMN ").Append(sqlColumn.Column.ToLower()).Append(" DROP NOT NULL;");
+                        _ = sb.Append("ALTER TABLE ").Append(table).Append(" ALTER COLUMN ").Append(sqlColumn.Column.ToLower()).Append(" DROP NOT NULL;");
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                         continue;
@@ -2038,7 +2068,7 @@ namespace Zerra.Repository.PostgreSql
                     {
                         if (!droppedConstraints.Add(sqlConstraint.FK_Name))
                             continue;
-                        _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
+                        _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Schema).Append('.').Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }
@@ -2047,20 +2077,21 @@ namespace Zerra.Repository.PostgreSql
                     {
                         if (!sqlIndex.Columns.Contains(sqlColumn.Column, StringComparer.OrdinalIgnoreCase) || !droppedIndexes.Add(sqlIndex))
                             continue;
-                        _ = sb.Append("DROP INDEX \"").Append(sqlIndex.Name).Append("\";");
+                        _ = sb.Append("DROP INDEX ").Append(model.DataSourceSchemaName is null ? null : model.DataSourceSchemaName.ToLower() + ".").Append('"').Append(sqlIndex.Name).Append("\";");
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }
 
-                    _ = sb.Append("ALTER TABLE ").Append(model.DataSourceEntityName.ToLower()).Append(" DROP COLUMN ").Append(sqlColumn.Column.ToLower()).Append(';');
+                    _ = sb.Append("ALTER TABLE ").Append(table).Append(" DROP COLUMN ").Append(sqlColumn.Column.ToLower()).Append(';');
                     sql.Add(sb.ToString());
                     _ = sb.Clear();
                 }
             }
         }
 
-        private void AssureConstraints(bool changeColumns, bool changeConstraints, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints)
+        private void AssureConstraints(bool changeColumns, bool changeConstraints, List<string> sql, ModelDetail model, SqlConstraint[] sqlConstraints, HashSet<string> droppedConstraints, string defaultSchema)
         {
+            var table = model.DataSourceSchemaName is null ? model.DataSourceEntityName.ToLower() : $"{model.DataSourceSchemaName.ToLower()}.{model.DataSourceEntityName.ToLower()}";
             var constraintNameDictionary = sqlConstraints.Select(x => x.FK_Name).Distinct(StringComparer.OrdinalIgnoreCase).ToDictionary(x => x, x => 0, StringComparer.OrdinalIgnoreCase);
 
             var sb = new StringBuilder();
@@ -2084,6 +2115,7 @@ namespace Zerra.Repository.PostgreSql
                 var fkColumns = columnForRelation.ForeignIdentities.Select(x => model.GetMember(x).StoreName).ToArray();
 
                 var pkTable = relatedModelDetails.DataSourceEntityName;
+                var pkSchema = relatedModelDetails.DataSourceSchemaName?.ToLower() ?? defaultSchema;
 
                 var pkColumns = relatedModelDetails.IdentityMembers.Select(x => x.StoreName).ToArray();
 
@@ -2092,7 +2124,7 @@ namespace Zerra.Repository.PostgreSql
                 var pkColumn = String.Join(",", pkColumns);
 
 
-                var constraintColumns = sqlConstraints.Where(x => String.Equals(x.FK_Table, fkTable, StringComparison.OrdinalIgnoreCase) && String.Equals(x.PK_Table, pkTable, StringComparison.OrdinalIgnoreCase)).GroupBy(x => x.FK_Name).FirstOrDefault(x => x.Count() == fkColumns.Length && x.Select((column, index) => String.Equals(column.FK_Column, fkColumns[index], StringComparison.OrdinalIgnoreCase) && String.Equals(column.PK_Column, pkColumns[index], StringComparison.OrdinalIgnoreCase)).All(match => match))?.ToArray();
+                var constraintColumns = sqlConstraints.Where(x => String.Equals(x.FK_Table, fkTable, StringComparison.OrdinalIgnoreCase) && String.Equals(x.PK_Table, pkTable, StringComparison.OrdinalIgnoreCase) && String.Equals(x.PK_Schema, pkSchema, StringComparison.OrdinalIgnoreCase)).GroupBy(x => x.FK_Name).FirstOrDefault(x => x.Count() == fkColumns.Length && x.Select((column, index) => String.Equals(column.FK_Column, fkColumns[index], StringComparison.OrdinalIgnoreCase) && String.Equals(column.PK_Column, pkColumns[index], StringComparison.OrdinalIgnoreCase)).All(match => match))?.ToArray();
 
                 var sqlConstraint = constraintColumns?[0];
                 if (sqlConstraint is null || droppedConstraints.Contains(sqlConstraint.FK_Name))
@@ -2122,7 +2154,7 @@ namespace Zerra.Repository.PostgreSql
                             constraintNameDictionary.Add(baseConstraintName, 0);
                             constraintName = baseConstraintName;
                         }
-                        _ = sb.Append("ALTER TABLE ").Append(fkTable.ToLower()).Append(" ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn.ToLower()).Append(") REFERENCES ").Append(pkTable.ToLower()).Append('(').Append(pkColumn.ToLower()).Append(");");
+                        _ = sb.Append("ALTER TABLE ").Append(table).Append(" ADD CONSTRAINT ").Append(constraintName).Append(" FOREIGN KEY (").Append(fkColumn.ToLower()).Append(") REFERENCES ").Append(pkSchema).Append('.').Append(pkTable.ToLower()).Append('(').Append(pkColumn.ToLower()).Append(");");
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }
@@ -2140,7 +2172,7 @@ namespace Zerra.Repository.PostgreSql
                 {
                     if (!usedSqlConstraints.Any(x => x.FK_Name == sqlConstraint.FK_Name) && !droppedConstraints.Contains(sqlConstraint.FK_Name))
                     {
-                        _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
+                        _ = sb.Append("ALTER TABLE ").Append(sqlConstraint.FK_Schema).Append('.').Append(sqlConstraint.FK_Table.ToLower()).Append(" DROP CONSTRAINT ").Append(sqlConstraint.FK_Name.ToLower()).Append(';');
                         sql.Add(sb.ToString());
                         _ = sb.Clear();
                     }
@@ -2150,6 +2182,7 @@ namespace Zerra.Repository.PostgreSql
 
         private void AssureIndexes(bool changeColumns, bool changeConstraints, List<string> sql, ModelDetail model, SqlIndex[] sqlIndexes, HashSet<SqlIndex> droppedIndexes)
         {
+            var table = model.DataSourceSchemaName is null ? model.DataSourceEntityName.ToLower() : $"{model.DataSourceSchemaName.ToLower()}.{model.DataSourceEntityName.ToLower()}";
             if (!changeColumns && !changeConstraints)
                 return;
 
@@ -2168,7 +2201,7 @@ namespace Zerra.Repository.PostgreSql
                     if (matches)
                         continue;
 
-                    _ = sb.Append("DROP INDEX \"").Append(sqlIndex.Name).Append("\";");
+                    _ = sb.Append("DROP INDEX ").Append(model.DataSourceSchemaName is null ? null : model.DataSourceSchemaName.ToLower() + ".").Append('"').Append(sqlIndex.Name).Append("\";");
                     sql.Add(sb.ToString());
                     _ = sb.Clear();
                 }
@@ -2177,7 +2210,7 @@ namespace Zerra.Repository.PostgreSql
                 if (index.IsUnique && !changeConstraints)
                     continue;
 
-                _ = sb.Append(index.IsUnique ? "CREATE UNIQUE INDEX " : "CREATE INDEX ").Append(index.StoreName.ToLower()).Append(" ON ").Append(model.DataSourceEntityName.ToLower()).Append('(');
+                _ = sb.Append(index.IsUnique ? "CREATE UNIQUE INDEX " : "CREATE INDEX ").Append(index.StoreName.ToLower()).Append(" ON ").Append(table).Append('(');
                 for (var i = 0; i < index.Members.Count; i++)
                 {
                     if (i > 0)
@@ -2196,7 +2229,7 @@ namespace Zerra.Repository.PostgreSql
             {
                 if (usedSqlIndexes.Contains(sqlIndex) || !droppedIndexes.Add(sqlIndex))
                     continue;
-                _ = sb.Append("DROP INDEX \"").Append(sqlIndex.Name).Append("\";");
+                _ = sb.Append("DROP INDEX ").Append(model.DataSourceSchemaName is null ? null : model.DataSourceSchemaName.ToLower() + ".").Append('"').Append(sqlIndex.Name).Append("\";");
                 sql.Add(sb.ToString());
                 _ = sb.Clear();
             }
@@ -2600,7 +2633,7 @@ namespace Zerra.Repository.PostgreSql
 FROM INFORMATION_SCHEMA.COLUMNS C
 LEFT OUTER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON KF.COLUMN_NAME = C.COLUMN_NAME AND C.TABLE_NAME = KF.TABLE_NAME AND C.TABLE_SCHEMA = KF.TABLE_SCHEMA
 LEFT OUTER JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS RC ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.TABLE_NAME = KF.TABLE_NAME AND RC.TABLE_SCHEMA = KF.TABLE_SCHEMA
-WHERE C.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
+WHERE C.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}' AND C.TABLE_SCHEMA = {(model.DataSourceSchemaName is null ? "current_schema()" : $"'{model.DataSourceSchemaName.ToLower()}'")}";
 
             var sqlColumns = ExecuteSqlQuery(query).Select(x => (IList<object>)x).Select(x => new SqlColumnType()
             {
@@ -2623,10 +2656,10 @@ WHERE C.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'";
             var query = $@"SELECT RC.CONSTRAINT_NAME FK_Name, KF.TABLE_SCHEMA FK_Schema, KF.TABLE_NAME FK_Table, KF.COLUMN_NAME FK_Column, RC.UNIQUE_CONSTRAINT_NAME PK_Name, KP.TABLE_SCHEMA PK_Schema, KP.TABLE_NAME PK_Table, KP.COLUMN_NAME PK_Column
 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC
 LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KF.CONSTRAINT_SCHEMA
-LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KP ON RC.UNIQUE_CONSTRAINT_NAME = KP.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KP.CONSTRAINT_SCHEMA AND KP.ORDINAL_POSITION = KF.POSITION_IN_UNIQUE_CONSTRAINT
+LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KP ON RC.UNIQUE_CONSTRAINT_NAME = KP.CONSTRAINT_NAME AND RC.UNIQUE_CONSTRAINT_SCHEMA = KP.CONSTRAINT_SCHEMA AND KP.ORDINAL_POSITION = KF.POSITION_IN_UNIQUE_CONSTRAINT
 LEFT JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS TCKF ON KF.CONSTRAINT_NAME = TCKF.CONSTRAINT_NAME AND KF.CONSTRAINT_SCHEMA = TCKF.CONSTRAINT_SCHEMA
 WHERE TCKF.CONSTRAINT_TYPE = 'FOREIGN KEY'
-AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}'
+AND KF.TABLE_NAME = '{model.DataSourceEntityName.ToLower()}' AND KF.TABLE_SCHEMA = {(model.DataSourceSchemaName is null ? "current_schema()" : $"'{model.DataSourceSchemaName.ToLower()}'")}
 ORDER BY RC.CONSTRAINT_NAME, KF.ORDINAL_POSITION";
 
             var sqlConstrains = ExecuteSqlQuery(query).Select(x => (IList<object>)x).Select(x => new SqlConstraint()
@@ -2651,7 +2684,7 @@ JOIN pg_class T ON T.oid = IX.indrelid
 JOIN pg_class I ON I.oid = IX.indexrelid
 CROSS JOIN LATERAL unnest(IX.indkey::int2[]) WITH ORDINALITY AS K(attnum, ord)
 JOIN pg_attribute A ON A.attrelid = T.oid AND A.attnum = K.attnum
-WHERE T.relname = '{model.DataSourceEntityName.ToLower()}' AND pg_table_is_visible(T.oid) AND NOT IX.indisprimary AND K.ord <= IX.indnkeyatts
+WHERE T.relname = '{model.DataSourceEntityName.ToLower()}' AND T.relnamespace = {(model.DataSourceSchemaName is null ? "current_schema()" : $"'{model.DataSourceSchemaName.ToLower()}'")}::regnamespace AND NOT IX.indisprimary AND K.ord <= IX.indnkeyatts
 AND NOT EXISTS (SELECT 1 FROM pg_constraint C WHERE C.conindid = IX.indexrelid AND C.conrelid = T.oid)
 ORDER BY I.relname, K.ord";
 
@@ -2681,36 +2714,41 @@ ORDER BY I.relname, K.ord";
         /// <inheritdoc />
         public IReadOnlyList<DataStoreSchemaTable> ReadDataStoreSchema()
         {
+            //every user schema, the default one read as no schema
             var columnQuery = @"SELECT C.TABLE_NAME, C.COLUMN_NAME, C.DATA_TYPE, C.IS_NULLABLE, C.CHARACTER_MAXIMUM_LENGTH, C.NUMERIC_PRECISION, C.NUMERIC_SCALE, C.DATETIME_PRECISION
 	,C.IDENTITY_GENERATION = 'ALWAYS' OR C.IS_GENERATED = 'ALWAYS' OR C.COLUMN_DEFAULT = 'uuid_generate_v4()' AS IS_AUTOGENERATED
 	,EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS RC ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.TABLE_SCHEMA = KF.TABLE_SCHEMA WHERE RC.CONSTRAINT_TYPE = 'PRIMARY KEY' AND KF.TABLE_SCHEMA = C.TABLE_SCHEMA AND KF.TABLE_NAME = C.TABLE_NAME AND KF.COLUMN_NAME = C.COLUMN_NAME) AS IS_PRIMARYKEY
+	,CASE WHEN C.TABLE_SCHEMA = current_schema() THEN NULL ELSE C.TABLE_SCHEMA END
 FROM INFORMATION_SCHEMA.COLUMNS C
 JOIN INFORMATION_SCHEMA.TABLES T ON T.TABLE_SCHEMA = C.TABLE_SCHEMA AND T.TABLE_NAME = C.TABLE_NAME
-WHERE T.TABLE_TYPE = 'BASE TABLE' AND C.TABLE_SCHEMA = current_schema()
-ORDER BY C.TABLE_NAME, C.ORDINAL_POSITION";
+WHERE T.TABLE_TYPE = 'BASE TABLE' AND C.TABLE_SCHEMA NOT IN ('pg_catalog', 'information_schema') AND C.TABLE_SCHEMA NOT LIKE 'pg\_%'
+ORDER BY C.TABLE_SCHEMA <> current_schema(), C.TABLE_SCHEMA, C.TABLE_NAME, C.ORDINAL_POSITION";
 
             var foreignKeyQuery = @"SELECT RC.CONSTRAINT_NAME, KF.TABLE_NAME, KF.COLUMN_NAME, KP.TABLE_NAME, KP.COLUMN_NAME
+	,CASE WHEN KF.TABLE_SCHEMA = current_schema() THEN NULL ELSE KF.TABLE_SCHEMA END
+	,CASE WHEN KP.TABLE_SCHEMA = current_schema() THEN NULL ELSE KP.TABLE_SCHEMA END
 FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC
 JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KF ON RC.CONSTRAINT_NAME = KF.CONSTRAINT_NAME AND RC.CONSTRAINT_SCHEMA = KF.CONSTRAINT_SCHEMA
 JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE KP ON RC.UNIQUE_CONSTRAINT_NAME = KP.CONSTRAINT_NAME AND RC.UNIQUE_CONSTRAINT_SCHEMA = KP.CONSTRAINT_SCHEMA AND KP.ORDINAL_POSITION = KF.POSITION_IN_UNIQUE_CONSTRAINT
-WHERE KF.TABLE_SCHEMA = current_schema()
-ORDER BY KF.TABLE_NAME, RC.CONSTRAINT_NAME, KF.ORDINAL_POSITION";
+WHERE KF.TABLE_SCHEMA NOT IN ('pg_catalog', 'information_schema') AND KF.TABLE_SCHEMA NOT LIKE 'pg\_%'
+ORDER BY KF.TABLE_SCHEMA, KF.TABLE_NAME, RC.CONSTRAINT_NAME, KF.ORDINAL_POSITION";
 
-            var indexQuery = @"SELECT T.relname, I.relname, IX.indisunique, A.attname, (IX.indoption[(K.ord - 1)::int] & 1) = 1
+            var indexQuery = @"SELECT T.relname, I.relname, IX.indisunique, A.attname, (IX.indoption[(K.ord - 1)::int] & 1) = 1, CASE WHEN N.nspname = current_schema() THEN NULL ELSE N.nspname END
 FROM pg_index IX
 JOIN pg_class T ON T.oid = IX.indrelid
+JOIN pg_namespace N ON N.oid = T.relnamespace
 JOIN pg_class I ON I.oid = IX.indexrelid
 CROSS JOIN LATERAL unnest(IX.indkey::int2[]) WITH ORDINALITY AS K(attnum, ord)
 JOIN pg_attribute A ON A.attrelid = T.oid AND A.attnum = K.attnum
-WHERE T.relkind = 'r' AND T.relnamespace = current_schema()::regnamespace AND NOT IX.indisprimary AND K.ord <= IX.indnkeyatts
+WHERE T.relkind = 'r' AND N.nspname NOT IN ('pg_catalog', 'information_schema') AND N.nspname NOT LIKE 'pg\_%' AND NOT IX.indisprimary AND K.ord <= IX.indnkeyatts
 AND NOT EXISTS (SELECT 1 FROM pg_constraint C WHERE C.conindid = IX.indexrelid AND C.conrelid = T.oid)
-ORDER BY T.relname, I.relname, K.ord";
+ORDER BY N.nspname, T.relname, I.relname, K.ord";
 
-            var columnsByTable = new Dictionary<string, List<DataStoreSchemaColumn>>(StringComparer.OrdinalIgnoreCase);
-            var tableNames = new List<string>();
+            var columnsByTable = new Dictionary<(string?, string), List<DataStoreSchemaColumn>>();
+            var tableNames = new List<(string?, string)>();
             foreach (var x in ExecuteSqlQuery(columnQuery).Select(x => (IList<object>)x))
             {
-                var table = (string)x[0];
+                var table = (x[10] != DBNull.Value ? (string)x[10] : null, (string)x[0]);
                 if (!columnsByTable.TryGetValue(table, out var columns))
                 {
                     columns = new();
@@ -2729,38 +2767,41 @@ ORDER BY T.relname, I.relname, K.ord";
                     x[8] != DBNull.Value && (bool)x[8]));
             }
 
-            var foreignKeysByTable = new Dictionary<string, List<DataStoreSchemaForeignKey>>(StringComparer.OrdinalIgnoreCase);
-            foreach (var group in ExecuteSqlQuery(foreignKeyQuery).Select(x => (IList<object>)x).GroupBy(x => ((string)x[1], (string)x[0])))
+            var foreignKeysByTable = new Dictionary<(string?, string), List<DataStoreSchemaForeignKey>>();
+            foreach (var group in ExecuteSqlQuery(foreignKeyQuery).Select(x => (IList<object>)x).GroupBy(x => (x[5] != DBNull.Value ? (string)x[5] : null, (string)x[1], (string)x[0])))
             {
                 var rows = group.ToArray();
-                if (!foreignKeysByTable.TryGetValue(group.Key.Item1, out var foreignKeys))
+                var table = (group.Key.Item1, group.Key.Item2);
+                if (!foreignKeysByTable.TryGetValue(table, out var foreignKeys))
                 {
                     foreignKeys = new();
-                    foreignKeysByTable.Add(group.Key.Item1, foreignKeys);
+                    foreignKeysByTable.Add(table, foreignKeys);
                 }
-                foreignKeys.Add(new DataStoreSchemaForeignKey(group.Key.Item2, rows.Select(x => (string)x[2]).ToArray(), (string)rows[0][3], rows.Select(x => (string)x[4]).ToArray()));
+                foreignKeys.Add(new DataStoreSchemaForeignKey(group.Key.Item3, rows.Select(x => (string)x[2]).ToArray(), (string)rows[0][3], rows.Select(x => (string)x[4]).ToArray(), rows[0][6] != DBNull.Value ? (string)rows[0][6] : null));
             }
 
-            var indexesByTable = new Dictionary<string, List<DataStoreSchemaIndex>>(StringComparer.OrdinalIgnoreCase);
-            foreach (var group in ExecuteSqlQuery(indexQuery).Select(x => (IList<object>)x).GroupBy(x => ((string)x[0], (string)x[1])))
+            var indexesByTable = new Dictionary<(string?, string), List<DataStoreSchemaIndex>>();
+            foreach (var group in ExecuteSqlQuery(indexQuery).Select(x => (IList<object>)x).GroupBy(x => (x[5] != DBNull.Value ? (string)x[5] : null, (string)x[0], (string)x[1])))
             {
                 var rows = group.ToArray();
-                if (!indexesByTable.TryGetValue(group.Key.Item1, out var indexes))
+                var table = (group.Key.Item1, group.Key.Item2);
+                if (!indexesByTable.TryGetValue(table, out var indexes))
                 {
                     indexes = new();
-                    indexesByTable.Add(group.Key.Item1, indexes);
+                    indexesByTable.Add(table, indexes);
                 }
-                indexes.Add(new DataStoreSchemaIndex(group.Key.Item2, (bool)rows[0][2], rows.Select(x => (string)x[3]).ToArray(), rows.Select(x => (bool)x[4]).ToArray()));
+                indexes.Add(new DataStoreSchemaIndex(group.Key.Item3, (bool)rows[0][2], rows.Select(x => (string)x[3]).ToArray(), rows.Select(x => (bool)x[4]).ToArray()));
             }
 
             var tables = new List<DataStoreSchemaTable>(tableNames.Count);
             foreach (var table in tableNames)
             {
                 tables.Add(new DataStoreSchemaTable(
-                    table,
+                    table.Item2,
                     columnsByTable[table],
                     foreignKeysByTable.TryGetValue(table, out var foreignKeys) ? foreignKeys : Array.Empty<DataStoreSchemaForeignKey>(),
-                    indexesByTable.TryGetValue(table, out var indexes) ? indexes : Array.Empty<DataStoreSchemaIndex>()));
+                    indexesByTable.TryGetValue(table, out var indexes) ? indexes : Array.Empty<DataStoreSchemaIndex>(),
+                    table.Item1));
             }
             return tables;
         }

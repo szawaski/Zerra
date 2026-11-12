@@ -50,10 +50,17 @@ namespace Zerra.Repository
             var models = new List<TableModel>(tables.Count);
             var modelsByTable = new Dictionary<string, TableModel>(StringComparer.OrdinalIgnoreCase);
             var typeNames = new HashSet<string>(StringComparer.Ordinal);
+            var tableNameCounts = tables.GroupBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToDictionary(x => x.Key, x => x.Count(), StringComparer.OrdinalIgnoreCase);
             foreach (var table in tables)
             {
                 var baseName = SafeName(table.Name, "Table");
                 baseName = Char.ToUpperInvariant(baseName[0]) + baseName.Substring(1);
+                //the same table name in several schemas, the ones outside the default are told apart by their schema
+                if (table.Schema is not null && tableNameCounts[table.Name] > 1)
+                {
+                    var schemaName = SafeName(table.Schema, "Schema");
+                    baseName = Char.ToUpperInvariant(schemaName[0]) + schemaName.Substring(1) + baseName;
+                }
                 var typeName = Unique(baseName + modelSuffix, typeNames);
                 _ = typeNames.Add(typeName);
 
@@ -69,22 +76,23 @@ namespace Zerra.Repository
                     model.ColumnNames.Add(column.Name, name);
                 }
                 models.Add(model);
-                modelsByTable[table.Name] = model;
+                modelsByTable[FullName(table.Schema, table.Name)] = model;
             }
 
             foreach (var model in models)
             {
                 foreach (var foreignKey in model.Table.ForeignKeys)
                 {
-                    if (!modelsByTable.TryGetValue(foreignKey.ReferencedTable, out var referenced))
+                    var referencedFullName = FullName(foreignKey.ReferencedSchema, foreignKey.ReferencedTable);
+                    if (!modelsByTable.TryGetValue(referencedFullName, out var referenced))
                     {
-                        model.Notes.Add($"Foreign key {foreignKey.Name} refers to {foreignKey.ReferencedTable}, which wasn't read");
+                        model.Notes.Add($"Foreign key {foreignKey.Name} refers to {referencedFullName}, which wasn't read");
                         continue;
                     }
                     var identities = referenced.Table.Columns.Where(x => x.IsIdentity).Select(x => x.Name).ToArray();
                     if (identities.Length != foreignKey.ReferencedColumns.Count || !identities.Select((x, i) => String.Equals(x, foreignKey.ReferencedColumns[i], StringComparison.OrdinalIgnoreCase)).All(x => x))
                     {
-                        model.Notes.Add($"Foreign key {foreignKey.Name} doesn't refer to the primary key of {foreignKey.ReferencedTable}, which a relation needs");
+                        model.Notes.Add($"Foreign key {foreignKey.Name} doesn't refer to the primary key of {referencedFullName}, which a relation needs");
                         continue;
                     }
                     var columnNames = new string[foreignKey.Columns.Count];
@@ -118,7 +126,7 @@ namespace Zerra.Repository
                     model.Relations.Add(new RelationModel(name, referenced.TypeName, false, columnNames.Select(x => x).ToArray()));
 
                     var manyName = Pluralize(model.BaseName);
-                    if (model.Table.ForeignKeys.Count(x => String.Equals(x.ReferencedTable, foreignKey.ReferencedTable, StringComparison.OrdinalIgnoreCase)) > 1)
+                    if (model.Table.ForeignKeys.Count(x => String.Equals(x.ReferencedTable, foreignKey.ReferencedTable, StringComparison.OrdinalIgnoreCase) && String.Equals(x.ReferencedSchema, foreignKey.ReferencedSchema, StringComparison.OrdinalIgnoreCase)) > 1)
                         manyName += "By" + String.Join(String.Empty, columnNames);
                     if (manyName == referenced.TypeName)
                         manyName += "Relation";
@@ -133,7 +141,7 @@ namespace Zerra.Repository
             foreach (var model in models)
             {
                 WriteModel(sb, model, modelNamespace);
-                results.Add(new DatabaseFirstModel(model.Table.Name, model.TypeName, sb.ToString()));
+                results.Add(new DatabaseFirstModel(model.Table.Schema, model.Table.Name, model.TypeName, sb.ToString()));
                 _ = sb.Clear();
             }
             return results;
@@ -143,7 +151,7 @@ namespace Zerra.Repository
         {
             var table = model.Table;
 
-            _ = sb.Append("//Generated from the ").Append(table.Name).Append(" table by Zerra DatabaseFirstGeneration. Regenerate instead of editing, and add members in another file of this partial class.").Append(Environment.NewLine);
+            _ = sb.Append("//Generated from the ").Append(FullName(table.Schema, table.Name)).Append(" table by Zerra DatabaseFirstGeneration. Regenerate instead of editing, and add members in another file of this partial class.").Append(Environment.NewLine);
             _ = sb.Append("#nullable enable").Append(Environment.NewLine).Append(Environment.NewLine);
             _ = sb.Append("using System;").Append(Environment.NewLine);
             if (model.Relations.Any(x => x.IsMany))
@@ -207,10 +215,17 @@ namespace Zerra.Repository
             var entityName = table.Name.All(x => Char.IsLetterOrDigit(x) || x == '_' || x == '`');
             if (!entityName)
                 model.Notes.Add($"The table name can't be an {nameof(EntityAttribute)} name, which only has letters, digits, and underscores, so the class isn't an entity");
+            else if (table.Schema is not null && !table.Schema.All(x => Char.IsLetterOrDigit(x) || x == '_' || x == '`'))
+            {
+                entityName = false;
+                model.Notes.Add($"The schema name can't be an {nameof(EntityAttribute)} schema, which only has letters, digits, and underscores, so the class isn't an entity");
+            }
 
             foreach (var note in model.Notes)
                 _ = sb.Append("//").Append(note).Append(Environment.NewLine);
-            if (entityName)
+            if (entityName && table.Schema is not null)
+                _ = sb.Append("[Entity(\"").Append(table.Schema).Append("\", \"").Append(table.Name).Append("\")]").Append(Environment.NewLine);
+            else if (entityName)
                 _ = sb.Append("[Entity(\"").Append(table.Name).Append("\")]").Append(Environment.NewLine);
             _ = sb.Append("public partial class ").Append(model.TypeName).Append(Environment.NewLine);
             _ = sb.Append('{').Append(Environment.NewLine);
@@ -332,6 +347,8 @@ namespace Zerra.Repository
                 name += "?";
             return name;
         }
+
+        private static string FullName(string? schema, string name) => schema is null ? name : $"{schema}.{name}";
 
         private static string SafeName(string name, string fallback)
         {

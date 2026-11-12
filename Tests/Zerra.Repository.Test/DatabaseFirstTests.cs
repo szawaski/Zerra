@@ -21,9 +21,8 @@ namespace Zerra.Repository.Test
 
             var models = DatabaseFirstGeneration.Generate(engine, "DatabaseFirstTest", "DataModel");
 
-            var tableNames = modelTypes.Select(x => ModelAnalyzer.GetModel(x).DataSourceEntityName).ToArray();
-            foreach (var tableName in tableNames)
-                Assert.Contains(models, x => String.Equals(x.TableName, tableName, StringComparison.OrdinalIgnoreCase));
+            foreach (var modelDetail in modelTypes.Select(x => ModelAnalyzer.GetModel(x)))
+                Assert.Contains(models, x => String.Equals(x.TableName, modelDetail.DataSourceEntityName, StringComparison.OrdinalIgnoreCase) && String.Equals(x.SchemaName, modelDetail.DataSourceSchemaName, StringComparison.OrdinalIgnoreCase));
 
             var assembly = Compile(models);
             var types = assembly.GetTypes().Where(x => x.GetCustomAttribute<EntityAttribute>() is not null).ToArray();
@@ -40,6 +39,20 @@ namespace Zerra.Repository.Test
             var orders = ModelAnalyzer.GetModel(orderRelation.ActualType);
             var linesRelation = Assert.Single(orders.RelatedEnumerableMembers);
             Assert.Equal(relations.Type, linesRelation.ActualType);
+
+            //the same table name in two schemas, the one outside the default named by its schema, and relations between the schemas
+            var twins = types.Where(x => String.Equals(x.GetCustomAttribute<EntityAttribute>()!.StoreName, "SchemaTwin", StringComparison.OrdinalIgnoreCase)).ToArray();
+            Assert.Equal(2, twins.Length);
+            var schemaTwin = Assert.Single(twins, x => x.GetCustomAttribute<EntityAttribute>()!.Schema is not null);
+            Assert.Equal(SchemaTests.Schema, schemaTwin.GetCustomAttribute<EntityAttribute>()!.Schema, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal("ZerraschemaSchemaTwinDataModel", schemaTwin.Name, StringComparer.OrdinalIgnoreCase);
+            Assert.Null(Assert.Single(twins, x => x != schemaTwin).GetCustomAttribute<EntityAttribute>()!.Schema);
+            var schemaChild = ModelAnalyzer.GetModel(types.Single(x => String.Equals(x.GetCustomAttribute<EntityAttribute>()!.StoreName, "SchemaChild", StringComparison.OrdinalIgnoreCase)));
+            Assert.Null(schemaChild.DataSourceSchemaName);
+            Assert.Equal(2, schemaChild.RelatedNonEnumerableMembers.Count);
+            Assert.Contains(schemaChild.RelatedNonEnumerableMembers, x => x.ActualType == schemaTwin);
+            var schemaParent = Assert.Single(schemaChild.RelatedNonEnumerableMembers, x => x.ActualType != schemaTwin);
+            Assert.Equal(SchemaTests.Schema, ModelAnalyzer.GetModel(schemaParent.ActualType).DataSourceSchemaName, StringComparer.OrdinalIgnoreCase);
 
             var indexes = ModelAnalyzer.GetModel(types.Single(x => String.Equals(x.GetCustomAttribute<EntityAttribute>()!.StoreName, "IndexModel", StringComparison.OrdinalIgnoreCase)));
             var expected = ModelAnalyzer.GetModel(typeof(StoreIndexTests.IndexModel));
@@ -112,6 +125,49 @@ namespace Zerra.Repository.Test
             Assert.DoesNotContain("using System.Collections.Generic;", order.Source);
 
             _ = Compile(models);
+        }
+
+        [Fact]
+        public void Schemas()
+        {
+            var tables = new[]
+            {
+                new DataStoreSchemaTable("Order", [Column("ID", typeof(int), true, true)], [], []),
+                new DataStoreSchemaTable("Order", [Column("ID", typeof(int), true, true), Column("CustomerID", typeof(int), true)], [new DataStoreSchemaForeignKey("FK_Order_Customer", ["CustomerID"], "Customer", ["ID"], "sales")], [], "sales"),
+                new DataStoreSchemaTable("Customer", [Column("ID", typeof(int), true, true)], [], [], "sales"),
+                new DataStoreSchemaTable("Line", [Column("ID", typeof(int), true, true), Column("OrderID", typeof(int), true)], [new DataStoreSchemaForeignKey("FK_Line_Order", ["OrderID"], "Order", ["ID"], "sales")], []),
+                new DataStoreSchemaTable("Odd", [Column("ID", typeof(int), true, true)], [], [], "odd schema"),
+            };
+
+            var models = DatabaseFirstGeneration.Generate(tables, "MyApp.DataModels");
+            var order = models.Single(x => x.TableName == "Order" && x.SchemaName is null);
+            var salesOrder = models.Single(x => x.TableName == "Order" && x.SchemaName == "sales");
+            var customer = models.Single(x => x.TableName == "Customer");
+            var line = models.Single(x => x.TableName == "Line");
+            var odd = models.Single(x => x.TableName == "Odd");
+
+            //only a table name in several schemas gets the schema in its class name
+            Assert.Equal("OrderDataModel", order.TypeName);
+            Assert.Equal("SalesOrderDataModel", salesOrder.TypeName);
+            Assert.Equal("CustomerDataModel", customer.TypeName);
+            Assert.Contains("[Entity(\"Order\")]\r\npublic partial class OrderDataModel", order.Source.Replace(Environment.NewLine, "\r\n"));
+            Assert.Contains("[Entity(\"sales\", \"Order\")]\r\npublic partial class SalesOrderDataModel", salesOrder.Source.Replace(Environment.NewLine, "\r\n"));
+            Assert.Contains("[Entity(\"sales\", \"Customer\")]", customer.Source);
+            Assert.Contains("//Generated from the sales.Order table", salesOrder.Source);
+
+            //keys refer to the table in their schema
+            Assert.Contains("    [Relation(nameof(CustomerID))]\r\n    public CustomerDataModel? Customer { get; set; }", salesOrder.Source.Replace(Environment.NewLine, "\r\n"));
+            Assert.Contains("    [Relation(nameof(OrderID))]\r\n    public SalesOrderDataModel? Order { get; set; }", line.Source.Replace(Environment.NewLine, "\r\n"));
+            Assert.Contains("public List<LineDataModel>? Lines { get; set; }", salesOrder.Source);
+            Assert.DoesNotContain("Lines", order.Source);
+
+            //a schema an entity can't name isn't an entity
+            Assert.Contains("//The schema name can't be an Entity", odd.Source.Replace(nameof(EntityAttribute), "Entity"));
+            Assert.DoesNotContain("[Entity(", odd.Source);
+
+            var assembly = Compile(models.Where(x => x != odd).ToArray());
+            var salesOrderType = assembly.GetTypes().Single(x => x.Name == "SalesOrderDataModel");
+            Assert.Equal("sales.Order", ModelAnalyzer.GetModel(salesOrderType).DataSourceEntityFullName);
         }
 
         [Fact]

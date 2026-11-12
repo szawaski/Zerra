@@ -45,6 +45,14 @@ namespace Zerra.Repository.Reflection
         /// </summary>
         public string DataSourceEntityName => dataSourceEntityName ?? Type.Name;
         /// <summary>
+        /// The schema for this model, as specified by <see cref="EntityAttribute"/>, or <see langword="null"/> for the data store's default.
+        /// </summary>
+        public string? DataSourceSchemaName { get; }
+        /// <summary>
+        /// The schema and store name as <c>{Schema}.{Name}</c>, or only the store name without a schema; stores without schemas such as MongoDB use it as the name.
+        /// </summary>
+        public string DataSourceEntityFullName { get; }
+        /// <summary>
         /// All model members that are not excluded by <see cref="StoreExcludeAttribute"/>.
         /// </summary>
         public IReadOnlyList<ModelMemberDetail> Members { get; }
@@ -215,7 +223,9 @@ namespace Zerra.Repository.Reflection
                 if (!storeName.All(x => Char.IsLetterOrDigit(x) || x == '_' || x == '`'))
                     throw new ArgumentException($"{nameof(EntityAttribute)}.{nameof(EntityAttribute.StoreName)}={this.DataSourceEntityName} is not a valid name");
                 this.dataSourceEntityName = storeName;
+                this.DataSourceSchemaName = sourceEntityAttribute.Schema;
             }
+            this.DataSourceEntityFullName = this.DataSourceSchemaName is null ? this.DataSourceEntityName : $"{this.DataSourceSchemaName}.{this.DataSourceEntityName}";
 
             var modelProperties = new List<ModelMemberDetail>();
             foreach (var member in typeDetail.Members)
