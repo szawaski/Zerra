@@ -1689,7 +1689,7 @@ namespace Zerra.Repository.MariaDb
                 var sql = sb.ToString();
                 if (query.Distinct && query.Terminal is LinqTerminal.Count or LinqTerminal.LongCount)
                     sql = $"SELECT COUNT(1) FROM ({sql}) AS Z";
-                return new LinqStatement(sql, plan, ConvertLinqPieces(plan, modelDetail, ref sbFrom, ref sbWhere, ref sbEnd, paged));
+                return new LinqStatement(sql, plan, ConvertLinqPieces(plan, modelDetail, rootDependant, 0, ref sbWhere, ref sbEnd, paged));
             }
             finally
             {
@@ -1715,10 +1715,12 @@ namespace Zerra.Repository.MariaDb
             sb.Write(' ');
         }
         //each relation's rows are those of the parents the statement selects: the key they match by, selected with the statement's from, where, and when paged its order and page
-        private LinqStatement[]? ConvertLinqPieces(LinqPlan plan, ModelDetail modelDetail, ref CharWriter sbFrom, ref CharWriter sbWhere, ref CharWriter sbEnd, bool paged)
+        //only the key is selected, so the parent's joins are only those its where or order uses
+        private LinqStatement[]? ConvertLinqPieces(LinqPlan plan, ModelDetail modelDetail, ParameterDependant rootDependant, int whereStart, ref CharWriter sbWhere, ref CharWriter sbEnd, bool paged)
         {
             if (plan.Pieces.Count == 0)
                 return null;
+            var conditions = rootDependant.Dependants.Count == 0 ? null : sbWhere.ToSpan().Slice(whereStart).ToString() + (paged ? sbEnd.ToString() : null);
             var statements = new LinqStatement[plan.Pieces.Count];
             for (var p = 0; p < statements.Length; p++)
             {
@@ -1750,7 +1752,9 @@ namespace Zerra.Repository.MariaDb
                     }
                     if (keyTable)
                         sbKeys.Write(" AS `K`");
-                    sbKeys.Write(sbFrom);
+                    GenerateFrom(modelDetail, ref sbKeys);
+                    if (conditions is not null)
+                        GenerateJoin(rootDependant, ref sbKeys, conditions);
                     sbKeys.Write(sbWhere);
                     if (paged)
                         sbKeys.Write(sbEnd);
@@ -1835,6 +1839,8 @@ namespace Zerra.Repository.MariaDb
                     sbWhere.Write(sbKeys);
                     sbWhere.Write(')');
                 }
+                //the parent's keys are their own statement, so this one's condition is what follows them
+                var whereStart = sbWhere.Length;
                 if (piece.Where is not null)
                 {
                     sbWhere.Write("AND(");
@@ -1896,7 +1902,7 @@ namespace Zerra.Repository.MariaDb
                 {
                     sb.Write(sbEnd);
                 }
-                return new LinqStatement(sb.ToString(), plan, ConvertLinqPieces(plan, modelDetail, ref sbFrom, ref sbWhere, ref sbEnd, false));
+                return new LinqStatement(sb.ToString(), plan, ConvertLinqPieces(plan, modelDetail, rootDependant, whereStart, ref sbWhere, ref sbEnd, false));
             }
             finally
             {
@@ -2307,10 +2313,13 @@ namespace Zerra.Repository.MariaDb
         }
 
         /// <inheritdoc/>
-        protected override void GenerateJoin(ParameterDependant dependant, ref CharWriter sb)
+        protected override void GenerateJoin(ParameterDependant dependant, ref CharWriter sb) => GenerateJoin(dependant, ref sb, null);
+        private void GenerateJoin(ParameterDependant dependant, ref CharWriter sb, string? used)
         {
             foreach (var child in dependant.Dependants.Values)
             {
+                if (used is not null && !used.Contains($"`{child.TableName}`.", StringComparison.Ordinal) && !UsesJoin(child, used))
+                    continue;
 
                 sb.Write("LEFT JOIN`");
                 if (child.ModelDetail.DataSourceSchemaName is not null)
@@ -2331,8 +2340,17 @@ namespace Zerra.Repository.MariaDb
 
                 AppendLineBreak(ref sb);
 
-                GenerateJoin(child, ref sb);
+                GenerateJoin(child, ref sb, used);
             }
+        }
+        private static bool UsesJoin(ParameterDependant dependant, string conditions)
+        {
+            foreach (var child in dependant.Dependants.Values)
+            {
+                if (conditions.Contains($"`{child.TableName}`.", StringComparison.Ordinal) || UsesJoin(child, conditions))
+                    return true;
+            }
+            return false;
         }
 
         //the columns of a relation's key matched pair by pair, the foreign key of the table holding it to the identity of the table it refers to

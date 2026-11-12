@@ -1904,7 +1904,7 @@ namespace Zerra.Repository.MsSql
                 var sql = sb.ToString();
                 if (query.Distinct && query.Terminal is LinqTerminal.Count or LinqTerminal.LongCount)
                     sql = $"SELECT COUNT(1) FROM ({sql}) AS Z";
-                return new LinqStatement(sql, plan, ConvertLinqPieces(plan, modelDetail, ref sbFrom, ref sbWhere, ref sbEnd, paged, operationContext.Parameters), operationContext.Parameters);
+                return new LinqStatement(sql, plan, ConvertLinqPieces(plan, modelDetail, rootDependant, 0, ref sbWhere, ref sbEnd, paged, operationContext.Parameters), operationContext.Parameters);
             }
             finally
             {
@@ -1948,10 +1948,12 @@ namespace Zerra.Repository.MsSql
             }
         }
         //each relation's rows are those of the parents the statement selects: the key they match by, selected with the statement's from, where, and when paged its order and page
-        private LinqStatement[]? ConvertLinqPieces(LinqPlan plan, ModelDetail modelDetail, ref CharWriter sbFrom, ref CharWriter sbWhere, ref CharWriter sbEnd, bool paged, List<object> parameters)
+        //only the key is selected, so the parent's joins are only those its where or order uses, and those stay the optimizer's choice
+        private LinqStatement[]? ConvertLinqPieces(LinqPlan plan, ModelDetail modelDetail, ParameterDependant rootDependant, int whereStart, ref CharWriter sbWhere, ref CharWriter sbEnd, bool paged, List<object> parameters)
         {
             if (plan.Pieces.Count == 0)
                 return null;
+            var conditions = rootDependant.Dependants.Count == 0 ? null : sbWhere.ToSpan().Slice(whereStart).ToString() + (paged ? sbEnd.ToString() : null);
             var statements = new LinqStatement[plan.Pieces.Count];
             for (var p = 0; p < statements.Length; p++)
             {
@@ -1976,7 +1978,9 @@ namespace Zerra.Repository.MsSql
                             sbKeys.Write(']');
                         }
                     }
-                    sbKeys.Write(sbFrom);
+                    GenerateFrom(modelDetail, ref sbKeys);
+                    if (conditions is not null)
+                        GenerateJoin(rootDependant, ref sbKeys, false, conditions);
                     sbKeys.Write(sbWhere);
                     if (paged)
                         sbKeys.Write(sbEnd);
@@ -2057,6 +2061,8 @@ namespace Zerra.Repository.MsSql
                     sbWhere.Write(sbKeys);
                     sbWhere.Write(')');
                 }
+                //the parent's keys are their own statement, so this one's condition is what follows them
+                var whereStart = sbWhere.Length;
                 if (piece.Where is not null)
                 {
                     sbWhere.Write("AND(");
@@ -2093,7 +2099,8 @@ namespace Zerra.Repository.MsSql
                     }
                     sb.Write(")AS[ZR]");
                 }
-                GenerateLinqJoin(rootDependant, ref sbFrom, ref sbWhere, ref sbEnd);
+                //a join hint fixes the order of every table, and this statement should start from its parents rather than scan for them
+                GenerateJoin(rootDependant, ref sbFrom, false, null);
                 sb.Write(sbFrom);
                 sb.Write(sbWhere);
                 if (numbered)
@@ -2118,7 +2125,7 @@ namespace Zerra.Repository.MsSql
                 {
                     sb.Write(sbEnd);
                 }
-                return new LinqStatement(sb.ToString(), plan, ConvertLinqPieces(plan, modelDetail, ref sbFrom, ref sbWhere, ref sbEnd, false, parameters), parameters);
+                return new LinqStatement(sb.ToString(), plan, ConvertLinqPieces(plan, modelDetail, rootDependant, whereStart, ref sbWhere, ref sbEnd, false, parameters), parameters);
             }
             finally
             {
@@ -2524,7 +2531,7 @@ namespace Zerra.Repository.MsSql
             if (rootDependant.Dependants.Count == 0)
                 return;
             var conditions = sbWhere.ToString() + sbEnd.ToString();
-            GenerateJoin(rootDependant, ref sb, !UsesJoin(rootDependant, conditions));
+            GenerateJoin(rootDependant, ref sb, !UsesJoin(rootDependant, conditions), null);
         }
         private static bool UsesJoin(ParameterDependant dependant, string conditions)
         {
@@ -2536,11 +2543,13 @@ namespace Zerra.Repository.MsSql
             return false;
         }
         /// <inheritdoc/>
-        protected override void GenerateJoin(ParameterDependant dependant, ref CharWriter sb) => GenerateJoin(dependant, ref sb, false);
-        private void GenerateJoin(ParameterDependant dependant, ref CharWriter sb, bool loop)
+        protected override void GenerateJoin(ParameterDependant dependant, ref CharWriter sb) => GenerateJoin(dependant, ref sb, false, null);
+        private void GenerateJoin(ParameterDependant dependant, ref CharWriter sb, bool loop, string? used)
         {
             foreach (var child in dependant.Dependants.Values)
             {
+                if (used is not null && !used.Contains($"[{child.TableName}].", StringComparison.Ordinal) && !UsesJoin(child, used))
+                    continue;
 
                 sb.Write(loop ? "LEFT LOOP JOIN[" : "LEFT JOIN[");
                 if (child.ModelDetail.DataSourceSchemaName is not null)
@@ -2561,7 +2570,7 @@ namespace Zerra.Repository.MsSql
 
                 AppendLineBreak(ref sb);
 
-                GenerateJoin(child, ref sb, loop);
+                GenerateJoin(child, ref sb, loop, used);
             }
         }
 
