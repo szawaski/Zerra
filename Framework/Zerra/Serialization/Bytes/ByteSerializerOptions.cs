@@ -23,5 +23,20 @@ namespace Zerra.Serialization.Bytes
         /// The type of index to be used for objects with members. Default Byte.
         /// </summary>
         public ByteSerializerIndexType IndexType { get; init; }
+        /// <summary>
+        /// The maximum depth of nested objects and collections. Default 64, which zero also sets. Each level uses more of the call stack, so a very large value can overflow it.
+        /// </summary>
+        public int MaxDepth
+        {
+            get => maxDepth == 0 ? DefaultMaxDepth : maxDepth;
+            init
+            {
+                if (value < 0)
+                    throw new ArgumentOutOfRangeException(nameof(MaxDepth), value, "Must be zero or more");
+                maxDepth = value;
+            }
+        }
+        private readonly int maxDepth;
+        private const int DefaultMaxDepth = 64;
     }
 }

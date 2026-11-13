@@ -186,9 +186,36 @@ namespace Zerra.Test.Serialization
         [Fact]
         public void Depth_PastTheLimit_Throws()
         {
-            var deep = JsonSerializerOverloadTests.DepthModel.Create(40);
+            var atLimit = JsonSerializerOverloadTests.DepthModel.Create(64);
+            Assert.Equal(63, JsonSerializerOverloadTests.DepthModel.Last(ByteSerializer.Deserialize<JsonSerializerOverloadTests.DepthModel>(ByteSerializer.Serialize(atLimit))!).Level);
+
+            var deep = JsonSerializerOverloadTests.DepthModel.Create(65);
             _ = Assert.Throws<StackOverflowException>(() => ByteSerializer.Serialize(deep));
             _ = Assert.Throws<StackOverflowException>(() => ByteSerializer.Serialize((object)deep, typeof(JsonSerializerOverloadTests.DepthModel)));
+            var deepBytes = ByteSerializer.Serialize(deep, new ByteSerializerOptions() { MaxDepth = 65 });
+            _ = Assert.Throws<StackOverflowException>(() => ByteSerializer.Deserialize<JsonSerializerOverloadTests.DepthModel>(deepBytes));
+        }
+
+        [Fact]
+        public void Depth_MaxDepthOption()
+        {
+            var options = new ByteSerializerOptions() { MaxDepth = 10 };
+            _ = ByteSerializer.Serialize(JsonSerializerOverloadTests.DepthModel.Create(10), options);
+            _ = Assert.Throws<StackOverflowException>(() => ByteSerializer.Serialize(JsonSerializerOverloadTests.DepthModel.Create(11), options));
+            var bytes = ByteSerializer.Serialize(JsonSerializerOverloadTests.DepthModel.Create(11));
+            _ = Assert.Throws<StackOverflowException>(() => ByteSerializer.Deserialize<JsonSerializerOverloadTests.DepthModel>(bytes, options));
+
+            Assert.Equal(64, new ByteSerializerOptions().MaxDepth);
+            Assert.Equal(64, new ByteSerializerOptions() { MaxDepth = 0 }.MaxDepth);
+            _ = Assert.Throws<ArgumentOutOfRangeException>(() => new ByteSerializerOptions() { MaxDepth = -1 });
+
+            //each folder is two levels, the object and its list
+            var folders = JsonSerializerOverloadTests.FolderModel.Create(80);
+            options = new ByteSerializerOptions() { MaxDepth = 1024 };
+            _ = Assert.Throws<StackOverflowException>(() => ByteSerializer.Serialize(folders));
+            bytes = ByteSerializer.Serialize(folders, options);
+            _ = Assert.Throws<StackOverflowException>(() => ByteSerializer.Deserialize<JsonSerializerOverloadTests.FolderModel>(bytes));
+            Assert.Equal("79", JsonSerializerOverloadTests.FolderModel.Last(ByteSerializer.Deserialize<JsonSerializerOverloadTests.FolderModel>(bytes, options)!).Name);
         }
 
         [Fact]

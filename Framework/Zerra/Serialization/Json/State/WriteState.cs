@@ -24,6 +24,11 @@ namespace Zerra.Serialization.Json.State
         public int StackSize => stackCount;
 
         /// <summary>
+        /// Gets or sets the maximum depth of nested objects and collections.
+        /// </summary>
+        public int MaxDepth;
+
+        /// <summary>
         /// Gets or sets the current write frame.
         /// </summary>
         public WriteFrame Current;
@@ -91,6 +96,7 @@ namespace Zerra.Serialization.Json.State
             DoNotWriteNullProperties = options.DoNotWriteNullProperties;
             DoNotWriteDefaultProperties = options.DoNotWriteDefaultProperties;
             EnumAsNumber = options.EnumAsNumber;
+            MaxDepth = options.MaxDepth;
             Graph = graph;
         }
 

@@ -2,6 +2,8 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+using System;
+using System.Collections.Generic;
 using Xunit;
 
 namespace Zerra.SourceGeneration.Test
@@ -428,6 +430,93 @@ namespace Zerra.SourceGeneration.Test
             //closed generic interfaces reached by a model get an empty implementation
             Assert.Contains("Empty_IHolder_TestApp_Child_.cs", output.Sources.Keys);
             output.AssertInitializerContains("global::Zerra.Reflection.Register.EmptyImplementation(typeof(global::TestApp.IHolder<global::TestApp.Child>), typeof(Empty_IHolder_TestApp_Child_));");
+        }
+
+        [Fact]
+        public void InheritedMembers()
+        {
+            var output = GeneratorRunner.Run("""
+                using System.Collections.Generic;
+                using Zerra.Reflection;
+
+                namespace InheritedTestApp
+                {
+                    public abstract class Endpoint
+                    {
+                        public string? ProviderType { get; set; }
+                        public Dictionary<string, string>? Parameters { get; set; }
+                        public int Port;
+                        public virtual string? Label { get; set; }
+                        public string? Hidden { get; set; }
+                        public static int StaticValue { get; set; }
+                        protected int ProtectedValue { get; set; }
+                    }
+
+                    public class Generic<T> : Endpoint
+                    {
+                        public T? Value { get; set; }
+                    }
+
+                    [GenerateTypeDetail]
+                    public class Replica : Generic<int>
+                    {
+                        public string? Name { get; set; }
+                        public override string? Label { get; set; }
+                        public new int Hidden { get; set; }
+                    }
+
+                    public class RequiredBase
+                    {
+                        public required string Code { get; set; }
+                    }
+
+                    [GenerateTypeDetail]
+                    public class RequiredChild : RequiredBase
+                    {
+                    }
+                }
+                """);
+
+            string Member(string type, string name) => Assert.Single(output.Lines(x => x.Contains($"MemberDetail<{type}>(typeof(global::InheritedTestApp.Replica)") && x.Contains($"\"{name}\",")));
+            _ = Member("string", "Name");
+            _ = Member("string", "ProviderType");
+            _ = Member("global::System.Collections.Generic.Dictionary<string, string>", "Parameters");
+            _ = Member("int", "Port");
+            _ = Member("int", "Value");
+            _ = Member("string", "Label");
+            _ = Member("int", "Hidden");
+            Assert.Empty(output.Lines(x => x.Contains("MemberDetail<string>(typeof(global::InheritedTestApp.Replica)") && x.Contains("\"Hidden\",")));
+            Assert.Empty(output.Lines(x => x.Contains("(typeof(global::InheritedTestApp.Replica)") && (x.Contains("\"StaticValue\",") || x.Contains("\"ProtectedValue\","))));
+
+            //an inherited required member is set by the constructor detail, and there is no parameterless creator
+            output.AssertInitializerContains("new global::InheritedTestApp.RequiredChild(){ @Code = ");
+            output.AssertInitializerDoesNotContain("static () => new global::InheritedTestApp.RequiredChild()");
+
+            var assembly = output.Load();
+            var type = assembly.GetType("InheritedTestApp.Replica")!;
+            var model = Activator.CreateInstance(type)!;
+            type.GetProperty("Name")!.SetValue(model, "Replica1");
+            type.GetProperty("ProviderType")!.SetValue(model, "Folder");
+            type.GetProperty("Parameters")!.SetValue(model, new Dictionary<string, string>() { { "Path", "C:\\Data" } });
+            type.GetField("Port")!.SetValue(model, 8080);
+            type.GetProperty("Value")!.SetValue(model, 5);
+
+            var json = Zerra.Serialization.Json.JsonSerializer.Serialize(model, type);
+            var jsonResult = Zerra.Serialization.Json.JsonSerializer.Deserialize(json.AsSpan(), type)!;
+            AssertReplica(type, jsonResult);
+
+            var bytes = Zerra.Serialization.Bytes.ByteSerializer.Serialize(model, type);
+            var bytesResult = Zerra.Serialization.Bytes.ByteSerializer.Deserialize(bytes, type)!;
+            AssertReplica(type, bytesResult);
+
+            static void AssertReplica(Type type, object result)
+            {
+                Assert.Equal("Replica1", type.GetProperty("Name")!.GetValue(result));
+                Assert.Equal("Folder", type.GetProperty("ProviderType")!.GetValue(result));
+                Assert.Equal("C:\\Data", ((Dictionary<string, string>)type.GetProperty("Parameters")!.GetValue(result)!)["Path"]);
+                Assert.Equal(8080, type.GetField("Port")!.GetValue(result));
+                Assert.Equal(5, type.GetProperty("Value")!.GetValue(result));
+            }
         }
 
         //a reference type declared non-nullable tells its member detail it can't be null, everything else is left to the type

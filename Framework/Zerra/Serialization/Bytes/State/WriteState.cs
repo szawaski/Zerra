@@ -24,6 +24,11 @@ namespace Zerra.Serialization.Bytes.State
         public int StackSize => stackCount;
 
         /// <summary>
+        /// Gets or sets the maximum depth of nested objects and collections.
+        /// </summary>
+        public int MaxDepth;
+
+        /// <summary>
         /// Gets or sets a value indicating whether type information should be used during serialization.
         /// </summary>
         public bool UseTypes;
@@ -75,6 +80,7 @@ namespace Zerra.Serialization.Bytes.State
             IgnoreIndexAttribute = options.IgnoreIndexAttribute;
             UseMemberNames = options.IndexType == ByteSerializerIndexType.MemberNames;
             UseIndexSizeUInt16 = options.IndexType == ByteSerializerIndexType.UInt16;
+            MaxDepth = options.MaxDepth;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

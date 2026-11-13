@@ -169,6 +169,7 @@ namespace Zerra.Web
                         EnumAsNumber = zerraJsonSerializer.Options?.EnumAsNumber ?? default,
                         ErrorOnReadMismatchedData = zerraJsonSerializer.Options?.ErrorOnReadMismatchedData ?? default,
                         IgnoreCase = zerraJsonSerializer.Options?.IgnoreCase ?? default,
+                        MaxDepth = zerraJsonSerializer.Options?.MaxDepth ?? default,
                     });
                     acceptSerializer = namelessSerializer;
                 }

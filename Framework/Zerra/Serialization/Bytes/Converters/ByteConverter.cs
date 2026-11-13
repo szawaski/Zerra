@@ -19,9 +19,6 @@ namespace Zerra.Serialization.Bytes.Converters
     /// </remarks>
     public abstract class ByteConverter
     {
-        /// <summary>The maximum converter stack depth before unwinding to avoid stack overflow during recursive serialization.</summary>
-        protected const int MaxStackDepth = 31;
-
         /// <summary>
         /// Initializes the converter with member-specific information.
         /// </summary>

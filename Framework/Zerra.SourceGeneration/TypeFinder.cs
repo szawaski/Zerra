@@ -259,6 +259,39 @@ namespace Zerra.SourceGeneration
             var properties = symbolMembers.Where(x => x.Kind == SymbolKind.Property).Cast<IPropertySymbol>().Where(x => x.ExplicitInterfaceImplementations.Length == 0 && !x.IsIndexer).Select(x => new FoundProperty(x, x.Name, false)).ToList();
             var fields = symbolMembers.Where(x => x.Kind == SymbolKind.Field).Cast<IFieldSymbol>().ToList();
 
+            //reflection lists inherited public instance members, the most derived declaration of a name wins
+            if (typeSymbol.TypeKind == TypeKind.Class && typeSymbol.BaseType is not null && typeSymbol.BaseType.SpecialType != Microsoft.CodeAnalysis.SpecialType.System_Object)
+            {
+                var declaredNames = new HashSet<string>();
+                foreach (var property in properties)
+                    _ = declaredNames.Add(property.Name);
+                foreach (var field in fields)
+                    _ = declaredNames.Add(field.Name);
+
+                var baseTypeSymbol = typeSymbol.BaseType;
+                while (baseTypeSymbol is not null && baseTypeSymbol.SpecialType != Microsoft.CodeAnalysis.SpecialType.System_Object)
+                {
+                    foreach (var baseMember in baseTypeSymbol.GetMembers())
+                    {
+                        if (baseMember.IsStatic || baseMember.DeclaredAccessibility != Accessibility.Public)
+                            continue;
+                        if (baseMember is IPropertySymbol baseProperty)
+                        {
+                            if (baseProperty.ExplicitInterfaceImplementations.Length > 0 || baseProperty.IsIndexer)
+                                continue;
+                            if (declaredNames.Add(baseProperty.Name))
+                                properties.Add(new FoundProperty(baseProperty, baseProperty.Name, false));
+                        }
+                        else if (baseMember is IFieldSymbol baseField)
+                        {
+                            if (declaredNames.Add(baseField.Name))
+                                fields.Add(baseField);
+                        }
+                    }
+                    baseTypeSymbol = baseTypeSymbol.BaseType;
+                }
+            }
+
             if (typeSymbol.AllInterfaces.Length > 0)
             {
                 var memberNames = new HashSet<string>();

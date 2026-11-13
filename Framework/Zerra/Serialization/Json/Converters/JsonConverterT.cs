@@ -93,8 +93,8 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
                 state.PushFrame(state.Graph);
             }
 
@@ -177,8 +177,8 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
                 state.PushFrame(state.Graph);
             }
 
@@ -242,8 +242,8 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
                 state.PushFrame(state.Graph);
             }
 
@@ -332,8 +332,8 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
                 state.PushFrame(state.Graph);
             }
 
@@ -396,8 +396,8 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
                 state.PushFrame(null);
             }
 
@@ -477,8 +477,8 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
                 if (propertyName is not null)
                     state.PushFrame(state.Current.Graph?.GetChildInstanceGraph(propertyName, value!));
                 else
@@ -546,8 +546,8 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
                 if (propertyName is not null)
                 {
                     var childGraph = state.Current.Graph?.GetChildGraph(propertyName);
@@ -731,8 +731,8 @@ namespace Zerra.Serialization.Json.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
                 if (propertyName is not null)
                 {
                     var childGraph = value is null ? state.Current.Graph?.GetChildGraph(propertyName) : state.Current.Graph?.GetChildInstanceGraph(propertyName, value);

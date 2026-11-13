@@ -112,8 +112,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
                         if (StackRequired)
                         {
-                            if (state.StackSize >= MaxStackDepth)
-                                throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                            if (state.StackSize >= state.MaxDepth)
+                                throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                             state.PushFrame(false);
                         }
 
@@ -136,8 +136,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                 state.PushFrame(false);
             }
 
@@ -227,8 +227,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (StackRequired)
                     {
-                        if (state.StackSize >= MaxStackDepth)
-                            throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                        if (state.StackSize >= state.MaxDepth)
+                            throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                         state.PushFrame();
                     }
 
@@ -248,8 +248,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                 state.PushFrame();
             }
 
@@ -337,8 +337,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
                         if (StackRequired)
                         {
-                            if (state.StackSize >= MaxStackDepth)
-                                throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                            if (state.StackSize >= state.MaxDepth)
+                                throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                             state.PushFrame(false);
                         }
 
@@ -361,8 +361,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                 state.PushFrame(false);
             }
 
@@ -457,8 +457,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (StackRequired)
                     {
-                        if (state.StackSize >= MaxStackDepth)
-                            throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                        if (state.StackSize >= state.MaxDepth)
+                            throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                         state.PushFrame();
                     }
 
@@ -477,8 +477,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                 state.PushFrame();
             }
 
@@ -561,8 +561,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
                         if (StackRequired)
                         {
-                            if (state.StackSize >= MaxStackDepth)
-                                throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                            if (state.StackSize >= state.MaxDepth)
+                                throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                             state.PushFrame(state.Current.DrainBytes);
                         }
 
@@ -585,8 +585,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                 state.PushFrame(state.Current.DrainBytes);
             }
 
@@ -679,8 +679,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (StackRequired)
                     {
-                        if (state.StackSize >= MaxStackDepth)
-                            throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                        if (state.StackSize >= state.MaxDepth)
+                            throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                         state.PushFrame();
                     }
 
@@ -702,8 +702,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                 state.PushFrame();
             }
 
@@ -775,8 +775,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
                         if (StackRequired)
                         {
-                            if (state.StackSize >= MaxStackDepth)
-                                throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                            if (state.StackSize >= state.MaxDepth)
+                                throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                             state.PushFrame(drainBytes);
                         }
 
@@ -799,8 +799,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                 state.PushFrame(drainBytes);
             }
 
@@ -910,8 +910,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
                     if (StackRequired)
                     {
-                        if (state.StackSize >= MaxStackDepth)
-                            throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                        if (state.StackSize >= state.MaxDepth)
+                            throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                         state.PushFrame();
                     }
 
@@ -934,8 +934,8 @@ namespace Zerra.Serialization.Bytes.Converters
 
             if (StackRequired)
             {
-                if (state.StackSize >= MaxStackDepth)
-                    throw new StackOverflowException($"{nameof(ByteConverter)} has reach the max depth of {state.StackSize}");
+                if (state.StackSize >= state.MaxDepth)
+                    throw new StackOverflowException($"{nameof(ByteConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
                 state.PushFrame();
             }
 

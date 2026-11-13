@@ -394,12 +394,64 @@ namespace Zerra.Test.Serialization
             var shallow = DepthModel.Create(20);
             Assert.Equal(19, JsonSerializer.Deserialize<DepthModel>(JsonSerializer.Serialize(shallow))!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Child!.Level);
 
-            var deep = DepthModel.Create(40);
+            //the default is 64, as System.Text.Json
+            var atLimit = DepthModel.Create(64);
+            Assert.Equal(63, DepthModel.Last(JsonSerializer.Deserialize<DepthModel>(JsonSerializer.Serialize(atLimit))!).Level);
+
+            var deep = DepthModel.Create(65);
             _ = Assert.Throws<StackOverflowException>(() => JsonSerializer.Serialize(deep));
             _ = Assert.Throws<StackOverflowException>(() => JsonSerializer.Serialize((object)deep, typeof(DepthModel)));
-            var deepJson = string.Concat(Enumerable.Repeat("{\"Child\":", 40)) + "null" + new string('}', 40);
+            var deepJson = string.Concat(Enumerable.Repeat("{\"Child\":", 65)) + "null" + new string('}', 65);
             _ = Assert.Throws<StackOverflowException>(() => JsonSerializer.Deserialize<DepthModel>(deepJson));
             _ = Assert.Throws<StackOverflowException>(() => JsonSerializer.Deserialize(deepJson, typeof(DepthModel)));
+        }
+
+        [Fact]
+        public void Depth_MaxDepthOption()
+        {
+            var options = new JsonSerializerOptions() { MaxDepth = 10 };
+            _ = JsonSerializer.Serialize(DepthModel.Create(10), options);
+            _ = Assert.Throws<StackOverflowException>(() => JsonSerializer.Serialize(DepthModel.Create(11), options));
+            var json = JsonSerializer.Serialize(DepthModel.Create(11));
+            _ = Assert.Throws<StackOverflowException>(() => JsonSerializer.Deserialize<DepthModel>(json, options));
+
+            Assert.Equal(64, new JsonSerializerOptions().MaxDepth);
+            Assert.Equal(64, new JsonSerializerOptions() { MaxDepth = 0 }.MaxDepth);
+            _ = Assert.Throws<ArgumentOutOfRangeException>(() => new JsonSerializerOptions() { MaxDepth = -1 });
+
+            //each folder is two levels, the object and its list
+            var folders = FolderModel.Create(80);
+            options = new JsonSerializerOptions() { MaxDepth = 1024 };
+            _ = Assert.Throws<StackOverflowException>(() => JsonSerializer.Serialize(folders));
+            json = JsonSerializer.Serialize(folders, options);
+            _ = Assert.Throws<StackOverflowException>(() => JsonSerializer.Deserialize<FolderModel>(json));
+            Assert.Equal("79", FolderModel.Last(JsonSerializer.Deserialize<FolderModel>(json, options)!).Name);
+        }
+
+        public sealed class FolderModel
+        {
+            public string? Name { get; set; }
+            public List<FolderModel>? Directories { get; set; }
+
+            public static FolderModel Create(int levels)
+            {
+                var model = new FolderModel() { Name = "0" };
+                var current = model;
+                for (var i = 1; i < levels; i++)
+                {
+                    var child = new FolderModel() { Name = i.ToString() };
+                    current.Directories = [child];
+                    current = child;
+                }
+                return model;
+            }
+
+            public static FolderModel Last(FolderModel model)
+            {
+                while (model.Directories is not null)
+                    model = model.Directories[0];
+                return model;
+            }
         }
 
         [Fact]
@@ -424,6 +476,13 @@ namespace Zerra.Test.Serialization
                     current.Child = new DepthModel() { Level = i };
                     current = current.Child;
                 }
+                return model;
+            }
+
+            public static DepthModel Last(DepthModel model)
+            {
+                while (model.Child is not null)
+                    model = model.Child;
                 return model;
             }
         }

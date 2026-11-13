@@ -40,7 +40,8 @@ var options = new ByteSerializerOptions
 {
     IndexType = ByteSerializerIndexType.Byte, // Byte (default, up to 254 members), UInt16 (up to 65,534), or MemberNames
     UseTypes = false,                         // write type information, needed for members typed as object or an interface
-    IgnoreIndexAttribute = false              // ignore [SerializerIndex]
+    IgnoreIndexAttribute = false,             // ignore [SerializerIndex]
+    MaxDepth = 64                             // how deeply objects and collections can nest (default 64)
 };
 
 byte[] bytes = ByteSerializer.Serialize(command, options);

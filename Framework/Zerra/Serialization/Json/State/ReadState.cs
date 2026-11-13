@@ -24,6 +24,11 @@ namespace Zerra.Serialization.Json.State
         public int StackSize => stackCount;
 
         /// <summary>
+        /// Gets or sets the maximum depth of nested objects and collections.
+        /// </summary>
+        public int MaxDepth;
+
+        /// <summary>
         /// Gets or sets the current read frame.
         /// </summary>
         public ReadFrame Current;
@@ -171,6 +176,7 @@ namespace Zerra.Serialization.Json.State
             IsFinalBlock = isFinalBlock;
             IncludeReturnGraph = hasReturnGraph;
             IgnoreCase = options.IgnoreCase;
+            MaxDepth = options.MaxDepth;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

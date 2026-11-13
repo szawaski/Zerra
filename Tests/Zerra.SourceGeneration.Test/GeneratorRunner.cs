@@ -72,7 +72,7 @@ namespace Zerra.SourceGeneration.Test
                 Assert.Fail(sb.ToString());
             }
 
-            return new GeneratorOutput(sources);
+            return new GeneratorOutput(sources, outputCompilation);
         }
     }
 
@@ -80,10 +80,23 @@ namespace Zerra.SourceGeneration.Test
     {
         public IReadOnlyDictionary<string, string> Sources { get; }
         public string Initializer => Sources["ZerraSourceGenerationInitializer.cs"];
+        private readonly Compilation compilation;
 
-        public GeneratorOutput(IReadOnlyDictionary<string, string> sources)
+        public GeneratorOutput(IReadOnlyDictionary<string, string> sources, Compilation compilation)
         {
             this.Sources = sources;
+            this.compilation = compilation;
+        }
+
+        //loads the source with its generated code and runs the generated registrations, so the Zerra types in the test host use them
+        public System.Reflection.Assembly Load()
+        {
+            using var stream = new MemoryStream();
+            var emit = compilation.Emit(stream);
+            Assert.True(emit.Success, String.Join(Environment.NewLine, emit.Diagnostics));
+            var assembly = System.Reflection.Assembly.Load(stream.ToArray());
+            System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(assembly.ManifestModule.ModuleHandle);
+            return assembly;
         }
 
         public IEnumerable<string> Lines(Func<string, bool> predicate) => Initializer.Split('\n').Where(predicate);

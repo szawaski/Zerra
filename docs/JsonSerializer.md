@@ -60,7 +60,8 @@ var options = new JsonSerializerOptions
     DoNotWriteDefaultProperties = false, // omit properties whose value is the type's default
     EnumAsNumber = false,                // write enums as numbers instead of names
     ErrorOnReadMismatchedData = false,   // throw when valid JSON doesn't fit the target type
-    IgnoreCase = true                    // match property names case-insensitively (slower)
+    IgnoreCase = true,                   // match property names case-insensitively (slower)
+    MaxDepth = 64                        // how deeply objects and collections can nest (default 64)
 };
 
 string json = JsonSerializer.Serialize(obj, options: options);
