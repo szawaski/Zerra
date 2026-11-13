@@ -21,14 +21,14 @@ namespace Zerra.Repository
         protected static readonly Type modelType = typeof(TModel);
 
         /// <summary>The relation provider for <typeparamref name="TModel"/>, resolved from the next provider in the chain.</summary>
-        protected IProviderRelation<TModel>? ProviderRelation = null;
+        protected IProviderRelation? ProviderRelation = null;
 
         /// <summary>Initializes a new instance of <see cref="BaseTransactStoreLayerProvider{TNextProviderInterface, TModel}"/> with the next provider in the chain.</summary>
         /// <param name="nextProvider">The next provider to delegate operations to.</param>
         public BaseTransactStoreLayerProvider(TNextProviderInterface nextProvider)
             : base(nextProvider)
         {
-            ProviderRelation = NextProvider as IProviderRelation<TModel>;
+            ProviderRelation = NextProvider as IProviderRelation;
         }
 
         /// <summary>Gets the <see cref="Type"/> of the model managed by this provider.</summary>
@@ -43,21 +43,16 @@ namespace Zerra.Repository
         public object? Engine => ProviderRelation?.Engine;
         /// <inheritdoc/>
         public bool ReadsInStore => false;
+        /// <inheritdoc/>
+        public bool ReadsGraphInStore => ProviderRelation?.ReadsGraphInStore ?? false;
 
-        /// <summary>Propagates the query event to the next provider in the chain.</summary>
-        /// <param name="graph">The graph for the current query.</param>
-        public abstract void OnQueryIncludingBase(Graph? graph);
-        /// <summary>Propagates the post-retrieve event to the next provider in the chain.</summary>
-        /// <param name="models">The retrieved models.</param>
-        /// <param name="graph">The graph used during the query.</param>
-        /// <returns>The processed models.</returns>
+        /// <summary>Treats the models read as a relation in another model's graph query, after the next provider in the chain.</summary>
+        /// <param name="models">The models read.</param>
+        /// <param name="graph">The graph of the relation.</param>
+        /// <returns>The models to give, the same collection when none changed.</returns>
         public abstract IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph);
-
-        /// <summary>Asynchronously propagates the post-retrieve event to the next provider in the chain.</summary>
-        /// <param name="models">The retrieved models.</param>
-        /// <param name="graph">The graph used during the query.</param>
-        /// <returns>A task containing the processed models.</returns>
-        public abstract Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph);
+        /// <inheritdoc/>
+        public abstract bool TreatsReadModels { get; }
 
         /// <summary>Runs a query. A layer swaps its condition onto <see cref="LinqQuery.Where"/> for the call and puts the original back, and treats the models or event models the query gives.</summary>
         /// <param name="query">The query.</param>

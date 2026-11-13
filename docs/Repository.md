@@ -262,10 +262,11 @@ repo.AddProvider(new OrderRules(engine));
 | Override | Runs |
 |---|---|
 | `WhereExpression` | on every query, joined to its `where` with `&&` |
-| `OnQuery` | before a query, to change the graph |
 | `OnGet` | after models are read, to filter or change them, once per chunk when they're streamed |
 | `OnCreate`/`OnUpdate`/`OnDelete` | before saving, to check, change, or filter what is saved |
 | `OnCreateComplete`/`OnUpdateComplete`/`OnDeleteComplete` | after saving |
+
+When a graph reads the model as a relation of another model on the same engine, it reads it in the same statement. `WhereExpression` filters the related rows, and `OnGet` runs on them after.
 
 ### Encryption and Compression
 

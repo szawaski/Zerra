@@ -128,6 +128,8 @@ namespace Zerra.Repository.Test.MySql
             await CompositeRelationTests.TestSequenceAsync(engine);
             await StreamTests.TestSequence(engine, true);
             CharComparisonTests.TestSequence(engine);
+            LayeredGraphTests.TestSequence(engine);
+            await LayeredGraphTests.TestSequenceAsync(engine);
             SchemaTests.TestSequence(engine);
             await SchemaTests.TestSequenceAsync(engine);
             await StreamTests.TestAcrossEngines(engine, new Zerra.Repository.Memory.MemoryEngine());

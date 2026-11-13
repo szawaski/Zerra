@@ -19,7 +19,7 @@ namespace Zerra.Repository
     /// Abstract base provider for transactional store operations, supporting query, persist, and relation linking for <typeparamref name="TModel"/>.
     /// </summary>
     /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
-    public abstract partial class RootTransactStoreProvider<TModel> : BaseStore, ITransactStoreProvider<TModel>, IProviderRelation<TModel>
+    public abstract partial class RootTransactStoreProvider<TModel> : BaseStore, ITransactStoreProvider<TModel>, IProviderRelation
         where TModel : class, new()
     {
         /// <summary>The <see cref="Type"/> of <typeparamref name="TModel"/>.</summary>
@@ -50,7 +50,7 @@ namespace Zerra.Repository
         private readonly ConcurrentFactoryDictionary<Type, ITransactStoreProvider?> relatedProviders = new();
         private ITransactStoreProvider? GetRelatedProvider(Type type)
         {
-            var relatedProvider = relatedProviders.GetOrAdd(type, () =>
+            var relatedProvider = relatedProviders.GetOrAdd(type, this, static (type, root) =>
             {
                 var propertyType = type;
                 var propertyTypeDetails = TypeAnalyzer.GetTypeDetail(propertyType);
@@ -60,7 +60,7 @@ namespace Zerra.Repository
                 if (!propertyType.IsClass)
                     return null;
 
-                if (Repo.TryGetProvider(propertyType, out var provider))
+                if (root.Repo.TryGetProvider(propertyType, out var provider))
                     return provider;
 
                 return null;
@@ -110,16 +110,9 @@ namespace Zerra.Repository
             return GetWhereExpression(graph);
         }
 
-        /// <summary>Invoked during a query including base type handling, delegating to <see cref="OnQueryWithRelations"/>.</summary>
-        /// <param name="graph">The graph specifying which members are being queried.</param>
-        public void OnQueryIncludingBase(Graph? graph)
-        {
-            OnQueryWithRelations(graph);
-        }
-
-        /// <summary>Prepares the query graph by adding required identity and foreign-key members for all related properties.</summary>
+        /// <summary>Adds the identity and foreign-key members the graph's relations are matched by, for relations loaded through their own providers.</summary>
         /// <param name="graph">The graph to augment with relation members.</param>
-        public void OnQueryWithRelations(Graph? graph)
+        private protected void AddRelationKeys(Graph? graph)
         {
             if (graph is not null && !graph.IsEmpty && ModelTypeDetail.RelatedMembers.Count > 0)
             {
@@ -461,39 +454,11 @@ namespace Zerra.Repository
             return returnModels;
         }
 
-        /// <summary>Populates related properties on models, including base type handling.</summary>
-        /// <param name="models">The models to process.</param>
-        /// <param name="graph">The graph specifying which members to populate.</param>
-        /// <returns>The models with related properties populated.</returns>
-        public IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph)
-        {
-            return OnGetIncludingBase((IReadOnlyCollection<TModel>)models, (Graph<TModel>?)graph);
-        }
-        /// <summary>Populates related properties on models, including base type handling.</summary>
-        /// <param name="models">The models to process.</param>
-        /// <param name="graph">The graph specifying which members to populate.</param>
-        /// <returns>The models with related properties populated.</returns>
-        public IReadOnlyCollection<TModel> OnGetIncludingBase(IReadOnlyCollection<TModel> models, Graph? graph)
-        {
-            return OnGetWithRelations(models, graph);
-        }
-
-        /// <summary>Asynchronously populates related properties on models, including base type handling.</summary>
-        /// <param name="models">The models to process.</param>
-        /// <param name="graph">The graph specifying which members to populate.</param>
-        /// <returns>A task representing the asynchronous operation, containing the models with related properties populated.</returns>
-        public async Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
-        {
-            return await OnGetIncludingBaseAsync((IReadOnlyCollection<TModel>)(object)models, (Graph<TModel>?)graph);
-        }
-        /// <summary>Asynchronously populates related properties on models, including base type handling.</summary>
-        /// <param name="models">The models to process.</param>
-        /// <param name="graph">The graph specifying which members to populate.</param>
-        /// <returns>A task representing the asynchronous operation, containing the models with related properties populated.</returns>
-        public Task<IReadOnlyCollection<TModel>> OnGetIncludingBaseAsync(IReadOnlyCollection<TModel> models, Graph? graph)
-        {
-            return OnGetWithRelationsAsync(models, graph);
-        }
+        /// <summary>Gives the models read as a relation in another model's graph query as they are, as the store read them.</summary>
+        /// <param name="models">The models read.</param>
+        /// <param name="graph">The graph of the relation.</param>
+        /// <returns>The models.</returns>
+        public IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph) => models;
 
         /// <inheritdoc/>
         public object? Query(LinqQuery query)
@@ -528,6 +493,8 @@ namespace Zerra.Repository
                 if (graph is not null)
                     return query.Execute((IReadOnlyCollection<TModel>)Query(new LinqModelQuery(modelType, LinqTerminal.Sequence, query.Where, null, null, null, graph))!, false);
                 query.Where = SplitCrossEngineWhere(query.Where);
+                if (GraphLayers(query, out var treats))
+                    return treats ? OnGetLayers(query, ExecuteLinq(query)) : ExecuteLinq(query);
             }
             return ExecuteLinq(query);
         }
@@ -563,6 +530,8 @@ namespace Zerra.Repository
                 if (graph is not null)
                     return query.Execute((IReadOnlyCollection<TModel>)(await QueryAsync(new LinqModelQuery(modelType, LinqTerminal.Sequence, query.Where, null, null, null, graph), cancellationToken))!, false);
                 query.Where = await SplitCrossEngineWhereAsync(query.Where, cancellationToken);
+                if (GraphLayers(query, out var treats))
+                    return treats ? OnGetLayers(query, await ExecuteLinqAsync(query, cancellationToken)) : await ExecuteLinqAsync(query, cancellationToken);
             }
             return await ExecuteLinqAsync(query, cancellationToken);
         }
@@ -618,6 +587,8 @@ namespace Zerra.Repository
                     return query.Execute((IReadOnlyCollection<TModel>)Query(new LinqModelQuery(modelType, LinqTerminal.Sequence, query.Where, null, null, null, graph))!, false);
                 }
                 query.Where = SplitCrossEngineWhere(query.Where);
+                if (GraphLayers(query, out var treats) && treats)
+                    return OnGetLayersStream((IEnumerable<TModel>)ExecuteLinqStream(query), query.Graph!);
             }
             return ExecuteLinqStream(query);
         }
@@ -654,6 +625,8 @@ namespace Zerra.Repository
                     return query.Execute((IReadOnlyCollection<TModel>)(await QueryAsync(new LinqModelQuery(modelType, LinqTerminal.Sequence, query.Where, null, null, null, graph), cancellationToken))!, false);
                 }
                 query.Where = await SplitCrossEngineWhereAsync(query.Where, cancellationToken);
+                if (GraphLayers(query, out var treats) && treats)
+                    return OnGetLayersStreamAsync((IAsyncEnumerable<TModel>)ExecuteLinqStreamAsync(query, cancellationToken), query.Graph!, cancellationToken);
             }
             return ExecuteLinqStreamAsync(query, cancellationToken);
         }
@@ -671,7 +644,7 @@ namespace Zerra.Repository
         }
         private IEnumerable<TModel> StreamWithRelations(LinqQuery query, Graph graph)
         {
-            OnQueryWithRelations(graph);
+            AddRelationKeys(graph);
             var models = (IEnumerable<TModel>)ExecuteLinqStream(new LinqQuery<TModel, TModel>(query.Where, query.Order, query.Skip, query.Take, graph, LinqTerminal.Sequence));
             var size = new LinqStreamSize(ModelTypeDetail);
             var relationBytes = size.EstimateRelations(graph);
@@ -701,7 +674,7 @@ namespace Zerra.Repository
         }
         private async IAsyncEnumerable<TModel> StreamWithRelationsAsync(LinqQuery query, Graph graph, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            OnQueryWithRelations(graph);
+            AddRelationKeys(graph);
             var models = (IAsyncEnumerable<TModel>)ExecuteLinqStreamAsync(new LinqQuery<TModel, TModel>(query.Where, query.Order, query.Skip, query.Take, graph, LinqTerminal.Sequence), cancellationToken);
             var size = new LinqStreamSize(ModelTypeDetail);
             var relationBytes = size.EstimateRelations(graph);
@@ -732,6 +705,246 @@ namespace Zerra.Repository
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     yield return related;
+                }
+            }
+        }
+        //a graph read in the statement takes the condition of each layer on a relation, and the layer treats the rows after
+        private bool GraphLayers(LinqQuery query, out bool treats)
+        {
+            treats = false;
+            if (!query.GraphRelations || !query.ReturnsModels || !HasLayers(query.Graph!, ModelTypeDetail, ref treats))
+                return false;
+            var graph = new LinqLayeredGraph(query.Graph!, relationWhere ??= (type, graph) => GetRelatedProvider(type) is IProviderRelation { ReadsInStore: false } layer ? layer.GetWhereExpressionIncludingBase(graph) : null);
+            if (treats)
+                AddLayerKeys(graph, ModelTypeDetail);
+            query.Graph = graph;
+            return true;
+        }
+        private Func<Type, Graph?, LambdaExpression?>? relationWhere;
+        private bool HasLayers(Graph graph, ModelDetail model, ref bool treats)
+        {
+            var any = false;
+            foreach (var member in model.RelatedMembers)
+            {
+                if (!graph.HasMemberExplicitly(member.Name))
+                    continue;
+                if (GetRelatedProvider(member.ActualType) is IProviderRelation { ReadsInStore: false } layer)
+                {
+                    any = true;
+                    if (layer.TreatsReadModels)
+                        treats = true;
+                }
+                var child = graph.GetChildGraph(member.Name);
+                if (child is not null && HasLayers(child, ModelAnalyzer.GetModel(member.ActualType), ref treats))
+                    any = true;
+            }
+            return any;
+        }
+        //the keys a relation through a layer is matched by are read, so the models its OnGet gives can be set on their parents; the graphs of the relations are copied first, as they're the caller's
+        private void AddLayerKeys(Graph graph, ModelDetail model)
+        {
+            foreach (var member in model.RelatedMembers)
+            {
+                if (!graph.HasMemberExplicitly(member.Name))
+                    continue;
+                var child = graph.GetChildGraph(member.Name);
+                if (child is not null)
+                {
+                    child = new Graph(child);
+                    graph.AddOrReplaceChildGraph(member.Name, child);
+                }
+                if (GetRelatedProvider(member.ActualType) is IProviderRelation { ReadsInStore: false, TreatsReadModels: true })
+                {
+                    if (member.IsEnumerable)
+                    {
+                        graph.AddMembers(ModelAnalyzer.GetIdentityPropertyNames(model.Type));
+                        child?.AddMembers(member.ForeignIdentities!);
+                    }
+                    else
+                    {
+                        graph.AddMembers(member.ForeignIdentities!);
+                        child?.AddMembers(ModelAnalyzer.GetIdentityPropertyNames(member.ActualType));
+                    }
+                }
+                if (child is not null)
+                    AddLayerKeys(child, ModelAnalyzer.GetModel(member.ActualType));
+            }
+        }
+        private object? OnGetLayers(LinqQuery query, object? result)
+        {
+            switch (result)
+            {
+                case IReadOnlyCollection<TModel> models:
+                    if (models.Count > 0)
+                        OnGetLayers(models, ModelTypeDetail, query.Graph!);
+                    break;
+                case TModel model:
+                    OnGetLayers(new TModel[] { model }, ModelTypeDetail, query.Graph!);
+                    break;
+            }
+            return result;
+        }
+        //deepest first, so a layer sees its rows with their relations treated, as reading them through it would give them
+        private void OnGetLayers(IEnumerable parents, ModelDetail model, Graph graph)
+        {
+            foreach (var member in model.RelatedMembers)
+            {
+                if (!graph.HasMemberExplicitly(member.Name))
+                    continue;
+                var relatedGraph = graph.GetChildGraph(member.Name);
+                var relatedModel = ModelAnalyzer.GetModel(member.ActualType);
+                var layer = GetRelatedProvider(member.ActualType) as IProviderRelation;
+                var treats = layer is { ReadsInStore: false, TreatsReadModels: true };
+                var below = relatedGraph is not null && relatedModel.RelatedMembers.Count > 0 && TreatsBelow(relatedGraph, relatedModel);
+                if (!treats && !below)
+                    continue;
+                var related = new List<object>();
+                foreach (var parent in parents)
+                {
+                    var value = member.GetterBoxed(parent);
+                    if (value is null)
+                        continue;
+                    if (member.IsEnumerable)
+                    {
+                        foreach (var element in (IEnumerable)value)
+                            related.Add(element!);
+                    }
+                    else
+                    {
+                        related.Add(value);
+                    }
+                }
+                if (related.Count == 0)
+                    continue;
+                if (below)
+                    OnGetLayers(related, relatedModel, relatedGraph!);
+                if (!treats)
+                    continue;
+                var returned = layer!.OnGetIncludingBase(related, relatedGraph);
+                if (!ReferenceEquals(returned, related))
+                    SetRelation(parents, model, member, relatedModel, returned);
+            }
+        }
+        private bool TreatsBelow(Graph graph, ModelDetail model)
+        {
+            foreach (var member in model.RelatedMembers)
+            {
+                if (!graph.HasMemberExplicitly(member.Name))
+                    continue;
+                if (GetRelatedProvider(member.ActualType) is IProviderRelation { ReadsInStore: false, TreatsReadModels: true })
+                    return true;
+                var child = graph.GetChildGraph(member.Name);
+                if (child is not null && TreatsBelow(child, ModelAnalyzer.GetModel(member.ActualType)))
+                    return true;
+            }
+            return false;
+        }
+        //the models a layer gave in place of the ones read, matched to their parents by key as a relation is loaded
+        [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "Only interface members reach MakeArrayType, models are reference types so the array code is shared.")]
+        private static void SetRelation(IEnumerable parents, ModelDetail model, ModelMemberDetail member, ModelDetail relatedModel, IEnumerable returned)
+        {
+            var keyed = new List<(object Model, object? Key)>();
+            foreach (var relatedModelValue in returned)
+                keyed.Add((relatedModelValue, member.IsEnumerable ? ModelAnalyzer.GetForeignIdentity(relatedModel.Type, member.ForeignIdentityNames!, relatedModelValue) : ModelAnalyzer.GetIdentity(relatedModel.Type, relatedModelValue)));
+
+            if (!member.IsEnumerable)
+            {
+                foreach (var parent in parents)
+                {
+                    var foreignIdentity = ModelAnalyzer.GetForeignIdentity(model.Type, member.ForeignIdentityNames!, parent);
+                    object? match = null;
+                    foreach (var (relatedModelValue, key) in keyed)
+                    {
+                        if (ModelAnalyzer.CompareIdentities(foreignIdentity, key))
+                        {
+                            match = relatedModelValue;
+                            break;
+                        }
+                    }
+                    member.SetterBoxed(parent, match);
+                }
+                return;
+            }
+
+            var memberTypeDetail = member.MemberDetail.TypeDetail;
+            var arrayType = memberTypeDetail.HasCreator ? null : member.Type.IsArray ? member.Type : relatedModel.Type.MakeArrayType();
+            var matches = new List<object>();
+            foreach (var parent in parents)
+            {
+                var identity = ModelAnalyzer.GetIdentity(model.Type, parent);
+                matches.Clear();
+                foreach (var (relatedModelValue, key) in keyed)
+                {
+                    if (ModelAnalyzer.CompareIdentities(identity, key))
+                        matches.Add(relatedModelValue);
+                }
+                if (arrayType is null)
+                {
+                    var relatedForModel = (IList)memberTypeDetail.CreatorBoxed!();
+                    foreach (var match in matches)
+                        _ = relatedForModel.Add(match);
+                    member.SetterBoxed(parent, relatedForModel);
+                }
+                else
+                {
+                    var relatedForModel = Array.CreateInstanceFromArrayType(arrayType, matches.Count);
+                    for (var i = 0; i < matches.Count; i++)
+                        relatedForModel.SetValue(matches[i], i);
+                    member.SetterBoxed(parent, relatedForModel);
+                }
+            }
+        }
+        private IEnumerable<TModel> OnGetLayersStream(IEnumerable<TModel> models, Graph graph)
+        {
+            var size = new LinqStreamSize(ModelTypeDetail);
+            var chunk = new List<TModel>();
+            var bytes = 0L;
+            foreach (var model in models)
+            {
+                chunk.Add(model);
+                bytes += size.WithRelations(model);
+                if (bytes < StreamChunkBytes)
+                    continue;
+                OnGetLayers(chunk, ModelTypeDetail, graph);
+                foreach (var treated in chunk)
+                    yield return treated;
+                chunk = new List<TModel>(chunk.Count);
+                bytes = 0;
+            }
+            if (chunk.Count > 0)
+            {
+                OnGetLayers(chunk, ModelTypeDetail, graph);
+                foreach (var treated in chunk)
+                    yield return treated;
+            }
+        }
+        private async IAsyncEnumerable<TModel> OnGetLayersStreamAsync(IAsyncEnumerable<TModel> models, Graph graph, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            var size = new LinqStreamSize(ModelTypeDetail);
+            var chunk = new List<TModel>();
+            var bytes = 0L;
+            await foreach (var model in models.WithCancellation(cancellationToken))
+            {
+                chunk.Add(model);
+                bytes += size.WithRelations(model);
+                if (bytes < StreamChunkBytes)
+                    continue;
+                OnGetLayers(chunk, ModelTypeDetail, graph);
+                foreach (var treated in chunk)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    yield return treated;
+                }
+                chunk = new List<TModel>(chunk.Count);
+                bytes = 0;
+            }
+            if (chunk.Count > 0)
+            {
+                OnGetLayers(chunk, ModelTypeDetail, graph);
+                foreach (var treated in chunk)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    yield return treated;
                 }
             }
         }
@@ -803,7 +1016,7 @@ namespace Zerra.Repository
 
         private IReadOnlyCollection<TModel> QueryMany(LinqModelQuery query)
         {
-            OnQueryWithRelations(query.Graph);
+            AddRelationKeys(query.Graph);
 
             var models = Many(query);
 
@@ -817,7 +1030,7 @@ namespace Zerra.Repository
         }
         private TModel? QueryFirst(LinqModelQuery query)
         {
-            OnQueryWithRelations(query.Graph);
+            AddRelationKeys(query.Graph);
 
             var model = First(query);
 
@@ -831,7 +1044,7 @@ namespace Zerra.Repository
         }
         private TModel? QuerySingle(LinqModelQuery query)
         {
-            OnQueryWithRelations(query.Graph);
+            AddRelationKeys(query.Graph);
 
             var model = Single(query);
 
@@ -854,7 +1067,7 @@ namespace Zerra.Repository
 
         private async Task<IReadOnlyCollection<TModel>> QueryManyAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            OnQueryWithRelations(query.Graph);
+            AddRelationKeys(query.Graph);
 
             var models = await ManyAsync(query, cancellationToken);
 
@@ -868,7 +1081,7 @@ namespace Zerra.Repository
         }
         private async Task<TModel?> QueryFirstAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            OnQueryWithRelations(query.Graph);
+            AddRelationKeys(query.Graph);
 
             var model = await FirstAsync(query, cancellationToken);
 
@@ -882,7 +1095,7 @@ namespace Zerra.Repository
         }
         private async Task<TModel?> QuerySingleAsync(LinqModelQuery query, CancellationToken cancellationToken)
         {
-            OnQueryWithRelations(query.Graph);
+            AddRelationKeys(query.Graph);
 
             var model = await SingleAsync(query, cancellationToken);
 

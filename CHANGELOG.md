@@ -121,6 +121,8 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - A condition on an aggregate of filtered related rows, such as `x.Lines.Where(l => l.Quantity > 1).Sum(l => l.Quantity) > 3`, no longer fails on PostgreSQL.
 - `QueryOrder` is removed. Use `OrderBy` and `ThenBy` on the query.
 - All reads go through `IRepo.Query<T>()`, a LINQ query the store runs in one pass on every engine, with `Async` endings that take a `CancellationToken`. Pass a `Graph` to read models with their relations. What the store can't do is refused instead of run in memory. See [Repository Queries](docs/RepositoryQueries.md).
+- A graph reads a relation whose model has a rule, encryption, or compression layer in the same statement as the rows, instead of one more query per relation. The rule's `WhereExpression` filters the related rows and its `OnGet` runs on them after. A rule on a rule or on encryption now adds both rules' conditions.
+- `OnQuery` is removed from `BaseTransactStoreRuleProvider`. Use `WhereExpression` or `OnGet`.
 
 ## 5.x
 

@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Zerra.Reflection;
 using Zerra.Repository.Reflection;
 
@@ -42,6 +43,8 @@ namespace Zerra.Repository.Linq
         public bool CompositeKey => ParentKeys.Length > 1;
         /// <summary>An optional condition on the rows.</summary>
         public LambdaExpression? Where { get; }
+        //in memory the related models a graph reads are copied from the stored model, so a layer's condition is run on each; kept aside so a piece carries nothing for it
+        internal static readonly ConditionalWeakTable<LinqPiece, Func<object, object?>> MemoryWheres = new();
         /// <summary>An optional order of the rows.</summary>
         public LinqOrder[]? Order { get; }
         /// <summary>How many of each parent's rows to skip, in their order.</summary>

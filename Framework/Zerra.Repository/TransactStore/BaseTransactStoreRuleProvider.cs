@@ -12,7 +12,7 @@ using Zerra.Repository.Reflection;
 namespace Zerra.Repository
 {
     /// <summary>
-    /// Abstract layer provider that applies filtering rules and lifecycle hooks (OnQuery, OnGet, OnCreate, OnUpdate, OnDelete) around the next provider in the chain.
+    /// Abstract layer provider that applies filtering rules and lifecycle hooks (OnGet, OnCreate, OnUpdate, OnDelete) around the next provider in the chain.
     /// </summary>
     /// <typeparam name="TNextProviderInterface">The type of the next provider in the chain.</typeparam>
     /// <typeparam name="TModel">The model type managed by this provider.</typeparam>
@@ -86,18 +86,6 @@ namespace Zerra.Repository
             }
         }
 
-        /// <summary>Called before a query is executed. Override to modify the graph or apply side effects.</summary>
-        /// <param name="graph">The graph for the current query.</param>
-        public virtual void OnQuery(Graph? graph) { }
-        /// <summary>Invokes <see cref="OnQuery"/> on this provider then propagates to the next provider in the chain.</summary>
-        /// <param name="graph">The graph for the current query.</param>
-        /// <inheritdoc/>
-        public override sealed void OnQueryIncludingBase(Graph? graph)
-        {
-            this.OnQuery(graph);
-            ProviderRelation?.OnQueryIncludingBase(graph);
-        }
-
         /// <summary>Called after models are retrieved. Override to filter or transform the result set.</summary>
         /// <param name="models">The retrieved models.</param>
         /// <param name="graph">The graph used during the query.</param>
@@ -109,38 +97,29 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph)
         {
-            if (ProviderRelation is not null)
-            {
-                var returnModels1 = ProviderRelation.OnGetIncludingBase(models, graph);
-                var returnModels2 = this.OnGet(returnModels1, graph);
-                return returnModels2;
-            }
-            else
-            {
-                var returnModels1 = this.OnGet(models, graph);
-                return returnModels1;
-            }
+            var inner = ProviderRelation is null ? models : ProviderRelation.OnGetIncludingBase(models, graph);
+            if (!OverridesOnGet)
+                return inner;
+            //OnGet is given the models typed as a query of this model gives them
+            var typed = inner as IReadOnlyCollection<TModel> ?? inner.Cast<TModel>().ToArray();
+            var returned = OnGet(typed, graph);
+            return ReferenceEquals(returned, typed) ? inner : returned;
         }
         /// <inheritdoc/>
-        public override sealed async Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
+        public override sealed bool TreatsReadModels => OverridesOnGet || (ProviderRelation?.TreatsReadModels ?? false);
+        //a rule that doesn't override OnGet leaves the models a graph reads as they are, so they aren't gathered for it
+        private bool OverridesOnGet => overridesOnGet ??= FindOverridesOnGet();
+        private bool? overridesOnGet;
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method.", Justification = "A method trimmed away reads as overridden, so OnGet still runs.")]
+        private bool FindOverridesOnGet()
         {
-            if (ProviderRelation is not null)
-            {
-                var returnModels1 = await ProviderRelation.OnGetIncludingBaseAsync(models, graph);
-                var returnModels2 = this.OnGet(returnModels1, graph);
-                return returnModels2;
-            }
-            else
-            {
-                var returnModels1 = this.OnGet(models, graph);
-                return returnModels1;
-            }
+            var method = GetType().GetMethod(nameof(OnGet), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public, [typeof(IEnumerable), typeof(Graph)]);
+            return method is null || method.DeclaringType != method.GetBaseDefinition().DeclaringType;
         }
 
         /// <inheritdoc/>
         public override sealed object? Query(LinqQuery query)
         {
-            OnQuery(query.ModelGraph);
             //the query carries its result types, so the appended where is swapped onto it for the call and the original put back
             var where = query.Where;
             query.Where = AppendWhereExpression(where, query.ModelGraph, query.ReadsEvents);
@@ -156,7 +135,6 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed async Task<object?> QueryAsync(LinqQuery query, CancellationToken cancellationToken)
         {
-            OnQuery(query.ModelGraph);
             var where = query.Where;
             query.Where = AppendWhereExpression(where, query.ModelGraph, query.ReadsEvents);
             try
@@ -171,7 +149,6 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed object QueryStream(LinqQuery query)
         {
-            OnQuery(query.ModelGraph);
             LambdaExpression? where = null;
             var elements = query.StreamFrom(() =>
             {
@@ -210,7 +187,6 @@ namespace Zerra.Repository
         /// <inheritdoc/>
         public override sealed object QueryStreamAsync(LinqQuery query, CancellationToken cancellationToken)
         {
-            OnQuery(query.ModelGraph);
             LambdaExpression? where = null;
             var elements = query.StreamFromAsync(cancellation =>
             {

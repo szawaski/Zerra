@@ -91,7 +91,7 @@ namespace Zerra.Repository.Linq
                 if (whole is null)
                 {
                     whole = new LinqPlan(modelDetail);
-                    whole.Shape = whole.ReadModel(modelDetail, null, false);
+                    whole.Shape = whole.ReadModel(modelDetail, null, false, null);
                     modelDetail.WholeModelPlan = whole;
                 }
                 return whole;
@@ -158,7 +158,7 @@ namespace Zerra.Repository.Linq
                 plan.Shape = LinqShape.OfColumn(query.KeyMember.Type, plan.AddMemberColumn(query.KeyMember));
                 return plan;
             }
-            plan.Shape = query.Select is null ? plan.ReadModel(modelDetail, query.Graph, query.GraphRelations && query.ReturnsModels) : plan.ReadElement(query.Select.ReturnType == typeof(object) && query.Select.Body is UnaryExpression { NodeType: ExpressionType.Convert } boxed ? boxed.Operand : query.Select.Body, query.Select.Parameters[0], modelDetail);
+            plan.Shape = query.Select is null ? plan.ReadModel(modelDetail, query.Graph, query.GraphRelations && query.ReturnsModels, (query.Graph as LinqLayeredGraph)?.RelationWhere) : plan.ReadElement(query.Select.ReturnType == typeof(object) && query.Select.Body is UnaryExpression { NodeType: ExpressionType.Convert } boxed ? boxed.Operand : query.Select.Body, query.Select.Parameters[0], modelDetail);
             //the place of each row, after the columns of the element
             if (query.Numbered)
             {
@@ -462,7 +462,7 @@ namespace Zerra.Repository.Linq
             return column;
         }
 
-        private LinqShape ReadModel(ModelDetail model, Graph? graph, bool relations)
+        private LinqShape ReadModel(ModelDetail model, Graph? graph, bool relations, Func<Type, Graph?, LambdaExpression?>? relationWhere)
         {
             var members = new List<ModelMemberDetail>();
             var columns = new List<LinqColumn>();
@@ -490,7 +490,8 @@ namespace Zerra.Repository.Linq
                     if (!graph!.HasMemberExplicitly(relation.Name))
                         continue;
                     var column = new LinqColumn(0, LinqColumnKind.Value, null, null, 0, relation.Type, relation);
-                    (modelRelations ??= new()).Add(AddRelation(relation, model, relation.Type, column, null, null, null, null, null, graph.GetChildGraph(relation.Name)));
+                    var childGraph = graph.GetChildGraph(relation.Name);
+                    (modelRelations ??= new()).Add(AddRelation(relation, model, relation.Type, column, relationWhere?.Invoke(relation.ActualType, childGraph), null, null, null, null, childGraph, relationWhere));
                 }
             }
             return LinqShape.OfModel(model, members.ToArray(), columns.ToArray(), modelRelations?.ToArray());
@@ -620,16 +621,16 @@ namespace Zerra.Repository.Linq
             if (where is not null && ParameterFinder.Uses(where.Body, parameter) || select is not null && ParameterFinder.Uses(select.Body, parameter))
                 throw new NotSupportedException($"The rows of {relation.Name} are filtered and built from themselves alone, not from the model");
 
-            shape = AddRelation(relation, model, expression.Type, new LinqColumn(0, LinqColumnKind.Value, expression, parameter, 0, expression.Type, null), where, orders.Count == 0 ? null : orders.ToArray(), skip, take, select, null);
+            shape = AddRelation(relation, model, expression.Type, new LinqColumn(0, LinqColumnKind.Value, expression, parameter, 0, expression.Type, null), where, orders.Count == 0 ? null : orders.ToArray(), skip, take, select, null, null);
             if (toList is not null)
                 shape.ReadWith(toList);
             return true;
         }
 
-        //one related row reads with the row in its join, unless its rows read relations of their own
-        private static bool CanJoin(ModelMemberDetail relation, ModelDetail related, LambdaExpression? select, Graph? graph)
+        //one related row reads with the row in its join, unless its rows read relations of their own or a layer's condition is on them
+        private static bool CanJoin(ModelMemberDetail relation, ModelDetail related, LambdaExpression? where, LambdaExpression? select, Graph? graph)
         {
-            if (relation.IsEnumerable || select is not null)
+            if (relation.IsEnumerable || where is not null || select is not null)
                 return false;
             if (graph is not null)
             {
@@ -668,7 +669,7 @@ namespace Zerra.Repository.Linq
             return shape;
         }
 
-        private LinqShape AddRelation(ModelMemberDetail relation, ModelDetail model, Type type, LinqColumn column, LambdaExpression? where, LinqOrder[]? order, int? skip, int? take, LambdaExpression? select, Graph? graph)
+        private LinqShape AddRelation(ModelMemberDetail relation, ModelDetail model, Type type, LinqColumn column, LambdaExpression? where, LinqOrder[]? order, int? skip, int? take, LambdaExpression? select, Graph? graph, Func<Type, Graph?, LambdaExpression?>? relationWhere)
         {
             var related = ModelAnalyzer.GetModel(relation.ActualType);
             //the rows can't be a row model above them, so a query never follows a relation round and round; a model with a collection of itself nests one level
@@ -677,10 +678,10 @@ namespace Zerra.Repository.Linq
                 if (above.Model == related)
                     throw new NotSupportedException($"The rows of {relation.Name} are {related.Type.Name}, which is already projected above them");
             }
-            if (CanJoin(relation, related, select, graph))
+            if (CanJoin(relation, related, where, select, graph))
                 return AddJoined(relation, model, related, column, graph);
             var plan = new LinqPlan(related) { parent = this };
-            plan.Shape = select is null ? plan.ReadModel(related, graph, graph is not null) : plan.ReadElement(select.Body, select.Parameters[0], related);
+            plan.Shape = select is null ? plan.ReadModel(related, graph, graph is not null, relationWhere) : plan.ReadElement(select.Body, select.Parameters[0], related);
             //the key in pairs of the parent's member and the related model's, the identity of one and the foreign key of the other
             var names = relation.ForeignIdentities ?? throw new NotSupportedException($"Reading {relation.Name} needs a foreign identity");
             var referred = relation.IsEnumerable ? model : related;

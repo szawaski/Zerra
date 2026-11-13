@@ -84,7 +84,7 @@ namespace Zerra.Repository
             var eventModels = ReadEventModels(where, temporal, whole ? HistoryLimit(query, where) : null);
             if (eventModels.Count > 0)
             {
-                OnQueryWithRelations(temporal.Graph);
+                AddRelationKeys(temporal.Graph);
                 var models = OnGetWithRelations(eventModels.Select(x => x.Model).ToArray(), temporal.Graph);
                 if (models.Count < eventModels.Count)
                     eventModels = eventModels.Where(x => models.Contains(x.Model)).ToList();
@@ -105,7 +105,7 @@ namespace Zerra.Repository
             var eventModels = await ReadEventModelsAsync(where, temporal, whole ? HistoryLimit(query, where) : null, cancellationToken);
             if (eventModels.Count > 0)
             {
-                OnQueryWithRelations(temporal.Graph);
+                AddRelationKeys(temporal.Graph);
                 var models = await OnGetWithRelationsAsync(eventModels.Select(x => x.Model).ToArray(), temporal.Graph, cancellationToken);
                 if (models.Count < eventModels.Count)
                     eventModels = eventModels.Where(x => models.Contains(x.Model)).ToList();

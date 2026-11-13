@@ -191,28 +191,13 @@ namespace Zerra.Repository
         }
 
         /// <inheritdoc/>
-        public override sealed void OnQueryIncludingBase(Graph? graph)
-        {
-            ProviderRelation?.OnQueryIncludingBase(graph);
-        }
-        /// <inheritdoc/>
         public override sealed IEnumerable OnGetIncludingBase(IEnumerable models, Graph? graph)
         {
-            var returnModels1 = DecryptModels(models, graph, false);
-            if (ProviderRelation is null)
-                return returnModels1;
-            var returnModels2 = ProviderRelation.OnGetIncludingBase(returnModels1, graph);
-            return returnModels2;
+            var inner = ProviderRelation is null ? models : ProviderRelation.OnGetIncludingBase(models, graph);
+            return DecryptModels(inner, graph, false);
         }
         /// <inheritdoc/>
-        public override sealed async Task<IEnumerable> OnGetIncludingBaseAsync(IEnumerable models, Graph? graph)
-        {
-            var returnModels1 = DecryptModels(models, graph, false);
-            if (ProviderRelation is null)
-                return returnModels1;
-            var returnModels2 = await ProviderRelation.OnGetIncludingBaseAsync(returnModels1, graph);
-            return returnModels2;
-        }
+        public override sealed bool TreatsReadModels => Enabled || (ProviderRelation?.TreatsReadModels ?? false);
 
         /// <inheritdoc/>
         public override sealed object? Query(LinqQuery query)

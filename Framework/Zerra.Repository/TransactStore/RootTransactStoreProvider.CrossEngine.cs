@@ -22,6 +22,8 @@ namespace Zerra.Repository
         /// <summary>Gets whether a query of another model can read this model in its own statement when they share an engine.</summary>
         protected virtual bool ReadsInStore => false;
         bool IProviderRelation.ReadsInStore => ReadsInStore;
+        bool IProviderRelation.ReadsGraphInStore => ReadsInStore;
+        bool IProviderRelation.TreatsReadModels => false;
         bool IProviderRelation.RelatesAcrossEngines => AnyCrossEngine;
 
         private readonly ConcurrentFactoryDictionary<string, bool> crossEngineMembers = new();
@@ -68,7 +70,7 @@ namespace Zerra.Repository
                     var child = graph.GetChildGraph(member.Name);
                     if (child is not null)
                         graph.AddOrReplaceChildGraph(member.Name, new Graph(child));
-                    var related = Relate(graph, member);
+                    var related = Relate(graph, member, true);
                     if (child is null)
                         related.Graph.IncludeAllMembers = true;
                     else
@@ -86,7 +88,7 @@ namespace Zerra.Repository
                     return base.VisitMember(node);
                 if (owner.Value.Model.TryGetProperty(node.Member.Name, out var member) && member.IsRelated)
                     //the relation is read itself rather than through a member of it, so its rows are whole
-                    Relate(owner.Value.Graph, member).Graph.IncludeAllMembers = true;
+                    Relate(owner.Value.Graph, member, false).Graph.IncludeAllMembers = true;
                 else
                     owner.Value.Graph.AddMember(node.Member.Name);
                 return node;
@@ -124,7 +126,7 @@ namespace Zerra.Repository
                             var owner = Resolve(member.Expression);
                             if (owner is null || !owner.Value.Model.TryGetProperty(member.Member.Name, out var detail) || !detail.IsRelated)
                                 return null;
-                            return Relate(owner.Value.Graph, detail);
+                            return Relate(owner.Value.Graph, detail, false);
                         }
                     case UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } conversion:
                         return Resolve(conversion.Operand);
@@ -136,10 +138,11 @@ namespace Zerra.Repository
                 }
             }
 
-            private (Graph Graph, ModelDetail Model) Relate(Graph graph, ModelMemberDetail member)
+            //a relation the graph reads can be through a layer, which adds its condition to the rows and treats them after
+            private (Graph Graph, ModelDetail Model) Relate(Graph graph, ModelMemberDetail member, bool fromGraph)
             {
                 var relatedType = member.IsEnumerable ? TypeAnalyzer.GetTypeDetail(member.Type).InnerType! : member.Type;
-                if (!Crosses && provider.GetRelatedProvider(relatedType) is { } related && (related is not IProviderRelation { ReadsInStore: true } relation || !ReferenceEquals(relation.Engine, provider.Engine)))
+                if (!Crosses && provider.GetRelatedProvider(relatedType) is { } related && (related is not IProviderRelation relation || !(fromGraph ? relation.ReadsGraphInStore : relation.ReadsInStore) || !ReferenceEquals(relation.Engine, provider.Engine)))
                     Crosses = true;
                 var child = graph.GetChildGraph(member.Name);
                 if (child is null)

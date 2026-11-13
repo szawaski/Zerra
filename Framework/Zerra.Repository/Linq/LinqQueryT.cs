@@ -639,6 +639,8 @@ namespace Zerra.Repository.Linq
             }
 
             var plan = LinqPlan.Read(this, ModelAnalyzer.GetModel(typeof(TModel)));
+            if (Graph is LinqLayeredGraph)
+                CompileRelationWheres(plan, caseSensitive);
             if (GroupBy is not null)
                 return Groups(plan, source, caseSensitive);
 
@@ -700,6 +702,18 @@ namespace Zerra.Repository.Linq
             if (Terminal is LinqTerminal.Count or LinqTerminal.LongCount)
                 return count;
             return results;
+        }
+
+        private static void CompileRelationWheres(LinqPlan plan, bool caseSensitive)
+        {
+            foreach (var relation in plan.Relations)
+            {
+                if (relation.Piece is null)
+                    continue;
+                if (relation.Piece.Where is not null && relation.Column?.Member is not null)
+                    LinqPiece.MemoryWheres.AddOrUpdate(relation.Piece, AggregateCommon.CompileBoxed(relation.Piece.Where.Body, relation.Piece.Where.Parameters[0], caseSensitive));
+                CompileRelationWheres(relation.Piece.Plan, caseSensitive);
+            }
         }
 
         private object Groups(LinqPlan plan, IEnumerable<TModel> source, bool caseSensitive)

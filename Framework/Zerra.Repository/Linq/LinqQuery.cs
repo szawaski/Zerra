@@ -66,7 +66,7 @@ namespace Zerra.Repository.Linq
         public bool GroupedResults => GroupBy is not null && (Select is not null || CountsByKey);
 
         /// <summary>Gets the members and relations of the models to read, or <see langword="null"/> for every member and no relations.</summary>
-        public Graph? Graph { get; }
+        public Graph? Graph { get; internal set; }
         //a graph given to the query reads its relations with the rows; a provider loading models reads their relations itself
         internal bool GraphRelations { get; }
 

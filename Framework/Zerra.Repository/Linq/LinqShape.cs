@@ -206,13 +206,19 @@ namespace Zerra.Repository.Linq
             if (JoinedKey is not null)
                 return value is null ? null : CopyModel(value);
             var shape = Piece!.Plan.Shape!;
+            Func<object, object?>? where = null;
+            if (Piece.Where is not null)
+                _ = LinqPiece.MemoryWheres.TryGetValue(Piece, out where);
             if (Piece.Single)
-                return value is null ? null : shape.CopyModel(value);
+                return value is null || (where is not null && !(bool)where(value)!) ? null : shape.CopyModel(value);
             var elements = new List<object?>();
             if (value is not null)
             {
                 foreach (var element in (IEnumerable)value)
-                    elements.Add(shape.CopyModel(element!));
+                {
+                    if (where is null || (bool)where(element!)!)
+                        elements.Add(shape.CopyModel(element!));
+                }
             }
             return CreateCollection(elements);
         }

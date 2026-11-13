@@ -25,6 +25,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         public static string ConnectionString => new SqlConnectionStringBuilder(MsSqlTestSqlDataContext.ConnectionString) { InitialCatalog = database }.ToString();
 
         private IRepo repo = null!;
+        private IRepo layered = null!;
         private Guid executionId;
         private int companyId;
 
@@ -57,6 +58,20 @@ namespace Zerra.Repository.Benchmark.Benchmarks
             repoSetup.AddProvider(new TransactStoreProvider<TreeSyncStepExecutionDetailFile>(engine));
             repo = repoSetup;
 
+            //every model behind a rule that changes nothing on reads, as a layer for writes only is
+            var layeredSetup = Repo.New();
+            layeredSetup.AddProvider<TreeSync>(new PassRules<TreeSync>(new TransactStoreProvider<TreeSync>(engine)));
+            layeredSetup.AddProvider<TreeSyncExecution>(new PassRules<TreeSyncExecution>(new TransactStoreProvider<TreeSyncExecution>(engine)));
+            layeredSetup.AddProvider<TreeSyncExecutionMessage>(new PassRules<TreeSyncExecutionMessage>(new TransactStoreProvider<TreeSyncExecutionMessage>(engine)));
+            layeredSetup.AddProvider<TreeSyncStep>(new PassRules<TreeSyncStep>(new TransactStoreProvider<TreeSyncStep>(engine)));
+            layeredSetup.AddProvider<TreeSyncStepExecution>(new PassRules<TreeSyncStepExecution>(new TransactStoreProvider<TreeSyncStepExecution>(engine)));
+            layeredSetup.AddProvider<TreeSyncStepExecutionMessage>(new PassRules<TreeSyncStepExecutionMessage>(new TransactStoreProvider<TreeSyncStepExecutionMessage>(engine)));
+            layeredSetup.AddProvider<TreeSyncStepPerformance>(new PassRules<TreeSyncStepPerformance>(new TransactStoreProvider<TreeSyncStepPerformance>(engine)));
+            layeredSetup.AddProvider<TreeSyncStepExecutionParameter>(new PassRules<TreeSyncStepExecutionParameter>(new TransactStoreProvider<TreeSyncStepExecutionParameter>(engine)));
+            layeredSetup.AddProvider<TreeSyncStepExecutionDetail>(new PassRules<TreeSyncStepExecutionDetail>(new TransactStoreProvider<TreeSyncStepExecutionDetail>(engine)));
+            layeredSetup.AddProvider<TreeSyncStepExecutionDetailFile>(new PassRules<TreeSyncStepExecutionDetailFile>(new TransactStoreProvider<TreeSyncStepExecutionDetailFile>(engine)));
+            layered = layeredSetup;
+
             using (var connection = new SqlConnection(ConnectionString))
             {
                 connection.Open();
@@ -80,7 +95,15 @@ namespace Zerra.Repository.Benchmark.Benchmarks
             efCount += $" {efCompany.Length} {String.Join(",", efCompany.Take(20).Select(x => x.Id))} {efCompany.Sum(x => x.SyncExecutionMessages.Count + x.Sync.SyncSteps.Count + x.SyncStepExecutions.Sum(s => s.SyncStepExecutionDetails.Count))}";
             if (zerraCount != efCount)
                 throw new Exception($"Zerra read {zerraCount}, EF read {efCount}");
+            var rules = (await ExecutionTreeRules_Zerra())!;
+            var rulesCompany = await HistoryForCompanyRules_Zerra();
+            var rulesCount = $"{rules.Sync.Id} {rules.SyncExecutionMessages.Length} {rules.SyncStepExecutions.Length} {rules.SyncStepExecutions.Sum(x => x.SyncStepExecutionMessages.Length + x.SyncStepPerformances.Length + x.SyncStepExecutionParameters.Length + x.SyncStepExecutionDetails.Sum(d => d.SyncStepExecutionDetailFiles.Length))} {rules.SyncStepExecutions.Sum(x => x.SyncStep.Id)}"
+                + $" {rulesCompany.Length} {String.Join(",", rulesCompany.Take(20).Select(x => x.Id))} {rulesCompany.Sum(x => x.SyncExecutionMessages.Length + x.Sync.SyncSteps.Length + x.SyncStepExecutions.Sum(s => s.SyncStepExecutionDetails.Length))}";
+            if (rulesCount != zerraCount)
+                throw new Exception($"Zerra with rules read {rulesCount}, without read {zerraCount}");
         }
+
+        private sealed class PassRules<TModel>(ITransactStoreProvider<TModel> next) : BaseTransactStoreRuleProvider<ITransactStoreProvider<TModel>, TModel>(next) where TModel : class, new() { }
 
         [GlobalCleanup]
         public void Cleanup()
@@ -131,6 +154,9 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         public Task<TreeSyncExecution?> ExecutionTree_Zerra() => repo.Query<TreeSyncExecution>(TreeGraph()).Where(x => x.AlternateId == executionId).FirstOrDefaultAsync();
 
         [Benchmark]
+        public Task<TreeSyncExecution?> ExecutionTreeRules_Zerra() => layered.Query<TreeSyncExecution>(TreeGraph()).Where(x => x.AlternateId == executionId).FirstOrDefaultAsync();
+
+        [Benchmark]
         public async Task<EFSyncExecution?> ExecutionTree_EF()
         {
             using var context = new TreeDataContext();
@@ -150,6 +176,16 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         {
             var enabledOnly = false;
             return repo.Query<TreeSyncExecution>(CompanyGraph())
+                .Where(x => x.CompanyId == companyId && x.SyncId != null && (x.Sync.IsEnabled || !enabledOnly) && (x.StartedOn == null || x.StartedOn >= DateTime.UtcNow.AddDays(-45)))
+                .OrderByDescending(x => x.StartedOn ?? x.LastEventOn)
+                .ToArrayAsync();
+        }
+
+        [Benchmark]
+        public Task<TreeSyncExecution[]> HistoryForCompanyRules_Zerra()
+        {
+            var enabledOnly = false;
+            return layered.Query<TreeSyncExecution>(CompanyGraph())
                 .Where(x => x.CompanyId == companyId && x.SyncId != null && (x.Sync.IsEnabled || !enabledOnly) && (x.StartedOn == null || x.StartedOn >= DateTime.UtcNow.AddDays(-45)))
                 .OrderByDescending(x => x.StartedOn ?? x.LastEventOn)
                 .ToArrayAsync();

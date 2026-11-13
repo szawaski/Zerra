@@ -362,7 +362,11 @@ namespace Zerra.Repository.Test
         private sealed class GraphRecording(ITransactStoreProvider<Model> next) : BaseTransactStoreRuleProvider<ITransactStoreProvider<Model>, Model>(next)
         {
             public Graph? Seen;
-            public override void OnQuery(Graph? graph) => Seen = graph;
+            public override LambdaExpression? WhereExpression(Graph? graph)
+            {
+                Seen = graph;
+                return null;
+            }
         }
 
         private sealed class EvenParents(ITransactStoreProvider<Model> next) : BaseTransactStoreRuleProvider<ITransactStoreProvider<Model>, Model>(next)
@@ -386,7 +390,7 @@ namespace Zerra.Repository.Test
             _ = ruled.Query<Model>().ToArray();
             Assert.Null(recording.Seen);
 
-            //a layer on the related model filters what the graph loads, so it isn't read in the store
+            //a layer on the related model filters what the graph loads
             var related = Repo.New();
             related.AddProvider(new TransactStoreProvider<Parent>(engine));
             related.AddProvider<Model>(new EvenParents(new TransactStoreProvider<Model>(engine)));
