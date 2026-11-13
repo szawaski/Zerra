@@ -21,7 +21,7 @@ namespace Zerra.Encryption
         AES_CBC_HMAC,
 
         /// <summary>
-        /// AES in GCM mode. Keeps data private and rejects data that was changed, reordered, or cut short, faster than AES_CBC_HMAC.
+        /// AES in GCM mode with a key for each message, made from the key and random bytes in the header. Keeps data private and rejects data that was changed, reordered, or cut short, faster than AES_CBC_HMAC.
         /// Needs .NET Core 3.0 or later, it throws <see cref="PlatformNotSupportedException"/> on .NET Standard.
         /// </summary>
         AES_GCM,
