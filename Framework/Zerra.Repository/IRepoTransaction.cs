@@ -28,6 +28,7 @@ namespace Zerra.Repository
         /// <summary>
         /// Undoes the work so far on every engine used. The transaction stays open, and what comes next is new work in it to commit or roll back.
         /// </summary>
+        /// <remarks>There is no cancellation token, as a rollback stopped partway would leave some engines undone and others not.</remarks>
         /// <returns>A task representing the asynchronous operation.</returns>
         Task RollbackAsync();
     }

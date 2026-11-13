@@ -43,6 +43,7 @@ namespace Zerra.Repository.Transactions
         /// <summary>Rolls back the work.</summary>
         public abstract void Rollback();
         /// <summary>Rolls back the work.</summary>
+        /// <remarks>There is no cancellation token, as a rollback stopped partway would leave some engines undone and others not.</remarks>
         /// <returns>A task representing the asynchronous operation.</returns>
         public abstract Task RollbackAsync();
         /// <summary>Releases what the part holds, after it has committed or rolled back.</summary>
