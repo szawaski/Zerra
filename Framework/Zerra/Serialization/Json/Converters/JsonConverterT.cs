@@ -94,7 +94,7 @@ namespace Zerra.Serialization.Json.Converters
             if (StackRequired)
             {
                 if (state.StackSize >= state.MaxDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
+                    throw CreateMaxDepthException(state.MaxDepth);
                 state.PushFrame(state.Graph);
             }
 
@@ -178,7 +178,7 @@ namespace Zerra.Serialization.Json.Converters
             if (StackRequired)
             {
                 if (state.StackSize >= state.MaxDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
+                    throw CreateMaxDepthException(state.MaxDepth);
                 state.PushFrame(state.Graph);
             }
 
@@ -243,7 +243,7 @@ namespace Zerra.Serialization.Json.Converters
             if (StackRequired)
             {
                 if (state.StackSize >= state.MaxDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
+                    throw CreateMaxDepthException(state.MaxDepth);
                 state.PushFrame(state.Graph);
             }
 
@@ -333,7 +333,7 @@ namespace Zerra.Serialization.Json.Converters
             if (StackRequired)
             {
                 if (state.StackSize >= state.MaxDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
+                    throw CreateMaxDepthException(state.MaxDepth);
                 state.PushFrame(state.Graph);
             }
 
@@ -397,7 +397,7 @@ namespace Zerra.Serialization.Json.Converters
             if (StackRequired)
             {
                 if (state.StackSize >= state.MaxDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
+                    throw CreateMaxDepthException(state.MaxDepth);
                 state.PushFrame(null);
             }
 
@@ -478,7 +478,7 @@ namespace Zerra.Serialization.Json.Converters
             if (StackRequired)
             {
                 if (state.StackSize >= state.MaxDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
+                    throw CreateMaxDepthException(state.MaxDepth);
                 if (propertyName is not null)
                     state.PushFrame(state.Current.Graph?.GetChildInstanceGraph(propertyName, value!));
                 else
@@ -547,7 +547,7 @@ namespace Zerra.Serialization.Json.Converters
             if (StackRequired)
             {
                 if (state.StackSize >= state.MaxDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
+                    throw CreateMaxDepthException(state.MaxDepth);
                 if (propertyName is not null)
                 {
                     var childGraph = state.Current.Graph?.GetChildGraph(propertyName);
@@ -654,6 +654,72 @@ namespace Zerra.Serialization.Json.Converters
             var value = getter(parent);
             var hasWrittenPropertyName = state.Current.HasWrittenPropertyName;
 
+            if (!TryWriteNameOrNull(ref writer, ref state, value, propertyName, jsonNameSegmentChars, jsonNameSegmentBytes, ignoreCondition, ignoreDoNotWriteNullProperties, hasWrittenPropertyName, out var done))
+                return false;
+            if (done)
+                return true;
+
+            if (StackRequired)
+            {
+                if (state.StackSize >= state.MaxDepth)
+                    throw CreateMaxDepthException(state.MaxDepth);
+                if (propertyName is not null)
+                {
+                    var childGraph = GetChildGraph(ref state, propertyName, value);
+                    state.PushFrame(childGraph);
+                }
+                else
+                {
+                    state.PushFrame(null);
+                }
+            }
+
+            if (isInterfacedObject || isObject)
+            {
+                var typeFromValue = value is null ? TypeDetail : value.GetType().GetTypeDetail();
+
+                if (typeFromValue.Type != TypeDetail.Type)
+                {
+                    var newConverter = JsonConverterFactory.Get(typeFromValue, memberKey, getter, setter);
+                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
+                    {
+                        if (StackRequired)
+                            state.StashFrame();
+                        if (propertyName is not null)
+                            state.Current.HasWrittenPropertyName = true;
+                        return false;
+                    }
+
+                    if (StackRequired)
+                        state.EndFrame();
+                    if (hasWrittenPropertyName)
+                        state.Current.HasWrittenPropertyName = false;
+                    return true;
+                }
+            }
+
+            if (!TryWriteValue(ref writer, ref state, value!))
+            {
+                if (StackRequired)
+                    state.StashFrame();
+                if (propertyName is not null)
+                    state.Current.HasWrittenPropertyName = true;
+                return false;
+            }
+
+            if (StackRequired)
+                state.EndFrame();
+            if (hasWrittenPropertyName)
+                state.Current.HasWrittenPropertyName = false;
+            return true;
+        }
+
+        //the parts below are kept out of TryWriteFromParentMember so unoptimized code doesn't hold their locals on the stack for every nested level,
+        //optimized code inlines them back
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryWriteNameOrNull(ref JsonWriter writer, ref WriteState state, TValue? value, string? propertyName, char[]? jsonNameSegmentChars, byte[]? jsonNameSegmentBytes, JsonIgnoreCondition ignoreCondition, bool ignoreDoNotWriteNullProperties, bool hasWrittenPropertyName, out bool done)
+        {
+            done = true;
             if (propertyName is not null)
             {
                 if (canBeNull && value is null)
@@ -729,60 +795,13 @@ namespace Zerra.Serialization.Json.Converters
                 return true;
             }
 
-            if (StackRequired)
-            {
-                if (state.StackSize >= state.MaxDepth)
-                    throw new StackOverflowException($"{nameof(JsonConverter)} has reached the max depth of {state.MaxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
-                if (propertyName is not null)
-                {
-                    var childGraph = value is null ? state.Current.Graph?.GetChildGraph(propertyName) : state.Current.Graph?.GetChildInstanceGraph(propertyName, value);
-                    state.PushFrame(childGraph);
-                }
-                else
-                {
-                    state.PushFrame(null);
-                }
-            }
-
-            if (isInterfacedObject || isObject)
-            {
-                var typeFromValue = value is null ? TypeDetail : value.GetType().GetTypeDetail();
-
-                if (typeFromValue.Type != TypeDetail.Type)
-                {
-                    var newConverter = JsonConverterFactory.Get(typeFromValue, memberKey, getter, setter);
-                    if (!newConverter.TryWriteValueBoxed(ref writer, ref state, value!))
-                    {
-                        if (StackRequired)
-                            state.StashFrame();
-                        if (propertyName is not null)
-                            state.Current.HasWrittenPropertyName = true;
-                        return false;
-                    }
-
-                    if (StackRequired)
-                        state.EndFrame();
-                    if (hasWrittenPropertyName)
-                        state.Current.HasWrittenPropertyName = false;
-                    return true;
-                }
-            }
-
-            if (!TryWriteValue(ref writer, ref state, value!))
-            {
-                if (StackRequired)
-                    state.StashFrame();
-                if (propertyName is not null)
-                    state.Current.HasWrittenPropertyName = true;
-                return false;
-            }
-
-            if (StackRequired)
-                state.EndFrame();
-            if (hasWrittenPropertyName)
-                state.Current.HasWrittenPropertyName = false;
+            done = false;
             return true;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Graph? GetChildGraph(ref WriteState state, string propertyName, TValue? value)
+            => value is null ? state.Current.Graph?.GetChildGraph(propertyName) : state.Current.Graph?.GetChildInstanceGraph(propertyName, value);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

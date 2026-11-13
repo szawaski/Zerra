@@ -143,7 +143,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
         protected override sealed bool TryReadValue(ref ByteReader reader, ref ReadState state, out TValue? value)
         {
             if (indexSizeUInt16Only && !state.UseIndexSizeUInt16 && !state.UseMemberNames)
-                throw new NotSupportedException($"{TypeDetail.Type.Name} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
+                throw CreateIndexSizeException();
 
             Dictionary<string, object?>? collectedValues;
 
@@ -212,55 +212,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             break;
                         }
 
-                        MemberKey memberKey;
-                        var memberLength = selectedMembers.Length;
-                        var nextIndex = state.Current.EnumeratorIndex;
-                        var prevIndex = state.Current.EnumeratorIndex - 1;
-
-                        for (; ; )
-                        {
-                            if (nextIndex < memberLength)
-                            {
-                                memberKey = members[nextIndex];
-                                if (MemberKey.IsEqual(memberKey, name))
-                                {
-                                    member = memberKey.Member;
-                                    state.Current.EnumeratorIndex = nextIndex + 1;
-                                    break;
-                                }
-
-                                if (prevIndex >= 0)
-                                {
-                                    memberKey = members[prevIndex];
-                                    if (MemberKey.IsEqual(memberKey, name))
-                                    {
-                                        member = memberKey.Member;
-                                        state.Current.EnumeratorIndex = prevIndex + 1;
-                                        break;
-                                    }
-                                }
-
-                                prevIndex--;
-                                nextIndex++;
-                            }
-                            else if (prevIndex >= 0)
-                            {
-                                memberKey = members[prevIndex];
-                                if (MemberKey.IsEqual(memberKey, name))
-                                {
-                                    member = memberKey.Member;
-                                    state.Current.EnumeratorIndex = prevIndex + 1;
-                                    break;
-                                }
-
-                                prevIndex--;
-                            }
-                            else
-                            {
-                                member = null;
-                                break;
-                            }
-                        }
+                        member = FindMemberByName(name, selectedMembers, ref state);
                     }
                     else
                     {
@@ -294,55 +246,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                             break;
                         }
 
-                        MemberKey memberKey;
-                        var memberLength = selectedMembers.Length;
-                        var nextIndex = state.Current.EnumeratorIndex;
-                        var prevIndex = state.Current.EnumeratorIndex - 1;
-
-                        for (; ; )
-                        {
-                            if (nextIndex < memberLength)
-                            {
-                                memberKey = selectedMembers[nextIndex];
-                                if (memberKey.Index == propertyIndex)
-                                {
-                                    member = memberKey.Member;
-                                    state.Current.EnumeratorIndex = nextIndex + 1;
-                                    break;
-                                }
-
-                                if (prevIndex >= 0)
-                                {
-                                    memberKey = selectedMembers[prevIndex];
-                                    if (memberKey.Index == propertyIndex)
-                                    {
-                                        member = memberKey.Member;
-                                        state.Current.EnumeratorIndex = prevIndex + 1;
-                                        break;
-                                    }
-                                }
-
-                                prevIndex--;
-                                nextIndex++;
-                            }
-                            else if (prevIndex >= 0)
-                            {
-                                memberKey = selectedMembers[prevIndex];
-                                if (memberKey.Index == propertyIndex)
-                                {
-                                    member = memberKey.Member;
-                                    state.Current.EnumeratorIndex = prevIndex + 1;
-                                    break;
-                                }
-
-                                prevIndex--;
-                            }
-                            else
-                            {
-                                member = null;
-                                break;
-                            }
-                        }
+                        member = FindMemberByIndex(propertyIndex, selectedMembers, ref state);
                     }
                 }
                 else
@@ -353,7 +257,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 if (member is null)
                 {
                     if (!state.UseTypes)
-                        throw new NotSupportedException($"Cannot skip a member missing from {TypeDetail.Type.Name} without {nameof(ByteSerializerOptions.UseTypes)}");
+                        throw CreateCannotSkipMemberException();
 
                     //consume bytes but object does not have property
                     var converter = ByteConverterFactory.GetDrainBytes();
@@ -402,48 +306,175 @@ namespace Zerra.Serialization.Bytes.Converters.General
             }
 
             if (collectedValues is not null)
-            {
-                var args = (object?[])parameterDefaults.Clone();
-                for (var i = 0; i < args.Length; i++)
-                {
-#if NETSTANDARD2_0
-                    if (collectedValues!.TryGetValue(parameterConstructor!.Parameters[i].Name!, out var parameter))
-                    {
-                        collectedValues.Remove(parameterConstructor!.Parameters[i].Name!);
-                        args[i] = parameter;
-                    }
-#else
-                    if (collectedValues!.Remove(parameterConstructor!.Parameters[i].Name!, out var parameter))
-                        args[i] = parameter;
-#endif
-                }
-
-                if (TypeDetail.Type.IsValueType)
-                    value = (TValue?)parameterConstructor!.CreatorBoxed(args);
-                else
-                    value = parameterConstructor!.Creator(args);
-
-                foreach (var remaining in collectedValues!)
-                {
-                    if (membersByName!.TryGetValue(remaining.Key, out var member))
-                    {
-                        member.Converter.CollectedValuesSetter(value!, remaining.Value);
-                    }
-                }
-
-                ReturnCollectedValues(collectedValues!);
-            }
+                value = CreateFromCollectedValues(collectedValues);
 
             return true;
         }
 
+        //the parts below are kept out of TryReadValue so unoptimized code doesn't hold their locals on the stack for every nested level,
+        //optimized code inlines them back
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private ByteConverterObjectMember? FindMemberByName(ReadOnlySpan<byte> name, MemberKey[] selectedMembers, ref ReadState state)
+        {
+            ByteConverterObjectMember? member;
+            MemberKey memberKey;
+            var memberLength = selectedMembers.Length;
+            var nextIndex = state.Current.EnumeratorIndex;
+            var prevIndex = state.Current.EnumeratorIndex - 1;
+
+            for (; ; )
+            {
+                if (nextIndex < memberLength)
+                {
+                    memberKey = members[nextIndex];
+                    if (MemberKey.IsEqual(memberKey, name))
+                    {
+                        member = memberKey.Member;
+                        state.Current.EnumeratorIndex = nextIndex + 1;
+                        break;
+                    }
+
+                    if (prevIndex >= 0)
+                    {
+                        memberKey = members[prevIndex];
+                        if (MemberKey.IsEqual(memberKey, name))
+                        {
+                            member = memberKey.Member;
+                            state.Current.EnumeratorIndex = prevIndex + 1;
+                            break;
+                        }
+                    }
+
+                    prevIndex--;
+                    nextIndex++;
+                }
+                else if (prevIndex >= 0)
+                {
+                    memberKey = members[prevIndex];
+                    if (MemberKey.IsEqual(memberKey, name))
+                    {
+                        member = memberKey.Member;
+                        state.Current.EnumeratorIndex = prevIndex + 1;
+                        break;
+                    }
+
+                    prevIndex--;
+                }
+                else
+                {
+                    member = null;
+                    break;
+                }
+            }
+            return member;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static ByteConverterObjectMember? FindMemberByIndex(ushort propertyIndex, MemberKey[] selectedMembers, ref ReadState state)
+        {
+            ByteConverterObjectMember? member;
+            MemberKey memberKey;
+            var memberLength = selectedMembers.Length;
+            var nextIndex = state.Current.EnumeratorIndex;
+            var prevIndex = state.Current.EnumeratorIndex - 1;
+
+            for (; ; )
+            {
+                if (nextIndex < memberLength)
+                {
+                    memberKey = selectedMembers[nextIndex];
+                    if (memberKey.Index == propertyIndex)
+                    {
+                        member = memberKey.Member;
+                        state.Current.EnumeratorIndex = nextIndex + 1;
+                        break;
+                    }
+
+                    if (prevIndex >= 0)
+                    {
+                        memberKey = selectedMembers[prevIndex];
+                        if (memberKey.Index == propertyIndex)
+                        {
+                            member = memberKey.Member;
+                            state.Current.EnumeratorIndex = prevIndex + 1;
+                            break;
+                        }
+                    }
+
+                    prevIndex--;
+                    nextIndex++;
+                }
+                else if (prevIndex >= 0)
+                {
+                    memberKey = selectedMembers[prevIndex];
+                    if (memberKey.Index == propertyIndex)
+                    {
+                        member = memberKey.Member;
+                        state.Current.EnumeratorIndex = prevIndex + 1;
+                        break;
+                    }
+
+                    prevIndex--;
+                }
+                else
+                {
+                    member = null;
+                    break;
+                }
+            }
+            return member;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private TValue? CreateFromCollectedValues(Dictionary<string, object?> collectedValues)
+        {
+            var args = (object?[])parameterDefaults.Clone();
+            for (var i = 0; i < args.Length; i++)
+            {
+#if NETSTANDARD2_0
+                if (collectedValues!.TryGetValue(parameterConstructor!.Parameters[i].Name!, out var parameter))
+                {
+                    collectedValues.Remove(parameterConstructor!.Parameters[i].Name!);
+                    args[i] = parameter;
+                }
+#else
+                if (collectedValues!.Remove(parameterConstructor!.Parameters[i].Name!, out var parameter))
+                    args[i] = parameter;
+#endif
+            }
+
+            TValue? value;
+            if (TypeDetail.Type.IsValueType)
+                value = (TValue?)parameterConstructor!.CreatorBoxed(args);
+            else
+                value = parameterConstructor!.Creator(args);
+
+            foreach (var remaining in collectedValues!)
+            {
+                if (membersByName!.TryGetValue(remaining.Key, out var member))
+                {
+                    member.Converter.CollectedValuesSetter(value!, remaining.Value);
+                }
+            }
+
+            ReturnCollectedValues(collectedValues!);
+            return value;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private NotSupportedException CreateIndexSizeException() => new($"{TypeDetail.Type.Name} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private NotSupportedException CreateCannotSkipMemberException() => new($"Cannot skip a member missing from {TypeDetail.Type.Name} without {nameof(ByteSerializerOptions.UseTypes)}");
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static NotSupportedException CreateObjectWithoutTypesException(object value) => new($"{nameof(ByteSerializer)} cannot write a {value.GetType().Name} declared as object without {nameof(ByteSerializerOptions.UseTypes)}");
+
         protected override sealed bool TryWriteValue(ref ByteWriter writer, ref WriteState state, in TValue value)
         {
             if (isObjectType && !state.UseTypes)
-                throw new NotSupportedException($"{nameof(ByteSerializer)} cannot write a {value!.GetType().Name} declared as object without {nameof(ByteSerializerOptions.UseTypes)}");
+                throw CreateObjectWithoutTypesException(value!);
 
             if (indexSizeUInt16Only && !state.UseIndexSizeUInt16 && !state.UseMemberNames)
-                throw new NotSupportedException($"{TypeDetail.Type.Name} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
+                throw CreateIndexSizeException();
 
             var enumerator = state.IgnoreIndexAttribute ? membersIngoreAttributes : members;
 
@@ -453,7 +484,14 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 var current = enumerator[enumeratorIndex].Member;
                 //Base will write the property name or index if the value is not null.
                 //Done this way so we don't have to extract the value twice due to null checking.
-                if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, current.Index, state.UseMemberNames ? current.NameAsBytes : null))
+                //the name is picked before the call, a conditional among the arguments makes unoptimized code copy them all to new stack slots
+                byte[]? nameAsBytes;
+                if (state.UseMemberNames)
+                    nameAsBytes = current.NameAsBytes;
+                else
+                    nameAsBytes = null;
+
+                if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, current.Index, nameAsBytes))
                 {
                     state.Current.EnumeratorIndex = enumeratorIndex;
                     return false;

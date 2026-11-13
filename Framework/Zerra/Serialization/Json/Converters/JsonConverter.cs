@@ -19,6 +19,10 @@ namespace Zerra.Serialization.Json.Converters
     /// </remarks>
     public abstract partial class JsonConverter
     {
+        //exceptions are built outside the converters so unoptimized code doesn't reserve stack for the message in every nested level
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private protected static StackOverflowException CreateMaxDepthException(int maxDepth) => new($"{nameof(JsonConverter)} has reached the max depth of {maxDepth}, set by {nameof(JsonSerializerOptions)}.{nameof(JsonSerializerOptions.MaxDepth)}");
+
         /// <summary>
         /// Initializes the converter with member-specific information.
         /// </summary>

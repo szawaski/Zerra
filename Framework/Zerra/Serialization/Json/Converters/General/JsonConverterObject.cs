@@ -118,92 +118,82 @@ namespace Zerra.Serialization.Json.Converters.General
 
         protected override sealed bool TryReadValue(ref JsonReader reader, ref ReadState state, JsonToken token, out TValue? value)
         {
+            if (state.Nameless)
+                return TryReadValueNameless(ref reader, ref state, token, out value);
+
             Dictionary<string, object?>? collectedValues;
 
-            if (state.Nameless)
+            if (token != JsonToken.ObjectStart)
             {
-                if (token != JsonToken.ArrayStart)
-                {
-                    if (state.ErrorOnReadMismatchedData)
-                        ThrowCannotConvert(ref reader);
+                if (state.ErrorOnReadMismatchedData)
+                    ThrowCannotConvert(ref reader);
 
+                value = default;
+                return Drain(ref reader, ref state, token);
+            }
+
+            if (!state.Current.HasCreated)
+            {
+                if (!reader.TryReadToken(out state.SizeNeeded))
+                {
                     value = default;
-                    return Drain(ref reader, ref state, token);
+                    return false;
                 }
+                state.Current.HasReadFirstToken = true;
 
-                if (!state.Current.HasCreated)
+                if (collectValues)
                 {
-                    if (!reader.TryReadToken(out state.SizeNeeded))
-                    {
-                        value = default;
-                        return false;
-                    }
-                    state.Current.HasReadFirstToken = true;
-
-                    if (collectValues)
-                    {
-                        value = default;
-                        collectedValues = RentCollectedValues();
-                    }
-                    else if (TypeDetail.HasCreator)
-                    {
-                        value = TypeDetail.Creator!();
-                        collectedValues = null;
-                    }
-                    else
-                    {
-                        value = default;
-                        collectedValues = null;
-                    }
-
-                    if (reader.Token == JsonToken.ArrayEnd)
-                    {
-                        //an empty array still creates the object, every constructor argument gets its default
-                        if (collectValues)
-                        {
-                            ReturnCollectedValues(collectedValues!);
-                            var emptyArgs = (object?[])parameterDefaults.Clone();
-                            if (TypeDetail.Type.IsValueType)
-                                value = (TValue?)parameterConstructor!.CreatorBoxed(emptyArgs);
-                            else
-                                value = parameterConstructor!.Creator(emptyArgs);
-                        }
-                        return true;
-                    }
-
-                    state.Current.HasCreated = true;
+                    value = default;
+                    collectedValues = RentCollectedValues();
+                }
+                else if (TypeDetail.HasCreator)
+                {
+                    value = TypeDetail.Creator!();
+                    collectedValues = null;
                 }
                 else
                 {
-                    if (collectValues)
-                    {
-                        value = default;
-                        collectedValues = (Dictionary<string, object?>)state.Current.Object!;
-                    }
-                    else
-                    {
-                        value = (TValue?)state.Current.Object;
-                        collectedValues = null;
-                    }
+                    value = default;
+                    collectedValues = null;
                 }
 
-                for (; ; )
+                if (reader.Token == JsonToken.ObjectEnd)
                 {
-                    if (state.Current.EnumeratorIndex >= members.Count)
+                    //an empty object still creates the object, every constructor argument gets its default
+                    if (collectValues)
                     {
-                        if (state.ErrorOnReadMismatchedData)
-                            throw reader.CreateException("Unexpected value");
-
-                        if (!state.Current.HasReadValue && !(state.Current.HasReadFirstToken ? DrainFromParent(ref reader, ref state) : DrainFromParentMember(ref reader, ref state)))
-                        {
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
-                            return false;
-                        }
+                        ReturnCollectedValues(collectedValues!);
+                        value = CreateFromParameterDefaults();
                     }
-                    else if (!state.Current.HasReadFirstToken)
+                    return true;
+                }
+
+                state.Current.HasCreated = true;
+
+                if (state.IncludeReturnGraph)
+                    state.Current.ReturnGraph = new Graph();
+            }
+            else
+            {
+                if (collectValues)
+                {
+                    value = default;
+                    collectedValues = (Dictionary<string, object?>)state.Current.Object!;
+                }
+                else
+                {
+                    value = (TValue?)state.Current.Object;
+                    collectedValues = null;
+                }
+            }
+
+            for (; ; )
+            {
+                JsonConverterObjectMember? member;
+
+                if (!state.Current.HasReadProperty)
+                {
+                    if (!state.Current.HasReadFirstToken)
                     {
                         if (!reader.TryReadToken(out state.SizeNeeded))
                         {
@@ -215,348 +205,63 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                     }
 
-                    var current = state.Current.EnumeratorIndex < members.Count ? members[state.Current.EnumeratorIndex] : null;
+                    if (reader.Token != JsonToken.String)
+                        throw reader.CreateException();
 
-                    if (current is not null && !state.Current.HasReadValue)
-                    {
-                        if (collectValues)
-                        {
-                            if (!current.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, collectedValues, current.Member.Name, false))
-                            {
-                                state.Current.HasReadFirstToken = true;
-                                state.Current.HasReadProperty = true;
-                                state.Current.HasReadSeperator = true;
-                                if (collectValues)
-                                    state.Current.Object = collectedValues;
-                                else
-                                    state.Current.Object = value;
-                                return false;
-                            }
-                        }
-                        else
-                        {
-                            if (!current.Converter.TryReadFromParentMember(ref reader, ref state, value, current.Member.Name, false))
-                            {
-                                state.Current.HasReadFirstToken = true;
-                                state.Current.HasReadProperty = true;
-                                state.Current.HasReadSeperator = true;
-                                if (collectValues)
-                                    state.Current.Object = collectedValues;
-                                else
-                                    state.Current.Object = value;
-                                return false;
-                            }
-                        }
-                    }
+                    if (reader.UseBytes)
+                        member = FindMemberBytes(ref reader, ref state);
+                    else
+                        member = FindMemberChars(ref reader, ref state);
+                }
+                else
+                {
+                    member = (JsonConverterObjectMember?)state.Current.Property;
+                }
 
+                if (!state.Current.HasReadSeperator)
+                {
                     if (!reader.TryReadToken(out state.SizeNeeded))
                     {
                         state.Current.HasReadFirstToken = true;
                         state.Current.HasReadProperty = true;
-                        state.Current.HasReadSeperator = true;
-                        state.Current.HasReadValue = true;
+                        state.Current.Property = member;
                         if (collectValues)
                             state.Current.Object = collectedValues;
                         else
                             state.Current.Object = value;
                         return false;
                     }
-
-                    if (reader.Token == JsonToken.ArrayEnd)
-                        break;
-
-                    if (reader.Token != JsonToken.NextItem)
+                    if (reader.Token != JsonToken.PropertySeperator)
                         throw reader.CreateException();
-
-                    state.Current.HasReadFirstToken = false;
-                    state.Current.HasReadProperty = false;
-                    state.Current.HasReadSeperator = false;
-                    state.Current.HasReadValue = false;
-                    state.Current.EnumeratorIndex++;
-                }
-            }
-            else
-            {
-                if (token != JsonToken.ObjectStart)
-                {
-                    if (state.ErrorOnReadMismatchedData)
-                        ThrowCannotConvert(ref reader);
-
-                    value = default;
-                    return Drain(ref reader, ref state, token);
                 }
 
-                if (!state.Current.HasCreated)
+                if (!state.Current.HasReadValue)
                 {
-                    if (!reader.TryReadToken(out state.SizeNeeded))
+                    if (member is null)
                     {
-                        value = default;
-                        return false;
-                    }
-                    state.Current.HasReadFirstToken = true;
-
-                    if (collectValues)
-                    {
-                        value = default;
-                        collectedValues = RentCollectedValues();
-                    }
-                    else if (TypeDetail.HasCreator)
-                    {
-                        value = TypeDetail.Creator!();
-                        collectedValues = null;
-                    }
-                    else
-                    {
-                        value = default;
-                        collectedValues = null;
-                    }
-
-                    if (reader.Token == JsonToken.ObjectEnd)
-                    {
-                        //an empty object still creates the object, every constructor argument gets its default
-                        if (collectValues)
-                        {
-                            ReturnCollectedValues(collectedValues!);
-                            var emptyArgs = (object?[])parameterDefaults.Clone();
-                            if (TypeDetail.Type.IsValueType)
-                                value = (TValue?)parameterConstructor!.CreatorBoxed(emptyArgs);
-                            else
-                                value = parameterConstructor!.Creator(emptyArgs);
-                        }
-                        return true;
-                    }
-
-                    state.Current.HasCreated = true;
-
-                    if (state.IncludeReturnGraph)
-                        state.Current.ReturnGraph = new Graph();
-                }
-                else
-                {
-                    if (collectValues)
-                    {
-                        value = default;
-                        collectedValues = (Dictionary<string, object?>)state.Current.Object!;
-                    }
-                    else
-                    {
-                        value = (TValue?)state.Current.Object;
-                        collectedValues = null;
-                    }
-                }
-
-                for (; ; )
-                {
-                    JsonConverterObjectMember? member;
-                    MemberKey memberKey;
-                    var memberLength = members.Count;
-                    int nextIndex = state.Current.EnumeratorIndex;
-                    int prevIndex = state.Current.EnumeratorIndex - 1;
-
-                    if (!state.Current.HasReadProperty)
-                    {
-                        if (!state.Current.HasReadFirstToken)
-                        {
-                            if (!reader.TryReadToken(out state.SizeNeeded))
-                            {
-                                if (collectValues)
-                                    state.Current.Object = collectedValues;
-                                else
-                                    state.Current.Object = value;
-                                return false;
-                            }
-                        }
-
-                        if (reader.Token != JsonToken.String)
-                            throw reader.CreateException();
-
-                        if (reader.UseBytes)
-                        {
-                            if (state.IgnoreCase || collectValues)
-                            {
-                                //slow path
-#if NETSTANDARD2_0
-                                var name = System.Text.Encoding.UTF8.GetString(reader.ValueBytes.ToArray());
-#else
-                                var name = System.Text.Encoding.UTF8.GetString(reader.ValueBytes);
-#endif
-
-                                if (!membersByName.TryGetValue(name, out member))
-                                    member = null;
-                            }
-                            else
-                            {
-                                var nameKey = MemberKey.GetHashCode(reader.ValueBytes);
-
-                                for (; ; )
-                                {
-                                    if (nextIndex < memberLength)
-                                    {
-                                        memberKey = membersKeyed[nextIndex];
-                                        if (MemberKey.IsEqual(memberKey, reader.ValueBytes, nameKey))
-                                        {
-                                            member = memberKey.Member;
-                                            if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
-                                            {
-                                                nextIndex++;
-                                                continue;
-                                            }
-                                            state.Current.EnumeratorIndex = nextIndex + 1;
-                                            break;
-                                        }
-
-                                        if (prevIndex >= 0)
-                                        {
-                                            memberKey = membersKeyed[prevIndex];
-                                            if (MemberKey.IsEqual(memberKey, reader.ValueBytes, nameKey))
-                                            {
-                                                member = memberKey.Member;
-                                                if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
-                                                {
-                                                    prevIndex--;
-                                                    nextIndex++;
-                                                    continue;
-                                                }
-                                                state.Current.EnumeratorIndex = prevIndex + 1;
-                                                break;
-                                            }
-                                        }
-
-                                        prevIndex--;
-                                        nextIndex++;
-                                    }
-                                    else if (prevIndex >= 0)
-                                    {
-                                        memberKey = membersKeyed[prevIndex];
-                                        if (MemberKey.IsEqual(memberKey, reader.ValueBytes, nameKey))
-                                        {
-                                            member = memberKey.Member;
-                                            if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
-                                            {
-                                                prevIndex--;
-                                                continue;
-                                            }
-                                            state.Current.EnumeratorIndex = prevIndex + 1;
-                                            break;
-                                        }
-
-                                        prevIndex--;
-                                    }
-                                    else
-                                    {
-                                        member = null;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (state.IgnoreCase || collectValues)
-                            {
-                                //slow path
-                                if (!membersByName.TryGetValue(reader.ValueChars.ToString(), out member))
-                                    member = null;
-                            }
-                            else
-                            {
-                                var nameKey = MemberKey.GetHashCode(reader.ValueChars);
-
-                                for (; ; )
-                                {
-                                    if (nextIndex < memberLength)
-                                    {
-                                        memberKey = membersKeyed[nextIndex];
-                                        if (MemberKey.IsEqual(memberKey, reader.ValueChars, nameKey))
-                                        {
-                                            member = memberKey.Member;
-                                            if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
-                                            {
-                                                nextIndex++;
-                                                continue;
-                                            }
-                                            state.Current.EnumeratorIndex = nextIndex + 1;
-                                            break;
-                                        }
-
-                                        if (prevIndex >= 0)
-                                        {
-                                            memberKey = membersKeyed[prevIndex];
-                                            if (MemberKey.IsEqual(memberKey, reader.ValueChars, nameKey))
-                                            {
-                                                member = memberKey.Member;
-                                                if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
-                                                {
-                                                    prevIndex--;
-                                                    nextIndex++;
-                                                    continue;
-                                                }
-                                                state.Current.EnumeratorIndex = prevIndex + 1;
-                                                break;
-                                            }
-                                        }
-
-                                        prevIndex--;
-                                        nextIndex++;
-                                    }
-                                    else if (prevIndex >= 0)
-                                    {
-                                        memberKey = membersKeyed[prevIndex];
-                                        if (MemberKey.IsEqual(memberKey, reader.ValueChars, nameKey))
-                                        {
-                                            member = memberKey.Member;
-                                            if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
-                                            {
-                                                prevIndex--;
-                                                continue;
-                                            }
-                                            state.Current.EnumeratorIndex = prevIndex + 1;
-                                            break;
-                                        }
-
-                                        prevIndex--;
-                                    }
-                                    else
-                                    {
-                                        member = null;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        member = (JsonConverterObjectMember?)state.Current.Property;
-                    }
-
-                    if (!state.Current.HasReadSeperator)
-                    {
-                        if (!reader.TryReadToken(out state.SizeNeeded))
+                        if (!DrainFromParentMember(ref reader, ref state))
                         {
                             state.Current.HasReadFirstToken = true;
                             state.Current.HasReadProperty = true;
                             state.Current.Property = member;
+                            state.Current.HasReadSeperator = true;
                             if (collectValues)
                                 state.Current.Object = collectedValues;
                             else
                                 state.Current.Object = value;
                             return false;
                         }
-                        if (reader.Token != JsonToken.PropertySeperator)
-                            throw reader.CreateException();
                     }
-
-                    if (!state.Current.HasReadValue)
+                    else
                     {
-                        if (member is null)
+                        if (collectValues)
                         {
-                            if (!DrainFromParentMember(ref reader, ref state))
+                            if (!member.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, collectedValues, member.Member.Name, true))
                             {
                                 state.Current.HasReadFirstToken = true;
                                 state.Current.HasReadProperty = true;
-                                state.Current.Property = member;
                                 state.Current.HasReadSeperator = true;
+                                state.Current.Property = member;
                                 if (collectValues)
                                     state.Current.Object = collectedValues;
                                 else
@@ -566,215 +271,566 @@ namespace Zerra.Serialization.Json.Converters.General
                         }
                         else
                         {
-                            if (collectValues)
+                            if (!member.Converter.TryReadFromParentMember(ref reader, ref state, value, member.Member.Name, true))
                             {
-                                if (!member.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, collectedValues, member.Member.Name, true))
-                                {
-                                    state.Current.HasReadFirstToken = true;
-                                    state.Current.HasReadProperty = true;
-                                    state.Current.HasReadSeperator = true;
-                                    state.Current.Property = member;
-                                    if (collectValues)
-                                        state.Current.Object = collectedValues;
-                                    else
-                                        state.Current.Object = value;
-                                    return false;
-                                }
-                            }
-                            else
-                            {
-                                if (!member.Converter.TryReadFromParentMember(ref reader, ref state, value, member.Member.Name, true))
-                                {
-                                    state.Current.HasReadFirstToken = true;
-                                    state.Current.HasReadProperty = true;
-                                    state.Current.HasReadSeperator = true;
-                                    state.Current.Property = member;
-                                    state.Current.Object = value;
-                                    return false;
-                                }
+                                state.Current.HasReadFirstToken = true;
+                                state.Current.HasReadProperty = true;
+                                state.Current.HasReadSeperator = true;
+                                state.Current.Property = member;
+                                state.Current.Object = value;
+                                return false;
                             }
                         }
                     }
+                }
 
-                    if (!reader.TryReadToken(out state.SizeNeeded))
+                if (!reader.TryReadToken(out state.SizeNeeded))
+                {
+                    state.Current.HasReadFirstToken = true;
+                    state.Current.HasReadProperty = true;
+                    state.Current.HasReadSeperator = true;
+                    state.Current.HasReadValue = true;
+                    if (collectValues)
+                        state.Current.Object = collectedValues;
+                    else
+                        state.Current.Object = value;
+                    return false;
+                }
+
+                if (reader.Token == JsonToken.ObjectEnd)
+                    break;
+                if (reader.Token != JsonToken.NextItem)
+                    throw reader.CreateException();
+
+                state.Current.HasReadFirstToken = false;
+                state.Current.HasReadProperty = false;
+                state.Current.HasReadSeperator = false;
+                state.Current.HasReadValue = false;
+            }
+
+            if (collectValues)
+                value = CreateFromCollectedValues(collectedValues!);
+
+            return true;
+        }
+
+        //the parts below are kept out of TryReadValue so unoptimized code doesn't hold their locals on the stack for every nested level,
+        //optimized code inlines them back except the nameless mode, which measured faster as its own method because TryReadValue stays small
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private bool TryReadValueNameless(ref JsonReader reader, ref ReadState state, JsonToken token, out TValue? value)
+        {
+            Dictionary<string, object?>? collectedValues;
+
+            if (token != JsonToken.ArrayStart)
+            {
+                if (state.ErrorOnReadMismatchedData)
+                    ThrowCannotConvert(ref reader);
+
+                value = default;
+                return Drain(ref reader, ref state, token);
+            }
+
+            if (!state.Current.HasCreated)
+            {
+                if (!reader.TryReadToken(out state.SizeNeeded))
+                {
+                    value = default;
+                    return false;
+                }
+                state.Current.HasReadFirstToken = true;
+
+                if (collectValues)
+                {
+                    value = default;
+                    collectedValues = RentCollectedValues();
+                }
+                else if (TypeDetail.HasCreator)
+                {
+                    value = TypeDetail.Creator!();
+                    collectedValues = null;
+                }
+                else
+                {
+                    value = default;
+                    collectedValues = null;
+                }
+
+                if (reader.Token == JsonToken.ArrayEnd)
+                {
+                    //an empty array still creates the object, every constructor argument gets its default
+                    if (collectValues)
                     {
-                        state.Current.HasReadFirstToken = true;
-                        state.Current.HasReadProperty = true;
-                        state.Current.HasReadSeperator = true;
-                        state.Current.HasReadValue = true;
+                        ReturnCollectedValues(collectedValues!);
+                        value = CreateFromParameterDefaults();
+                    }
+                    return true;
+                }
+
+                state.Current.HasCreated = true;
+            }
+            else
+            {
+                if (collectValues)
+                {
+                    value = default;
+                    collectedValues = (Dictionary<string, object?>)state.Current.Object!;
+                }
+                else
+                {
+                    value = (TValue?)state.Current.Object;
+                    collectedValues = null;
+                }
+            }
+
+            for (; ; )
+            {
+                if (state.Current.EnumeratorIndex >= members.Count)
+                {
+                    if (state.ErrorOnReadMismatchedData)
+                        throw reader.CreateException("Unexpected value");
+
+                    if (!state.Current.HasReadValue && !(state.Current.HasReadFirstToken ? DrainFromParent(ref reader, ref state) : DrainFromParentMember(ref reader, ref state)))
+                    {
                         if (collectValues)
                             state.Current.Object = collectedValues;
                         else
                             state.Current.Object = value;
                         return false;
                     }
-
-                    if (reader.Token == JsonToken.ObjectEnd)
-                        break;
-                    if (reader.Token != JsonToken.NextItem)
-                        throw reader.CreateException();
-
-                    state.Current.HasReadFirstToken = false;
-                    state.Current.HasReadProperty = false;
-                    state.Current.HasReadSeperator = false;
-                    state.Current.HasReadValue = false;
                 }
+                else if (!state.Current.HasReadFirstToken)
+                {
+                    if (!reader.TryReadToken(out state.SizeNeeded))
+                    {
+                        if (collectValues)
+                            state.Current.Object = collectedValues;
+                        else
+                            state.Current.Object = value;
+                        return false;
+                    }
+                }
+
+                var current = state.Current.EnumeratorIndex < members.Count ? members[state.Current.EnumeratorIndex] : null;
+
+                if (current is not null && !state.Current.HasReadValue)
+                {
+                    if (collectValues)
+                    {
+                        if (!current.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, collectedValues, current.Member.Name, false))
+                        {
+                            state.Current.HasReadFirstToken = true;
+                            state.Current.HasReadProperty = true;
+                            state.Current.HasReadSeperator = true;
+                            if (collectValues)
+                                state.Current.Object = collectedValues;
+                            else
+                                state.Current.Object = value;
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        if (!current.Converter.TryReadFromParentMember(ref reader, ref state, value, current.Member.Name, false))
+                        {
+                            state.Current.HasReadFirstToken = true;
+                            state.Current.HasReadProperty = true;
+                            state.Current.HasReadSeperator = true;
+                            if (collectValues)
+                                state.Current.Object = collectedValues;
+                            else
+                                state.Current.Object = value;
+                            return false;
+                        }
+                    }
+                }
+
+                if (!reader.TryReadToken(out state.SizeNeeded))
+                {
+                    state.Current.HasReadFirstToken = true;
+                    state.Current.HasReadProperty = true;
+                    state.Current.HasReadSeperator = true;
+                    state.Current.HasReadValue = true;
+                    if (collectValues)
+                        state.Current.Object = collectedValues;
+                    else
+                        state.Current.Object = value;
+                    return false;
+                }
+
+                if (reader.Token == JsonToken.ArrayEnd)
+                    break;
+
+                if (reader.Token != JsonToken.NextItem)
+                    throw reader.CreateException();
+
+                state.Current.HasReadFirstToken = false;
+                state.Current.HasReadProperty = false;
+                state.Current.HasReadSeperator = false;
+                state.Current.HasReadValue = false;
+                state.Current.EnumeratorIndex++;
             }
 
             if (collectValues)
-            {
-                var args = (object?[])parameterDefaults.Clone();
-                for (var i = 0; i < args.Length; i++)
-                {
-#if NETSTANDARD2_0
-                    if (collectedValues!.TryGetValue(parameterConstructor!.Parameters[i].Name!, out var parameter))
-                    {
-                        collectedValues.Remove(parameterConstructor!.Parameters[i].Name!);
-                        args[i] = parameter;
-                    }
-#else
-                    if (collectedValues!.Remove(parameterConstructor!.Parameters[i].Name!, out var parameter))
-                        args[i] = parameter;
-#endif
-                }
-
-                if (TypeDetail.Type.IsValueType)
-                    value = (TValue?)parameterConstructor!.CreatorBoxed(args);
-                else
-                    value = parameterConstructor!.Creator(args);
-
-                foreach (var remaining in collectedValues!)
-                {
-                    if (membersByName!.TryGetValue(remaining.Key, out var member))
-                    {
-                        member.Converter.CollectedValuesSetter(value!, remaining.Value);
-                    }
-                }
-
-                ReturnCollectedValues(collectedValues!);
-            }
+                value = CreateFromCollectedValues(collectedValues!);
 
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private JsonConverterObjectMember? FindMemberBytes(ref JsonReader reader, ref ReadState state)
+        {
+            JsonConverterObjectMember? member;
+            MemberKey memberKey;
+            var memberLength = members.Count;
+            int nextIndex = state.Current.EnumeratorIndex;
+            int prevIndex = state.Current.EnumeratorIndex - 1;
+
+            if (state.IgnoreCase || collectValues)
+            {
+                //slow path
+#if NETSTANDARD2_0
+                var name = System.Text.Encoding.UTF8.GetString(reader.ValueBytes.ToArray());
+#else
+                var name = System.Text.Encoding.UTF8.GetString(reader.ValueBytes);
+#endif
+
+                if (!membersByName.TryGetValue(name, out member))
+                    member = null;
+            }
+            else
+            {
+                var nameKey = MemberKey.GetHashCode(reader.ValueBytes);
+
+                for (; ; )
+                {
+                    if (nextIndex < memberLength)
+                    {
+                        memberKey = membersKeyed[nextIndex];
+                        if (MemberKey.IsEqual(memberKey, reader.ValueBytes, nameKey))
+                        {
+                            member = memberKey.Member;
+                            if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
+                            {
+                                nextIndex++;
+                                continue;
+                            }
+                            state.Current.EnumeratorIndex = nextIndex + 1;
+                            break;
+                        }
+
+                        if (prevIndex >= 0)
+                        {
+                            memberKey = membersKeyed[prevIndex];
+                            if (MemberKey.IsEqual(memberKey, reader.ValueBytes, nameKey))
+                            {
+                                member = memberKey.Member;
+                                if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
+                                {
+                                    prevIndex--;
+                                    nextIndex++;
+                                    continue;
+                                }
+                                state.Current.EnumeratorIndex = prevIndex + 1;
+                                break;
+                            }
+                        }
+
+                        prevIndex--;
+                        nextIndex++;
+                    }
+                    else if (prevIndex >= 0)
+                    {
+                        memberKey = membersKeyed[prevIndex];
+                        if (MemberKey.IsEqual(memberKey, reader.ValueBytes, nameKey))
+                        {
+                            member = memberKey.Member;
+                            if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
+                            {
+                                prevIndex--;
+                                continue;
+                            }
+                            state.Current.EnumeratorIndex = prevIndex + 1;
+                            break;
+                        }
+
+                        prevIndex--;
+                    }
+                    else
+                    {
+                        member = null;
+                        break;
+                    }
+                }
+            }
+
+            return member;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private JsonConverterObjectMember? FindMemberChars(ref JsonReader reader, ref ReadState state)
+        {
+            JsonConverterObjectMember? member;
+            MemberKey memberKey;
+            var memberLength = members.Count;
+            int nextIndex = state.Current.EnumeratorIndex;
+            int prevIndex = state.Current.EnumeratorIndex - 1;
+
+            if (state.IgnoreCase || collectValues)
+            {
+                //slow path
+                if (!membersByName.TryGetValue(reader.ValueChars.ToString(), out member))
+                    member = null;
+            }
+            else
+            {
+                var nameKey = MemberKey.GetHashCode(reader.ValueChars);
+
+                for (; ; )
+                {
+                    if (nextIndex < memberLength)
+                    {
+                        memberKey = membersKeyed[nextIndex];
+                        if (MemberKey.IsEqual(memberKey, reader.ValueChars, nameKey))
+                        {
+                            member = memberKey.Member;
+                            if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
+                            {
+                                nextIndex++;
+                                continue;
+                            }
+                            state.Current.EnumeratorIndex = nextIndex + 1;
+                            break;
+                        }
+
+                        if (prevIndex >= 0)
+                        {
+                            memberKey = membersKeyed[prevIndex];
+                            if (MemberKey.IsEqual(memberKey, reader.ValueChars, nameKey))
+                            {
+                                member = memberKey.Member;
+                                if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
+                                {
+                                    prevIndex--;
+                                    nextIndex++;
+                                    continue;
+                                }
+                                state.Current.EnumeratorIndex = prevIndex + 1;
+                                break;
+                            }
+                        }
+
+                        prevIndex--;
+                        nextIndex++;
+                    }
+                    else if (prevIndex >= 0)
+                    {
+                        memberKey = membersKeyed[prevIndex];
+                        if (MemberKey.IsEqual(memberKey, reader.ValueChars, nameKey))
+                        {
+                            member = memberKey.Member;
+                            if (member.IgnoreCondition == JsonIgnoreCondition.WhenReading || (state.Current.Graph is not null && !state.Current.Graph.HasMember(member.Member.Name)))
+                            {
+                                prevIndex--;
+                                continue;
+                            }
+                            state.Current.EnumeratorIndex = prevIndex + 1;
+                            break;
+                        }
+
+                        prevIndex--;
+                    }
+                    else
+                    {
+                        member = null;
+                        break;
+                    }
+                }
+            }
+
+            return member;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private TValue? CreateFromCollectedValues(Dictionary<string, object?> collectedValues)
+        {
+            var args = (object?[])parameterDefaults.Clone();
+            for (var i = 0; i < args.Length; i++)
+            {
+#if NETSTANDARD2_0
+                if (collectedValues!.TryGetValue(parameterConstructor!.Parameters[i].Name!, out var parameter))
+                {
+                    collectedValues.Remove(parameterConstructor!.Parameters[i].Name!);
+                    args[i] = parameter;
+                }
+#else
+                if (collectedValues!.Remove(parameterConstructor!.Parameters[i].Name!, out var parameter))
+                    args[i] = parameter;
+#endif
+            }
+
+            TValue? value;
+            if (TypeDetail.Type.IsValueType)
+                value = (TValue?)parameterConstructor!.CreatorBoxed(args);
+            else
+                value = parameterConstructor!.Creator(args);
+
+            foreach (var remaining in collectedValues!)
+            {
+                if (membersByName!.TryGetValue(remaining.Key, out var member))
+                {
+                    member.Converter.CollectedValuesSetter(value!, remaining.Value);
+                }
+            }
+
+            ReturnCollectedValues(collectedValues!);
+            return value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private TValue? CreateFromParameterDefaults()
+        {
+            var emptyArgs = (object?[])parameterDefaults.Clone();
+            if (TypeDetail.Type.IsValueType)
+                return (TValue?)parameterConstructor!.CreatorBoxed(emptyArgs);
+            else
+                return parameterConstructor!.Creator(emptyArgs);
         }
 
         protected override sealed bool TryWriteValue(ref JsonWriter writer, ref WriteState state, in TValue value)
         {
             if (state.Nameless)
+                return TryWriteValueNameless(ref writer, ref state, value);
+
+            if (membersByName.Count == 0)
             {
-                if (membersByName.Count == 0)
+                if (!writer.TryWriteEmptyBrace(out state.SizeNeeded))
                 {
-                    if (!writer.TryWriteEmptyBracket(out state.SizeNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-
-                if (!state.Current.HasWrittenStart)
-                {
-                    if (!writer.TryWriteOpenBracket(out state.SizeNeeded))
-                    {
-                        return false;
-                    }
-                }
-
-                while (state.Current.EnumeratorIndex < members.Count)
-                {
-                    var current = members[state.Current.EnumeratorIndex];
-                    if (current.IgnoreCondition == JsonIgnoreCondition.WhenWriting)
-                    {
-                        state.Current.EnumeratorIndex++;
-                        continue;
-                    }
-                    if (state.Current.Graph is not null && !state.Current.Graph.HasMember(current.Member.Name))
-                    {
-                        state.Current.EnumeratorIndex++;
-                        continue;
-                    }
-
-                    if (state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
-                    {
-                        if (!writer.TryWriteComma(out state.SizeNeeded))
-                        {
-                            state.Current.HasWrittenStart = true;
-                            return false;
-                        }
-                    }
-
-                    if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, null, null, null, current.IgnoreCondition, true))
-                    {
-                        state.Current.HasWrittenStart = true;
-                        state.Current.HasWrittenSeperator = true;
-                        return false;
-                    }
-
-                    if (!state.Current.HasWrittenFirst)
-                        state.Current.HasWrittenFirst = true;
-                    if (state.Current.HasWrittenSeperator)
-                        state.Current.HasWrittenSeperator = false;
-
-                    state.Current.EnumeratorIndex++;
-                }
-
-                if (!writer.TryWriteCloseBracket(out state.SizeNeeded))
-                {
-                    state.Current.HasWrittenStart = true;
                     return false;
                 }
                 return true;
             }
-            else
+
+            if (!state.Current.HasWrittenStart)
             {
-                if (membersByName.Count == 0)
+                if (!writer.TryWriteOpenBrace(out state.SizeNeeded))
                 {
-                    if (!writer.TryWriteEmptyBrace(out state.SizeNeeded))
-                    {
-                        return false;
-                    }
-                    return true;
+                    return false;
                 }
+            }
 
-                if (!state.Current.HasWrittenStart)
+            var useBytes = writer.UseBytes;
+            var enumeratorIndex = state.Current.EnumeratorIndex;
+            while (enumeratorIndex < members.Count)
+            {
+                var current = members[enumeratorIndex];
+                if (current.IgnoreCondition == JsonIgnoreCondition.WhenWriting)
                 {
-                    if (!writer.TryWriteOpenBrace(out state.SizeNeeded))
-                    {
-                        return false;
-                    }
-                }
-
-                var useBytes = writer.UseBytes;
-                var enumeratorIndex = state.Current.EnumeratorIndex;
-                while (enumeratorIndex < members.Count)
-                {
-                    var current = members[enumeratorIndex];
-                    if (current.IgnoreCondition == JsonIgnoreCondition.WhenWriting)
-                    {
-                        enumeratorIndex++;
-                        continue;
-                    }
-                    if (state.Current.Graph is not null && !state.Current.Graph.HasMember(current.Member.Name))
-                    {
-                        enumeratorIndex++;
-                        continue;
-                    }
-
-                    if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, current.Member.Name, useBytes ? null : current.JsonNameSegmentChars, useBytes ? current.JsonNameSegmentBytes : null, current.IgnoreCondition, false))
-                    {
-                        state.Current.HasWrittenStart = true;
-                        state.Current.EnumeratorIndex = enumeratorIndex;
-                        return false;
-                    }
                     enumeratorIndex++;
+                    continue;
+                }
+                if (state.Current.Graph is not null && !state.Current.Graph.HasMember(current.Member.Name))
+                {
+                    enumeratorIndex++;
+                    continue;
                 }
 
-                if (!writer.TryWriteCloseBrace(out state.SizeNeeded))
+                //the name segments are picked before the call, a conditional among the arguments makes unoptimized code copy them all to new stack slots
+                char[]? jsonNameSegmentChars;
+                byte[]? jsonNameSegmentBytes;
+                if (useBytes)
+                {
+                    jsonNameSegmentChars = null;
+                    jsonNameSegmentBytes = current.JsonNameSegmentBytes;
+                }
+                else
+                {
+                    jsonNameSegmentChars = current.JsonNameSegmentChars;
+                    jsonNameSegmentBytes = null;
+                }
+
+                if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, current.Member.Name, jsonNameSegmentChars, jsonNameSegmentBytes, current.IgnoreCondition, false))
                 {
                     state.Current.HasWrittenStart = true;
                     state.Current.EnumeratorIndex = enumeratorIndex;
                     return false;
                 }
+                enumeratorIndex++;
+            }
+
+            if (!writer.TryWriteCloseBrace(out state.SizeNeeded))
+            {
+                state.Current.HasWrittenStart = true;
+                state.Current.EnumeratorIndex = enumeratorIndex;
+                return false;
+            }
+            return true;
+        }
+
+        //the nameless mode measured faster as its own method because TryWriteValue stays small
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private bool TryWriteValueNameless(ref JsonWriter writer, ref WriteState state, in TValue value)
+        {
+            if (membersByName.Count == 0)
+            {
+                if (!writer.TryWriteEmptyBracket(out state.SizeNeeded))
+                {
+                    return false;
+                }
                 return true;
             }
+
+            if (!state.Current.HasWrittenStart)
+            {
+                if (!writer.TryWriteOpenBracket(out state.SizeNeeded))
+                {
+                    return false;
+                }
+            }
+
+            while (state.Current.EnumeratorIndex < members.Count)
+            {
+                var current = members[state.Current.EnumeratorIndex];
+                if (current.IgnoreCondition == JsonIgnoreCondition.WhenWriting)
+                {
+                    state.Current.EnumeratorIndex++;
+                    continue;
+                }
+                if (state.Current.Graph is not null && !state.Current.Graph.HasMember(current.Member.Name))
+                {
+                    state.Current.EnumeratorIndex++;
+                    continue;
+                }
+
+                if (state.Current.HasWrittenFirst && !state.Current.HasWrittenSeperator)
+                {
+                    if (!writer.TryWriteComma(out state.SizeNeeded))
+                    {
+                        state.Current.HasWrittenStart = true;
+                        return false;
+                    }
+                }
+
+                if (!current.Converter.TryWriteFromParentMember(ref writer, ref state, value!, null, null, null, current.IgnoreCondition, true))
+                {
+                    state.Current.HasWrittenStart = true;
+                    state.Current.HasWrittenSeperator = true;
+                    return false;
+                }
+
+                if (!state.Current.HasWrittenFirst)
+                    state.Current.HasWrittenFirst = true;
+                if (state.Current.HasWrittenSeperator)
+                    state.Current.HasWrittenSeperator = false;
+
+                state.Current.EnumeratorIndex++;
+            }
+
+            if (!writer.TryWriteCloseBracket(out state.SizeNeeded))
+            {
+                state.Current.HasWrittenStart = true;
+                return false;
+            }
+            return true;
         }
     }
 }

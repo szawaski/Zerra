@@ -19,6 +19,14 @@ namespace Zerra.Serialization.Bytes.Converters
     /// </remarks>
     public abstract class ByteConverter
     {
+        //exceptions are built outside the converters so unoptimized code doesn't reserve stack for the message in every nested level
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private protected static StackOverflowException CreateMaxDepthException(int maxDepth) => new($"{nameof(ByteConverter)} has reached the max depth of {maxDepth}, set by {nameof(ByteSerializerOptions)}.{nameof(ByteSerializerOptions.MaxDepth)}");
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private protected static NotSupportedException CreateNoTypeInformationException(Type type) => new($"Cannot deserialize {type.Name} without type information");
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private protected static InvalidOperationException CreateNoAssemblyQualifiedNameException(Type type) => new($"Type {type} does not have {nameof(type.AssemblyQualifiedName)}");
+
         /// <summary>
         /// Initializes the converter with member-specific information.
         /// </summary>
