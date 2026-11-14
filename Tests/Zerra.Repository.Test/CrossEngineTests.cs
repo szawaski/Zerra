@@ -243,8 +243,8 @@ namespace Zerra.Repository.Test
                 new Child { ID = Guid.NewGuid(), ParentID = parents[0].ID, Qty = 5, Tag = "y" },
                 new Child { ID = Guid.NewGuid(), ParentID = parents[1].ID, Qty = 2, Tag = "x" },
             };
-            repo.Create<Parent>(parents);
-            repo.Create<Child>(children);
+            repo.CreateMany<Parent>(parents);
+            repo.CreateMany<Child>(children);
             return (repo, parents, children);
         }
 

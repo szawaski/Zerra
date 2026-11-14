@@ -19,7 +19,7 @@ namespace Store.Catalog.Service.Data
             if (await repo.Query<CategoryDataModel>().AnyAsync())
                 return;
 
-            await repo.CreateAsync<CategoryDataModel>(
+            await repo.CreateManyAsync<CategoryDataModel>(
             [
                 new() { ID = peripherals, Name = "Peripherals" },
                 new() { ID = displays, Name = "Displays" },
@@ -27,7 +27,7 @@ namespace Store.Catalog.Service.Data
                 new() { ID = furniture, Name = "Furniture" }
             ]);
 
-            await repo.CreateAsync<ProductDataModel>(
+            await repo.CreateManyAsync<ProductDataModel>(
             [
                 Product(DemoProductIds.MechanicalKeyboard, peripherals, "KB-100", "Mechanical Keyboard", "Tenkeyless, hot-swappable switches", 129.00m),
                 Product(DemoProductIds.WirelessMouse, peripherals, "MS-200", "Wireless Mouse", "Ergonomic, 70 day battery", 49.99m),

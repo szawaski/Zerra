@@ -131,7 +131,7 @@ namespace Zerra.Repository.Test
                 models[i].StringThing = "before";
                 models[i].RelationAKey = i < 2 ? relationX.RelationAKey : relationY.RelationAKey;
             }
-            repo.Create<TestTypesModel>(models);
+            repo.CreateMany<TestTypesModel>(models);
             var keys = models.Select(x => x.KeyA).ToArray();
 
             //only the graph's members change on the matching rows
@@ -313,7 +313,7 @@ namespace Zerra.Repository.Test
                 models[i].StringThing = "before";
                 models[i].RelationAKey = relation.RelationAKey;
             }
-            await repo.CreateAsync<TestTypesModel>(models);
+            await repo.CreateManyAsync<TestTypesModel>(models);
             var keys = models.Select(x => x.KeyA).ToArray();
 
             Assert.Equal(2, await repo.UpdateAsync<TestTypesModel>(x => keys.Contains(x.KeyA) && x.Int32Thing > 201, new TestTypesModel { StringThing = "bulk" }, new Graph<TestTypesModel>(x => x.StringThing)));

@@ -153,7 +153,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Create<Model>(models);
+                repo.CreateMany<Model>(models);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -163,7 +163,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Create<Model>("evt", models);
+                repo.CreateMany<Model>("evt", models);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -173,7 +173,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Create<Model>("evt", source, models);
+                repo.CreateMany<Model>("evt", source, models);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -183,7 +183,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Create<Model>(models, graph);
+                repo.CreateMany<Model>(models, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -193,7 +193,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Create<Model>("evt", models, graph);
+                repo.CreateMany<Model>("evt", models, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -203,7 +203,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Create<Model>("evt", source, models, graph);
+                repo.CreateMany<Model>("evt", source, models, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -213,7 +213,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Create<Model>(evt, models);
+                repo.CreateMany<Model>(evt, models);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -222,7 +222,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Create<Model>(evt, models, graph);
+                repo.CreateMany<Model>(evt, models, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -309,7 +309,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Delete<Model>(models);
+                repo.DeleteMany<Model>(models);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -319,7 +319,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Delete<Model>("evt", models);
+                repo.DeleteMany<Model>("evt", models);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -329,7 +329,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Delete<Model>("evt", source, models);
+                repo.DeleteMany<Model>("evt", source, models);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -339,7 +339,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Delete<Model>(models, graph);
+                repo.DeleteMany<Model>(models, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -349,7 +349,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Delete<Model>("evt", models, graph);
+                repo.DeleteMany<Model>("evt", models, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -359,7 +359,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Delete<Model>("evt", source, models, graph);
+                repo.DeleteMany<Model>("evt", source, models, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -369,7 +369,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Delete<Model>(evt, models);
+                repo.DeleteMany<Model>(evt, models);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -378,7 +378,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Delete<Model>(evt, models, graph);
+                repo.DeleteMany<Model>(evt, models, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -465,7 +465,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.DeleteByID<Model>(ids);
+                repo.DeleteManyByID<Model>(ids);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -475,7 +475,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.DeleteByID<Model>("evt", ids);
+                repo.DeleteManyByID<Model>("evt", ids);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -485,7 +485,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.DeleteByID<Model>("evt", source, ids);
+                repo.DeleteManyByID<Model>("evt", source, ids);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -495,7 +495,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.DeleteByID<Model>(ids, graph);
+                repo.DeleteManyByID<Model>(ids, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -505,7 +505,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.DeleteByID<Model>("evt", ids, graph);
+                repo.DeleteManyByID<Model>("evt", ids, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -515,7 +515,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.DeleteByID<Model>("evt", source, ids, graph);
+                repo.DeleteManyByID<Model>("evt", source, ids, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -525,7 +525,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.DeleteByID<Model>(evt, ids);
+                repo.DeleteManyByID<Model>(evt, ids);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -534,7 +534,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.DeleteByID<Model>(evt, ids, graph);
+                repo.DeleteManyByID<Model>(evt, ids, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -621,7 +621,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Update<Model>(models);
+                repo.UpdateMany<Model>(models);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -631,7 +631,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Update<Model>("evt", models);
+                repo.UpdateMany<Model>("evt", models);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -641,7 +641,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Update<Model>("evt", source, models);
+                repo.UpdateMany<Model>("evt", source, models);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -651,7 +651,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Update<Model>(models, graph);
+                repo.UpdateMany<Model>(models, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -661,7 +661,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Update<Model>("evt", models, graph);
+                repo.UpdateMany<Model>("evt", models, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -671,7 +671,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Update<Model>("evt", source, models, graph);
+                repo.UpdateMany<Model>("evt", source, models, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -681,7 +681,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Update<Model>(evt, models);
+                repo.UpdateMany<Model>(evt, models);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -690,7 +690,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                repo.Update<Model>(evt, models, graph);
+                repo.UpdateMany<Model>(evt, models, graph);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -783,7 +783,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>(models, TestContext.Current.CancellationToken);
+                await repo.CreateManyAsync<Model>(models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -793,7 +793,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>("evt", models, TestContext.Current.CancellationToken);
+                await repo.CreateManyAsync<Model>("evt", models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -803,7 +803,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>("evt", source, models, TestContext.Current.CancellationToken);
+                await repo.CreateManyAsync<Model>("evt", source, models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -813,7 +813,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>(models, graph, TestContext.Current.CancellationToken);
+                await repo.CreateManyAsync<Model>(models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -823,7 +823,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>("evt", models, graph, TestContext.Current.CancellationToken);
+                await repo.CreateManyAsync<Model>("evt", models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -833,7 +833,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>("evt", source, models, graph, TestContext.Current.CancellationToken);
+                await repo.CreateManyAsync<Model>("evt", source, models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -843,7 +843,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>(evt, models, TestContext.Current.CancellationToken);
+                await repo.CreateManyAsync<Model>(evt, models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -852,7 +852,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.CreateAsync<Model>(evt, models, graph, TestContext.Current.CancellationToken);
+                await repo.CreateManyAsync<Model>(evt, models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Create, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -939,7 +939,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>(models, TestContext.Current.CancellationToken);
+                await repo.DeleteManyAsync<Model>(models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -949,7 +949,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>("evt", models, TestContext.Current.CancellationToken);
+                await repo.DeleteManyAsync<Model>("evt", models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -959,7 +959,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>("evt", source, models, TestContext.Current.CancellationToken);
+                await repo.DeleteManyAsync<Model>("evt", source, models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -969,7 +969,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>(models, graph, TestContext.Current.CancellationToken);
+                await repo.DeleteManyAsync<Model>(models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -979,7 +979,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>("evt", models, graph, TestContext.Current.CancellationToken);
+                await repo.DeleteManyAsync<Model>("evt", models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -989,7 +989,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>("evt", source, models, graph, TestContext.Current.CancellationToken);
+                await repo.DeleteManyAsync<Model>("evt", source, models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -999,7 +999,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>(evt, models, TestContext.Current.CancellationToken);
+                await repo.DeleteManyAsync<Model>(evt, models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1008,7 +1008,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteAsync<Model>(evt, models, graph, TestContext.Current.CancellationToken);
+                await repo.DeleteManyAsync<Model>(evt, models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1095,7 +1095,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>(ids, TestContext.Current.CancellationToken);
+                await repo.DeleteManyByIDAsync<Model>(ids, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1105,7 +1105,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>("evt", ids, TestContext.Current.CancellationToken);
+                await repo.DeleteManyByIDAsync<Model>("evt", ids, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1115,7 +1115,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>("evt", source, ids, TestContext.Current.CancellationToken);
+                await repo.DeleteManyByIDAsync<Model>("evt", source, ids, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1125,7 +1125,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>(ids, graph, TestContext.Current.CancellationToken);
+                await repo.DeleteManyByIDAsync<Model>(ids, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1135,7 +1135,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>("evt", ids, graph, TestContext.Current.CancellationToken);
+                await repo.DeleteManyByIDAsync<Model>("evt", ids, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1145,7 +1145,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>("evt", source, ids, graph, TestContext.Current.CancellationToken);
+                await repo.DeleteManyByIDAsync<Model>("evt", source, ids, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1155,7 +1155,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>(evt, ids, TestContext.Current.CancellationToken);
+                await repo.DeleteManyByIDAsync<Model>(evt, ids, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1164,7 +1164,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.DeleteByIDAsync<Model>(evt, ids, graph, TestContext.Current.CancellationToken);
+                await repo.DeleteManyByIDAsync<Model>(evt, ids, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Delete, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1251,7 +1251,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>(models, TestContext.Current.CancellationToken);
+                await repo.UpdateManyAsync<Model>(models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1261,7 +1261,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>("evt", models, TestContext.Current.CancellationToken);
+                await repo.UpdateManyAsync<Model>("evt", models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1271,7 +1271,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>("evt", source, models, TestContext.Current.CancellationToken);
+                await repo.UpdateManyAsync<Model>("evt", source, models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1281,7 +1281,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>(models, graph, TestContext.Current.CancellationToken);
+                await repo.UpdateManyAsync<Model>(models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.False(String.IsNullOrWhiteSpace(p.Event.Name));
@@ -1291,7 +1291,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>("evt", models, graph, TestContext.Current.CancellationToken);
+                await repo.UpdateManyAsync<Model>("evt", models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1301,7 +1301,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>("evt", source, models, graph, TestContext.Current.CancellationToken);
+                await repo.UpdateManyAsync<Model>("evt", source, models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal("evt", p.Event.Name);
@@ -1311,7 +1311,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>(evt, models, TestContext.Current.CancellationToken);
+                await repo.UpdateManyAsync<Model>(evt, models, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1320,7 +1320,7 @@ namespace Zerra.Repository.Test
             }
             {
                 provider.Clear();
-                await repo.UpdateAsync<Model>(evt, models, graph, TestContext.Current.CancellationToken);
+                await repo.UpdateManyAsync<Model>(evt, models, graph, TestContext.Current.CancellationToken);
                 var p = provider.Persist!;
                 Assert.Equal(PersistOperation.Update, p.Operation);
                 Assert.Equal(evt.ID, p.Event.ID);
@@ -1449,6 +1449,20 @@ namespace Zerra.Repository.Test
             _ = await repo.DeleteAsync("evt", where, cancellationToken); Check(PersistOperation.Delete, "evt", null, false, false);
             _ = await repo.DeleteAsync("evt", source, where, cancellationToken); Check(PersistOperation.Delete, "evt", source, false, false);
             _ = await repo.DeleteAsync(evt, where, cancellationToken); Check(PersistOperation.Delete, "given", source, false, false);
+        }
+
+        [Fact]
+        public async Task CollectionAsSingleModel_NamesManyMethod()
+        {
+            var (repo, _) = Create();
+            var list = new List<Model>(models);
+
+            Assert.EndsWith("Use CreateMany.", Assert.Throws<Exception>(() => repo.Create(list)).Message);
+            Assert.EndsWith("Use UpdateMany.", Assert.Throws<Exception>(() => repo.Update(list)).Message);
+            Assert.EndsWith("Use DeleteMany.", Assert.Throws<Exception>(() => repo.Delete(list)).Message);
+            Assert.EndsWith("Use CreateMany.", (await Assert.ThrowsAsync<Exception>(() => repo.CreateAsync(list, TestContext.Current.CancellationToken))).Message);
+            Assert.EndsWith("Use UpdateMany.", (await Assert.ThrowsAsync<Exception>(() => repo.UpdateAsync(list, TestContext.Current.CancellationToken))).Message);
+            Assert.EndsWith("Use DeleteMany.", (await Assert.ThrowsAsync<Exception>(() => repo.DeleteAsync(list, TestContext.Current.CancellationToken))).Message);
         }
     }
 }

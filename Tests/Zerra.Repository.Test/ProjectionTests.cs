@@ -79,12 +79,12 @@ namespace Zerra.Repository.Test
             repo.AddProvider(new TransactStoreProvider<Model>(engine));
             repo.AddProvider(new TransactStoreProvider<Parent>(engine));
             var parents = new[] { new Parent { ID = Guid.NewGuid(), Name = "pa" }, new Parent { ID = Guid.NewGuid(), Name = "pb" } };
-            repo.Create<Parent>(parents);
+            repo.CreateMany<Parent>(parents);
             var names = new string?[] { "apple", "banana", null, "cherry", "date", "elder" };
             var models = new Model[6];
             for (var i = 0; i < models.Length; i++)
                 models[i] = new Model { ID = Guid.NewGuid(), Number = i, Maybe = i % 2 == 0 ? i : null, Money = 1.5m * i, Flag = i % 3 == 0, Name = names[i], Note = "n", ParentID = parents[i % 2].ID };
-            repo.Create<Model>(models);
+            repo.CreateMany<Model>(models);
             return (repo, models, parents);
         }
 
@@ -227,7 +227,7 @@ namespace Zerra.Repository.Test
             var root = new Node { ID = Guid.NewGuid(), Name = "root" };
             var children = new[] { new Node { ID = Guid.NewGuid(), ParentID = root.ID, Name = "c1" }, new Node { ID = Guid.NewGuid(), ParentID = root.ID, Name = "c2" } };
             repo.Create(root);
-            repo.Create<Node>(children);
+            repo.CreateMany<Node>(children);
             repo.Create(new Node { ID = Guid.NewGuid(), ParentID = children[0].ID, Name = "g1" });
 
             var rows = repo.Query<Node>().Where(x => x.Name == "root").Select(x => new NodeRow { Name = x.Name, Children = x.Children!.OrderBy(c => c.Name).Select(c => new NodeRow { Name = c.Name }).ToArray() }).ToArray();
@@ -253,7 +253,7 @@ namespace Zerra.Repository.Test
             var repo = Repo.New();
             repo.AddProvider(new EventStoreAsTransactStoreProvider<EventedModel>(new MemoryEngine()));
             var models = new[] { new EventedModel { ID = Guid.NewGuid(), Value = 1, Flag = true }, new EventedModel { ID = Guid.NewGuid(), Value = 2, Flag = true }, new EventedModel { ID = Guid.NewGuid(), Value = 3 } };
-            repo.Create<EventedModel>(models);
+            repo.CreateMany<EventedModel>(models);
             models[0].Value = 10;
             repo.Update(models[0]);
             var ids = models.Select(x => x.ID).ToArray();
@@ -483,7 +483,7 @@ namespace Zerra.Repository.Test
             var evented = Repo.New();
             evented.AddProvider(new EventStoreAsTransactStoreProvider<EventedModel>(engine));
             var events = new[] { new EventedModel { ID = Guid.NewGuid(), Value = 1, Flag = true }, new EventedModel { ID = Guid.NewGuid(), Value = 2, Flag = true }, new EventedModel { ID = Guid.NewGuid(), Value = 3 } };
-            evented.Create<EventedModel>(events);
+            evented.CreateMany<EventedModel>(events);
             events[0].Value = 10;
             evented.Update(events[0]);
             var ids = events.Select(x => x.ID).ToArray();

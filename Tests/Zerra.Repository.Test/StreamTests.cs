@@ -92,7 +92,7 @@ namespace Zerra.Repository.Test
             var repo = NewRepo(engine, null, out _, out var parentRules, out var childRules);
             Clear(repo);
             var created = NewParents();
-            await repo.CreateAsync<ParentModel>(created, new Graph<ParentModel>(true, x => x.Children), cancellationToken);
+            await repo.CreateManyAsync<ParentModel>(created, new Graph<ParentModel>(true, x => x.Children), cancellationToken);
 
             //the elements are those the list has, in the same order when ordered
             var all = await Read(repo.Query<ParentModel>(), cancellationToken);
@@ -271,7 +271,7 @@ namespace Zerra.Repository.Test
             var repo = NewRepo(engine, childEngine, out var parents, out _, out var childRules);
             Clear(repo);
             var created = NewParents();
-            await repo.CreateAsync<ParentModel>(created, new Graph<ParentModel>(true, x => x.Children), cancellationToken);
+            await repo.CreateManyAsync<ParentModel>(created, new Graph<ParentModel>(true, x => x.Children), cancellationToken);
 
             parents.StreamChunkBytes = 4000;
             childRules.Chunks.Clear();
@@ -366,7 +366,7 @@ namespace Zerra.Repository.Test
             var repo = Repo.New();
             repo.AddProvider(provider);
             var models = Enumerable.Range(0, 50).Select(i => new LayeredModel { ID = Guid.NewGuid(), Number = i, Text = "text " + i }).ToArray();
-            await repo.CreateAsync<LayeredModel>(models, cancellationToken);
+            await repo.CreateManyAsync<LayeredModel>(models, cancellationToken);
 
             //an event store reads the models a condition names by identity
             var ids = models.Select(x => x.ID).ToArray();

@@ -249,7 +249,7 @@ namespace Zerra.Repository.Test.MsSql
                 model.StringThing = "Concurrent" + i;
                 return model;
             }).ToArray();
-            await repo.CreateAsync<TestTypesModel>(models);
+            await repo.CreateManyAsync<TestTypesModel>(models);
 
             for (var round = 0; round < 20; round++)
             {
@@ -281,7 +281,7 @@ namespace Zerra.Repository.Test.MsSql
                 await Task.WhenAll(tasks);
             }
 
-            await repo.DeleteAsync<TestTypesModel>(models);
+            await repo.DeleteManyAsync<TestTypesModel>(models);
         }
     }
 }

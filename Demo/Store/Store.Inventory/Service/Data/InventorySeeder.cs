@@ -28,10 +28,10 @@ namespace Store.Inventory.Service.Data
                 (DemoProductIds.DeskLamp, 0)
             ];
 
-            await repo.CreateAsync(openingStock.Select(x => new StockItemDataModel() { ProductID = x.ProductID, OnHand = x.Quantity }).ToArray());
+            await repo.CreateManyAsync(openingStock.Select(x => new StockItemDataModel() { ProductID = x.ProductID, OnHand = x.Quantity }).ToArray());
 
             var now = DateTime.UtcNow;
-            await repo.CreateAsync(openingStock.Where(x => x.Quantity > 0).Select(x => new StockMovementDataModel()
+            await repo.CreateManyAsync(openingStock.Where(x => x.Quantity > 0).Select(x => new StockMovementDataModel()
             {
                 ID = Guid.NewGuid(),
                 ProductID = x.ProductID,

@@ -437,6 +437,10 @@ namespace Zerra.Repository.Linq
             var member = (MemberExpression)exp;
             var expressionValue = member.Expression is null ? null : Evaluate(member.Expression);
 
+            //a nullable evaluates boxed, as its value or null
+            if (member.Member.DeclaringType is not null && member.Member.DeclaringType.Name == typeof(Nullable<>).Name)
+                return member.Member.Name == "HasValue" ? expressionValue is not null : expressionValue;
+
             object? value;
             switch (member.Member.MemberType)
             {

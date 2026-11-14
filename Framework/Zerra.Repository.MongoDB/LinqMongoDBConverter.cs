@@ -2498,6 +2498,9 @@ namespace Zerra.Repository.MongoDB
         private static object? EvaluateMemberAccess(MemberExpression member)
         {
             var instance = member.Expression is null ? null : Evaluate(member.Expression);
+            //a nullable evaluates boxed, as its value or null
+            if (member.Member.DeclaringType is not null && Nullable.GetUnderlyingType(member.Member.DeclaringType) is not null)
+                return member.Member.Name == "HasValue" ? instance is not null : instance;
             switch (member.Member)
             {
                 case FieldInfo field:

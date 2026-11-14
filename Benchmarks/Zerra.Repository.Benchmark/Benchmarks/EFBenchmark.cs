@@ -256,7 +256,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
         [Benchmark]
         public async Task CreateMany_Zerra()
         {
-            await repo.CreateAsync<TestTypesModel>(createModels);
+            await repo.CreateManyAsync<TestTypesModel>(createModels);
         }
 
         [IterationSetup(Target = nameof(CreateMany_EF))]

@@ -89,7 +89,7 @@ namespace Zerra.Repository
         /// </summary>
         /// <typeparam name="TModel">The type of model being deleted.</typeparam>
         /// <param name="ids">The IDs of the records to delete.</param>
-        void DeleteByID<TModel>(ICollection ids) where TModel : class, new()
+        void DeleteManyByID<TModel>(ICollection ids) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Delete, null, null, null, ids.Cast<object>().ToArray(), null));
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being deleted.</typeparam>
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="ids">The IDs of the records to delete.</param>
-        void DeleteByID<TModel>(string? eventName, ICollection ids) where TModel : class, new()
+        void DeleteManyByID<TModel>(string? eventName, ICollection ids) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Delete, eventName, null, null, ids.Cast<object>().ToArray(), null));
 
         /// <summary>
@@ -108,7 +108,7 @@ namespace Zerra.Repository
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="source">An optional object that initiated this operation.</param>
         /// <param name="ids">The IDs of the records to delete.</param>
-        void DeleteByID<TModel>(string? eventName, object? source, ICollection ids) where TModel : class, new()
+        void DeleteManyByID<TModel>(string? eventName, object? source, ICollection ids) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Delete, eventName, source, null, ids.Cast<object>().ToArray(), null));
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being deleted.</typeparam>
         /// <param name="ids">The IDs of the records to delete.</param>
         /// <param name="graph">The property graph specifying which members to consider during deletion.</param>
-        void DeleteByID<TModel>(ICollection ids, Graph? graph) where TModel : class, new()
+        void DeleteManyByID<TModel>(ICollection ids, Graph? graph) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Delete, null, null, null, ids.Cast<object>().ToArray(), graph));
 
         /// <summary>
@@ -127,7 +127,7 @@ namespace Zerra.Repository
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="ids">The IDs of the records to delete.</param>
         /// <param name="graph">The property graph specifying which members to consider during deletion.</param>
-        void DeleteByID<TModel>(string? eventName, ICollection ids, Graph? graph) where TModel : class, new()
+        void DeleteManyByID<TModel>(string? eventName, ICollection ids, Graph? graph) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Delete, eventName, null, null, ids.Cast<object>().ToArray(), graph));
 
         /// <summary>
@@ -138,7 +138,7 @@ namespace Zerra.Repository
         /// <param name="source">An optional object that initiated this operation.</param>
         /// <param name="ids">The IDs of the records to delete.</param>
         /// <param name="graph">The property graph specifying which members to consider during deletion.</param>
-        void DeleteByID<TModel>(string? eventName, object? source, ICollection ids, Graph? graph) where TModel : class, new()
+        void DeleteManyByID<TModel>(string? eventName, object? source, ICollection ids, Graph? graph) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Delete, eventName, source, null, ids.Cast<object>().ToArray(), graph));
 
         /// <summary>
@@ -147,7 +147,7 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being deleted.</typeparam>
         /// <param name="event">The pre-built event metadata to associate with this operation.</param>
         /// <param name="ids">The IDs of the records to delete.</param>
-        void DeleteByID<TModel>(PersistEvent @event, ICollection ids) where TModel : class, new()
+        void DeleteManyByID<TModel>(PersistEvent @event, ICollection ids) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Delete, @event, null, ids.Cast<object>().ToArray(), null));
 
         /// <summary>
@@ -157,7 +157,7 @@ namespace Zerra.Repository
         /// <param name="event">The pre-built event metadata to associate with this operation.</param>
         /// <param name="ids">The IDs of the records to delete.</param>
         /// <param name="graph">The property graph specifying which members to consider during deletion.</param>
-        void DeleteByID<TModel>(PersistEvent @event, ICollection ids, Graph? graph) where TModel : class, new()
+        void DeleteManyByID<TModel>(PersistEvent @event, ICollection ids, Graph? graph) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Delete, @event, null, ids.Cast<object>().ToArray(), graph));
 
         /// <summary>
@@ -259,7 +259,7 @@ namespace Zerra.Repository
         /// <param name="ids">The IDs of the records to delete.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task DeleteByIDAsync<TModel>(ICollection ids, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task DeleteManyByIDAsync<TModel>(ICollection ids, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Delete, null, null, null, ids.Cast<object>().ToArray(), null), cancellationToken);
 
         /// <summary>
@@ -270,7 +270,7 @@ namespace Zerra.Repository
         /// <param name="ids">The IDs of the records to delete.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task DeleteByIDAsync<TModel>(string? eventName, ICollection ids, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task DeleteManyByIDAsync<TModel>(string? eventName, ICollection ids, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Delete, eventName, null, null, ids.Cast<object>().ToArray(), null), cancellationToken);
 
         /// <summary>
@@ -282,7 +282,7 @@ namespace Zerra.Repository
         /// <param name="ids">The IDs of the records to delete.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task DeleteByIDAsync<TModel>(string? eventName, object? source, ICollection ids, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task DeleteManyByIDAsync<TModel>(string? eventName, object? source, ICollection ids, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Delete, eventName, source, null, ids.Cast<object>().ToArray(), null), cancellationToken);
 
         /// <summary>
@@ -293,7 +293,7 @@ namespace Zerra.Repository
         /// <param name="graph">The property graph specifying which members to consider during deletion.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task DeleteByIDAsync<TModel>(ICollection ids, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task DeleteManyByIDAsync<TModel>(ICollection ids, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Delete, null, null, null, ids.Cast<object>().ToArray(), graph), cancellationToken);
 
         /// <summary>
@@ -305,7 +305,7 @@ namespace Zerra.Repository
         /// <param name="graph">The property graph specifying which members to consider during deletion.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task DeleteByIDAsync<TModel>(string? eventName, ICollection ids, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task DeleteManyByIDAsync<TModel>(string? eventName, ICollection ids, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Delete, eventName, null, null, ids.Cast<object>().ToArray(), graph), cancellationToken);
 
         /// <summary>
@@ -318,7 +318,7 @@ namespace Zerra.Repository
         /// <param name="graph">The property graph specifying which members to consider during deletion.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task DeleteByIDAsync<TModel>(string? eventName, object? source, ICollection ids, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task DeleteManyByIDAsync<TModel>(string? eventName, object? source, ICollection ids, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Delete, eventName, source, null, ids.Cast<object>().ToArray(), graph), cancellationToken);
 
         /// <summary>
@@ -329,7 +329,7 @@ namespace Zerra.Repository
         /// <param name="ids">The IDs of the records to delete.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task DeleteByIDAsync<TModel>(PersistEvent @event, ICollection ids, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task DeleteManyByIDAsync<TModel>(PersistEvent @event, ICollection ids, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Delete, @event, null, ids.Cast<object>().ToArray(), null), cancellationToken);
 
         /// <summary>
@@ -341,7 +341,7 @@ namespace Zerra.Repository
         /// <param name="graph">The property graph specifying which members to consider during deletion.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task DeleteByIDAsync<TModel>(PersistEvent @event, ICollection ids, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task DeleteManyByIDAsync<TModel>(PersistEvent @event, ICollection ids, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Delete, @event, null, ids.Cast<object>().ToArray(), graph), cancellationToken);
     }
 }

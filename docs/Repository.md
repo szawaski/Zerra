@@ -166,11 +166,13 @@ var order = await Repo.Query<OrderDataModel>().SingleOrDefaultAsync(x => x.ID ==
 | `Update<T>(model, graph?)` | updates, only the graph's columns when one is given |
 | `Delete<T>(model)` | deletes |
 | `DeleteByID<T>(id)` | deletes by key |
+| `CreateMany<T>(models)`, `UpdateMany<T>(models, graph?)`, `DeleteMany<T>(models)` | the same for many models, all or nothing |
+| `DeleteManyByID<T>(ids)` | deletes many by key |
 | `Update<T>(where, model, graph)` | sets the graph's members on every matching row without loading them, and returns how many |
 | `Update<T>(where, x => new T { … })` | sets members on every matching row to values computed from the row, such as `Price = x.Price * 1.1m`, and returns how many |
 | `Delete<T>(where)` | deletes every matching row without loading them, and returns how many |
 
-Every method has an `Async` version. Use the async ones in handlers. Pass collections to `Create`, `Update`, and `Delete` as arrays or with an explicit type argument, since a `List<T>` binds to the single-model overload.
+Every method has an `Async` version. Use the async ones in handlers. Pass a collection of models to the `Many` methods; passing a `List<T>` to `Create`, `Update`, or `Delete` throws, naming the `Many` method to use.
 
 ### Transactions
 

@@ -297,9 +297,9 @@ namespace Zerra.Repository.Test
                 var itemRules = new ItemRules(new TransactStoreProvider<Item>(engine));
                 repo.AddProvider<Item>(itemRules);
                 repo.AddProvider<Tag>(new TagRules(new TransactStoreProvider<Tag>(engine)));
-                repo.Create<Tag>(tags);
-                repo.Create<Root>(roots);
-                repo.Create<Item>(items);
+                repo.CreateMany<Tag>(tags);
+                repo.CreateMany<Root>(roots);
+                repo.CreateMany<Item>(items);
 
                 var graph = new Graph<Root>(true, x => x.Items!.Select(i => i.Number), x => x.Items!.Select(i => i.Tag));
                 var signature = graph.GetChildGraph(nameof(Root.Items))!.Signature;

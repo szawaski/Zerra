@@ -78,7 +78,7 @@ namespace Store.Orders.Service.Handlers
             try
             {
                 await Repo.CreateAsync(order);
-                await Repo.CreateAsync(orderItems);
+                await Repo.CreateManyAsync(orderItems);
             }
             catch
             {

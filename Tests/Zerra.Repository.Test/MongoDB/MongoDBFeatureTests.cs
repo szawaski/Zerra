@@ -70,10 +70,10 @@ namespace Zerra.Repository.Test.MongoDB
 
             //an identity the store generates is a new Guid for each model
             var models = NewModels();
-            repo.Create<FeatureModel>(models.Take(3).ToArray());
+            repo.CreateMany<FeatureModel>(models.Take(3).ToArray());
             foreach (var model in models.Skip(3).Take(2))
                 await repo.CreateAsync(model, cancellationToken: TestContext.Current.CancellationToken);
-            await repo.CreateAsync<FeatureModel>(models.Skip(5).ToArray(), cancellationToken: TestContext.Current.CancellationToken);
+            await repo.CreateManyAsync<FeatureModel>(models.Skip(5).ToArray(), cancellationToken: TestContext.Current.CancellationToken);
             Assert.DoesNotContain(models, x => x.ID == Guid.Empty);
             Assert.Equal(models.Length, models.Select(x => x.ID).Distinct().Count());
             Assert.Equal(models.Select(x => x.ID).Order(), repo.Query<FeatureModel>().Select(x => x.ID).ToArray().Order());

@@ -64,17 +64,17 @@ namespace Zerra.Repository.Test
             repo.AddProvider(new TransactStoreProvider<GeneratedModel>(engine));
 
             var models = Enumerable.Range(0, 5).Select(i => new DefaultsModel { ID = Guid.NewGuid(), Number = i }).ToArray();
-            repo.Create<DefaultsModel>(models[..3]);
-            await repo.CreateAsync<DefaultsModel>(models[3..], cancellationToken);
+            repo.CreateMany<DefaultsModel>(models[..3]);
+            await repo.CreateManyAsync<DefaultsModel>(models[3..], cancellationToken);
             foreach (var model in models)
                 model.Number += 10;
-            repo.Update<DefaultsModel>(models[..3]);
-            await repo.UpdateAsync<DefaultsModel>(models[3..], cancellationToken);
+            repo.UpdateMany<DefaultsModel>(models[..3]);
+            await repo.UpdateManyAsync<DefaultsModel>(models[3..], cancellationToken);
             Assert.Equal([10, 11, 12, 13, 14], repo.Query<DefaultsModel>().OrderBy(x => x.Number).Select(x => x.Number).ToArray());
 
             var generated = Enumerable.Range(0, 4).Select(i => new GeneratedModel { Number = i }).ToArray();
-            repo.Create<GeneratedModel>(generated[..2]);
-            await repo.CreateAsync<GeneratedModel>(generated[2..], cancellationToken);
+            repo.CreateMany<GeneratedModel>(generated[..2]);
+            await repo.CreateManyAsync<GeneratedModel>(generated[2..], cancellationToken);
             Assert.Equal(4, generated.Select(x => x.ID).Distinct().Count());
             Assert.DoesNotContain(0, generated.Select(x => x.ID));
             Assert.Equal(generated.Select(x => x.ID).Order(), repo.Query<GeneratedModel>().Select(x => x.ID).ToArray().Order());

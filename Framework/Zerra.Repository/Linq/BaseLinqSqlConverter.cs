@@ -2010,6 +2010,8 @@ namespace Zerra.Repository.Linq
                     return false;
 
                 var expressionValue = member.Expression is null ? null : Evaluate(member.Expression);
+                if (member.Member.DeclaringType is not null && member.Member.DeclaringType.Name == nullableTypeName)
+                    return member.Member.Name != "HasValue" && expressionValue is null;
                 switch (member.Member.MemberType)
                 {
                     case MemberTypes.Field:
@@ -2080,6 +2082,10 @@ namespace Zerra.Repository.Linq
         {
             var member = (MemberExpression)exp;
             var expressionValue = member.Expression is null ? null : Evaluate(member.Expression);
+
+            //a nullable evaluates boxed, as its value or null
+            if (member.Member.DeclaringType is not null && member.Member.DeclaringType.Name == nullableTypeName)
+                return member.Member.Name == "HasValue" ? expressionValue is not null : expressionValue;
 
             object? value;
             switch (member.Member.MemberType)

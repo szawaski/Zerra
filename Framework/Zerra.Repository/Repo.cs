@@ -81,7 +81,12 @@ namespace Zerra.Repository
         void IRepoInternal.Persist(Persist persist)
         {
             if (!providers.TryGetValue(persist.ModelType, out var provider))
+            {
+                //a List<T> or other collection with a parameterless constructor can be inferred as the model of the single model overloads
+                if (typeof(IEnumerable).IsAssignableFrom(persist.ModelType))
+                    throw new Exception($"No provider for {persist.ModelType.FullName}. It is a collection. Use {persist.Operation}Many.");
                 throw new Exception($"No provider for {persist.ModelType.FullName}");
+            }
             provider.Persist(persist);
         }
 
@@ -127,7 +132,12 @@ namespace Zerra.Repository
         Task IRepoInternal.PersistAsync(Persist persist, CancellationToken cancellationToken)
         {
             if (!providers.TryGetValue(persist.ModelType, out var provider))
+            {
+                //a List<T> or other collection with a parameterless constructor can be inferred as the model of the single model overloads
+                if (typeof(IEnumerable).IsAssignableFrom(persist.ModelType))
+                    throw new Exception($"No provider for {persist.ModelType.FullName}. It is a collection. Use {persist.Operation}Many.");
                 throw new Exception($"No provider for {persist.ModelType.FullName}");
+            }
             return provider.PersistAsync(persist, cancellationToken);
         }
 

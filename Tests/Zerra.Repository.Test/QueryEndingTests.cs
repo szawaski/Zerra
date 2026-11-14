@@ -47,7 +47,7 @@ namespace Zerra.Repository.Test
                 Float = i * 0.5f,
                 FloatNullable = i % 3 == 0 ? i * 0.5f : null,
             }).ToArray();
-            await repo.CreateAsync<EndingModel>(models, cancellationToken);
+            await repo.CreateManyAsync<EndingModel>(models, cancellationToken);
             var q = repo.Query<EndingModel>();
 
             Assert.Equal(models.Sum(x => x.Int), await q.SumAsync(x => x.Int, cancellationToken));

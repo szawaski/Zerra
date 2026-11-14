@@ -89,7 +89,7 @@ namespace Zerra.Repository.Test
             var rules = new EvenRules(root);
             var repo = Repo.New();
             repo.AddProvider<WhereModel>(rules);
-            repo.Create<WhereModel>(Models());
+            repo.CreateMany<WhereModel>(Models());
 
             //the rule hides the odd numbers, so the condition only reaches the even ones
             Assert.Equal(2, repo.Update<WhereModel>(x => x.Number > 0, new WhereModel { Note = "even" }, new Graph<WhereModel>(x => x.Note)));
@@ -138,7 +138,7 @@ namespace Zerra.Repository.Test
                 layered.AddProvider<WhereModel>(compression ? new Compressing(root) : new Encrypting(root));
                 var raw = Repo.New();
                 raw.AddProvider(root);
-                layered.Create<WhereModel>(Models());
+                layered.CreateMany<WhereModel>(Models());
 
                 //the set value goes through the layer and reads back plain, while the store holds something else
                 Assert.Equal(2, await layered.UpdateAsync<WhereModel>(x => x.Number > 2, new WhereModel { Note = "secret note that is long enough to change" }, new Graph<WhereModel>(x => x.Note), TestContext.Current.CancellationToken));
@@ -168,7 +168,7 @@ namespace Zerra.Repository.Test
             var repo = Repo.New();
             repo.AddProvider(new EventStoreAsTransactStoreProvider<WhereModel>(new MemoryEngine()));
             var models = Models();
-            repo.Create<WhereModel>(models);
+            repo.CreateMany<WhereModel>(models);
             var ids = models.Select(x => x.ID).ToArray();
 
             Assert.Equal(2, repo.Update<WhereModel>("Bulk", x => ids.Contains(x.ID) && x.Number > 2, new WhereModel { Note = "bulk" }, new Graph<WhereModel>(x => x.Note)));
@@ -205,11 +205,11 @@ namespace Zerra.Repository.Test
             repo.AddProvider(new TransactStoreProvider<WhereModel>(engine));
             repo.AddProvider(new TransactStoreProvider<WhereParent>(engine));
             var parents = new[] { new WhereParent { ID = Guid.NewGuid(), Name = "a" }, new WhereParent { ID = Guid.NewGuid(), Name = "b" } };
-            repo.Create<WhereParent>(parents);
+            repo.CreateMany<WhereParent>(parents);
             var models = Models();
             foreach (var model in models)
                 model.ParentID = parents[0].ID;
-            repo.Create<WhereModel>(models);
+            repo.CreateMany<WhereModel>(models);
 
             //a condition through a relation, and the relation reflects the new foreign key afterwards
             Assert.Equal(4, repo.Update<WhereModel>(x => x.Parent!.Name == "a" && x.Number > 0, new WhereModel { ParentID = parents[1].ID }, new Graph<WhereModel>(x => x.ParentID)));
@@ -301,7 +301,7 @@ namespace Zerra.Repository.Test
         {
             var repo = Repo.New();
             repo.AddProvider(new TransactStoreProvider<WhereModel>(new MemoryEngine()));
-            repo.Create<WhereModel>(Models());
+            repo.CreateMany<WhereModel>(Models());
 
             _ = Assert.Throws<ArgumentException>(() => repo.Update<WhereModel>(x => true, new WhereModel(), new Graph<WhereModel>()));
             _ = Assert.Throws<ArgumentException>(() => repo.Update<WhereModel>(x => true, new WhereModel(), new Graph<WhereModel>(x => x.ID)));
@@ -322,7 +322,7 @@ namespace Zerra.Repository.Test
             var cancellationToken = TestContext.Current.CancellationToken;
             var repo = Repo.New();
             repo.AddProvider(new TransactStoreProvider<WhereModel>(new MemoryEngine()));
-            await repo.CreateAsync<WhereModel>(Models(), cancellationToken);
+            await repo.CreateManyAsync<WhereModel>(Models(), cancellationToken);
 
             _ = await Assert.ThrowsAsync<ArgumentException>(() => repo.UpdateAsync<WhereModel>(x => true, new WhereModel(), new Graph<WhereModel>(), cancellationToken));
             _ = await Assert.ThrowsAsync<ArgumentException>(() => repo.UpdateAsync<WhereModel>(x => true, new WhereModel(), new Graph<WhereModel>(x => x.ID), cancellationToken));

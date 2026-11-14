@@ -23,7 +23,7 @@ namespace Store.Orders.Test
                 ClosedOn = status == OrderStatus.Placed ? null : placedOn.AddHours(1)
             };
             await test.Repo.CreateAsync(order);
-            await test.Repo.CreateAsync(items.Select(x => new OrderItemDataModel()
+            await test.Repo.CreateManyAsync(items.Select(x => new OrderItemDataModel()
             {
                 ID = Guid.NewGuid(),
                 OrderID = order.ID,

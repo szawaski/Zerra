@@ -24,7 +24,7 @@ namespace Zerra.Repository.Test
             var repo = Repo.New();
             repo.AddProvider(new TransactStoreProvider<DeleteBatchModel>(new MemoryEngine()));
             var models = Enumerable.Range(0, count).Select(_ => new DeleteBatchModel { ID = Guid.NewGuid() }).ToArray();
-            repo.Create<DeleteBatchModel>(models);
+            repo.CreateMany<DeleteBatchModel>(models);
             return (repo, models);
         }
 
@@ -33,11 +33,11 @@ namespace Zerra.Repository.Test
         public void Delete_AnyCount(int count)
         {
             var (repo, models) = Create(count);
-            repo.Delete<DeleteBatchModel>(models);
+            repo.DeleteMany<DeleteBatchModel>(models);
             Assert.Equal(0, repo.Query<DeleteBatchModel>().Count(x => true));
 
             (repo, models) = Create(count);
-            repo.DeleteByID<DeleteBatchModel>(models.Select(x => x.ID).ToArray());
+            repo.DeleteManyByID<DeleteBatchModel>(models.Select(x => x.ID).ToArray());
             Assert.Equal(0, repo.Query<DeleteBatchModel>().Count(x => true));
         }
 
@@ -46,11 +46,11 @@ namespace Zerra.Repository.Test
         public async Task DeleteAsync_AnyCount(int count)
         {
             var (repo, models) = Create(count);
-            await repo.DeleteAsync<DeleteBatchModel>(models, TestContext.Current.CancellationToken);
+            await repo.DeleteManyAsync<DeleteBatchModel>(models, TestContext.Current.CancellationToken);
             Assert.Equal(0, await repo.Query<DeleteBatchModel>().CountAsync(x => true, cancellationToken: TestContext.Current.CancellationToken));
 
             (repo, models) = Create(count);
-            await repo.DeleteByIDAsync<DeleteBatchModel>(models.Select(x => x.ID).ToArray(), TestContext.Current.CancellationToken);
+            await repo.DeleteManyByIDAsync<DeleteBatchModel>(models.Select(x => x.ID).ToArray(), TestContext.Current.CancellationToken);
             Assert.Equal(0, await repo.Query<DeleteBatchModel>().CountAsync(x => true, cancellationToken: TestContext.Current.CancellationToken));
         }
     }

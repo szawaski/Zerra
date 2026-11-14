@@ -81,7 +81,7 @@ namespace Zerra.Repository.Test
             Assert.Equal("two", repo.Query<CompositeParent>().SingleOrDefault(x => x.A == a && x.B == 2)!.Name);
             repo.Update(new CompositeParent { A = a, B = 2, Name = "updated" });
             Assert.Equal(["one", "updated"], repo.Query<CompositeParent>().Where(x => x.A == a).ToArray().Select(x => x.Name).Order());
-            repo.DeleteByID<CompositeParent>((object)new object[] { a, 1 }); //an object[] alone is a collection of IDs
+            repo.DeleteByID<CompositeParent>(new object[] { a, 1 });
             await repo.DeleteAsync(new CompositeParent { A = a, B = 2 }, TestContext.Current.CancellationToken);
             Assert.Empty(await repo.Query<CompositeParent>().Where(x => x.A == a).ToArrayAsync(cancellationToken: TestContext.Current.CancellationToken));
         }

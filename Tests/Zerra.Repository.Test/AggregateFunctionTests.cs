@@ -54,7 +54,7 @@ namespace Zerra.Repository.Test
             var repo = Repo.New();
             repo.AddProvider(new TransactStoreProvider<AggregateFunctionModel>(new MemoryEngine()));
             var models = Models();
-            repo.Create<AggregateFunctionModel>(models);
+            repo.CreateMany<AggregateFunctionModel>(models);
             return (repo, models);
         }
 
@@ -152,7 +152,7 @@ namespace Zerra.Repository.Test
         {
             var repo = Repo.New();
             repo.AddProvider(new TransactStoreProvider<AggregateFunctionModel>(new MemoryEngine(true)));
-            repo.Create<AggregateFunctionModel>(Models());
+            repo.CreateMany<AggregateFunctionModel>(Models());
 
             var byName = repo.Query<AggregateFunctionModel>().GroupBy(x => x.Name).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray();
             Assert.Equal(1, byName.Single(x => x.Key == "apple").Value);
@@ -198,7 +198,7 @@ namespace Zerra.Repository.Test
             var repo = Repo.New();
             repo.AddProvider<AggregateFunctionModel>(new EvenRules(new TransactStoreProvider<AggregateFunctionModel>(new MemoryEngine())));
             var models = Models();
-            repo.Create<AggregateFunctionModel>(models);
+            repo.CreateMany<AggregateFunctionModel>(models);
 
             Assert.Equal(2 + 4, repo.Query<AggregateFunctionModel>().Sum(x => x.Number));
             Assert.Equal(4, await repo.Query<AggregateFunctionModel>().Where(x => x.Number > 2).SumAsync(x => x.Number, cancellationToken: TestContext.Current.CancellationToken));
@@ -225,7 +225,7 @@ namespace Zerra.Repository.Test
                 var root = new TransactStoreProvider<AggregateFunctionModel>(new MemoryEngine());
                 repo.AddProvider<AggregateFunctionModel>(compression ? new Compressing(root) : new Encrypting(root));
                 var models = Models();
-                repo.Create<AggregateFunctionModel>(models);
+                repo.CreateMany<AggregateFunctionModel>(models);
 
                 Assert.Equal(models.Max(x => x.Number), repo.Query<AggregateFunctionModel>().Max(x => x.Number));
                 Assert.Equal(2, repo.Query<AggregateFunctionModel>().GroupBy(x => x.Flag).Select(g => new { g.Key, Value = (long)g.Count() }).ToArray().Select(r => (r.Key, r.Value)).ToArray().Length);

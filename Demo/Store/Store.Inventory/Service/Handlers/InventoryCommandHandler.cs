@@ -94,8 +94,8 @@ namespace Store.Inventory.Service.Handlers
                     stockItem!.Reserved += item.Quantity;
                 }
 
-                await Repo.UpdateAsync(stockItems.Values.ToArray());
-                await Repo.CreateAsync(items.Select(x => new StockReservationDataModel()
+                await Repo.UpdateManyAsync(stockItems.Values.ToArray());
+                await Repo.CreateManyAsync(items.Select(x => new StockReservationDataModel()
                 {
                     ID = Guid.NewGuid(),
                     OrderID = command.OrderID,
@@ -105,7 +105,7 @@ namespace Store.Inventory.Service.Handlers
                 }).ToArray());
 
                 var now = DateTime.UtcNow;
-                await Repo.CreateAsync(items.Select(x => new StockMovementDataModel()
+                await Repo.CreateManyAsync(items.Select(x => new StockMovementDataModel()
                 {
                     ID = Guid.NewGuid(),
                     ProductID = x.ProductID,
@@ -171,11 +171,11 @@ namespace Store.Inventory.Service.Handlers
                     }
                 }
 
-                await Repo.UpdateAsync(items.Values.ToArray());
-                await Repo.DeleteAsync(reservations);
+                await Repo.UpdateManyAsync(items.Values.ToArray());
+                await Repo.DeleteManyAsync(reservations);
 
                 var now = DateTime.UtcNow;
-                await Repo.CreateAsync(reservations.Select(x => new StockMovementDataModel()
+                await Repo.CreateManyAsync(reservations.Select(x => new StockMovementDataModel()
                 {
                     ID = Guid.NewGuid(),
                     ProductID = x.ProductID,

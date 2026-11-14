@@ -43,7 +43,7 @@ namespace Zerra.Repository.Benchmark.Benchmarks
             rulesSetup.AddProvider(new TransactStoreProvider<TestRelationsModel>(engine));
             rulesRepo = rulesSetup;
 
-            repo.Create<TestTypesModel>(Enumerable.Range(0, rows).Select(_ => TestTypesModel.Create()).ToArray());
+            repo.CreateMany<TestTypesModel>(Enumerable.Range(0, rows).Select(_ => TestTypesModel.Create()).ToArray());
         }
 
         [GlobalCleanup]

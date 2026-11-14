@@ -178,15 +178,14 @@ Reads become LINQ queries. For the rest, the arguments keep the same order as th
 | `Repo.QueryAsync(new EventQueryMany<T>(order, from, to, skip, take, where))` | `Repo.EventQuery<T>(order, dateFrom: from, dateTo: to).Where(x => ..x.Model..).Skip(skip).Take(take).ToArrayAsync()`, or `numberFrom`/`numberTo` for event numbers; also `FirstOrDefaultAsync`, `AnyAsync`, `LongCountAsync` |
 | `Repo.QueryAsync(new TemporalQueryMany<T>(args))` | `Repo.TemporalQuery<T>(...)` composed the same way |
 | `EventQueryNewest`/`Oldest`, `TemporalQueryNewest`/`Oldest` | `EventQuery<T>(order, ...)`/`TemporalQuery<T>(order, ...)` with `TemporalOrder.Newest` or `TemporalOrder.Oldest`, then `FirstOrDefaultAsync` |
-| `Repo.PersistAsync(new Create<T>(args))` | `Repo.CreateAsync<T>(args)` |
-| `Repo.PersistAsync(new Update<T>(args))` | `Repo.UpdateAsync<T>(args)` |
-| `Repo.PersistAsync(new Delete<T>(args))` | `Repo.DeleteAsync<T>(args)` |
-| `Repo.PersistAsync(new DeleteByID<T>(args))` | `Repo.DeleteByIDAsync<T>(args)` |
+| `Repo.PersistAsync(new Create<T>(args))` | `Repo.CreateAsync<T>(args)`, or `Repo.CreateManyAsync<T>(models)` for a collection |
+| `Repo.PersistAsync(new Update<T>(args))` | `Repo.UpdateAsync<T>(args)`, or `Repo.UpdateManyAsync<T>(models)` for a collection |
+| `Repo.PersistAsync(new Delete<T>(args))` | `Repo.DeleteAsync<T>(args)`, or `Repo.DeleteManyAsync<T>(models)` for a collection |
+| `Repo.PersistAsync(new DeleteByID<T>(args))` | `Repo.DeleteByIDAsync<T>(id)`, or `Repo.DeleteManyByIDAsync<T>(ids)` for a collection |
 | `Repo.Query(...)` / `Repo.Persist(...)` (sync) | `Repo.Query<T>()...ToArray()`, `Repo.Create`, ... |
 
 Watch for these:
 
-- **Always write the type argument** when passing a collection: `Repo.CreateAsync<LogNoteDTO>(items)`. Without it, a `List<T>` binds to the single-model overload with `TModel = List<T>`.
 - **Queries give an array or a list** from `ToArrayAsync` or `ToListAsync` (v5 returned `ICollection<T>`). Fix declared variable types, `Mapper.Map<ICollection<X>, Y[]>(...)` calls, and any `.Add` on the result.
 - **An event store query reads the current state** of each model. A v5 `QueryMany` of an event store gave every state; use `Repo.TemporalQuery<T>()` for that.
 - **In an event query the condition is on the event**, so the model's members are read through it: `x => x.Model.ID == id`. `SingleOrDefault` over more than one event throws, as in LINQ; use `FirstOrDefault` for the newest.

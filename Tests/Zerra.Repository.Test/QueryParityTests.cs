@@ -264,6 +264,8 @@ namespace Zerra.Repository.Test
             var nearOffset = new DateTimeOffset(2024, 1, 1, 11, 30, 0, TimeSpan.FromMinutes(-30));
             var money = 2.5m;
             var name = "banana";
+            int? missing = null;
+            int? present = 3;
 
             yield return ("equal", x => x.Number == 3);
             yield return ("not equal", x => x.Number != 3);
@@ -294,6 +296,11 @@ namespace Zerra.Repository.Test
             yield return ("not two nullable less", x => !(x.Maybe < x.Other));
             yield return ("not or with nullable", x => !(x.Maybe > 3 || x.Other == 1));
             yield return ("nullable value", x => x.Maybe.HasValue && x.Maybe.Value > 1);
+            yield return ("captured null not has value", x => !missing.HasValue || x.Number == missing.Value);
+            yield return ("captured not has value", x => !present.HasValue || x.Number == present.Value);
+            yield return ("captured has value", x => present.HasValue && x.Maybe == present.Value);
+            yield return ("captured null has value", x => missing.HasValue && x.Maybe == missing.Value);
+            yield return ("captured null value", x => x.Maybe == missing);
             yield return ("coalesce", x => (x.Maybe ?? -1) == -1);
             yield return ("bool", x => x.Flag);
             yield return ("not bool", x => !x.Flag);
@@ -385,7 +392,7 @@ namespace Zerra.Repository.Test
             foreach (var model in models)
                 await repo.CreateAsync(model);
             var lines = Lines(models);
-            await repo.CreateAsync<ParityLineModel>(lines);
+            await repo.CreateManyAsync<ParityLineModel>(lines);
             try
             {
                 using (var cancelled = new CancellationTokenSource())
@@ -436,7 +443,7 @@ namespace Zerra.Repository.Test
             }
             finally
             {
-                await repo.DeleteAsync<ParityLineModel>(lines);
+                await repo.DeleteManyAsync<ParityLineModel>(lines);
                 foreach (var model in models)
                     await repo.DeleteAsync(model);
             }
@@ -1702,9 +1709,9 @@ namespace Zerra.Repository.Test
             foreach (var model in models)
                 repo.Create(model);
             var lines = Lines(models);
-            repo.Create<ParityLineModel>(lines);
+            repo.CreateMany<ParityLineModel>(lines);
             var notes = Notes(lines);
-            repo.Create<ParityNoteModel>(notes);
+            repo.CreateMany<ParityNoteModel>(notes);
             try
             {
                 foreach (var (name, where) in Wheres())
@@ -1743,8 +1750,8 @@ namespace Zerra.Repository.Test
             }
             finally
             {
-                repo.Delete<ParityNoteModel>(notes);
-                repo.Delete<ParityLineModel>(lines);
+                repo.DeleteMany<ParityNoteModel>(notes);
+                repo.DeleteMany<ParityLineModel>(lines);
                 foreach (var model in models)
                     repo.Delete(model);
             }
@@ -2086,9 +2093,9 @@ namespace Zerra.Repository.Test
             foreach (var model in models)
                 await repo.CreateAsync(model);
             var lines = Lines(models);
-            await repo.CreateAsync<ParityLineModel>(lines);
+            await repo.CreateManyAsync<ParityLineModel>(lines);
             var notes = Notes(lines);
-            await repo.CreateAsync<ParityNoteModel>(notes);
+            await repo.CreateManyAsync<ParityNoteModel>(notes);
             try
             {
                 foreach (var (name, where) in Wheres())
@@ -2136,8 +2143,8 @@ namespace Zerra.Repository.Test
             }
             finally
             {
-                await repo.DeleteAsync<ParityNoteModel>(notes);
-                await repo.DeleteAsync<ParityLineModel>(lines);
+                await repo.DeleteManyAsync<ParityNoteModel>(notes);
+                await repo.DeleteManyAsync<ParityLineModel>(lines);
                 foreach (var model in models)
                     await repo.DeleteAsync(model);
             }

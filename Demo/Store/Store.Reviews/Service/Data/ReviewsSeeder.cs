@@ -16,7 +16,7 @@ namespace Store.Reviews.Service.Data
             if (await repo.Query<ReviewDataModel>().AnyAsync())
                 return;
 
-            await repo.CreateAsync<ReviewDataModel>(
+            await repo.CreateManyAsync<ReviewDataModel>(
             [
                 new()
                 {

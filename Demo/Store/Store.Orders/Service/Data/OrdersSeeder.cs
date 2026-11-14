@@ -14,7 +14,7 @@ namespace Store.Orders.Service.Data
             if (await repo.Query<CustomerDataModel>().AnyAsync())
                 return;
 
-            await repo.CreateAsync<CustomerDataModel>(
+            await repo.CreateManyAsync<CustomerDataModel>(
             [
                 new() { ID = DemoCustomerIds.Ada, Name = "Ada Lovelace", Email = "ada@example.com" },
                 new() { ID = DemoCustomerIds.Grace, Name = "Grace Hopper", Email = "grace@example.com" },
@@ -52,7 +52,7 @@ namespace Store.Orders.Service.Data
                 ClosedOn = shippedOn
             };
             await repo.CreateAsync(order);
-            await repo.CreateAsync(items.Select(x => new OrderItemDataModel()
+            await repo.CreateManyAsync(items.Select(x => new OrderItemDataModel()
             {
                 ID = Guid.NewGuid(),
                 OrderID = order.ID,

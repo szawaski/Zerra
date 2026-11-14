@@ -33,7 +33,7 @@ namespace Zerra.Repository.Test
         {
             var repo = Repo.New();
             repo.AddProvider(new TransactStoreProvider<OrderModel>(new MemoryEngine()));
-            repo.Create<OrderModel>(models);
+            repo.CreateMany<OrderModel>(models);
             return repo;
         });
 

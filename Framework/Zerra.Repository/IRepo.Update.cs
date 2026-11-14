@@ -87,7 +87,7 @@ namespace Zerra.Repository
         /// </summary>
         /// <typeparam name="TModel">The type of model being updated.</typeparam>
         /// <param name="models">The model instances to update.</param>
-        void Update<TModel>(IEnumerable<TModel> models) where TModel : class, new()
+        void UpdateMany<TModel>(IEnumerable<TModel> models) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Update, null, null, models.Cast<object>().ToArray(), null, null));
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being updated.</typeparam>
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="models">The model instances to update.</param>
-        void Update<TModel>(string? eventName, IEnumerable<TModel> models) where TModel : class, new()
+        void UpdateMany<TModel>(string? eventName, IEnumerable<TModel> models) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Update, eventName, null, models.Cast<object>().ToArray(), null, null));
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace Zerra.Repository
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="source">An optional object that initiated this operation.</param>
         /// <param name="models">The model instances to update.</param>
-        void Update<TModel>(string? eventName, object? source, IEnumerable<TModel> models) where TModel : class, new()
+        void UpdateMany<TModel>(string? eventName, object? source, IEnumerable<TModel> models) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Update, eventName, source, models.Cast<object>().ToArray(), null, null));
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being updated.</typeparam>
         /// <param name="models">The model instances to update.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
-        void Update<TModel>(IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
+        void UpdateMany<TModel>(IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Update, null, null, models.Cast<object>().ToArray(), null, graph));
 
         /// <summary>
@@ -125,7 +125,7 @@ namespace Zerra.Repository
         /// <param name="eventName">An optional human-readable event name; defaults to a generated name when <see langword="null"/> or whitespace.</param>
         /// <param name="models">The model instances to update.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
-        void Update<TModel>(string? eventName, IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
+        void UpdateMany<TModel>(string? eventName, IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Update, eventName, null, models.Cast<object>().ToArray(), null, graph));
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace Zerra.Repository
         /// <param name="source">An optional object that initiated this operation.</param>
         /// <param name="models">The model instances to update.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
-        void Update<TModel>(string? eventName, object? source, IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
+        void UpdateMany<TModel>(string? eventName, object? source, IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Update, eventName, source, models.Cast<object>().ToArray(), null, graph));
 
         /// <summary>
@@ -145,7 +145,7 @@ namespace Zerra.Repository
         /// <typeparam name="TModel">The type of model being updated.</typeparam>
         /// <param name="event">The pre-built event metadata to associate with this operation.</param>
         /// <param name="models">The model instances to update.</param>
-        void Update<TModel>(PersistEvent @event, IEnumerable<TModel> models) where TModel : class, new()
+        void UpdateMany<TModel>(PersistEvent @event, IEnumerable<TModel> models) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Update, @event, models.Cast<object>().ToArray(), null, null));
 
         /// <summary>
@@ -155,7 +155,7 @@ namespace Zerra.Repository
         /// <param name="event">The pre-built event metadata to associate with this operation.</param>
         /// <param name="models">The model instances to update.</param>
         /// <param name="graph">The property graph specifying which members to persist.</param>
-        void Update<TModel>(PersistEvent @event, IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
+        void UpdateMany<TModel>(PersistEvent @event, IEnumerable<TModel> models, Graph? graph) where TModel : class, new()
             => ((IRepoInternal)this).Persist(new Persist<TModel>(PersistOperation.Update, @event, models.Cast<object>().ToArray(), null, graph));
 
         /// <summary>
@@ -257,7 +257,7 @@ namespace Zerra.Repository
         /// <param name="models">The model instances to update.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task UpdateAsync<TModel>(IEnumerable<TModel> models, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task UpdateManyAsync<TModel>(IEnumerable<TModel> models, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Update, null, null, models.Cast<object>().ToArray(), null, null), cancellationToken);
 
         /// <summary>
@@ -268,7 +268,7 @@ namespace Zerra.Repository
         /// <param name="models">The model instances to update.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task UpdateAsync<TModel>(string? eventName, IEnumerable<TModel> models, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task UpdateManyAsync<TModel>(string? eventName, IEnumerable<TModel> models, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Update, eventName, null, models.Cast<object>().ToArray(), null, null), cancellationToken);
 
         /// <summary>
@@ -280,7 +280,7 @@ namespace Zerra.Repository
         /// <param name="models">The model instances to update.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task UpdateAsync<TModel>(string? eventName, object? source, IEnumerable<TModel> models, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task UpdateManyAsync<TModel>(string? eventName, object? source, IEnumerable<TModel> models, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Update, eventName, source, models.Cast<object>().ToArray(), null, null), cancellationToken);
 
         /// <summary>
@@ -291,7 +291,7 @@ namespace Zerra.Repository
         /// <param name="graph">The property graph specifying which members to persist.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task UpdateAsync<TModel>(IEnumerable<TModel> models, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task UpdateManyAsync<TModel>(IEnumerable<TModel> models, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Update, null, null, models.Cast<object>().ToArray(), null, graph), cancellationToken);
 
         /// <summary>
@@ -303,7 +303,7 @@ namespace Zerra.Repository
         /// <param name="graph">The property graph specifying which members to persist.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task UpdateAsync<TModel>(string? eventName, IEnumerable<TModel> models, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task UpdateManyAsync<TModel>(string? eventName, IEnumerable<TModel> models, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Update, eventName, null, models.Cast<object>().ToArray(), null, graph), cancellationToken);
 
         /// <summary>
@@ -316,7 +316,7 @@ namespace Zerra.Repository
         /// <param name="graph">The property graph specifying which members to persist.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task UpdateAsync<TModel>(string? eventName, object? source, IEnumerable<TModel> models, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task UpdateManyAsync<TModel>(string? eventName, object? source, IEnumerable<TModel> models, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Update, eventName, source, models.Cast<object>().ToArray(), null, graph), cancellationToken);
 
         /// <summary>
@@ -327,7 +327,7 @@ namespace Zerra.Repository
         /// <param name="models">The model instances to update.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task UpdateAsync<TModel>(PersistEvent @event, IEnumerable<TModel> models, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task UpdateManyAsync<TModel>(PersistEvent @event, IEnumerable<TModel> models, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Update, @event, models.Cast<object>().ToArray(), null, null), cancellationToken);
 
         /// <summary>
@@ -339,7 +339,7 @@ namespace Zerra.Repository
         /// <param name="graph">The property graph specifying which members to persist.</param>
         /// <param name="cancellationToken">A token that cancels the operation.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task UpdateAsync<TModel>(PersistEvent @event, IEnumerable<TModel> models, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
+        Task UpdateManyAsync<TModel>(PersistEvent @event, IEnumerable<TModel> models, Graph? graph, CancellationToken cancellationToken = default) where TModel : class, new()
             => ((IRepoInternal)this).PersistAsync(new Persist<TModel>(PersistOperation.Update, @event, models.Cast<object>().ToArray(), null, graph), cancellationToken);
     }
 }

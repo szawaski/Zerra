@@ -128,7 +128,7 @@ namespace Zerra.Repository.Test
             Clear(repo);
 
             var items = NewItems();
-            repo.Create<ItemModel>(items);
+            repo.CreateMany<ItemModel>(items);
             AssertItems(repo, items);
 
             foreach (var item in items)
@@ -136,35 +136,35 @@ namespace Zerra.Repository.Test
                 item.Number += count;
                 item.Name = item.Name is null ? "Named" + item.Number : null;
             }
-            repo.Update<ItemModel>(items);
+            repo.UpdateMany<ItemModel>(items);
             AssertItems(repo, items);
 
             var generated = Enumerable.Range(0, count).Select(i => new GeneratedModel() { Number = i, Name = i % 2 == 0 ? null : "Generated" + i }).ToArray();
-            repo.Create<GeneratedModel>(generated);
+            repo.CreateMany<GeneratedModel>(generated);
             AssertGenerated(repo, generated);
 
             //a model that isn't stored fails the update, and the others aren't changed
             var changed = items.Take(10).Select(x => new ItemModel() { ID = x.ID, Number = -1, Name = x.Name, Amount = x.Amount }).Append(new ItemModel() { ID = Guid.NewGuid(), Number = 1 }).ToArray();
-            _ = Assert.ThrowsAny<Exception>(() => repo.Update<ItemModel>(changed));
+            _ = Assert.ThrowsAny<Exception>(() => repo.UpdateMany<ItemModel>(changed));
             AssertItems(repo, items);
 
             //a model that is already stored fails the create, and the others aren't created
             if (rejectsDuplicates)
             {
                 var duplicate = new[] { new ItemModel() { ID = Guid.NewGuid(), Number = 1 }, new ItemModel() { ID = items[0].ID, Number = 2 } };
-                _ = Assert.ThrowsAny<Exception>(() => repo.Create<ItemModel>(duplicate));
+                _ = Assert.ThrowsAny<Exception>(() => repo.CreateMany<ItemModel>(duplicate));
                 Assert.Null(repo.Query<ItemModel>().Where(x => x.ID == duplicate[0].ID).FirstOrDefault());
             }
 
             //in a transaction the models are part of it
             using (repo.BeginTransaction())
             {
-                repo.Create<GeneratedModel>([new GeneratedModel() { Number = count + 1 }, new GeneratedModel() { Number = count + 2 }]);
+                repo.CreateMany<GeneratedModel>([new GeneratedModel() { Number = count + 1 }, new GeneratedModel() { Number = count + 2 }]);
             }
             Assert.Equal(0, repo.Query<GeneratedModel>().Count(x => x.Number > count));
 
             var parents = NewParents();
-            repo.Create<ParentModel>(parents, new Graph<ParentModel>(true, x => x.Generated, x => x.Children));
+            repo.CreateMany<ParentModel>(parents, new Graph<ParentModel>(true, x => x.Generated, x => x.Children));
             AssertParents(repo, parents);
 
             Clear(repo);
@@ -176,7 +176,7 @@ namespace Zerra.Repository.Test
             Clear(repo);
 
             var items = NewItems();
-            await repo.CreateAsync<ItemModel>(items);
+            await repo.CreateManyAsync<ItemModel>(items);
             AssertItems(repo, items);
 
             foreach (var item in items)
@@ -184,32 +184,32 @@ namespace Zerra.Repository.Test
                 item.Number += count;
                 item.Name = item.Name is null ? "Named" + item.Number : null;
             }
-            await repo.UpdateAsync<ItemModel>(items);
+            await repo.UpdateManyAsync<ItemModel>(items);
             AssertItems(repo, items);
 
             var generated = Enumerable.Range(0, count).Select(i => new GeneratedModel() { Number = i, Name = i % 2 == 0 ? null : "Generated" + i }).ToArray();
-            await repo.CreateAsync<GeneratedModel>(generated);
+            await repo.CreateManyAsync<GeneratedModel>(generated);
             AssertGenerated(repo, generated);
 
             var changed = items.Take(10).Select(x => new ItemModel() { ID = x.ID, Number = -1, Name = x.Name, Amount = x.Amount }).Append(new ItemModel() { ID = Guid.NewGuid(), Number = 1 }).ToArray();
-            _ = await Assert.ThrowsAnyAsync<Exception>(() => repo.UpdateAsync<ItemModel>(changed));
+            _ = await Assert.ThrowsAnyAsync<Exception>(() => repo.UpdateManyAsync<ItemModel>(changed));
             AssertItems(repo, items);
 
             if (rejectsDuplicates)
             {
                 var duplicate = new[] { new ItemModel() { ID = Guid.NewGuid(), Number = 1 }, new ItemModel() { ID = items[0].ID, Number = 2 } };
-                _ = await Assert.ThrowsAnyAsync<Exception>(() => repo.CreateAsync<ItemModel>(duplicate));
+                _ = await Assert.ThrowsAnyAsync<Exception>(() => repo.CreateManyAsync<ItemModel>(duplicate));
                 Assert.Null(repo.Query<ItemModel>().Where(x => x.ID == duplicate[0].ID).FirstOrDefault());
             }
 
             using (repo.BeginTransaction())
             {
-                await repo.CreateAsync<GeneratedModel>([new GeneratedModel() { Number = count + 1 }, new GeneratedModel() { Number = count + 2 }]);
+                await repo.CreateManyAsync<GeneratedModel>([new GeneratedModel() { Number = count + 1 }, new GeneratedModel() { Number = count + 2 }]);
             }
             Assert.Equal(0, repo.Query<GeneratedModel>().Count(x => x.Number > count));
 
             var parents = NewParents();
-            await repo.CreateAsync<ParentModel>(parents, new Graph<ParentModel>(true, x => x.Generated, x => x.Children));
+            await repo.CreateManyAsync<ParentModel>(parents, new Graph<ParentModel>(true, x => x.Generated, x => x.Children));
             AssertParents(repo, parents);
 
             Clear(repo);

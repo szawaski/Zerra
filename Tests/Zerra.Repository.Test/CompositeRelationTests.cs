@@ -65,7 +65,7 @@ namespace Zerra.Repository.Test
             Clear(repo);
 
             var orders = NewOrders();
-            repo.Create<OrderModel>(orders, new Graph<OrderModel>(true, x => x.Lines));
+            repo.CreateMany<OrderModel>(orders, new Graph<OrderModel>(true, x => x.Lines));
             //a line whose region is one order's and number another's matches neither, and a store with the foreign key's constraint refuses it
             var stray = new LineModel { ID = Guid.NewGuid(), Region = 2, OrderNumber = 2, Quantity = 9 };
             if (enforcesKeys)
@@ -150,7 +150,7 @@ namespace Zerra.Repository.Test
             Clear(repo);
 
             var orders = NewOrders();
-            await repo.CreateAsync<OrderModel>(orders, new Graph<OrderModel>(true, x => x.Lines));
+            await repo.CreateManyAsync<OrderModel>(orders, new Graph<OrderModel>(true, x => x.Lines));
             var withLines = (await repo.Query<OrderModel>(new Graph<OrderModel>(true, x => x.Lines)).ToArrayAsync()).OrderBy(x => x.Name).ToArray();
             Assert.Equal([1, 5], withLines[0].Lines!.Select(x => x.Quantity).Order());
             var withOrders = await repo.Query<LineModel>(new Graph<LineModel>(true, x => x.Order)).ToArrayAsync();
@@ -173,7 +173,7 @@ namespace Zerra.Repository.Test
             Clear(repo);
 
             var orders = NewOrders();
-            repo.Create<OrderModel>(orders, new Graph<OrderModel>(true, x => x.Lines));
+            repo.CreateMany<OrderModel>(orders, new Graph<OrderModel>(true, x => x.Lines));
             Names(["a"], repo.Query<OrderModel>().Where(x => x.Lines!.Any(l => l.Quantity > 4)));
             Names(["b", "c"], repo.Query<OrderModel>().Where(x => x.Lines!.All(l => l.Quantity < 4)));
             Names(["a", "c"], repo.Query<OrderModel>().Where(x => x.Lines!.Sum(l => l.Quantity) > 2));

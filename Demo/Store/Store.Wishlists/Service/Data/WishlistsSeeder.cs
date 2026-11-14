@@ -15,7 +15,7 @@ namespace Store.Wishlists.Service.Data
             if (await repo.Query<WishlistItemDataModel>().AnyAsync())
                 return;
 
-            await repo.CreateAsync<WishlistItemDataModel>(
+            await repo.CreateManyAsync<WishlistItemDataModel>(
             [
                 new() { ID = Guid.NewGuid(), CustomerID = DemoCustomerIds.Ada, ProductID = DemoProductIds.UltrawideMonitor, Note = "For the home office", AddedOn = DateTime.UtcNow.AddDays(-6) },
                 new() { ID = Guid.NewGuid(), CustomerID = DemoCustomerIds.Ada, ProductID = DemoProductIds.ErgonomicChair, AddedOn = DateTime.UtcNow.AddDays(-2) },

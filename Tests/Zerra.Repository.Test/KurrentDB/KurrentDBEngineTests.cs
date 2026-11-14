@@ -83,7 +83,7 @@ namespace Zerra.Repository.Test.KurrentDB
             var repo = Repo.New();
             repo.AddProvider(new EventStoreAsTransactStoreProvider<CancelModel>(engine));
             var models = Enumerable.Range(0, 5).Select(i => new CancelModel { ID = Guid.NewGuid(), Number = i }).ToArray();
-            await repo.CreateAsync<CancelModel>(models, cancellationToken);
+            await repo.CreateManyAsync<CancelModel>(models, cancellationToken);
             models[1].Number = 10;
             await repo.UpdateAsync(models[1], cancellationToken);
 
