@@ -16,7 +16,7 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <Version>6.0.0-rc.9</Version>
+        <Version>6.0.0-rc.10</Version>
         <Authors>Steven Zawaski</Authors>
         <Company>KaKush LLC</Company>
         <Copyright>KaKush LLC</Copyright>
