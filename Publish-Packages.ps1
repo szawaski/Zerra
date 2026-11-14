@@ -220,26 +220,33 @@ if (-not $Force) {
     }
 }
 
-$failed = @()
-foreach ($package in $packages) {
+# the first failure stops everything, so a bad API key or feed problem fails once instead of for every package
+function Stop-Publish([string]$failure, [object[]]$pushed, [object[]]$remaining) {
+    Write-Host ''
+    Write-Host "Failed: $failure" -ForegroundColor Red
+    if ($pushed.Count -gt 0) { Write-Host "Pushed before the failure: $(($pushed | ForEach-Object { $_.Id }) -join ', ')" -ForegroundColor Yellow }
+    if ($remaining.Count -gt 0) { Write-Host "Not pushed: $(($remaining | ForEach-Object { $_.Id }) -join ', ')" -ForegroundColor Yellow }
+    Write-Host 'Fix the problem and run again; packages already on the feed are skipped.' -ForegroundColor Yellow
+    exit 1
+}
+
+for ($i = 0; $i -lt $packages.Count; $i++) {
+    $package = $packages[$i]
     Write-Host "Pushing $($package.Id) $($package.Version)" -ForegroundColor Cyan
     & dotnet nuget push $package.Package --api-key $ApiKey --source $Source --skip-duplicate
     if ($LASTEXITCODE -ne 0) {
-        $failed += $package.Id
-        continue
+        Stop-Publish "push of $($package.Id) $($package.Version)" @($packages | Select-Object -First $i) @($packages | Select-Object -Skip $i)
     }
 
     # on nuget.org delete unlists, the version stays restorable
     foreach ($version in $package.Unlist) {
         Write-Host "Unlisting $($package.Id) $version" -ForegroundColor Cyan
         & dotnet nuget delete $package.Id $version --api-key $ApiKey --source $Source --non-interactive
-        if ($LASTEXITCODE -ne 0) { $failed += "$($package.Id) $version (unlist)" }
+        if ($LASTEXITCODE -ne 0) {
+            Stop-Publish "unlist of $($package.Id) $version" @($packages | Select-Object -First ($i + 1)) @($packages | Select-Object -Skip ($i + 1))
+        }
     }
 }
 
 Write-Host ''
-if ($failed.Count -gt 0) {
-    Write-Host "Failed: $($failed -join ', ')" -ForegroundColor Red
-    exit 1
-}
 Write-Host "Pushed $($packages.Count) packages." -ForegroundColor Green
