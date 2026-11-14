@@ -46,7 +46,7 @@ namespace Zerra.Reflection.Dynamic
 
                 var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
-                var voidMethod = method.ReturnType.Name == "Void";
+                var voidMethod = method.ReturnType == typeof(void);
 
                 var methodBuilder = typeBuilder.DefineMethod(
                     method.Name,

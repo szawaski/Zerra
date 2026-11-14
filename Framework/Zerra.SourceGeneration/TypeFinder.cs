@@ -119,8 +119,15 @@ namespace Zerra.SourceGeneration
                         foreach (var typeArg in namedTypeSymbol.TypeArguments)
                             CheckModel(typeArg, models, stack);
                     }
+                    //the dictionary converters use the detail of its KeyValuePair, which SearchModel would find through the interfaces
+                    if (specialType == SpecialType.Dictionary)
+                    {
+                        var enumerableInterface = typeSymbol.AllInterfaces.FirstOrDefault(x => x.MetadataName == "IEnumerable`1");
+                        if (enumerableInterface is not null)
+                            CheckModel(enumerableInterface.TypeArguments[0], models, stack);
+                    }
                 }
-                if (specialType != SpecialType.Dictionary && specialType != SpecialType.Object)
+                if (!TypeLookup.IsGeneratedSpecialType(specialType))
                     return;
             }
             else

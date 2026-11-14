@@ -37,11 +37,11 @@ namespace Zerra.SourceGeneration.Test
             return runtimeFiles.Concat(zerraFiles).Select(x => MetadataReference.CreateFromFile(x)).ToArray();
         }
 
-        public static GeneratorOutput Run(string source)
+        public static GeneratorOutput Run(string source, OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary)
         {
             var parseOptions = new CSharpParseOptions(LanguageVersion.Preview);
             var syntaxTree = CSharpSyntaxTree.ParseText(source, parseOptions);
-            var compilation = CSharpCompilation.Create("ZerraSourceGenerationTestAssembly", [syntaxTree], references, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable, allowUnsafe: true));
+            var compilation = CSharpCompilation.Create("ZerraSourceGenerationTestAssembly", [syntaxTree], references, new CSharpCompilationOptions(outputKind, nullableContextOptions: NullableContextOptions.Enable, allowUnsafe: true));
 
             var inputErrors = compilation.GetDiagnostics().Where(x => x.Severity == DiagnosticSeverity.Error).ToArray();
             Assert.True(inputErrors.Length == 0, $"Test source does not compile:{Environment.NewLine}{String.Join(Environment.NewLine, inputErrors.Select(x => x.ToString()))}");
@@ -97,6 +97,59 @@ namespace Zerra.SourceGeneration.Test
             var assembly = System.Reflection.Assembly.Load(stream.ToArray());
             System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(assembly.ManifestModule.ModuleHandle);
             return assembly;
+        }
+
+        //runs the source, built with OutputKind.ConsoleApplication, in its own process with dynamic code turned off as native AOT has it,
+        //so any type detail or converter the generator missed throws instead of being made through reflection
+        //the switch is read once when the process starts, which is why it can't be done in the test host
+        //this does not trim or compile ahead of time, so it finds what the generator misses, not what trimming removes
+        public (int ExitCode, string Output) RunWithoutDynamicCode()
+        {
+            Assert.Equal(OutputKind.ConsoleApplication, compilation.Options.OutputKind);
+
+            var directory = Path.Combine(Path.GetTempPath(), "ZerraNoDynamicCode", Guid.NewGuid().ToString("N"));
+            _ = Directory.CreateDirectory(directory);
+            try
+            {
+                var assemblyPath = Path.Combine(directory, $"{compilation.AssemblyName}.dll");
+                var emit = compilation.Emit(assemblyPath);
+                Assert.True(emit.Success, String.Join(Environment.NewLine, emit.Diagnostics));
+
+                foreach (var zerraFile in new string[] { typeof(Zerra.CQRS.ICommand).Assembly.Location, typeof(Zerra.Repository.AggregateRoot).Assembly.Location })
+                    File.Copy(zerraFile, Path.Combine(directory, Path.GetFileName(zerraFile)));
+
+                //the same runtime the test host runs on
+                var hostConfig = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, $"{typeof(GeneratorRunner).Assembly.GetName().Name}.runtimeconfig.json")))!;
+                var runtimeOptions = new System.Text.Json.Nodes.JsonObject()
+                {
+                    ["tfm"] = hostConfig["runtimeOptions"]!["tfm"]!.DeepClone(),
+                    ["framework"] = hostConfig["runtimeOptions"]!["framework"]!.DeepClone(),
+                    ["configProperties"] = new System.Text.Json.Nodes.JsonObject() { ["System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported"] = false }
+                };
+                File.WriteAllText(Path.Combine(directory, $"{compilation.AssemblyName}.runtimeconfig.json"), new System.Text.Json.Nodes.JsonObject() { ["runtimeOptions"] = runtimeOptions }.ToJsonString());
+
+                var startInfo = new System.Diagnostics.ProcessStartInfo("dotnet", $"\"{assemblyPath}\"")
+                {
+                    WorkingDirectory = directory,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false
+                };
+                using var process = new System.Diagnostics.Process() { StartInfo = startInfo };
+                var standardError = new StringBuilder();
+                process.ErrorDataReceived += (_, e) => { if (e.Data is not null) lock (standardError) _ = standardError.AppendLine(e.Data); };
+                _ = process.Start();
+                process.BeginErrorReadLine();
+                var standardOutput = process.StandardOutput.ReadToEnd();
+                Assert.True(process.WaitForExit(60000), "The app did not exit");
+                //waits for the error output to finish
+                process.WaitForExit();
+                return (process.ExitCode, standardOutput + standardError.ToString());
+            }
+            finally
+            {
+                try { Directory.Delete(directory, true); } catch { }
+            }
         }
 
         public IEnumerable<string> Lines(Func<string, bool> predicate) => Initializer.Split('\n').Where(predicate);

@@ -31,8 +31,8 @@ namespace Zerra.CQRS.Reflection.Dynamic
 
             var method = methods.FirstOrDefault() ?? throw new ArgumentException($"Method '{methodName}' not found in interface '{interfaceType.FullName}'");
 
-            var isTask = method.ReturnType.Name == nameof(Task);
-            var isTaskGeneric = method.ReturnType.Name == "Task`1";
+            var isTask = method.ReturnType == typeof(Task);
+            var isTaskGeneric = method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>);
             Type? taskInnerType = null;
             if (isTaskGeneric)
                 taskInnerType = method.ReturnType.GetGenericArguments()[0];

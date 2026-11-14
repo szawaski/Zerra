@@ -101,6 +101,7 @@ namespace Zerra.Reflection
             return coreEnumTypeLookup.TryGetValue(type, out coreType);
         }
 
+        private static readonly Type runtimeType = typeof(Type).GetType();
         /// <summary>
         /// Determines if the specified type is a special type and returns the corresponding SpecialType value.
         /// </summary>
@@ -109,27 +110,55 @@ namespace Zerra.Reflection
         /// <returns>true if the type is a special type; otherwise, false.</returns>
         public static bool GetSpecialType(Type type, out SpecialType specialType)
         {
+            //the name narrows it cheaply, the type itself confirms it, which benchmarked faster than comparing the namespace
             switch (type.Name)
             {
                 case "Task":
+                    if (type == typeof(Task))
+                    {
+                        specialType = SpecialType.Task;
+                        return true;
+                    }
+                    break;
                 case "Task`1":
-                    specialType = SpecialType.Task;
-                    return true;
+                    if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
+                    {
+                        specialType = SpecialType.Task;
+                        return true;
+                    }
+                    break;
                 case "Type":
+                    if (type == typeof(Type))
+                    {
+                        specialType = SpecialType.Type;
+                        return true;
+                    }
+                    break;
                 case "RuntimeType":
-                    specialType = SpecialType.Type;
-                    return true;
+                    if (type == runtimeType)
+                    {
+                        specialType = SpecialType.Type;
+                        return true;
+                    }
+                    break;
                 case "IDictionary`2":
                 case "IReadOnlyDictionary`2":
                 case "Dictionary`2":
                 case "ConcurrentDictionary`2":
                 case "ConcurrentFactoryDictionary`2":
-                    specialType = SpecialType.Dictionary;
-                    return true;
-                default:
-                    specialType = default;
-                    return false;
+                    if (type.IsGenericType)
+                    {
+                        var definition = type.GetGenericTypeDefinition();
+                        if (definition == typeof(IDictionary<,>) || definition == typeof(IReadOnlyDictionary<,>) || definition == typeof(Dictionary<,>) || definition == typeof(System.Collections.Concurrent.ConcurrentDictionary<,>) || definition == typeof(Zerra.Collections.ConcurrentFactoryDictionary<,>))
+                        {
+                            specialType = SpecialType.Dictionary;
+                            return true;
+                        }
+                    }
+                    break;
             }
+            specialType = default;
+            return false;
         }
     }
 }

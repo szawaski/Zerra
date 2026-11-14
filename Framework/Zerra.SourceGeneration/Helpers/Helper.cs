@@ -19,7 +19,7 @@ namespace Zerra.SourceGeneration
                 return "null";
             if (typeSymbol.Kind == SymbolKind.PointerType || typeSymbol.Kind == SymbolKind.FunctionPointerType)
                 return "typeof(nint)";
-            if (typeSymbol.Name == "Void")
+            if (typeSymbol.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Void)
                 return "typeof(void)";
             //if (!IsPublic(typeSymbol))
             //    return "null";

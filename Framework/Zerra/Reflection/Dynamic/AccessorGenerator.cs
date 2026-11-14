@@ -811,7 +811,7 @@ namespace Zerra.Reflection.Dynamic
             if (methodInfo.ContainsGenericParameters || String.IsNullOrEmpty(methodInfo.ReturnType.Name) || methodInfo.ReturnType.IsPointer || methodInfo.ReturnType.IsByRef || methodInfo.ReturnType.IsByRefLike)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType.Name == "Void" ? typeof(object) : methodInfo.ReturnType, [typeof(object), typeof(object[])], true);
+            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType == typeof(void) ? typeof(object) : methodInfo.ReturnType, [typeof(object), typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
             var success = GenerateMethod(il, methodInfo, false);
@@ -828,7 +828,7 @@ namespace Zerra.Reflection.Dynamic
             if (methodInfo.ContainsGenericParameters || String.IsNullOrEmpty(methodInfo.ReturnType.Name) || methodInfo.ReturnType.IsPointer || methodInfo.ReturnType.IsByRef || methodInfo.ReturnType.IsByRefLike)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType.Name == "Void" ? typeof(object) : methodInfo.ReturnType, [methodInfo.ReflectedType, typeof(object[])], true);
+            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType == typeof(void) ? typeof(object) : methodInfo.ReturnType, [methodInfo.ReflectedType, typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
             var success = GenerateMethod(il, methodInfo, false, true);
@@ -845,14 +845,14 @@ namespace Zerra.Reflection.Dynamic
             if (methodInfo.ContainsGenericParameters || String.IsNullOrEmpty(methodInfo.ReturnType.Name) || methodInfo.ReturnType.IsPointer || methodInfo.ReturnType.IsByRef || methodInfo.ReturnType.IsByRefLike)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType.Name == "Void" ? typeof(object) : methodInfo.ReturnType, [typeof(object), typeof(object[])], true);
+            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType == typeof(void) ? typeof(object) : methodInfo.ReturnType, [typeof(object), typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
             var success = GenerateMethod(il, methodInfo, false);
             if (!success)
                 return null;
 
-            var caller = dynamicMethod.CreateDelegate(typeof(Func<,,>).MakeGenericType(typeof(object), typeof(object[]), valueType.Name == "Void" ? typeof(object) : valueType));
+            var caller = dynamicMethod.CreateDelegate(typeof(Func<,,>).MakeGenericType(typeof(object), typeof(object[]), valueType == typeof(void) ? typeof(object) : valueType));
             return caller;
         }
         public static Delegate? GenerateCaller(MethodInfo methodInfo, Type objectType, Type valueType)
@@ -862,14 +862,14 @@ namespace Zerra.Reflection.Dynamic
             if (methodInfo.ContainsGenericParameters || String.IsNullOrEmpty(methodInfo.ReturnType.Name) || methodInfo.ReturnType.IsPointer || methodInfo.ReturnType.IsByRef || methodInfo.ReturnType.IsByRefLike)
                 return null;
 
-            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType.Name == "Void" ? typeof(object) : methodInfo.ReturnType, [methodInfo.ReflectedType, typeof(object[])], true);
+            var dynamicMethod = new DynamicMethod($"{methodInfo.ReflectedType.Name}.{methodInfo.Name}.Caller`1", methodInfo.ReturnType == typeof(void) ? typeof(object) : methodInfo.ReturnType, [methodInfo.ReflectedType, typeof(object[])], true);
             var il = dynamicMethod.GetILGenerator();
 
             var success = GenerateMethod(il, methodInfo, false, true);
             if (!success)
                 return null;
 
-            var caller = dynamicMethod.CreateDelegate(typeof(Func<,,>).MakeGenericType(objectType, typeof(object[]), valueType.Name == "Void" ? typeof(object) : valueType));
+            var caller = dynamicMethod.CreateDelegate(typeof(Func<,,>).MakeGenericType(objectType, typeof(object[]), valueType == typeof(void) ? typeof(object) : valueType));
             return caller;
         }
 

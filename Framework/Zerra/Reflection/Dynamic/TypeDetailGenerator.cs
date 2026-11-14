@@ -760,7 +760,7 @@ namespace Zerra.Reflection.Dynamic
                     }
                     else
                     {
-                        var methodDetailGenericType = TypeDetailGenerator.methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
+                        var methodDetailGenericType = TypeDetailGenerator.methodDetailType.MakeGenericType(method.ReturnType == typeof(void) ? typeof(object) : method.ReturnType);
                         var methodDetailType = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
                         methodDetail = (MethodDetail)methodDetailType.Invoke([type, method.Name, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
                     }
@@ -814,7 +814,7 @@ namespace Zerra.Reflection.Dynamic
                                 }
                                 else
                                 {
-                                    var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType.Name == "Void" ? typeof(object) : method.ReturnType);
+                                    var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType == typeof(void) ? typeof(object) : method.ReturnType);
                                     var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
                                     methodDetail = (MethodDetail)constructor.Invoke([type, name, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
                                 }

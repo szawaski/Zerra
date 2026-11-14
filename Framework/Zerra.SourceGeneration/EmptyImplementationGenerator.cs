@@ -122,7 +122,7 @@ namespace Zerra.SourceGeneration.Discovery
                 else
                 {
                     string returnValue;
-                    if (method.ReturnType.Name == "Task")
+                    if (TypeLookup.SpecialTypeLookup(method.ReturnType, out var returnSpecialType) && returnSpecialType == SpecialType.Task)
                     {
                         var namedReturnType = (INamedTypeSymbol)method.ReturnType;
                         if (namedReturnType.TypeParameters.Length > 0)

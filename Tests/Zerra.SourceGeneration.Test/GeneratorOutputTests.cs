@@ -519,6 +519,389 @@ namespace Zerra.SourceGeneration.Test
             }
         }
 
+        //special types such as Type and Task never get type detail, so a collection of one can't register serializers and a map, which look up the element's detail when registered
+        //an Exception reaches Type[] through TargetSite, and native AOT can't make the missing detail at startup
+        [Fact]
+        public void CollectionsOfNotGeneratedSpecialTypes()
+        {
+            var output = GeneratorRunner.Run("""
+                using System;
+                using System.Collections.Generic;
+                using System.Threading.Tasks;
+                using Zerra.Reflection;
+
+                namespace SpecialTestApp
+                {
+                    [GenerateTypeDetail]
+                    public class AppException : Exception
+                    {
+                        public AppException(string message) : base(message) { }
+                        public int Code { get; set; }
+                    }
+
+                    [GenerateTypeDetail]
+                    public class Holder
+                    {
+                        public Type? Single { get; set; }
+                        public Type[]? Types { get; set; }
+                        public List<Type>? TypeList { get; set; }
+                        public Dictionary<Type, string>? TypeKeys { get; set; }
+                        public Dictionary<string, Type>? TypeValues { get; set; }
+                        public Task[]? Tasks { get; set; }
+                        public string[]? Names { get; set; }
+                    }
+                }
+                """);
+
+            //the collections are still found and get type detail, Type itself does not
+            output.AssertInitializerContains("TypeDetail<global::System.Type[]>");
+            output.AssertInitializerDoesNotContain("TypeDetail<global::System.Type>");
+
+            var serializersAndMaps = new List<string>(output.Lines(x => x.Contains("Register.SerializersAndMap<")));
+            Assert.DoesNotContain(serializersAndMaps, x => System.Text.RegularExpressions.Regex.IsMatch(x, @",global::System\.(Type|Threading\.Tasks\.Task)[,>]"));
+            Assert.Contains(serializersAndMaps, x => x.Contains("Register.SerializersAndMap<global::SpecialTestApp.Holder,"));
+            Assert.Contains(serializersAndMaps, x => x.Contains("Register.SerializersAndMap<global::SpecialTestApp.AppException,"));
+            Assert.Contains(serializersAndMaps, x => x.Contains("Register.SerializersAndMap<string[],string,object,object>"));
+            AssertRegisteredTypeArgumentsGenerated(output);
+        }
+
+        [Fact]
+        public void CollectionsOfNotGeneratedSpecialTypesEveryKind()
+        {
+            var output = GeneratorRunner.Run("""
+                using System;
+                using System.Collections.Generic;
+                using System.Threading;
+                using System.Threading.Tasks;
+                using Zerra.Reflection;
+
+                namespace SpecialKindsTestApp
+                {
+                    public class TypeList : List<Type> { }
+
+                    public class TypeLookup : Dictionary<string, Type> { }
+
+                    [GenerateTypeDetail]
+                    public class Holder
+                    {
+                        public Task<int>[]? GenericTasks { get; set; }
+                        public IEnumerable<Task>? TaskEnumerable { get; set; }
+                        public CancellationToken[]? Tokens { get; set; }
+                        public IntPtr[]? Pointers { get; set; }
+                        public HashSet<Type>? TypeSet { get; set; }
+                        public IReadOnlyDictionary<string, Type>? ReadOnlyTypeValues { get; set; }
+                        public IDictionary<Type, int>? InterfaceTypeKeys { get; set; }
+                        public TypeList? CustomTypeList { get; set; }
+                        public TypeLookup? CustomTypeLookup { get; set; }
+
+                        public object[]? Objects { get; set; }
+                        public List<object>? ObjectList { get; set; }
+                        public Dictionary<string, object>? ObjectValues { get; set; }
+                        public Dictionary<string, Dictionary<string, int>>? NestedDictionaries { get; set; }
+                        public List<Type[]>? TypeArrays { get; set; }
+                        public List<int>? Numbers { get; set; }
+                        public string? Name { get; set; }
+                    }
+                }
+                """);
+
+            var serializersAndMaps = new List<string>(output.Lines(x => x.Contains("Register.SerializersAndMap<")));
+            void Registered(string type) => Assert.Contains(serializersAndMaps, x => x.Contains($"Register.SerializersAndMap<{type},"));
+            void NotRegistered(string type) => Assert.DoesNotContain(serializersAndMaps, x => x.Contains($"Register.SerializersAndMap<{type},"));
+
+            //an element, key, or value without type detail skips the registration, by array, interface, or a class deriving from a collection
+            NotRegistered("global::System.Threading.Tasks.Task<int>[]");
+            NotRegistered("global::System.Collections.Generic.IEnumerable<global::System.Threading.Tasks.Task>");
+            NotRegistered("global::System.Threading.CancellationToken[]");
+            NotRegistered("global::System.IntPtr[]");
+            NotRegistered("nint[]");
+            NotRegistered("global::System.Collections.Generic.HashSet<global::System.Type>");
+            NotRegistered("global::System.Collections.Generic.IReadOnlyDictionary<string, global::System.Type>");
+            NotRegistered("global::System.Collections.Generic.IDictionary<global::System.Type, int>");
+            NotRegistered("global::SpecialKindsTestApp.TypeList");
+            NotRegistered("global::SpecialKindsTestApp.TypeLookup");
+            Assert.DoesNotContain(serializersAndMaps, x => System.Text.RegularExpressions.Regex.IsMatch(x, @",global::System\.(Type|Threading\.Tasks\.Task(<int>)?|Threading\.CancellationToken|IntPtr)[,>]"));
+
+            //object and dictionaries have type detail, and so does an array of Type, so collections of them are still registered
+            Registered("global::SpecialKindsTestApp.Holder");
+            Registered("object[]");
+            Registered("global::System.Collections.Generic.List<object>");
+            Registered("global::System.Collections.Generic.Dictionary<string, object>");
+            Registered("global::System.Collections.Generic.Dictionary<string, global::System.Collections.Generic.Dictionary<string, int>>");
+            Registered("global::System.Collections.Generic.List<global::System.Type[]>");
+            Registered("global::System.Collections.Generic.List<int>");
+            AssertRegisteredTypeArgumentsGenerated(output);
+
+            //the generated registrations run and the model still serializes
+            var assembly = output.Load();
+            var type = assembly.GetType("SpecialKindsTestApp.Holder")!;
+            var model = Activator.CreateInstance(type)!;
+            type.GetProperty("Name")!.SetValue(model, "Holder1");
+            type.GetProperty("Numbers")!.SetValue(model, new List<int>() { 1, 2, 3 });
+            type.GetProperty("NestedDictionaries")!.SetValue(model, new Dictionary<string, Dictionary<string, int>>() { { "Outer", new Dictionary<string, int>() { { "Inner", 4 } } } });
+
+            var json = Zerra.Serialization.Json.JsonSerializer.Serialize(model, type);
+            var jsonResult = Zerra.Serialization.Json.JsonSerializer.Deserialize(json.AsSpan(), type)!;
+            AssertHolder(type, jsonResult);
+
+            var bytes = Zerra.Serialization.Bytes.ByteSerializer.Serialize(model, type);
+            var bytesResult = Zerra.Serialization.Bytes.ByteSerializer.Deserialize(bytes, type)!;
+            AssertHolder(type, bytesResult);
+
+            static void AssertHolder(Type type, object result)
+            {
+                Assert.Equal("Holder1", type.GetProperty("Name")!.GetValue(result));
+                Assert.Equal([1, 2, 3], (List<int>)type.GetProperty("Numbers")!.GetValue(result)!);
+                Assert.Equal(4, ((Dictionary<string, Dictionary<string, int>>)type.GetProperty("NestedDictionaries")!.GetValue(result)!)["Outer"]["Inner"]);
+            }
+        }
+
+        //a model of the user's that shares a special type's name is an ordinary model
+        [Fact]
+        public void ModelsNamedLikeSpecialTypes()
+        {
+            var output = GeneratorRunner.Run("""
+                using System.Collections.Generic;
+                using Zerra.Reflection;
+
+                namespace NamedTestApp
+                {
+                    public class Type
+                    {
+                        public string? Name { get; set; }
+                    }
+
+                    public class Task
+                    {
+                        public int Id { get; set; }
+                    }
+
+                    public class CancellationToken
+                    {
+                        public bool Cancelled { get; set; }
+                    }
+
+                    [GenerateTypeDetail]
+                    public class Holder
+                    {
+                        public Type? Single { get; set; }
+                        public List<Type>? Types { get; set; }
+                        public Task[]? Tasks { get; set; }
+                        public Dictionary<string, CancellationToken>? Tokens { get; set; }
+                    }
+                }
+                """);
+
+            output.AssertInitializerContains("TypeDetail<global::NamedTestApp.Type>");
+            output.AssertInitializerContains("TypeDetail<global::NamedTestApp.Task>");
+            output.AssertInitializerContains("TypeDetail<global::NamedTestApp.CancellationToken>");
+
+            var serializersAndMaps = new List<string>(output.Lines(x => x.Contains("Register.SerializersAndMap<")));
+            void Registered(string type) => Assert.Contains(serializersAndMaps, x => x.Contains($"Register.SerializersAndMap<{type},"));
+            Registered("global::NamedTestApp.Type");
+            Registered("global::NamedTestApp.Task");
+            Registered("global::NamedTestApp.CancellationToken");
+            Registered("global::System.Collections.Generic.List<global::NamedTestApp.Type>");
+            Registered("global::NamedTestApp.Task[]");
+            Registered("global::System.Collections.Generic.Dictionary<string, global::NamedTestApp.CancellationToken>");
+            AssertRegisteredTypeArgumentsGenerated(output);
+
+            var assembly = output.Load();
+            var holderType = assembly.GetType("NamedTestApp.Holder")!;
+            var typeType = assembly.GetType("NamedTestApp.Type")!;
+            var taskType = assembly.GetType("NamedTestApp.Task")!;
+
+            //the runtime lookup agrees with the generator
+            Assert.False(Zerra.Reflection.TypeLookup.GetSpecialType(typeType, out _));
+            Assert.False(Zerra.Reflection.TypeLookup.GetSpecialType(taskType, out _));
+            Assert.True(Zerra.Reflection.TypeLookup.GetSpecialType(typeof(Type), out var specialType));
+            Assert.Equal(Zerra.Reflection.SpecialType.Type, specialType);
+            Assert.True(Zerra.Reflection.TypeLookup.GetSpecialType(typeof(System.Threading.Tasks.Task<int>), out specialType));
+            Assert.Equal(Zerra.Reflection.SpecialType.Task, specialType);
+            Assert.True(Zerra.Reflection.TypeLookup.GetSpecialType(typeof(Zerra.Collections.ConcurrentFactoryDictionary<int, int>), out specialType));
+            Assert.Equal(Zerra.Reflection.SpecialType.Dictionary, specialType);
+            Assert.Null(Zerra.Reflection.TypeAnalyzer.GetTypeDetail(typeType).SpecialType);
+
+            var model = Activator.CreateInstance(holderType)!;
+            var single = Activator.CreateInstance(typeType)!;
+            typeType.GetProperty("Name")!.SetValue(single, "Single1");
+            holderType.GetProperty("Single")!.SetValue(model, single);
+            var task = Activator.CreateInstance(taskType)!;
+            taskType.GetProperty("Id")!.SetValue(task, 7);
+            var tasks = Array.CreateInstance(taskType, 1);
+            tasks.SetValue(task, 0);
+            holderType.GetProperty("Tasks")!.SetValue(model, tasks);
+
+            var json = Zerra.Serialization.Json.JsonSerializer.Serialize(model, holderType);
+            var jsonResult = Zerra.Serialization.Json.JsonSerializer.Deserialize(json.AsSpan(), holderType)!;
+            AssertHolder(jsonResult);
+
+            var bytes = Zerra.Serialization.Bytes.ByteSerializer.Serialize(model, holderType);
+            var bytesResult = Zerra.Serialization.Bytes.ByteSerializer.Deserialize(bytes, holderType)!;
+            AssertHolder(bytesResult);
+
+            void AssertHolder(object result)
+            {
+                Assert.Equal("Single1", typeType.GetProperty("Name")!.GetValue(holderType.GetProperty("Single")!.GetValue(result)));
+                var resultTasks = (Array)holderType.GetProperty("Tasks")!.GetValue(result)!;
+                Assert.Equal(7, taskType.GetProperty("Id")!.GetValue(resultTasks.GetValue(0)));
+            }
+        }
+
+        //registering the serializers looks up the detail of the element, key, and value, so each one must be generated, as native AOT can't make it at startup
+        //an element that wraps a special type is its own model and is generated, the special type inside is not looked up when registered
+        [Fact]
+        public void CollectionsOfTypesWrappingSpecialTypes()
+        {
+            var output = GeneratorRunner.Run("""
+                using System;
+                using System.Collections.Generic;
+                using System.Threading.Tasks;
+                using Zerra.Reflection;
+
+                namespace WrappedTestApp
+                {
+                    public class Model
+                    {
+                        public Type? Kind { get; set; }
+                    }
+
+                    [GenerateTypeDetail]
+                    public class Holder
+                    {
+                        public IntPtr?[]? NullablePointers { get; set; }
+                        public KeyValuePair<string, Type>[]? Pairs { get; set; }
+                        public Tuple<Type, int>[]? Tuples { get; set; }
+                        public Lazy<Task>[]? Lazies { get; set; }
+                        public List<Model>? Models { get; set; }
+                        public Dictionary<Model, Model[]>? ModelLookup { get; set; }
+                        public List<int?>? NullableInts { get; set; }
+                        public Type[]? Types { get; set; }
+                        public Dictionary<string, Type>? TypeValues { get; set; }
+                    }
+                }
+                """);
+
+            var serializersAndMaps = new List<string>(output.Lines(x => x.Contains("Register.SerializersAndMap<")));
+            void Registered(string type, string elementType) => Assert.Contains(serializersAndMaps, x => x.Contains($"Register.SerializersAndMap<{type},{elementType},"));
+            Registered("nint?[]", "nint?");
+            Registered("global::System.Collections.Generic.KeyValuePair<string, global::System.Type>[]", "global::System.Collections.Generic.KeyValuePair<string, global::System.Type>");
+            Registered("global::System.Tuple<global::System.Type, int>[]", "global::System.Tuple<global::System.Type, int>");
+            Registered("global::System.Lazy<global::System.Threading.Tasks.Task>[]", "global::System.Lazy<global::System.Threading.Tasks.Task>");
+
+            AssertRegisteredTypeArgumentsGenerated(output);
+            _ = output.Load();
+        }
+
+        private static void AssertRegisteredTypeArgumentsGenerated(GeneratorOutput output)
+        {
+            const string prefix = "Register.SerializersAndMap<";
+            foreach (var line in output.Lines(x => x.Contains(prefix)))
+            {
+                var start = line.IndexOf(prefix) + prefix.Length;
+                var end = line.LastIndexOf(">();");
+                var arguments = SplitTypeArguments(line.Substring(start, end - start));
+                Assert.Equal(4, arguments.Count);
+
+                //a string is a collection of char, but its converter is a core type's and never looks the char up
+                if (arguments[0] == "string")
+                    continue;
+
+                for (var i = 1; i < arguments.Count; i++)
+                {
+                    if (arguments[i] == "object")
+                        continue;
+                    Assert.True(output.Initializer.Contains($"TypeDetail<{arguments[i]}>("), $"{line.Trim()} registers {arguments[i]} without its type detail");
+                }
+            }
+
+            static List<string> SplitTypeArguments(string text)
+            {
+                var arguments = new List<string>();
+                var depth = 0;
+                var argumentStart = 0;
+                for (var i = 0; i < text.Length; i++)
+                {
+                    switch (text[i])
+                    {
+                        case '<': depth++; break;
+                        case '>': depth--; break;
+                        case ',' when depth == 0:
+                            arguments.Add(text.Substring(argumentStart, i - argumentStart));
+                            argumentStart = i + 1;
+                            break;
+                    }
+                }
+                arguments.Add(text.Substring(argumentStart));
+                return arguments;
+            }
+        }
+
+        //a custom map only looks up the detail of its source and target when registered, so a collection of a special type keeps its map
+        [Fact]
+        public void CustomMapOfNotGeneratedSpecialTypes()
+        {
+            var output = GeneratorRunner.Run("""
+                using System;
+                using System.Collections.Generic;
+                using Zerra.Map;
+
+                namespace SpecialMapTestApp
+                {
+                    public class TypesToNames : IMapDefinition<Type[], List<Type>>
+                    {
+                    }
+                }
+                """);
+
+            output.AssertInitializerContains("global::Zerra.Reflection.Register.CustomMap<global::System.Type[],global::System.Collections.Generic.List<global::System.Type>,global::System.Type,global::System.Type,object,object,object,object>(new global::SpecialMapTestApp.TypesToNames());");
+            _ = output.Load();
+        }
+
+        [Fact]
+        public void NotGeneratedSpecialTypeLookup()
+        {
+            Assert.True(TypeLookup.IsGeneratedSpecialType(SpecialType.Dictionary));
+            Assert.True(TypeLookup.IsGeneratedSpecialType(SpecialType.Object));
+            Assert.False(TypeLookup.IsGeneratedSpecialType(SpecialType.Type));
+            Assert.False(TypeLookup.IsGeneratedSpecialType(SpecialType.Task));
+            Assert.False(TypeLookup.IsGeneratedSpecialType(SpecialType.Void));
+            Assert.False(TypeLookup.IsGeneratedSpecialType(SpecialType.Pointer));
+            Assert.False(TypeLookup.IsGeneratedSpecialType(SpecialType.CancellationToken));
+
+            var userTypes = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText("""
+                namespace System.Models { public class Type { } }
+                namespace Threading { public class CancellationToken { } }
+                namespace App.System { public class Object { } }
+                namespace App.System.Threading.Tasks { public class Task { } }
+                namespace App { public class Outer { public class Type { } } }
+                """, cancellationToken: TestContext.Current.CancellationToken);
+            var compilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create("SpecialTypeLookup", [userTypes], [Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+            Microsoft.CodeAnalysis.ITypeSymbol Symbol(string metadataName) => compilation.GetTypeByMetadataName(metadataName)!;
+
+            Assert.True(TypeLookup.IsNotGeneratedSpecialType(Symbol("System.Type")));
+            Assert.True(TypeLookup.IsNotGeneratedSpecialType(Symbol("System.Threading.Tasks.Task")));
+            Assert.True(TypeLookup.IsNotGeneratedSpecialType(Symbol("System.Threading.Tasks.Task`1")));
+            Assert.True(TypeLookup.IsNotGeneratedSpecialType(Symbol("System.Threading.CancellationToken")));
+            Assert.True(TypeLookup.IsNotGeneratedSpecialType(Symbol("System.IntPtr")));
+            Assert.True(TypeLookup.IsNotGeneratedSpecialType(Symbol("System.UIntPtr")));
+            Assert.True(TypeLookup.IsNotGeneratedSpecialType(Symbol("System.Void")));
+
+            Assert.False(TypeLookup.IsNotGeneratedSpecialType(Symbol("System.Object")));
+            Assert.False(TypeLookup.IsNotGeneratedSpecialType(Symbol("System.Collections.Generic.Dictionary`2")));
+            Assert.False(TypeLookup.IsNotGeneratedSpecialType(Symbol("System.Collections.Generic.IReadOnlyDictionary`2")));
+            Assert.False(TypeLookup.IsNotGeneratedSpecialType(Symbol("System.String")));
+            Assert.False(TypeLookup.IsNotGeneratedSpecialType(Symbol("System.Int32")));
+            Assert.False(TypeLookup.IsNotGeneratedSpecialType(compilation.CreateArrayTypeSymbol(Symbol("System.Type"))));
+
+            //the same names in other namespaces, including ones nested in or ending like the real namespace
+            Assert.False(TypeLookup.SpecialTypeLookup(Symbol("System.Models.Type"), out _));
+            Assert.False(TypeLookup.SpecialTypeLookup(Symbol("Threading.CancellationToken"), out _));
+            Assert.False(TypeLookup.SpecialTypeLookup(Symbol("App.System.Object"), out _));
+            Assert.False(TypeLookup.SpecialTypeLookup(Symbol("App.System.Threading.Tasks.Task"), out _));
+            Assert.False(TypeLookup.SpecialTypeLookup(Symbol("App.Outer+Type"), out _));
+        }
+
         //a reference type declared non-nullable tells its member detail it can't be null, everything else is left to the type
         [Fact]
         public void MemberNullability()

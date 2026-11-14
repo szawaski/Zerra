@@ -168,36 +168,105 @@ namespace Zerra.SourceGeneration
             {
                 case "Task":
                 case "Task`1":
-                    specialType = SpecialType.Task;
-                    return true;
+                    if (InNamespace(typeSymbol, "System", "Threading", "Tasks"))
+                    {
+                        specialType = SpecialType.Task;
+                        return true;
+                    }
+                    break;
                 case "Type":
                 case "RuntimeType":
-                    specialType = SpecialType.Type;
-                    return true;
+                    if (InNamespace(typeSymbol, "System"))
+                    {
+                        specialType = SpecialType.Type;
+                        return true;
+                    }
+                    break;
                 case "IDictionary`2":
                 case "IReadOnlyDictionary`2":
                 case "Dictionary`2":
+                    if (InNamespace(typeSymbol, "System", "Collections", "Generic"))
+                    {
+                        specialType = SpecialType.Dictionary;
+                        return true;
+                    }
+                    break;
                 case "ConcurrentDictionary`2":
+                    if (InNamespace(typeSymbol, "System", "Collections", "Concurrent"))
+                    {
+                        specialType = SpecialType.Dictionary;
+                        return true;
+                    }
+                    break;
                 case "ConcurrentFactoryDictionary`2":
-                    specialType = SpecialType.Dictionary;
-                    return true;
+                    if (InNamespace(typeSymbol, "Zerra", "Collections"))
+                    {
+                        specialType = SpecialType.Dictionary;
+                        return true;
+                    }
+                    break;
                 case "Object":
-                    specialType = SpecialType.Object;
-                    return true;
+                    if (InNamespace(typeSymbol, "System"))
+                    {
+                        specialType = SpecialType.Object;
+                        return true;
+                    }
+                    break;
                 case "Void":
-                    specialType = SpecialType.Void;
-                    return true;
+                    if (InNamespace(typeSymbol, "System"))
+                    {
+                        specialType = SpecialType.Void;
+                        return true;
+                    }
+                    break;
                 case "IntPtr":
                 case "UIntPtr":
-                    specialType = SpecialType.Pointer;
-                    return true;
+                    if (InNamespace(typeSymbol, "System"))
+                    {
+                        specialType = SpecialType.Pointer;
+                        return true;
+                    }
+                    break;
                 case "CancellationToken":
-                    specialType = SpecialType.CancellationToken;
-                    return true;
-                default:
-                    specialType = default;
-                    return false;
+                    if (InNamespace(typeSymbol, "System", "Threading"))
+                    {
+                        specialType = SpecialType.CancellationToken;
+                        return true;
+                    }
+                    break;
             }
+            specialType = default;
+            return false;
         }
+        //walks the namespace symbols from the innermost out, building the full name would allocate
+        private static bool InNamespace(ITypeSymbol typeSymbol, string root, string? second = null, string? third = null)
+        {
+            var ns = typeSymbol.ContainingNamespace;
+            if (third is not null)
+            {
+                if (ns is null || ns.Name != third)
+                    return false;
+                ns = ns.ContainingNamespace;
+            }
+            if (second is not null)
+            {
+                if (ns is null || ns.Name != second)
+                    return false;
+                ns = ns.ContainingNamespace;
+            }
+            return ns is not null && ns.Name == root && ns.ContainingNamespace is not null && ns.ContainingNamespace.IsGlobalNamespace;
+        }
+        /// <summary>
+        /// Determines whether a special type is generated as a model. Only dictionaries and object are, the others never get type detail.
+        /// </summary>
+        /// <param name="specialType">The special type to check.</param>
+        /// <returns><c>true</c> if the special type is generated; otherwise, <c>false</c>.</returns>
+        public static bool IsGeneratedSpecialType(SpecialType specialType) => specialType == SpecialType.Dictionary || specialType == SpecialType.Object;
+        /// <summary>
+        /// Determines whether a type is a special type that is never generated, such as Type or Task.
+        /// </summary>
+        /// <param name="typeSymbol">The type symbol to check.</param>
+        /// <returns><c>true</c> if the type is a special type without type detail; otherwise, <c>false</c>.</returns>
+        public static bool IsNotGeneratedSpecialType(ITypeSymbol typeSymbol) => SpecialTypeLookup(typeSymbol, out var specialType) && !IsGeneratedSpecialType(specialType);
     }
 }

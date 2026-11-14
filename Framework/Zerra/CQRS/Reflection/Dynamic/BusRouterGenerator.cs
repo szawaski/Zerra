@@ -95,13 +95,13 @@ namespace Zerra.CQRS.Reflection.Dynamic
             foreach (var method in methods)
             {
                 var returnType = method.ReturnType;
-                var voidMethod = returnType.Name == "Void";
+                var voidMethod = returnType == typeof(void);
                 var parameterTypes = method.GetParameters().Select(x => x.ParameterType).ToArray();
 
                 MethodInfo callMethod;
-                if (method.ReturnType.Name == "Task`1")
+                if (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
                     callMethod = callGenericTask.MakeGenericMethod(method.ReturnType.GetGenericArguments()[0]);
-                else if (method.ReturnType.Name == nameof(Task))
+                else if (method.ReturnType == typeof(Task))
                     callMethod = callTask;
                 else
                     callMethod = call.MakeGenericMethod(voidMethod ? typeof(object) : method.ReturnType);

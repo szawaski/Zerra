@@ -73,7 +73,18 @@ namespace Zerra.SourceGeneration
                     if (Helper.IsTypeOrBase("Zerra.Map", "MapDefinition", model.TypeSymbol) || model.TypeSymbol.AllInterfaces.Any(x => x.Name == "IMapDefinition" && x.ContainingNamespace.ToString() == "Zerra.Map"))
                         continue;
 
-                    var (typeName, enumerableTypeName, dictionaryKeyTypeName, dictionaryValueTypeName) = GetTypeParameters(model.TypeSymbol);
+                    var (enumerableType, dictionaryKeyType, dictionaryValueType) = GetTypeParameterSymbols(model.TypeSymbol);
+
+                    //the serializers and map look up the detail of these types when registered, and the finder never generates the special types it skips, such as Type and Task
+                    if ((enumerableType is not null && TypeLookup.IsNotGeneratedSpecialType(enumerableType))
+                        || (dictionaryKeyType is not null && TypeLookup.IsNotGeneratedSpecialType(dictionaryKeyType))
+                        || (dictionaryValueType is not null && TypeLookup.IsNotGeneratedSpecialType(dictionaryValueType)))
+                        continue;
+
+                    var typeName = Helper.GetFullName(model.TypeSymbol);
+                    var enumerableTypeName = GetTypeParameterName(enumerableType);
+                    var dictionaryKeyTypeName = GetTypeParameterName(dictionaryKeyType);
+                    var dictionaryValueTypeName = GetTypeParameterName(dictionaryValueType);
 
                     _ = sb.Append(EnvironmentHelper.NewLine);
                     _ = sb.Append("global::Zerra.Reflection.Register.SerializersAndMap<")
@@ -88,37 +99,46 @@ namespace Zerra.SourceGeneration
 
         private static (string, string, string, string) GetTypeParameters(ITypeSymbol typeSymbol)
         {
+            var (enumerableType, dictionaryKeyType, dictionaryValueType) = GetTypeParameterSymbols(typeSymbol);
+            return (Helper.GetFullName(typeSymbol), GetTypeParameterName(enumerableType), GetTypeParameterName(dictionaryKeyType), GetTypeParameterName(dictionaryValueType));
+        }
+
+        private static string GetTypeParameterName(ITypeSymbol? typeSymbol) => typeSymbol is null ? "object" : Helper.GetFullName(typeSymbol);
+
+        //null where the type is not that kind of collection, which is registered as object
+        private static (ITypeSymbol?, ITypeSymbol?, ITypeSymbol?) GetTypeParameterSymbols(ITypeSymbol typeSymbol)
+        {
             var namedTypeSymbol = typeSymbol as INamedTypeSymbol;
 
-            var innerTypeName = "object";
+            ITypeSymbol? innerType = null;
             if (namedTypeSymbol is not null)
             {
                 if (namedTypeSymbol.TypeArguments.Length == 1)
-                    innerTypeName = Helper.GetFullName(namedTypeSymbol.TypeArguments[0]);
+                    innerType = namedTypeSymbol.TypeArguments[0];
             }
             else if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
             {
-                innerTypeName = Helper.GetFullName(arrayTypeSymbol.ElementType);
+                innerType = arrayTypeSymbol.ElementType;
             }
 
-            var enumerableTypeName = "object";
+            ITypeSymbol? enumerableType = null;
             var isArray = typeSymbol.Kind == SymbolKind.ArrayType;
             var interfaceNames = typeSymbol.AllInterfaces.Select(x => x.MetadataName).ToImmutableHashSet();
             var hasIEnumerableGeneric = isArray || typeSymbol.MetadataName == enumberableGenericTypeName || interfaceNames.Contains(enumberableGenericTypeName);
             var isIEnumerableGeneric = typeSymbol.MetadataName == enumberableGenericTypeName;
             if (isIEnumerableGeneric || typeSymbol.TypeKind == TypeKind.Array)
             {
-                enumerableTypeName = innerTypeName;
+                enumerableType = innerType;
             }
             else if (hasIEnumerableGeneric)
             {
                 var interfaceSymbol = typeSymbol.AllInterfaces.FirstOrDefault(x => x.MetadataName == enumberableGenericTypeName);
                 if (interfaceSymbol is not null)
-                    enumerableTypeName = Helper.GetFullName(interfaceSymbol.TypeArguments[0]);
+                    enumerableType = interfaceSymbol.TypeArguments[0];
             }
 
-            var dictionaryKeyTypeName = "object";
-            var dictionaryValueTypeName = "object";
+            ITypeSymbol? dictionaryKeyType = null;
+            ITypeSymbol? dictionaryValueType = null;
             var hasIDictionary = typeSymbol.MetadataName == dictionaryTypeName || interfaceNames.Contains(dictionaryTypeName);
             var hasIDictionaryGeneric = typeSymbol.MetadataName == dictionaryGenericTypeName || interfaceNames.Contains(dictionaryGenericTypeName);
             var hasIReadOnlyDictionaryGeneric = typeSymbol.MetadataName == readOnlyDictionaryGenericTypeName || interfaceNames.Contains(readOnlyDictionaryGenericTypeName);
@@ -128,8 +148,8 @@ namespace Zerra.SourceGeneration
             {
                 if (namedTypeSymbol != null)
                 {
-                    dictionaryKeyTypeName = Helper.GetFullName(namedTypeSymbol.TypeArguments[0]);
-                    dictionaryValueTypeName = Helper.GetFullName(namedTypeSymbol.TypeArguments[1]);
+                    dictionaryKeyType = namedTypeSymbol.TypeArguments[0];
+                    dictionaryValueType = namedTypeSymbol.TypeArguments[1];
                 }
             }
             else if (hasIDictionaryGeneric)
@@ -138,8 +158,8 @@ namespace Zerra.SourceGeneration
                 if (interfaceFound.Length == 1)
                 {
                     var i = interfaceFound[0];
-                    dictionaryKeyTypeName = Helper.GetFullName(i.TypeArguments[0]);
-                    dictionaryValueTypeName = Helper.GetFullName(i.TypeArguments[1]);
+                    dictionaryKeyType = i.TypeArguments[0];
+                    dictionaryValueType = i.TypeArguments[1];
                 }
             }
             else if (hasIReadOnlyDictionaryGeneric)
@@ -148,8 +168,8 @@ namespace Zerra.SourceGeneration
                 if (interfaceFound.Length == 1)
                 {
                     var i = interfaceFound[0];
-                    dictionaryKeyTypeName = Helper.GetFullName(i.TypeArguments[0]);
-                    dictionaryValueTypeName = Helper.GetFullName(i.TypeArguments[1]);
+                    dictionaryKeyType = i.TypeArguments[0];
+                    dictionaryValueType = i.TypeArguments[1];
                 }
             }
             else if (hasIDictionary)
@@ -157,7 +177,7 @@ namespace Zerra.SourceGeneration
                 //dictionaryInnerTypeOf = "typeof(DictionaryEntry)";
             }
 
-            return (Helper.GetFullName(typeSymbol), enumerableTypeName, dictionaryKeyTypeName, dictionaryValueTypeName);
+            return (enumerableType, dictionaryKeyType, dictionaryValueType);
         }  
     }
 }

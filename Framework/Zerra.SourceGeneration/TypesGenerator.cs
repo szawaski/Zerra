@@ -441,7 +441,7 @@ namespace Zerra.SourceGeneration
                     else
                         hasFirst = true;
 
-                    var isVoid = method.ReturnType.Name == "Void";
+                    var isVoid = method.ReturnsVoid;
                     var methodReturnTypeName = isVoid ? "object?" : Helper.GetFullName(method.ReturnType);
 
                     _ = sb.Append(EnvironmentHelper.NewLine).Append("                ");

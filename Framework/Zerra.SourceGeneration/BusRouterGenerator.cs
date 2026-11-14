@@ -94,7 +94,7 @@ namespace Zerra.SourceGeneration
                 if (method.MethodKind != MethodKind.Ordinary)
                     continue;
 
-                var isTask = method.ReturnType.Name == "Task";
+                var isTask = TypeLookup.SpecialTypeLookup(method.ReturnType, out var returnSpecialType) && returnSpecialType == SpecialType.Task;
                 string? taskInnerTypeName = null;
                 var typeOfTaskInnerType = "null";
                 if (isTask)
