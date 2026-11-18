@@ -24,16 +24,12 @@ namespace Zerra.SourceGeneration.Test
             var netVersionString = netVersion.ToString("0.0");
             var directive = $"NET{netVersionString.Replace('.', '_')}";
 
-            var netCorePath = DirectoryHelper.NetCoreDirectory;
-            var folders = netCorePath.GetDirectories($"{netVersionString}.*");
-            var netCoreVersionPath = folders.OrderByDescending(x => Int32.Parse(x.Name.Split('.').Last())).FirstOrDefault();
-            if (netCoreVersionPath is null)
-                throw new InvalidOperationException("NetCore Version not found");
-
+            //the runtime the tests run on, so it's found on any machine and OS without a particular .NET installed
+            var runtimeDirectory = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
             var referenceFiles = new string[]
             {
-                $"{netCoreVersionPath}\\System.Private.CoreLib.dll",
-                $"{netCoreVersionPath}\\System.Runtime.dll"
+                Path.Combine(runtimeDirectory, "System.Private.CoreLib.dll"),
+                Path.Combine(runtimeDirectory, "System.Runtime.dll")
             };
             var references = referenceFiles.Select(x => MetadataReference.CreateFromFile(x)).ToArray();
 

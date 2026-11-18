@@ -35,26 +35,5 @@ namespace Zerra.SourceGeneration.Test
                 return solutionDirectory;
             }
         }
-
-        private static DirectoryInfo? netCoreDirectory = null;
-        public static DirectoryInfo NetCoreDirectory
-        {
-            get
-            {
-                if (netCoreDirectory is null)
-                {
-                    lock (locker)
-                    {
-                        if (netCoreDirectory is null)
-                        {
-                            var thisRuntimeAssembly = AppDomain.CurrentDomain.GetAssemblies().First(x => x.Location.EndsWith("System.Runtime.dll"));
-                            var netCorePath = new DirectoryInfo(thisRuntimeAssembly.Location);
-                            netCoreDirectory = netCorePath.Parent!.Parent!;
-                        }
-                    }
-                }
-                return netCoreDirectory;
-            }
-        }
     }
 }

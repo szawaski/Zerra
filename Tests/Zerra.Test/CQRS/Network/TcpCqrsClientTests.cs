@@ -587,6 +587,81 @@ namespace Zerra.Test.CQRS.Network
             Assert.Equal([1, 2, 3], ms.ToArray());
         }
 
+        public static TheoryData<Operation, bool> OperationsWithEncryption()
+        {
+            var data = new TheoryData<Operation, bool>();
+            foreach (var operation in Enum.GetValues<Operation>())
+            {
+                data.Add(operation, false);
+                data.Add(operation, true);
+            }
+            return data;
+        }
+
+        //Linux delivers a response written all at once in one read, so the body starts in the client's header buffer, twice to reuse the connection
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(OperationsWithEncryption))]
+        public async Task Operation_ResponseArrivingWithHeader_Succeeds(Operation operation, bool encrypt)
+        {
+            var enc = encrypt ? encryptor : null;
+            using var server = new FakeServer(enc, Respond, combineWrites: true);
+            using var client = CreateClient(server, enc);
+            var cancellationToken = TestContext.Current.CancellationToken;
+
+            for (var i = 0; i < 2; i++)
+            {
+                switch (operation)
+                {
+                    case Operation.Call:
+                        Assert.Equal(42, await Task.Run(() => ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetData), [typeof(byte[])], [null!], source, null, null), cancellationToken));
+                        break;
+                    case Operation.CallTaskGeneric:
+                        Assert.Equal(42, await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetData), [typeof(byte[])], [null!], source, null, null, cancellationToken));
+                        break;
+                    case Operation.DispatchAwaitResult:
+                        Assert.Equal(42, await ((ICommandProducer)client).DispatchAwaitAsync(new TestCommandWithResult { Value = 1 }, source, cancellationToken));
+                        break;
+                    default:
+                        await RunAsync(client, operation, token: cancellationToken);
+                        break;
+                }
+            }
+        }
+
+        [Theory(Timeout = timeout)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task StreamResultArrivingWithHeader_ReturnsStream(bool encrypt)
+        {
+            var enc = encrypt ? encryptor : null;
+            using var server = new FakeServer(enc, request => request.WriteStreamAsync([1, 2, 3, 4, 5]), combineWrites: true);
+            using var client = CreateClient(server, enc);
+            var cancellationToken = TestContext.Current.CancellationToken;
+
+            var bytes = await Task.Run(() =>
+            {
+                using var stream = ((IQueryClient)client).Call<Stream>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream), [], [], source, null, null);
+                using var ms = new MemoryStream();
+                stream.CopyTo(ms);
+                return ms.ToArray();
+            }, cancellationToken);
+            Assert.Equal([1, 2, 3, 4, 5], bytes);
+
+            await using (var stream = await ((IQueryClient)client).CallTaskGeneric<Stream>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetStream), [], [], source, null, null, cancellationToken))
+            {
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms, cancellationToken);
+                Assert.Equal([1, 2, 3, 4, 5], ms.ToArray());
+            }
+
+            await using (var stream = await ((ICommandProducer)client).DispatchAwaitAsync(new TestCommandWithStream { Value = 1 }, source, cancellationToken))
+            {
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms, cancellationToken);
+                Assert.Equal([1, 2, 3, 4, 5], ms.ToArray());
+            }
+        }
+
         [Fact(Timeout = timeout)]
         public async Task Call_TwoStreamArguments_Throws()
         {
@@ -686,14 +761,16 @@ namespace Zerra.Test.CQRS.Network
             public string Url { get; }
 
             private readonly bool closeOnAccept;
+            private readonly bool combineWrites;
             private readonly int resetAtHeader;
             private int headersRead;
 
             //resetAtHeader drops that request's connection as soon as its header arrives, while a large body is still being sent
-            public FakeServer(IEncryptor? encryptor, Func<FakeRequest, Task> respond, bool closeOnAccept = false, int resetAtHeader = 0)
+            public FakeServer(IEncryptor? encryptor, Func<FakeRequest, Task> respond, bool closeOnAccept = false, int resetAtHeader = 0, bool combineWrites = false)
             {
                 this.resetAtHeader = resetAtHeader;
                 this.closeOnAccept = closeOnAccept;
+                this.combineWrites = combineWrites;
                 this.encryptor = encryptor;
                 this.respond = respond;
                 this.canceller = new();
@@ -748,7 +825,7 @@ namespace Zerra.Test.CQRS.Network
                         var data = await serializer.DeserializeAsync<CqrsRequestData>(body, canceller.Token);
                         await body.DisposeAsync();
 
-                        var request = new FakeRequest(stream, encryptor, header, data!);
+                        var request = new FakeRequest(stream, encryptor, header, data!, combineWrites);
                         Requests.Enqueue(request);
                         await respond(request);
                     }
@@ -783,14 +860,17 @@ namespace Zerra.Test.CQRS.Network
         private sealed class FakeRequest
         {
             private readonly Stream stream;
+            //with combined writes the whole response goes out in one write, so it arrives in one read like on Linux
+            private readonly MemoryStream? combined;
             private readonly IEncryptor? encryptor;
 
             public TcpRequestHeader Header { get; }
             public CqrsRequestData Data { get; }
 
-            public FakeRequest(Stream stream, IEncryptor? encryptor, TcpRequestHeader header, CqrsRequestData data)
+            public FakeRequest(Stream stream, IEncryptor? encryptor, TcpRequestHeader header, CqrsRequestData data, bool combineWrites)
             {
                 this.stream = stream;
+                this.combined = combineWrites ? new MemoryStream() : null;
                 this.encryptor = encryptor;
                 this.Header = header;
                 this.Data = data;
@@ -800,21 +880,36 @@ namespace Zerra.Test.CQRS.Network
             {
                 await WriteHeaderAsync(false);
                 await WriteBodyAsync(body => serializer.SerializeAsync(body, model, default));
+                await SendCombinedAsync();
             }
 
             public async Task WriteStreamAsync(byte[] bytes)
             {
                 await WriteHeaderAsync(false);
                 await WriteBodyAsync(body => body.WriteAsync(bytes).AsTask());
+                await SendCombinedAsync();
             }
 
             public async Task WriteErrorAsync(string message)
             {
                 await WriteHeaderAsync(true);
                 await WriteBodyAsync(body => ExceptionSerializer.SerializeAsync(serializer, body, new InvalidOperationException(message), default));
+                await SendCombinedAsync();
             }
 
-            public Task WriteEmptyAsync() => WriteHeaderAsync(false);
+            public async Task WriteEmptyAsync()
+            {
+                await WriteHeaderAsync(false);
+                await SendCombinedAsync();
+            }
+
+            private async Task SendCombinedAsync()
+            {
+                if (combined is null)
+                    return;
+                await stream.WriteAsync(combined.ToArray());
+                combined.SetLength(0);
+            }
 
             public async Task WriteRawAsync(byte[] bytes) => await stream.WriteAsync(bytes);
 
@@ -851,12 +946,12 @@ namespace Zerra.Test.CQRS.Network
                 var headerLength = isError
                     ? TcpCommon.BufferErrorHeader(buffer, serializer.ContentType)
                     : TcpCommon.BufferHeader(buffer, serializer.ContentType);
-                await stream.WriteAsync(buffer.AsMemory(0, headerLength));
+                await (combined ?? stream).WriteAsync(buffer.AsMemory(0, headerLength));
             }
 
             private async Task WriteBodyAsync(Func<Stream, Task> write)
             {
-                var body = new TcpProtocolBodyStream(stream, null, true, true);
+                var body = new TcpProtocolBodyStream(combined ?? stream, null, true, true);
                 if (encryptor is not null)
                 {
                     var cryptoStream = encryptor.Encrypt(body, true);

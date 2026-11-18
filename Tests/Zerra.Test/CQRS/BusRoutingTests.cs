@@ -392,6 +392,18 @@ namespace Zerra.Test.CQRS
             }
         }
 
+        //types no other test uses, so their first lookup always goes through the fallback that finds the handler interface, whatever order the tests run in
+        public sealed class NeverRoutedCommand : ICommand { }
+        public sealed class NeverRoutedEvent : IEvent { }
+
+        [Fact]
+        public void NoHandlerOrProducer_FirstLookup_ThrowsInvalidOperation()
+        {
+            var bus = Bus.New("client", null, null, null);
+            _ = Assert.Throws<InvalidOperationException>(() => { _ = bus.DispatchAsync(new NeverRoutedCommand()); });
+            _ = Assert.Throws<InvalidOperationException>(() => { _ = bus.DispatchAsync(new NeverRoutedEvent()); });
+        }
+
         [Fact]
         public async Task NoHandlerOrProducer_Throws()
         {

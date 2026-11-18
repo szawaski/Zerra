@@ -445,7 +445,7 @@ namespace Zerra.Test.Web
             Assert.Equal(42, serializer.Deserialize<int>(ReadResponse(context)));
         }
 
-        [Fact(Timeout = timeout)]
+        [Fact]
         public void UseCqrsApiGateway_NoAuthorizer_Throws()
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };

@@ -9,7 +9,11 @@ namespace Zerra.CQRS.Network
         private static readonly byte[] abortMessageBytes = new byte[1];
 #if NETSTANDARD2_0
         private static readonly ArraySegment<byte> noBytes = new(Array.Empty<byte>());
+        private static readonly ArraySegment<byte> peekByte = new(new byte[1]);
+#else
+        private static readonly Memory<byte> peekByte = new byte[1];
 #endif
+        private static readonly bool isWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
 
         private const int handling = 0;
         private const int finished = 1;
@@ -35,6 +39,7 @@ namespace Zerra.CQRS.Network
         public CancellationToken Token => cancellationTokenSource.Token;
 
         //A zero byte receive waits for data without taking it and is never canceled, canceling a socket read throws, which cost every request.
+        //Off Windows a zero byte receive returns at once without waiting, so a one byte peek waits instead, it doesn't take the byte either.
         //Whoever moves the state first owns what arrives: the monitor during handling, where the client only sends an abort,
         //or the server once handling finished, where it's the next request and the receive just ends when it comes.
         private async Task Monitor()
@@ -42,9 +47,15 @@ namespace Zerra.CQRS.Network
             try
             {
 #if !NETSTANDARD2_0
-                _ = await socket.ReceiveAsync(Memory<byte>.Empty, SocketFlags.None);
+                if (isWindows)
+                    _ = await socket.ReceiveAsync(Memory<byte>.Empty, SocketFlags.None);
+                else
+                    _ = await socket.ReceiveAsync(peekByte, SocketFlags.Peek);
 #else
-                _ = await socket.ReceiveAsync(noBytes, SocketFlags.None);
+                if (isWindows)
+                    _ = await socket.ReceiveAsync(noBytes, SocketFlags.None);
+                else
+                    _ = await socket.ReceiveAsync(peekByte, SocketFlags.Peek);
 #endif
                 if (Interlocked.CompareExchange(ref state, aborting, handling) != handling)
                     return;

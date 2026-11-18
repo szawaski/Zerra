@@ -86,7 +86,7 @@ namespace Zerra.Test.OpenTelemetry
                 using (var root = testSource.StartActivity("root")!)
                 {
                     traceId = root.TraceId;
-                    Assert.Equal(4, await client.Call<ITraceQueryHandler>().Double(2));
+                    Assert.Equal(4, await client.Call<ITraceQueryHandler>().Double(2).WaitAsync(TestContext.Current.CancellationToken));
                 }
 
                 var all = spans.Of(traceId);
@@ -119,8 +119,8 @@ namespace Zerra.Test.OpenTelemetry
                 using (var root = testSource.StartActivity("root")!)
                 {
                     traceId = root.TraceId;
-                    await client.DispatchAwaitAsync(new TraceCommand());
-                    await client.DispatchAsync(new TraceEvent());
+                    await client.DispatchAwaitAsync(new TraceCommand(), TestContext.Current.CancellationToken);
+                    await client.DispatchAsync(new TraceEvent(), TestContext.Current.CancellationToken);
                 }
 
                 var commandSent = await spans.WaitFor(traceId, $"send {nameof(TraceCommand)}");
@@ -159,7 +159,7 @@ namespace Zerra.Test.OpenTelemetry
                 using (var root = testSource.StartActivity("root")!)
                 {
                     traceId = root.TraceId;
-                    _ = await Assert.ThrowsAnyAsync<Exception>(() => client.Call<ITraceQueryHandler>().Fail());
+                    _ = await Assert.ThrowsAnyAsync<Exception>(() => client.Call<ITraceQueryHandler>().Fail().WaitAsync(TestContext.Current.CancellationToken));
                 }
 
                 _ = await spans.WaitFor(traceId, $"{nameof(ITraceQueryHandler)}/{nameof(ITraceQueryHandler.Fail)}");
@@ -185,7 +185,7 @@ namespace Zerra.Test.OpenTelemetry
             try
             {
                 Assert.Null(Activity.Current);
-                Assert.Equal(4, await client.Call<ITraceQueryHandler>().Double(2));
+                Assert.Equal(4, await client.Call<ITraceQueryHandler>().Double(2).WaitAsync(TestContext.Current.CancellationToken));
 
                 var serverSpan = ServerSpan(spans, handler);
                 var clientSpan = Assert.Single(spans.Of(serverSpan.TraceId), x => x.Kind == ActivityKind.Client);
@@ -216,7 +216,7 @@ namespace Zerra.Test.OpenTelemetry
             using (testSource.StartActivity("startup"))
             {
                 (server, client) = CreateBuses(handler);
-                Assert.Equal(2, await client.Call<ITraceQueryHandler>().Double(1));
+                Assert.Equal(2, await client.Call<ITraceQueryHandler>().Double(1).WaitAsync(TestContext.Current.CancellationToken));
             }
             try
             {
@@ -224,7 +224,7 @@ namespace Zerra.Test.OpenTelemetry
                 using (var root = testSource.StartActivity("root")!)
                 {
                     traceId = root.TraceId;
-                    Assert.Equal(4, await client.Call<ITraceQueryHandler>().Double(2));
+                    Assert.Equal(4, await client.Call<ITraceQueryHandler>().Double(2).WaitAsync(TestContext.Current.CancellationToken));
                 }
 
                 var all = spans.Of(traceId);
@@ -264,7 +264,7 @@ namespace Zerra.Test.OpenTelemetry
                 using (var root = testSource.StartActivity("root")!)
                 {
                     traceId = root.TraceId;
-                    Assert.Equal(6, await client.Call<ITraceRelayQueryHandler>().Relay(3));
+                    Assert.Equal(6, await client.Call<ITraceRelayQueryHandler>().Relay(3).WaitAsync(TestContext.Current.CancellationToken));
                 }
 
                 var serverSpan = await spans.WaitFor(traceId, $"{nameof(ITraceQueryHandler)}/{nameof(ITraceQueryHandler.Double)}");
@@ -293,7 +293,7 @@ namespace Zerra.Test.OpenTelemetry
                 using (var root = testSource.StartActivity("root")!)
                 {
                     traceId = root.TraceId;
-                    Assert.Equal(6, await bus.Call<ITraceRelayQueryHandler>().Relay(3));
+                    Assert.Equal(6, await bus.Call<ITraceRelayQueryHandler>().Relay(3).WaitAsync(TestContext.Current.CancellationToken));
                 }
 
                 var outer = await spans.WaitFor(traceId, $"{nameof(ITraceRelayQueryHandler)}/{nameof(ITraceRelayQueryHandler.Relay)}");
@@ -316,8 +316,8 @@ namespace Zerra.Test.OpenTelemetry
             bus.AddHandler<ITraceCommandHandler>(new TraceHandler());
             try
             {
-                Assert.Equal(4, await bus.Call<ITraceQueryHandler>().Double(2));
-                await bus.DispatchAwaitAsync(new TraceCommand());
+                Assert.Equal(4, await bus.Call<ITraceQueryHandler>().Double(2).WaitAsync(TestContext.Current.CancellationToken));
+                await bus.DispatchAwaitAsync(new TraceCommand(), TestContext.Current.CancellationToken);
 
                 Assert.Single(recording.Entries, x => x.Kind == "Call" && x.Handled);
                 Assert.Single(recording.Entries, x => x.Kind == "Command" && x.Handled);
@@ -353,8 +353,8 @@ namespace Zerra.Test.OpenTelemetry
             bus.AddHandler<ITraceQueryHandler>(new TraceHandler());
             try
             {
-                _ = await bus.Call<ITraceQueryHandler>().Double(2);
-                _ = await Assert.ThrowsAnyAsync<Exception>(() => bus.Call<ITraceQueryHandler>().Fail());
+                _ = await bus.Call<ITraceQueryHandler>().Double(2).WaitAsync(TestContext.Current.CancellationToken);
+                _ = await Assert.ThrowsAnyAsync<Exception>(() => bus.Call<ITraceQueryHandler>().Fail().WaitAsync(TestContext.Current.CancellationToken));
 
                 var ok = Assert.Single(measurements, x => Equals(x.Tags["rpc.method"], nameof(ITraceQueryHandler.Double)));
                 Assert.Equal(nameof(ITraceQueryHandler), ok.Tags["rpc.service"]);

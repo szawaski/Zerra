@@ -986,7 +986,10 @@ namespace Zerra.CQRS.Network
 
                     //Response Body
                     HttpProtocolBodyStream responseBodyProtocolStream;
-                    responseBodyStream = responseBodyProtocolStream = new HttpProtocolBodyStream(responseHeader.Chuncked ? null : (responseHeader.ContentLength ?? 0), stream, responseHeader.BodyStartBuffer, false, false);
+                    if (isStream)
+                        responseBodyStream = responseBodyProtocolStream = new HttpProtocolBodyStream(responseHeader.Chuncked ? null : (responseHeader.ContentLength ?? 0), stream, responseHeader.BodyStartBuffer.ToArray(), false, false);
+                    else
+                        responseBodyStream = responseBodyProtocolStream = new HttpProtocolBodyStream(responseHeader.Chuncked ? null : (responseHeader.ContentLength ?? 0), stream, responseHeader.BodyStartBuffer, false, false);
 
                     if (encryptor is not null)
                         responseBodyStream = encryptor.Decrypt(responseBodyStream, false);

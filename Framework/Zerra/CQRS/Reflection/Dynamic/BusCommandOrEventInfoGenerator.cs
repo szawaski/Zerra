@@ -25,7 +25,7 @@ namespace Zerra.CQRS.Reflection.Dynamic
             else
             {
                 if (typesToSearch == null)
-                    throw new Exception($"Could not find message handler interface for command or event {interfaceOrCommandOrEventType.FullName}");
+                    throw new InvalidOperationException($"Could not find message handler interface for command or event {interfaceOrCommandOrEventType.FullName}");
 
                 foreach (var type in typesToSearch)
                 {
@@ -56,7 +56,7 @@ namespace Zerra.CQRS.Reflection.Dynamic
                         break;
                 }
                 if (interfaceType == null)
-                    throw new Exception($"Could not find message handler interface for command or event {interfaceOrCommandOrEventType.FullName}");
+                    throw new InvalidOperationException($"Could not find message handler interface for command or event {interfaceOrCommandOrEventType.FullName}");
             }
 
             foreach (var i in interfaceType.GetInterfaces())
