@@ -132,6 +132,20 @@ namespace Zerra.Serialization.Json
         public bool IsNull => jsonType == JsonObjectType.Null;
 
         /// <summary>
+        /// Gets the property names of this JSON object.
+        /// </summary>
+        /// <exception cref="InvalidCastException">Thrown if this object is not of type <see cref="JsonObjectType.Object"/>.</exception>
+        public IReadOnlyCollection<string> Properties
+        {
+            get
+            {
+                if (jsonType != JsonObjectType.Object)
+                    throw new InvalidCastException();
+                return valueProperties!.Keys;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets a property value in this JSON object.
         /// </summary>
         /// <param name="property">The property name.</param>

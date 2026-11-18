@@ -107,7 +107,7 @@ Numbers and dates don't depend on the machine's culture.
 
 Dictionaries are JSON objects when the keys are strings, numbers, `bool`, `char`, `Guid`, dates, or enums, like System.Text.Json. Other keys, such as objects, are written as an array of `{"Key":…,"Value":…}` pairs.
 
-A value typed as `object` is read as a `double` (JSON numbers are floating point, like in JavaScript), `string`, `bool`, `object[]`, or, for a JSON object, a `JsonObject`, which can be indexed by property name, like the result of `DeserializeJsonObject`. A non-generic `IDictionary` such as `Hashtable` is written as a JSON object and read back with `string` keys and `object` values.
+A value typed as `object` is read as a `double` (JSON numbers are floating point, like in JavaScript), `string`, `bool`, `object[]`, or, for a JSON object, a `JsonObject`, which can be indexed by property name and lists its names in `Properties`, like the result of `DeserializeJsonObject`. A non-generic `IDictionary` such as `Hashtable` is written as a JSON object and read back with `string` keys and `object` values.
 
 ## Custom Converters
 

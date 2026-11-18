@@ -88,6 +88,11 @@ namespace Zerra.Test.Serialization
             obj["B"] = new JsonObject("b");
             Assert.Equal("{\"A\":2,\"B\":\"b\"}", obj.ToString());
 
+            Assert.Equal(["A", "B"], obj.Properties);
+            Assert.Empty(new JsonObject(new Dictionary<string, JsonObject>()).Properties);
+            Assert.Throws<InvalidCastException>(() => JsonSerializer.DeserializeJsonObject("[1]")!.Properties);
+            Assert.Throws<InvalidCastException>(() => new JsonObject().Properties);
+
             Assert.Throws<ArgumentException>(() => obj["Missing"]);
             Assert.Throws<InvalidCastException>(() => obj[0]);
             Assert.Throws<InvalidCastException>(() => obj[0] = new JsonObject());
