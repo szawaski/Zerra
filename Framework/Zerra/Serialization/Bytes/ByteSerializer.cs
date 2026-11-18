@@ -33,7 +33,12 @@ namespace Zerra.Serialization.Bytes
     /// </summary>
     public static partial class ByteSerializer
     {
-        private const int defaultBufferSize = 8 * 1024;        
+        private const int defaultBufferSize = 8 * 1024;
+
+        //lengths and counts are read from the data, above these a buffer or collection is only sized up front when its bytes are already in the buffer, otherwise it grows as they arrive
+        //this is to prevent malicious behavior, a few bytes claiming a huge length, even though the content is generally trusted
+        internal const int MaxUnverifiedSize = 1024 * 1024;
+        internal const int MaxUnverifiedCount = 64 * 1024;
 
         private static readonly ByteSerializerOptions defaultOptions = new();
 

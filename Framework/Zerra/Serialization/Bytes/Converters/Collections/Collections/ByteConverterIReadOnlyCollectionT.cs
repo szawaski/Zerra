@@ -35,7 +35,7 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
                 {
                     if (TypeDetail.Type.IsInterface)
                     {
-                        array = new TValue[length];
+                        array = new TValue[length <= ByteSerializer.MaxUnverifiedCount || length <= reader.Length - reader.Position ? length : ByteSerializer.MaxUnverifiedCount];
                         value = array;
                     }
                     else
@@ -72,8 +72,13 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Collections
                     return false;
                 }
                 if (array is not null)
+                {
+                    if (index == array.Length)
+                        Array.Resize(ref array, (int)Math.Min(length, (long)array.Length * 2));
                     array[index] = item!;
+                }
             }
+            value = array;
             return true;
         }
 

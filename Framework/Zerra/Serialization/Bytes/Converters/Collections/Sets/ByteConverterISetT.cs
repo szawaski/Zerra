@@ -33,7 +33,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
 #if NETSTANDARD2_0
                     value = new HashSet<TValue>();
 #else
-                    value = new HashSet<TValue>(state.Current.EnumerableLength!.Value);
+                    var count = state.Current.EnumerableLength!.Value;
+                    value = new HashSet<TValue>(count <= ByteSerializer.MaxUnverifiedCount || count <= reader.Length - reader.Position ? count : ByteSerializer.MaxUnverifiedCount);
 #endif
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;

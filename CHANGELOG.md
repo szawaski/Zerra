@@ -53,6 +53,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `JsonSerializer` reads a JSON object into a value typed as `object` as a `JsonObject` instead of an empty `object`, numbers into `object` as `double` instead of `decimal`, writes and reads `JsonObject` members, and supports non-generic dictionaries such as `Hashtable`, which threw before.
 - `ByteSerializer` throws a `NotSupportedException` when a value typed as `object`, including the items of a non-generic collection, is serialized without `UseTypes`. Before, it came back as an empty `object`.
 - `JsonSerializer` rejects enum numbers out of the enum's range.
+- `ByteSerializer` no longer allocates a length or count it reads before the data is there. A few bytes claiming a huge string, array, or list used to allocate all of it; now it grows as the data arrives, and a length too large for any message throws `InvalidDataException`.
 - `ByteSerializer` throws on bytes after the value, like `JsonSerializer`. Before, they were ignored or rejected depending on where the stream's read buffer ended.
 - Fixed `ByteSerializer` failing to skip members missing from the target type when they hold custom collections, hash sets, or records.
 - Fixed `ByteSerializer` without `UseTypes` failing to read a value declared as an interface when its class has members the interface doesn't. The value is written with the interface's members.

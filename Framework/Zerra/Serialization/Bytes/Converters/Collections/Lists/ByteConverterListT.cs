@@ -46,7 +46,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
                     return false;
                 }
 
-                value = new List<TValue>(state.Current.EnumerableLength!.Value);
+                var count = state.Current.EnumerableLength!.Value;
+                value = new List<TValue>(count <= ByteSerializer.MaxUnverifiedCount || count <= reader.Length - reader.Position ? count : ByteSerializer.MaxUnverifiedCount);
                 if (state.Current.EnumerableLength!.Value == 0)
                     return true;
             }

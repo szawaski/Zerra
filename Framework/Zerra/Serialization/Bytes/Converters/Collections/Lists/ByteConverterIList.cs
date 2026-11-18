@@ -31,7 +31,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
 
                 if (!state.Current.DrainBytes)
                 {
-                    value = new List<object>(state.Current.EnumerableLength!.Value);
+                    var count = state.Current.EnumerableLength!.Value;
+                    value = new List<object>(count <= ByteSerializer.MaxUnverifiedCount || count <= reader.Length - reader.Position ? count : ByteSerializer.MaxUnverifiedCount);
                     if (state.Current.EnumerableLength!.Value == 0)
                         return true;
                 }

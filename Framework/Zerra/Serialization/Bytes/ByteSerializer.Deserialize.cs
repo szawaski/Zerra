@@ -150,9 +150,13 @@ namespace Zerra.Serialization.Bytes
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    var totalSizeNeeded = length + state.SizeNeeded;
+                    var totalSizeNeeded = (long)length + state.SizeNeeded;
                     if (totalSizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
+                    {
+                        if (totalSizeNeeded > MaxUnverifiedSize)
+                            totalSizeNeeded = Math.Max(MaxUnverifiedSize, Math.Min(totalSizeNeeded, (long)buffer.Length * 2));
+                        ArrayPoolHelper<byte>.Grow(ref buffer, (int)totalSizeNeeded);
+                    }
 
                     while (length < buffer.Length)
                     {
@@ -169,9 +173,6 @@ namespace Zerra.Serialization.Bytes
                         }
                         length += read;
                     }
-
-                    if (length < state.SizeNeeded)
-                        throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
                 }
@@ -263,9 +264,13 @@ namespace Zerra.Serialization.Bytes
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    var totalSizeNeeded = length + state.SizeNeeded;
+                    var totalSizeNeeded = (long)length + state.SizeNeeded;
                     if (totalSizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
+                    {
+                        if (totalSizeNeeded > MaxUnverifiedSize)
+                            totalSizeNeeded = Math.Max(MaxUnverifiedSize, Math.Min(totalSizeNeeded, (long)buffer.Length * 2));
+                        ArrayPoolHelper<byte>.Grow(ref buffer, (int)totalSizeNeeded);
+                    }
 
                     while (length < buffer.Length)
                     {
@@ -282,9 +287,6 @@ namespace Zerra.Serialization.Bytes
                         }
                         length += read;
                     }
-
-                    if (length < state.SizeNeeded)
-                        throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
                 }
@@ -376,9 +378,13 @@ namespace Zerra.Serialization.Bytes
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    var totalSizeNeeded = length + state.SizeNeeded;
+                    var totalSizeNeeded = (long)length + state.SizeNeeded;
                     if (totalSizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
+                    {
+                        if (totalSizeNeeded > MaxUnverifiedSize)
+                            totalSizeNeeded = Math.Max(MaxUnverifiedSize, Math.Min(totalSizeNeeded, (long)buffer.Length * 2));
+                        ArrayPoolHelper<byte>.Grow(ref buffer, (int)totalSizeNeeded);
+                    }
 
                     while (length < buffer.Length)
                     {
@@ -395,9 +401,6 @@ namespace Zerra.Serialization.Bytes
                         }
                         length += read;
                     }
-
-                    if (length < state.SizeNeeded)
-                        throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
                 }
@@ -492,9 +495,13 @@ namespace Zerra.Serialization.Bytes
                     BufferShift(buffer, bytesUsed);
                     length -= bytesUsed;
 
-                    var totalSizeNeeded = length + state.SizeNeeded;
+                    var totalSizeNeeded = (long)length + state.SizeNeeded;
                     if (totalSizeNeeded > buffer.Length)
-                        ArrayPoolHelper<byte>.Grow(ref buffer, totalSizeNeeded);
+                    {
+                        if (totalSizeNeeded > MaxUnverifiedSize)
+                            totalSizeNeeded = Math.Max(MaxUnverifiedSize, Math.Min(totalSizeNeeded, (long)buffer.Length * 2));
+                        ArrayPoolHelper<byte>.Grow(ref buffer, (int)totalSizeNeeded);
+                    }
 
                     while (length < buffer.Length)
                     {
@@ -511,9 +518,6 @@ namespace Zerra.Serialization.Bytes
                         }
                         length += read;
                     }
-
-                    if (length < state.SizeNeeded)
-                        throw new EndOfStreamException($"Invalid data for {nameof(ByteSerializer)} or the stream ended early");
 
                     state.SizeNeeded = 0;
                 }
