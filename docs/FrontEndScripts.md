@@ -10,7 +10,7 @@ Add `UseCqrsClientScripts` next to the gateway:
 
 ```csharp
 app.UseCqrsClientScripts("/CQRSClient", "/CQRS");     // the route the scripts are served under, and the gateway's route
-app.UseCqrsApiGateway("/CQRS");
+app.UseCqrsApiGateway("/CQRS", allowAnonymous: true);
 ```
 
 | Url | What it is |

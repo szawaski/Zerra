@@ -287,7 +287,7 @@ Setup for each broker: [Kafka](KafkaSetup.md), [RabbitMQ](RabbitMQSetup.md), [Az
 [Zerra.Web](ZerraWeb.md) hosts a CQRS API gateway in ASP.NET Core. Browsers call it with JavaScript or TypeScript clients the gateway serves itself (see [Front End Scripts](FrontEndScripts.md)), and the gateway forwards to the services over whatever route its bus has.
 
 ```csharp
-app.UseCqrsApiGateway("/CQRS");
+app.UseCqrsApiGateway("/CQRS", allowAnonymous: true);   // a public site registers an ICqrsAuthorizer instead, see Security.md
 ```
 
 ## Configuration

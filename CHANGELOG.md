@@ -15,6 +15,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Services can be hosted in ASP.NET Core/Kestrel with `KestrelCqrsServer*` and called with `KestrelCqrsClient`.
 - Concurrency limits are set on each client, server, producer, and consumer (`maxConcurrentQueries`, `maxConcurrentCommands`, `maxConcurrentEvents`) instead of on `Bus.New`, so each can have its own. `TcpCqrsServer` and `HttpCqrsServer` limit queries, commands, and events separately. See [Concurrency Limits](docs/ClientSetup.md#concurrency-limits).
 - The web gateway serves the browser clients with `app.UseCqrsClientScripts()`: `Bus.js` and `Bus.ts`, already pointed at the gateway, and their models, built from what its bus routes. They replace the copied scripts and the T4 templates, so there's nothing to copy or regenerate after changing a contract. See [Front End Scripts](docs/FrontEndScripts.md).
+- The web gateway won't start without an `ICqrsAuthorizer` registered unless `allowAnonymous: true` is passed to `UseCqrsApiGateway`. See [Security](docs/Security.md).
 - `BusRoutes.js` and `BusConfig.ts` are gone. Set routes, headers, and a global error handler in code with `Bus.setRoute`, `Bus.setHeader`, and `Bus.onFail`. The `Bus` methods are camelCase in both scripts (`Bus.call`, `Bus.dispatch`, `Bus.dispatchAwait`, `Bus.dispatchAsync`, `Bus.dispatchAwaitAsync`), and `Bus.js` no longer needs jQuery.
 
 ### Messaging

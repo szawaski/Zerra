@@ -383,7 +383,7 @@ Startup order for a service:
 
 ## 8. ASP.NET Projects
 
-- **Gateway.** `UseCqrsApiGateway` now resolves `IBus`, `INetworkSerializer`, and optionally `Zerra.Logging.ILogger` and `ICqrsAuthorizer` from dependency injection. The overloads that took an authorizer were removed:
+- **Gateway.** `UseCqrsApiGateway` now resolves `IBus`, `INetworkSerializer`, and optionally `Zerra.Logging.ILogger` and `ICqrsAuthorizer` from dependency injection. The overloads that took an authorizer were removed. Without an `ICqrsAuthorizer`, pass `allowAnonymous: true` or the gateway won't start:
   ```csharp
   var bus = ServiceManager.StartServices("MyApp.Web", null);   //a bus with query clients and command producers, no handlers
   builder.Services.AddSingleton<IBus>(bus);

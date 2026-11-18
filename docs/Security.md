@@ -5,7 +5,7 @@
 ## Trust Model
 
 - **Services** talk to each other over TCP, HTTP, or a broker inside a private network. Zerra doesn't authenticate the sender: it accepts the claims in the message. The network boundary is what makes these callers trusted, so keep servers and brokers off the public internet.
-- **Outside callers** come through the [Zerra.Web](ZerraWeb.md) API gateway. Register an `ICqrsAuthorizer` there to check every request, or run ASP.NET Core authentication in front of it.
+- **Outside callers** come through the [Zerra.Web](ZerraWeb.md) API gateway. Register an `ICqrsAuthorizer` there to check every request, or run ASP.NET Core authentication in front of it and pass `allowAnonymous: true`. Without either, the gateway refuses to start.
 
 Message [encryption](Encryptors.md) keeps messages private and, with `AES_GCM` or `AES_CBC_HMAC`, rejects changed ones. It doesn't prove who sent a message, and a captured message can be sent again. See [Running in Production](Production.md#security) for TLS and key rotation.
 
@@ -137,6 +137,10 @@ public class ApiKeyCqrsAuthorizer(string validKey) : ICqrsAuthorizer
     public ValueTask<Dictionary<string, List<string?>>> GetAuthorizationHeadersAsync(CancellationToken cancellationToken = default) => new(GetAuthorizationHeaders(cancellationToken));
 }
 ```
+
+## Type Names From the Sender
+
+`ByteSerializer` with `UseTypes = true`, and members typed as `Type` in either serializer, read type names from the data and load those types. A member typed as `object` or a broad base type then accepts any matching type the sender names, which is created and filled from the data. Use them only for data from trusted senders, never for input that comes through the gateway.
 
 ## See Also
 

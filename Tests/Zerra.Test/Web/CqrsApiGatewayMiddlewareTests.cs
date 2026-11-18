@@ -400,7 +400,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).BuildServiceProvider());
-            _ = builder.UseCqrsApiGateway("/api", ["https://app.example"]);
+            _ = builder.UseCqrsApiGateway("/api", ["https://app.example"], allowAnonymous: true);
             var app = builder.Build();
             var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Path = "/api";
@@ -416,7 +416,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).BuildServiceProvider());
-            _ = builder.UseCqrsApiGateway(null, ["https://app.example"]);
+            _ = builder.UseCqrsApiGateway(null, ["https://app.example"], allowAnonymous: true);
             var app = builder.Build();
             var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Path = "/any/path";
@@ -434,7 +434,7 @@ namespace Zerra.Test.Web
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).BuildServiceProvider());
-            _ = builder.UseCqrsApiGateway(null);
+            _ = builder.UseCqrsApiGateway(null, allowAnonymous: true);
             var app = builder.Build();
             var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
             context.Request.Path = "/any/path";
@@ -446,11 +446,34 @@ namespace Zerra.Test.Web
         }
 
         [Fact(Timeout = timeout)]
+        public void UseCqrsApiGateway_NoAuthorizer_Throws()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).BuildServiceProvider());
+            _ = Assert.Throws<InvalidOperationException>(() => builder.UseCqrsApiGateway());
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task UseCqrsApiGateway_RegisteredAuthorizer_AuthorizesRequests()
+        {
+            var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
+            var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).AddSingleton<ICqrsAuthorizer, RejectingAuthorizer>().BuildServiceProvider());
+            _ = builder.UseCqrsApiGateway();
+            var app = builder.Build();
+            var context = CreateContext(QueryRequest(nameof(ITestQueryHandler.GetThings), 21), TestContext.Current.CancellationToken);
+            context.Request.Path = "/CQRS";
+
+            await app(context);
+
+            Assert.Equal(401, context.Response.StatusCode);
+        }
+
+        [Fact(Timeout = timeout)]
         public async Task UseCqrsApiGateway_DefaultRoute_OtherPathCallsNext()
         {
             var bus = new MockBus { QueryResponse = new RemoteQueryCallResponse(42) };
             var builder = new ApplicationBuilder(new ServiceCollection().AddSingleton<IBus>(bus).AddSingleton(serializer).BuildServiceProvider());
-            _ = builder.UseCqrsApiGateway();
+            _ = builder.UseCqrsApiGateway(allowAnonymous: true);
             var nextInvoked = false;
             _ = builder.Use(next => context => { nextInvoked = true; return Task.CompletedTask; });
             var app = builder.Build();

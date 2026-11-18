@@ -50,6 +50,8 @@ var serializer = new NetworkByteSerializer(options);
 
 The same options must be used to serialize and deserialize.
 
+With `UseTypes`, the reader loads the types the data names, so use it only for data from trusted senders. See [Security](Security.md#type-names-from-the-sender).
+
 ## Versioning
 
 By default members are identified by their declaration order, so adding, removing, or reordering members breaks compatibility with data serialized before the change. Two ways to make a type version-tolerant:

@@ -174,11 +174,11 @@ builder.Services.AddSingleton<IBus>(bus);
 builder.Services.AddSingleton<INetworkSerializer>(new NetworkJsonSerializer());
 builder.Services.AddSingleton(log);
 ...
-app.UseCqrsApiGateway("/CQRS");
+app.UseCqrsApiGateway("/CQRS", allowAnonymous: true);   // or register an ICqrsAuthorizer and leave this out
 ```
 
 - The gateway only exposes interfaces its bus has a route for, so leave out anything meant only for service-to-service use.
-- Public sites need an `ICqrsAuthorizer` and `allowOrigins`. See [Zerra.Web](ZerraWeb.md) and [Security](Security.md).
+- Public sites need an `ICqrsAuthorizer` and `allowOrigins`. Without an authorizer the gateway won't start unless `allowAnonymous: true` is passed. See [Zerra.Web](ZerraWeb.md) and [Security](Security.md).
 - In ASP.NET projects `ILogger` is ambiguous with Microsoft's, so write `Zerra.Logging.ILogger`.
 
 ### Browser Clients

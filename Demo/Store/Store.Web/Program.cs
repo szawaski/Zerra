@@ -86,8 +86,8 @@ app.UseStaticFiles();
 //it calls from /CQRSClient/JavaScriptModels.js, generated from what this bus routes
 app.UseCqrsClientScripts("/CQRSClient", "/CQRS");
 
-//Bus.js posts every query and command here. A real site would register an ICqrsAuthorizer and pass allowOrigins.
-app.UseCqrsApiGateway("/CQRS");
+//Bus.js posts every query and command here. The demo has no sign in, so it opts out of an authorizer; a real site registers an ICqrsAuthorizer and passes allowOrigins.
+app.UseCqrsApiGateway("/CQRS", allowAnonymous: true);
 
 //Kestrel starts in Run, so the time is logged once it's listening
 app.Lifetime.ApplicationStarted.Register(() => log.Info($"Web gateway listening on {String.Join(", ", app.Urls)}, started in {startup.ElapsedMilliseconds} ms"));

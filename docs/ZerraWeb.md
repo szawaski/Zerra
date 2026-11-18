@@ -37,7 +37,7 @@ builder.Services.AddSingleton<INetworkSerializer>(new NetworkJsonSerializer());
 builder.Services.AddSingleton(log);
 
 var app = builder.Build();
-app.UseCqrsApiGateway("/CQRS");
+app.UseCqrsApiGateway("/CQRS", allowAnonymous: true);
 await app.RunAsync();
 ```
 ### The Request
@@ -171,7 +171,7 @@ builder.Services.AddSingleton<INetworkSerializer>(new NetworkJsonSerializer()); 
 builder.Services.AddSingleton(log);
 
 var app = builder.Build();
-app.UseCqrsApiGateway("/CQRS");
+app.UseCqrsApiGateway("/CQRS", allowAnonymous: true);
 await app.RunAsync();
 ```
 
@@ -221,7 +221,7 @@ cookies.Remove("session");
 
 ## Production Checklist
 
-- **Authorize every request.** Register an `ICqrsAuthorizer`; without one, anyone who can reach the gateway can call every command it exposes. See [Security](Security.md).
+- **Authorize every request.** Register an `ICqrsAuthorizer`. With `allowAnonymous: true` and no authorizer, anyone who can reach the gateway can call every query and command its bus routes. See [Security](Security.md).
 - **Restrict browser origins** with `allowOrigins`, and include the gateway's own host if `ApiClient` callers use it. CORS only constrains browsers, so it doesn't replace authorization.
 - **Rate limit with a global limiter.** The gateway is middleware rather than an endpoint, so ASP.NET rate limiting applies through `options.GlobalLimiter`, not a named policy, with `app.UseRateLimiter()` before `app.UseCqrsApiGateway()`.
 - **Pass an `IBusLogger`** to the gateway's bus to record every query and command it forwards. See [Logging](Logging.md).
@@ -231,6 +231,8 @@ cookies.Remove("session");
 **`400 Bad Request`:**
 - The `Content-Type` is missing or doesn't match the registered serializer, or the `Accept` type can't be produced (see [Content Type Support](#content-type-support)).
 - The body has neither `ProviderType` (a query) nor `MessageType` (a command).
+
+**`InvalidOperationException` at startup:** no `ICqrsAuthorizer` is registered. Register one, or pass `allowAnonymous: true`.
 
 **`401 Unauthorized` without an authorizer failure:** the request's `Origin` is missing or isn't in `allowOrigins`. For `ApiClient`, add the gateway's host name.
 
