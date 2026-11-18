@@ -51,5 +51,9 @@ namespace Zerra.CQRS.Network
         /// The description of the request source used for logging.
         /// </summary>
         public string? Source { get; set; }
+        /// <summary>
+        /// The W3C trace parent id of the sender, null without tracing.
+        /// </summary>
+        public string? TraceParent { get; set; }
     }
 }

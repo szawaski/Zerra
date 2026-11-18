@@ -127,6 +127,20 @@ public class ConsoleBusLogger : IBusLogger
 
 An adapter for Serilog, NLog, or `Microsoft.Extensions.Logging` maps each method to the library's matching level in the same way.
 
+## OpenTelemetry
+
+The `Zerra.OpenTelemetry` package has an `IBusLogger` that records a span and a duration for every query, command, and event. A handler's span continues the trace of the service that sent the message, on every transport.
+
+```csharp
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddAspNetCoreInstrumentation().AddZerraInstrumentation().AddOtlpExporter())
+    .WithMetrics(metrics => metrics.AddZerraInstrumentation().AddOtlpExporter());
+
+var bus = Bus.New("MyService", log, new OpenTelemetryBusLogger(new ConsoleBusLogger()), busServices);
+```
+
+Passing another bus logger to `OpenTelemetryBusLogger` keeps it running too. Arguments and message contents are never recorded. A service without the package still passes the trace on to the services it calls.
+
 ## ASP.NET Core
 
 `Zerra.Web` adds the reverse bridge: `ZerraLoggerProvider` sends ASP.NET Core's own `Microsoft.Extensions.Logging` output to your Zerra `ILogger`. Register it with `builder.Logging.AddProvider(new ZerraLoggerProvider(log))`, or `loggerFactory.AddZerraLogger(log)`. See [Zerra.Web](ZerraWeb.md#logging-integration).

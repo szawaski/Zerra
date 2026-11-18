@@ -236,6 +236,7 @@ namespace Zerra.CQRS.Network
                         }
                         else
                         {
+                            CqrsTrace.TraceParent = data.TraceParent;
                             if (data.Claims is not null)
                             {
                                 var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");

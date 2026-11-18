@@ -133,6 +133,25 @@ namespace Zerra.Test.Web
             Assert.Equal("tester", name);
         }
 
+        [Fact(Timeout = timeout)]
+        public async Task TraceParent_SetForTheHandler()
+        {
+            const string traceParent = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+            var serializer = new NetworkByteSerializer();
+            string? received = null;
+            using var middleware = CreateMiddleware(serializer, (_, _, arguments, _, _, _, _) =>
+            {
+                received = CqrsTrace.TraceParent;
+                return Double(serializer, arguments);
+            });
+            var request = Request(serializer, nameof(IRequestQueryHandler.Double), 1);
+            request.TraceParent = traceParent;
+
+            await middleware.Invoke(CreateContext(serializer, request, HttpCommon.ContentTypeBytes, TestContext.Current.CancellationToken));
+
+            Assert.Equal(traceParent, received);
+        }
+
         public sealed class RequestCommand : ICommand
         {
             public int Value { get; set; }

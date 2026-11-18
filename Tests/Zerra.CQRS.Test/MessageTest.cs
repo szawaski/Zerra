@@ -72,6 +72,7 @@ namespace Zerra.CQRS.Test
                 await TestDispatchAwaitAsyncConcurrent(commandProducer, cancellationToken);
                 await TestDispatchAwaitAsyncCanceled(commandProducer, receiver, cancellationToken);
                 await TestClaims(commandProducer, receiver, cancellationToken);
+                await TestTraceParent(commandProducer, eventProducer, receiver, cancellationToken);
                 await TestEvent(eventProducer, receiver, cancellationToken);
                 await TestEventsConcurrent(eventProducer, receiver, cancellationToken);
             }
@@ -576,6 +577,25 @@ namespace Zerra.CQRS.Test
             Assert.Equal(claimValue, result.Claim);
         }
 
+        private static async Task TestTraceParent(ICommandProducer commandProducer, IEventProducer eventProducer, Receiver receiver, CancellationToken cancellationToken)
+        {
+            var command = new TestCommand() { ID = Guid.NewGuid() };
+            var @event = new TestEvent() { ID = Guid.NewGuid() };
+            var receivedCommand = receiver.Expect(command.ID);
+            var receivedEvent = receiver.Expect(@event.ID);
+
+            string activityId;
+            using (var activity = new Activity("test").Start())
+            {
+                activityId = activity.Id!;
+                await commandProducer.DispatchAwaitAsync(command, source, cancellationToken).WaitAsync(messageTimeout, cancellationToken);
+                await eventProducer.DispatchAsync(@event, source, cancellationToken);
+            }
+
+            Assert.Equal(activityId, (await receivedCommand).TraceParent);
+            Assert.Equal(activityId, (await receivedEvent.WaitAsync(messageTimeout, cancellationToken)).TraceParent);
+        }
+
         private static async Task TestEvent(IEventProducer producer, Receiver receiver, CancellationToken cancellationToken)
         {
             var @event = new TestEvent() { ID = Guid.NewGuid(), Value = 44, Text = "Event" };
@@ -748,7 +768,7 @@ namespace Zerra.CQRS.Test
             Event
         }
 
-        private sealed record Received(object Message, string Source, HandlerType Handler, string? Claim);
+        private sealed record Received(object Message, string Source, HandlerType Handler, string? Claim, string? TraceParent);
 
         //records every event ID it was given, including duplicates, so a test can count the copies a consumer received
         private sealed class EventReceiver
@@ -935,7 +955,7 @@ namespace Zerra.CQRS.Test
             private void Complete(Guid id, object message, string source, HandlerType handler)
             {
                 var claim = (Thread.CurrentPrincipal as ClaimsPrincipal)?.FindFirst(claimType)?.Value;
-                _ = GetCompletion(id).TrySetResult(new Received(message, source, handler, claim));
+                _ = GetCompletion(id).TrySetResult(new Received(message, source, handler, claim, CqrsTrace.TraceParent));
             }
 
             public Task HandleCommandAsync(ICommand command, string source, CancellationToken cancellationToken)

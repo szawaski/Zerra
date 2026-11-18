@@ -59,7 +59,8 @@ Services that deploy independently run different versions of a contract for a wh
 Zerra plugs into the logging and tracing you already run instead of bundling its own ([Logging](Logging.md)):
 
 - **`ILogger`** receives framework events, such as a lost broker connection or a message that couldn't be read.
-- **`IBusLogger`** sees every query, command, and event on both the sending and the handling side, with the source service, duration, and exception. Implement it to start OpenTelemetry activities, record metrics, or write structured logs; because every service logs both ends, the logs together trace a request across services.
+- **`IBusLogger`** sees every query, command, and event on both the sending and the handling side, with the source service, duration, and exception. Implement it to write structured logs.
+- **OpenTelemetry:** `Zerra.OpenTelemetry` records a span and a duration for each of them, and a trace continues across services on every transport ([Logging](Logging.md#opentelemetry)).
 
 Pass the `ILogger` to `Bus.New` and to every server, client, producer, and consumer, and alert on repeated broker connection errors and handler exceptions.
 

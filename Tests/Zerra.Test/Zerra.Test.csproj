@@ -38,6 +38,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
         <ProjectReference Include="..\..\Framework\Zerra.Web\Zerra.Web.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra.OpenTelemetry\Zerra.OpenTelemetry.csproj" />
     </ItemGroup>
     
 </Project>

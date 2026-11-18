@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0;net10.0;net11.0</TargetFrameworks>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <LangVersion>15.0</LangVersion>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Version>6.0.0-rc.11</Version>
+        <Authors>Steven Zawaski</Authors>
+        <Company>KaKush LLC</Company>
+        <Copyright>KaKush LLC</Copyright>
+        <Product>Zerra Framework</Product>
+        <RepositoryUrl>https://github.com/szawaski/Zerra</RepositoryUrl>
+        <PackageTags>Zerra;CQRS;OpenTelemetry;Tracing;Metrics</PackageTags>
+        <Description>OpenTelemetry tracing and metrics for Zerra queries, commands, and events.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+        <IsAotCompatible>true</IsAotCompatible>
+        <PublishAot>true</PublishAot>
+    </PropertyGroup>
+
+    <!--netstandard2.0 has no nullable annotations-->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+        <NoWarn>$(NoWarn);CS8600;CS8601;CS8602;CS8603;CS8604;CS8625</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="OpenTelemetry.Api" Version="1.21.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Zerra\Zerra.csproj" PrivateAssets="none" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>

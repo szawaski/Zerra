@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using Xunit;
@@ -351,6 +352,28 @@ namespace Zerra.Test.Web
                 var claim = Assert.Single(request.Data.Claims!);
                 Assert.Equal(["name", "tester"], claim);
             }
+        }
+
+        [Fact(Timeout = timeout)]
+        public async Task TraceParent_SentWithEachRequest()
+        {
+            using var server = new FakeServer(null, request => request.Data.MessageResult || request.Data.ProviderType is not null ? FakeResponse.Model(42) : new FakeResponse(200, []));
+            using var client = CreateClient(server, null);
+            string activityId;
+            using (var activity = new Activity("test").Start())
+            {
+                activityId = activity.Id!;
+                var cancellationToken = TestContext.Current.CancellationToken;
+                _ = ((IQueryClient)client).Call<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null);
+                _ = await ((IQueryClient)client).CallTaskGeneric<int>(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), [typeof(int)], [21], source, null, null, cancellationToken);
+                await ((ICommandProducer)client).DispatchAsync(new TestCommand { Value = 1 }, source, cancellationToken);
+                _ = await ((ICommandProducer)client).DispatchAwaitAsync(new TestCommandWithResult { Value = 1 }, source, cancellationToken);
+                await ((IEventProducer)client).DispatchAsync(new TestEvent { Value = 1 }, source, cancellationToken);
+            }
+
+            Assert.Equal(5, server.Requests.Count);
+            foreach (var request in server.Requests)
+                Assert.Equal(activityId, request.Data.TraceParent);
         }
 
         [Fact(Timeout = timeout)]

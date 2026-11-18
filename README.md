@@ -95,6 +95,10 @@ dotnet add package Zerra
 
 Zerra runs in production in private commercial applications, across in-process, TCP, and broker deployments. Changes are in the [changelog](CHANGELOG.md), security reports go through the [security policy](SECURITY.md), and the [trust model](docs/Security.md#trust-model) says what encryption and claims protect and what they don't.
 
+## Maintenance
+
+Zerra is maintained by Steven Zawaski and backed by KaKush LLC. The supported versions are listed in the [security policy](SECURITY.md). Zerra is MIT licensed, and the build, tests, and conventions needed to work on it are in [Contributing](CONTRIBUTING.md).
+
 ## Packages
 
 | Package | Purpose |
@@ -104,6 +108,7 @@ Zerra runs in production in private commercial applications, across in-process, 
 | `Zerra.CQRS.Kafka` | Kafka transport |
 | `Zerra.CQRS.RabbitMQ` | RabbitMQ transport |
 | `Zerra.CQRS.AzureServiceBus` | Azure Service Bus transport |
+| `Zerra.OpenTelemetry` | OpenTelemetry tracing and metrics for queries, commands, and events |
 | `Zerra.Repository.*` | LINQ data access for SQL Server, PostgreSQL, MySQL, MariaDB, MongoDB, in-memory, and KurrentDB ([Repository](docs/Repository.md)) |
 
 Zerra targets .NET 10 and .NET 11. `Zerra`, `Zerra.Web`, and the `Zerra.CQRS.*` transports also target .NET Standard 2.0.

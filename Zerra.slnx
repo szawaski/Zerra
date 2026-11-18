@@ -58,6 +58,7 @@
     <Project Path="Framework/Zerra.CQRS.AzureServiceBus/Zerra.CQRS.AzureServiceBus.csproj" />
     <Project Path="Framework/Zerra.CQRS.Kafka/Zerra.CQRS.Kafka.csproj" />
     <Project Path="Framework/Zerra.CQRS.RabbitMQ/Zerra.CQRS.RabbitMQ.csproj" />
+    <Project Path="Framework/Zerra.OpenTelemetry/Zerra.OpenTelemetry.csproj" />
     <Project Path="Framework/Zerra.Repository.KurrentDB/Zerra.Repository.KurrentDB.csproj" />
     <Project Path="Framework/Zerra.Repository.MariaDb/Zerra.Repository.MariaDb.csproj" />
     <Project Path="Framework/Zerra.Repository.MongoDB/Zerra.Repository.MongoDB.csproj" />

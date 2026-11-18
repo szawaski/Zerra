@@ -156,6 +156,29 @@ namespace Zerra.Test.CQRS.Network
         }
 
         [Fact(Timeout = timeout)]
+        public async Task Query_WithTraceParent_SetsCqrsTraceForHandler()
+        {
+            const string traceParent = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+            string? received = null;
+            using var server = StartQueryServer(out var port, null, (_, _, _, _, _, _, _) =>
+            {
+                received = CqrsTrace.TraceParent;
+                return Task.FromResult(new RemoteQueryCallResponse(1));
+            });
+
+            var request = QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21);
+            request.TraceParent = traceParent;
+
+            await using var connection = await TestConnection.ConnectAsync(port, TestContext.Current.CancellationToken);
+            await connection.SendAsync(request, null, cancellationToken: TestContext.Current.CancellationToken);
+
+            var header = await connection.ReadHeaderAsync(TestContext.Current.CancellationToken);
+            Assert.NotNull(header);
+            Assert.False(header.IsError);
+            Assert.Equal(traceParent, received);
+        }
+
+        [Fact(Timeout = timeout)]
         public async Task Query_UnregisteredInterface_DoesNotInvokeHandler()
         {
             var handlerInvoked = false;

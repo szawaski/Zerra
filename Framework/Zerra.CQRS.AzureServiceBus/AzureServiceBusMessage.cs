@@ -47,5 +47,10 @@ namespace Zerra.CQRS.AzureServiceBus
         /// Gets or sets the originating service or source of the message.
         /// </summary>
         public string? Source { get; set; }
+
+        /// <summary>
+        /// The W3C trace parent id of the sender, null without tracing.
+        /// </summary>
+        public string? TraceParent { get; set; }
     }
 }

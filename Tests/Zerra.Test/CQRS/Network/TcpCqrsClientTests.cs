@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Claims;
@@ -405,6 +406,39 @@ namespace Zerra.Test.CQRS.Network
 
             var request = Assert.Single(server.Requests);
             Assert.Equal(["name", "tester"], Assert.Single(request.Data.Claims!));
+        }
+
+        [Theory(Timeout = timeout)]
+        [MemberData(nameof(Operations))]
+        public async Task Operation_SendsTraceParent(Operation operation)
+        {
+            using var server = new FakeServer(null, Respond);
+            using var client = CreateClient(server, null);
+            const string received = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+
+            //the current activity is sent, without one the trace parent the service received passes through
+            string activityId;
+            using (var activity = new Activity("test").Start())
+            {
+                activityId = activity.Id!;
+                await RunAsync(client, operation, token: TestContext.Current.CancellationToken);
+            }
+            CqrsTrace.TraceParent = received;
+            try
+            {
+                await RunAsync(client, operation, token: TestContext.Current.CancellationToken);
+            }
+            finally
+            {
+                CqrsTrace.TraceParent = null;
+            }
+            await RunAsync(client, operation, token: TestContext.Current.CancellationToken);
+
+            var traceParents = server.Requests.Select(x => x.Data.TraceParent).ToArray();
+            Assert.Equal(3, traceParents.Length);
+            Assert.Contains(activityId, traceParents);
+            Assert.Contains(received, traceParents);
+            Assert.Contains(null, traceParents);
         }
 
         public static TheoryData<Operation, bool> OperationsWithReset()

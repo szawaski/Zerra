@@ -188,6 +188,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     if (@event is null)
                         throw new Exception("Invalid Message");
 
+                    CqrsTrace.TraceParent = message.TraceParent;
                     if (message.Claims is not null)
                     {
                         var claimsIdentity = new ClaimsIdentity(message.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");

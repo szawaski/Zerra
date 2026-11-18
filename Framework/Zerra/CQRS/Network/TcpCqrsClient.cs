@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
+using System.Diagnostics;
 using System.Security.Claims;
 using Zerra.Buffers;
 
@@ -68,7 +69,8 @@ namespace Zerra.CQRS.Network
                     ProviderMethod = methodName,
 
                     Claims = claims,
-                    Source = source
+                    Source = source,
+                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
                 };
 
                 //a trailing CancellationToken isn't sent, the server passes its own in its place
@@ -309,7 +311,8 @@ namespace Zerra.CQRS.Network
                     ProviderMethod = methodName,
 
                     Claims = claims,
-                    Source = source
+                    Source = source,
+                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
                 };
 
                 //a trailing CancellationToken isn't sent, the server passes its own in its place
@@ -609,7 +612,8 @@ namespace Zerra.CQRS.Network
                     MessageResult = false,
 
                     Claims = claims,
-                    Source = source
+                    Source = source,
+                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
                 };
 
                 var buffer = bufferOwner.AsMemory();
@@ -853,7 +857,8 @@ namespace Zerra.CQRS.Network
                     MessageResult = true,
 
                     Claims = claims,
-                    Source = source
+                    Source = source,
+                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
                 };
 
                 var buffer = bufferOwner.AsMemory();
@@ -1109,7 +1114,8 @@ namespace Zerra.CQRS.Network
                     MessageResult = false,
 
                     Claims = claims,
-                    Source = source
+                    Source = source,
+                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
                 };
 
                 var buffer = bufferOwner.AsMemory();

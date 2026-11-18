@@ -4,6 +4,7 @@
 
 using System.Net;
 using System.Net.Http.Headers;
+using System.Diagnostics;
 using System.Security.Claims;
 using Zerra.CQRS;
 using Zerra.CQRS.Network;
@@ -82,7 +83,8 @@ namespace Zerra.Web
                 ProviderMethod = methodName,
 
                 Claims = claims,
-                Source = source
+                Source = source,
+                TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
             };
 
             //a trailing CancellationToken isn't sent, the server passes its own in its place
@@ -123,7 +125,8 @@ namespace Zerra.Web
                 ProviderMethod = methodName,
 
                 Claims = claims,
-                Source = source
+                Source = source,
+                TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
             };
 
             //a trailing CancellationToken isn't sent, the server passes its own in its place
@@ -166,7 +169,8 @@ namespace Zerra.Web
                 MessageResult = false,
 
                 Claims = claims,
-                Source = source
+                Source = source,
+                TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
             };
 
             return RequestAsync<object>(throttle, false, routeUri, encryptor, commandType.Name, data, null, false, cancellationToken);
@@ -189,7 +193,8 @@ namespace Zerra.Web
                 MessageResult = true,
 
                 Claims = claims,
-                Source = source
+                Source = source,
+                TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
             };
 
             return RequestAsync<TResult>(throttle, isStream, routeUri, encryptor, commandType.Name, data, null, true, cancellationToken)!;
@@ -212,7 +217,8 @@ namespace Zerra.Web
                 MessageResult = false,
 
                 Claims = claims,
-                Source = source
+                Source = source,
+                TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
             };
 
             return RequestAsync<object>(throttle, false, routeUri, encryptor, eventType.Name, data, null, false, cancellationToken);

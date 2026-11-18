@@ -19,7 +19,7 @@ New to Zerra? Read the [README](../README.md), then [Getting Started](GettingSta
 - [Server Setup](ServerSetup.md) - Hosting handlers, and shutdown
 - [Client Setup](ClientSetup.md) - Calling services, timeouts, and concurrency limits
 - [Service Injection](ServiceInjection.md) - Services for handlers
-- [Logging](Logging.md) - `ILogger` and `IBusLogger`
+- [Logging](Logging.md) - `ILogger`, `IBusLogger`, and OpenTelemetry
 - [AOT](AOT.md) - Source generation and Native AOT
 - [Serializers](Serializers.md) - Choosing one: [ByteSerializer](ByteSerializer.md) (binary) or [JsonSerializer](JsonSerializer.md)
 - [Encryptors](Encryptors.md) - Message encryption and key rotation
