@@ -1,0 +1,76 @@
+# Builds the framework and runs the tests that need no databases or brokers.
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  linux:
+    name: Build and test (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 11.0.x
+
+      - name: Build the framework
+        run: |
+          for project in Framework/*/*.csproj; do
+            dotnet build "$project"
+          done
+
+      - name: Build the tests
+        run: |
+          dotnet build Tests/Zerra.Test/Zerra.Test.csproj
+          dotnet build Tests/Zerra.SourceGeneration.Test/Zerra.SourceGeneration.Test.csproj
+          for project in Demo/Store/*.Test/*.csproj; do
+            dotnet build "$project"
+          done
+
+      - name: Zerra.Test
+        run: dotnet Tests/Zerra.Test/bin/Debug/net11.0/Zerra.Test.dll
+
+      - name: Zerra.SourceGeneration.Test
+        run: dotnet Tests/Zerra.SourceGeneration.Test/bin/Debug/net11.0/Zerra.SourceGeneration.Test.dll
+
+      - name: Store demo tests
+        run: |
+          for project in Demo/Store/*.Test/*.csproj; do
+            name=$(basename "$project" .csproj)
+            dotnet "$(dirname "$project")/bin/Debug/net11.0/$name.dll"
+          done
+
+  windows:
+    name: .NET Framework tests (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 11.0.x
+
+      - name: Build
+        run: dotnet build Tests/Zerra.Test.NetStandard/Zerra.Test.NetStandard.csproj
+
+      - name: Zerra.Test.NetStandard (net48)
+        run: Tests/Zerra.Test.NetStandard/bin/Debug/net48/Zerra.Test.NetStandard.exe

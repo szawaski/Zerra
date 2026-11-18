@@ -1,5 +1,6 @@
 # Zerra
 
+[![CI](https://github.com/szawaski/Zerra/actions/workflows/ci.yml/badge.svg)](https://github.com/szawaski/Zerra/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/vpre/Zerra.svg)](https://www.nuget.org/packages/Zerra/absoluteLatest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 

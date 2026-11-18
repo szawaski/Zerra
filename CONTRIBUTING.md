@@ -28,7 +28,7 @@ Tests/Zerra.Test/bin/Debug/net11.0/Zerra.Test.exe
 
 `Zerra.Test` needs no infrastructure. The repository and messaging tests need the databases and brokers that `Demo/Infrastructure/start-infrastructure.ps1` starts in Docker. [Testing](docs/Testing.md) covers each test project.
 
-Add a test for every fix that fails without it.
+Add a test for every fix that fails without it. Pull requests run the tests that need no infrastructure automatically.
 
 ## Code Conventions
 
