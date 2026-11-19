@@ -31,8 +31,6 @@ namespace Zerra.Reflection
         public readonly IReadOnlyList<Attribute> Attributes;
         /// <summary>Indicates whether this method is static.</summary>
         public readonly bool IsStatic;
-        /// <summary>Indicates whether this method is an explicit interface implementation.</summary>
-        public readonly bool IsExplicitFromInterface;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MethodDetail"/> class with method metadata.
@@ -46,8 +44,7 @@ namespace Zerra.Reflection
         /// <param name="callerBoxed">Boxed delegate for invoking this method.</param>
         /// <param name="attributes">Custom attributes applied to the method.</param>
         /// <param name="isStatic">Whether this method is static.</param>
-        /// <param name="isExplicitFromInterface">Whether this method is an explicit interface implementation.</param>
-        public MethodDetail(Type parentType, string name, Type returnType, IReadOnlyList<Type> genericArguments, IReadOnlyList<ParameterDetail> parameters, Delegate? caller, Func<object?, object?[]?, object?>? callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
+        public MethodDetail(Type parentType, string name, Type returnType, IReadOnlyList<Type> genericArguments, IReadOnlyList<ParameterDetail> parameters, Delegate? caller, Func<object?, object?[]?, object?>? callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic)
         {
             this.ParentType = parentType;
             this.Name = name;
@@ -59,7 +56,6 @@ namespace Zerra.Reflection
             this.CallerBoxed = callerBoxed;
             this.Attributes = attributes;
             this.IsStatic = isStatic;
-            this.IsExplicitFromInterface = isExplicitFromInterface;
         }
 
         /// <inheritdoc/>

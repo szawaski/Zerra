@@ -24,9 +24,8 @@ namespace Zerra.Reflection
         /// <param name="callerBoxed">Boxed delegate for invoking this method.</param>
         /// <param name="attributes">Custom attributes applied to the method.</param>
         /// <param name="isStatic">Whether this method is static.</param>
-        /// <param name="isExplicitFromInterface">Whether this method is an explicit interface implementation.</param>
-        public MethodDetail(Type parentType, string name, IReadOnlyList<Type> genericArguments, IReadOnlyList<ParameterDetail> parameters, Func<object?, object?[]?, T> caller, Func<object?, object?[]?, object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface)
-            : base(parentType, name, typeof(T), genericArguments, parameters, caller, callerBoxed, attributes, isStatic, isExplicitFromInterface)
+        public MethodDetail(Type parentType, string name, IReadOnlyList<Type> genericArguments, IReadOnlyList<ParameterDetail> parameters, Func<object?, object?[]?, T> caller, Func<object?, object?[]?, object?> callerBoxed, IReadOnlyList<Attribute> attributes, bool isStatic)
+            : base(parentType, name, typeof(T), genericArguments, parameters, caller, callerBoxed, attributes, isStatic)
         {
             this.Caller = caller;
         }

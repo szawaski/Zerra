@@ -72,7 +72,6 @@ namespace Zerra.Reflection
                         var allConstructorParameters = Constructors.SelectMany(c => c.Parameters).ToArray();
                         field ??= Members.Where(x =>
                             !x.IsStatic &&
-                            !x.IsExplicitFromInterface &&
                             IsSerializableType(x.TypeDetail) &&
                             x.HasGetter &&
                             (x.HasSetter || allConstructorParameters.Any(y => MemberAndParameterNameComparer.Instance.Equals(y.Name, x.Name) && y.Type == x.Type))

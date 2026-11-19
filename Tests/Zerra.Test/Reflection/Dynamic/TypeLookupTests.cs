@@ -151,6 +151,11 @@ namespace Zerra.Test.Reflection.Dynamic
         [InlineData(typeof(Dictionary<string, int>), SpecialType.Dictionary)]
         [InlineData(typeof(ConcurrentDictionary<string, int>), SpecialType.Dictionary)]
         [InlineData(typeof(ConcurrentFactoryDictionary<string, int>), SpecialType.Dictionary)]
+        [InlineData(typeof(object), SpecialType.Object)]
+        [InlineData(typeof(void), SpecialType.Void)]
+        [InlineData(typeof(IntPtr), SpecialType.Pointer)]
+        [InlineData(typeof(UIntPtr), SpecialType.Pointer)]
+        [InlineData(typeof(CancellationToken), SpecialType.CancellationToken)]
         public void GetSpecialType_KnownType_ReturnsTrueWithCorrectSpecialType(Type type, SpecialType expected)
         {
             var result = TypeLookup.GetSpecialType(type, out var specialType);
@@ -163,7 +168,6 @@ namespace Zerra.Test.Reflection.Dynamic
         [InlineData(typeof(int))]
         [InlineData(typeof(string))]
         [InlineData(typeof(List<int>))]
-        [InlineData(typeof(object))]
         [InlineData(typeof(TypeLookupTests))]
         public void GetSpecialType_UnknownType_ReturnsFalse(Type type)
         {

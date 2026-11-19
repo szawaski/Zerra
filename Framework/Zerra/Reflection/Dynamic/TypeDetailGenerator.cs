@@ -270,7 +270,8 @@ namespace Zerra.Reflection.Dynamic
             Func<T>? creator = null;
             Func<object>? creatorBoxed = null;
 
-            if (!type.IsAbstract && !type.IsGenericTypeDefinition && !type.IsInterface)
+            //a type with required members is created through a constructor that takes them, like generated code
+            if (!type.IsAbstract && !type.IsGenericTypeDefinition && !type.IsInterface && !HasRequiredMembers(type))
             {
                 var emptyConstructor = type.GetConstructor(Type.EmptyTypes);
                 if (emptyConstructor != null)
@@ -470,7 +471,8 @@ namespace Zerra.Reflection.Dynamic
         {
             var items = new List<MemberDetail>();
 
-            if (type.IsGenericTypeDefinition)
+            //built-in types and arrays are handled by their own converters, generated code lists no members for them
+            if (type.IsGenericTypeDefinition || type.IsArray || TypeLookup.GetCoreType(type, out _))
                 return items;
 
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
@@ -495,7 +497,6 @@ namespace Zerra.Reflection.Dynamic
                 Delegate? setter = null;
                 Action<object, object?>? setterBoxed = null;
 
-                //same accessors as the source generator in the type's own assembly, the backing field is only a faster way to use them
                 var hasGetter = property.GetMethod != null && (property.GetMethod.IsPublic || property.GetMethod.IsAssembly || property.GetMethod.IsFamilyOrAssembly);
                 var hasSetter = property.SetMethod != null && (property.SetMethod.IsPublic || property.SetMethod.IsAssembly || property.SetMethod.IsFamilyOrAssembly);
 
@@ -532,26 +533,22 @@ namespace Zerra.Reflection.Dynamic
                     }
                 }
 
-                var attributes = property.GetCustomAttributes(true).Cast<Attribute>().ToArray();
+                var attributes = GenerateAttributes(property);
 
                 var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
 
-                bool? allowsNull = null;
-#if !NETSTANDARD2_0
-                if (!property.PropertyType.IsValueType)
-                    allowsNull = new NullabilityInfoContext().Create(property).ReadState != NullabilityState.NotNull;
-#endif
+                var allowsNull = GetAllowsNull(property, property.PropertyType);
 
                 MemberDetail member;
                 if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsPointer || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
                 {
-                    member = new MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, false, allowsNull);
+                    member = new MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, allowsNull);
                 }
                 else
                 {
                     var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
                     var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, false, allowsNull]);
+                    member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, allowsNull]);
                 }
                 items.Add(member);
 
@@ -581,29 +578,28 @@ namespace Zerra.Reflection.Dynamic
                     getter = AccessorGenerator.GenerateGetter(@field, @field.FieldType);
                     getterBoxed = AccessorGenerator.GenerateGetter(@field);
 
-                    setter = AccessorGenerator.GenerateSetter(@field, @field.FieldType);
-                    setterBoxed = AccessorGenerator.GenerateSetter(@field);
+                    if (!@field.IsInitOnly)
+                    {
+                        setter = AccessorGenerator.GenerateSetter(@field, @field.FieldType);
+                        setterBoxed = AccessorGenerator.GenerateSetter(@field);
+                    }
                 }
 
 
-                var attributes = @field.GetCustomAttributes(true).Cast<Attribute>().ToArray();
+                var attributes = GenerateAttributes(@field);
 
-                bool? allowsNull = null;
-#if !NETSTANDARD2_0
-                if (!@field.FieldType.IsValueType)
-                    allowsNull = new NullabilityInfoContext().Create(@field).ReadState != NullabilityState.NotNull;
-#endif
+                var allowsNull = GetAllowsNull(@field, @field.FieldType);
 
                 MemberDetail member;
                 if (@field.FieldType.ContainsGenericParameters || @field.FieldType.IsPointer || @field.FieldType.IsByRef || @field.FieldType.IsByRefLike)
                 {
-                    member = new MemberDetail(type, field.FieldType, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, field.IsStatic, false, allowsNull);
+                    member = new MemberDetail(type, field.FieldType, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, field.IsStatic, allowsNull);
                 }
                 else
                 {
                     var memberDetailGenericType = memberDetailType.MakeGenericType(@field.FieldType);
                     var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                    member = (MemberDetail)constructor.Invoke([type, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, field.IsStatic, false, allowsNull]);
+                    member = (MemberDetail)constructor.Invoke([type, field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, field.IsStatic, allowsNull]);
                 }
                 items.Add(member);
 
@@ -619,6 +615,8 @@ namespace Zerra.Reflection.Dynamic
 
                     foreach (var property in iProperties)
                     {
+                        if (property.DeclaringType == typeof(Zerra.CQRS.IHandler))
+                            continue;
                         if (property.GetIndexParameters().Length > 0)
                             continue;
                         if (property.PropertyType.IsPointer)
@@ -626,18 +624,10 @@ namespace Zerra.Reflection.Dynamic
                         if (property.GetMethod?.IsPublic != true && property.SetMethod?.IsPublic != true)
                             continue;
 
-                        string name;
-                        bool isExplicitFromInterface;
-                        if (type.IsInterface && !names!.Contains(property.Name))
-                        {
-                            name = property.Name;
-                            isExplicitFromInterface = false;
-                        }
-                        else
-                        {
-                            name = $"{property.DeclaringType?.Namespace}.{property.DeclaringType?.Name}.{property.Name.Split('.').Last()}";
-                            isExplicitFromInterface = true;
-                        }
+                        //explicit implementations are on the interface's own detail
+                        if (!type.IsInterface || names!.Contains(property.Name))
+                            continue;
+                        var name = property.Name;
 
                         if (names!.Add(name))
                         {
@@ -661,25 +651,21 @@ namespace Zerra.Reflection.Dynamic
                                 }
                             }
 
-                            var attributes = property.GetCustomAttributes(true).Cast<Attribute>().ToArray();
+                            var attributes = GenerateAttributes(property);
 
                             var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
 
-                            bool? allowsNull = null;
-#if !NETSTANDARD2_0
-                            if (!property.PropertyType.IsValueType)
-                                allowsNull = new NullabilityInfoContext().Create(property).ReadState != NullabilityState.NotNull;
-#endif
+                            var allowsNull = GetAllowsNull(property, property.PropertyType);
                             MemberDetail member;
                             if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsPointer || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
                             {
-                                member = new MemberDetail(type, property.PropertyType, name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, isExplicitFromInterface, allowsNull);
+                                member = new MemberDetail(type, property.PropertyType, name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, allowsNull);
                             }
                             else
                             {
                                 var memberDetailGenericType = TypeDetailGenerator.memberDetailType.MakeGenericType(property.PropertyType);
                                 var memberDetailType = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                member = (MemberDetail)memberDetailType.Invoke([type, name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, isExplicitFromInterface, allowsNull]);
+                                member = (MemberDetail)memberDetailType.Invoke([type, name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, allowsNull]);
                             }
                             items.Add(member);
                         }
@@ -706,13 +692,21 @@ namespace Zerra.Reflection.Dynamic
         public static List<ConstructorDetail> GenerateConstructorsGeneric<T>(Type type)
         {
             var items = new List<ConstructorDetail>();
-            if (type.IsGenericTypeDefinition)
+            //built-in types and arrays are handled by their own converters, a delegate's constructor can't be called from C#, generated code lists none for them
+            if (type.IsGenericTypeDefinition || type.IsArray || typeof(Delegate).IsAssignableFrom(type) || TypeLookup.GetCoreType(type, out _))
                 return items;
+
+            //required members are set after the constructor, taken as extra arguments like generated code's object initializer
+            var requiredMembers = GetRequiredMembers(type);
 
             var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
             foreach (var constructor in constructors)
             {
                 if (!constructor.IsPublic)
+                    continue;
+
+                var parameters = constructor.GetParameters();
+                if (parameters.Any(x => (x.ParameterType.IsByRef && !x.IsIn) || x.ParameterType.IsByRefLike || x.ParameterType.IsPointer))
                     continue;
 
                 Func<object?[]?, T>? creator = null;
@@ -726,13 +720,81 @@ namespace Zerra.Reflection.Dynamic
                 if (creatorBoxed == null)
                     continue;
 
-                var parameters = constructor.GetParameters();
                 var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
 
-                var constructorDetail = new ConstructorDetail<T>(parameterTypes, creator, creatorBoxed);
-                items.Add(constructorDetail);
+                if (requiredMembers.Length > 0)
+                    items.Add(GenerateRequiredMembersConstructor<T>(parameterTypes, creatorBoxed, requiredMembers));
+                else
+                    items.Add(new ConstructorDetail<T>(parameterTypes, creator, creatorBoxed));
             }
+
+            //a struct's parameterless constructor isn't declared, generated code calls it to set the required members
+            if (requiredMembers.Length > 0 && type.IsValueType && !items.Any(x => x.Parameters.Count == requiredMembers.Length))
+                items.Add(GenerateRequiredMembersConstructor<T>([], static (object?[]? args) => default(T)!, requiredMembers));
+
             return items;
+        }
+
+#if !NETSTANDARD2_0
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+        [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
+        private static (string Name, Type Type, Action<object, object?> Setter, object? Default)[] GetRequiredMembers(Type type)
+        {
+            var requiredMembers = new List<(string, Type, Action<object, object?>, object?)>();
+            if (!HasRequiredMembers(type))
+                return [];
+            foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (!property.GetCustomAttributes(true).Any(x => x.GetType().FullName == "System.Runtime.CompilerServices.RequiredMemberAttribute"))
+                    continue;
+                var setter = AccessorGenerator.GenerateSetter(property);
+                if (setter is not null)
+                    requiredMembers.Add((property.Name, property.PropertyType, setter, property.PropertyType.IsValueType ? Activator.CreateInstance(property.PropertyType) : null));
+            }
+            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (!field.GetCustomAttributes(true).Any(x => x.GetType().FullName == "System.Runtime.CompilerServices.RequiredMemberAttribute"))
+                    continue;
+                var setter = AccessorGenerator.GenerateSetter(field);
+                if (setter is not null)
+                    requiredMembers.Add((field.Name, field.FieldType, setter, field.FieldType.IsValueType ? Activator.CreateInstance(field.FieldType) : null));
+            }
+            return requiredMembers.ToArray();
+        }
+
+        //the compiler marks each type that declares required members, the attribute isn't inherited
+        private static bool HasRequiredMembers(Type type)
+        {
+            for (var current = type; current is not null; current = current.BaseType)
+            {
+                if (current.GetCustomAttributes(false).Any(x => x.GetType().FullName == "System.Runtime.CompilerServices.RequiredMemberAttribute"))
+                    return true;
+            }
+            return false;
+        }
+
+        private static ConstructorDetail<T> GenerateRequiredMembersConstructor<T>(ParameterDetail[] parameterTypes, Func<object?[]?, object> constructorBoxed, (string Name, Type Type, Action<object, object?> Setter, object? Default)[] requiredMembers)
+        {
+            var parameterCount = parameterTypes.Length;
+            object CreatorBoxed(object?[]? args)
+            {
+                var constructorArgs = args;
+                if (args is not null && args.Length > parameterCount)
+                {
+                    constructorArgs = new object?[parameterCount];
+                    Array.Copy(args, constructorArgs, parameterCount);
+                }
+                var instance = constructorBoxed(constructorArgs);
+                for (var i = 0; i < requiredMembers.Length; i++)
+                {
+                    var index = parameterCount + i;
+                    requiredMembers[i].Setter(instance, (args is not null && index < args.Length ? args[index] : null) ?? requiredMembers[i].Default);
+                }
+                return instance;
+            }
+            var allParameters = parameterTypes.Concat(requiredMembers.Select(x => new ParameterDetail(x.Type, x.Name))).ToArray();
+            return new ConstructorDetail<T>(allParameters, args => (T)CreatorBoxed(args), CreatorBoxed);
         }
 
 #if !NETSTANDARD2_0
@@ -751,11 +813,16 @@ namespace Zerra.Reflection.Dynamic
                 {
                     if (!method.IsPublic)
                         continue;
+                    //an object[] of arguments can't pass a ref or out back
+                    if (method.IsStatic || method.IsSpecialName)
+                        continue;
+                    if (method.ReturnType.IsByRefLike || method.ReturnType.IsPointer || method.GetParameters().Any(x => (x.ParameterType.IsByRef && !x.IsIn) || x.ParameterType.IsByRefLike || x.ParameterType.IsPointer))
+                        continue;
 
                     var parameters = method.GetParameters();
                     var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
 
-                    var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
+                    var attributes = GenerateAttributes(method);
 
                     Delegate? caller = null;
                     Func<object?, object?[]?, object?>? callerBoxed = null;
@@ -768,13 +835,13 @@ namespace Zerra.Reflection.Dynamic
                     MethodDetail methodDetail;
                     if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
                     {
-                        methodDetail = new MethodDetail(type, method.Name, method.ReturnType, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                        methodDetail = new MethodDetail(type, method.Name, method.ReturnType, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic);
                     }
                     else
                     {
                         var methodDetailGenericType = TypeDetailGenerator.methodDetailType.MakeGenericType(method.ReturnType == typeof(void) ? typeof(object) : method.ReturnType);
                         var methodDetailType = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                        methodDetail = (MethodDetail)methodDetailType.Invoke([type, method.Name, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false]);
+                        methodDetail = (MethodDetail)methodDetailType.Invoke([type, method.Name, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic]);
                     }
 
                     items.Add(methodDetail);
@@ -789,25 +856,21 @@ namespace Zerra.Reflection.Dynamic
                         var iMethods = i.GetMethods(BindingFlags.Public | BindingFlags.Instance); //don't get static interface methods
                         foreach (var method in iMethods)
                         {
-                            string name;
-                            bool isExplicitFromInterface;
-                            if (type.IsInterface && !names!.Contains(method.Name))
-                            {
-                                name = method.Name;
-                                isExplicitFromInterface = false;
-                            }
-                            else
-                            {
-                                name = $"{method.DeclaringType?.Namespace}.{method.DeclaringType?.Name}.{method.Name.Split('.').Last()}";
-                                isExplicitFromInterface = true;
-                            }
+                            if (method.IsSpecialName || method.DeclaringType == typeof(Zerra.CQRS.IHandler))
+                                continue;
+                            if (method.ReturnType.IsByRefLike || method.ReturnType.IsPointer || method.GetParameters().Any(x => (x.ParameterType.IsByRef && !x.IsIn) || x.ParameterType.IsByRefLike || x.ParameterType.IsPointer))
+                                continue;
+                            //explicit implementations are on the interface's own detail
+                            if (!type.IsInterface || names!.Contains(method.Name))
+                                continue;
+                            var name = method.Name;
 
                             if (!names!.Contains(name))
                             {
                                 var parameters = method.GetParameters();
                                 var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
 
-                                var attributes = method.GetCustomAttributes(true).Cast<Attribute>().ToArray();
+                                var attributes = GenerateAttributes(method);
 
                                 Delegate? caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
                                 if (caller == null)
@@ -822,13 +885,13 @@ namespace Zerra.Reflection.Dynamic
                                 MethodDetail methodDetail;
                                 if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
                                 {
-                                    methodDetail = new MethodDetail(type, name, method.ReturnType, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, false);
+                                    methodDetail = new MethodDetail(type, name, method.ReturnType, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic);
                                 }
                                 else
                                 {
                                     var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType == typeof(void) ? typeof(object) : method.ReturnType);
                                     var constructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
-                                    methodDetail = (MethodDetail)constructor.Invoke([type, name, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic, isExplicitFromInterface]);
+                                    methodDetail = (MethodDetail)constructor.Invoke([type, name, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic]);
                                 }
                                 items.Add(methodDetail);
                                 if (hasInterfaces)
@@ -866,14 +929,70 @@ namespace Zerra.Reflection.Dynamic
 #if !NETSTANDARD2_0
         [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
 #endif
+        //an internal interface such as IUtfChar<byte> can't be named by generated code, a public one over a private model can
         public static Type[] GenerateInterfaces(Type type)
         {
-            return type.GetInterfaces();
+            return type.GetInterfaces().Where(x => (x.IsGenericType ? x.GetGenericTypeDefinition() : x).IsVisible).ToArray();
         }
 
-        public static Attribute[] GenerateAttributes(Type type)
+        //the attributes the source generator sees and can write: not the compiler's, the debugger's, COM interop's, or declarative security, which Roslyn doesn't read as attributes,
+        //not the [Serializable] flag or the [DefaultMember] for an indexer, which it reports differently, and only public ones whose arguments are public types
+        public static Attribute[] GenerateAttributes(MemberInfo member)
         {
-            return type.GetCustomAttributes(true).Cast<Attribute>().ToArray();
+            HashSet<Type>? hiddenArguments = null;
+            foreach (var data in member.GetCustomAttributesData())
+            {
+                if (data.ConstructorArguments.Any(x => !x.ArgumentType.IsVisible) || data.NamedArguments.Any(x => !x.TypedValue.ArgumentType.IsVisible))
+                    (hiddenArguments ??= new()).Add(data.AttributeType);
+            }
+
+            var attributes = new List<Attribute>();
+            foreach (Attribute attribute in member.GetCustomAttributes(true))
+            {
+                var attributeType = attribute.GetType();
+                var ns = attributeType.Namespace;
+                if (!attributeType.IsVisible || attributeType == typeof(SerializableAttribute) || attributeType == typeof(DefaultMemberAttribute) || (hiddenArguments is not null && hiddenArguments.Contains(attributeType)))
+                    continue;
+                if (ns is not null && (ns.StartsWith("System.Runtime.CompilerServices") || ns.StartsWith("System.Diagnostics") || ns.StartsWith("System.Security.Permissions") || ns.StartsWith("System.Runtime.InteropServices")))
+                    continue;
+                attributes.Add(attribute);
+            }
+            return attributes.ToArray();
+        }
+
+        //nullable annotations compile to NullableAttribute on the member, or NullableContextAttribute on an enclosing type for members without one,
+        //read by name since .NET Framework builds declare these attributes in their own assembly
+        private static bool? GetAllowsNull(MemberInfo member, Type memberType)
+        {
+            if (memberType.IsValueType)
+                return null;
+
+            byte? flag = null;
+            foreach (var data in member.GetCustomAttributesData())
+            {
+                if (data.AttributeType.FullName != "System.Runtime.CompilerServices.NullableAttribute" || data.ConstructorArguments.Count != 1)
+                    continue;
+                var value = data.ConstructorArguments[0].Value;
+                if (value is byte single)
+                    flag = single;
+                else if (value is IReadOnlyCollection<CustomAttributeTypedArgument> many && many.Count > 0 && many.First().Value is byte first)
+                    flag = first;
+                break;
+            }
+
+            for (var type = member.DeclaringType; flag is null && type is not null; type = type.DeclaringType)
+            {
+                foreach (var data in type.GetCustomAttributesData())
+                {
+                    if (data.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute" && data.ConstructorArguments.Count == 1 && data.ConstructorArguments[0].Value is byte context)
+                    {
+                        flag = context;
+                        break;
+                    }
+                }
+            }
+
+            return flag == 1 ? false : null;
         }
     }
 }

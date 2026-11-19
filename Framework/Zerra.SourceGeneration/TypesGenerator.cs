@@ -114,7 +114,7 @@ namespace Zerra.SourceGeneration
 
                 _ = sb.Append(", ");
 
-                GenerateInterfaces(sb, model.TypeSymbol);
+                GenerateInterfaces(sb, model.TypeSymbol, assembly);
 
                 _ = sb.Append(", ");
 
@@ -186,8 +186,7 @@ namespace Zerra.SourceGeneration
                     {
                         _ = sb.Append("new global::Zerra.Reflection.MemberDetail(").Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ").Append(Helper.GetTypeOfName(property.Type)).Append(", \"").Append(propertyName).Append("\", false, null, null, null, null, ");
                         GenerateAttributes(sb, property);
-                        _ = sb.Append(", ").Append(Helper.BoolString(property.IsStatic));
-                        _ = sb.Append(", ").Append(Helper.BoolString(isExplicitFromInterface)).Append(")");
+                        _ = sb.Append(", ").Append(Helper.BoolString(property.IsStatic)).Append(")");
                         continue;
                     }
 
@@ -280,14 +279,13 @@ namespace Zerra.SourceGeneration
                     GenerateAttributes(sb, property);
 
                     _ = sb.Append(", ").Append(Helper.BoolString(property.IsStatic));
-                    _ = sb.Append(", ").Append(Helper.BoolString(isExplicitFromInterface));
-                    if (IsDeclaredNotNull(property.Type))
+                    if (IsDeclaredNotNull(property.Type, property.OriginalDefinition.Type))
                         _ = sb.Append(", false");
                     _ = sb.Append(")");
                 }
                 foreach (var @field in fields)
                 {
-                    if (@field.DeclaredAccessibility != Accessibility.Public)
+                    if (@field.DeclaredAccessibility != Accessibility.Public || @field.IsConst)
                         continue;
 
                     if (hasFirst)
@@ -303,8 +301,7 @@ namespace Zerra.SourceGeneration
                     {
                         _ = sb.Append("new global::Zerra.Reflection.MemberDetail(").Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ").Append(Helper.GetTypeOfName(@field.Type)).Append(", \"").Append(@field.Name).Append("\", true, null, null, null, null, ");
                         GenerateAttributes(sb, @field);
-                        _ = sb.Append(", ").Append(Helper.BoolString(@field.IsStatic));
-                        _ = sb.Append(", false)");
+                        _ = sb.Append(", ").Append(Helper.BoolString(@field.IsStatic)).Append(")");
                         continue;
                     }
 
@@ -345,8 +342,7 @@ namespace Zerra.SourceGeneration
                     GenerateAttributes(sb, @field);
 
                     _ = sb.Append(", ").Append(Helper.BoolString(@field.IsStatic));
-                    _ = sb.Append(", false");
-                    if (IsDeclaredNotNull(@field.Type))
+                    if (IsDeclaredNotNull(@field.Type, @field.OriginalDefinition.Type))
                         _ = sb.Append(", false");
                     _ = sb.Append(")");
                 }
@@ -354,8 +350,9 @@ namespace Zerra.SourceGeneration
 
             _ = sb.Append("]");
         }
-        private static bool IsDeclaredNotNull(ITypeSymbol typeSymbol)
-            => !typeSymbol.IsValueType && typeSymbol.TypeKind != TypeKind.TypeParameter && typeSymbol.NullableAnnotation == NullableAnnotation.NotAnnotated;
+        //the member's declared annotation, as compiled into metadata where reflection reads it, the type argument's own ? isn't kept at runtime
+        private static bool IsDeclaredNotNull(ITypeSymbol typeSymbol, ITypeSymbol declaredTypeSymbol)
+            => !typeSymbol.IsValueType && typeSymbol.TypeKind != TypeKind.TypeParameter && declaredTypeSymbol.NullableAnnotation == NullableAnnotation.NotAnnotated;
 
         private static void GenerateConstructors(StringBuilder sb, bool isCoreType, string typeName, INamedTypeSymbol? namedTypeSymbol, ImmutableArray<ISymbol> symbolMembers)
         {
@@ -373,6 +370,9 @@ namespace Zerra.SourceGeneration
                 {
                     //a delegate's (object, IntPtr) constructor can't be called from C#
                     if (constructor.DeclaredAccessibility != Accessibility.Public || namedTypeSymbol.TypeKind == TypeKind.Delegate)
+                        continue;
+                    //a struct's parameterless constructor isn't in its metadata, it's only listed to set required members
+                    if (constructor.IsImplicitlyDeclared && namedTypeSymbol.IsValueType && requiredMembers.Length == 0)
                         continue;
                     //an object[] element can't be passed by ref or out; in parameters take the value
                     if (constructor.Parameters.Any(x => x.Type.IsRefLikeType || Helper.HasPointer(x.Type) || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
@@ -598,8 +598,7 @@ namespace Zerra.SourceGeneration
 
                     GenerateAttributes(sb, method);
 
-                    _ = sb.Append(", ").Append(Helper.BoolString(method.IsStatic));
-                    _ = sb.Append(", ").Append(Helper.BoolString(isExplicitFromInterface)).Append(")");
+                    _ = sb.Append(", ").Append(Helper.BoolString(method.IsStatic)).Append(")");
                 }
             }
 
@@ -734,8 +733,9 @@ namespace Zerra.SourceGeneration
             string innerTypeOf = "null";
             if (namedTypeSymbol is not null)
             {
-                if (namedTypeSymbol.TypeArguments.Length == 1)
-                    innerTypeOf = Helper.GetTypeOfName(namedTypeSymbol.TypeArguments[0]);
+                var typeArguments = Helper.GetAllTypeArguments(namedTypeSymbol);
+                if (typeArguments.Count == 1)
+                    innerTypeOf = Helper.GetTypeOfName(typeArguments[0]);
             }
             else if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
             {
@@ -838,11 +838,12 @@ namespace Zerra.SourceGeneration
             {
                 if (Helper.IsGenericDefined(namedTypeSymbol))
                 {
-                    if (namedTypeSymbol.TypeArguments.Length > 0)
+                    var typeArguments = Helper.GetAllTypeArguments(namedTypeSymbol);
+                    if (typeArguments.Count > 0)
                         _ = sb.Append(EnvironmentHelper.NewLine).Append("                ");
 
                     var hasFirst = false;
-                    foreach (var type in namedTypeSymbol.TypeArguments)
+                    foreach (var type in typeArguments)
                     {
                         if (hasFirst)
                             _ = sb.Append(", ");
@@ -885,7 +886,7 @@ namespace Zerra.SourceGeneration
 
             _ = sb.Append("]");
         }
-        private static void GenerateInterfaces(StringBuilder sb, ITypeSymbol typeSymbol)
+        private static void GenerateInterfaces(StringBuilder sb, ITypeSymbol typeSymbol, IAssemblySymbol assembly)
         {
             _ = sb.Append("[");
 
@@ -895,8 +896,15 @@ namespace Zerra.SourceGeneration
             var hasFirst = false;
             foreach (var i in typeSymbol.AllInterfaces)
             {
-                if (!Helper.CanBeReferencedAsCode(i))
-                    break;
+                //the same interfaces as reflection, a public interface, here over types the generated code can name
+                var isPublic = true;
+                for (var definition = i.OriginalDefinition; definition is not null; definition = definition.ContainingType)
+                {
+                    if (definition.DeclaredAccessibility != Accessibility.Public)
+                        isPublic = false;
+                }
+                if (!isPublic || !Helper.IsWritable(i, assembly))
+                    continue;
                 if (hasFirst)
                     _ = sb.Append(", ");
                 else
@@ -911,8 +919,24 @@ namespace Zerra.SourceGeneration
         {
             _ = sb.Append("[");
 
-            var attributeSymbols = symbol.GetAttributes();
-
+            var attributeSymbols = symbol.GetAttributes().ToList();
+            //reflection reads a type's or an overriding method's attributes with those its base declares as inherited
+            ISymbol? baseSymbol = symbol is INamedTypeSymbol namedSymbol ? namedSymbol.BaseType : (ISymbol?)(symbol as IMethodSymbol)?.OverriddenMethod;
+            while (baseSymbol is not null)
+            {
+                foreach (var inherited in baseSymbol.GetAttributes())
+                {
+                    if (inherited.AttributeClass is null)
+                        continue;
+                    GetAttributeUsage(inherited.AttributeClass, out var isInherited, out var allowMultiple);
+                    if (!isInherited)
+                        continue;
+                    if (!allowMultiple && attributeSymbols.Any(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, inherited.AttributeClass)))
+                        continue;
+                    attributeSymbols.Add(inherited);
+                }
+                baseSymbol = baseSymbol is INamedTypeSymbol baseType ? baseType.BaseType : (ISymbol?)(baseSymbol as IMethodSymbol)?.OverriddenMethod;
+            }
             //if (attributeSymbols.Length > 0)
             //    _ = sb.Append(EnvironmentHelper.NewLine).Append("                ");
 
@@ -924,6 +948,14 @@ namespace Zerra.SourceGeneration
                 if (attributeSymbol.AttributeClass.ContainingNamespace.ToString().StartsWith("System.Runtime.CompilerServices"))
                     continue;
                 if (attributeSymbol.AttributeClass.ContainingNamespace.ToString().StartsWith("System.Diagnostics"))
+                    continue;
+                //bookkeeping the compiler and runtime don't report the same way: the [Serializable] flag reference assemblies leave off types such as bool,
+                //the [DefaultMember] the compiler adds for an indexer, and COM interop attributes
+                if (attributeSymbol.AttributeClass.Name == "SerializableAttribute" && attributeSymbol.AttributeClass.ContainingNamespace.ToString() == "System")
+                    continue;
+                if (attributeSymbol.AttributeClass.Name == "DefaultMemberAttribute" && attributeSymbol.AttributeClass.ContainingNamespace.ToString() == "System.Reflection")
+                    continue;
+                if (attributeSymbol.AttributeClass.ContainingNamespace.ToString().StartsWith("System.Runtime.InteropServices"))
                     continue;
                 if (!Helper.CanBeReferencedAsCode(attributeSymbol.AttributeClass))
                     continue;
@@ -981,6 +1013,27 @@ namespace Zerra.SourceGeneration
             }
 
             _ = sb.Append("]");
+        }
+
+        private static void GetAttributeUsage(INamedTypeSymbol attributeClass, out bool isInherited, out bool allowMultiple)
+        {
+            //AttributeUsage defaults to inherited and single, an attribute class gets its base class's usage when it declares none
+            isInherited = true;
+            allowMultiple = false;
+            for (var current = attributeClass; current is not null; current = current.BaseType)
+            {
+                var usage = current.GetAttributes().FirstOrDefault(x => x.AttributeClass is { Name: "AttributeUsageAttribute" } usageClass && usageClass.ContainingNamespace.ToString() == "System");
+                if (usage is null)
+                    continue;
+                foreach (var named in usage.NamedArguments)
+                {
+                    if (named.Key == "Inherited" && named.Value.Value is bool inheritedValue)
+                        isInherited = inheritedValue;
+                    else if (named.Key == "AllowMultiple" && named.Value.Value is bool allowMultipleValue)
+                        allowMultiple = allowMultipleValue;
+                }
+                return;
+            }
         }
         private static void GenerateParameters(StringBuilder sb, ImmutableArray<IParameterSymbol> parameterSymbols, TypeFinder.RequiredMembers[]? requiredMembers)
         {

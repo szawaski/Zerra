@@ -933,9 +933,9 @@ namespace Zerra.SourceGeneration.Test
                 }
                 """);
 
-            //attributes, isStatic, isExplicitFromInterface, then allowsNull only when it's false
-            const string notNull = "[], false, false, false)";
-            const string byType = "[], false, false)";
+            //attributes, isStatic, then allowsNull only when it's false
+            const string notNull = "[], false, false)";
+            const string byType = "[], false)";
             string Member(string type, string name) => Assert.Single(output.Lines(x => x.Contains($"MemberDetail<{type}>(typeof(global::TestApp.Model)") && x.Contains($"\"{name}\",")));
 
             Assert.Contains(notNull, Member("string", "Name"));

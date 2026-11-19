@@ -363,7 +363,6 @@ namespace Zerra.SourceGeneration
         public static bool HasStaticAbstract(ITypeSymbol typeSymbol)
             => typeSymbol.TypeKind == TypeKind.Interface && typeSymbol.GetMembers().Concat(typeSymbol.AllInterfaces.SelectMany(x => x.GetMembers())).Any(x => x.IsStatic && x.IsAbstract);
 
-        //a public accessor, or an internal one when the assembly being compiled is the type's own or is given its internals
         public static bool IsAccessorVisible(IMethodSymbol accessor, IAssemblySymbol assembly)
         {
             switch (accessor.DeclaredAccessibility)
@@ -378,9 +377,17 @@ namespace Zerra.SourceGeneration
             }
         }
 
-        //the accessors serialization uses, the same as reflection: public, internal and protected internal
         public static bool IsAccessorUsed(IMethodSymbol accessor)
             => accessor.DeclaredAccessibility == Accessibility.Public || accessor.DeclaredAccessibility == Accessibility.Internal || accessor.DeclaredAccessibility == Accessibility.ProtectedOrInternal;
+
+        //a nested type such as Dictionary<TKey, TValue>.KeyCollection takes its containing type's type arguments first, as reflection lists them
+        public static List<ITypeSymbol> GetAllTypeArguments(INamedTypeSymbol namedTypeSymbol)
+        {
+            var typeArguments = new List<ITypeSymbol>();
+            for (var typeSymbol = namedTypeSymbol; typeSymbol is not null; typeSymbol = typeSymbol.ContainingType)
+                typeArguments.InsertRange(0, typeSymbol.TypeArguments);
+            return typeArguments;
+        }
 
         public static bool IsInGenericType(INamedTypeSymbol namedTypeSymbol)
         {

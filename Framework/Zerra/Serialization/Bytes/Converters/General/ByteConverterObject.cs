@@ -149,7 +149,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
             if (indexSizeUInt16Only && !state.UseIndexSizeUInt16 && !state.UseMemberNames)
                 throw CreateIndexSizeException();
 
-            //the collected constructor arguments or the object being read, a struct is boxed once so every member is set on the same copy
+            //the collected constructor arguments or the object being read, a struct is boxed once so its members are set on the same copy
             object? parent;
 
             if (!state.Current.HasCreated)
@@ -290,7 +290,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 state.Current.HasReadProperty = false;
             }
 
-            //nothing is created while draining
             if (parent is not null)
             {
                 if (collectValues)
@@ -453,7 +452,6 @@ namespace Zerra.Serialization.Bytes.Converters.General
             return value;
         }
 
-        //a struct's remaining members are set on the box the constructor made, then it's unboxed once
         private TValue? CreateStructFromCollectedValues(Dictionary<string, object?> collectedValues)
         {
             var args = (object?[])parameterDefaults.Clone();

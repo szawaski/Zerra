@@ -74,6 +74,8 @@ foreach (var member in detail.Members)
 
 `Getter` and `Setter` are the strongly typed delegates. The `Boxed` versions take and return `object`.
 
+Explicit interface implementations aren't listed. Read them from the interface's own `TypeDetail`, such as `typeof(ICollection<T>).GetTypeDetail()`.
+
 ### Constructors and Methods
 
 ```csharp
@@ -85,13 +87,15 @@ foreach (var ctor in detail.Constructors)
 
 foreach (var method in detail.Methods)
 {
-    // Name, ReturnType, Parameters, GenericArguments, IsStatic, Attributes
+    // Name, ReturnType, Parameters, GenericArguments, Attributes
     if (method.HasCaller)
     {
         object? result = method.CallerBoxed!(user, new object?[] { 42 });
     }
 }
 ```
+
+`Methods` lists public instance methods. Property accessors, operators, explicit interface implementations, and methods with `ref` or `out` parameters aren't listed.
 
 ## CoreType
 

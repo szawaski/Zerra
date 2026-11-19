@@ -114,10 +114,9 @@ namespace Zerra.Test.Reflection.Types
             Delegate? setter,
             Action<object, object?>? setterBoxed,
             IReadOnlyList<Attribute>? attributes = null,
-            bool isStatic = false,
-            bool isExplicitFromInterface = false)
+            bool isStatic = false)
             => new(parentType, memberType, name, isField, getter, getterBoxed, setter, setterBoxed,
-                attributes ?? Array.Empty<Attribute>(), isStatic, isExplicitFromInterface);
+                attributes ?? Array.Empty<Attribute>(), isStatic);
 
         public static Zerra.Reflection.MemberDetail<T> MakeMemberDetailT<T>(
             Type parentType,
@@ -128,10 +127,9 @@ namespace Zerra.Test.Reflection.Types
             Action<object, T?>? setter,
             Action<object, object?>? setterBoxed,
             IReadOnlyList<Attribute>? attributes = null,
-            bool isStatic = false,
-            bool isExplicitFromInterface = false)
+            bool isStatic = false)
             => new(parentType, name, isField, getter, getterBoxed, setter, setterBoxed,
-                attributes ?? Array.Empty<Attribute>(), isStatic, isExplicitFromInterface);
+                attributes ?? Array.Empty<Attribute>(), isStatic);
 
         public static Zerra.Reflection.ConstructorDetail MakeConstructorDetail(
             Type parentType,
@@ -155,10 +153,9 @@ namespace Zerra.Test.Reflection.Types
             Delegate? caller,
             Func<object?, object?[]?, object?>? callerBoxed,
             IReadOnlyList<Attribute>? attributes = null,
-            bool isStatic = false,
-            bool isExplicitFromInterface = false)
+            bool isStatic = false)
             => new(parentType, name, returnType, genericArguments ?? Array.Empty<Type>(), parameters,
-                caller, callerBoxed, attributes ?? Array.Empty<Attribute>(), isStatic, isExplicitFromInterface);
+                caller, callerBoxed, attributes ?? Array.Empty<Attribute>(), isStatic);
 
         public static Zerra.Reflection.MethodDetail<T> MakeMethodDetailT<T>(
             Type parentType,
@@ -168,10 +165,9 @@ namespace Zerra.Test.Reflection.Types
             Func<object?, object?[]?, T> caller,
             Func<object?, object?[]?, object?> callerBoxed,
             IReadOnlyList<Attribute>? attributes = null,
-            bool isStatic = false,
-            bool isExplicitFromInterface = false)
+            bool isStatic = false)
             => new(parentType, name, genericArguments ?? Array.Empty<Type>(), parameters,
-                caller, callerBoxed, attributes ?? Array.Empty<Attribute>(), isStatic, isExplicitFromInterface);
+                caller, callerBoxed, attributes ?? Array.Empty<Attribute>(), isStatic);
 
         public static Zerra.Reflection.TypeDetail MakeTypeDetail(
             Type type,

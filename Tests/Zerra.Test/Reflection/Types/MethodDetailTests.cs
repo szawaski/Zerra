@@ -72,7 +72,6 @@ namespace Zerra.Test.Reflection.Types
             Assert.NotNull(method.Caller);
             Assert.NotNull(method.CallerBoxed);
             Assert.False(method.IsStatic);
-            Assert.False(method.IsExplicitFromInterface);
         }
 
         [Fact]

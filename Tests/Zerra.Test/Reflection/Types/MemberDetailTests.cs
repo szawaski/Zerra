@@ -46,7 +46,6 @@ namespace Zerra.Test.Reflection.Types
             Assert.True(member.HasGetter);
             Assert.True(member.HasSetter);
             Assert.False(member.IsStatic);
-            Assert.False(member.IsExplicitFromInterface);
         }
 
         [Fact]

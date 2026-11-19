@@ -475,19 +475,40 @@ namespace Zerra.Test.Reflection
             Assert.Equal("5", TypeAnalyzer.Convert(5, CoreType.String));
         }
 
+        public sealed class MethodShapesModel
+        {
+            public int Value { get; set; }
+            public event EventHandler? Changed;
+            public int Run(int a) => a;
+            public int WithIn(in int a) => a;
+            public bool TryGet(out int value) { value = Value; Changed?.Invoke(this, EventArgs.Empty); return true; }
+            public void Swap(ref int value) => value = Value;
+            public static MethodShapesModel operator +(MethodShapesModel a, MethodShapesModel b) => a;
+            public static int Create() => 1;
+        }
+
+        public interface ITestQueryHandler : Zerra.CQRS.IQueryHandler
+        {
+            int Get(int a);
+        }
+
         [Fact]
         public void RuntimeTypes_InterfaceMembersAndMethods()
         {
-            //types that aren't generated get their details at runtime, explicit interface implementations included,
+            //types that aren't generated get their details at runtime, the same as generated code: no explicit interface implementations or static methods,
             //these type arguments are used by no model so the source generator leaves them to runtime
             var dictionaryDetail = typeof(Dictionary<int, Version>).GetTypeDetail();
-            var explicitAdd = Assert.Single(dictionaryDetail.Methods, x => x.IsExplicitFromInterface && x.Name == "System.Collections.IDictionary.Add");
+            Assert.DoesNotContain(dictionaryDetail.Methods, x => x.Name.Contains('.') || x.IsStatic);
+            Assert.DoesNotContain(dictionaryDetail.Members, x => x.Name.Contains('.'));
+            Assert.Contains(dictionaryDetail.Methods, x => x.Name == "Add");
+
+            //an explicit implementation is reached through the interface's own detail
             var dictionary = new Dictionary<int, Version>();
-            _ = explicitAdd.CallerBoxed!(dictionary, [1, new Version(1, 2)]);
+            var nonGenericAdd = Assert.Single(typeof(System.Collections.IDictionary).GetTypeDetail().Methods, x => x.Name == "Add");
+            _ = nonGenericAdd.CallerBoxed!(dictionary, [1, new Version(1, 2)]);
             Assert.Equal(new Version(1, 2), dictionary[1]);
-            var explicitReadOnly = Assert.Single(dictionaryDetail.Members, x => x.IsExplicitFromInterface && x.Name.EndsWith(".IsReadOnly") && x.Name.Contains("Generic"));
-            Assert.Equal(false, explicitReadOnly.GetterBoxed!(dictionary));
-            Assert.Contains(dictionaryDetail.Methods, x => x.Name == "Add" && !x.IsExplicitFromInterface);
+            var readOnly = typeof(ICollection<KeyValuePair<int, Version>>).GetTypeDetail().GetMember("IsReadOnly");
+            Assert.Equal(false, readOnly.GetterBoxed!(dictionary));
 
             //an interface gets the members and methods of the interfaces it extends
             var listDetail = typeof(IList<Version>).GetTypeDetail();
@@ -495,6 +516,19 @@ namespace Zerra.Test.Reflection
             Assert.Contains(listDetail.Methods, x => x.Name == "GetEnumerator");
             Assert.Contains(listDetail.Members, x => x.Name == "Count");
             Assert.DoesNotContain(listDetail.Members, x => x.Name == "Item");
+
+            //accessors, operators, and ref or out parameters are left out like generated code, an in parameter stays
+            var methodsDetail = typeof(MethodShapesModel).GetTypeDetail();
+            Assert.Contains(methodsDetail.Methods, x => x.Name == nameof(MethodShapesModel.Run));
+            Assert.Contains(methodsDetail.Methods, x => x.Name == nameof(MethodShapesModel.WithIn));
+            foreach (var name in new[] { nameof(MethodShapesModel.TryGet), nameof(MethodShapesModel.Swap), nameof(MethodShapesModel.Create), "op_Addition", "get_Value", "set_Value", "add_Changed", "remove_Changed" })
+                Assert.DoesNotContain(methodsDetail.Methods, x => x.Name == name);
+            Assert.DoesNotContain(listDetail.Methods, x => x.Name.StartsWith("get_") || x.Name.StartsWith("set_"));
+
+            //a handler interface leaves out the handler's own members and methods
+            var queryDetail = typeof(ITestQueryHandler).GetTypeDetail();
+            Assert.Equal([nameof(ITestQueryHandler.Get)], queryDetail.Methods.Select(x => x.Name).ToArray());
+            Assert.Empty(queryDetail.Members);
 
             //a span property can't be boxed but is still a member
             var readerDetail = typeof(System.Text.Json.Utf8JsonReader).GetTypeDetail();
@@ -556,8 +590,9 @@ namespace Zerra.Test.Reflection
             Assert.DoesNotContain(detail.Members, x => x.Name.EndsWith(".Pointer"));
             Assert.DoesNotContain(detail.Members, x => x.Name.EndsWith("Hidden"));
 
-            var reference = Assert.Single(detail.Members, x => x.Name.EndsWith(".Reference"));
-            Assert.True(reference.IsExplicitFromInterface);
+            //an explicit implementation is only on the interface's detail
+            Assert.DoesNotContain(detail.Members, x => x.Name.EndsWith(".Reference"));
+            var reference = typeof(IUnusualMembers).GetTypeDetail().GetMember("Reference");
             Assert.Equal(typeof(int).MakeByRefType(), reference.Type);
             Assert.False(reference.HasGetter);
 

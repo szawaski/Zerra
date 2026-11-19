@@ -156,6 +156,35 @@ namespace Zerra.Reflection
                         }
                     }
                     break;
+                case "Object":
+                    if (type == typeof(object))
+                    {
+                        specialType = SpecialType.Object;
+                        return true;
+                    }
+                    break;
+                case "Void":
+                    if (type == typeof(void))
+                    {
+                        specialType = SpecialType.Void;
+                        return true;
+                    }
+                    break;
+                case "IntPtr":
+                case "UIntPtr":
+                    if (type == typeof(IntPtr) || type == typeof(UIntPtr))
+                    {
+                        specialType = SpecialType.Pointer;
+                        return true;
+                    }
+                    break;
+                case "CancellationToken":
+                    if (type == typeof(CancellationToken))
+                    {
+                        specialType = SpecialType.CancellationToken;
+                        return true;
+                    }
+                    break;
             }
             specialType = default;
             return false;

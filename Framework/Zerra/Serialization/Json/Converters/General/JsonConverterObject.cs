@@ -125,7 +125,7 @@ namespace Zerra.Serialization.Json.Converters.General
             if (state.Nameless)
                 return TryReadValueNameless(ref reader, ref state, token, out value);
 
-            //the collected constructor arguments or the object being read, a struct is boxed once so every member is set on the same copy
+            //the collected constructor arguments or the object being read, a struct is boxed once so its members are set on the same copy
             object? parent;
 
             if (token != JsonToken.ObjectStart)
@@ -306,7 +306,6 @@ namespace Zerra.Serialization.Json.Converters.General
         [MethodImpl(MethodImplOptions.NoInlining)]
         private bool TryReadValueNameless(ref JsonReader reader, ref ReadState state, JsonToken token, out TValue? value)
         {
-            //the collected constructor arguments or the object being read, a struct is boxed once so every member is set on the same copy
             object? parent;
 
             if (token != JsonToken.ArrayStart)
@@ -657,7 +656,6 @@ namespace Zerra.Serialization.Json.Converters.General
             return value;
         }
 
-        //a struct's remaining members are set on the box the constructor made, then it's unboxed once
         private TValue? CreateStructFromCollectedValues(Dictionary<string, object?> collectedValues)
         {
             var args = (object?[])parameterDefaults.Clone();

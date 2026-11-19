@@ -42,8 +42,6 @@ namespace Zerra.Reflection
 
         /// <summary>Indicates whether this member is static.</summary>
         public readonly bool IsStatic;
-        /// <summary>Indicates whether this member is an explicit interface implementation.</summary>
-        public readonly bool IsExplicitFromInterface;
         /// <summary>
         /// Indicates whether the member is declared to allow null: a <see cref="Nullable{T}"/>, or a reference type that isn't declared non-nullable.
         /// A reference type in code without nullable annotations allows null.
@@ -63,9 +61,8 @@ namespace Zerra.Reflection
         /// <param name="setterBoxed">Boxed setter delegate.</param>
         /// <param name="attributes">Custom attributes applied to the method.</param>
         /// <param name="isStatic">Whether the member is static.</param>
-        /// <param name="isExplicitFromInterface">Whether the member is an explicit interface implementation.</param>
         /// <param name="allowsNull">Whether the member is declared to allow null, null to decide from the type alone.</param>
-        public MemberDetail(Type parentType, Type type, string name, bool isField, Delegate? getter, Func<object, object?>? getterBoxed, Delegate? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool isExplicitFromInterface, bool? allowsNull = null)
+        public MemberDetail(Type parentType, Type type, string name, bool isField, Delegate? getter, Func<object, object?>? getterBoxed, Delegate? setter, Action<object, object?>? setterBoxed, IReadOnlyList<Attribute> attributes, bool isStatic, bool? allowsNull = null)
         {
             this.ParentType = parentType;
             this.Type = type;
@@ -79,7 +76,6 @@ namespace Zerra.Reflection
             this.Setter = setter;
             this.Attributes = attributes;
             this.IsStatic = isStatic;
-            this.IsExplicitFromInterface = isExplicitFromInterface;
             this.AllowsNull = allowsNull ?? (!type.IsValueType || Nullable.GetUnderlyingType(type) is not null);
         }
 

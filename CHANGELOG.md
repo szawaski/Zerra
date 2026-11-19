@@ -70,7 +70,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `JsonSerializerOptions.ErrorOnTypeMismatch` is renamed `ErrorOnReadMismatchedData`. With it off, the default, valid JSON that doesn't fit the type no longer throws: `1.5` for an `int`, an unparseable date, an unknown enum name, or extra values in a nameless array read as the default or are skipped, and a repeated dictionary key keeps the last value. Invalid JSON still throws.
 - `MaxDepth` on `JsonSerializerOptions` and `ByteSerializerOptions` sets how deeply objects and collections can nest. The default is 64, the same as System.Text.Json; before, both serializers stopped at 31 with no way to change it.
 - Fixed source-generated types leaving out public properties and fields inherited from a base class, so the serializers and the mapper skipped them.
-- The serializers and the mapper use a property's getter and setter only when they're public, internal, or `protected internal`. `init` setters count. Before, a private setter or a get-only property was set through its hidden backing field. Such a property is now only read through a matching constructor parameter.
+- The serializers and the mapper use a property's getter and setter only when they're public, internal, or `protected internal`. `init` setters count. Before, a private setter or a get-only property was set through its hidden backing field, and a `readonly` field was set directly. These are now only read through a matching constructor parameter.
 
 ### Mapping
 
@@ -87,6 +87,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `StringExtensions` parses numbers and dates with the invariant culture, with an optional `provider` for other cultures.
 - Fixed `TypeDetail.GetConstructor()` failing on types with several constructors.
 - For types that aren't source generated, members read and write through the property unless it's an auto-property, and only public fields are listed, like generated types. Before, a private field with the property's name was used instead, so a computed property such as `Dictionary.Count` read the wrong value. `MemberDetail.IsBacked` is removed.
+- `TypeDetail` lists the same members and methods whether a type is source generated or not. Explicit interface implementations, static methods, property accessors, operators, and methods with `ref` or `out` parameters aren't listed, and `IsExplicitFromInterface` is removed. Read explicit implementations from the interface's `TypeDetail`.
 - `AsynmmetricEncryptor` is renamed `AsymmetricEncryptor`.
 - The concurrent collections follow the standard `IList` and `IDictionary` rules, like `List<T>` and `ConcurrentDictionary`. For example, `Add` throws on a duplicate key and `Insert` at the end works.
 
