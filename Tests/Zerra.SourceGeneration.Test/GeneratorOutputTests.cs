@@ -1590,6 +1590,82 @@ namespace Zerra.SourceGeneration.Test
             output.AssertInitializerContains("new global::TestApp.LimitsAttribute(float.PositiveInfinity, float.NegativeInfinity, double.NaN, double.NegativeInfinity)");
         }
 
+        //a type only passed to a serializer is found at the call, an anonymous type has no name to write so it's skipped,
+        //alone, nested in another anonymous type or as a type argument
+        [Fact]
+        public void SerializedTypesSkipAnonymous()
+        {
+            var output = GeneratorRunner.Run("""
+                using System.Collections.Generic;
+                using Zerra.Serialization.Json;
+
+                namespace TestApp
+                {
+                    public class SerializedOnly
+                    {
+                        public int Value { get; set; }
+                    }
+
+                    public class Sender
+                    {
+                        public string Named() => JsonSerializer.Serialize(new SerializedOnly() { Value = 1 });
+
+                        public string Anonymous() => JsonSerializer.Serialize(new { to = "a", data = new { type = "b", model = "c" }, android = new { priority = "high" } });
+
+                        public string AnonymousCollections() => JsonSerializer.Serialize(new[] { new { value = 1 } }) + JsonSerializer.Serialize(new List<int>().ConvertAll(x => new { value = x }));
+                    }
+                }
+                """);
+
+            output.AssertInitializerContains("TypeDetail<global::TestApp.SerializedOnly>");
+            output.AssertInitializerDoesNotContain("anonymous type");
+        }
+
+        //the mapper finds its source by the type it's called on, which can be anonymous, the named target is still found
+        [Fact]
+        public void MappedTypesSkipAnonymous()
+        {
+            var output = GeneratorRunner.Run("""
+                using System.Collections.Generic;
+                using System.Linq;
+                using Zerra.Map;
+
+                namespace TestApp
+                {
+                    public class MappedOnly
+                    {
+                        public int Value { get; set; }
+                    }
+
+                    public class Mapping
+                    {
+                        public MappedOnly Map() => new { Value = 1, Inner = new { Value = 2 } }.Map<MappedOnly>();
+
+                        public MappedOnly MapTyped() => new { Value = 1 }.Map(new { Value = 1 }.GetType(), null) is MappedOnly x ? x : new MappedOnly();
+
+                        public MappedOnly MapBoth()
+                        {
+                            var source = new { Value = 1 };
+                            return source.Map<MappedOnly>() ?? Mapper.Map<object, MappedOnly>(source);
+                        }
+
+                        public List<MappedOnly> MapList() => new[] { 1 }.Select(x => new { Value = x }).ToList().Map<List<MappedOnly>>();
+
+                        public void MapTo()
+                        {
+                            var target = new MappedOnly();
+                            new { Value = 1 }.MapTo(target);
+                        }
+
+                        public object Copy() => new { Value = 1 }.Copy();
+                    }
+                }
+                """);
+
+            output.AssertInitializerContains("TypeDetail<global::TestApp.MappedOnly>");
+            output.AssertInitializerDoesNotContain("anonymous type");
+        }
+
         //only public members are generated, so the types of non-public ones are never searched
         [Fact]
         public void NonPublicMemberTypesNotSearched()

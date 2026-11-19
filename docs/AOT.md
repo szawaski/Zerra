@@ -50,7 +50,7 @@ It also generates:
 
 `[IgnoreGenerateTypeDetail]` excludes a type.
 
-A mapper or serializer call shows its types when they're written at the call: a type argument, `typeof(...)`, or the declared type of the value passed. Generic code that serializes a `T`, a value declared as `object` or a base type, and a `Type` held in a variable don't show the type, so mark those types `[GenerateTypeDetail]`.
+A mapper or serializer call shows its types when they're written at the call: a type argument, `typeof(...)`, or the declared type of the value passed. Generic code that serializes a `T`, a value declared as `object` or a base type, and a `Type` held in a variable don't show the type, so mark those types `[GenerateTypeDetail]`. Anonymous types, such as `JsonSerializer.Serialize(new { ... })`, and arrays or lists of them have no name to generate, so under Native AOT use a class instead.
 
 Everything is registered by a module initializer in `ZerraSourceGenerationInitializer.cs`, so nothing needs calling at startup. It prints one line per assembly, such as `Source Generation Startup - Store.Catalog: 12 ms`. That line is expected.
 

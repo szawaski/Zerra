@@ -99,8 +99,32 @@ namespace Zerra.SourceGeneration
             return false;
         }
 
+        private static bool HasAnonymousType(ITypeSymbol typeSymbol)
+        {
+            if (typeSymbol.IsAnonymousType)
+                return true;
+            if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+                return HasAnonymousType(arrayTypeSymbol.ElementType);
+            if (typeSymbol is IPointerTypeSymbol pointerTypeSymbol)
+                return HasAnonymousType(pointerTypeSymbol.PointedAtType);
+            if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
+            {
+                foreach (var typeArgument in namedTypeSymbol.TypeArguments)
+                {
+                    if (HasAnonymousType(typeArgument))
+                        return true;
+                }
+                if (namedTypeSymbol.ContainingType is not null)
+                    return HasAnonymousType(namedTypeSymbol.ContainingType);
+            }
+            return false;
+        }
+
         private static void CheckModel(ITypeSymbol typeSymbol, Dictionary<string, TypeToGenerate> models, Stack<string> stack)
         {
+            //an anonymous type has no name to write in generated code, such as Serialize(new { ... }), nor does an array or generic of one
+            if (HasAnonymousType(typeSymbol))
+                return;
             var name = Helper.GetFullName(typeSymbol);
             if (models.ContainsKey(name))
                 return;
