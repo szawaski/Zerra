@@ -1038,9 +1038,9 @@ namespace Zerra.SourceGeneration.Test
                 }
                 """);
 
-            //the IDs of obsolete and experimental members and types are suppressed; CS0436 covers generated types an assembly also sees through InternalsVisibleTo
+            //the IDs of experimental members and types are suppressed, obsolete ones need nothing in the obsolete initializer; CS0436 covers generated types an assembly also sees through InternalsVisibleTo
             output.AssertInitializerContains("#pragma warning disable CS0436");
-            output.AssertInitializerContains("TEST0001, TEST0002, TEST0003");
+            output.AssertInitializerContains("#pragma warning disable TEST0002, TEST0003");
             output.AssertInitializerDoesNotContain("new global::TestApp.Client()");
             output.AssertInitializerDoesNotContain("new global::System.Func<global::TestApp.Client>(");
             output.AssertInitializerDoesNotContain("in (global::TestApp.Options)");
@@ -1664,6 +1664,55 @@ namespace Zerra.SourceGeneration.Test
 
             output.AssertInitializerContains("TypeDetail<global::TestApp.MappedOnly>");
             output.AssertInitializerDoesNotContain("anonymous type");
+        }
+
+        //generated code can't name a private or protected nested type, so it's skipped alone, as a type argument,
+        //as an array element and when a public type is nested in it, the output still compiles
+        [Fact]
+        public void MappedTypesSkipInaccessibleNested()
+        {
+            var output = GeneratorRunner.Run("""
+                using System.Collections.Generic;
+                using Zerra.Map;
+
+                namespace TestApp
+                {
+                    public class ObligationModel
+                    {
+                        public int Value { get; set; }
+                    }
+
+                    public class Page
+                    {
+                        private ICollection<ObligationWithRules> MapCollection(List<ObligationModel> source) => source.Map<ICollection<ObligationWithRules>>();
+                        private ObligationWithRules MapSingle(ObligationModel source) => source.Map<ObligationWithRules>();
+                        private ObligationWithRules[] MapArray(List<ObligationModel> source) => source.Map<ObligationWithRules[]>();
+                        private Dictionary<int, List<ProtectedModel>> MapDictionary(Dictionary<int, List<ObligationModel>> source) => source.Map<Dictionary<int, List<ProtectedModel>>>();
+                        private List<Hidden.Inner> MapNested(List<ObligationModel> source) => source.Map<List<Hidden.Inner>>();
+
+                        private class ObligationWithRules : ObligationModel
+                        {
+                            public string[] Rules { get; set; }
+                        }
+
+                        protected class ProtectedModel : ObligationModel
+                        {
+                        }
+
+                        private class Hidden
+                        {
+                            public class Inner : ObligationModel
+                            {
+                            }
+                        }
+                    }
+                }
+                """);
+
+            output.AssertInitializerContains("TypeDetail<global::TestApp.ObligationModel>");
+            output.AssertInitializerDoesNotContain("ObligationWithRules");
+            output.AssertInitializerDoesNotContain("ProtectedModel");
+            output.AssertInitializerDoesNotContain("Hidden");
         }
 
         //only public members are generated, so the types of non-public ones are never searched

@@ -37,11 +37,23 @@ namespace Zerra.SourceGeneration.Test
             return runtimeFiles.Concat(zerraFiles).Select(x => MetadataReference.CreateFromFile(x)).ToArray();
         }
 
-        public static GeneratorOutput Run(string source, OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary)
+        //librarySource is compiled into a separate assembly the source references, for types the generator reaches from another assembly
+        public static GeneratorOutput Run(string source, OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary, string? librarySource = null)
         {
             var parseOptions = new CSharpParseOptions(LanguageVersion.Preview);
+
+            var compilationReferences = references;
+            if (librarySource is not null)
+            {
+                var library = CSharpCompilation.Create("ZerraSourceGenerationTestLibrary", [CSharpSyntaxTree.ParseText(librarySource, parseOptions)], references, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+                using var libraryStream = new MemoryStream();
+                var libraryEmit = library.Emit(libraryStream);
+                Assert.True(libraryEmit.Success, String.Join(Environment.NewLine, libraryEmit.Diagnostics));
+                compilationReferences = [.. references, MetadataReference.CreateFromImage(libraryStream.ToArray())];
+            }
+
             var syntaxTree = CSharpSyntaxTree.ParseText(source, parseOptions);
-            var compilation = CSharpCompilation.Create("ZerraSourceGenerationTestAssembly", [syntaxTree], references, new CSharpCompilationOptions(outputKind, nullableContextOptions: NullableContextOptions.Enable, allowUnsafe: true));
+            var compilation = CSharpCompilation.Create("ZerraSourceGenerationTestAssembly", [syntaxTree], compilationReferences, new CSharpCompilationOptions(outputKind, nullableContextOptions: NullableContextOptions.Enable, allowUnsafe: true));
 
             var inputErrors = compilation.GetDiagnostics().Where(x => x.Severity == DiagnosticSeverity.Error).ToArray();
             Assert.True(inputErrors.Length == 0, $"Test source does not compile:{Environment.NewLine}{String.Join(Environment.NewLine, inputErrors.Select(x => x.ToString()))}");
@@ -55,8 +67,8 @@ namespace Zerra.SourceGeneration.Test
 
             var sources = result.GeneratedSources.ToDictionary(x => x.HintName, x => x.SourceText.ToString());
 
-            //nullable warnings (CS86xx, CS87xx) in the generated files count too: projects built with TreatWarningsAsErrors get them as errors
-            var outputErrors = outputCompilation.GetDiagnostics().Where(x => x.Severity == DiagnosticSeverity.Error || (x.Severity == DiagnosticSeverity.Warning && (x.Id.StartsWith("CS86") || x.Id.StartsWith("CS87")) && x.Location.SourceTree is not null && x.Location.SourceTree != syntaxTree)).ToArray();
+            //warnings in the generated files count too: projects built with TreatWarningsAsErrors get them as errors
+            var outputErrors = outputCompilation.GetDiagnostics().Where(x => x.Severity == DiagnosticSeverity.Error || (x.Severity == DiagnosticSeverity.Warning && x.Location.SourceTree is not null && x.Location.SourceTree != syntaxTree)).ToArray();
             if (outputErrors.Length > 0)
             {
                 var sb = new StringBuilder();

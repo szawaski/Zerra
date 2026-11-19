@@ -74,7 +74,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 ### Mapping
 
 - `Mapper` is faster and allocates less when mapping collections.
-- Types only used with `Mapper` or a serializer, such as the target of `source.Map<Target>()` or `JsonSerializer.Deserialize<Target>(json)`, no longer need `[GenerateTypeDetail]` for Native AOT. The source generator finds them from the calls, except anonymous types. See [AOT](docs/AOT.md#what-is-generated).
+- Types only used with `Mapper` or a serializer, such as the target of `source.Map<Target>()` or `JsonSerializer.Deserialize<Target>(json)`, no longer need `[GenerateTypeDetail]` for Native AOT. The source generator finds them from the calls, except anonymous types, private or protected nested classes, and `file` classes. See [AOT](docs/AOT.md#what-is-generated).
 - `Mapper` and repository type conversions use the invariant culture.
 - `Mapper` and the serializers throw the actual error, such as a `NotSupportedException` for types that can't be mapped, instead of wrapping it in a `TargetInvocationException`.
 

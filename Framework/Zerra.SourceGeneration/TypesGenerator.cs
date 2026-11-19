@@ -125,9 +125,9 @@ namespace Zerra.SourceGeneration
                 //An enum, nullable or not, has its value fields as members, asking for its methods reaches System.Enum's static GetValues(Type),
                 //which is RequiresDynamicCode, for the same spurious warnings.
                 if (model.TypeSymbol.TypeKind == TypeKind.Enum || (model.TypeSymbol is INamedTypeSymbol { Name: "Nullable", IsValueType: true, TypeArguments.Length: 1 } nullableSymbol && nullableSymbol.TypeArguments[0].TypeKind == TypeKind.Enum))
-                    _ = sb.Append(typeOfName).Append(".GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);");
+                    _ = sb.Append(typeOfName).Append(".GetFields(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Static);");
                 else if (model.TypeSymbol.Kind != SymbolKind.ArrayType)
-                    _ = sb.Append(typeOfName).Append(".GetMembers(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);");
+                    _ = sb.Append(typeOfName).Append(".GetMembers(global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.Instance | global::System.Reflection.BindingFlags.Static);");
                 //_ = sb.Append(typeOfName).Append(".GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static);");
                 //_ = sb.Append(typeOfName).Append(".GetConstructors(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);");
                 //_ = sb.Append(typeOfName).Append(".GetInterfaces();");
@@ -175,7 +175,7 @@ namespace Zerra.SourceGeneration
 
                     _ = sb.Append(EnvironmentHelper.NewLine).Append("                ");
 
-                    if (property.Type.IsRefLikeType || property.Type.Kind == SymbolKind.PointerType || property.Type.Kind == SymbolKind.FunctionPointerType)
+                    if (!Helper.CanBeTypeArgument(property.Type))
                     {
                         _ = sb.Append("new global::Zerra.Reflection.MemberDetail(").Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ").Append(Helper.GetTypeOfName(property.Type)).Append(", \"").Append(propertyName).Append("\", false, null, null, null, null, ");
                         GenerateAttributes(sb, property);
@@ -244,7 +244,7 @@ namespace Zerra.SourceGeneration
 
                     _ = sb.Append(EnvironmentHelper.NewLine).Append("                ");
 
-                    if (@field.Type.IsRefLikeType || @field.Type.Kind == SymbolKind.PointerType || @field.Type.Kind == SymbolKind.FunctionPointerType)
+                    if (!Helper.CanBeTypeArgument(@field.Type))
                     {
                         _ = sb.Append("new global::Zerra.Reflection.MemberDetail(").Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ").Append(Helper.GetTypeOfName(@field.Type)).Append(", \"").Append(@field.Name).Append("\", true, null, null, null, null, ");
                         GenerateAttributes(sb, @field);
@@ -320,7 +320,7 @@ namespace Zerra.SourceGeneration
                     if (constructor.DeclaredAccessibility != Accessibility.Public || namedTypeSymbol.TypeKind == TypeKind.Delegate)
                         continue;
                     //an object[] element can't be passed by ref or out; in parameters take the value
-                    if (constructor.Parameters.Any(x => x.Type.IsRefLikeType || x.Type.Kind == SymbolKind.PointerType || x.Type.Kind == SymbolKind.FunctionPointerType || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
+                    if (constructor.Parameters.Any(x => x.Type.IsRefLikeType || Helper.HasPointer(x.Type) || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
                         continue;
 
                     if (hasFirst)
@@ -431,9 +431,9 @@ namespace Zerra.SourceGeneration
                         continue;
                     if (method.ContainingType.Name == "IHandler" && method.ContainingType.ContainingNamespace.ToString() == "Zerra.CQRS")
                         continue;
-                    if (method.Parameters.Any(x => x.Type.IsRefLikeType || x.Type.Kind == SymbolKind.PointerType || x.Type.Kind == SymbolKind.FunctionPointerType || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
+                    if (method.Parameters.Any(x => x.Type.IsRefLikeType || Helper.HasPointer(x.Type) || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
                         continue;
-                    if (method.ReturnType.IsRefLikeType || method.ReturnType.Kind == SymbolKind.PointerType || method.ReturnType.Kind == SymbolKind.FunctionPointerType)
+                    if (!Helper.CanBeTypeArgument(method.ReturnType))
                         continue;
 
                     if (hasFirst)

@@ -16,8 +16,9 @@ namespace Zerra.SourceGeneration
         /// Discovers all model types reachable from the given type symbol and adds them to the provided dictionary.
         /// </summary>
         /// <param name="typeSymbol">The root type symbol to begin discovery from.</param>
+        /// <param name="assembly">The assembly being compiled.</param>
         /// <param name="models">The dictionary to populate with discovered <see cref="TypeToGenerate"/> entries, keyed by full type name.</param>
-        public static void FindModels(ITypeSymbol typeSymbol, Dictionary<string, TypeToGenerate> models)
+        public static void FindModels(ITypeSymbol typeSymbol, IAssemblySymbol assembly, Dictionary<string, TypeToGenerate> models)
         {
             if (typeSymbol.TypeKind != TypeKind.Class && typeSymbol.TypeKind != TypeKind.Interface)
                 return;
@@ -29,7 +30,7 @@ namespace Zerra.SourceGeneration
             {
                 if (namedTypeSymbol.TypeKind == TypeKind.Interface)
                 {
-                    SearchInterface(namedTypeSymbol, models, stack);
+                    SearchInterface(namedTypeSymbol, assembly, models, stack);
                     //the gateway's client scripts read a query interface's methods from its type detail
                     if (namedTypeSymbol.AllInterfaces.Any(x => x.Name == "IQueryHandler" && x.ContainingNamespace.ToString() == "Zerra.CQRS") && !Helper.IsUnclosedGeneric(namedTypeSymbol))
                     {
@@ -39,7 +40,7 @@ namespace Zerra.SourceGeneration
                     }
                 }
                 else if (namedTypeSymbol.TypeKind == TypeKind.Class)
-                    CheckModel(namedTypeSymbol, models, stack);
+                    CheckModel(namedTypeSymbol, assembly, models, stack);
             }
         }
         /// <summary>
@@ -47,10 +48,11 @@ namespace Zerra.SourceGeneration
         /// </summary>
         /// <param name="typeSymbol">The type built by the initializer.</param>
         /// <param name="memberID">The documentation ID of the method containing the expression tree.</param>
+        /// <param name="assembly">The assembly being compiled.</param>
         /// <param name="models">The dictionary of discovered models to add to.</param>
-        public static void FindExpressionInitializerModel(ITypeSymbol typeSymbol, string memberID, Dictionary<string, TypeToGenerate> models)
+        public static void FindExpressionInitializerModel(ITypeSymbol typeSymbol, string memberID, IAssemblySymbol assembly, Dictionary<string, TypeToGenerate> models)
         {
-            CheckModel(typeSymbol, models, new Stack<string>());
+            CheckModel(typeSymbol, assembly, models, new Stack<string>());
             if (models.TryGetValue(Helper.GetFullName(typeSymbol), out var model))
                 _ = model.ExpressionInitializerMemberIDs.Add(memberID);
         }
@@ -59,10 +61,11 @@ namespace Zerra.SourceGeneration
         /// Adds a type used with the mapper or a serializer, such as the target of <c>Map&lt;TTarget&gt;</c> or <c>Deserialize&lt;T&gt;</c>.
         /// </summary>
         /// <param name="typeSymbol">The type mapped or serialized.</param>
+        /// <param name="assembly">The assembly being compiled.</param>
         /// <param name="models">The dictionary of discovered models to add to.</param>
-        public static void FindUsedModel(ITypeSymbol typeSymbol, Dictionary<string, TypeToGenerate> models)
+        public static void FindUsedModel(ITypeSymbol typeSymbol, IAssemblySymbol assembly, Dictionary<string, TypeToGenerate> models)
         {
-            CheckModel(typeSymbol, models, new Stack<string>());
+            CheckModel(typeSymbol, assembly, models, new Stack<string>());
         }
 
         private static bool Filter(INamedTypeSymbol namedTypeSymbol)
@@ -99,31 +102,9 @@ namespace Zerra.SourceGeneration
             return false;
         }
 
-        private static bool HasAnonymousType(ITypeSymbol typeSymbol)
+        private static void CheckModel(ITypeSymbol typeSymbol, IAssemblySymbol assembly, Dictionary<string, TypeToGenerate> models, Stack<string> stack)
         {
-            if (typeSymbol.IsAnonymousType)
-                return true;
-            if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
-                return HasAnonymousType(arrayTypeSymbol.ElementType);
-            if (typeSymbol is IPointerTypeSymbol pointerTypeSymbol)
-                return HasAnonymousType(pointerTypeSymbol.PointedAtType);
-            if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
-            {
-                foreach (var typeArgument in namedTypeSymbol.TypeArguments)
-                {
-                    if (HasAnonymousType(typeArgument))
-                        return true;
-                }
-                if (namedTypeSymbol.ContainingType is not null)
-                    return HasAnonymousType(namedTypeSymbol.ContainingType);
-            }
-            return false;
-        }
-
-        private static void CheckModel(ITypeSymbol typeSymbol, Dictionary<string, TypeToGenerate> models, Stack<string> stack)
-        {
-            //an anonymous type has no name to write in generated code, such as Serialize(new { ... }), nor does an array or generic of one
-            if (HasAnonymousType(typeSymbol))
+            if (!Helper.IsWritable(typeSymbol, assembly))
                 return;
             var name = Helper.GetFullName(typeSymbol);
             if (models.ContainsKey(name))
@@ -132,9 +113,7 @@ namespace Zerra.SourceGeneration
             var arrayTypeSymbol = typeSymbol as IArrayTypeSymbol;
             if (namedTypeSymbol == null && arrayTypeSymbol == null)
                 return;
-            if (typeSymbol.IsRefLikeType)
-                return;
-            if (typeSymbol.DeclaredAccessibility != Accessibility.Public && typeSymbol.DeclaredAccessibility != Accessibility.Internal && typeSymbol.DeclaredAccessibility != Accessibility.NotApplicable)
+            if (!Helper.CanBeTypeArgument(typeSymbol))
                 return;
 
             if (typeSymbol.TypeKind != TypeKind.Class && typeSymbol.TypeKind != TypeKind.Struct && typeSymbol.TypeKind != TypeKind.Enum
@@ -151,14 +130,14 @@ namespace Zerra.SourceGeneration
                     if (namedTypeSymbol != null)
                     {
                         foreach (var typeArg in namedTypeSymbol.TypeArguments)
-                            CheckModel(typeArg, models, stack);
+                            CheckModel(typeArg, assembly, models, stack);
                     }
                     //the dictionary converters use the detail of its KeyValuePair, which SearchModel would find through the interfaces
                     if (specialType == SpecialType.Dictionary)
                     {
                         var enumerableInterface = typeSymbol.AllInterfaces.FirstOrDefault(x => x.MetadataName == "IEnumerable`1");
                         if (enumerableInterface is not null)
-                            CheckModel(enumerableInterface.TypeArguments[0], models, stack);
+                            CheckModel(enumerableInterface.TypeArguments[0], assembly, models, stack);
                     }
                 }
                 if (!TypeLookup.IsGeneratedSpecialType(specialType))
@@ -166,7 +145,7 @@ namespace Zerra.SourceGeneration
             }
             else
             {
-                SearchModel(typeSymbol, models, stack);
+                SearchModel(typeSymbol, assembly, models, stack);
             }
 
             if (Helper.IsUnclosedGeneric(typeSymbol))
@@ -177,7 +156,7 @@ namespace Zerra.SourceGeneration
             models.Add(name, new TypeToGenerate(typeSymbol, name, stackString));
         }
 
-        private static void SearchInterface(INamedTypeSymbol namedTypeSymbol, Dictionary<string, TypeToGenerate> models, Stack<string> stack)
+        private static void SearchInterface(INamedTypeSymbol namedTypeSymbol, IAssemblySymbol assembly, Dictionary<string, TypeToGenerate> models, Stack<string> stack)
         {
             var name = Helper.GetFullName(namedTypeSymbol);
             if (stack.Contains(name))
@@ -191,7 +170,7 @@ namespace Zerra.SourceGeneration
                 if (IsIHandler(property.PropertySymbol.ContainingType))
                     continue;
                 stack.Push(name);
-                CheckModel(property.PropertySymbol.Type, models, stack);
+                CheckModel(property.PropertySymbol.Type, assembly, models, stack);
                 _ = stack.Pop();
             }
 
@@ -201,12 +180,12 @@ namespace Zerra.SourceGeneration
                 if (IsIHandler(method.MethodSymbol.ContainingType))
                     continue;
                 stack.Push(name);
-                CheckModel(method.MethodSymbol.ReturnType, models, stack);
+                CheckModel(method.MethodSymbol.ReturnType, assembly, models, stack);
                 _ = stack.Pop();
                 foreach (var parameter in method.MethodSymbol.Parameters)
                 {
                     stack.Push(name);
-                    CheckModel(parameter.Type, models, stack);
+                    CheckModel(parameter.Type, assembly, models, stack);
                     _ = stack.Pop();
                 }
             }
@@ -214,13 +193,13 @@ namespace Zerra.SourceGeneration
             foreach (var typeArg in namedTypeSymbol.TypeArguments)
             {
                 stack.Push(name);
-                CheckModel(typeArg, models, stack);
+                CheckModel(typeArg, assembly, models, stack);
                 _ = stack.Pop();
             }
         }
         private static bool IsIHandler(INamedTypeSymbol? typeSymbol) => typeSymbol is not null && typeSymbol.Name == "IHandler" && typeSymbol.ContainingNamespace.ToString() == "Zerra.CQRS";
 
-        private static void SearchModel(ITypeSymbol typeSymbol, Dictionary<string, TypeToGenerate> models, Stack<string> stack)
+        private static void SearchModel(ITypeSymbol typeSymbol, IAssemblySymbol assembly, Dictionary<string, TypeToGenerate> models, Stack<string> stack)
         {
             var name = Helper.GetFullName(typeSymbol);
             if (TypeLookup.CoreTypeLookup(name, out var coreType))
@@ -238,7 +217,7 @@ namespace Zerra.SourceGeneration
                     if (@field.DeclaredAccessibility != Accessibility.Public)
                         continue;
                     stack.Push(name);
-                    CheckModel(@field.Type, models, stack);
+                    CheckModel(@field.Type, assembly, models, stack);
                     _ = stack.Pop();
                 }
                 foreach (var property in properties)
@@ -246,7 +225,7 @@ namespace Zerra.SourceGeneration
                     if (property.PropertySymbol.DeclaredAccessibility != Accessibility.Public)
                         continue;
                     stack.Push(name);
-                    CheckModel(property.PropertySymbol.Type, models, stack);
+                    CheckModel(property.PropertySymbol.Type, assembly, models, stack);
                     _ = stack.Pop();
                 }
             }
@@ -256,14 +235,14 @@ namespace Zerra.SourceGeneration
                 foreach (var typeArg in namedTypeSymbol.TypeArguments)
                 {
                     stack.Push(name);
-                    CheckModel(typeArg, models, stack);
+                    CheckModel(typeArg, assembly, models, stack);
                     _ = stack.Pop();
                 }
             }
             else if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
             {
                 stack.Push(name);
-                CheckModel(arrayTypeSymbol.ElementType, models, stack);
+                CheckModel(arrayTypeSymbol.ElementType, assembly, models, stack);
                 _ = stack.Pop();
             }
 
@@ -272,7 +251,7 @@ namespace Zerra.SourceGeneration
             //while (baseType != null)
             //{
             //    stack.Push(name);
-            //    CheckModel(baseType, models, stack);
+            //    CheckModel(baseType, assembly, models, stack);
             //    _ = stack.Pop();
             //    baseType = baseType.BaseType;
             //}
@@ -283,7 +262,7 @@ namespace Zerra.SourceGeneration
                 foreach (var typeArg in i.TypeArguments)
                 {
                     stack.Push(name);
-                    CheckModel(typeArg, models, stack);
+                    CheckModel(typeArg, assembly, models, stack);
                     _ = stack.Pop();
                 }
             }

@@ -17,10 +17,22 @@ namespace Zerra.SourceGeneration
                 return "null";
             if (typeSymbol.Kind == SymbolKind.TypeParameter)
                 return "null";
-            if (typeSymbol.Kind == SymbolKind.PointerType || typeSymbol.Kind == SymbolKind.FunctionPointerType)
+            if (HasPointer(typeSymbol))
                 return "typeof(nint)";
+            if (typeSymbol.TypeKind == TypeKind.Dynamic)
+                return "typeof(object)";
             if (typeSymbol.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Void)
                 return "typeof(void)";
+            if (typeSymbol is IArrayTypeSymbol && !IsUnclosedGeneric(typeSymbol))
+            {
+                var sbArray = new StringBuilder();
+                _ = sbArray.Append("typeof(");
+                GetTypeOfNameRecursive(typeSymbol, sbArray);
+                _ = sbArray.Append(')');
+                if (isByRef)
+                    _ = sbArray.Append(".MakeByRefType()");
+                return sbArray.ToString();
+            }
             //if (!IsPublic(typeSymbol))
             //    return "null";
 
@@ -34,12 +46,7 @@ namespace Zerra.SourceGeneration
                 }
                 else
                 {
-                    _ = sb.Append("global::");
-                    if (typeSymbol.ContainingType is not null)
-                        _ = sb.Append(typeSymbol.ContainingType).Append('.');
-                    else if (typeSymbol.ContainingNamespace is { IsGlobalNamespace: false })
-                        _ = sb.Append(typeSymbol.ContainingNamespace).Append('.');
-                    _ = sb.Append(typeSymbol.Name);
+                    AppendQualifiedName(typeSymbol, sb);
                 }
                 _ = sb.Append('<');
 
@@ -62,18 +69,33 @@ namespace Zerra.SourceGeneration
         }
         private static void GetTypeOfNameRecursive(ITypeSymbol typeSymbol, StringBuilder sb)
         {
+            if (typeSymbol.TypeKind == TypeKind.Dynamic)
+            {
+                _ = sb.Append("global::System.Object");
+                return;
+            }
+            if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+            {
+                //int[][,] is an array of int[,], the outermost rank is written first
+                var ranks = new List<int>();
+                ITypeSymbol elementType = arrayTypeSymbol;
+                while (elementType is IArrayTypeSymbol elementArrayTypeSymbol)
+                {
+                    ranks.Add(elementArrayTypeSymbol.Rank);
+                    elementType = elementArrayTypeSymbol.ElementType;
+                }
+                GetTypeOfNameRecursive(elementType, sb);
+                foreach (var rank in ranks)
+                    _ = sb.Append('[').Append(',', rank - 1).Append(']');
+                return;
+            }
             if (String.IsNullOrEmpty(typeSymbol.Name))
             {
-                _ = sb.Append(typeSymbol.ToString().Replace("?", String.Empty));
+                _ = sb.Append(GetFullName(typeSymbol));
                 return;
             }
 
-            _ = sb.Append("global::");
-            if (typeSymbol.ContainingType is not null)
-                _ = sb.Append(typeSymbol.ContainingType).Append('.');
-            else if (typeSymbol.ContainingNamespace is { IsGlobalNamespace: false })
-                _ = sb.Append(typeSymbol.ContainingNamespace).Append('.');
-            _ = sb.Append(typeSymbol.Name);
+            AppendQualifiedName(typeSymbol, sb);
 
             if (typeSymbol is INamedTypeSymbol namedTypeSymbol && namedTypeSymbol.TypeArguments.Length > 0)
             {
@@ -91,14 +113,32 @@ namespace Zerra.SourceGeneration
             }
         }
 
+        private static void AppendQualifiedName(ITypeSymbol typeSymbol, StringBuilder sb)
+        {
+            if (typeSymbol.ContainingType is not null)
+                _ = sb.Append(typeSymbol.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)).Append('.');
+            else if (typeSymbol.ContainingNamespace is { IsGlobalNamespace: false })
+                _ = sb.Append(typeSymbol.ContainingNamespace.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)).Append('.');
+            else
+                _ = sb.Append("global::");
+            if (SyntaxFacts.GetKeywordKind(typeSymbol.Name) != SyntaxKind.None)
+                _ = sb.Append('@');
+            _ = sb.Append(typeSymbol.Name);
+        }
+
         public static bool IsGenericDefined(INamedTypeSymbol namedTypeSymbol)
         {
-            foreach (var argument in namedTypeSymbol.TypeArguments)
+            foreach (var typeArgument in namedTypeSymbol.TypeArguments)
             {
+                var argument = typeArgument;
+                while (argument is IArrayTypeSymbol arrayTypeSymbol)
+                    argument = arrayTypeSymbol.ElementType;
                 if (argument.Kind == SymbolKind.ErrorType)
                     return false;
                 if (argument.Kind == SymbolKind.TypeParameter)
                     return false;
+                if (argument.TypeKind == TypeKind.Dynamic)
+                    continue;
                 if (argument is not INamedTypeSymbol argumemtNamedTypeSymbol)
                     return false;
                 if (!IsGenericDefined(argumemtNamedTypeSymbol))
@@ -280,6 +320,58 @@ namespace Zerra.SourceGeneration
             }
         }
 
+        //generated code is in its own class, so it can only name types any code in the assembly can
+        public static bool IsWritable(ITypeSymbol typeSymbol, IAssemblySymbol assembly)
+        {
+            if (typeSymbol.IsAnonymousType)
+                return false;
+            switch (typeSymbol.DeclaredAccessibility)
+            {
+                case Accessibility.Public:
+                case Accessibility.NotApplicable:
+                    break;
+                case Accessibility.Internal:
+                case Accessibility.ProtectedOrInternal:
+                    if (!SymbolEqualityComparer.Default.Equals(typeSymbol.ContainingAssembly, assembly) && (typeSymbol.ContainingAssembly is null || !typeSymbol.ContainingAssembly.GivesAccessTo(assembly)))
+                        return false;
+                    break;
+                default:
+                    return false;
+            }
+            if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+                return IsWritable(arrayTypeSymbol.ElementType, assembly);
+            if (typeSymbol is IPointerTypeSymbol pointerTypeSymbol)
+                return IsWritable(pointerTypeSymbol.PointedAtType, assembly);
+            if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
+            {
+                if (namedTypeSymbol.IsFileLocal)
+                    return false;
+                foreach (var typeArgument in namedTypeSymbol.TypeArguments)
+                {
+                    if (!IsWritable(typeArgument, assembly))
+                        return false;
+                }
+                if (namedTypeSymbol.ContainingType is not null)
+                    return IsWritable(namedTypeSymbol.ContainingType, assembly);
+            }
+            return true;
+        }
+
+        public static bool CanBeTypeArgument(ITypeSymbol typeSymbol)
+            => !typeSymbol.IsRefLikeType && !HasPointer(typeSymbol) && !HasStaticAbstract(typeSymbol);
+
+        public static bool HasStaticAbstract(ITypeSymbol typeSymbol)
+            => typeSymbol.TypeKind == TypeKind.Interface && typeSymbol.GetMembers().Concat(typeSymbol.AllInterfaces.SelectMany(x => x.GetMembers())).Any(x => x.IsStatic && x.IsAbstract);
+
+        public static bool HasPointer(ITypeSymbol typeSymbol)
+        {
+            if (typeSymbol.Kind == SymbolKind.PointerType || typeSymbol.Kind == SymbolKind.FunctionPointerType)
+                return true;
+            if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+                return HasPointer(arrayTypeSymbol.ElementType);
+            return false;
+        }
+
         public static bool CanBeReferencedAsCode(ITypeSymbol typeSymbol)
         {
             if (typeSymbol.DeclaredAccessibility != Accessibility.Public && typeSymbol.DeclaredAccessibility != Accessibility.NotApplicable)
@@ -291,6 +383,13 @@ namespace Zerra.SourceGeneration
 
             if (typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol namedTypeSymbol)
             {
+                if (namedTypeSymbol.IsFileLocal)
+                    return false;
+                for (var containingType = namedTypeSymbol.ContainingType; containingType is not null; containingType = containingType.ContainingType)
+                {
+                    if (containingType.DeclaredAccessibility != Accessibility.Public || containingType.IsFileLocal)
+                        return false;
+                }
                 foreach (var argument in namedTypeSymbol.TypeArguments)
                 {
                     if (!CanBeReferencedAsCode(argument))

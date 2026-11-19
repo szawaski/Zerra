@@ -57,15 +57,17 @@ namespace Zerra.SourceGeneration
 
             var languageVersionProvider = context.ParseOptionsProvider.Select((options, cancellationToken) => ((CSharpParseOptions)options).LanguageVersion);
 
-            context.RegisterSourceOutput(syntaxProvider.Combine(expressionInitializerProvider).Combine(usedTypeProvider).Combine(languageVersionProvider), (a, b) =>
+            var assemblyProvider = context.CompilationProvider.Select((compilation, cancellationToken) => compilation.Assembly);
+
+            context.RegisterSourceOutput(syntaxProvider.Combine(expressionInitializerProvider).Combine(usedTypeProvider).Combine(languageVersionProvider).Combine(assemblyProvider), (a, b) =>
             {
                 //the initializer is a module initializer which needs C# 9
-                if (b.Right < LanguageVersion.CSharp9)
+                if (b.Left.Right < LanguageVersion.CSharp9)
                 {
-                    a.ReportDiagnostic(Diagnostic.Create(languageVersionDescriptor, Location.None, b.Right.ToDisplayString()));
+                    a.ReportDiagnostic(Diagnostic.Create(languageVersionDescriptor, Location.None, b.Left.Right.ToDisplayString()));
                     return;
                 }
-                SourceOutput(a, b.Left.Left.Left, b.Left.Left.Right, b.Left.Right);
+                SourceOutput(a, b.Left.Left.Left.Left, b.Left.Left.Left.Right, b.Left.Left.Right, b.Right);
             });
         }
 
@@ -162,7 +164,7 @@ namespace Zerra.SourceGeneration
             return (type, memberID);
         }
 
-        private static void SourceOutput(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, ImmutableArray<(ITypeSymbol Type, string MemberID)> expressionInitializers, ImmutableArray<ITypeSymbol> usedTypes)
+        private static void SourceOutput(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, ImmutableArray<(ITypeSymbol Type, string MemberID)> expressionInitializers, ImmutableArray<ITypeSymbol> usedTypes, IAssemblySymbol assembly)
         {
             var discoverySymbols = new List<ITypeSymbol>();
 
@@ -171,6 +173,8 @@ namespace Zerra.SourceGeneration
             foreach (var symbol in symbols)
             {
                 if (!seen.Add(symbol))
+                    continue;
+                if (!Helper.IsWritable(symbol, assembly))
                     continue;
                 //filter
                 discoverySymbols.Add(symbol);
@@ -183,7 +187,7 @@ namespace Zerra.SourceGeneration
             var typesToGenerate = new Dictionary<string, TypeToGenerate>();
             foreach (var symbol in discoverySymbols)
             {
-                TypeFinder.FindModels(symbol, typesToGenerate);
+                TypeFinder.FindModels(symbol, assembly, typesToGenerate);
                 BusRouterGenerator.Generate(context, ns, sbInitializer, symbol);
                 BusHandlerGenerator.Generate(sbInitializer, symbol);
                 BusCommandOrEventInfoGenerator.Generate(sbInitializer, symbol);
@@ -191,27 +195,27 @@ namespace Zerra.SourceGeneration
                 EnumGenerator.Generate(sbInitializer, symbol);
             }
             foreach (var expressionInitializer in expressionInitializers)
-                TypeFinder.FindExpressionInitializerModel(expressionInitializer.Type, expressionInitializer.MemberID, typesToGenerate);
+                TypeFinder.FindExpressionInitializerModel(expressionInitializer.Type, expressionInitializer.MemberID, assembly, typesToGenerate);
             foreach (var usedType in usedTypes)
-                TypeFinder.FindUsedModel(usedType, typesToGenerate);
+                TypeFinder.FindUsedModel(usedType, assembly, typesToGenerate);
             TypesGenerator.Generate(sbInitializer, typesToGenerate);
             EmptyImplementationGenerator.Generate(context, ns, sbInitializer, typesToGenerate);
             SerializerAndMapGenerator.Generate(sbInitializer, typesToGenerate);
 
             var expressionInitializerMemberIDs = typesToGenerate.Values.SelectMany(x => x.ExpressionInitializerMemberIDs).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray();
-            GenerateInitializer(context, ns, sbInitializer, GetSuppressedDiagnosticIds(typesToGenerate), expressionInitializerMemberIDs);
+            GenerateInitializer(context, ns, sbInitializer, GetSuppressedDiagnosticIds(typesToGenerate.Values.Select(x => x.TypeSymbol)), expressionInitializerMemberIDs);
         }
 
-        //The initializer touches members of every model type, including types from other libraries marked [Obsolete(DiagnosticId = ...)]
-        //or [Experimental(...)]. Those diagnostics carry their own IDs and fail projects built with TreatWarningsAsErrors, so each ID
-        //found on the models, their members and the types those members use is suppressed in the generated file.
-        private static string[] GetSuppressedDiagnosticIds(Dictionary<string, TypeToGenerate> models)
+        //The initializer touches members of every model type, including types marked [Experimental(...)]. Those diagnostics carry their own IDs,
+        //so each ID found on the models, their members and the types those members use is suppressed in the generated file.
+        //Obsolete needs no suppression, the generated classes are [Obsolete] themselves.
+        internal static string[] GetSuppressedDiagnosticIds(IEnumerable<ITypeSymbol> types)
         {
             var ids = new HashSet<string>();
             var seenTypes = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
-            foreach (var model in models.Values)
+            foreach (var modelType in types)
             {
-                for (var type = model.TypeSymbol; type is not null; type = type.BaseType)
+                for (var type = modelType; type is not null; type = type.BaseType)
                 {
                     AddTypeDiagnosticIds(type, ids, seenTypes);
                     foreach (var member in type.GetMembers())
@@ -262,15 +266,7 @@ namespace Zerra.SourceGeneration
                 if (attributeClass is null)
                     continue;
                 var attributeNamespace = attributeClass.ContainingNamespace?.ToString();
-                if (attributeClass.Name == "ObsoleteAttribute" && attributeNamespace == "System")
-                {
-                    foreach (var namedArgument in attribute.NamedArguments)
-                    {
-                        if (namedArgument.Key == "DiagnosticId" && namedArgument.Value.Value is string obsoleteId && obsoleteId.Length > 0)
-                            _ = ids.Add(obsoleteId);
-                    }
-                }
-                else if (attributeClass.Name == "ExperimentalAttribute" && attributeNamespace == "System.Diagnostics.CodeAnalysis")
+                if (attributeClass.Name == "ExperimentalAttribute" && attributeNamespace == "System.Diagnostics.CodeAnalysis")
                 {
                     if (attribute.ConstructorArguments.Length > 0 && attribute.ConstructorArguments[0].Value is string experimentalId && experimentalId.Length > 0)
                         _ = ids.Add(experimentalId);
@@ -333,22 +329,22 @@ namespace Zerra.SourceGeneration
                 #nullable enable
                 #nullable disable warnings
 
-                #pragma warning disable CS0612, CS0618
                 {{suppressions}}
 
                 {{trimmingSuppressions}}
                 namespace {{ns}}.SourceGeneration
                 {
+                    [global::System.Obsolete]
                     internal static class SourceGenerationInitializer
                     {
                 #pragma warning disable CA2255
-                        [System.Runtime.CompilerServices.ModuleInitializer]
+                        [global::System.Runtime.CompilerServices.ModuleInitializer]
                 #pragma warning restore CA2255
                         public static void Initialize()
                         {
                             var timer = global::System.Diagnostics.Stopwatch.StartNew();
                 {{sbCallers.ToString()}}
-                            global::System.Console.WriteLine($"Source Generation Startup - {System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}: {timer.ElapsedMilliseconds} ms");
+                            global::System.Console.WriteLine($"Source Generation Startup - {(global::System.Reflection.Assembly.GetExecutingAssembly().GetName().Name)}: {timer.ElapsedMilliseconds} ms");
                         }
 
                 {{sbMethods.ToString()}}
