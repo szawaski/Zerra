@@ -729,7 +729,8 @@ namespace Zerra.Test.CQRS
 
         private async Task BusDispatches(IBus bus, SemaphoreSlim waiter, List<int> results, CancellationToken cancellationToken)
         {
-            await bus.DispatchAsync(new TestCommand { Thing = 21, Delay = 50 });
+            //the handlers wait long enough that a slow CI machine still asserts before they finish
+            await bus.DispatchAsync(new TestCommand { Thing = 21, Delay = 500 });
             Assert.DoesNotContain(21, results);
             await waiter.WaitAsync(cancellationToken);
             Assert.Contains(21, results);
@@ -1179,7 +1180,7 @@ namespace Zerra.Test.CQRS
 
             public async Task Handle(TestEvent @event)
             {
-                await Task.Delay(50);
+                await Task.Delay(500);
                 results.Add(@event.Thing);
                 _ = waiter.Release();
             }
