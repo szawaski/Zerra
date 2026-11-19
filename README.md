@@ -92,9 +92,9 @@ dotnet add package Zerra
 - **Choosing the transport per interface.** Direct TCP for fast calls between services, HTTP inside ASP.NET Core, and a broker for work that should be queued, mixed freely within one system.
 - **Small, fast services.** Source generation, Native AOT, no external dependencies, and a [binary serializer](docs/Benchmarks.md) that's faster and smaller than JSON keep services quick to start and cheap to run.
 
-## In Production
+## Used in Production Since 2016
 
-Zerra runs in production in private commercial applications, across in-process, TCP, and broker deployments. Changes are in the [changelog](CHANGELOG.md), security reports go through the [security policy](SECURITY.md), and the [trust model](docs/Security.md#trust-model) says what encryption and claims protect and what they don't.
+Zerra has been used in commercial applications since 2016, including HR products, corporate management software, large municipal government systems, health apps, and online games, and its design has evolved with them. It runs in production across in-process, TCP, and broker deployments. Changes are in the [changelog](CHANGELOG.md), security reports go through the [security policy](SECURITY.md), and the [trust model](docs/Security.md#trust-model) says what encryption and claims protect and what they don't.
 
 ## Maintenance
 
