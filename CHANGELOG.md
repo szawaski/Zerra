@@ -32,6 +32,8 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - A handler's exception reaches the caller as a `CqrsServiceException` (renamed from `RemoteServiceException`) whether the handler is local or remote, with the original type name in `ErrorType`. A remote handler's stack trace isn't sent. See [Handler Exceptions](docs/UpgradeV5ToV6.md#handler-exceptions).
 - Every transport sends the caller's trace id (`Activity.Current`) with a message, and the handler's service has it in `CqrsTrace.TraceParent`, so tracing can follow a request across services. A service without tracing passes it on.
 - New `Zerra.OpenTelemetry` package: an `IBusLogger` that records a span and a duration for every query, command, and event, continuing the sender's trace on every transport. See [Logging](docs/Logging.md#opentelemetry).
+- Fixed TCP and HTTP servers on Linux and macOS sometimes never answering a query or awaited command, most often when the handler took a moment.
+- Fixed a command returning a stream over TCP or HTTP sometimes giving an empty stream.
 - Streams as query arguments (uploads) as well as results.
 - Connection tests for each broker (`KafkaConnectionTest`, `RabbitMQConnectionTest`, `AzureServiceBusConnectionTest`) to fall back to direct TCP or HTTP.
 - RabbitMQ accepts AMQP URIs, including TLS with `amqps://`. Kafka connects with TLS through `useTls`.

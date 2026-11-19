@@ -1,4 +1,4 @@
-# Builds the framework and runs the tests that need no databases or brokers.
+# Builds the framework and runs the tests, the repository and messaging tests against the data stores and brokers in Demo/Infrastructure/docker-compose.yml.
 name: CI
 
 on:
@@ -57,6 +57,75 @@ jobs:
             name=$(basename "$project" .csproj)
             dotnet "$(dirname "$project")/bin/Debug/net11.0/$name.dll"
           done
+
+  repository:
+    name: Repository tests (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 11.0.x
+
+      - name: Start the data stores
+        run: docker compose -f Demo/Infrastructure/docker-compose.yml up -d --wait mssql mysql mariadb postgresql mongodb kurrentdb
+
+      #KurrentDB has no healthcheck in the compose file, so wait for its HTTP endpoint
+      - name: Wait for KurrentDB
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:2113/health/live > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo "KurrentDB did not start"
+          exit 1
+
+      - name: Build
+        run: dotnet build Tests/Zerra.Repository.Test/Zerra.Repository.Test.csproj
+
+      - name: Zerra.Repository.Test
+        run: dotnet Tests/Zerra.Repository.Test/bin/Debug/net11.0/Zerra.Repository.Test.dll
+
+      - name: Data store logs
+        if: failure()
+        run: docker compose -f Demo/Infrastructure/docker-compose.yml logs --tail 200
+
+  messaging:
+    name: Messaging tests (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 11.0.x
+
+      - name: Start the brokers
+        run: docker compose -f Demo/Infrastructure/docker-compose.yml up -d --wait kafka rabbitmq servicebus-sql servicebus
+
+      #the Service Bus emulator has no healthcheck in its image, so wait for its health endpoint
+      - name: Wait for the Service Bus emulator
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5300/health > /dev/null; then exit 0; fi
+            sleep 3
+          done
+          echo "The Service Bus emulator did not start"
+          exit 1
+
+      - name: Build
+        run: dotnet build Tests/Zerra.CQRS.Test/Zerra.CQRS.Test.csproj
+
+      #the sustained load tests are too heavy for CI, they run locally
+      - name: Zerra.CQRS.Test
+        run: dotnet Tests/Zerra.CQRS.Test/bin/Debug/net11.0/Zerra.CQRS.Test.dll -method- "*.TestSustainedLoad"
+
+      - name: Broker logs
+        if: failure()
+        run: docker compose -f Demo/Infrastructure/docker-compose.yml logs --tail 200
 
   windows:
     name: .NET Framework tests (Windows)
