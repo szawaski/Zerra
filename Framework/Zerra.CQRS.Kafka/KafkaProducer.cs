@@ -5,7 +5,6 @@
 using Confluent.Kafka;
 using System.Collections.Concurrent;
 using System.Data;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using System.Text;
@@ -175,7 +174,7 @@ namespace Zerra.CQRS.Kafka
                     HasResult = false,
                     Claims = claims,
                     Source = source,
-                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                    TraceParent = CqrsTrace.GetTraceParentToSend()
                 };
 
                 var body = serializer.SerializeBytes(message);
@@ -270,7 +269,7 @@ namespace Zerra.CQRS.Kafka
                     HasResult = true,
                     Claims = claims,
                     Source = source,
-                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                    TraceParent = CqrsTrace.GetTraceParentToSend()
                 };
 
                 var body = serializer.SerializeBytes(message);
@@ -338,7 +337,7 @@ namespace Zerra.CQRS.Kafka
                     HasResult = false,
                     Claims = claims,
                     Source = source,
-                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                    TraceParent = CqrsTrace.GetTraceParentToSend()
                 };
 
                 var body = serializer.SerializeBytes(message);

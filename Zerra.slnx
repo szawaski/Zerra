@@ -72,6 +72,7 @@
     <Project Path="Framework/Zerra/Zerra.csproj" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="Tests/Zerra.AotTest/Zerra.AotTest.csproj" />
     <Project Path="Tests/Zerra.CQRS.Test/Zerra.CQRS.Test.csproj" />
     <Project Path="Tests/Zerra.Repository.Test/Zerra.Repository.Test.csproj" />
     <Project Path="Tests/Zerra.SourceGeneration.Test/Zerra.SourceGeneration.Test.csproj" />

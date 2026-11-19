@@ -155,8 +155,10 @@ namespace Zerra.Test.CQRS.Network
             Assert.Equal("tester", claimsPrincipal.FindFirst("name")?.Value);
         }
 
-        [Fact(Timeout = timeout)]
-        public async Task Query_WithTraceParent_SetsCqrsTraceForHandler()
+        [Theory(Timeout = timeout)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Query_WithTraceParent_SetsCqrsTraceForHandler(bool withAuthorizer)
         {
             const string traceParent = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
             string? received = null;
@@ -164,7 +166,7 @@ namespace Zerra.Test.CQRS.Network
             {
                 received = CqrsTrace.TraceParent;
                 return Task.FromResult(new RemoteQueryCallResponse(1));
-            });
+            }, withAuthorizer ? new TestAuthorizer() : null);
 
             var request = QueryRequest(typeof(ITestQueryHandler), nameof(ITestQueryHandler.GetThings), 21);
             request.TraceParent = traceParent;

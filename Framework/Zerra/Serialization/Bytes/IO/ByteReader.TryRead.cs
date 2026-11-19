@@ -242,6 +242,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
             {
                 position -= 4;
@@ -285,6 +287,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
             {
                 position -= 4;
@@ -336,6 +340,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
             {
                 position -= 4;
@@ -572,6 +578,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
             {
                 position -= 4;
@@ -615,6 +623,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
             {
                 position -= 4;
@@ -666,6 +676,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
             {
                 position -= 4;
@@ -900,6 +912,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
             {
                 position -= 4;
@@ -943,6 +957,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
             {
                 position -= 4;
@@ -994,6 +1010,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 1, ref sizeNeeded))
             {
                 position -= 4;
@@ -1229,6 +1247,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
             {
                 position -= 4;
@@ -1272,6 +1292,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
             {
                 position -= 4;
@@ -1323,6 +1345,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
             {
                 position -= 4;
@@ -1557,6 +1581,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
             {
                 position -= 4;
@@ -1600,6 +1626,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
             {
                 position -= 4;
@@ -1651,6 +1679,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
             {
                 position -= 4;
@@ -1885,6 +1915,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
             {
                 position -= 4;
@@ -1928,6 +1960,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
             {
                 position -= 4;
@@ -1979,6 +2013,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
             {
                 position -= 4;
@@ -2214,6 +2250,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
             {
                 position -= 4;
@@ -2257,6 +2295,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
             {
                 position -= 4;
@@ -2308,6 +2348,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
             {
                 position -= 4;
@@ -2552,6 +2594,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -2597,6 +2641,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -2650,6 +2696,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -2896,6 +2944,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -2941,6 +2991,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -2994,6 +3046,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -3235,6 +3289,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
             {
                 position -= 4;
@@ -3279,6 +3335,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
             {
                 position -= 4;
@@ -3331,6 +3389,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
             {
                 position -= 4;
@@ -3581,6 +3641,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -3627,6 +3689,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -3681,6 +3745,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -3938,6 +4004,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 16, ref sizeNeeded))
             {
                 position -= 4;
@@ -3985,6 +4053,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 16, ref sizeNeeded))
             {
                 position -= 4;
@@ -4040,6 +4110,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 16, ref sizeNeeded))
             {
                 position -= 4;
@@ -4293,6 +4365,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -4339,6 +4413,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -4393,6 +4469,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -4650,6 +4728,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 10, ref sizeNeeded))
             {
                 position -= 4;
@@ -4697,6 +4777,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 10, ref sizeNeeded))
             {
                 position -= 4;
@@ -4752,6 +4834,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 10, ref sizeNeeded))
             {
                 position -= 4;
@@ -5005,6 +5089,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -5051,6 +5137,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -5105,6 +5193,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -5348,6 +5438,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
             {
                 position -= 4;
@@ -5392,6 +5484,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
             {
                 position -= 4;
@@ -5444,6 +5538,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 4, ref sizeNeeded))
             {
                 position -= 4;
@@ -5694,6 +5790,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -5740,6 +5838,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -5794,6 +5894,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 8, ref sizeNeeded))
             {
                 position -= 4;
@@ -6058,6 +6160,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 16, ref sizeNeeded))
             {
                 position -= 4;
@@ -6106,6 +6210,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 16, ref sizeNeeded))
             {
                 position -= 4;
@@ -6162,6 +6268,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 16, ref sizeNeeded))
             {
                 position -= 4;
@@ -6426,6 +6534,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
             {
                 position -= 4;
@@ -6475,6 +6585,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
             {
                 position -= 4;
@@ -6531,6 +6643,8 @@ namespace Zerra.Serialization.Bytes.IO
                 return true;
             }
 
+            if (collectionLength < 0)
+                throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
             if (!SeekNullableSizeNeeded(collectionLength, 2, ref sizeNeeded))
             {
                 position -= 4;

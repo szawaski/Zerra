@@ -26,12 +26,12 @@ namespace Zerra.Test.OpenTelemetry
             private readonly ActivityListener listener;
             private readonly ConcurrentQueue<Activity> stopped = new();
 
-            public Spans()
+            public Spans(string? dropped = null)
             {
                 listener = new ActivityListener()
                 {
                     ShouldListenTo = x => x.Name == OpenTelemetryBusLogger.SourceName || x.Name == testSourceName,
-                    Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+                    Sample = (ref ActivityCreationOptions<ActivityContext> options) => options.Name == dropped ? ActivitySamplingResult.None : ActivitySamplingResult.AllDataAndRecorded,
                     ActivityStopped = stopped.Enqueue
                 };
                 ActivitySource.AddActivityListener(listener);
@@ -99,6 +99,7 @@ namespace Zerra.Test.OpenTelemetry
                 Assert.Equal(nameof(ITraceQueryHandler.Double), serverSpan.GetTagItem("rpc.method"));
                 Assert.Equal("server", serverSpan.GetTagItem("zerra.service"));
                 Assert.Equal(ActivityStatusCode.Unset, serverSpan.Status);
+                Assert.True(serverSpan.HasRemoteParent);
             }
             finally
             {
@@ -328,9 +329,61 @@ namespace Zerra.Test.OpenTelemetry
             }
         }
 
+        //a sampler can drop a span, ending it must not stop the span of the call it was made from
+        [Fact(Timeout = timeout)]
+        public async Task DroppedInnerSpan_LeavesTheOuterSpanAlone()
+        {
+            using var spans = new Spans($"{nameof(ITraceInnerQueryHandler)}/{nameof(ITraceInnerQueryHandler.Inner)}");
+            var bus = Bus.New("local", null, new OpenTelemetryBusLogger(), null);
+            bus.AddHandler<ITraceQueryHandler>(new TraceHandler());
+            bus.AddHandler<ITraceInnerQueryHandler>(new TraceInnerHandler());
+            try
+            {
+                ActivityTraceId traceId;
+                using (var root = testSource.StartActivity("root")!)
+                {
+                    traceId = root.TraceId;
+                    Assert.Equal(1, await bus.Call<ITraceQueryHandler>().Outer().WaitAsync(TestContext.Current.CancellationToken));
+                }
+
+                var outer = await spans.WaitFor(traceId, $"{nameof(ITraceQueryHandler)}/{nameof(ITraceQueryHandler.Outer)}");
+                Assert.Equal(ActivityStatusCode.Unset, outer.Status);
+                Assert.Single(spans.Of(traceId));
+            }
+            finally
+            {
+                await bus.StopServicesAsync();
+            }
+        }
+
+        //a handler that starts its own trace keeps its calls in that trace instead of the one that came with the message
+        [Fact(Timeout = timeout)]
+        public async Task HandlerStartingItsOwnTrace_KeepsItsCallsInIt()
+        {
+            using var spans = new Spans();
+            var handler = new TraceHandler();
+            var (server, client) = CreateBuses(handler);
+            try
+            {
+                using (testSource.StartActivity("root"))
+                    Assert.Equal(6, await client.Call<ITraceQueryHandler>().InOwnTrace(3).WaitAsync(TestContext.Current.CancellationToken));
+
+                Assert.NotNull(handler.OwnTrace);
+                var ownTrace = handler.OwnTrace.Value;
+                var inner = await spans.WaitFor(ownTrace.TraceId, $"{nameof(ITraceQueryHandler)}/{nameof(ITraceQueryHandler.Double)}");
+                Assert.Equal(ownTrace.SpanId, inner.ParentSpanId);
+            }
+            finally
+            {
+                await client.StopServicesAsync();
+                await server.StopServicesAsync();
+            }
+        }
+
         [Fact(Timeout = timeout)]
         public async Task Durations_AreRecorded()
         {
+            using var spans = new Spans();
             var measurements = new ConcurrentQueue<(double Seconds, Dictionary<string, object?> Tags)>();
             using var listener = new MeterListener()
             {
@@ -360,10 +413,15 @@ namespace Zerra.Test.OpenTelemetry
                 Assert.Equal(nameof(ITraceQueryHandler), ok.Tags["rpc.service"]);
                 Assert.Equal(true, ok.Tags["zerra.handled"]);
                 Assert.False(ok.Tags.ContainsKey("error.type"));
-                Assert.True(ok.Seconds >= 0);
+                Assert.True(ok.Seconds > 0);
 
                 var failed = Assert.Single(measurements, x => Equals(x.Tags["rpc.method"], nameof(ITraceQueryHandler.Fail)));
                 Assert.Equal(typeof(InvalidOperationException).FullName, failed.Tags["error.type"]);
+
+                //timed by the span, the bus alone only has whole milliseconds
+                for (var i = 0; i < 5; i++)
+                    _ = await bus.Call<ITraceQueryHandler>().Double(i).WaitAsync(TestContext.Current.CancellationToken);
+                Assert.Contains(measurements, x => Equals(x.Tags["rpc.method"], nameof(ITraceQueryHandler.Double)) && x.Seconds * 1000 % 1 != 0);
             }
             finally
             {
@@ -379,6 +437,8 @@ namespace Zerra.Test.OpenTelemetry
         {
             Task<int> Double(int value);
             Task<int> Fail();
+            Task<int> Outer();
+            Task<int> InOwnTrace(int value);
         }
         public interface ITraceRelayQueryHandler : IQueryHandler
         {
@@ -397,9 +457,39 @@ namespace Zerra.Test.OpenTelemetry
 
             public Task<int> Fail() => throw new InvalidOperationException("Failed");
 
+            public async Task<int> Outer()
+            {
+                try
+                {
+                    return await Bus.Call<ITraceInnerQueryHandler>().Inner();
+                }
+                catch
+                {
+                    return 1;
+                }
+            }
+
+            public ActivityContext? OwnTrace;
+            public async Task<int> InOwnTrace(int value)
+            {
+                Activity.Current = null;
+                using var own = testSource.StartActivity("own")!;
+                OwnTrace = own.Context;
+                return await Bus.Call<ITraceQueryHandler>().Double(value);
+            }
+
             public Task Handle(TraceCommand command, CancellationToken cancellationToken) => Task.CompletedTask;
 
             public Task Handle(TraceEvent @event) => Task.CompletedTask;
+        }
+
+        public interface ITraceInnerQueryHandler : IQueryHandler
+        {
+            Task<int> Inner();
+        }
+        public sealed class TraceInnerHandler : BaseHandler, ITraceInnerQueryHandler
+        {
+            public Task<int> Inner() => throw new InvalidOperationException("Inner failed");
         }
 
         public sealed class TraceRelayHandler : BaseHandler, ITraceRelayQueryHandler

@@ -31,6 +31,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Enumerables
                     value = default;
                     return false;
                 }
+                if (length < 0)
+                    throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
 
                 if (!state.Current.DrainBytes)
                 {

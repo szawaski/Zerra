@@ -55,6 +55,16 @@ namespace Zerra.SourceGeneration
                 _ = model.ExpressionInitializerMemberIDs.Add(memberID);
         }
 
+        /// <summary>
+        /// Adds a type used with the mapper or a serializer, such as the target of <c>Map&lt;TTarget&gt;</c> or <c>Deserialize&lt;T&gt;</c>.
+        /// </summary>
+        /// <param name="typeSymbol">The type mapped or serialized.</param>
+        /// <param name="models">The dictionary of discovered models to add to.</param>
+        public static void FindUsedModel(ITypeSymbol typeSymbol, Dictionary<string, TypeToGenerate> models)
+        {
+            CheckModel(typeSymbol, models, new Stack<string>());
+        }
+
         private static bool Filter(INamedTypeSymbol namedTypeSymbol)
         {
             if (namedTypeSymbol.AllInterfaces.Any(x => (x.Name == "ICommand" || x.Name == "IEvent") && x.ContainingNamespace.ToString() == "Zerra.CQRS"))

@@ -46,6 +46,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Sets
                     return false;
                 }
 
+                if (state.Current.EnumerableLength!.Value < 0)
+                    throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
 #if NETSTANDARD2_0
                 value = new HashSet<TValue>();
 #else

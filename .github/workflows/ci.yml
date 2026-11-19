@@ -127,6 +127,32 @@ jobs:
         if: failure()
         run: docker compose -f Demo/Infrastructure/docker-compose.yml logs --tail 200
 
+  aot:
+    name: Native AOT (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 11.0.x
+
+      - name: Install the native toolchain
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+
+      #any trimming or AOT warning fails the job, it means something wasn't generated
+      - name: Publish as Native AOT
+        run: |
+          dotnet publish Tests/Zerra.AotTest/Zerra.AotTest.csproj -c Release -r linux-x64 2>&1 | tee publish.log
+          if grep -E "warning (IL|AOT)" publish.log; then
+            echo "Trimming or AOT warnings"
+            exit 1
+          fi
+
+      - name: Zerra.AotTest
+        run: Tests/Zerra.AotTest/bin/Release/net11.0/linux-x64/publish/Zerra.AotTest
+
   windows:
     name: .NET Framework tests (Windows)
     runs-on: windows-latest

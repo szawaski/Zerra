@@ -528,6 +528,31 @@ namespace Zerra.Test.CQRS.Network
             Assert.Contains(null, traceParents);
         }
 
+        //a finished activity can still be current where it was captured, like a server's receive loop started during startup, the received trace is sent instead
+        [Fact(Timeout = timeout)]
+        public async Task FinishedActivity_SendsTheReceivedTraceParent()
+        {
+            using var server = new FakeServer(null, Respond);
+            using var client = CreateClient(server, null);
+            const string received = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+
+            CqrsTrace.TraceParent = received;
+            var activity = new Activity("startup").Start();
+            var captured = ExecutionContext.Capture()!;
+            activity.Stop();
+            CqrsTrace.TraceParent = null;
+
+            Task? run = null;
+            ExecutionContext.Run(captured, _ =>
+            {
+                Assert.True(Activity.Current?.IsStopped);
+                run = RunAsync(client, Operation.CallTaskGeneric, token: TestContext.Current.CancellationToken);
+            }, null);
+            await run!;
+
+            Assert.Equal(received, Assert.Single(server.Requests).Data.TraceParent);
+        }
+
         [Theory(Timeout = timeout)]
         [MemberData(nameof(Operations))]
         public async Task Operation_WithAuthorizer_SendsAuthorizationHeaders(Operation operation)

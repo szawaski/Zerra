@@ -48,9 +48,16 @@ namespace Zerra.SourceGeneration
             .Select((x, cancellationToken) => x!.Value)
             .Collect();
 
+            var usedTypeProvider = context.SyntaxProvider.CreateSyntaxProvider(
+                (node, cancellationToken) => node is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Map" or "MapTo" or "Copy" or "Serialize" or "SerializeAsync" or "SerializeToUtf8Bytes" or "SerializeBytes" or "Deserialize" or "DeserializeAsync" or "DeserializePatch" } },
+                FindUsedTypes
+            )
+            .SelectMany((x, cancellationToken) => x)
+            .Collect();
+
             var languageVersionProvider = context.ParseOptionsProvider.Select((options, cancellationToken) => ((CSharpParseOptions)options).LanguageVersion);
 
-            context.RegisterSourceOutput(syntaxProvider.Combine(expressionInitializerProvider).Combine(languageVersionProvider), (a, b) =>
+            context.RegisterSourceOutput(syntaxProvider.Combine(expressionInitializerProvider).Combine(usedTypeProvider).Combine(languageVersionProvider), (a, b) =>
             {
                 //the initializer is a module initializer which needs C# 9
                 if (b.Right < LanguageVersion.CSharp9)
@@ -58,8 +65,64 @@ namespace Zerra.SourceGeneration
                     a.ReportDiagnostic(Diagnostic.Create(languageVersionDescriptor, Location.None, b.Right.ToDisplayString()));
                     return;
                 }
-                SourceOutput(a, b.Left.Left, b.Left.Right);
+                SourceOutput(a, b.Left.Left.Left, b.Left.Left.Right, b.Left.Right);
             });
+        }
+
+        //a type only used with the mapper or a serializer, such as the target of source.Map<Target>() or Deserialize<Target>(bytes), is found nowhere else
+        private static ImmutableArray<ITypeSymbol> FindUsedTypes(GeneratorSyntaxContext context, CancellationToken cancellationToken)
+        {
+            var invocation = (InvocationExpressionSyntax)context.Node;
+            if (context.SemanticModel.GetSymbolInfo(invocation, cancellationToken).Symbol is not IMethodSymbol method)
+                return ImmutableArray<ITypeSymbol>.Empty;
+            var declared = method.ReducedFrom ?? method;
+            var containingType = declared.ContainingType;
+            if (containingType is null)
+                return ImmutableArray<ITypeSymbol>.Empty;
+            var containingNamespace = containingType.ContainingNamespace?.ToString();
+
+            var isMapper = containingType.Name == "Mapper" && containingNamespace == "Zerra.Map";
+            var isSerializer = (containingType.Name == "ByteSerializer" && containingNamespace == "Zerra.Serialization.Bytes")
+                || (containingType.Name == "JsonSerializer" && containingNamespace == "Zerra.Serialization.Json")
+                || (containingType.Name == "INetworkSerializer" && containingNamespace == "Zerra.CQRS.Network")
+                || containingType.AllInterfaces.Any(x => x.Name == "INetworkSerializer" && x.ContainingNamespace?.ToString() == "Zerra.CQRS.Network");
+            if (!isMapper && !isSerializer)
+                return ImmutableArray<ITypeSymbol>.Empty;
+
+            var types = ImmutableArray.CreateBuilder<ITypeSymbol>();
+            foreach (var typeArgument in method.TypeArguments)
+                AddUsedType(types, typeArgument);
+
+            if (isMapper)
+            {
+                //the source of Map<TTarget>(this object) is only known by the type it's called on
+                AddUsedType(types, context.SemanticModel.GetTypeInfo(((MemberAccessExpressionSyntax)invocation.Expression).Expression, cancellationToken).Type);
+            }
+            else
+            {
+                //Serialize(object) only knows the value's declared type, Deserialize(bytes, Type) only a typeof written at the call
+                var arguments = invocation.ArgumentList.Arguments;
+                for (var i = 0; i < arguments.Count; i++)
+                {
+                    var argument = arguments[i];
+                    var parameter = argument.NameColon is not null
+                        ? method.Parameters.FirstOrDefault(x => x.Name == argument.NameColon.Name.Identifier.ValueText)
+                        : i < method.Parameters.Length ? method.Parameters[i] : null;
+                    if (parameter is null)
+                        continue;
+                    if (parameter.Type.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Object)
+                        AddUsedType(types, context.SemanticModel.GetTypeInfo(argument.Expression, cancellationToken).Type);
+                    else if (argument.Expression is TypeOfExpressionSyntax typeOf && parameter.Type.Name == "Type" && parameter.Type.ContainingNamespace?.ToString() == "System")
+                        AddUsedType(types, context.SemanticModel.GetTypeInfo(typeOf.Type, cancellationToken).Type);
+                }
+            }
+            return types.ToImmutable();
+        }
+
+        private static void AddUsedType(ImmutableArray<ITypeSymbol>.Builder types, ITypeSymbol? type)
+        {
+            if (type is not null && type is not ITypeParameterSymbol && type.TypeKind != TypeKind.Error && type.SpecialType != Microsoft.CodeAnalysis.SpecialType.System_Object)
+                types.Add(type);
         }
 
         //Expression.Bind(MethodInfo, ...) from an initializer in an expression tree is flagged IL2026 by native AOT, generating the type keeps its members
@@ -99,7 +162,7 @@ namespace Zerra.SourceGeneration
             return (type, memberID);
         }
 
-        private static void SourceOutput(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, ImmutableArray<(ITypeSymbol Type, string MemberID)> expressionInitializers)
+        private static void SourceOutput(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, ImmutableArray<(ITypeSymbol Type, string MemberID)> expressionInitializers, ImmutableArray<ITypeSymbol> usedTypes)
         {
             var discoverySymbols = new List<ITypeSymbol>();
 
@@ -129,6 +192,8 @@ namespace Zerra.SourceGeneration
             }
             foreach (var expressionInitializer in expressionInitializers)
                 TypeFinder.FindExpressionInitializerModel(expressionInitializer.Type, expressionInitializer.MemberID, typesToGenerate);
+            foreach (var usedType in usedTypes)
+                TypeFinder.FindUsedModel(usedType, typesToGenerate);
             TypesGenerator.Generate(sbInitializer, typesToGenerate);
             EmptyImplementationGenerator.Generate(context, ns, sbInitializer, typesToGenerate);
             SerializerAndMapGenerator.Generate(sbInitializer, typesToGenerate);

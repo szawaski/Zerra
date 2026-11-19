@@ -3,6 +3,7 @@
 // Licensed to you under the MIT license
 
 using BenchmarkDotNet.Attributes;
+using Zerra.Serialization.Bytes;
 using Zerra.Serialization.Json;
 using Zerra.Test.Helpers.Models;
 using Zerra.Test.Helpers.TypesModels;
@@ -34,6 +35,7 @@ namespace Zerra.Benchmark.Benchmarks
         private byte[] jsonBytes;
         private string systemTextJson;
         private byte[] systemTextJsonBytes;
+        private byte[] byteData;
 
         [GlobalSetup]
         public void Setup()
@@ -52,6 +54,7 @@ namespace Zerra.Benchmark.Benchmarks
             jsonBytes = JsonSerializer.SerializeToUtf8Bytes(model, type);
             systemTextJson = System.Text.Json.JsonSerializer.Serialize(model, type, systemTextJsonOptions);
             systemTextJsonBytes = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(model, type, systemTextJsonOptions);
+            byteData = ByteSerializer.Serialize(model, type);
         }
 
         [Benchmark]
@@ -77,5 +80,14 @@ namespace Zerra.Benchmark.Benchmarks
 
         [Benchmark]
         public object Deserialize_Json_SystemTextJson_ByteArray() => System.Text.Json.JsonSerializer.Deserialize(systemTextJsonBytes, type, systemTextJsonOptions);
+
+        [Benchmark]
+        public byte[] Serialize_Bytes_Zerra() => ByteSerializer.Serialize(model, type);
+
+        [Benchmark]
+        public object Deserialize_Bytes_Zerra() => ByteSerializer.Deserialize(byteData, type);
+
+        [Benchmark]
+        public object Deserialize_Bytes_Zerra_Stream() => ByteSerializer.Deserialize(new MemoryStream(byteData, false), type);
     }
 }

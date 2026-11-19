@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--Published as Native AOT by CI and run, it exits with 1 if any check fails-->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net11.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <IsPackable>false</IsPackable>
+        <PublishAot>true</PublishAot>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Framework\Zerra\Zerra.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra.OpenTelemetry\Zerra.OpenTelemetry.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra.Repository\Zerra.Repository.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra.Repository.Memory\Zerra.Repository.Memory.csproj" />
+        <ProjectReference Include="..\..\Framework\Zerra.SourceGeneration\Zerra.SourceGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+</Project>

@@ -4,7 +4,6 @@
 
 using System.Collections.Concurrent;
 using System.Data;
-using System.Diagnostics;
 using System.Security.Claims;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -137,7 +136,7 @@ namespace Zerra.CQRS.RabbitMQ
                         HasResult = false,
                         Claims = claims,
                         Source = source,
-                        TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                        TraceParent = CqrsTrace.GetTraceParentToSend()
                     };
 
                     var body = serializer.SerializeBytes(rabbitMessage);
@@ -234,7 +233,7 @@ namespace Zerra.CQRS.RabbitMQ
                         HasResult = true,
                         Claims = claims,
                         Source = source,
-                        TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                        TraceParent = CqrsTrace.GetTraceParentToSend()
                     };
 
                     var body = serializer.SerializeBytes(rabbitMessage);
@@ -316,7 +315,7 @@ namespace Zerra.CQRS.RabbitMQ
                         HasResult = false,
                         Claims = claims,
                         Source = source,
-                        TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                        TraceParent = CqrsTrace.GetTraceParentToSend()
                     };
 
                     var body = serializer.SerializeBytes(rabbitMessage);

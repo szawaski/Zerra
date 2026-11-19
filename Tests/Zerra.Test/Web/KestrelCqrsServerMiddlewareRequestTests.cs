@@ -133,8 +133,10 @@ namespace Zerra.Test.Web
             Assert.Equal("tester", name);
         }
 
-        [Fact(Timeout = timeout)]
-        public async Task TraceParent_SetForTheHandler()
+        [Theory(Timeout = timeout)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TraceParent_SetForTheHandler(bool withAuthorizer)
         {
             const string traceParent = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
             var serializer = new NetworkByteSerializer();
@@ -143,7 +145,7 @@ namespace Zerra.Test.Web
             {
                 received = CqrsTrace.TraceParent;
                 return Double(serializer, arguments);
-            });
+            }, withAuthorizer ? new RecordingAuthorizer() : null);
             var request = Request(serializer, nameof(IRequestQueryHandler.Double), 1);
             request.TraceParent = traceParent;
 

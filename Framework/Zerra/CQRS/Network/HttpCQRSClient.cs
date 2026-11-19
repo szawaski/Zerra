@@ -6,7 +6,6 @@ using System.Net.Sockets;
 using Zerra.Compression;
 using Zerra.Encryption;
 using Zerra.Logging;
-using System.Diagnostics;
 using System.Security.Claims;
 using Zerra.Buffers;
 
@@ -74,7 +73,7 @@ namespace Zerra.CQRS.Network
 
                     Claims = claims,
                     Source = source,
-                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                    TraceParent = CqrsTrace.GetTraceParentToSend()
                 };
 
                 //a trailing CancellationToken isn't sent, the server passes its own in its place
@@ -320,7 +319,7 @@ namespace Zerra.CQRS.Network
 
                     Claims = claims,
                     Source = source,
-                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                    TraceParent = CqrsTrace.GetTraceParentToSend()
                 };
 
                 //a trailing CancellationToken isn't sent, the server passes its own in its place
@@ -626,7 +625,7 @@ namespace Zerra.CQRS.Network
 
                     Claims = claims,
                     Source = source,
-                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                    TraceParent = CqrsTrace.GetTraceParentToSend()
                 };
 
                 Dictionary<string, List<string?>>? authHeaders = null;
@@ -880,7 +879,7 @@ namespace Zerra.CQRS.Network
 
                     Claims = claims,
                     Source = source,
-                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                    TraceParent = CqrsTrace.GetTraceParentToSend()
                 };
 
                 Dictionary<string, List<string?>>? authHeaders = null;
@@ -1149,7 +1148,7 @@ namespace Zerra.CQRS.Network
 
                     Claims = claims,
                     Source = source,
-                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                    TraceParent = CqrsTrace.GetTraceParentToSend()
                 };
 
                 Dictionary<string, List<string?>>? authHeaders = null;

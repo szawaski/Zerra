@@ -52,7 +52,7 @@ Tests/Zerra.CQRS.Test/bin/Debug/net11.0/Zerra.CQRS.Test.exe -class "Zerra.CQRS.T
 
 To measure coverage, run a test executable under `dotnet-coverage collect -f cobertura`.
 
-Every push and pull request to `master` builds the framework and runs the tests on Linux and, for .NET Framework, on Windows. The repository tests run against the data stores in `Demo/Infrastructure`, started in Docker. The messaging tests run against Kafka, RabbitMQ, and the Azure Service Bus emulator started the same way, except the sustained load tests, which only run locally.
+Every push and pull request to `master` builds the framework and runs the tests on Linux and, for .NET Framework, on Windows. The repository tests run against the data stores in `Demo/Infrastructure`, started in Docker. The messaging tests run against Kafka, RabbitMQ, and the Azure Service Bus emulator started the same way, except the sustained load tests, which only run locally. `Tests/Zerra.AotTest` is published as Native AOT on Linux and run, and any trimming or AOT warning fails the build.
 
 `Demo/Infrastructure/start-infrastructure.ps1` starts the brokers and databases the transport and data store tests need, in Docker, skipping any already running. Each broker test uses its own topics and deletes them afterwards, and each data store test recreates its database.
 

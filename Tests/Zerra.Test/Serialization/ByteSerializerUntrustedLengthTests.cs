@@ -116,6 +116,19 @@ namespace Zerra.Test.Serialization
             _ = Assert.Throws<InvalidDataException>(() => ByteSerializer.Deserialize<byte[]>(bytes));
         }
 
+        [Fact]
+        public void NegativeCount_Throws()
+        {
+            var list = ReplaceCount(ByteSerializer.Serialize(Models(7)), 7, -1);
+            _ = Assert.Throws<InvalidDataException>(() => ByteSerializer.Deserialize<List<SimpleModel>>(list));
+            _ = Assert.Throws<InvalidDataException>(() => ByteSerializer.Deserialize<SimpleModel[]>(list));
+            _ = Assert.Throws<InvalidDataException>(() => ByteSerializer.Deserialize<IList<SimpleModel>>(list));
+            _ = Assert.Throws<InvalidDataException>(() => ByteSerializer.Deserialize<HashSet<SimpleModel>>(list));
+
+            var nullables = ReplaceCount(ByteSerializer.Serialize(new bool?[] { true, null, false, true, null, true, false }), 7, -1);
+            _ = Assert.Throws<InvalidDataException>(() => ByteSerializer.Deserialize<bool?[]>(nullables));
+        }
+
         [Fact(Timeout = timeout)]
         public async Task Stream_ClaimedStringLengthNearIntMax_Throws()
         {

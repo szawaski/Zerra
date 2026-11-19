@@ -87,6 +87,153 @@ namespace Zerra.SourceGeneration.Test
                 """);
         }
 
+        //types only used with the mapper, found from the Map, MapTo, and Copy calls
+        [Fact]
+        public void MappedTypes()
+        {
+            AssertRuns("""
+                using System;
+                using Zerra.Map;
+
+                namespace NoDynamicCodeApp
+                {
+                    public class Source
+                    {
+                        public int A { get; set; }
+                        public string? B { get; set; }
+                    }
+
+                    public class Target
+                    {
+                        public int A { get; set; }
+                        public string? B { get; set; }
+                    }
+
+                    public class Into
+                    {
+                        public int A { get; set; }
+                    }
+
+                    public class Copied
+                    {
+                        public int C { get; set; }
+                    }
+
+                    public static class Program
+                    {
+                        public static int Main()
+                        {
+                            Console.WriteLine($"IsDynamicCodeSupported {System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported}");
+                            try
+                            {
+                                var target = new Source() { A = 1, B = "x" }.Map<Target>();
+                                if (target.A != 1 || target.B != "x")
+                                    throw new Exception("Map<TTarget>");
+                                var target2 = new Source() { A = 2 }.Map<Source, Target>();
+                                if (target2.A != 2)
+                                    throw new Exception("Map<TSource, TTarget>");
+                                var into = new Into();
+                                new Source() { A = 3 }.MapTo(into);
+                                if (into.A != 3)
+                                    throw new Exception("MapTo");
+                                var copied = new Copied() { C = 4 }.Copy();
+                                if (copied.C != 4)
+                                    throw new Exception("Copy");
+
+                                Console.WriteLine("Passed");
+                                return 0;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.ToString());
+                                return 1;
+                            }
+                        }
+                    }
+                }
+                """);
+        }
+
+        //types only used with a serializer, found from the Serialize and Deserialize calls
+        [Fact]
+        public void SerializedTypes()
+        {
+            AssertRuns("""
+                using System;
+                using System.Collections.Generic;
+                using Zerra.CQRS.Network;
+                using Zerra.Serialization.Bytes;
+                using Zerra.Serialization.Json;
+
+                namespace NoDynamicCodeApp
+                {
+                    public class Inner { public int Value { get; set; } }
+                    public class A { public int Value { get; set; } public Inner? Inner { get; set; } }
+                    public class C { public int Value { get; set; } }
+                    public class D { public int Value { get; set; } }
+                    public class E { public int Value { get; set; } }
+                    public class F { public int Value { get; set; } public string? Name { get; set; } }
+                    public class G { public int Value { get; set; } }
+                    public class H { public int Value { get; set; } }
+                    public class I { public int Value { get; set; } }
+
+                    public static class Program
+                    {
+                        public static int Main()
+                        {
+                            Console.WriteLine($"IsDynamicCodeSupported {System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported}");
+                            try
+                            {
+                                var a = ByteSerializer.Deserialize<A>(ByteSerializer.Serialize(new A() { Value = 1, Inner = new Inner() { Value = 2 } }))!;
+                                if (a.Value != 1 || a.Inner?.Value != 2)
+                                    throw new Exception("A");
+
+                                var c = (C)ByteSerializer.Deserialize(ByteSerializer.Serialize(new C() { Value = 3 }, typeof(C)), typeof(C))!;
+                                if (c.Value != 3)
+                                    throw new Exception("C");
+
+                                //D is only reachable through typeof, read from a C with the same members
+                                var dBytes = ByteSerializer.Serialize(new C() { Value = 4 }, typeof(C));
+                                var d = (D?)ByteSerializer.Deserialize(dBytes, typeof(D));
+                                if (d?.Value != 4)
+                                    throw new Exception("D");
+
+                                var e = JsonSerializer.Deserialize<E>(JsonSerializer.SerializeToUtf8Bytes(new E() { Value = 5 }))!;
+                                if (e.Value != 5)
+                                    throw new Exception("E");
+
+                                var (f, graph) = JsonSerializer.DeserializePatch<F>("{\"Value\":6}");
+                                if (f?.Value != 6)
+                                    throw new Exception("F");
+
+                                INetworkSerializer network = new NetworkByteSerializer();
+                                var g = network.Deserialize<G>(network.SerializeBytes(new G() { Value = 7 }))!;
+                                if (g.Value != 7)
+                                    throw new Exception("G");
+
+                                var json = new NetworkJsonSerializer();
+                                var h = json.Deserialize<H>(json.SerializeBytes(new H() { Value = 8 }))!;
+                                if (h.Value != 8)
+                                    throw new Exception("H");
+
+                                var list = JsonSerializer.Deserialize<List<I>>(JsonSerializer.Serialize(new List<I>() { new I() { Value = 9 } }))!;
+                                if (list[0].Value != 9)
+                                    throw new Exception("I");
+
+                                Console.WriteLine("Passed");
+                                return 0;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.ToString());
+                                return 1;
+                            }
+                        }
+                    }
+                }
+                """);
+        }
+
         [Fact]
         public void Collections()
         {

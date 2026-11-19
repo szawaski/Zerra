@@ -102,7 +102,7 @@ namespace Zerra.OpenTelemetry
         public void EndCall(Type interfaceType, string methodName, object[] arguments, object? result, string service, string source, bool handled, long milliseconds, Exception? ex)
         {
             busLogger?.EndCall(interfaceType, methodName, arguments, result, service, source, handled, milliseconds, ex);
-            Stop(arguments, ex);
+            var seconds = Stop(arguments, ex);
             if (duration.Enabled)
             {
                 var tags = new TagList
@@ -113,7 +113,7 @@ namespace Zerra.OpenTelemetry
                 };
                 if (ex is not null)
                     tags.Add("error.type", ex.GetType().FullName);
-                duration.Record(milliseconds / 1000d, tags);
+                duration.Record(seconds >= 0 ? seconds : milliseconds / 1000d, tags);
             }
         }
 
@@ -121,7 +121,7 @@ namespace Zerra.OpenTelemetry
         public void EndCommand(Type commandType, ICommand command, string service, string source, bool handled, long milliseconds, Exception? ex)
         {
             busLogger?.EndCommand(commandType, command, service, source, handled, milliseconds, ex);
-            Stop(command, ex);
+            var seconds = Stop(command, ex);
             if (duration.Enabled)
             {
                 var tags = new TagList
@@ -132,7 +132,7 @@ namespace Zerra.OpenTelemetry
                 };
                 if (ex is not null)
                     tags.Add("error.type", ex.GetType().FullName);
-                duration.Record(milliseconds / 1000d, tags);
+                duration.Record(seconds >= 0 ? seconds : milliseconds / 1000d, tags);
             }
         }
 
@@ -140,7 +140,7 @@ namespace Zerra.OpenTelemetry
         public void EndEvent(Type eventType, IEvent @event, string service, string source, bool handled, long milliseconds, Exception? ex)
         {
             busLogger?.EndEvent(eventType, @event, service, source, handled, milliseconds, ex);
-            Stop(@event, ex);
+            var seconds = Stop(@event, ex);
             if (duration.Enabled)
             {
                 var tags = new TagList
@@ -151,22 +151,19 @@ namespace Zerra.OpenTelemetry
                 };
                 if (ex is not null)
                     tags.Add("error.type", ex.GetType().FullName);
-                duration.Record(milliseconds / 1000d, tags);
+                duration.Record(seconds >= 0 ? seconds : milliseconds / 1000d, tags);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Activity? Start(string name, ActivityKind kind, object message)
         {
-            //the received trace is the parent unless the current activity is already in it, an activity current when a server started its receive loop isn't
+            //the received trace is the parent unless an activity is running, a finished one can still be current where it was captured, such as a server's receive loop started during startup
             ActivityContext parent = default;
             var traceParent = CqrsTrace.TraceParent;
-            if (traceParent is not null && ActivityContext.TryParse(traceParent, null, out var received))
-            {
-                var current = Activity.Current;
-                if (current is null || current.TraceId != received.TraceId)
-                    parent = received;
-            }
+            var current = Activity.Current;
+            if (traceParent is not null && (current is null || current.IsStopped))
+                _ = ActivityContext.TryParse(traceParent, null, true, out parent);
 
             var activity = activitySource.StartActivity(name, kind, parent);
             activity?.SetCustomProperty(messageProperty, message);
@@ -174,14 +171,14 @@ namespace Zerra.OpenTelemetry
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Stop(object message, Exception? ex)
+        private static double Stop(object message, Exception? ex)
         {
             //Begin and End share no state, the span is found by the message it was started for, past any activity the handler left open
             var activity = Activity.Current;
             while (activity is not null && !ReferenceEquals(activity.GetCustomProperty(messageProperty), message))
                 activity = activity.Parent;
             if (activity is null)
-                return;
+                return -1;
 
             if (ex is not null)
             {
@@ -192,6 +189,7 @@ namespace Zerra.OpenTelemetry
 #endif
             }
             activity.Stop();
+            return activity.Duration.TotalSeconds;
         }
     }
 }

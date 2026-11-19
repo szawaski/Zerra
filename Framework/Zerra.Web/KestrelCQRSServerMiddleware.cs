@@ -228,6 +228,7 @@ namespace Zerra.Web
 
                 //Authorize
                 //------------------------------------------------------------------------------------------------------------
+                CqrsTrace.TraceParent = data.TraceParent;
                 if (settings.Authorizer is not null)
                 {
                     var headers = context.Request.Headers.ToDictionary(x => x.Key, x => x.Value.ToList());
@@ -235,7 +236,6 @@ namespace Zerra.Web
                 }
                 else
                 {
-                    CqrsTrace.TraceParent = data.TraceParent;
                     if (data.Claims is not null)
                     {
                         var claimsIdentity = new ClaimsIdentity(data.Claims.Select(x => new Claim(x[0], x[1])), "CQRS");

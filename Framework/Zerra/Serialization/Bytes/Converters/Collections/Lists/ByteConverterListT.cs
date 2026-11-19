@@ -47,6 +47,8 @@ namespace Zerra.Serialization.Bytes.Converters.Collections.Lists
                 }
 
                 var count = state.Current.EnumerableLength!.Value;
+                if (count < 0)
+                    throw new InvalidDataException($"Invalid data for {nameof(ByteSerializer)}, a length is out of range");
                 value = new List<TValue>(count <= ByteSerializer.MaxUnverifiedCount || count <= reader.Length - reader.Position ? count : ByteSerializer.MaxUnverifiedCount);
                 if (state.Current.EnumerableLength!.Value == 0)
                     return true;

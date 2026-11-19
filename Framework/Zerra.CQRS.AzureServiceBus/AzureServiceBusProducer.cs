@@ -4,7 +4,6 @@
 
 using Azure.Messaging.ServiceBus;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Security.Claims;
 using Zerra.CQRS.Network;
 using Zerra.Compression;
@@ -137,7 +136,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     HasResult = false,
                     Claims = claims,
                     Source = source,
-                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                    TraceParent = CqrsTrace.GetTraceParentToSend()
                 };
 
                 var body = serializer.SerializeBytes(message);
@@ -226,7 +225,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     HasResult = true,
                     Claims = claims,
                     Source = source,
-                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                    TraceParent = CqrsTrace.GetTraceParentToSend()
                 };
 
                 var body = serializer.SerializeBytes(message);
@@ -290,7 +289,7 @@ namespace Zerra.CQRS.AzureServiceBus
                     HasResult = false,
                     Claims = claims,
                     Source = source,
-                    TraceParent = Activity.Current?.Id ?? CqrsTrace.TraceParent
+                    TraceParent = CqrsTrace.GetTraceParentToSend()
                 };
 
                 var body = serializer.SerializeBytes(message);

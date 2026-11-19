@@ -39,6 +39,7 @@ The generator produces type details for:
 - Every model those types use as a property, parameter, or return type, recursively
 - Types marked `[GenerateTypeDetail]`, or with an attribute derived from it, such as Zerra.Repository's `[Entity]`
 - `IMapDefinition` implementations, `AggregateRoot` types, and `IAggregateEvent` types
+- Types used with the mapper (`Map`, `MapTo`, and `Copy`) or the serializers (`ByteSerializer`, `JsonSerializer`, and `INetworkSerializer`), such as the target of `source.Map<Target>()` or `JsonSerializer.Deserialize<Target>(json)`
 
 It also generates:
 
@@ -48,6 +49,8 @@ It also generates:
 - Name mappings for enums using [EnumName](EnumName.md)
 
 `[IgnoreGenerateTypeDetail]` excludes a type.
+
+A mapper or serializer call shows its types when they're written at the call: a type argument, `typeof(...)`, or the declared type of the value passed. Generic code that serializes a `T`, a value declared as `object` or a base type, and a `Type` held in a variable don't show the type, so mark those types `[GenerateTypeDetail]`.
 
 Everything is registered by a module initializer in `ZerraSourceGenerationInitializer.cs`, so nothing needs calling at startup. It prints one line per assembly, such as `Source Generation Startup - Store.Catalog: 12 ms`. That line is expected.
 
