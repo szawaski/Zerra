@@ -52,6 +52,8 @@ It also generates:
 
 A mapper or serializer call shows its types when they're written at the call: a type argument, `typeof(...)`, or the declared type of the value passed. Generic code that serializes a `T`, a value declared as `object` or a base type, and a `Type` held in a variable don't show the type, so mark those types `[GenerateTypeDetail]`. The generated code can't name anonymous types, such as `JsonSerializer.Serialize(new { ... })`, private or protected nested classes, `file` classes, or arrays or lists of them, so it skips them. Under Native AOT, use a public or internal class instead.
 
+The generated code calls `init` setters, and the internal getters and setters of another assembly's types, through `UnsafeAccessor`. On generic types and before .NET 8, it makes a delegate from the member the first time it's used instead.
+
 Everything is registered by a module initializer in `ZerraSourceGenerationInitializer.cs`, so nothing needs calling at startup. It prints one line per assembly, such as `Source Generation Startup - Store.Catalog: 12 ms`. That line is expected.
 
 To read the generated code, expand **Dependencies → Analyzers → Zerra.SourceGeneration** in Visual Studio, or set `<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>` and look under `obj/Debug/net10.0/generated/Zerra.SourceGeneration/`.

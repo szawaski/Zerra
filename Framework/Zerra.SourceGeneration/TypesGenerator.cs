@@ -36,12 +36,19 @@ namespace Zerra.SourceGeneration
         private static readonly string iReadOnlyDictionaryGenericTypeName = typeof(IReadOnlyDictionary<,>).Name;
         private static readonly string dictionaryGenericTypeName = typeof(Dictionary<,>).Name;
 
+        //a struct's accessors take it by ref, so a delegate made from one needs these
+        private const string refDelegates = "private delegate TValue RefGetter<T, TValue>(ref T target); private delegate void RefSetter<T, TValue>(ref T target, TValue value);";
+
         /// <summary>
         /// Appends source generation code for all discovered model types to the provided <see cref="StringBuilder"/>.
         /// </summary>
         /// <param name="sb">The <see cref="StringBuilder"/> to append the generated source code to.</param>
         /// <param name="models">The dictionary of model types to generate, keyed by full type name.</param>
-        public static void Generate(StringBuilder sb, Dictionary<string, TypeToGenerate> models)
+        /// <param name="accessors">Collects the class level accessor methods the registrations call.</param>
+        /// <param name="hasUnsafeAccessor">Whether the runtime supports UnsafeAccessor, which init setters are called through.</param>
+        /// <param name="assembly">The assembly being compiled, internal accessors are used where it can see them.</param>
+        /// <param name="hiddenAccessors">Finds another assembly's internal accessors the compilation doesn't load.</param>
+        public static void Generate(StringBuilder sb, Dictionary<string, TypeToGenerate> models, List<string> accessors, bool hasUnsafeAccessor, IAssemblySymbol assembly, HiddenAccessorLookup hiddenAccessors)
         {
             foreach (var model in models.Values)
             {
@@ -70,7 +77,7 @@ namespace Zerra.SourceGeneration
                 else
                     _ = sb.Append("global::Zerra.Reflection.Register.Type(new global::Zerra.Reflection.TypeDetail(").Append(typeOfName).Append(", ");
 
-                GenerateMembers(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers);
+                GenerateMembers(sb, isCoreType, model.TypeName, namedTypeSymbol, symbolMembers, accessors, hasUnsafeAccessor, assembly, hiddenAccessors);
 
                 _ = sb.Append(", ");
 
@@ -142,7 +149,7 @@ namespace Zerra.SourceGeneration
             return $"global::System.ValueTuple<{String.Join(", ", underlying.TypeArguments.Select(Helper.GetFullName))}>";
         }
 
-        private static void GenerateMembers(StringBuilder sb, bool isCoreType, string typeName, INamedTypeSymbol? namedTypeSymbol, ImmutableArray<ISymbol> symbolMembers)
+        private static void GenerateMembers(StringBuilder sb, bool isCoreType, string typeName, INamedTypeSymbol? namedTypeSymbol, ImmutableArray<ISymbol> symbolMembers, List<string> accessors, bool hasUnsafeAccessor, IAssemblySymbol assembly, HiddenAccessorLookup hiddenAccessors)
         {
             _ = sb.Append("[");
 
@@ -187,7 +194,23 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append("new global::Zerra.Reflection.MemberDetail<").Append(propertyTypeName).Append(">(");
                     _ = sb.Append(Helper.GetTypeOfName(namedTypeSymbol)).Append(", ");
                     _ = sb.Append("\"").Append(propertyName).Append("\", false, ");
-                    if (property.GetMethod != null && property.GetMethod.DeclaredAccessibility == Accessibility.Public)
+
+                    //an init setter, or an internal accessor of another assembly's type, is called through an UnsafeAccessor on the type declaring it, which can't be generic before .NET 9
+                    var canUseUnsafeAccessor = hasUnsafeAccessor && !Helper.IsInGenericType(property.ContainingType) && (SymbolEqualityComparer.Default.Equals(property.ContainingType, namedTypeSymbol) || Helper.CanBeReferencedAsCode(property.ContainingType));
+                    var declaringTypeName = SymbolEqualityComparer.Default.Equals(property.ContainingType, namedTypeSymbol) ? typeName : Helper.GetFullName(property.ContainingType);
+                    var accessorKind = property.IsStatic ? "StaticMethod" : "Method";
+                    var accessorTarget = property.IsStatic ? "default!" : namedTypeSymbol.IsValueType ? $"ref {setterInstance}" : setterInstance;
+                    var accessorTargetParameter = $"{(!property.IsStatic && namedTypeSymbol.IsValueType ? "ref " : null)}{declaringTypeName} target";
+                    //another assembly's internal accessors aren't loaded without InternalsVisibleTo, the lookup finds them
+                    var hiddenProperty = property.GetMethod is null || property.SetMethod is null ? hiddenAccessors.Find(property) : null;
+                    var getMethod = property.GetMethod ?? hiddenProperty?.GetMethod;
+                    var setMethod = property.SetMethod ?? hiddenProperty?.SetMethod;
+                    //without an UnsafeAccessor, a delegate made from the accessor on first use, the constant names keep it when trimming
+                    var fallbackLookup = $"typeof({typeName}).GetProperty(\"{property.Name}\", global::System.Reflection.BindingFlags.{(property.IsStatic ? "Static" : "Instance")} | global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic)!";
+                    if (!property.IsStatic && namedTypeSymbol.IsValueType && !accessors.Contains(refDelegates))
+                        accessors.Add(refDelegates);
+
+                    if (property.GetMethod != null && Helper.IsAccessorVisible(property.GetMethod, assembly))
                     {
                         if (property.IsStatic)
                         {
@@ -200,11 +223,27 @@ namespace Zerra.SourceGeneration
                             _ = sb.Append("static (object x) => ((").Append(typeName).Append(")x)").Append(".@").Append(property.Name).Append(", ");
                         }
                     }
+                    else if (canUseUnsafeAccessor && getMethod != null && Helper.IsAccessorUsed(getMethod))
+                    {
+                        var accessorName = $"Accessor{accessors.Count + 1}";
+                        accessors.Add($"[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.{accessorKind}, Name = \"{getMethod.Name}\")] private static extern {propertyTypeName} {accessorName}({accessorTargetParameter});");
+                        _ = sb.Append("static (object x) => ").Append(accessorName).Append('(').Append(accessorTarget).Append("), ");
+                        _ = sb.Append("static (object x) => ").Append(accessorName).Append('(').Append(accessorTarget).Append("), ");
+                    }
+                    else if (getMethod != null && Helper.IsAccessorUsed(getMethod))
+                    {
+                        var fallbackName = $"Accessor{accessors.Count + 1}";
+                        var delegateType = property.IsStatic ? $"global::System.Func<{propertyTypeName}>" : namedTypeSymbol.IsValueType ? $"RefGetter<{typeName}, {propertyTypeName}>" : $"global::System.Func<{typeName}, {propertyTypeName}>";
+                        accessors.Add($"private static {delegateType}? {fallbackName};");
+                        var call = $"({fallbackName} ??= ({delegateType}){fallbackLookup}.GetMethod!.CreateDelegate(typeof({delegateType})))({(property.IsStatic ? null : accessorTarget)})";
+                        _ = sb.Append("static (object x) => ").Append(call).Append(", ");
+                        _ = sb.Append("static (object x) => ").Append(call).Append(", ");
+                    }
                     else
                     {
                         _ = sb.Append("null, null, ");
                     }
-                    if (property.SetMethod != null && property.SetMethod.DeclaredAccessibility == Accessibility.Public && !property.SetMethod.IsInitOnly && !property.IsReadOnly)
+                    if (property.SetMethod != null && Helper.IsAccessorVisible(property.SetMethod, assembly) && !property.SetMethod.IsInitOnly && !property.IsReadOnly)
                     {
                         if (property.IsStatic)
                         {
@@ -216,6 +255,22 @@ namespace Zerra.SourceGeneration
                             _ = sb.Append("static (object x, ").Append(propertyTypeName).Append(property.Type.IsValueType ? null : '?').Append(" value) => ").Append(setterInstance).Append(".@").Append(property.Name).Append(" = value!, ");
                             _ = sb.Append("static (object x, object? value) => ").Append(setterInstance).Append(".@").Append(property.Name).Append(" = (").Append(propertyTypeName).Append(")value!, ");
                         }
+                    }
+                    else if (canUseUnsafeAccessor && setMethod != null && Helper.IsAccessorUsed(setMethod))
+                    {
+                        var accessorName = $"Accessor{accessors.Count + 1}";
+                        accessors.Add($"[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.{accessorKind}, Name = \"{setMethod.Name}\")] private static extern void {accessorName}({accessorTargetParameter}, {propertyTypeName} value);");
+                        _ = sb.Append("static (object x, ").Append(propertyTypeName).Append(property.Type.IsValueType ? null : '?').Append(" value) => ").Append(accessorName).Append('(').Append(accessorTarget).Append(", value!), ");
+                        _ = sb.Append("static (object x, object? value) => ").Append(accessorName).Append('(').Append(accessorTarget).Append(", (").Append(propertyTypeName).Append(")value!), ");
+                    }
+                    else if (setMethod != null && Helper.IsAccessorUsed(setMethod))
+                    {
+                        var fallbackName = $"Accessor{accessors.Count + 1}";
+                        var delegateType = property.IsStatic ? $"global::System.Action<{propertyTypeName}>" : namedTypeSymbol.IsValueType ? $"RefSetter<{typeName}, {propertyTypeName}>" : $"global::System.Action<{typeName}, {propertyTypeName}>";
+                        accessors.Add($"private static {delegateType}? {fallbackName};");
+                        var call = $"({fallbackName} ??= ({delegateType}){fallbackLookup}.SetMethod!.CreateDelegate(typeof({delegateType})))({(property.IsStatic ? null : $"{accessorTarget}, ")}";
+                        _ = sb.Append("static (object x, ").Append(propertyTypeName).Append(property.Type.IsValueType ? null : '?').Append(" value) => ").Append(call).Append("value!), ");
+                        _ = sb.Append("static (object x, object? value) => ").Append(call).Append('(').Append(propertyTypeName).Append(")value!), ");
                     }
                     else
                     {
@@ -590,7 +645,8 @@ namespace Zerra.SourceGeneration
         }
         private static void GenerateTypeInfo(StringBuilder sb, CoreType? coreType, string typeName, ITypeSymbol typeSymbol, INamedTypeSymbol? namedTypeSymbol)
         {
-            var isNullable = typeSymbol.IsValueType && typeSymbol.NullableAnnotation == NullableAnnotation.Annotated;
+            //an unconstrained T? closed with a struct is the struct itself marked annotated, only Nullable<T> is nullable
+            var isNullable = typeSymbol.OriginalDefinition.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Nullable_T;
             var isArray = typeSymbol.Kind == SymbolKind.ArrayType;
             var interfaceNames = typeSymbol.AllInterfaces.Select(x => x.MetadataName).ToImmutableHashSet();
 

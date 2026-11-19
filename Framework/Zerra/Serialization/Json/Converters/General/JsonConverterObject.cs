@@ -21,11 +21,15 @@ namespace Zerra.Serialization.Json.Converters.General
             return new(MemberAndParameterNameComparer.Instance);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReturnCollectedValues(Dictionary<string, object?> collectedValues)
+        private static void ReturnCollectedValues(object collectedValues)
         {
-            collectedValues.Clear();
-            collectedValuesPool.Push(collectedValues);
+            var dictionary = (Dictionary<string, object?>)collectedValues;
+            dictionary.Clear();
+            collectedValuesPool.Push(dictionary);
         }
+        //keeps the unbox out of TryReadValue's unoptimized frame
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TValue? UnboxParent(object? parent) => (TValue?)parent;
 
         private readonly Dictionary<string, JsonConverterObjectMember> membersByName = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<JsonConverterObjectMember> members = new();
@@ -121,7 +125,8 @@ namespace Zerra.Serialization.Json.Converters.General
             if (state.Nameless)
                 return TryReadValueNameless(ref reader, ref state, token, out value);
 
-            Dictionary<string, object?>? collectedValues;
+            //the collected constructor arguments or the object being read, a struct is boxed once so every member is set on the same copy
+            object? parent;
 
             if (token != JsonToken.ObjectStart)
             {
@@ -144,17 +149,17 @@ namespace Zerra.Serialization.Json.Converters.General
                 if (collectValues)
                 {
                     value = default;
-                    collectedValues = RentCollectedValues();
+                    parent = RentCollectedValues();
                 }
                 else if (TypeDetail.HasCreator)
                 {
                     value = TypeDetail.Creator!();
-                    collectedValues = null;
+                    parent = value;
                 }
                 else
                 {
                     value = default;
-                    collectedValues = null;
+                    parent = value;
                 }
 
                 if (reader.Token == JsonToken.ObjectEnd)
@@ -162,7 +167,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     //an empty object still creates the object, every constructor argument gets its default
                     if (collectValues)
                     {
-                        ReturnCollectedValues(collectedValues!);
+                        ReturnCollectedValues(parent!);
                         value = CreateFromParameterDefaults();
                     }
                     return true;
@@ -175,16 +180,11 @@ namespace Zerra.Serialization.Json.Converters.General
             }
             else
             {
+                parent = state.Current.Object;
                 if (collectValues)
-                {
                     value = default;
-                    collectedValues = (Dictionary<string, object?>)state.Current.Object!;
-                }
                 else
-                {
-                    value = (TValue?)state.Current.Object;
-                    collectedValues = null;
-                }
+                    value = (TValue?)parent;
             }
 
             for (; ; )
@@ -197,10 +197,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         if (!reader.TryReadToken(out state.SizeNeeded))
                         {
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
+                            state.Current.Object = parent;
                             return false;
                         }
                     }
@@ -225,10 +222,7 @@ namespace Zerra.Serialization.Json.Converters.General
                         state.Current.HasReadFirstToken = true;
                         state.Current.HasReadProperty = true;
                         state.Current.Property = member;
-                        if (collectValues)
-                            state.Current.Object = collectedValues;
-                        else
-                            state.Current.Object = value;
+                        state.Current.Object = parent;
                         return false;
                     }
                     if (reader.Token != JsonToken.PropertySeperator)
@@ -245,10 +239,7 @@ namespace Zerra.Serialization.Json.Converters.General
                             state.Current.HasReadProperty = true;
                             state.Current.Property = member;
                             state.Current.HasReadSeperator = true;
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
+                            state.Current.Object = parent;
                             return false;
                         }
                     }
@@ -256,28 +247,25 @@ namespace Zerra.Serialization.Json.Converters.General
                     {
                         if (collectValues)
                         {
-                            if (!member.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, collectedValues, member.Member.Name, true))
+                            if (!member.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, parent, member.Member.Name, true))
                             {
                                 state.Current.HasReadFirstToken = true;
                                 state.Current.HasReadProperty = true;
                                 state.Current.HasReadSeperator = true;
                                 state.Current.Property = member;
-                                if (collectValues)
-                                    state.Current.Object = collectedValues;
-                                else
-                                    state.Current.Object = value;
+                                state.Current.Object = parent;
                                 return false;
                             }
                         }
                         else
                         {
-                            if (!member.Converter.TryReadFromParentMember(ref reader, ref state, value, member.Member.Name, true))
+                            if (!member.Converter.TryReadFromParentMember(ref reader, ref state, parent, member.Member.Name, true))
                             {
                                 state.Current.HasReadFirstToken = true;
                                 state.Current.HasReadProperty = true;
                                 state.Current.HasReadSeperator = true;
                                 state.Current.Property = member;
-                                state.Current.Object = value;
+                                state.Current.Object = parent;
                                 return false;
                             }
                         }
@@ -290,10 +278,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     state.Current.HasReadProperty = true;
                     state.Current.HasReadSeperator = true;
                     state.Current.HasReadValue = true;
-                    if (collectValues)
-                        state.Current.Object = collectedValues;
-                    else
-                        state.Current.Object = value;
+                    state.Current.Object = parent;
                     return false;
                 }
 
@@ -309,7 +294,9 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             if (collectValues)
-                value = CreateFromCollectedValues(collectedValues!);
+                value = CreateFromCollectedValues(parent!);
+            else if (typeof(TValue).IsValueType)
+                value = UnboxParent(parent);
 
             return true;
         }
@@ -319,7 +306,8 @@ namespace Zerra.Serialization.Json.Converters.General
         [MethodImpl(MethodImplOptions.NoInlining)]
         private bool TryReadValueNameless(ref JsonReader reader, ref ReadState state, JsonToken token, out TValue? value)
         {
-            Dictionary<string, object?>? collectedValues;
+            //the collected constructor arguments or the object being read, a struct is boxed once so every member is set on the same copy
+            object? parent;
 
             if (token != JsonToken.ArrayStart)
             {
@@ -342,17 +330,17 @@ namespace Zerra.Serialization.Json.Converters.General
                 if (collectValues)
                 {
                     value = default;
-                    collectedValues = RentCollectedValues();
+                    parent = RentCollectedValues();
                 }
                 else if (TypeDetail.HasCreator)
                 {
                     value = TypeDetail.Creator!();
-                    collectedValues = null;
+                    parent = value;
                 }
                 else
                 {
                     value = default;
-                    collectedValues = null;
+                    parent = value;
                 }
 
                 if (reader.Token == JsonToken.ArrayEnd)
@@ -360,7 +348,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     //an empty array still creates the object, every constructor argument gets its default
                     if (collectValues)
                     {
-                        ReturnCollectedValues(collectedValues!);
+                        ReturnCollectedValues(parent!);
                         value = CreateFromParameterDefaults();
                     }
                     return true;
@@ -370,16 +358,11 @@ namespace Zerra.Serialization.Json.Converters.General
             }
             else
             {
+                parent = state.Current.Object;
                 if (collectValues)
-                {
                     value = default;
-                    collectedValues = (Dictionary<string, object?>)state.Current.Object!;
-                }
                 else
-                {
-                    value = (TValue?)state.Current.Object;
-                    collectedValues = null;
-                }
+                    value = (TValue?)parent;
             }
 
             for (; ; )
@@ -391,10 +374,7 @@ namespace Zerra.Serialization.Json.Converters.General
 
                     if (!state.Current.HasReadValue && !(state.Current.HasReadFirstToken ? DrainFromParent(ref reader, ref state) : DrainFromParentMember(ref reader, ref state)))
                     {
-                        if (collectValues)
-                            state.Current.Object = collectedValues;
-                        else
-                            state.Current.Object = value;
+                        state.Current.Object = parent;
                         return false;
                     }
                 }
@@ -402,10 +382,7 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     if (!reader.TryReadToken(out state.SizeNeeded))
                     {
-                        if (collectValues)
-                            state.Current.Object = collectedValues;
-                        else
-                            state.Current.Object = value;
+                        state.Current.Object = parent;
                         return false;
                     }
                 }
@@ -416,29 +393,23 @@ namespace Zerra.Serialization.Json.Converters.General
                 {
                     if (collectValues)
                     {
-                        if (!current.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, collectedValues, current.Member.Name, false))
+                        if (!current.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, parent, current.Member.Name, false))
                         {
                             state.Current.HasReadFirstToken = true;
                             state.Current.HasReadProperty = true;
                             state.Current.HasReadSeperator = true;
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
+                            state.Current.Object = parent;
                             return false;
                         }
                     }
                     else
                     {
-                        if (!current.Converter.TryReadFromParentMember(ref reader, ref state, value, current.Member.Name, false))
+                        if (!current.Converter.TryReadFromParentMember(ref reader, ref state, parent, current.Member.Name, false))
                         {
                             state.Current.HasReadFirstToken = true;
                             state.Current.HasReadProperty = true;
                             state.Current.HasReadSeperator = true;
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
+                            state.Current.Object = parent;
                             return false;
                         }
                     }
@@ -450,10 +421,7 @@ namespace Zerra.Serialization.Json.Converters.General
                     state.Current.HasReadProperty = true;
                     state.Current.HasReadSeperator = true;
                     state.Current.HasReadValue = true;
-                    if (collectValues)
-                        state.Current.Object = collectedValues;
-                    else
-                        state.Current.Object = value;
+                    state.Current.Object = parent;
                     return false;
                 }
 
@@ -471,7 +439,9 @@ namespace Zerra.Serialization.Json.Converters.General
             }
 
             if (collectValues)
-                value = CreateFromCollectedValues(collectedValues!);
+                value = CreateFromCollectedValues(parent!);
+            else if (typeof(TValue).IsValueType)
+                value = UnboxParent(parent);
 
             return true;
         }
@@ -650,9 +620,14 @@ namespace Zerra.Serialization.Json.Converters.General
             return member;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private TValue? CreateFromCollectedValues(Dictionary<string, object?> collectedValues)
+        //out of line so its arguments and enumerator aren't in the frame of every nesting level
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private TValue? CreateFromCollectedValues(object parent)
         {
+            var collectedValues = (Dictionary<string, object?>)parent;
+            if (typeof(TValue).IsValueType)
+                return CreateStructFromCollectedValues(collectedValues);
+
             var args = (object?[])parameterDefaults.Clone();
             for (var i = 0; i < args.Length; i++)
             {
@@ -668,11 +643,7 @@ namespace Zerra.Serialization.Json.Converters.General
 #endif
             }
 
-            TValue? value;
-            if (TypeDetail.Type.IsValueType)
-                value = (TValue?)parameterConstructor!.CreatorBoxed(args);
-            else
-                value = parameterConstructor!.Creator(args);
+            var value = parameterConstructor!.Creator(args);
 
             foreach (var remaining in collectedValues!)
             {
@@ -686,6 +657,35 @@ namespace Zerra.Serialization.Json.Converters.General
             return value;
         }
 
+        //a struct's remaining members are set on the box the constructor made, then it's unboxed once
+        private TValue? CreateStructFromCollectedValues(Dictionary<string, object?> collectedValues)
+        {
+            var args = (object?[])parameterDefaults.Clone();
+            for (var i = 0; i < args.Length; i++)
+            {
+#if NETSTANDARD2_0
+                if (collectedValues.TryGetValue(parameterConstructor!.Parameters[i].Name!, out var parameter))
+                {
+                    collectedValues.Remove(parameterConstructor!.Parameters[i].Name!);
+                    args[i] = parameter;
+                }
+#else
+                if (collectedValues.Remove(parameterConstructor!.Parameters[i].Name!, out var parameter))
+                    args[i] = parameter;
+#endif
+            }
+
+            var boxed = parameterConstructor!.CreatorBoxed(args);
+
+            foreach (var remaining in collectedValues)
+            {
+                if (membersByName!.TryGetValue(remaining.Key, out var member))
+                    member.Converter.CollectedValuesSetter(boxed!, remaining.Value);
+            }
+
+            ReturnCollectedValues(collectedValues);
+            return (TValue?)boxed;
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private TValue? CreateFromParameterDefaults()
         {

@@ -309,6 +309,83 @@ namespace Zerra.SourceGeneration.Test
             }
             """).AssertInitializerContains("TypeDetail<global::Lib.Hidden>");
 
+        //an internal accessor in another assembly is called directly when that assembly gives this one its internals, otherwise through an UnsafeAccessor
+        [Fact] public void OtherAssemblyInternalAccessors()
+        {
+            var output = GeneratorRunner.Run("""
+                using Zerra.Serialization.Json;
+                namespace TestApp
+                {
+                    public class Sender { public string S() => JsonSerializer.Serialize(new Lib.LibModel()); }
+                }
+                """, librarySource: """
+                namespace Lib
+                {
+                    public class LibModel { public int Internal { get; internal set; } public int InternalGet { internal get; set; } }
+                }
+                """);
+            output.AssertInitializerContains("TypeDetail<global::Lib.LibModel>");
+            output.AssertInitializerDoesNotContain(".@Internal = value!");
+            output.AssertInitializerDoesNotContain("((global::Lib.LibModel)x).@InternalGet, ");
+            output.AssertInitializerContains("Name = \"set_Internal\"");
+            output.AssertInitializerContains("Name = \"get_InternalGet\"");
+        }
+
+        [Fact] public void OtherAssemblyInternalAccessorsWithInternalsVisibleTo()
+        {
+            var output = GeneratorRunner.Run("""
+                using Zerra.Serialization.Json;
+                namespace TestApp
+                {
+                    public class Sender { public string S() => JsonSerializer.Serialize(new Lib.LibModel()); }
+                }
+                """, librarySource: """
+                [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("ZerraSourceGenerationTestAssembly")]
+                namespace Lib
+                {
+                    public class LibModel { public int Internal { get; internal set; } public int InternalGet { internal get; set; } }
+                }
+                """);
+            output.AssertInitializerContains(".@Internal = value!");
+            output.AssertInitializerContains("((global::Lib.LibModel)x).@InternalGet, ");
+            output.AssertInitializerDoesNotContain("Name = \"set_Internal\"");
+            output.AssertInitializerDoesNotContain("Name = \"get_InternalGet\"");
+        }
+
+        //generic types get delegates made on first use instead of an UnsafeAccessor, statics use a StaticMethod accessor,
+        //and an accessor inherited from another assembly's base class targets that base class
+        [Fact] public void FallbackAndStaticAccessors()
+        {
+            var output = GeneratorRunner.Run("""
+                using Zerra.Serialization.Json;
+                namespace TestApp
+                {
+                    public class Wrapper<T> { public T? Value { get; init; } }
+                    public struct StructWrapper<T> { public T Value { get; init; } }
+                    public class AppDerived : Lib.LibBase { public int Own { get; set; } }
+                    public class Sender
+                    {
+                        public string S() => JsonSerializer.Serialize(new Wrapper<double>()) + JsonSerializer.Serialize(new StructWrapper<int>())
+                            + JsonSerializer.Serialize(new Lib.LibGeneric<string>()) + JsonSerializer.Serialize(new AppDerived()) + JsonSerializer.Serialize(new Lib.LibStatic());
+                    }
+                }
+                """, librarySource: """
+                namespace Lib
+                {
+                    public class LibGeneric<T> { public T? Internal { get; internal set; } }
+                    public class LibBase { public int BaseInternal { get; internal set; } }
+                    public class LibStatic { public static int Count { get; internal set; } public int Value { get; set; } }
+                }
+                """);
+            output.AssertInitializerContains("CreateDelegate(typeof(global::System.Action<global::TestApp.Wrapper<double>, double>))");
+            output.AssertInitializerContains("CreateDelegate(typeof(RefSetter<global::TestApp.StructWrapper<int>, int>))");
+            output.AssertInitializerContains("private delegate void RefSetter<T, TValue>(ref T target, TValue value);");
+            output.AssertInitializerContains("CreateDelegate(typeof(global::System.Action<global::Lib.LibGeneric<string>, string>))");
+            output.AssertInitializerContains("UnsafeAccessorKind.StaticMethod, Name = \"set_Count\")] private static extern void");
+            output.AssertInitializerContains("Name = \"set_BaseInternal\")] private static extern void");
+            output.AssertInitializerContains("(global::Lib.LibBase target, int value)");
+        }
+
         [Fact] public void QueryTypesShadowedInGeneratedNamespace() => Run("""
             public interface IQ : Zerra.CQRS.IQueryHandler { Other.Thing Get(); Other.Thing Prop { get; } }
             }

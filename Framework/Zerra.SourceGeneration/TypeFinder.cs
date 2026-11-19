@@ -20,7 +20,7 @@ namespace Zerra.SourceGeneration
         /// <param name="models">The dictionary to populate with discovered <see cref="TypeToGenerate"/> entries, keyed by full type name.</param>
         public static void FindModels(ITypeSymbol typeSymbol, IAssemblySymbol assembly, Dictionary<string, TypeToGenerate> models)
         {
-            if (typeSymbol.TypeKind != TypeKind.Class && typeSymbol.TypeKind != TypeKind.Interface)
+            if (typeSymbol.TypeKind != TypeKind.Class && typeSymbol.TypeKind != TypeKind.Struct && typeSymbol.TypeKind != TypeKind.Interface)
                 return;
             if (typeSymbol is not INamedTypeSymbol namedTypeSymbol)
                 return;
@@ -39,7 +39,7 @@ namespace Zerra.SourceGeneration
                             models.Add(name, new TypeToGenerate(namedTypeSymbol, name, String.Empty));
                     }
                 }
-                else if (namedTypeSymbol.TypeKind == TypeKind.Class)
+                else
                     CheckModel(namedTypeSymbol, assembly, models, stack);
             }
         }

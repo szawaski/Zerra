@@ -495,6 +495,10 @@ namespace Zerra.Reflection.Dynamic
                 Delegate? setter = null;
                 Action<object, object?>? setterBoxed = null;
 
+                //same accessors as the source generator in the type's own assembly, the backing field is only a faster way to use them
+                var hasGetter = property.GetMethod != null && (property.GetMethod.IsPublic || property.GetMethod.IsAssembly || property.GetMethod.IsFamilyOrAssembly);
+                var hasSetter = property.SetMethod != null && (property.SetMethod.IsPublic || property.SetMethod.IsAssembly || property.SetMethod.IsFamilyOrAssembly);
+
                 //try backing field pattern <{property.Name}>k__BackingField or <{property.Name}>i__Field
                 var backingName = $"<{property.Name}>";
                 var backingField = fields.FirstOrDefault(x => x.Name.StartsWith(backingName) && x.FieldType == property.PropertyType);
@@ -503,20 +507,25 @@ namespace Zerra.Reflection.Dynamic
                 {
                     _ = fields.Remove(backingField);
 
-                    getter = AccessorGenerator.GenerateGetter(backingField, backingField.FieldType);
-                    getterBoxed = AccessorGenerator.GenerateGetter(backingField);
-
-                    setter = AccessorGenerator.GenerateSetter(backingField, backingField.FieldType);
-                    setterBoxed = AccessorGenerator.GenerateSetter(backingField);
+                    if (hasGetter)
+                    {
+                        getter = AccessorGenerator.GenerateGetter(backingField, backingField.FieldType);
+                        getterBoxed = AccessorGenerator.GenerateGetter(backingField);
+                    }
+                    if (hasSetter)
+                    {
+                        setter = AccessorGenerator.GenerateSetter(backingField, backingField.FieldType);
+                        setterBoxed = AccessorGenerator.GenerateSetter(backingField);
+                    }
                 }
                 else
                 {
-                    if (property.GetMethod != null && property.GetMethod.IsPublic)
+                    if (hasGetter)
                     {
                         getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
                         getterBoxed = AccessorGenerator.GenerateGetter(property);
                     }
-                    if (property.SetMethod != null && property.SetMethod.IsPublic)
+                    if (hasSetter)
                     {
                         setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
                         setterBoxed = AccessorGenerator.GenerateSetter(property);
@@ -555,6 +564,9 @@ namespace Zerra.Reflection.Dynamic
                 if (@field.IsLiteral)
                     continue;
                 if (!field.IsPublic)
+                    continue;
+                //an enum's value__ holds its number, the source generator doesn't see it as a member
+                if (field.IsSpecialName)
                     continue;
 
                 Delegate? getter = null;
@@ -637,12 +649,12 @@ namespace Zerra.Reflection.Dynamic
 
                             if (!property.PropertyType.IsByRef && !property.PropertyType.IsByRefLike)
                             {
-                                if (property.GetMethod != null && property.GetMethod.IsPublic)
+                                if (property.GetMethod != null && (property.GetMethod.IsPublic || property.GetMethod.IsAssembly || property.GetMethod.IsFamilyOrAssembly))
                                 {
                                     getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
                                     getterBoxed = AccessorGenerator.GenerateGetter(property);
                                 }
-                                if (property.SetMethod != null && property.SetMethod.IsPublic)
+                                if (property.SetMethod != null && (property.SetMethod.IsPublic || property.SetMethod.IsAssembly || property.SetMethod.IsFamilyOrAssembly))
                                 {
                                     setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
                                     setterBoxed = AccessorGenerator.GenerateSetter(property);

@@ -43,13 +43,15 @@ namespace Zerra.SourceGeneration.Test
             var parseOptions = new CSharpParseOptions(LanguageVersion.Preview);
 
             var compilationReferences = references;
+            byte[]? libraryImage = null;
             if (librarySource is not null)
             {
                 var library = CSharpCompilation.Create("ZerraSourceGenerationTestLibrary", [CSharpSyntaxTree.ParseText(librarySource, parseOptions)], references, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
                 using var libraryStream = new MemoryStream();
                 var libraryEmit = library.Emit(libraryStream);
                 Assert.True(libraryEmit.Success, String.Join(Environment.NewLine, libraryEmit.Diagnostics));
-                compilationReferences = [.. references, MetadataReference.CreateFromImage(libraryStream.ToArray())];
+                libraryImage = libraryStream.ToArray();
+                compilationReferences = [.. references, MetadataReference.CreateFromImage(libraryImage)];
             }
 
             var syntaxTree = CSharpSyntaxTree.ParseText(source, parseOptions);
@@ -84,7 +86,7 @@ namespace Zerra.SourceGeneration.Test
                 Assert.Fail(sb.ToString());
             }
 
-            return new GeneratorOutput(sources, outputCompilation);
+            return new GeneratorOutput(sources, outputCompilation, libraryImage);
         }
     }
 
@@ -93,11 +95,13 @@ namespace Zerra.SourceGeneration.Test
         public IReadOnlyDictionary<string, string> Sources { get; }
         public string Initializer => Sources["ZerraSourceGenerationInitializer.cs"];
         private readonly Compilation compilation;
+        private readonly byte[]? libraryImage;
 
-        public GeneratorOutput(IReadOnlyDictionary<string, string> sources, Compilation compilation)
+        public GeneratorOutput(IReadOnlyDictionary<string, string> sources, Compilation compilation, byte[]? libraryImage)
         {
             this.Sources = sources;
             this.compilation = compilation;
+            this.libraryImage = libraryImage;
         }
 
         //loads the source with its generated code and runs the generated registrations, so the Zerra types in the test host use them
@@ -129,6 +133,8 @@ namespace Zerra.SourceGeneration.Test
 
                 foreach (var zerraFile in new string[] { typeof(Zerra.CQRS.ICommand).Assembly.Location, typeof(Zerra.Repository.AggregateRoot).Assembly.Location })
                     File.Copy(zerraFile, Path.Combine(directory, Path.GetFileName(zerraFile)));
+                if (libraryImage is not null)
+                    File.WriteAllBytes(Path.Combine(directory, "ZerraSourceGenerationTestLibrary.dll"), libraryImage);
 
                 //the same runtime the test host runs on
                 var hostConfig = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, $"{typeof(GeneratorRunner).Assembly.GetName().Name}.runtimeconfig.json")))!;

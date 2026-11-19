@@ -70,6 +70,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - `JsonSerializerOptions.ErrorOnTypeMismatch` is renamed `ErrorOnReadMismatchedData`. With it off, the default, valid JSON that doesn't fit the type no longer throws: `1.5` for an `int`, an unparseable date, an unknown enum name, or extra values in a nameless array read as the default or are skipped, and a repeated dictionary key keeps the last value. Invalid JSON still throws.
 - `MaxDepth` on `JsonSerializerOptions` and `ByteSerializerOptions` sets how deeply objects and collections can nest. The default is 64, the same as System.Text.Json; before, both serializers stopped at 31 with no way to change it.
 - Fixed source-generated types leaving out public properties and fields inherited from a base class, so the serializers and the mapper skipped them.
+- The serializers and the mapper use a property's getter and setter only when they're public, internal, or `protected internal`. `init` setters count. Before, a private setter or a get-only property was set through its hidden backing field. Such a property is now only read through a matching constructor parameter.
 
 ### Mapping
 

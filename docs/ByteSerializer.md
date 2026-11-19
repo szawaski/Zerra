@@ -31,6 +31,8 @@ await ByteSerializer.SerializeAsync(stream, command, cancellationToken: cancella
 - Arrays, lists, sets, dictionaries, and their interfaces such as `IReadOnlyList<T>`, `IReadOnlySet<T>`, and `IEnumerable<T>`
 - Classes, structs, and records, including nested objects
 
+Members are public properties and fields. A property's getter and setter can be public, internal, or `protected internal`, and `init` setters work. A member typed as a struct, other than the types above, is skipped.
+
 A type is created with its parameterless constructor if it has one. Otherwise the constructor whose parameter names match its member names is used, which is how positional records work. A read-only member that isn't a constructor parameter isn't deserialized.
 
 ## Options

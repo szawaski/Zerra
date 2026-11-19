@@ -29,11 +29,15 @@ namespace Zerra.Serialization.Bytes.Converters.General
             return new(MemberAndParameterNameComparer.Instance);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ReturnCollectedValues(Dictionary<string, object?> collectedValues)
+        private static void ReturnCollectedValues(object collectedValues)
         {
-            collectedValues.Clear();
-            collectedValuesPool.Push(collectedValues);
+            var dictionary = (Dictionary<string, object?>)collectedValues;
+            dictionary.Clear();
+            collectedValuesPool.Push(dictionary);
         }
+        //keeps the unbox out of TryReadValue's unoptimized frame
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static TValue? UnboxParent(object? parent) => (TValue?)parent;
 
         private MemberKey[] members = null!;
         private MemberKey[] membersIngoreAttributes = null!;
@@ -145,7 +149,8 @@ namespace Zerra.Serialization.Bytes.Converters.General
             if (indexSizeUInt16Only && !state.UseIndexSizeUInt16 && !state.UseMemberNames)
                 throw CreateIndexSizeException();
 
-            Dictionary<string, object?>? collectedValues;
+            //the collected constructor arguments or the object being read, a struct is boxed once so every member is set on the same copy
+            object? parent;
 
             if (!state.Current.HasCreated)
             {
@@ -154,39 +159,37 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     if (collectValues)
                     {
                         value = default;
-                        collectedValues = RentCollectedValues();
+                        parent = RentCollectedValues();
                     }
                     else if (TypeDetail.HasCreator)
                     {
                         value = TypeDetail.Creator!();
-                        collectedValues = null;
+                        parent = value;
                     }
                     else
                     {
                         value = default;
-                        collectedValues = null;
+                        parent = value;
                     }
                 }
                 else
                 {
                     value = default;
-                    collectedValues = null;
+                    if (collectValues)
+                        parent = null;
+                    else
+                        parent = value;
                 }
 
                 state.Current.HasCreated = true;
             }
             else
             {
+                parent = state.Current.Object;
                 if (collectValues)
-                {
                     value = default;
-                    collectedValues = (Dictionary<string, object?>)state.Current.Object!;
-                }
                 else
-                {
-                    value = (TValue?)state.Current.Object;
-                    collectedValues = null;
-                }
+                    value = (TValue?)parent;
             }
 
             var selectedMembers = state.IgnoreIndexAttribute ? membersIngoreAttributes : members;
@@ -200,10 +203,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     {
                         if (!reader.TryRead(out ReadOnlySpan<byte> name, out state.SizeNeeded))
                         {
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
+                            state.Current.Object = parent;
                             return false;
                         }
 
@@ -221,10 +221,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         {
                             if (!reader.TryRead(out propertyIndex, out state.SizeNeeded))
                             {
-                                if (collectValues)
-                                    state.Current.Object = collectedValues;
-                                else
-                                    state.Current.Object = value;
+                                state.Current.Object = parent;
                                 return false;
                             }
                         }
@@ -232,10 +229,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                         {
                             if (!reader.TryRead(out byte propertyIndexValue, out state.SizeNeeded))
                             {
-                                if (collectValues)
-                                    state.Current.Object = collectedValues;
-                                else
-                                    state.Current.Object = value;
+                                state.Current.Object = parent;
                                 return false;
                             }
                             propertyIndex = propertyIndexValue;
@@ -265,10 +259,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
                     {
                         state.Current.HasReadProperty = true;
                         state.Current.Property = member;
-                        if (collectValues)
-                            state.Current.Object = collectedValues;
-                        else
-                            state.Current.Object = value;
+                        state.Current.Object = parent;
                         return false;
                     }
                 }
@@ -276,27 +267,21 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 {
                     if (collectValues)
                     {
-                        if (!member.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, collectedValues, state.Current.DrainBytes))
+                        if (!member.ConverterSetCollectedValues.TryReadFromParentMember(ref reader, ref state, parent, state.Current.DrainBytes))
                         {
                             state.Current.HasReadProperty = true;
                             state.Current.Property = member;
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
+                            state.Current.Object = parent;
                             return false;
                         }
                     }
                     else
                     {
-                        if (!member.Converter.TryReadFromParentMember(ref reader, ref state, value, state.Current.DrainBytes))
+                        if (!member.Converter.TryReadFromParentMember(ref reader, ref state, parent, state.Current.DrainBytes))
                         {
                             state.Current.HasReadProperty = true;
                             state.Current.Property = member;
-                            if (collectValues)
-                                state.Current.Object = collectedValues;
-                            else
-                                state.Current.Object = value;
+                            state.Current.Object = parent;
                             return false;
                         }
                     }
@@ -305,8 +290,14 @@ namespace Zerra.Serialization.Bytes.Converters.General
                 state.Current.HasReadProperty = false;
             }
 
-            if (collectedValues is not null)
-                value = CreateFromCollectedValues(collectedValues);
+            //nothing is created while draining
+            if (parent is not null)
+            {
+                if (collectValues)
+                    value = CreateFromCollectedValues(parent);
+                else if (typeof(TValue).IsValueType)
+                    value = UnboxParent(parent);
+            }
 
             return true;
         }
@@ -425,9 +416,14 @@ namespace Zerra.Serialization.Bytes.Converters.General
             return member;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private TValue? CreateFromCollectedValues(Dictionary<string, object?> collectedValues)
+        //out of line so its arguments and enumerator aren't in the frame of every nesting level
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private TValue? CreateFromCollectedValues(object parent)
         {
+            var collectedValues = (Dictionary<string, object?>)parent;
+            if (typeof(TValue).IsValueType)
+                return CreateStructFromCollectedValues(collectedValues);
+
             var args = (object?[])parameterDefaults.Clone();
             for (var i = 0; i < args.Length; i++)
             {
@@ -443,11 +439,7 @@ namespace Zerra.Serialization.Bytes.Converters.General
 #endif
             }
 
-            TValue? value;
-            if (TypeDetail.Type.IsValueType)
-                value = (TValue?)parameterConstructor!.CreatorBoxed(args);
-            else
-                value = parameterConstructor!.Creator(args);
+            var value = parameterConstructor!.Creator(args);
 
             foreach (var remaining in collectedValues!)
             {
@@ -461,6 +453,35 @@ namespace Zerra.Serialization.Bytes.Converters.General
             return value;
         }
 
+        //a struct's remaining members are set on the box the constructor made, then it's unboxed once
+        private TValue? CreateStructFromCollectedValues(Dictionary<string, object?> collectedValues)
+        {
+            var args = (object?[])parameterDefaults.Clone();
+            for (var i = 0; i < args.Length; i++)
+            {
+#if NETSTANDARD2_0
+                if (collectedValues.TryGetValue(parameterConstructor!.Parameters[i].Name!, out var parameter))
+                {
+                    collectedValues.Remove(parameterConstructor!.Parameters[i].Name!);
+                    args[i] = parameter;
+                }
+#else
+                if (collectedValues.Remove(parameterConstructor!.Parameters[i].Name!, out var parameter))
+                    args[i] = parameter;
+#endif
+            }
+
+            var boxed = parameterConstructor!.CreatorBoxed(args);
+
+            foreach (var remaining in collectedValues)
+            {
+                if (membersByName!.TryGetValue(remaining.Key, out var member))
+                    member.Converter.CollectedValuesSetter(boxed!, remaining.Value);
+            }
+
+            ReturnCollectedValues(collectedValues);
+            return (TValue?)boxed;
+        }
         [MethodImpl(MethodImplOptions.NoInlining)]
         private NotSupportedException CreateIndexSizeException() => new($"{TypeDetail.Type.Name} has too many members or {nameof(SerializerIndexAttribute)} index too high for index size");
         [MethodImpl(MethodImplOptions.NoInlining)]

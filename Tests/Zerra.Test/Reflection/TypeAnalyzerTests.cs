@@ -478,18 +478,19 @@ namespace Zerra.Test.Reflection
         [Fact]
         public void RuntimeTypes_InterfaceMembersAndMethods()
         {
-            //types that aren't generated get their details at runtime, explicit interface implementations included
-            var dictionaryDetail = typeof(Dictionary<int, string>).GetTypeDetail();
+            //types that aren't generated get their details at runtime, explicit interface implementations included,
+            //these type arguments are used by no model so the source generator leaves them to runtime
+            var dictionaryDetail = typeof(Dictionary<int, Version>).GetTypeDetail();
             var explicitAdd = Assert.Single(dictionaryDetail.Methods, x => x.IsExplicitFromInterface && x.Name == "System.Collections.IDictionary.Add");
-            var dictionary = new Dictionary<int, string>();
-            _ = explicitAdd.CallerBoxed!(dictionary, [1, "a"]);
-            Assert.Equal("a", dictionary[1]);
+            var dictionary = new Dictionary<int, Version>();
+            _ = explicitAdd.CallerBoxed!(dictionary, [1, new Version(1, 2)]);
+            Assert.Equal(new Version(1, 2), dictionary[1]);
             var explicitReadOnly = Assert.Single(dictionaryDetail.Members, x => x.IsExplicitFromInterface && x.Name.EndsWith(".IsReadOnly") && x.Name.Contains("Generic"));
             Assert.Equal(false, explicitReadOnly.GetterBoxed!(dictionary));
             Assert.Contains(dictionaryDetail.Methods, x => x.Name == "Add" && !x.IsExplicitFromInterface);
 
             //an interface gets the members and methods of the interfaces it extends
-            var listDetail = typeof(IList<int>).GetTypeDetail();
+            var listDetail = typeof(IList<Version>).GetTypeDetail();
             Assert.Contains(listDetail.Methods, x => x.Name == "Add");
             Assert.Contains(listDetail.Methods, x => x.Name == "GetEnumerator");
             Assert.Contains(listDetail.Members, x => x.Name == "Count");
@@ -514,7 +515,7 @@ namespace Zerra.Test.Reflection
             Assert.Equal(2, count.GetterBoxed!(dictionary));
             Assert.False(count.HasSetter);
 
-            //an auto property still goes through its compiler backing field, so a get only one can be set
+            //an auto property goes through its compiler backing field, its internal setter can be set
             var exception = typeof(System.Text.Json.JsonException).GetTypeDetail().GetMember(nameof(System.Text.Json.JsonException.Path));
             var instance = new System.Text.Json.JsonException();
             exception.SetterBoxed!(instance, "$.a");

@@ -363,6 +363,35 @@ namespace Zerra.SourceGeneration
         public static bool HasStaticAbstract(ITypeSymbol typeSymbol)
             => typeSymbol.TypeKind == TypeKind.Interface && typeSymbol.GetMembers().Concat(typeSymbol.AllInterfaces.SelectMany(x => x.GetMembers())).Any(x => x.IsStatic && x.IsAbstract);
 
+        //a public accessor, or an internal one when the assembly being compiled is the type's own or is given its internals
+        public static bool IsAccessorVisible(IMethodSymbol accessor, IAssemblySymbol assembly)
+        {
+            switch (accessor.DeclaredAccessibility)
+            {
+                case Accessibility.Public:
+                    return true;
+                case Accessibility.Internal:
+                case Accessibility.ProtectedOrInternal:
+                    return SymbolEqualityComparer.Default.Equals(accessor.ContainingAssembly, assembly) || (accessor.ContainingAssembly is not null && accessor.ContainingAssembly.GivesAccessTo(assembly));
+                default:
+                    return false;
+            }
+        }
+
+        //the accessors serialization uses, the same as reflection: public, internal and protected internal
+        public static bool IsAccessorUsed(IMethodSymbol accessor)
+            => accessor.DeclaredAccessibility == Accessibility.Public || accessor.DeclaredAccessibility == Accessibility.Internal || accessor.DeclaredAccessibility == Accessibility.ProtectedOrInternal;
+
+        public static bool IsInGenericType(INamedTypeSymbol namedTypeSymbol)
+        {
+            for (var typeSymbol = namedTypeSymbol; typeSymbol is not null; typeSymbol = typeSymbol.ContainingType)
+            {
+                if (typeSymbol.IsGenericType)
+                    return true;
+            }
+            return false;
+        }
+
         public static bool HasPointer(ITypeSymbol typeSymbol)
         {
             if (typeSymbol.Kind == SymbolKind.PointerType || typeSymbol.Kind == SymbolKind.FunctionPointerType)
@@ -429,6 +458,10 @@ namespace Zerra.SourceGeneration
                     foreach (var arg in namedType.TypeArguments)
                         if (IsUnclosedGeneric(arg))
                             return true;
+
+                    //a nested type such as SortedDictionary<TKey, int>.KeyCollection has no type arguments of its own
+                    if (namedType.ContainingType is not null)
+                        return IsUnclosedGeneric(namedType.ContainingType);
 
                     return false;
 

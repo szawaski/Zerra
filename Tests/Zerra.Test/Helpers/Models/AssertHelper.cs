@@ -79,6 +79,18 @@ namespace Zerra.Test.Helpers.Models
                 }
             }
 
+            if (type1.Type.IsEnum || type2.Type.IsEnum)
+            {
+                //a non-generic collection reads an enum back as its name or number
+                var enumValue = type1.Type.IsEnum ? model1 : model2;
+                var other = type1.Type.IsEnum ? model2 : model1;
+                if (other.GetType().IsEnum)
+                    return enumValue.Equals(other);
+                if (other is string name)
+                    return enumValue.ToString() == name || Enum.Parse(enumValue.GetType(), name).Equals(enumValue);
+                return Convert.ToDecimal(enumValue, CultureInfo.InvariantCulture) == Convert.ToDecimal(other, CultureInfo.InvariantCulture);
+            }
+
             if (type1.Type.Name == "RuntimeType")
             {
                 if (type2.Type.Name != "RuntimeType")

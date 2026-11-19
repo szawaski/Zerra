@@ -1590,6 +1590,31 @@ namespace Zerra.SourceGeneration.Test
             output.AssertInitializerContains("new global::TestApp.LimitsAttribute(float.PositiveInfinity, float.NegativeInfinity, double.NaN, double.NegativeInfinity)");
         }
 
+        //an unconstrained T? closed with a struct is the struct itself marked annotated, not Nullable<T>
+        [Fact]
+        public void UnconstrainedNullableGenericNotNullable()
+        {
+            var output = GeneratorRunner.Run("""
+                using Zerra.Serialization.Json;
+
+                namespace TestApp
+                {
+                    public class Wrapper<T>
+                    {
+                        public T? Value { get; set; }
+                    }
+
+                    public class Sender
+                    {
+                        public string Send() => JsonSerializer.Serialize(new Wrapper<double>());
+                    }
+                }
+                """);
+
+            output.AssertInitializerContains("false, global::Zerra.Reflection.CoreType.Double,");
+            output.AssertInitializerDoesNotContain("true, global::Zerra.Reflection.CoreType.Double,");
+        }
+
         //a type only passed to a serializer is found at the call, an anonymous type has no name to write so it's skipped,
         //alone, nested in another anonymous type or as a type argument
         [Fact]

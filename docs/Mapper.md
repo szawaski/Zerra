@@ -17,7 +17,7 @@ var copy = original.Copy();                       // deep copy
 object copy2 = obj.Copy(obj.GetType());           // deep copy by runtime type
 ```
 
-Members are matched by name, case-sensitively, and need a public getter on the source and a public setter on the target. Unmatched target members keep their default value. Matched members are converted as needed:
+Members are matched by name, case-sensitively, and need a getter on the source and a setter on the target that are public, internal, or `protected internal`. `init` setters work. Unmatched target members keep their default value. Matched members are converted as needed:
 
 - **Numbers and other convertible types:** `int` to `double`, `decimal` to `int`, and so on
 - **Enums to strings:** `Status.Active` becomes `"Active"`
@@ -121,7 +121,7 @@ void MapDiscovery.Initialize()
 
 ## Troubleshooting
 
-- **A member isn't mapped:** check the names match exactly, including case, that the types can convert, and that the source has a public getter and the target a public setter.
+- **A member isn't mapped:** check the names match exactly, including case, that the types can convert, and that the source has a getter and the target a setter that aren't private or protected.
 - **A custom definition is ignored:** check its type arguments match the source and target types exactly, and that it is public and not generic. Check the build output for source generator warnings. `MapDefinition.Register` confirms whether registration is the problem.
 
 ## See Also

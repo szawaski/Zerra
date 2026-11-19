@@ -11,9 +11,9 @@ namespace Zerra.SourceGeneration.Test
     //each app runs in its own process with dynamic code turned off, so everything it uses must come from the generated code as under native AOT
     public class NoDynamicCodeTests
     {
-        private static void AssertRuns(string source)
+        private static void AssertRuns(string source, string? librarySource = null)
         {
-            var output = GeneratorRunner.Run(source, OutputKind.ConsoleApplication);
+            var output = GeneratorRunner.Run(source, OutputKind.ConsoleApplication, librarySource);
             var (exitCode, text) = output.RunWithoutDynamicCode();
             Assert.True(exitCode == 0 && text.Contains("IsDynamicCodeSupported False") && text.Contains("Passed"), $"Exit code {exitCode}{Environment.NewLine}{text}");
         }
@@ -82,6 +82,293 @@ namespace Zerra.SourceGeneration.Test
                                 return 1;
                             }
                         }
+                    }
+                }
+                """);
+        }
+
+        //init setters are called through UnsafeAccessor, including one declared on a base type and one on a struct,
+        //internal setters of the assembly's own types are serialized and private ones are not, the same as without the source generator
+        [Fact]
+        public void InitAndInternalSetters()
+        {
+            AssertRuns("""
+                using System;
+                using Zerra.Reflection;
+                using Zerra.Serialization.Bytes;
+                using Zerra.Serialization.Json;
+
+                namespace NoDynamicCodeApp
+                {
+                    [GenerateTypeDetail]
+                    public record RecordModel(bool Property1)
+                    {
+                        public int Property2 { get; init; }
+                        public string? Property3 { get; init; }
+                    }
+
+                    [GenerateTypeDetail]
+                    public class RequiredModel
+                    {
+                        public required int Value1 { get; set; }
+                        public required int Value2 { get; init; }
+                    }
+
+                    public class BaseModel
+                    {
+                        public int BaseValue { get; init; }
+                    }
+
+                    [GenerateTypeDetail]
+                    public class DerivedModel : BaseModel
+                    {
+                        public int DerivedValue { get; init; }
+                    }
+
+                    [GenerateTypeDetail]
+                    public struct StructModel
+                    {
+                        public int Value { get; init; }
+                    }
+
+                    [GenerateTypeDetail]
+                    public class SetterModel
+                    {
+                        public string? Public { get; set; }
+                        public string? Internal { get; internal set; }
+                        public string? ProtectedInternal { get; protected internal set; }
+                        public string? Protected { get; protected set; }
+                        public string? PrivateProtected { get; private protected set; }
+                        public string? Private { get; private set; }
+                        public void SetAll(string value) { Internal = value; ProtectedInternal = value; Protected = value; PrivateProtected = value; Private = value; }
+                    }
+
+                    public static class Program
+                    {
+                        private static void Check(string name, object? expected, object? actual)
+                        {
+                            if (!Equals(expected, actual))
+                                throw new Exception($"{name}: expected {expected} actual {actual}");
+                        }
+
+                        public static int Main()
+                        {
+                            Console.WriteLine($"IsDynamicCodeSupported {System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported}");
+                            try
+                            {
+                                var record = new RecordModel(true) { Property2 = 42, Property3 = "moo" };
+                                Check("Record Json", "{\"Property1\":true,\"Property2\":42,\"Property3\":\"moo\"}", JsonSerializer.Serialize(record));
+                                Check("Record Json Read", record, JsonSerializer.Deserialize<RecordModel>(JsonSerializer.Serialize(record)));
+                                Check("Record Bytes", record, ByteSerializer.Deserialize<RecordModel>(ByteSerializer.Serialize(record)));
+
+                                var required = JsonSerializer.Deserialize<RequiredModel>(JsonSerializer.Serialize(new RequiredModel() { Value1 = 1, Value2 = 2 }))!;
+                                Check("Required Value2", 2, required.Value2);
+
+                                var derived = ByteSerializer.Deserialize<DerivedModel>(ByteSerializer.Serialize(new DerivedModel() { BaseValue = 3, DerivedValue = 4 }))!;
+                                Check("Derived BaseValue", 3, derived.BaseValue);
+                                Check("Derived DerivedValue", 4, derived.DerivedValue);
+
+                                Check("Struct Json", 5, JsonSerializer.Deserialize<StructModel>(JsonSerializer.Serialize(new StructModel() { Value = 5 })).Value);
+                                Check("Struct Bytes", 5, ByteSerializer.Deserialize<StructModel>(ByteSerializer.Serialize(new StructModel() { Value = 5 })).Value);
+
+                                var setters = new SetterModel() { Public = "a" };
+                                setters.SetAll("b");
+                                Check("Setters Json", "{\"Public\":\"a\",\"Internal\":\"b\",\"ProtectedInternal\":\"b\"}", JsonSerializer.Serialize(setters));
+                                var settersRead = JsonSerializer.Deserialize<SetterModel>("{\"Public\":\"a\",\"Internal\":\"b\",\"ProtectedInternal\":\"b\",\"Protected\":\"c\",\"PrivateProtected\":\"c\",\"Private\":\"c\"}")!;
+                                Check("Setters Internal", "b", settersRead.Internal);
+                                Check("Setters ProtectedInternal", "b", settersRead.ProtectedInternal);
+                                Check("Setters Protected", null, settersRead.Protected);
+                                Check("Setters PrivateProtected", null, settersRead.PrivateProtected);
+                                Check("Setters Private", null, settersRead.Private);
+
+                                Console.WriteLine("Passed");
+                                return 0;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.ToString());
+                                return 1;
+                            }
+                        }
+                    }
+                }
+                """);
+        }
+
+        //another assembly's internal accessors are called through UnsafeAccessor without InternalsVisibleTo, the same members as reflection
+        [Fact]
+        public void OtherAssemblyInternalAccessors()
+        {
+            AssertRuns("""
+                using System;
+                using Lib;
+                using Zerra.Serialization.Bytes;
+                using Zerra.Serialization.Json;
+
+                namespace NoDynamicCodeApp
+                {
+                    public static class Program
+                    {
+                        private static void Check(string name, object? expected, object? actual)
+                        {
+                            if (!Equals(expected, actual))
+                                throw new Exception($"{name}: expected {expected} actual {actual}");
+                        }
+
+                        public static int Main()
+                        {
+                            Console.WriteLine($"IsDynamicCodeSupported {System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported}");
+                            try
+                            {
+                                var model = LibModel.Create("b");
+                                Check("Json", "{\"Public\":\"a\",\"Internal\":\"b\",\"ProtectedInternal\":\"b\",\"InternalGet\":\"g\",\"Init\":\"i\"}", JsonSerializer.Serialize(model));
+
+                                var json = JsonSerializer.Deserialize<LibModel>("{\"Public\":\"a\",\"Internal\":\"b\",\"ProtectedInternal\":\"c\",\"Private\":\"d\",\"InternalGet\":\"g\",\"Init\":\"i\"}")!;
+                                Check("Json Internal", "b", json.Internal);
+                                Check("Json ProtectedInternal", "c", json.ProtectedInternal);
+                                Check("Json Private", null, json.Private);
+                                Check("Json InternalGet", "g", json.ReadInternalGet());
+                                Check("Json Init", "i", json.Init);
+
+                                var bytes = ByteSerializer.Deserialize<LibModel>(ByteSerializer.Serialize(model))!;
+                                Check("Bytes Internal", "b", bytes.Internal);
+                                Check("Bytes InternalGet", "g", bytes.ReadInternalGet());
+
+                                Check("Struct", 5, JsonSerializer.Deserialize<LibStruct>(JsonSerializer.Serialize(LibStruct.Create(5))).Internal);
+
+                                Console.WriteLine("Passed");
+                                return 0;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.ToString());
+                                return 1;
+                            }
+                        }
+                    }
+                }
+                """, """
+                namespace Lib
+                {
+                    public class LibModel
+                    {
+                        public string? Public { get; set; }
+                        public string? Internal { get; internal set; }
+                        public string? ProtectedInternal { get; protected internal set; }
+                        public string? Private { get; private set; }
+                        public string? InternalGet { internal get; set; }
+                        public string? Init { get; init; }
+
+                        public string? ReadInternalGet() => InternalGet;
+                        public static LibModel Create(string value) => new() { Public = "a", Internal = value, ProtectedInternal = value, Private = value, InternalGet = "g", Init = "i" };
+                    }
+
+                    public struct LibStruct
+                    {
+                        public int Internal { get; internal set; }
+                        public static LibStruct Create(int value) => new() { Internal = value };
+                    }
+                }
+                """);
+        }
+
+        //generic types can't use an UnsafeAccessor, their init and other assembly internal accessors are delegates made on first use,
+        //a static internal setter and one inherited from another assembly's base class go through an UnsafeAccessor
+        [Fact]
+        public void FallbackAndStaticAccessors()
+        {
+            AssertRuns("""
+                using System;
+                using Lib;
+                using Zerra.Reflection;
+                using Zerra.Serialization.Bytes;
+                using Zerra.Serialization.Json;
+
+                namespace NoDynamicCodeApp
+                {
+                    public class Wrapper<T>
+                    {
+                        public T? Value { get; init; }
+                    }
+
+                    public struct StructWrapper<T>
+                    {
+                        public T Value { get; init; }
+                    }
+
+                    public class AppDerived : LibBase
+                    {
+                        public int Own { get; set; }
+                    }
+
+                    public static class Program
+                    {
+                        private static void Check(string name, object? expected, object? actual)
+                        {
+                            if (!Equals(expected, actual))
+                                throw new Exception($"{name}: expected {expected} actual {actual}");
+                        }
+
+                        public static int Main()
+                        {
+                            Console.WriteLine($"IsDynamicCodeSupported {System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported}");
+                            try
+                            {
+                                Check("Wrapper Json", "{\"Value\":2.5}", JsonSerializer.Serialize(new Wrapper<double>() { Value = 2.5 }));
+                                Check("Wrapper Read", 2.5, JsonSerializer.Deserialize<Wrapper<double>>("{\"Value\":2.5}")!.Value);
+                                Check("StructWrapper", 3, ByteSerializer.Deserialize<StructWrapper<int>>(ByteSerializer.Serialize(new StructWrapper<int>() { Value = 3 })).Value);
+
+                                Check("LibGeneric", "a", JsonSerializer.Deserialize<LibGeneric<string>>(JsonSerializer.Serialize(LibGeneric<string>.Create("a")))!.Internal);
+                                Check("LibGenericStruct", 4, JsonSerializer.Deserialize<LibGenericStruct<int>>(JsonSerializer.Serialize(LibGenericStruct<int>.Create(4))).Internal);
+
+                                var derived = new AppDerived() { Own = 1 };
+                                derived.SetBase(5);
+                                var derivedRead = JsonSerializer.Deserialize<AppDerived>(JsonSerializer.Serialize(derived))!;
+                                Check("Derived Own", 1, derivedRead.Own);
+                                Check("Derived BaseInternal", 5, derivedRead.BaseInternal);
+
+                                var count = TypeAnalyzer.GetTypeDetail(typeof(LibStatic)).GetMember(nameof(LibStatic.Count));
+                                count.SetterBoxed!(new object(), 7);
+                                Check("Static Set", 7, LibStatic.Count);
+                                Check("Static Get", 7, count.GetterBoxed!(new object()));
+                                _ = JsonSerializer.Serialize(new LibStatic());
+
+                                Console.WriteLine("Passed");
+                                return 0;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.ToString());
+                                return 1;
+                            }
+                        }
+                    }
+                }
+                """, """
+                namespace Lib
+                {
+                    public class LibGeneric<T>
+                    {
+                        public T? Internal { get; internal set; }
+                        public static LibGeneric<T> Create(T value) => new() { Internal = value };
+                    }
+
+                    public struct LibGenericStruct<T>
+                    {
+                        public T Internal { get; internal set; }
+                        public static LibGenericStruct<T> Create(T value) => new() { Internal = value };
+                    }
+
+                    public class LibBase
+                    {
+                        public int BaseInternal { get; internal set; }
+                        public void SetBase(int value) => BaseInternal = value;
+                    }
+
+                    public class LibStatic
+                    {
+                        public static int Count { get; internal set; }
+                        public int Value { get; set; }
                     }
                 }
                 """);

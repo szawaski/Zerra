@@ -103,6 +103,8 @@ Payloads are smaller, but the reader has to know the member order, and nameless 
 - Arrays, lists, sets, dictionaries, and their interfaces such as `IReadOnlyList<T>` and `IEnumerable<T>`
 - Classes, structs, and records, including nested objects
 
+Members are public properties and fields. A property's getter and setter can be public, internal, or `protected internal`, and `init` setters work. A member typed as a struct, other than the types above, is skipped.
+
 Numbers and dates don't depend on the machine's culture.
 
 Dictionaries are JSON objects when the keys are strings, numbers, `bool`, `char`, `Guid`, dates, or enums, like System.Text.Json. Other keys, such as objects, are written as an array of `{"Key":…,"Value":…}` pairs.

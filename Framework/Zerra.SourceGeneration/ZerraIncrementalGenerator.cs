@@ -57,7 +57,10 @@ namespace Zerra.SourceGeneration
 
             var languageVersionProvider = context.ParseOptionsProvider.Select((options, cancellationToken) => ((CSharpParseOptions)options).LanguageVersion);
 
-            var assemblyProvider = context.CompilationProvider.Select((compilation, cancellationToken) => compilation.Assembly);
+            //init setters are called through UnsafeAccessor, a copy of the attribute outside the core library does nothing at runtime
+            var assemblyProvider = context.CompilationProvider.Select((compilation, cancellationToken) =>
+                (Compilation: compilation, HasUnsafeAccessor: compilation.GetTypeByMetadataName("System.Runtime.CompilerServices.UnsafeAccessorAttribute")?.ContainingAssembly is { } accessorAssembly
+                    && SymbolEqualityComparer.Default.Equals(accessorAssembly, compilation.GetSpecialType(Microsoft.CodeAnalysis.SpecialType.System_Object).ContainingAssembly)));
 
             context.RegisterSourceOutput(syntaxProvider.Combine(expressionInitializerProvider).Combine(usedTypeProvider).Combine(languageVersionProvider).Combine(assemblyProvider), (a, b) =>
             {
@@ -67,7 +70,7 @@ namespace Zerra.SourceGeneration
                     a.ReportDiagnostic(Diagnostic.Create(languageVersionDescriptor, Location.None, b.Left.Right.ToDisplayString()));
                     return;
                 }
-                SourceOutput(a, b.Left.Left.Left.Left, b.Left.Left.Left.Right, b.Left.Left.Right, b.Right);
+                SourceOutput(a, b.Left.Left.Left.Left, b.Left.Left.Left.Right, b.Left.Left.Right, b.Right.Compilation, b.Right.HasUnsafeAccessor);
             });
         }
 
@@ -164,8 +167,9 @@ namespace Zerra.SourceGeneration
             return (type, memberID);
         }
 
-        private static void SourceOutput(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, ImmutableArray<(ITypeSymbol Type, string MemberID)> expressionInitializers, ImmutableArray<ITypeSymbol> usedTypes, IAssemblySymbol assembly)
+        private static void SourceOutput(SourceProductionContext context, ImmutableArray<ITypeSymbol> symbols, ImmutableArray<(ITypeSymbol Type, string MemberID)> expressionInitializers, ImmutableArray<ITypeSymbol> usedTypes, Compilation compilation, bool hasUnsafeAccessor)
         {
+            var assembly = compilation.Assembly;
             var discoverySymbols = new List<ITypeSymbol>();
 
             //each declaration of a partial type is its own syntax node, the type must only be generated once
@@ -198,12 +202,13 @@ namespace Zerra.SourceGeneration
                 TypeFinder.FindExpressionInitializerModel(expressionInitializer.Type, expressionInitializer.MemberID, assembly, typesToGenerate);
             foreach (var usedType in usedTypes)
                 TypeFinder.FindUsedModel(usedType, assembly, typesToGenerate);
-            TypesGenerator.Generate(sbInitializer, typesToGenerate);
+            var accessors = new List<string>();
+            TypesGenerator.Generate(sbInitializer, typesToGenerate, accessors, hasUnsafeAccessor, assembly, new HiddenAccessorLookup(compilation));
             EmptyImplementationGenerator.Generate(context, ns, sbInitializer, typesToGenerate);
             SerializerAndMapGenerator.Generate(sbInitializer, typesToGenerate);
 
             var expressionInitializerMemberIDs = typesToGenerate.Values.SelectMany(x => x.ExpressionInitializerMemberIDs).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToArray();
-            GenerateInitializer(context, ns, sbInitializer, GetSuppressedDiagnosticIds(typesToGenerate.Values.Select(x => x.TypeSymbol)), expressionInitializerMemberIDs);
+            GenerateInitializer(context, ns, sbInitializer, accessors, GetSuppressedDiagnosticIds(typesToGenerate.Values.Select(x => x.TypeSymbol)), expressionInitializerMemberIDs);
         }
 
         //The initializer touches members of every model type, including types marked [Experimental(...)]. Those diagnostics carry their own IDs,
@@ -274,7 +279,7 @@ namespace Zerra.SourceGeneration
             }
         }
 
-        private static void GenerateInitializer(SourceProductionContext context, string ns, StringBuilder sbInitializer, string[] suppressedDiagnosticIds, string[] expressionInitializerMemberIDs)
+        private static void GenerateInitializer(SourceProductionContext context, string ns, StringBuilder sbInitializer, List<string> accessors, string[] suppressedDiagnosticIds, string[] expressionInitializerMemberIDs)
         {
             var lines = sbInitializer.ToString();
             var splits = lines.Split([EnvironmentHelper.NewLine], StringSplitOptions.RemoveEmptyEntries);
@@ -306,6 +311,9 @@ namespace Zerra.SourceGeneration
 
                 methodNumber++;
             }
+
+            foreach (var accessor in accessors)
+                _ = sbMethods.Append("        ").Append(accessor).Append(EnvironmentHelper.NewLine);
 
             //CS0436: a referenced assembly can expose the same generated type (such as Empty_*) to this one through InternalsVisibleTo; the local one is the one wanted
             var suppressions = "#pragma warning disable CS0436";
