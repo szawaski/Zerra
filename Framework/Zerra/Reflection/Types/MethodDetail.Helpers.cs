@@ -41,17 +41,40 @@ namespace Zerra.Reflection
                 {
                     if (GenericArguments.Count == 0)
                     {
-                        methodInfo = ParentType.GetMethod(Name, Parameters.Select(x => x.Type).ToArray());
+                        //non-public and inherited statics too, full access lists them, and an interface's methods include those of the interfaces it extends
+                        methodInfo = ParentType.GetMethod(Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy, null, Parameters.Select(x => x.Type).ToArray(), null);
+                        if (methodInfo == null && ParentType.IsInterface)
+                        {
+                            foreach (var i in ParentType.GetInterfaces())
+                            {
+                                methodInfo = i.GetMethod(Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Parameters.Select(x => x.Type).ToArray(), null);
+                                if (methodInfo != null)
+                                    break;
+                            }
+                        }
                         if (methodInfo == null)
                             throw new InvalidOperationException($"MethodInfo '{Name}' was not found.");
                         return methodInfo;
                     }
 
-                    var methodCandidates = ParentType.GetMethods().Where(x =>
+                    var methodCandidates = ParentType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy).Where(x =>
                         x.Name == Name &&
                         x.GetGenericArguments().Length == GenericArguments.Count &&
                         x.GetParameters().Length == Parameters.Count
                     ).ToArray();
+                    if (methodCandidates.Length == 0 && ParentType.IsInterface)
+                    {
+                        foreach (var i in ParentType.GetInterfaces())
+                        {
+                            methodCandidates = i.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).Where(x =>
+                                x.Name == Name &&
+                                x.GetGenericArguments().Length == GenericArguments.Count &&
+                                x.GetParameters().Length == Parameters.Count
+                            ).ToArray();
+                            if (methodCandidates.Length > 0)
+                                break;
+                        }
+                    }
 
                     var isGenericMethodDefinition = GenericArguments.All(x => x.IsGenericParameter);
 

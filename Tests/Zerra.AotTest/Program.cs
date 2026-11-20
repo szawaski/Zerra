@@ -116,6 +116,12 @@ namespace Zerra.AotTest
             Check("Ref and out constructor", refOut.Value == 5 && (int)args[0]! == 10 && (string)args[1]! == "out");
 
             Check("Full access needs dynamic code", FullAccessThrows());
+
+            //a generated member's MemberInfo, also one an interface gets from the interface it extends, IList<int> is generated as a model's property type
+            _ = JsonSerializer.Serialize(new ListHolder());
+            var customer = Zerra.Reflection.TypeAnalyzer<Order>.GetTypeDetail().GetMember(nameof(Order.Customer)).MemberInfo;
+            var count = Zerra.Reflection.TypeAnalyzer<IList<int>>.GetTypeDetail().GetMember(nameof(IList<int>.Count)).MemberInfo;
+            Check("Generated MemberInfo", customer.Name == nameof(Order.Customer) && count.DeclaringType == typeof(ICollection<int>));
             return Task.CompletedTask;
         }
 
@@ -287,6 +293,11 @@ namespace Zerra.AotTest
     public sealed class InitWrapper<T>
     {
         public T? Value { get; init; }
+    }
+
+    public sealed class ListHolder
+    {
+        public IList<int>? Values { get; set; }
     }
 
     public struct Point

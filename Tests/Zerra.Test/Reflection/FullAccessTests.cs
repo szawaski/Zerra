@@ -208,6 +208,25 @@ namespace Zerra.Test.Reflection
         }
 
         [Fact]
+        public void DetailReflectionInfo()
+        {
+            var full = TypeAnalyzer.GetTypeDetail(typeof(FullAccessModel)).GetFullAccess();
+
+            //a method's own MethodInfo finds private, static, and explicit interface methods
+            var twice = full.GetMethods("Twice").Single().MethodInfo;
+            Assert.True(twice.IsPrivate && twice.IsStatic);
+            Assert.True(full.Methods.Single(x => x.Name.EndsWith("IExplicit.Add")).MethodInfo.IsPrivate);
+            Assert.Equal(nameof(FullAccessModel.Double), full.GetMethods(nameof(FullAccessModel.Double)).Single().MethodInfo.Name);
+
+            Assert.True(((FieldInfo)full.GetMember("secret").MemberInfo).IsPrivate);
+
+            //an interface's members and methods include those of the interfaces it extends
+            var list = TypeAnalyzer.GetTypeDetail(typeof(IList<int>));
+            Assert.Equal(typeof(ICollection<int>), list.GetMember(nameof(IList<int>.Count)).MemberInfo.DeclaringType);
+            Assert.Equal(typeof(ICollection<int>), list.Methods.First(x => x.Name == nameof(IList<int>.Add)).MethodInfo.DeclaringType);
+        }
+
+        [Fact]
         public void InterfaceType()
         {
             var full = TypeAnalyzer.GetTypeDetail(typeof(IList<int>)).GetFullAccess();

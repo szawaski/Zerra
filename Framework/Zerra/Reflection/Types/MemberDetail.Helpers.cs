@@ -33,6 +33,7 @@ namespace Zerra.Reflection
         {
 #if !NETSTANDARD2_0
             [UnconditionalSuppressMessage("Trimming", "IL2080:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The source field does not have matching annotations.", Justification = "SourceGeneration explicitly calls typeof().GetMembers() so the compiler can guarantee existence.")]
+            [UnconditionalSuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "As with the type itself, a base interface's members are kept when SourceGeneration generates that interface.")]
 #endif
             get
             {
@@ -42,7 +43,17 @@ namespace Zerra.Reflection
 
                 if (memberInfo == null)
                 {
-                    memberInfo = ParentType.GetMember(Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static).FirstOrDefault();
+                    //inherited statics too, full access lists them, and an interface's members include those of the interfaces it extends
+                    memberInfo = ParentType.GetMember(Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy).FirstOrDefault();
+                    if (memberInfo == null && ParentType.IsInterface)
+                    {
+                        foreach (var i in ParentType.GetInterfaces())
+                        {
+                            memberInfo = i.GetMember(Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance).FirstOrDefault();
+                            if (memberInfo != null)
+                                break;
+                        }
+                    }
                     if (memberInfo == null)
                         throw new InvalidOperationException($"MemberInfo '{Name}' was not found.");
                 }
