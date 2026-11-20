@@ -47,6 +47,7 @@ namespace Zerra.AotTest
 
             await Run("Serializers", Serializers);
             await Run("Mapper", Mapper);
+            await Run("Members", Members);
             await Run("Encryption", Encryption);
             await Run("Bus over TCP", () => BusOver(false));
             await Run("Bus over HTTP", () => BusOver(true));
@@ -89,6 +90,48 @@ namespace Zerra.AotTest
             var fromJson = JsonSerializer.Deserialize<CacheEntry>(JsonSerializer.Serialize(entry));
             Check("Serializer finds types only used with it", fromBytes?.Key == "orders" && fromBytes.Expires?.Minutes == 5 && fromJson?.Hits == 3 && fromJson.Expires?.Minutes == 5);
             return Task.CompletedTask;
+        }
+
+        private static Task Members()
+        {
+            //init and required init setters are called through UnsafeAccessor, an internal setter directly
+            var init = new InitModel() { Name = "Ada", Count = 2, Internal = "i" };
+            var initJson = JsonSerializer.Deserialize<InitModel>(JsonSerializer.Serialize(init));
+            var initBytes = ByteSerializer.Deserialize<InitModel>(ByteSerializer.Serialize(init));
+            Check("Init and required members", initJson?.Name == "Ada" && initJson.Count == 2 && initJson.Internal == "i" && initBytes?.Name == "Ada" && initBytes.Count == 2);
+
+            //a generic type's init setter can't use an UnsafeAccessor, it's a delegate found by name, which trimming has to keep
+            var wrapper = JsonSerializer.Deserialize<InitWrapper<int>>(JsonSerializer.Serialize(new InitWrapper<int>() { Value = 5 }));
+            Check("Generic init member", wrapper?.Value == 5);
+
+            var points = new List<Point>() { new() { X = 1, Y = 2 }, new() { X = 3, Y = 4 } };
+            var pointsJson = JsonSerializer.Deserialize<List<Point>>(JsonSerializer.Serialize(points));
+            var pointBytes = ByteSerializer.Deserialize<Point>(ByteSerializer.Serialize(points[1]));
+            Check("Struct models", pointsJson is not null && pointsJson[0].X == 1 && pointsJson[1].Y == 4 && pointBytes.X == 3 && pointBytes.Y == 4);
+
+            //ref and out arguments are written back into the arguments array
+            var constructor = Zerra.Reflection.TypeAnalyzer<RefOutModel>.GetTypeDetail().Constructors.Single(x => x.Parameters.Count == 2);
+            var args = new object?[] { 5, null };
+            var refOut = constructor.Creator(args);
+            Check("Ref and out constructor", refOut.Value == 5 && (int)args[0]! == 10 && (string)args[1]! == "out");
+
+            Check("Full access needs dynamic code", FullAccessThrows());
+            return Task.CompletedTask;
+        }
+
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Checks that full access refuses to run without dynamic code")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Checks that full access refuses to run without dynamic code")]
+        private static bool FullAccessThrows()
+        {
+            try
+            {
+                _ = Zerra.Reflection.TypeAnalyzer<InitModel>.GetTypeDetail().GetFullAccess();
+                return false;
+            }
+            catch (NotSupportedException)
+            {
+                return true;
+            }
         }
 
         private static Task Mapper()
@@ -233,6 +276,37 @@ namespace Zerra.AotTest
     }
 
     public sealed record Address(string Street, string City);
+
+    public sealed class InitModel
+    {
+        public required string Name { get; init; }
+        public int Count { get; init; }
+        public string? Internal { get; internal set; }
+    }
+
+    public sealed class InitWrapper<T>
+    {
+        public T? Value { get; init; }
+    }
+
+    public struct Point
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+    }
+
+    [Zerra.Reflection.GenerateTypeDetail]
+    public sealed class RefOutModel
+    {
+        public int Value { get; }
+
+        public RefOutModel(ref int value, out string text)
+        {
+            Value = value;
+            value *= 2;
+            text = "out";
+        }
+    }
 
     public sealed class OrderSummary
     {

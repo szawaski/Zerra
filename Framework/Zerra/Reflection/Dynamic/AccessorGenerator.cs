@@ -882,6 +882,39 @@ namespace Zerra.Reflection.Dynamic
             //Method: object DoSomething(object instance, object[] args)
 
             var parameters = methodBase.GetParameters();
+            var argsIndex = (short)(methodBase.IsConstructor ? 0 : 1);
+
+            //a ref, out, or in argument is passed through a local, null reads as the default like an out argument usually is
+            var byRefLocals = new LocalBuilder?[parameters.Length];
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                var parameterType = parameters[i].ParameterType;
+                if (!parameterType.IsByRef)
+                    continue;
+                var elementType = parameterType.GetElementType()!;
+                if (elementType.IsPointer || elementType.IsByRefLike)
+                    return false;
+
+                var local = il.DeclareLocal(elementType);
+                byRefLocals[i] = local;
+
+                var isNull = il.DefineLabel();
+                var loaded = il.DefineLabel();
+                il.Emit(OpCodes.Ldarg, argsIndex);
+                il.Emit(OpCodes.Ldc_I4, i);
+                il.Emit(OpCodes.Ldelem_Ref);
+                il.Emit(OpCodes.Dup);
+                il.Emit(OpCodes.Brfalse, isNull);
+                if (elementType.IsValueType)
+                    il.Emit(OpCodes.Unbox_Any, elementType);
+                else
+                    il.Emit(OpCodes.Castclass, elementType);
+                il.Emit(OpCodes.Stloc, local);
+                il.Emit(OpCodes.Br, loaded);
+                il.MarkLabel(isNull);
+                il.Emit(OpCodes.Pop);
+                il.MarkLabel(loaded);
+            }
 
             if (!methodBase.IsConstructor && !methodBase.IsStatic)
             {
@@ -911,10 +944,16 @@ namespace Zerra.Reflection.Dynamic
                 {
                     var parameter = parameters[i];
 
-                    if (parameter.ParameterType.IsPointer || parameter.ParameterType.IsByRef || parameter.ParameterType.IsByRefLike)
+                    if (byRefLocals[i] is not null)
+                    {
+                        il.Emit(OpCodes.Ldloca, byRefLocals[i]!);
+                        continue;
+                    }
+
+                    if (parameter.ParameterType.IsPointer || parameter.ParameterType.IsByRefLike)
                         return false;
 
-                    il.Emit(OpCodes.Ldarg, methodBase.IsConstructor ? 0 : 1);
+                    il.Emit(OpCodes.Ldarg, argsIndex);
                     il.Emit(OpCodes.Ldc_I4, i);
                     il.Emit(OpCodes.Ldelem_Ref);
 
@@ -938,6 +977,31 @@ namespace Zerra.Reflection.Dynamic
             }
 
             var returnType = methodBase.IsConstructor ? methodBase.DeclaringType : ((MethodInfo)methodBase).ReturnType;
+
+            //ref and out values are written back into the arguments, the result waits in a local meanwhile
+            if (byRefLocals.Any(x => x is not null))
+            {
+                LocalBuilder? result = null;
+                if (returnType is not null && returnType != typeof(void))
+                {
+                    result = il.DeclareLocal(returnType);
+                    il.Emit(OpCodes.Stloc, result);
+                }
+                for (var i = 0; i < parameters.Length; i++)
+                {
+                    var local = byRefLocals[i];
+                    if (local is null || (parameters[i].IsIn && !parameters[i].IsOut))
+                        continue;
+                    il.Emit(OpCodes.Ldarg, argsIndex);
+                    il.Emit(OpCodes.Ldc_I4, i);
+                    il.Emit(OpCodes.Ldloc, local);
+                    if (local.LocalType.IsValueType)
+                        il.Emit(OpCodes.Box, local.LocalType);
+                    il.Emit(OpCodes.Stelem_Ref);
+                }
+                if (result is not null)
+                    il.Emit(OpCodes.Ldloc, result);
+            }
 
             if (returnType is not null && returnType != typeof(void))
             {

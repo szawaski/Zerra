@@ -44,6 +44,7 @@ namespace Zerra.Reflection.Dynamic
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
         private static readonly MethodInfo generateTypeDetailGeneric = typeof(TypeDetailGenerator).GetMethod(nameof(Generate), BindingFlags.NonPublic | BindingFlags.Static)!;
         private static readonly MethodInfo generateConstructorMethod = typeof(TypeDetailGenerator).GetMethod(nameof(GenerateConstructorsGeneric), BindingFlags.Public | BindingFlags.Static)!;
+        private static readonly MethodInfo generateFullAccessConstructorMethod = typeof(TypeDetailGenerator).GetMethod(nameof(GenerateFullAccessConstructorsGeneric), BindingFlags.Public | BindingFlags.Static)!;
 #pragma warning restore IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
 
 #if !NETSTANDARD2_0
@@ -692,8 +693,9 @@ namespace Zerra.Reflection.Dynamic
         public static List<ConstructorDetail> GenerateConstructorsGeneric<T>(Type type)
         {
             var items = new List<ConstructorDetail>();
-            //built-in types and arrays are handled by their own converters, a delegate's constructor can't be called from C#, generated code lists none for them
-            if (type.IsGenericTypeDefinition || type.IsArray || typeof(Delegate).IsAssignableFrom(type) || TypeLookup.GetCoreType(type, out _))
+            //an array is made by its converters, a delegate's constructor can't be called from C#, generated code lists none for them,
+            //built-in types such as DateTime keep theirs so a query can evaluate new DateTime(...)
+            if (type.IsGenericTypeDefinition || type.IsArray || typeof(Delegate).IsAssignableFrom(type))
                 return items;
 
             //required members are set after the constructor, taken as extra arguments like generated code's object initializer
@@ -706,7 +708,7 @@ namespace Zerra.Reflection.Dynamic
                     continue;
 
                 var parameters = constructor.GetParameters();
-                if (parameters.Any(x => (x.ParameterType.IsByRef && !x.IsIn) || x.ParameterType.IsByRefLike || x.ParameterType.IsPointer))
+                if (parameters.Any(x => (x.ParameterType.IsByRef ? x.ParameterType.GetElementType()! : x.ParameterType) is { } elementType && (elementType.IsByRefLike || elementType.IsPointer)))
                     continue;
 
                 Func<object?[]?, T>? creator = null;
@@ -786,6 +788,9 @@ namespace Zerra.Reflection.Dynamic
                     Array.Copy(args, constructorArgs, parameterCount);
                 }
                 var instance = constructorBoxed(constructorArgs);
+                //ref and out values were written into the copy
+                if (constructorArgs != args)
+                    Array.Copy(constructorArgs!, args!, parameterCount);
                 for (var i = 0; i < requiredMembers.Length; i++)
                 {
                     var index = parameterCount + i;
@@ -813,9 +818,9 @@ namespace Zerra.Reflection.Dynamic
                 {
                     if (!method.IsPublic)
                         continue;
-                    //an object[] of arguments can't pass a ref or out back
                     if (method.IsStatic || method.IsSpecialName)
                         continue;
+                    //an object[] of arguments can't pass a ref or out back
                     if (method.ReturnType.IsByRefLike || method.ReturnType.IsPointer || method.GetParameters().Any(x => (x.ParameterType.IsByRef && !x.IsIn) || x.ParameterType.IsByRefLike || x.ParameterType.IsPointer))
                         continue;
 
@@ -904,6 +909,322 @@ namespace Zerra.Reflection.Dynamic
             return items;
         }
 
+#if !NETSTANDARD2_0
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+        [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
+        public static List<MemberDetail> GenerateFullAccessMembers(Type type, IReadOnlyCollection<Type> interfaces, IReadOnlyList<MemberDetail> members)
+        {
+            var items = new List<MemberDetail>();
+            var names = new HashSet<string>();
+
+            if (type.IsGenericTypeDefinition)
+                return items;
+
+            //a base type's private members aren't listed, they're on the base type's own detail
+            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+            var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+
+            foreach (var property in properties)
+            {
+                if (property.GetIndexParameters().Length > 0)
+                    continue;
+                if (property.PropertyType.IsPointer)
+                    continue;
+                if (!names.Add(property.Name))
+                    continue;
+
+                //a get-only auto-property is set through its backing field, a static readonly field can't be set reliably
+                var backingField = property.SetMethod is null ? fields.FirstOrDefault(x => x.Name == $"<{property.Name}>k__BackingField" && !(x.IsInitOnly && x.IsStatic)) : null;
+                var hasGetter = property.GetMethod is not null;
+                var hasSetter = property.SetMethod is not null || backingField is not null;
+
+                //the restricted detail is shared when it already reads and writes everything this property can
+                var shared = members.FirstOrDefault(x => x.Name == property.Name && !x.IsField && x.HasGetter == hasGetter && x.HasSetter == hasSetter);
+                if (shared is not null)
+                {
+                    items.Add(shared);
+                    continue;
+                }
+
+                Delegate? getter = null;
+                Func<object, object?>? getterBoxed = null;
+
+                Delegate? setter = null;
+                Action<object, object?>? setterBoxed = null;
+
+                if (!property.PropertyType.IsByRef && !property.PropertyType.IsByRefLike)
+                {
+                    if (hasGetter)
+                    {
+                        getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
+                        getterBoxed = AccessorGenerator.GenerateGetter(property);
+                    }
+                    if (property.SetMethod is not null)
+                    {
+                        setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
+                        setterBoxed = AccessorGenerator.GenerateSetter(property);
+                    }
+                    else if (backingField is not null)
+                    {
+                        setter = AccessorGenerator.GenerateSetter(backingField, backingField.FieldType);
+                        setterBoxed = AccessorGenerator.GenerateSetter(backingField);
+                    }
+                }
+
+                var attributes = GenerateAttributes(property);
+
+                var isStatic = property.GetMethod?.IsStatic ?? property.SetMethod?.IsStatic ?? false;
+
+                var allowsNull = GetAllowsNull(property, property.PropertyType);
+
+                MemberDetail member;
+                if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
+                {
+                    member = new MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, allowsNull);
+                }
+                else
+                {
+                    var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
+                    var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                    member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, isStatic, allowsNull]);
+                }
+                items.Add(member);
+            }
+
+            foreach (var @field in fields)
+            {
+                if (@field.IsLiteral)
+                    continue;
+                if (@field.FieldType.IsPointer)
+                    continue;
+                //an enum's value__ and the compiler's backing fields aren't declared members
+                if (@field.IsSpecialName || @field.Name.StartsWith("<", StringComparison.Ordinal))
+                    continue;
+                if (!names.Add(@field.Name))
+                    continue;
+
+                //a static readonly field is treated as a constant once its type is initialized, setting it isn't reliable
+                var hasSetter = !(@field.IsInitOnly && @field.IsStatic);
+
+                var shared = members.FirstOrDefault(x => x.Name == @field.Name && x.IsField && x.HasSetter == hasSetter);
+                if (shared is not null)
+                {
+                    items.Add(shared);
+                    continue;
+                }
+
+                Delegate? getter = null;
+                Func<object, object?>? getterBoxed = null;
+
+                Delegate? setter = null;
+                Action<object, object?>? setterBoxed = null;
+
+                if (!@field.FieldType.IsByRef && !@field.FieldType.IsByRefLike)
+                {
+                    getter = AccessorGenerator.GenerateGetter(@field, @field.FieldType);
+                    getterBoxed = AccessorGenerator.GenerateGetter(@field);
+
+                    if (hasSetter)
+                    {
+                        setter = AccessorGenerator.GenerateSetter(@field, @field.FieldType);
+                        setterBoxed = AccessorGenerator.GenerateSetter(@field);
+                    }
+                }
+
+                var attributes = GenerateAttributes(@field);
+
+                var allowsNull = GetAllowsNull(@field, @field.FieldType);
+
+                MemberDetail member;
+                if (@field.FieldType.ContainsGenericParameters || @field.FieldType.IsByRef || @field.FieldType.IsByRefLike)
+                {
+                    member = new MemberDetail(type, @field.FieldType, @field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, @field.IsStatic, allowsNull);
+                }
+                else
+                {
+                    var memberDetailGenericType = memberDetailType.MakeGenericType(@field.FieldType);
+                    var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                    member = (MemberDetail)constructor.Invoke([type, @field.Name, true, getter, getterBoxed, setter, setterBoxed, attributes, @field.IsStatic, allowsNull]);
+                }
+                items.Add(member);
+            }
+
+            //an interface gets the members of the interfaces it extends
+            if (type.IsInterface)
+            {
+                foreach (var i in interfaces)
+                {
+                    foreach (var property in i.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                    {
+                        if (property.GetIndexParameters().Length > 0)
+                            continue;
+                        if (property.PropertyType.IsPointer)
+                            continue;
+                        if (!names.Add(property.Name))
+                            continue;
+
+                        var shared = members.FirstOrDefault(x => x.Name == property.Name && !x.IsField && x.HasGetter == (property.GetMethod is not null) && x.HasSetter == (property.SetMethod is not null));
+                        if (shared is not null)
+                        {
+                            items.Add(shared);
+                            continue;
+                        }
+
+                        Delegate? getter = null;
+                        Func<object, object?>? getterBoxed = null;
+
+                        Delegate? setter = null;
+                        Action<object, object?>? setterBoxed = null;
+
+                        if (!property.PropertyType.IsByRef && !property.PropertyType.IsByRefLike)
+                        {
+                            if (property.GetMethod is not null)
+                            {
+                                getter = AccessorGenerator.GenerateGetter(property, property.PropertyType);
+                                getterBoxed = AccessorGenerator.GenerateGetter(property);
+                            }
+                            if (property.SetMethod is not null)
+                            {
+                                setter = AccessorGenerator.GenerateSetter(property, property.PropertyType);
+                                setterBoxed = AccessorGenerator.GenerateSetter(property);
+                            }
+                        }
+
+                        var attributes = GenerateAttributes(property);
+
+                        var allowsNull = GetAllowsNull(property, property.PropertyType);
+
+                        MemberDetail member;
+                        if (property.PropertyType.ContainsGenericParameters || property.PropertyType.IsByRef || property.PropertyType.IsByRefLike)
+                        {
+                            member = new MemberDetail(type, property.PropertyType, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, allowsNull);
+                        }
+                        else
+                        {
+                            var memberDetailGenericType = memberDetailType.MakeGenericType(property.PropertyType);
+                            var constructor = memberDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                            member = (MemberDetail)constructor.Invoke([type, property.Name, false, getter, getterBoxed, setter, setterBoxed, attributes, false, allowsNull]);
+                        }
+                        items.Add(member);
+                    }
+                }
+            }
+
+            return items;
+        }
+
+#if !NETSTANDARD2_0
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+        [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
+        public static List<MethodDetail> GenerateFullAccessMethods(Type type, IReadOnlyCollection<Type> interfaces, IReadOnlyList<MethodDetail> methods)
+        {
+            var items = new List<MethodDetail>();
+
+            if (type.IsGenericTypeDefinition)
+                return items;
+
+            //a base type's private methods aren't listed, they're on the base type's own detail
+            var allMethods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy).AsEnumerable();
+            //an interface gets the methods of the interfaces it extends
+            if (type.IsInterface)
+                allMethods = allMethods.Concat(interfaces.SelectMany(x => x.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)));
+
+            foreach (var method in allMethods)
+            {
+                //lambdas and local functions are the compiler's
+                if (method.Name.StartsWith("<", StringComparison.Ordinal))
+                    continue;
+
+                var parameters = method.GetParameters();
+
+                var shared = methods.FirstOrDefault(x => x.Name == method.Name && x.IsStatic == method.IsStatic && x.Parameters.Select(p => p.Type).SequenceEqual(parameters.Select(p => p.ParameterType)));
+                if (shared is not null)
+                {
+                    items.Add(shared);
+                    continue;
+                }
+
+                var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
+
+                var attributes = GenerateAttributes(method);
+
+                Delegate? caller = null;
+                Func<object?, object?[]?, object?>? callerBoxed = null;
+
+                var genericArguments = method.GetGenericArguments();
+
+                MethodDetail methodDetail;
+                if (method.ReturnType.ContainsGenericParameters || method.ReturnType.IsPointer || method.ReturnType.IsByRef || method.ReturnType.IsByRefLike)
+                {
+                    methodDetail = new MethodDetail(type, method.Name, method.ReturnType, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic);
+                }
+                else
+                {
+                    caller = AccessorGenerator.GenerateCaller(method, method.ReturnType);
+                    callerBoxed = AccessorGenerator.GenerateCaller(method);
+
+                    var methodDetailGenericType = methodDetailType.MakeGenericType(method.ReturnType == typeof(void) ? typeof(object) : method.ReturnType);
+                    var methodDetailConstructor = methodDetailGenericType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)[0]!;
+                    methodDetail = (MethodDetail)methodDetailConstructor.Invoke([type, method.Name, genericArguments, parameterTypes, caller, callerBoxed, attributes, method.IsStatic]);
+                }
+
+                items.Add(methodDetail);
+            }
+
+            return items;
+        }
+#if !NETSTANDARD2_0
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+        [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
+        public static List<ConstructorDetail> GenerateFullAccessConstructors(Type type, IReadOnlyList<ConstructorDetail> constructors)
+        {
+            if (type.IsAbstract || type.IsInterface || type.ContainsGenericParameters || type.IsByRefLike || type == typeof(void))
+                return [];
+            return (List<ConstructorDetail>)generateFullAccessConstructorMethod.MakeGenericMethod(type).Invoke(null, [type, constructors])!;
+        }
+
+#if !NETSTANDARD2_0
+        [RequiresUnreferencedCode("Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code")]
+        [RequiresDynamicCode("Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling")]
+#endif
+        public static List<ConstructorDetail> GenerateFullAccessConstructorsGeneric<T>(Type type, IReadOnlyList<ConstructorDetail> constructors)
+        {
+            var items = new List<ConstructorDetail>();
+
+            foreach (var constructor in type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            {
+                var parameters = constructor.GetParameters();
+                if (parameters.Any(x => x.ParameterType.IsPointer || x.ParameterType.IsByRefLike))
+                    continue;
+
+                var parameterTypes = parameters.Select(x => new ParameterDetail(x.ParameterType, x.Name!)).ToArray();
+
+                var shared = constructors.FirstOrDefault(x => x.Parameters.Select(p => p.Type).SequenceEqual(parameterTypes.Select(p => p.Type)));
+                if (shared is not null)
+                {
+                    items.Add(shared);
+                    continue;
+                }
+
+                Func<object?[]?, T>? creator = null;
+                Func<object?[]?, object>? creatorBoxed = null;
+
+                creator = AccessorGenerator.GenerateCreator<T>(constructor);
+                if (creator == null)
+                    continue;
+
+                creatorBoxed = AccessorGenerator.GenerateCreator(constructor);
+                if (creatorBoxed == null)
+                    continue;
+
+                var constructorDetail = new ConstructorDetail<T>(parameterTypes, creator, creatorBoxed);
+                items.Add(constructorDetail);
+            }
+            return items;
+        }
         public static Type[] GenerateInnerTypes(Type type)
         {
             if (type.IsGenericType)

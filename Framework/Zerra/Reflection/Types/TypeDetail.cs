@@ -2,6 +2,9 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+#if !NETSTANDARD2_0
+using System.Diagnostics.CodeAnalysis;
+#endif
 using System.Runtime.CompilerServices;
 using Zerra.Reflection.Dynamic;
 
@@ -86,6 +89,36 @@ namespace Zerra.Reflection
                 return methods;
             }
         }
+
+        private TypeDetailFullAccess? fullAccess;
+        /// <summary>
+        /// Gets every member, method, and constructor of the type, including private, internal, static, and explicit interface ones, read through reflection.
+        /// <see cref="Members"/>, <see cref="Methods"/>, and <see cref="Constructors"/> keep to what generated code can use; these don't.
+        /// </summary>
+        /// <returns>The full access details, each part read the first time it's used.</returns>
+#if !NETSTANDARD2_0
+        [RequiresUnreferencedCode("Full access reads private and non-public members through reflection, trimming can remove them")]
+        [RequiresDynamicCode("Full access builds its accessors at runtime")]
+#endif
+        public TypeDetailFullAccess GetFullAccess()
+        {
+            if (fullAccess is null)
+            {
+#if !NETSTANDARD2_0
+                if (!RuntimeFeature.IsDynamicCodeSupported)
+                    throw new NotSupportedException($"Cannot get full access for {Type.Name}.  Dynamic code generation is not supported in this build configuration.");
+#endif
+                lock (locker)
+                    fullAccess ??= CreateFullAccess();
+            }
+            return fullAccess;
+        }
+
+#if !NETSTANDARD2_0
+        [RequiresUnreferencedCode("Full access reads private and non-public members through reflection, trimming can remove them")]
+        [RequiresDynamicCode("Full access builds its accessors at runtime")]
+#endif
+        private protected virtual TypeDetailFullAccess CreateFullAccess() => new TypeDetailFullAccess(this);
 
         /// <summary>Indicates whether a typed creator delegate exists for instantiation.</summary>
         public readonly bool HasCreator;

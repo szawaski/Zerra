@@ -88,6 +88,7 @@ Zerra 6 replaces assembly scanning and configuration files with explicit setup i
 - Fixed `TypeDetail.GetConstructor()` failing on types with several constructors.
 - For types that aren't source generated, members read and write through the property unless it's an auto-property, and only public fields are listed, like generated types. Before, a private field with the property's name was used instead, so a computed property such as `Dictionary.Count` read the wrong value. `MemberDetail.IsBacked` is removed.
 - `TypeDetail` lists the same members and methods whether a type is source generated or not. Explicit interface implementations, static methods, property accessors, operators, and methods with `ref` or `out` parameters aren't listed, and `IsExplicitFromInterface` is removed. Read explicit implementations from the interface's `TypeDetail`.
+- `TypeDetail.GetFullAccess()` lists private, internal, and static members, methods, and constructors through reflection, separate from the members generated code uses. See [Reflection](docs/Reflection.md#full-access).
 - `AsynmmetricEncryptor` is renamed `AsymmetricEncryptor`.
 - The concurrent collections follow the standard `IList` and `IDictionary` rules, like `List<T>` and `ConcurrentDictionary`. For example, `Add` throws on a duplicate key and `Insert` at the end works.
 

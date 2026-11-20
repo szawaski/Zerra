@@ -374,6 +374,96 @@ namespace Zerra.SourceGeneration.Test
                 """);
         }
 
+        //generated constructors pass ref, out, in, and ref readonly arguments through locals and write ref and out back into the arguments
+        [Fact]
+        public void RefOutConstructors()
+        {
+            AssertRuns("""
+                using System;
+                using System.Linq;
+                using Zerra.Reflection;
+
+                namespace NoDynamicCodeApp
+                {
+                    [GenerateTypeDetail]
+                    public class RefOutModel
+                    {
+                        public int Value { get; }
+                        public RefOutModel() { }
+                        public RefOutModel(ref int value, out string text, in int add, ref readonly int more)
+                        {
+                            Value = value + add + more;
+                            value *= 2;
+                            text = "out";
+                        }
+                    }
+
+                    [GenerateTypeDetail]
+                    public class RefOutRequiredModel
+                    {
+                        public required int Required { get; set; }
+                        public RefOutRequiredModel() { }
+                        public RefOutRequiredModel(out int value) { value = 3; }
+                    }
+
+                    [GenerateTypeDetail]
+                    public struct RefOutStruct
+                    {
+                        public int Value { get; }
+                        public RefOutStruct(ref int value) { Value = value; value = 7; }
+                    }
+
+                    public static class Program
+                    {
+                        private static void Check(string name, object? expected, object? actual)
+                        {
+                            if (!Equals(expected, actual))
+                                throw new Exception($"{name}: expected {expected} actual {actual}");
+                        }
+
+                        public static int Main()
+                        {
+                            Console.WriteLine($"IsDynamicCodeSupported {System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported}");
+                            try
+                            {
+                                var constructor = TypeAnalyzer.GetTypeDetail(typeof(RefOutModel)).Constructors.Single(x => x.Parameters.Count == 4);
+                                Check("ByRef", typeof(int).MakeByRefType(), constructor.Parameters[0].Type);
+                                var args = new object?[] { 5, null, 1, 2 };
+                                var model = (RefOutModel)constructor.CreatorBoxed(args);
+                                Check("Value", 8, model.Value);
+                                Check("Ref", 10, args[0]);
+                                Check("Out", "out", args[1]);
+                                Check("In", 1, args[2]);
+
+                                args = [null, null, 1, 1];
+                                model = ((ConstructorDetail<RefOutModel>)constructor).Creator(args);
+                                Check("Null Ref", 2, model.Value);
+                                Check("Null Ref Back", 0, args[0]);
+
+                                var required = TypeAnalyzer.GetTypeDetail(typeof(RefOutRequiredModel)).Constructors.Single(x => x.Parameters.Count == 2);
+                                args = [null, 4];
+                                Check("Required", 4, ((RefOutRequiredModel)required.CreatorBoxed(args)).Required);
+                                Check("Required Out", 3, args[0]);
+
+                                var structConstructor = TypeAnalyzer.GetTypeDetail(typeof(RefOutStruct)).Constructors.Single();
+                                args = [6];
+                                Check("Struct", 6, ((RefOutStruct)structConstructor.CreatorBoxed(args)).Value);
+                                Check("Struct Ref", 7, args[0]);
+
+                                Console.WriteLine("Passed");
+                                return 0;
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.ToString());
+                                return 1;
+                            }
+                        }
+                    }
+                }
+                """);
+        }
+
         //types only used with the mapper, found from the Map, MapTo, and Copy calls
         [Fact]
         public void MappedTypes()

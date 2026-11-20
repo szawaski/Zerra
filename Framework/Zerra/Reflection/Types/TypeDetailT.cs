@@ -2,6 +2,10 @@
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
+#if !NETSTANDARD2_0
+using System.Diagnostics.CodeAnalysis;
+#endif
+
 namespace Zerra.Reflection
 {
     /// <summary>
@@ -152,5 +156,21 @@ namespace Zerra.Reflection
             this.HasCreator = creator != null;
             this.Creator = creator;
         }
+
+        /// <summary>
+        /// Gets every member, method, and constructor of the type, including private, internal, static, and explicit interface ones, read through reflection, with typed constructors.
+        /// </summary>
+        /// <returns>The full access details, each part read the first time it's used.</returns>
+#if !NETSTANDARD2_0
+        [RequiresUnreferencedCode("Full access reads private and non-public members through reflection, trimming can remove them")]
+        [RequiresDynamicCode("Full access builds its accessors at runtime")]
+#endif
+        public new TypeDetailFullAccess<T> GetFullAccess() => (TypeDetailFullAccess<T>)base.GetFullAccess();
+
+#if !NETSTANDARD2_0
+        [RequiresUnreferencedCode("Full access reads private and non-public members through reflection, trimming can remove them")]
+        [RequiresDynamicCode("Full access builds its accessors at runtime")]
+#endif
+        private protected override TypeDetailFullAccess CreateFullAccess() => new TypeDetailFullAccess<T>(this);
     }
 }

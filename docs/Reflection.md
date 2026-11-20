@@ -95,7 +95,25 @@ foreach (var method in detail.Methods)
 }
 ```
 
-`Methods` lists public instance methods. Property accessors, operators, explicit interface implementations, and methods with `ref` or `out` parameters aren't listed.
+`Methods` lists public instance methods. Property accessors, operators, explicit interface implementations, and methods with `ref` or `out` parameters aren't listed. `Constructors` includes constructors with `ref` or `out` parameters.
+
+A `ref` or `out` argument is passed from the arguments array, and its value is written back into the array after the call.
+
+### Full Access
+
+`GetFullAccess()` lists everything else through reflection: private and internal members, static methods, property accessors, operators, explicit interface implementations, and methods with `ref` or `out` parameters. It doesn't work under Native AOT, so it has trimming and AOT warnings.
+
+```csharp
+var full = TypeAnalyzer.GetTypeDetail(typeof(User)).GetFullAccess();
+full.GetMember("passwordHash").SetterBoxed!(user, hash);
+
+var args = new object?[] { null };
+full.GetMethods("TryParse").Single().CallerBoxed!(null, args);
+
+var info = full.GetMemberInfo(full.GetMember("passwordHash")); // the FieldInfo, for accessibility and every attribute
+```
+
+A base type's private members are on the base type's own full access. Members the `TypeDetail` already lists in full are the same objects.
 
 ## CoreType
 

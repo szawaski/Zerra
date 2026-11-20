@@ -358,7 +358,8 @@ namespace Zerra.SourceGeneration
         {
             _ = sb.Append("[");
 
-            if (!isCoreType && namedTypeSymbol != null)
+            //built-in types such as DateTime list theirs too, a query can evaluate new DateTime(...)
+            if (namedTypeSymbol != null)
             {
                 (var properties, var fields) = TypeFinder.GetPropertiesAndFields(namedTypeSymbol, symbolMembers);
                 var requiredMembers = TypeFinder.GetRequiredMembers(properties, fields);
@@ -374,8 +375,7 @@ namespace Zerra.SourceGeneration
                     //a struct's parameterless constructor isn't in its metadata, it's only listed to set required members
                     if (constructor.IsImplicitlyDeclared && namedTypeSymbol.IsValueType && requiredMembers.Length == 0)
                         continue;
-                    //an object[] element can't be passed by ref or out; in parameters take the value
-                    if (constructor.Parameters.Any(x => x.Type.IsRefLikeType || Helper.HasPointer(x.Type) || x.RefKind == RefKind.Out || x.RefKind == RefKind.Ref))
+                    if (constructor.Parameters.Any(x => x.Type.IsRefLikeType || Helper.HasPointer(x.Type)))
                         continue;
 
                     if (hasFirst)
@@ -391,69 +391,71 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append(", ");
 
 
-                    _ = sb.Append("static (object?[]? args) => new ").Append(typeName).Append("(");
+                    //a ref or out argument goes through a local that's written back into the arguments, as reflection's creator does,
+                    //a ref readonly one through a local passed with in
+                    var hasByRef = constructor.Parameters.Any(x => x.RefKind == RefKind.Ref || x.RefKind == RefKind.Out || x.RefKind == RefKind.RefReadOnlyParameter);
+                    var body = new StringBuilder();
+                    if (hasByRef)
+                    {
+                        _ = body.Append("{ ");
+                        foreach (var parameter in constructor.Parameters)
+                        {
+                            var parameterTypeName = Helper.GetFullName(parameter.Type);
+                            if (parameter.RefKind == RefKind.Out)
+                                _ = body.Append(parameterTypeName).Append(" a").Append(parameter.Ordinal).Append("; ");
+                            else if (parameter.RefKind == RefKind.Ref || parameter.RefKind == RefKind.RefReadOnlyParameter)
+                                _ = body.Append("var a").Append(parameter.Ordinal).Append(" = (").Append(parameterTypeName).Append(")(args![").Append(parameter.Ordinal).Append("] ?? default(").Append(parameterTypeName).Append(")!); ");
+                        }
+                        _ = body.Append("var result = ");
+                    }
+
+                    _ = body.Append("new ").Append(typeName).Append("(");
                     foreach (var parameter in constructor.Parameters)
                     {
                         var parameterTypeName = Helper.GetFullName(parameter.Type);
                         if (parameter.Ordinal > 0)
-                            _ = sb.Append(", ");
+                            _ = body.Append(", ");
 
                         _ = parameter.RefKind switch
                         {
-                            RefKind.Out => sb.Append("out args![").Append(parameter.Ordinal).Append("]!"),
-                            _ => sb.Append("(").Append(parameterTypeName).Append(")(args![").Append(parameter.Ordinal).Append("] ?? default(").Append(parameterTypeName).Append(")!)"),
+                            RefKind.Out => body.Append("out a").Append(parameter.Ordinal),
+                            RefKind.Ref => body.Append("ref a").Append(parameter.Ordinal),
+                            RefKind.RefReadOnlyParameter => body.Append("in a").Append(parameter.Ordinal),
+                            _ => body.Append("(").Append(parameterTypeName).Append(")(args![").Append(parameter.Ordinal).Append("] ?? default(").Append(parameterTypeName).Append(")!)"),
                         };
                     }
+                    _ = body.Append(")");
 
-                    _ = sb.Append(")");
                     if (requiredMembers.Length > 0)
                     {
                         var argCount = constructor.Parameters.Length;
-                        _ = sb.Append("{ ");
+                        _ = body.Append("{ ");
                         var hasFirstRequired = false;
                         foreach (var member in requiredMembers)
                         {
                             if (hasFirstRequired)
-                                _ = sb.Append(", ");
+                                _ = body.Append(", ");
                             else
                                 hasFirstRequired = true;
                             var memberTypeName = Helper.GetFullName(member.Type);
-                            _ = sb.Append('@').Append(member.Name).Append(" = (").Append(memberTypeName).Append(")(args![").Append(argCount++).Append("] ?? default(").Append(memberTypeName).Append(")!)");
+                            _ = body.Append('@').Append(member.Name).Append(" = (").Append(memberTypeName).Append(")(args![").Append(argCount++).Append("] ?? default(").Append(memberTypeName).Append(")!)");
                         }
-                        _ = sb.Append(" }");
+                        _ = body.Append(" }");
                     }
-                    _ = sb.Append(", ");
 
-                    _ = sb.Append("static (object?[]? args) => new ").Append(typeName).Append("(");
-                    foreach (var parameter in constructor.Parameters)
+                    if (hasByRef)
                     {
-                        var parameterTypeName = Helper.GetFullName(parameter.Type);
-                        if (parameter.Ordinal > 0)
-                            _ = sb.Append(", ");
-
-                        _ = parameter.RefKind switch
+                        _ = body.Append("; ");
+                        foreach (var parameter in constructor.Parameters)
                         {
-                            RefKind.Out => sb.Append("out args![").Append(parameter.Ordinal).Append("]!"),
-                            _ => sb.Append("(").Append(parameterTypeName).Append(")(args![").Append(parameter.Ordinal).Append("] ?? default(").Append(parameterTypeName).Append(")!)"),
-                        };
-                    }
-                    _ = sb.Append(")");
-                    if (requiredMembers.Length > 0)
-                    {
-                        var argCount = constructor.Parameters.Length;
-                        _ = sb.Append("{ ");
-                        var hasFirstRequired = false;
-                        foreach (var member in requiredMembers)
-                        {
-                            if (hasFirstRequired)
-                                _ = sb.Append(", ");
-                            else
-                                hasFirstRequired = true;
-                            var memberTypeName = Helper.GetFullName(member.Type);
-                            _ = sb.Append('@').Append(member.Name).Append(" = (").Append(memberTypeName).Append(")(args![").Append(argCount++).Append("] ?? default(").Append(memberTypeName).Append(")!)");
+                            if (parameter.RefKind == RefKind.Ref || parameter.RefKind == RefKind.Out)
+                                _ = body.Append("args![").Append(parameter.Ordinal).Append("] = a").Append(parameter.Ordinal).Append("; ");
                         }
-                        _ = sb.Append(" }");
+                        _ = body.Append("return result; }");
                     }
+
+                    _ = sb.Append("static (object?[]? args) => ").Append(body).Append(", ");
+                    _ = sb.Append("static (object?[]? args) => ").Append(body);
                     _ = sb.Append(")");
                 }
             }
@@ -1046,7 +1048,8 @@ namespace Zerra.SourceGeneration
                     _ = sb.Append(", ");
                 else
                     hasFirst = true;
-                var typeOfName = Helper.GetTypeOfName(parameterSymbol.Type);
+                //ref, out, and in parameters are by reference, as reflection reports them
+                var typeOfName = Helper.GetTypeOfName(parameterSymbol.Type, parameterSymbol.RefKind != RefKind.None);
 
                 _ = sb.Append("new global::Zerra.Reflection.ParameterDetail(").Append(typeOfName).Append(", \"").Append(parameterSymbol.Name).Append("\")");
             }
