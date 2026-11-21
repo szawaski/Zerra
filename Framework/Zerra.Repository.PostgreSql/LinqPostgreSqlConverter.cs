@@ -239,7 +239,7 @@ namespace Zerra.Repository.PostgreSql
 
                             sb.Write(severalKeys ? "EXISTS(" : "=ANY(");
 
-                            ConvertSubquery(ref sb, false, severalKeys ? subWhere ?? Expression.Lambda(subModelInfo.LambdaDelegateType, Expression.Constant(true), Expression.Parameter(subModelInfo.Type, "x")) : subWhere, new Graph(propertyInfo.ForeignIdentities!), subModelInfo, context.MemberContext);
+                            ConvertSubquery(ref sb, false, subWhere ?? Expression.Lambda(subModelInfo.LambdaDelegateType, Expression.Constant(true), Expression.Parameter(subModelInfo.Type, "x")), new Graph(propertyInfo.ForeignIdentities!), subModelInfo, context.MemberContext);
                             sb.Write(')');
 
                             _ = context.MemberContext.ModelStack.Pop();
@@ -580,11 +580,7 @@ namespace Zerra.Repository.PostgreSql
                             var callingObject = call.Arguments[0];
                             var lambda = call.Arguments[1];
 
-                            ConvertToSql(lambda, ref sb, context);
-
-                            sb.Write(context.Inverted ? " NOT IN " : " IN ");
-
-                            ConvertToSql(EnumList(callingObject, lambda, context), ref sb, context);
+                            ConvertToSqlContains(callingObject, lambda, ref sb, context);
                             break;
                         }
                     default:
@@ -946,11 +942,7 @@ namespace Zerra.Repository.PostgreSql
 
                                     break;
 
-                                ConvertToSql(lambda, ref sb, context);
-
-                                sb.Write(context.Inverted ? " NOT IN " : " IN ");
-
-                                ConvertToSql(EnumList(callingObject, lambda, context), ref sb, context);
+                                ConvertToSqlContains(callingObject, lambda, ref sb, context);
                                 break;
                             }
                         default:

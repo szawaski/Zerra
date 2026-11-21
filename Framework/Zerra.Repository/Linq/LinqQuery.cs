@@ -1432,15 +1432,6 @@ namespace Zerra.Repository.Linq
             KeyMember = keyMember;
             if (!Skip.HasValue && !Take.HasValue)
                 Order = null;
-            if (Select is not null)
-            {
-                var value = Select.Body;
-                if (Nullable.GetUnderlyingType(value.Type) is not null || !value.Type.IsValueType)
-                {
-                    var notNull = Expression.Lambda(ModelAnalyzer.GetModel(ModelType).LambdaDelegateType, Expression.NotEqual(value, Expression.Constant(null, value.Type)), Select.Parameters);
-                    Where = Where is null ? notNull : AppendAnd(Where, notNull);
-                }
-            }
         }
 
         //the index is reached by skipping in the store, past the end of a Take there is no row to read

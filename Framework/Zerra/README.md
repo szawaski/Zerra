@@ -83,6 +83,7 @@ Swap the server and client for a `KafkaConsumer` and `KafkaProducer`, or registe
 | `Zerra` | Bus, handlers, TCP/HTTP transports, serializers, encryption, compression, source generation |
 | `Zerra.Web` | ASP.NET Core hosting and the browser API gateway |
 | `Zerra.CQRS.Kafka`, `Zerra.CQRS.RabbitMQ`, `Zerra.CQRS.AzureServiceBus` | Broker transports |
+| `Zerra.OpenTelemetry` | OpenTelemetry tracing and metrics for queries, commands, and events |
 | `Zerra.Repository.*` | LINQ data access for SQL Server, PostgreSQL, MySQL, MariaDB, MongoDB, in-memory, and KurrentDB |
 
 ## Documentation

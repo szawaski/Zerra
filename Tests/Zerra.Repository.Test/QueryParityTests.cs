@@ -77,6 +77,8 @@ namespace Zerra.Repository.Test
             public ParityAccess Access { get; set; }
             [Relation(nameof(SelfID))]
             public ParityModel? Self { get; set; }
+            [Relation(nameof(ParityNoteModel.ReviewerID))]
+            public ParityNoteModel[]? Reviews { get; set; }
         }
 
         [Entity("QueryParityLine")]
@@ -322,6 +324,25 @@ namespace Zerra.Repository.Test
             yield return ("new array contains", x => new[] { 0, 2 }.Contains(x.Number));
             yield return ("list contains", x => list.Contains(x.Number));
             yield return ("not contains", x => !ids.Contains(x.Number));
+            var maybes = new int?[] { 2, null };
+            var maybeTwo = new int?[] { 2 };
+            yield return ("contains with null", x => maybes.Contains(x.Maybe));
+            yield return ("not contains with null", x => !maybes.Contains(x.Maybe));
+            yield return ("nullable contains", x => maybeTwo.Contains(x.Maybe));
+            yield return ("nullable not contains", x => !maybeTwo.Contains(x.Maybe));
+            yield return ("not contains with null for a value", x => !maybes.Contains((int?)x.Number));
+            var empty = Array.Empty<int>();
+            var onlyNull = new int?[] { null };
+            var maybeList = new List<int?> { null, 4 };
+            var names = new[] { "apple", null };
+            yield return ("empty contains", x => empty.Contains(x.Number));
+            yield return ("empty not contains", x => !empty.Contains(x.Number));
+            yield return ("only null contains", x => onlyNull.Contains(x.Maybe));
+            yield return ("only null not contains", x => !onlyNull.Contains(x.Maybe));
+            yield return ("list with null first", x => maybeList.Contains(x.Maybe));
+            yield return ("not in a list with null first", x => !maybeList.Contains(x.Maybe));
+            yield return ("text contains with null", x => names.Contains(x.Name));
+            yield return ("text not contains with null", x => !names.Contains(x.Name));
             yield return ("date", x => x.Date > date);
             yield return ("date year", x => x.Date.Year == 2023);
             yield return ("date month", x => x.Date.Month > 3);
@@ -667,6 +688,11 @@ namespace Zerra.Repository.Test
             Numbers(x => !kinds.Contains(x.Kind), q.Where(x => !kinds.Contains(x.Kind)), "not in an array");
             Numbers(x => kindList.Contains(x.Kind), q.Where(x => kindList.Contains(x.Kind)), "in a list");
             Numbers(x => maybes.Contains(x.MaybeKind), q.Where(x => maybes.Contains(x.MaybeKind)), "nullable in an array");
+            var maybesWithNull = new ParityKind?[] { ParityKind.Medium, null };
+            Numbers(x => maybesWithNull.Contains(x.MaybeKind), q.Where(x => maybesWithNull.Contains(x.MaybeKind)), "nullable in an array with null");
+            Numbers(x => !maybesWithNull.Contains(x.MaybeKind), q.Where(x => !maybesWithNull.Contains(x.MaybeKind)), "nullable not in an array with null");
+            Numbers(x => !maybes.Contains(x.MaybeKind), q.Where(x => !maybes.Contains(x.MaybeKind)), "nullable not in an array");
+            Numbers(x => !models.Where(y => y.Number < 2).Select(y => y.MaybeKind).Contains(x.MaybeKind), q.Where(x => !repo.Query<ParityModel>().Where(y => y.Number < 2).Select(y => y.MaybeKind).Contains(x.MaybeKind)), "nullable not in a query");
             Numbers(x => numbers.Contains((int)x.Kind), q.Where(x => numbers.Contains((int)x.Kind)), "number in an array");
             Numbers(x => x.Access == (ParityAccess.Read | ParityAccess.Write), q.Where(x => x.Access == (ParityAccess.Read | ParityAccess.Write)), "flags equal");
 
@@ -1364,9 +1390,17 @@ namespace Zerra.Repository.Test
             Assert.Equal(lines.Count(l => firstTwo.Contains(l.ID)), repo.Query<ParityLineModel>().Count(l => pagedLines.Contains(l.ID)));
             Assert.Equal(ordered.Length, repo.Query<ParityModel>().Count(x => repo.Query<ParityModel>().Select(y => y.ID).Distinct().Contains(x.ID)));
             var nullableNames = repo.Query<ParityModel>().Select(x => x.Name);
-            Assert.Equal(ordered.Count(x => x.Name is not null), repo.Query<ParityModel>().Count(x => nullableNames.Contains(x.Name)));
+            Assert.Equal(ordered.Count(x => models.Select(y => y.Name).Contains(x.Name)), repo.Query<ParityModel>().Count(x => nullableNames.Contains(x.Name)));
+            Assert.Equal(ordered.Count(x => !models.Select(y => y.Name).Contains(x.Name)), repo.Query<ParityModel>().Count(x => !nullableNames.Contains(x.Name)));
             Assert.Equal(ordered.Count(x => x.Name is not null && models.All(y => y.Name != x.Name)), repo.Query<ParityModel>().Where(x => x.Name != null).Count(x => !nullableNames.Contains(x.Name)));
             _ = Assert.Throws<NotSupportedException>(() => repo.Query<ParityModel>().Where(x => repo.Query<ParityLineModel>().Where(l => l.ParityID == x.ID).Select(l => l.ParityID).Contains(x.ID)).ToArray());
+            //a query with nulls in it, and a null looked for
+            var others = repo.Query<ParityModel>().Select(x => x.Other);
+            var otherValues = models.Select(x => x.Other).ToArray();
+            Assert.Equal(ordered.Where(x => otherValues.Contains((int?)x.Number)).Select(x => x.Number), repo.Query<ParityModel>().Where(x => others.Contains((int?)x.Number)).OrderBy(x => x.Number).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.Where(x => !otherValues.Contains((int?)x.Number)).Select(x => x.Number), repo.Query<ParityModel>().Where(x => !others.Contains((int?)x.Number)).OrderBy(x => x.Number).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.Where(x => otherValues.Contains(x.Maybe)).Select(x => x.Number), repo.Query<ParityModel>().Where(x => others.Contains(x.Maybe)).OrderBy(x => x.Number).ToArray().Select(x => x.Number));
+            Assert.Equal(ordered.Where(x => !otherValues.Contains(x.Maybe)).Select(x => x.Number), repo.Query<ParityModel>().Where(x => !others.Contains(x.Maybe)).OrderBy(x => x.Number).ToArray().Select(x => x.Number));
             _ = Assert.Throws<NotSupportedException>(() => repo.Query<ParityModel>().Where(x => repo.Query<ParityLineModel>().Select(l => new { l.ParityID }).Contains(new { ParityID = x.ID })).ToArray());
 
             //the whole key of a group
@@ -1475,6 +1509,14 @@ namespace Zerra.Repository.Test
                 Assert.Equal(ordered[1].Number, reviewGraph.Single(x => x.ID == reviewed.ID).Reviewer!.Number);
                 Assert.All(reviewGraph.Where(x => x.ID != reviewed.ID), x => Assert.Null(x.Reviewer));
                 Assert.Equal(notes.Single(n => n.ID == notes[0].ID).Text, reviewGraph.Single(x => x.ID == notes[0].ID).Text);
+
+                //the other notes have no reviewer, a null key is not a related row
+                Assert.Equal([ordered[1].Number], repo.Query<ParityModel>().Where(x => x.Reviews!.Any()).Select(x => x.Number).ToArray());
+                Assert.Equal(ordered.Where(x => x.ID != ordered[1].ID).Select(x => x.Number).Order(), repo.Query<ParityModel>().Where(x => !x.Reviews!.Any()).Select(x => x.Number).ToArray().Order());
+                Assert.Equal(ordered.Where(x => x.ID != ordered[1].ID).Select(x => x.Number).Order(), repo.Query<ParityModel>().Where(x => !x.Reviews!.Any(r => r.Rank == 50)).Select(x => x.Number).ToArray().Order());
+                Assert.Equal(ordered.Select(x => x.Number).Order(), repo.Query<ParityModel>().Where(x => x.Reviews!.All(r => r.Rank == 50)).Select(x => x.Number).ToArray().Order());
+                Assert.Equal(ordered.Where(x => x.ID != ordered[1].ID).Select(x => x.Number).Order(), repo.Query<ParityModel>().Where(x => x.Reviews!.All(r => r.Rank != 50)).Select(x => x.Number).ToArray().Order());
+                Assert.Equal(1, repo.Query<ParityModel>().Where(x => x.ID == ordered[1].ID).Select(x => x.Reviews!.Count()).Single());
             }
             finally
             {

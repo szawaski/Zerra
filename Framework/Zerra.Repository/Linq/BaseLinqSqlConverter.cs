@@ -1307,6 +1307,75 @@ namespace Zerra.Repository.Linq
             return true;
         }
         /// <summary>
+        /// Converts looking for a value in a collection, with nulls found as C# finds them where SQL's IN is unknown for a null.
+        /// </summary>
+        /// <param name="collection">The collection looked in.</param>
+        /// <param name="value">The value looked for.</param>
+        /// <param name="sb">The writer to append SQL into.</param>
+        /// <param name="context">The current builder context.</param>
+        protected void ConvertToSqlContains(Expression collection, Expression value, ref CharWriter sb, BuilderContext context)
+        {
+            var list = EnumList(collection, value, context);
+            var inverted = context.Inverted;
+            if (!IsEvaluatable(list))
+            {
+                ConvertToSql(value, ref sb, context);
+                sb.Write(inverted ? " NOT IN" : " IN");
+                ConvertToSql(list, ref sb, context);
+                return;
+            }
+
+            var hasNull = false;
+            var values = new List<object>();
+            foreach (var item in (System.Collections.IEnumerable)Evaluate(list)!)
+            {
+                if (item is null)
+                    hasNull = true;
+                else
+                    values.Add(item);
+            }
+            var canBeNull = CanBeNull(value, context);
+
+            if (values.Count == 0)
+            {
+                if (hasNull && canBeNull)
+                {
+                    sb.Write('(');
+                    ConvertToSql(value, ref sb, context);
+                    sb.Write(inverted ? ") IS NOT NULL" : ") IS NULL");
+                }
+                else
+                {
+                    sb.Write(inverted ? "1=1" : "1=0");
+                }
+                return;
+            }
+
+            //a null value is in a collection with a null, and not in one without
+            var orNull = canBeNull && hasNull != inverted;
+            if (orNull)
+                sb.Write('(');
+            sb.Write('(');
+            ConvertToSql(value, ref sb, context);
+            sb.Write(inverted ? ") NOT IN(" : ") IN(");
+            var valueColumn = context.MemberContext.ValueColumn;
+            context.MemberContext.ValueColumn = ColumnOf(WithoutConvert(value), context);
+            for (var i = 0; i < values.Count; i++)
+            {
+                if (i > 0)
+                    sb.Write(',');
+                ConvertToSqlValue(values[i].GetType(), values[i], ref sb, context);
+            }
+            context.MemberContext.ValueColumn = valueColumn;
+            sb.Write(')');
+            if (orNull)
+            {
+                sb.Write(" OR (");
+                ConvertToSql(value, ref sb, context);
+                sb.Write(") IS NULL)");
+            }
+        }
+        /// <summary>
         /// Gets the columns of a relation's key in pairs, in the order of the identity referred to: the member holding the foreign key, on the related model for a collection and on the model for a single relation, and the identity member it refers to.
         /// </summary>
         /// <param name="relation">The relation member.</param>
@@ -1373,16 +1442,45 @@ namespace Zerra.Repository.Linq
             var inverted = context.Inverted;
             var invertStack = context.InvertStack;
             context.InvertStack = 0;
-            context.MemberContext.OperatorStack.Push(Operator.Call);
-            ConvertToSql(value, ref sb, context);
-            _ = context.MemberContext.OperatorStack.Pop();
-            context.InvertStack = invertStack;
-            sb.Write(inverted ? " NOT IN(" : " IN(");
             var query = subquery.Query;
             var modelDetail = ModelAnalyzer.GetModel(query.ModelType);
             var statement = ConvertLinq(query, LinqPlan.Read(query, modelDetail), modelDetail, context.MemberContext.Parameters);
             if (statement.Pieces is not null)
                 throw new NotSupportedException("A query a condition looks in selects one value of its own row, not a relation");
+
+            //NOT IN is never true when the query gives a null, and IN never finds a null, C# finds a null among the nulls
+            var shape = statement.Plan.Shape!;
+            var canBeNull = shape.Kind == LinqShapeKind.Column && CanBeNull(value, context) && (!shape.Type.IsValueType || Nullable.GetUnderlyingType(shape.Type) is not null);
+            if ((inverted || canBeNull) && shape.Kind == LinqShapeKind.Column)
+            {
+                var column = QuoteColumn("Z", $"C{shape.Column!.Index}");
+                sb.Write(inverted ? "NOT EXISTS(SELECT 1 FROM(" : "EXISTS(SELECT 1 FROM(");
+                sb.Write(statement.Sql);
+                sb.Write(")AS Z WHERE ");
+                context.MemberContext.OperatorStack.Push(Operator.Call);
+                sb.Write(column);
+                sb.Write("=(");
+                ConvertToSql(value, ref sb, context);
+                sb.Write(')');
+                if (canBeNull)
+                {
+                    sb.Write(" OR (");
+                    sb.Write(column);
+                    sb.Write(" IS NULL AND (");
+                    ConvertToSql(value, ref sb, context);
+                    sb.Write(") IS NULL)");
+                }
+                _ = context.MemberContext.OperatorStack.Pop();
+                sb.Write(')');
+                context.InvertStack = invertStack;
+                return;
+            }
+
+            context.MemberContext.OperatorStack.Push(Operator.Call);
+            ConvertToSql(value, ref sb, context);
+            _ = context.MemberContext.OperatorStack.Pop();
+            context.InvertStack = invertStack;
+            sb.Write(inverted ? " NOT IN(" : " IN(");
             //MySQL and MariaDB also refuse to read the table being changed unless it is a derived table
             if (query.Skip.HasValue || query.Take.HasValue || context.RootDependant.ModelDetail.Type == query.ModelType)
             {

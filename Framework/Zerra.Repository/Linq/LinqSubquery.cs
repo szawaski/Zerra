@@ -39,12 +39,10 @@ namespace Zerra.Repository.Linq
 
         private static HashSet<object> Values(IEnumerable rows)
         {
+            //a null the query gives is kept, C# finds a null in it
             var values = new HashSet<object>();
             foreach (var value in rows)
-            {
-                if (value is not null)
-                    values.Add(value);
-            }
+                values.Add(value!);
             return values;
         }
 

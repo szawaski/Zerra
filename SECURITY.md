@@ -5,7 +5,7 @@
 | Version | Supported |
 |---|---|
 | 6.0 (`master`) | yes |
-| 5.4 (`release/5.4.0`) | yes |
+| 5.4 (`release/5.4.3`) | yes |
 | older | no |
 
 ## Reporting a Vulnerability

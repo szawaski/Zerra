@@ -1496,12 +1496,7 @@ namespace Zerra.Repository.MongoDB
             }
             if (shape.Kind != LinqShapeKind.Column)
                 throw new NotSupportedException("A query a condition looks in selects one value");
-            //a null the query gives is never looked for, as it isn't in memory
-            var values = new BsonDocument("$filter", new BsonDocument
-            {
-                { "input", new BsonDocument("$map", new BsonDocument { { "input", "$" + name }, { "as", "r" }, { "in", "$$r.c" + shape.Column!.Index.ToString(CultureInfo.InvariantCulture) } }) },
-                { "cond", new BsonDocument("$gt", new BsonArray { "$$this", BsonNull.Value }) }
-            });
+            var values = new BsonDocument("$map", new BsonDocument { { "input", "$" + name }, { "as", "r" }, { "in", "$$r.c" + shape.Column!.Index.ToString(CultureInfo.InvariantCulture) } });
             return new BsonDocument("$in", new BsonArray { Convert(StripConvert(value)), values });
         }
 

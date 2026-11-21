@@ -169,7 +169,7 @@ These work in a `Where`, in the values of a `Select`, and in a group's values.
 
 **Operators**
 
-- Comparisons: `==`, `!=`, `<`, `<=`, `>`, `>=`. Nulls compare as in C#, so `x.Maybe != 4` includes rows where `Maybe` is null.
+- Comparisons: `==`, `!=`, `<`, `<=`, `>`, `>=`. Nulls compare as in C#, so `x.Maybe != 4` includes rows where `Maybe` is null. `Contains` does too: a null is found in a list or query that has one.
 - Arithmetic: `+`, `-`, `*`, `/`, `%`, and unary `-`.
 - Logic: `&&`, `||`, `!`, and bool members such as `x => x.Active`.
 - `??`, such as `(x.Discount ?? 0) > 5`.

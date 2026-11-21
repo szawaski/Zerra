@@ -50,3 +50,12 @@ To keep an existing bus logger, pass it in: `new OpenTelemetryBusLogger(new Cons
 Arguments and message contents are never recorded.
 
 A service that uses Zerra without this package still passes the trace on, so the services before and after it stay in the same trace.
+
+## Documentation
+
+- [Logging](https://github.com/szawaski/Zerra/blob/master/docs/Logging.md#opentelemetry) - Bus loggers and OpenTelemetry
+- [Zerra documentation](https://github.com/szawaski/Zerra/blob/master/docs/Index.md)
+
+## License
+
+MIT - See [LICENSE](https://github.com/szawaski/Zerra/blob/master/LICENSE)
