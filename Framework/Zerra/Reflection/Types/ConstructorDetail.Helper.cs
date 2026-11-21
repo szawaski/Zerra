@@ -25,7 +25,7 @@ namespace Zerra.Reflection
             {
                 if (constructorInfo == null)
                 {
-                    constructorInfo = ParentType.GetConstructor(Parameters.Select(x => x.Type).ToArray());
+                    constructorInfo = ParentType.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, Parameters.Select(x => x.Type).ToArray(), null);
                     if (constructorInfo == null)
                         throw new InvalidOperationException($"ConstructorInfo was not found.");
                 }

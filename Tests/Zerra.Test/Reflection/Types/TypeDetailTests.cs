@@ -1,4 +1,4 @@
-// Copyright © KaKush LLC
+﻿// Copyright © KaKush LLC
 // Written By Steven Zawaski
 // Licensed to you under the MIT license
 
@@ -523,11 +523,15 @@ namespace Zerra.Test.Reflection.Types
             Assert.Equal(nameof(LookupMembersModel.Value), member.Name);
             Assert.Equal(nameof(LookupMembersModel.Field), detail.GetMember(nameof(LookupMembersModel.Field)).Name);
             Assert.False(detail.TryGetMember("Missing", out _));
-            _ = Assert.Throws<ArgumentException>(() => detail.GetMember("Missing"));
+            _ = Assert.Throws<MissingMemberException>(() => detail.GetMember("Missing"));
 
             Assert.True(detail.TryGetMethod(nameof(LookupMembersModel.M), out var method));
             Assert.Equal(nameof(LookupMembersModel.M), method.Name);
             Assert.False(detail.TryGetMethod("Missing", out _));
+            Assert.Single(detail.GetMethods(nameof(LookupMembersModel.M)));
+            Assert.Empty(detail.GetMethods("Missing"));
+
+            Assert.Equal(3, typeof(LookupModelA).GetTypeDetail().GetMethods("M").Count);
 
             var a = typeof(LookupModelA).GetTypeDetail();
             _ = Assert.Throws<MissingMethodException>(() => a.GetMethod("M", 5));

@@ -110,7 +110,7 @@ full.GetMember("passwordHash").SetterBoxed!(user, hash);
 var args = new object?[] { null };
 full.GetMethods("TryParse").Single().CallerBoxed!(null, args);
 
-var info = full.GetMemberInfo(full.GetMember("passwordHash")); // the FieldInfo, for accessibility and every attribute
+var info = full.GetMember("passwordHash").MemberInfo; // the FieldInfo, for accessibility and every attribute
 ```
 
 A base type's private members are on the base type's own full access. Members the `TypeDetail` already lists in full are the same objects.

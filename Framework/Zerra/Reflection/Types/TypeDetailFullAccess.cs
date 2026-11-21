@@ -3,7 +3,6 @@
 // Licensed to you under the MIT license
 
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using Zerra.Reflection.Dynamic;
 
 namespace Zerra.Reflection
@@ -18,10 +17,8 @@ namespace Zerra.Reflection
     [RequiresUnreferencedCode("Full access reads private and non-public members through reflection, trimming can remove them")]
     [RequiresDynamicCode("Full access builds its accessors at runtime")]
 #endif
-    public class TypeDetailFullAccess
+    public partial class TypeDetailFullAccess
     {
-        private const BindingFlags allFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.FlattenHierarchy;
-
 #if NETSTANDARD2_0
         private protected readonly object locker = new();
 #else
@@ -82,124 +79,5 @@ namespace Zerra.Reflection
                 return constructors;
             }
         }
-
-        private Dictionary<string, MemberDetail>? membersByName;
-        private Dictionary<string, MemberDetail> MembersByName
-        {
-            get
-            {
-                if (membersByName == null)
-                {
-                    lock (locker)
-                        membersByName ??= Members.ToDictionary(x => x.Name);
-                }
-                return membersByName;
-            }
-        }
-
-        private Dictionary<string, MethodDetail[]>? methodsByName;
-        private Dictionary<string, MethodDetail[]> MethodsByName
-        {
-            get
-            {
-                if (methodsByName == null)
-                {
-                    lock (locker)
-                        methodsByName ??= Methods.GroupBy(x => x.Name).ToDictionary(x => x.Key, x => x.ToArray());
-                }
-                return methodsByName;
-            }
-        }
-
-        /// <summary>
-        /// Gets the member with this name.
-        /// </summary>
-        /// <param name="name">The member name.</param>
-        /// <returns>The member.</returns>
-        public MemberDetail GetMember(string name)
-        {
-            if (!MembersByName.TryGetValue(name, out var member))
-                throw new MissingMemberException($"{Type.Name}.{name} not found");
-            return member;
-        }
-
-        /// <summary>
-        /// Attempts to get the member with this name.
-        /// </summary>
-        /// <param name="name">The member name.</param>
-        /// <param name="member">The member when found.</param>
-        /// <returns>True when found.</returns>
-        public bool TryGetMember(string name,
-#if !NETSTANDARD2_0
-            [MaybeNullWhen(false)]
-#endif
-            out MemberDetail member)
-            => MembersByName.TryGetValue(name, out member);
-
-        /// <summary>
-        /// Gets every method with this name, including overloads.
-        /// </summary>
-        /// <param name="name">The method name.</param>
-        /// <returns>The methods, empty when there are none.</returns>
-        public IReadOnlyList<MethodDetail> GetMethods(string name) => MethodsByName.TryGetValue(name, out var found) ? found : [];
-
-        /// <summary>
-        /// Gets the reflection member a detail describes, for its accessibility, every attribute, and anything else reflection has.
-        /// </summary>
-        /// <param name="member">A member from <see cref="Members"/> or the type's <see cref="TypeDetail.Members"/>.</param>
-        /// <returns>The <see cref="PropertyInfo"/> or <see cref="FieldInfo"/>.</returns>
-        public MemberInfo GetMemberInfo(MemberDetail member)
-        {
-            var found = FindMemberInfo(member.ParentType, member);
-            //an interface's members include those of the interfaces it extends
-            if (found is null && member.ParentType.IsInterface)
-            {
-                foreach (var i in member.ParentType.GetInterfaces())
-                {
-                    found = FindMemberInfo(i, member);
-                    if (found is not null)
-                        break;
-                }
-            }
-            return found ?? throw new MissingMemberException($"{member.ParentType.Name}.{member.Name} not found");
-        }
-
-        /// <summary>
-        /// Gets the reflection method a detail describes, for its accessibility, every attribute, and anything else reflection has.
-        /// </summary>
-        /// <param name="method">A method from <see cref="Methods"/> or the type's <see cref="TypeDetail.Methods"/>.</param>
-        /// <returns>The <see cref="MethodInfo"/>.</returns>
-        public MethodInfo GetMethodInfo(MethodDetail method)
-        {
-            var found = FindMethodInfo(method.ParentType, method);
-            //an interface's methods include those of the interfaces it extends
-            if (found is null && method.ParentType.IsInterface)
-            {
-                foreach (var i in method.ParentType.GetInterfaces())
-                {
-                    found = FindMethodInfo(i, method);
-                    if (found is not null)
-                        break;
-                }
-            }
-            return found ?? throw new MissingMethodException($"{method.ParentType.Name}.{method.Name} not found");
-        }
-
-        /// <summary>
-        /// Gets the reflection constructor a detail describes. A constructor from the type's <see cref="TypeDetail.Constructors"/>
-        /// that also takes its required members has no single matching constructor.
-        /// </summary>
-        /// <param name="constructor">A constructor from <see cref="Constructors"/> or the type's <see cref="TypeDetail.Constructors"/>.</param>
-        /// <returns>The <see cref="ConstructorInfo"/>, or null when there isn't one with these parameters.</returns>
-        public ConstructorInfo? GetConstructorInfo(ConstructorDetail constructor)
-            => constructor.ParentType.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, constructor.Parameters.Select(x => x.Type).ToArray(), null);
-
-        private static MemberInfo? FindMemberInfo(Type type, MemberDetail member)
-            => member.IsField
-                ? type.GetField(member.Name, allFlags)
-                : type.GetProperties(allFlags).FirstOrDefault(x => x.Name == member.Name && x.GetIndexParameters().Length == 0);
-
-        private static MethodInfo? FindMethodInfo(Type type, MethodDetail method)
-            => type.GetMethods(allFlags).FirstOrDefault(x => x.Name == method.Name && x.IsStatic == method.IsStatic && x.GetParameters().Select(p => p.ParameterType).SequenceEqual(method.Parameters.Select(p => p.Type)));
     }
 }

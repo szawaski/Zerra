@@ -112,12 +112,12 @@ namespace Zerra.Reflection
         /// </summary>
         /// <param name="name">The member name to look up.</param>
         /// <returns>The <see cref="MemberDetail"/> for the specified member name.</returns>
-        /// <exception cref="ArgumentException">Thrown when no member with the specified name is found.</exception>
+        /// <exception cref="MissingMemberException">Thrown when no member with the specified name is found.</exception>
         public MemberDetail GetMember(string name)
         {
             if (TryGetMember(name, out var member))
                 return member;
-            throw new ArgumentException($"No member named {name} found on type {Type.Name}");
+            throw new MissingMemberException($"{Type.Name}.{name} member not found");
         }
 
         private Dictionary<string, MethodDetail[]>? methodsByName = null;
@@ -147,6 +147,25 @@ namespace Zerra.Reflection
 
             method = null;
             return false;
+        }
+
+        /// <summary>
+        /// Retrieves every method with the specified name, including overloads.
+        /// </summary>
+        /// <param name="name">The method name to look up.</param>
+        /// <returns>The methods with the specified name, empty when there are none.</returns>
+        public IReadOnlyList<MethodDetail> GetMethods(string name)
+        {
+            if (methodsByName == null)
+            {
+                lock (locker)
+                    methodsByName ??= Methods.GroupBy(x => x.Name).ToDictionary(g => g.Key, g => g.ToArray());
+            }
+
+            if (methodsByName.TryGetValue(name, out var methodArray))
+                return methodArray;
+
+            return [];
         }
 
         private ConcurrentFactoryDictionary<TypeKey, MethodDetail?>? methodLookups = null;
@@ -324,7 +343,7 @@ namespace Zerra.Reflection
             return false;
         }
 
-        private static bool SignatureCompare(string name1, int? genericArgumentCount, int? parameterCount, Type[]? parameters1, MethodDetail methodDetail2)
+        internal static bool SignatureCompare(string name1, int? genericArgumentCount, int? parameterCount, Type[]? parameters1, MethodDetail methodDetail2)
         {
             if (name1 != methodDetail2.Name)
                 return false;
@@ -356,7 +375,7 @@ namespace Zerra.Reflection
 
             return true;
         }
-        private static bool SignatureCompare(int? parameterCount, Type[]? parameters1, ConstructorDetail constructorDetail2)
+        internal static bool SignatureCompare(int? parameterCount, Type[]? parameters1, ConstructorDetail constructorDetail2)
         {
             if (parameterCount is not null)
             {

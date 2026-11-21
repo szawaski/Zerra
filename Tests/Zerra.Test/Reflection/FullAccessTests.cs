@@ -191,20 +191,17 @@ namespace Zerra.Test.Reflection
             var detail = TypeAnalyzer.GetTypeDetail(typeof(FullAccessModel));
             var full = detail.GetFullAccess();
 
-            var property = Assert.IsAssignableFrom<PropertyInfo>(full.GetMemberInfo(full.GetMember(nameof(FullAccessModel.PrivateSet))));
+            var property = Assert.IsAssignableFrom<PropertyInfo>(full.GetMember(nameof(FullAccessModel.PrivateSet)).MemberInfo);
             Assert.True(property.SetMethod!.IsPrivate);
 
-            var field = Assert.IsAssignableFrom<FieldInfo>(full.GetMemberInfo(full.GetMember("hidden")));
+            var field = Assert.IsAssignableFrom<FieldInfo>(full.GetMember("hidden").MemberInfo);
             Assert.Equal(typeof(FullAccessModel), field.DeclaringType);
             Assert.True(field.IsPrivate);
 
-            var method = full.GetMethodInfo(full.GetMethods("Twice").Single());
-            Assert.True(method.IsPrivate && method.IsStatic);
+            var constructor = full.Constructors.Single(x => x.Parameters.Count == 1 && x.Parameters[0].Type == typeof(string)).GetConstructorInfo;
+            Assert.True(constructor.IsPrivate);
 
-            Assert.NotNull(full.GetConstructorInfo(full.Constructors.Single(x => x.Parameters.Count == 1 && x.Parameters[0].Type == typeof(string))));
-
-            //the type's own details resolve too
-            Assert.Equal(nameof(FullAccessModel.Public), full.GetMemberInfo(detail.GetMember(nameof(FullAccessModel.Public))).Name);
+            Assert.Equal(nameof(FullAccessModel.Public), detail.GetMember(nameof(FullAccessModel.Public)).MemberInfo.Name);
         }
 
         [Fact]
@@ -224,6 +221,34 @@ namespace Zerra.Test.Reflection
             var list = TypeAnalyzer.GetTypeDetail(typeof(IList<int>));
             Assert.Equal(typeof(ICollection<int>), list.GetMember(nameof(IList<int>.Count)).MemberInfo.DeclaringType);
             Assert.Equal(typeof(ICollection<int>), list.Methods.First(x => x.Name == nameof(IList<int>.Add)).MethodInfo.DeclaringType);
+        }
+
+        [Fact]
+        public void Lookups()
+        {
+            var full = TypeAnalyzer.GetTypeDetail(typeof(FullAccessModel)).GetFullAccess();
+
+            Assert.True(full.TryGetMember("secret", out var member));
+            Assert.Equal("secret", member.Name);
+            Assert.False(full.TryGetMember("Missing", out _));
+            _ = Assert.Throws<MissingMemberException>(() => full.GetMember("Missing"));
+
+            Assert.True(full.TryGetMethod("Twice", out var method));
+            Assert.Same(method, full.GetMethod("Twice"));
+            Assert.Same(method, full.GetMethod("Twice", 1));
+            Assert.Same(method, full.GetMethod("Twice", 0, 1));
+            Assert.Same(method, full.GetMethod("Twice", [typeof(int)]));
+            Assert.Same(method, full.GetMethod("Twice", 0, [typeof(int)]));
+            Assert.False(full.TryGetMethod("Missing", out _));
+            Assert.Empty(full.GetMethods("Missing"));
+            _ = Assert.Throws<MissingMethodException>(() => full.GetMethod("Missing"));
+            _ = Assert.Throws<MissingMethodException>(() => full.GetMethod("Twice", 2));
+
+            Assert.Empty(full.GetConstructor().Parameters);
+            Assert.Equal(typeof(string), full.GetConstructor([typeof(string)]).Parameters[0].Type);
+            Assert.Equal(typeof(int).MakeByRefType(), full.GetConstructor([typeof(int).MakeByRefType()]).Parameters[0].Type);
+            _ = Assert.Throws<InvalidOperationException>(() => full.GetConstructor(1));
+            _ = Assert.Throws<MissingMethodException>(() => full.GetConstructor(3));
         }
 
         [Fact]
