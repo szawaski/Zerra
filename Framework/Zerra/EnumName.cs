@@ -245,7 +245,7 @@ public sealed class EnumName : Attribute
     {
 #if !NETSTANDARD2_0
         if (!RuntimeFeature.IsDynamicCodeSupported)
-            throw new NotSupportedException($"Cannot parse enums with flag attribute for {type.Name}.  Dynamic code generation is not supported in this build configuration.");
+            throw new NotSupportedException($"Cannot parse enums with flag attribute for {type.Name}.  Dynamic code generation is not supported in this build configuration. Mark the type with [GenerateTypeDetail], or check that the project declaring it references the Zerra package.");
 #endif
 #pragma warning disable IL2060 // Call to 'System.Reflection.MethodInfo.MakeGenericMethod' can not be statically analyzed. It's not possible to guarantee the availability of requirements of the generic method.
         var genericMethod = bitOrMethod.MakeGenericMethod(type);
@@ -256,7 +256,7 @@ public sealed class EnumName : Attribute
     {
 #if !NETSTANDARD2_0
         if (!RuntimeFeature.IsDynamicCodeSupported)
-            throw new NotSupportedException($"Cannot create enum for {type.Name}.  Dynamic code generation is not supported in this build configuration.");
+            throw new NotSupportedException($"Cannot create enum for {type.Name}.  Dynamic code generation is not supported in this build configuration. Mark the type with [GenerateTypeDetail], or check that the project declaring it references the Zerra package.");
 #endif
 #pragma warning disable IL2067 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.
         return Activator.CreateInstance(type)!;

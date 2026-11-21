@@ -34,7 +34,7 @@ namespace Zerra.Reflection
         {
 #if !NETSTANDARD2_0
             if (!RuntimeFeature.IsDynamicCodeSupported)
-                throw new NotSupportedException($"Cannot generate type detail for {type.Name}. Dynamic code generation is not supported in this build configuration.");
+                throw new NotSupportedException($"Cannot generate type detail for {type.Name}. Dynamic code generation is not supported in this build configuration. Mark the type with [GenerateTypeDetail], or check that the project declaring it references the Zerra package.");
 #endif
 
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
